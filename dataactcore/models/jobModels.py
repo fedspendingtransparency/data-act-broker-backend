@@ -61,8 +61,6 @@ class Submission(Base):
     cgac_code = Column(Text)
     reporting_start_date = Column(Date, nullable=False)
     reporting_end_date = Column(Date, nullable=False)
-    earliest_action_date = Column(Date)
-    latest_action_date = Column(Date)
     reporting_fiscal_year = Column(Integer, nullable=False, default=generate_fiscal_year, server_default='0')
     reporting_fiscal_period = Column(Integer, nullable=False, default=generate_fiscal_period, server_default='0')
     is_quarter_format = Column(Boolean, nullable=False, default="False", server_default="False")
