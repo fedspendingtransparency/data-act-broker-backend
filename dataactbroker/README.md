@@ -375,7 +375,7 @@ status objects for each job under the key "jobs", and other submission-level dat
     * error_data: Holds a list of errors, each error is a dict with keys:
         - field_name: What field the error occurred on
         - error_name: Type of error that occurred, values are:
-            * type_error: Value was of the wrong type
+            * type_error: Value was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line.
             * required_error: A required value was missing
             * read_error: Could not parse this value from the file
             * write_error: This was a problem writing the value to the staging table
@@ -443,7 +443,7 @@ Example output:
         {
           "field_name": "allocationtransferagencyid",
           "error_name": "type_error",
-          "error_description": "The value provided was of the wrong type",
+          "error_description": "The value provided was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line.",
           "occurrences": 27,
           "rule_failed": "",
           "original_label":""
