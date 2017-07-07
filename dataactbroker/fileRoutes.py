@@ -83,12 +83,25 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         gtas_window = sess.query(GTASSubmissionWindow).filter(
                                                 GTASSubmissionWindow.start_date < curr_date,
-                                                GTASSubmissionWindow.end_date > curr_date)
+                                                GTASSubmissionWindow.end_date > curr_date).one_or_none()
 
-        if gtas_window.count() > 0:
-            return JsonResponse.create(StatusCode.OK, {"message": "GTAS Window is open", "open": True})
+        
+        message = 'GTAS Window is not open'
+        data = None
+        window_open = False
+        start_date = None
+        end_date = None
+        data = {}
 
-        return JsonResponse.create(StatusCode.OK, {"message": "GTAS Window is not open", "open": False})
+        print(gtas_window)
+
+        if gtas_window is not None:
+            message = 'GTAS Window is open'
+            data = gtas_window
+            window_open = True
+            data = {'start_date': str(gtas_window.start_date), 'end_date': str(gtas_window.end_date)}
+
+        return JsonResponse.create(StatusCode.OK, {"message": message, "open": window_open, "data": data})
 
     @app.route("/v1/submission_error_reports/", methods=["POST"])
     @requires_login
