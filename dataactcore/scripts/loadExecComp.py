@@ -3,7 +3,6 @@ import os
 import sys
 import pandas as pd
 import paramiko
-import socket
 import zipfile
 from collections import OrderedDict
 import numpy as np
@@ -161,27 +160,16 @@ if __name__ == '__main__':
                 if local:
                     file = open(os.path.join(root_dir, daily_file))
                 else:
-                    file = open(os.path.join(root_dir, daily_file),'wb')
-                    sftp.getfo(''.join([REMOTE_SAM_DIR, '/', daily_file]),file)
+                    file = open(os.path.join(root_dir, daily_file), 'wb')
+                    sftp.getfo(''.join([REMOTE_SAM_DIR, '/', daily_file]), file)
                 parse_sam_file(file, sess)
                 file.close()
                 os.remove(os.path.join(root_dir, daily_file))
         elif not local:
-            file = open(os.path.join(root_dir, sorted_daily_file_names[-1]),'wb')
-            sftp.getfo(''.join([REMOTE_SAM_DIR, '/', sorted_daily_file_names[-1]]),file)
+            file = open(os.path.join(root_dir, sorted_daily_file_names[-1]), 'wb')
+            sftp.getfo(''.join([REMOTE_SAM_DIR, '/', sorted_daily_file_names[-1]]), file)
             parse_sam_file(file, sess)
             file.close()
             os.remove(os.path.join(root_dir, sorted_daily_file_names[-1]))
         else:
             parse_sam_file(open(os.path.join(root_dir, sorted_daily_file_names[-1])), sess)
-
-        # if not local:
-        #     daily_files = [sftp.file(''.join(REMOTE_SAM_DIR, '/', daily_file)) for daily_file in sorted_daily_file_names]
-        # else:
-        #     daily_files = [open(os.path.join(root_dir, daily_file)) for daily_file in sorted_daily_file_names]
-
-        # if historic:
-        #     for daily_file in daily_files:
-        #         parse_sam_file(daily_file, sess)
-        # else:
-        #     parse_sam_file(daily_files[-1], sess)
