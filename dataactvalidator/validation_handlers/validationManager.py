@@ -208,14 +208,11 @@ class ValidationManager:
             sess.expunge(field)
 
         csv_schema = {row.name_short: row for row in fields}
-        fields_long_names = [row.name for row in fields]
-        long_to_short_file_type = {long_name: short_name for long_name, short_name in self.long_to_short_dict.items()
-                                   if long_name in fields_long_names}
 
         try:
             # Pull file and return info on whether it's using short or long col headers
             reader.open_file(region_name, bucket_name, file_name, fields, bucket_name, error_file_name,
-                             long_to_short_file_type)
+                             self.long_to_short_dict)
 
             # list to keep track of rows that fail validations
             error_rows = []
@@ -285,7 +282,8 @@ class ValidationManager:
                         passed_validations = True
                         valid = True
                     else:
-                        passed_validations, failures, valid = Validator.validate(record, csv_schema)
+                        passed_validations, failures, valid = Validator.validate(record, csv_schema,
+                                                                                 file_type in ["detached_award"])
                     if valid:
                         # todo: update this logic later when we have actual validations
                         if file_type in ["detached_award"]:
