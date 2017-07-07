@@ -327,6 +327,7 @@ def load_domain_values(base_path, local_program_activity=None):
         program_activity_file = s3bucket.get_key("program_activity.csv").generate_url(expires_in=600)
         country_codes_file = s3bucket.get_key("country_codes.csv").generate_url(expires_in=600)
         cfda_program_file = s3bucket.get_key("cfda_program.csv").generate_url(expires_in=600)
+        cars_tas_file = s3bucket.get_key("cars_tas.csv").generate_url(expires_in=600)
 
     else:
         agency_list_file = os.path.join(base_path, "agency_list.csv")
@@ -334,9 +335,12 @@ def load_domain_values(base_path, local_program_activity=None):
         program_activity_file = os.path.join(base_path, "program_activity.csv")
         country_codes_file = os.path.join(base_path, "country_codes.csv")
         cfda_program_file = os.path.join(base_path, "cfda_program.csv")
+        cars_tas_file = os.path.join(base_path, "cars_tas.csv")
 
     logger.info('Loading CGAC')
     load_cgac(agency_list_file)
+    logger.info('Loading FREC')
+    load_frec(cars_tas_file)
     logger.info('Loading Sub Tier Agencies')
     load_sub_tier_agencies(agency_list_file)
     logger.info('Loading object class')
