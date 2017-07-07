@@ -27,8 +27,8 @@ WHERE CASE WHEN COALESCE(dafa.place_of_performance_zip4a, '') != ''
                                       ON UPPER(LEFT(sub_dafa.place_of_performance_code, 2)) = zips.state_abbreviation
                                         AND LEFT(sub_dafa.place_of_performance_zip4a, 5) = zips.zip5
                                         AND SUBSTRING(REPLACE(sub_dafa.place_of_performance_zip4a, '-', ''), 6, 4) = zips.zip_last4)
-                    -- if any other format, fail
-                    ELSE TRUE
+                    -- if any other format, pass (will check format in another rule)
+                    ELSE FALSE
                     END)
              END)
         -- if not zip4, just let it pass
