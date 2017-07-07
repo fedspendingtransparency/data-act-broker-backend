@@ -1,7 +1,8 @@
 class ValidationError:
     """ This class holds errors that can occur during validation, for use in the error report and database """
 
-    typeErrorMsg = "The value provided was of the wrong type"
+    typeErrorMsg = "The value provided was of the wrong type. Note that all type errors in a line" \
+                   " must be fixed before the rest of the validation logic is applied to that line."
     typeError = 0
     requiredErrorMsg = "A required value was not provided"
     requiredError = 1
