@@ -4,6 +4,7 @@ import sys
 import pandas as pd
 import paramiko
 import zipfile
+import re
 from collections import OrderedDict
 import numpy as np
 import argparse
@@ -153,7 +154,7 @@ if __name__ == '__main__':
             dirlist = os.listdir(local)
 
         # generate chronological list of daily files
-        sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if "DAILY" in daily_file])
+        sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match(".*DAILY_\d+", daily_file)])
 
         if historic:
             for daily_file in sorted_daily_file_names:
