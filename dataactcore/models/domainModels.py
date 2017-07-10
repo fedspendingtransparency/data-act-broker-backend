@@ -113,6 +113,7 @@ class FREC(Base):
     frec_id = Column(Integer, primary_key=True)
     frec_code = Column(Text, nullable=True, index=True, unique=True)
     agency_name = Column(Text)
+    cgac_code = Column(Text)
 
 
 class SubTierAgency(Base):

@@ -481,7 +481,10 @@ class FileHandler:
 
         if not self.isLocal:
             # Create file D API URL with dates and callback URL
-            api_url = FileHandler.get_d_file_url(task_key, file_type_name, cgac_code, frec_code, start_date, end_date)
+            if frec_code:
+                cgac_code = sess.query(FREC).filter_by(frec_code=frec_code).one_or_none().cgac_code
+
+            api_url = FileHandler.get_d_file_url(task_key, file_type_name, cgac_code, start_date, end_date)
 
             logger.debug('Calling D file API => %s', api_url)
             try:
@@ -1036,13 +1039,13 @@ class FileHandler:
                                       StatusCode.CLIENT_ERROR)
 
     @staticmethod
-    def get_d_file_url(task_key, file_type_name, cgac_code, frec_code, start_date, end_date):
+    def get_d_file_url(task_key, file_type_name, cgac_code, start_date, end_date):
         """ Compiles the URL to be called in order to generate the D files """
         callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],
                                                                   CONFIG_SERVICES["broker_api_host"],
                                                                   CONFIG_SERVICES["broker_api_port"], task_key)
         logger.debug('Callback URL for %s: %s', FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]], callback)
-        url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, frec_code, start_date, end_date,
+        url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date,
                                                                       callback)
         return url
 

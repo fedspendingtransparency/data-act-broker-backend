@@ -80,7 +80,7 @@ def load_frec(file_name):
         data = clean_data(
             data,
             model,
-            {"fr_entity_type": "frec_code", "fr_entity_description": "agency_name"},
+            {"fr_entity_type": "frec_code", "agency_aid": "cgac_code", "fr_entity_description": "agency_name"},
             {}
         )
         # de-dupe
