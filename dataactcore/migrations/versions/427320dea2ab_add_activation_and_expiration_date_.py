@@ -1,14 +1,14 @@
 """add activation and expiration date columns to executive_compensation table
 
 Revision ID: 427320dea2ab
-Revises: aa10ae595d3e
+Revises: 551a8e1cc551
 Create Date: 2017-07-10 14:00:30.273558
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '427320dea2ab'
-down_revision = 'aa10ae595d3e'
+down_revision = '551a8e1cc551'
 branch_labels = None
 depends_on = None
 
