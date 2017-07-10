@@ -120,39 +120,34 @@ def test_set_max_perms(database, monkeypatch):
     accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-FREC_ABC-PERM_R,prefix-CGAC_ABC-FREC_ABC-PERM_S')
     database.session.commit()
     assert len(user.affiliations) == 1
-    affiliations = list(sorted(user.affiliations, key=lambda a: a.cgac.cgac_code))
     affil = user.affiliations[0]
-    assert affil.cgac.cgac_code == 'ABC'
+    assert affil.cgac is None
     assert affil.frec.frec_code == 'ABC'
     assert affil.permission_type_id == PERMISSION_TYPE_DICT['submitter']
 
     accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-FREC_ABC-PERM_R,prefix-CGAC_ABC-FREC_DEF-PERM_S')
     database.session.commit()
     assert len(user.affiliations) == 2
-    affiliations = list(sorted(user.affiliations, key=lambda a: a.cgac.cgac_code))
-    # affiliations may not be in correct order
-    correct_assertions = 0
-    for affiliation in affiliations:
-        if affiliation.cgac.cgac_code == 'ABC' and affiliation.frec.frec_code == 'ABC' and \
-           affiliation.permission_type_id == PERMISSION_TYPE_DICT['reader']:
-            correct_assertions = correct_assertions + 1
-        if affiliation.cgac.cgac_code == 'ABC' and affiliation.frec.frec_code == 'DEF' and\
-           affiliation.permission_type_id == PERMISSION_TYPE_DICT['submitter']:
-            correct_assertions = correct_assertions + 1
-    assert correct_assertions == 2
+    affiliations = list(sorted(user.affiliations, key=lambda a: a.frec.frec_code))
+    abc_aff, def_aff = affiliations
+    assert abc_aff.cgac is None
+    assert abc_aff.frec.frec_code == 'ABC'
+    assert abc_aff.permission_type_id == PERMISSION_TYPE_DICT['reader']
+    assert def_aff.cgac is None
+    assert def_aff.frec.frec_code == 'DEF'
+    assert def_aff.permission_type_id == PERMISSION_TYPE_DICT['submitter']
 
     accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_R,prefix-CGAC_DEF-FREC_DEF-PERM_R')
     database.session.commit()
     assert len(user.affiliations) == 2
-    affiliations = list(sorted(user.affiliations, key=lambda a: a.cgac.cgac_code))
-    # affiliations may not be in correct order
+    # no good way to sort affiliations
     correct_assertions = 0
-    for affiliation in affiliations:
-        if affiliation.cgac.cgac_code == 'ABC' and affiliation.frec is None and \
-           affiliation.permission_type_id == PERMISSION_TYPE_DICT['reader']:
+    for affil in user.affiliations:
+        if (affil.cgac and affil.cgac.cgac_code == 'ABC') and affil.frec is None and \
+           affil.permission_type_id == PERMISSION_TYPE_DICT['reader']:
             correct_assertions = correct_assertions + 1
-        if affiliation.cgac.cgac_code == 'DEF' and affiliation.frec.frec_code == 'DEF' and\
-           affiliation.permission_type_id == PERMISSION_TYPE_DICT['reader']:
+        if affil.cgac is None and (affil.frec and affil.frec.frec_code == 'DEF') and \
+           affil.permission_type_id == PERMISSION_TYPE_DICT['reader']:
             correct_assertions = correct_assertions + 1
     assert correct_assertions == 2
 
