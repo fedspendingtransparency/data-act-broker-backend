@@ -20,7 +20,6 @@ from dataactcore.config import CONFIG_BROKER
 logger = logging.getLogger(__name__)
 
 REMOTE_SAM_DIR = '/current/SAM/6_EXECCOMP'
-# sftp -i SAMDATAProd -P 22 samdataprod04@66.77.18.174
 
 
 def parse_sam_file(file, sess):
@@ -105,7 +104,6 @@ def parse_exec_comp(exec_comp_str=None):
 
 def get_config():
     sam_config = CONFIG_BROKER.get('sam')
-    print(sam_config)
 
     if sam_config:
         return sam_config.get('private_key'), sam_config.get('username'), sam_config.get('password'), \
