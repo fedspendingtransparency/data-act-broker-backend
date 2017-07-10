@@ -255,25 +255,26 @@ def perms_to_affiliations(perms):
 
         codes, perm_level = components
         perm_level = perm_level.lower()
-
         split_codes = codes.split('-FREC_')
-        frec_code = None
+        frec_code = cgac_code = None
         if len(split_codes) == 2:
-            cgac_code, frec_code = split_codes
+            frec_code = split_codes[1]
             if frec_code not in available_frecs:
                 logger.warning('Malformed permission: %s', perm)
                 continue
         else:
             cgac_code = codes
+            if cgac_code not in available_cgacs:
+                logger.warning('Malformed permission: %s', perm)
+                continue
 
-        if cgac_code not in available_cgacs or perm_level not in 'rws':
+        if perm_level not in 'rws':
             logger.warning('Malformed permission: %s', perm)
             continue
 
-        frec = available_frecs[frec_code] if frec_code else None
         yield UserAffiliation(
-            cgac=available_cgacs[cgac_code],
-            frec=frec,
+            cgac=available_cgacs[cgac_code] if cgac_code else None,
+            frec=available_frecs[frec_code] if frec_code else None,
             permission_type_id=PERMISSION_SHORT_DICT[perm_level]
         )
 
@@ -322,8 +323,9 @@ def json_for_user(user):
         "title": user.title,
         "skip_guide": user.skip_guide,
         "website_admin": user.website_admin,
-        "affiliations": [{"agency_name": affil.cgac.agency_name,
-                          "permission": affil.permission_type_name}
+        "affiliations": [{"agency_name": affil.cgac.agency_name, "permission": affil.permission_type_name}
+                         if affil.cgac else
+                         {"agency_name": affil.frec.agency_name, "permission": affil.permission_type_name}
                          for affil in user.affiliations]
     }
 

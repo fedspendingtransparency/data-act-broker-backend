@@ -35,7 +35,7 @@ class UserAffiliation(Base):
     user_id = Column(Integer, ForeignKey("users.user_id", name="user_affiliation_user_fk", ondelete='CASCADE'),
                      index=True, nullable=False)
     cgac_id = Column(Integer, ForeignKey("cgac.cgac_id", name="user_affiliation_cgac_fk", ondelete='CASCADE'),
-                     index=True, nullable=False)
+                     index=True, nullable=True)
     frec_id = Column(Integer, ForeignKey("frec.frec_id", name="user_affiliation_frec_fk", ondelete='CASCADE'),
                      index=True, nullable=True)
     cgac = relationship("CGAC")
