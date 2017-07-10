@@ -391,10 +391,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @convert_to_submission_id
     @requires_submission_perms('submitter', check_owner=False)
     def certify_submission(submission):
-        if gtas_window():
-            return JsonResponse.error(ValueError("Submission cannot be certified during the GTAS submission window"),
-                                      StatusCode.CLIENT_ERROR)
-
         if not submission.publishable:
             return JsonResponse.error(ValueError("Submission cannot be certified due to critical errors"),
                                       StatusCode.CLIENT_ERROR)
@@ -404,6 +400,11 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
             return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
+
+        window = gtas_window()
+        if window.open:
+            return JsonResponse.error(ValueError("Submission cannot be certified during the GTAS submission window"),
+                                      StatusCode.CLIENT_ERROR)
 
         sess = GlobalDB.db().session
 
