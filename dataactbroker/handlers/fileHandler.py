@@ -1727,15 +1727,17 @@ def fabs_derivations(obj):
     if cfda_title:
         obj['cfda_title'] = cfda_title.program_title
     else:
-        logging.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
+        logger.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
 
-    # deriving awarding agency name
-    if obj['awarding_agency_code']:
-        awarding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['awarding_agency_code']).one()
-        obj['awarding_agency_name'] = awarding_agency_name.agency_name
-
-    # deriving awarding sub tier agency name
     if obj['awarding_sub_tier_agency_c']:
+        # deriving awarding agency name and code
+        awarding_agency = sess.query(CGAC).\
+            filter(CGAC.cgac_id == SubTierAgency.cgac_id,
+                   SubTierAgency.sub_tier_agency_code == obj['awarding_sub_tier_agency_c']).one()
+        obj['awarding_agency_code'] = awarding_agency.cgac_code
+        obj['awarding_agency_name'] = awarding_agency.agency_name
+
+        # deriving awarding sub tier agency name
         awarding_sub_tier_agency_name = sess.query(SubTierAgency).\
             filter_by(sub_tier_agency_code=obj['awarding_sub_tier_agency_c']).one()
         print(obj['awarding_sub_tier_agency_c'])
