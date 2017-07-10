@@ -215,6 +215,10 @@ class AccountHandler:
         _, agency_name = sess.query(Submission.submission_id, CGAC.agency_name)\
             .join(CGAC, Submission.cgac_code == CGAC.cgac_code)\
             .filter(Submission.submission_id == submission_id).one()
+        if not agency_name:
+            _, agency_name = sess.query(Submission.submission_id, FREC.agency_name) \
+                .join(FREC, Submission.frec_code == FREC.frec_code) \
+                .filter(Submission.submission_id == submission_id).one()
 
         template_type = request_dict['email_template']
         # Check if email template type is valid
