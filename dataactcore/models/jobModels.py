@@ -59,6 +59,7 @@ class Submission(Base):
                      nullable=True)
     user = relationship("User", foreign_keys=[user_id])
     cgac_code = Column(Text)
+    frec_code = Column(Text)
     reporting_start_date = Column(Date, nullable=False)
     reporting_end_date = Column(Date, nullable=False)
     reporting_fiscal_year = Column(Integer, nullable=False, default=generate_fiscal_year, server_default='0')
