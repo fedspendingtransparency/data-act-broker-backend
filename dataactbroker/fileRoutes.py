@@ -42,6 +42,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
             submissions = sess.query(Submission).filter(
                 Submission.cgac_code == request.json.get('cgac_code'),
+                Submission.frec_code == request.json.get('frec_code'),
                 Submission.reporting_start_date == formatted_start_date,
                 Submission.reporting_end_date == formatted_end_date,
                 Submission.is_quarter_format == request.json.get('is_quarter'),
@@ -244,14 +245,15 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @use_kwargs({
         'file_type': webargs_fields.String(
             required=True, validate=webargs_validate.OneOf(('D1', 'D2'))),
-        'cgac_code': webargs_fields.String(required=True),
+        'cgac_code': webargs_fields.String(),
+        'frec_code': webargs_fields.Stringƒ(),
         'start': webargs_fields.String(required=True),
         'end': webargs_fields.String(required=True)
     })
-    def generate_detached_file(file_type, cgac_code, start, end):
+    def generate_detached_file(file_type, cgac_code, frec_code, start, end):
         """ Generate a file from external API, independent from a submission """
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.generate_detached_file(file_type, cgac_code, start, end)
+        return file_manager.generate_detached_file(file_type, cgac_code, frec_code, start, end)
 
     @app.route("/v1/check_detached_generation_status/", methods=["POST"])
     @requires_login
@@ -352,14 +354,15 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/check_year_quarter/", methods=["GET"])
     @requires_login
-    @use_kwargs({'cgac_code': webargs_fields.String(required=True),
+    @use_kwargs({'cgac_code': webargs_fields.String(),
+                 'frec_code': webargs_fields.String(),
                  'reporting_fiscal_year': webargs_fields.String(requrired=True),
                  'reporting_fiscal_period': webargs_fields.String(requrired=True)})
-    def check_year_and_quarter(cgac_code, reporting_fiscal_year, reporting_fiscal_period):
+    def check_year_and_quarter(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period):
         """ Check if cgac code, year, and quarter already has a published submission """
         sess = GlobalDB.db().session
 
-        return find_existing_submissions_in_period(sess, cgac_code, reporting_fiscal_year,
+        return find_existing_submissions_in_period(sess, cgac_code, frec_code, reporting_fiscal_year,
                                                    reporting_fiscal_period)
 
     @app.route("/v1/certify_submission/", methods=['POST'])
@@ -378,7 +381,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         sess = GlobalDB.db().session
 
-        response = find_existing_submissions_in_period(sess, submission.cgac_code,
+        response = find_existing_submissions_in_period(sess, submission.cgac_code, submission.frec_code,
                                                        submission.reporting_fiscal_year,
                                                        submission.reporting_fiscal_period, submission.submission_id)
 
@@ -433,10 +436,11 @@ def convert_to_submission_id(fn):
     return wrapped
 
 
-def find_existing_submissions_in_period(sess, cgac_code, reporting_fiscal_year,
+def find_existing_submissions_in_period(sess, cgac_code, frec_code, reporting_fiscal_year,
                                         reporting_fiscal_period, submission_id=None):
     submission_query = sess.query(Submission).filter(
         Submission.cgac_code == cgac_code,
+        Submission.frec_code == frec_code,
         Submission.reporting_fiscal_year == reporting_fiscal_year,
         Submission.reporting_fiscal_period == reporting_fiscal_period,
         Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
