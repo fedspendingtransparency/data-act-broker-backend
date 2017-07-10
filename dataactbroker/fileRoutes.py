@@ -77,7 +77,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/gtas_window/", methods=["GET"])
     def gtas_window():
-        gtas_window = get_gtas_window
+        gtas_window = get_gtas_window()
 
         data = None
 
