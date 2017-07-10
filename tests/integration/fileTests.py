@@ -658,6 +658,7 @@ class FileTests(BaseTestAPI):
 
         response = self.app.get("/v1/check_year_quarter/", params, headers={"x-session-id": self.session_id},
                                 expect_errors=True)
+        print(response.json)
         self.assertEqual(response.json['message'], "A submission with the same period already exists.")
         self.assertEqual(response.json['submissionId'], self.test_updated_submission_id)
 
