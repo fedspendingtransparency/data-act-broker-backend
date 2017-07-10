@@ -83,7 +83,7 @@ def test_is_gtas_period(file_app, database):
 
     response = file_app.get("/v1/gtas_window/")
     response_json = json.loads(response.data.decode('UTF-8'))
-    assert response_json['open'] is True 
+    assert response_json['open'] is True
 
 
 def test_current_page(file_app, database, user_constants, job_constants, monkeypatch):
