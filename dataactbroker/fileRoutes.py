@@ -90,8 +90,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         window_open = False
         data = {}
 
-        print(gtas_window)
-
         if gtas_window is not None:
             message = 'GTAS Window is open'
             data = gtas_window
