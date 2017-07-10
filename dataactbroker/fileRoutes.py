@@ -246,7 +246,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         'file_type': webargs_fields.String(
             required=True, validate=webargs_validate.OneOf(('D1', 'D2'))),
         'cgac_code': webargs_fields.String(),
-        'frec_code': webargs_fields.Stringƒ(),
+        'frec_code': webargs_fields.String(),
         'start': webargs_fields.String(required=True),
         'end': webargs_fields.String(required=True)
     })
@@ -356,8 +356,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @requires_login
     @use_kwargs({'cgac_code': webargs_fields.String(),
                  'frec_code': webargs_fields.String(),
-                 'reporting_fiscal_year': webargs_fields.String(requrired=True),
-                 'reporting_fiscal_period': webargs_fields.String(requrired=True)})
+                 'reporting_fiscal_year': webargs_fields.String(required=True),
+                 'reporting_fiscal_period': webargs_fields.String(required=True)})
     def check_year_and_quarter(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period):
         """ Check if cgac code, year, and quarter already has a published submission """
         sess = GlobalDB.db().session
