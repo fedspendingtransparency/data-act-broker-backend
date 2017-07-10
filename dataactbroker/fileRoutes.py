@@ -77,26 +77,16 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/gtas_window/", methods=["GET"])
     def gtas_window():
-        sess = GlobalDB.db().session
+        gtas_window = get_gtas_window
 
-        curr_date = datetime.utcnow()
-
-        gtas_window = sess.query(GTASSubmissionWindow).filter(
-                                                GTASSubmissionWindow.start_date < curr_date,
-                                                GTASSubmissionWindow.end_date > curr_date).one_or_none()
-
-        message = 'GTAS Window is not open'
         data = None
         window_open = False
-        data = {}
 
         if gtas_window is not None:
-            message = 'GTAS Window is open'
-            data = gtas_window
             window_open = True
             data = {'start_date': str(gtas_window.start_date), 'end_date': str(gtas_window.end_date)}
 
-        return JsonResponse.create(StatusCode.OK, {"message": message, "open": window_open, "data": data})
+        return JsonResponse.create(StatusCode.OK, {"data": data})
 
     @app.route("/v1/submission_error_reports/", methods=["POST"])
     @requires_login
@@ -399,7 +389,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
             return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
 
-        window = gtas_window()
+        window = get_gtas_window()
         if window.open:
             return JsonResponse.error(ValueError("Submission cannot be certified during the GTAS submission window"),
                                       StatusCode.CLIENT_ERROR)
@@ -481,3 +471,14 @@ def find_existing_submissions_in_period(sess, cgac_code, reporting_fiscal_year,
         }
         return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
     return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
+def get_gtas_window():
+    sess = GlobalDB.db().session
+
+    curr_date = datetime.utcnow()
+
+    return sess.query(GTASSubmissionWindow).filter(
+                                            GTASSubmissionWindow.start_date < curr_date,
+                                            GTASSubmissionWindow.end_date > curr_date).one_or_none()
+    
+
