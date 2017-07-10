@@ -162,9 +162,15 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         submission_id = submission.submission_id
 
         # /v1/reviewData/
+        # Checks that both E and F files are finished
         review_data = sess.query(Job).filter(Job.submission_id == submission_id,
                                              Job.file_type_id.in_([6, 7]), Job.job_status_id == 4)
-        if review_data.count() > 0:
+
+        # Need to check that cross file is done as well
+        generate_ef = sess.query(Job).filter(Job.submission_id == submission_id, Job.job_type_id == 4,
+                                             Job.number_of_errors == 0, Job.job_status_id == 4)
+
+        if review_data.count() == 2 and generate_ef.count() > 0:
             data = {
                 "message": "The current progress of this submission ID is on /v1/reviewData/ page.",
                 "step": "5"
@@ -172,8 +178,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             return JsonResponse.create(StatusCode.OK, data)
 
         # /v1/generateEF/
-        generate_ef = sess.query(Job).filter(Job.submission_id == submission_id, Job.job_type_id == 4,
-                                             Job.job_status_id == 4)
         if generate_ef.count() > 0:
             data = {
                 "message": "The current progress of this submission ID is on /v1/generateEF/ page.",
@@ -181,14 +185,29 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             }
             return JsonResponse.create(StatusCode.OK, data)
 
-        # /v1/validateCrossFile/
         validate_cross_file = sess.query(Job).filter(Job.submission_id == submission_id,
                                                      Job.file_type_id.in_([4, 5]), Job.job_type_id == 2,
-                                                     Job.number_of_errors == 0, Job.file_size.isnot(None))
-        if validate_cross_file.count() > 0:
+                                                     Job.number_of_errors == 0, Job.file_size.isnot(None),
+                                                     Job.job_status_id == 4)
+
+        generate_files = sess.query(Job).filter(Job.submission_id == submission_id,
+                                                Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
+                                                Job.number_of_errors == 0, Job.file_size.isnot(None),
+                                                Job.job_status_id == 4)
+
+        # /v1/validateCrossFile/
+        if validate_cross_file.count() == 2 and generate_files.count() == 3:
             data = {
                 "message": "The current progress of this submission ID is on /v1/validateCrossFile/ page.",
                 "step": "3"
+            }
+            return JsonResponse.create(StatusCode.OK, data)
+
+        # /v1/generateFiles/
+        if generate_files.count() == 3:
+            data = {
+                "message": "The current progress of this submission ID is on /v1/generateFiles/ page.",
+                "step": "2"
             }
             return JsonResponse.create(StatusCode.OK, data)
 
@@ -203,17 +222,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             data = {
                     "message": "The current progress of this submission ID is on /v1/validateData/ page.",
                     "step": "1"
-            }
-            return JsonResponse.create(StatusCode.OK, data)
-
-        # /v1/generateFiles/
-        generate_files = sess.query(Job).filter(Job.submission_id == submission_id,
-                                                Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
-                                                Job.number_of_errors == 0, Job.file_size.isnot(None))
-        if generate_files.count() > 0:
-            data = {
-                "message": "The current progress of this submission ID is on /v1/generateFiles/ page.",
-                "step": "2"
             }
             return JsonResponse.create(StatusCode.OK, data)
 
@@ -431,7 +439,7 @@ def find_existing_submissions_in_period(sess, cgac_code, reporting_fiscal_year,
         Submission.cgac_code == cgac_code,
         Submission.reporting_fiscal_year == reporting_fiscal_year,
         Submission.reporting_fiscal_period == reporting_fiscal_period,
-        Submission.publish_status_id == PUBLISH_STATUS_DICT['published'])
+        Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
     if submission_id:
         submission_query = submission_query.filter(
             Submission.submission_id != submission_id)

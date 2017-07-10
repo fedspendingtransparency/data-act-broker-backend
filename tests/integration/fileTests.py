@@ -83,7 +83,7 @@ class FileTests(BaseTestAPI):
                                                                      publish_status_id=2)
 
             cls.test_updated_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                   start_date="07/2015", end_date="09/2015",
+                                                                   start_date="07/2016", end_date="09/2016",
                                                                    is_quarter=True, number_of_errors=0,
                                                                    publish_status_id=3)
 
@@ -649,6 +649,17 @@ class FileTests(BaseTestAPI):
                                 expect_errors=True)
         self.assertEqual(response.json['message'], "A submission with the same period already exists.")
         self.assertEqual(response.json['submissionId'], self.test_certified_submission_id)
+
+    def test_check_year_quarter_updated(self):
+        params = {'cgac_code': "SYS",
+                  'submission_id': "1",
+                  'reporting_fiscal_year': "2016",
+                  'reporting_fiscal_period': "12"}
+
+        response = self.app.get("/v1/check_year_quarter/", params, headers={"x-session-id": self.session_id},
+                                expect_errors=True)
+        self.assertEqual(response.json['message'], "A submission with the same period already exists.")
+        self.assertEqual(response.json['submissionId'], self.test_updated_submission_id)
 
     def test_certify_submission(self):
         post_json = {'submission_id': self.row_error_submission_id}
