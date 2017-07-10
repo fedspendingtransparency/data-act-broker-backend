@@ -29,18 +29,20 @@ SELECT
     action_type,
     awardee_or_recipient_uniqu
 FROM detached_award_financial_assistance_d44_2_{0} AS dafa
-WHERE COALESCE(dafa.assistance_type, '') IN ('02', '03', '04', '05')
+WHERE dafa.action_type = 'A'
+    AND COALESCE(dafa.assistance_type, '') IN ('02', '03', '04', '05')
     AND (CASE
         WHEN pg_temp.is_date(COALESCE(dafa.action_date, '0'))
         THEN
             CAST(dafa.action_date as DATE)
     END) > CAST('10/01/2010' as DATE)
-    AND dafa.action_type = 'A'
     AND dafa.row_number NOT IN (
-        SELECT DISTINCT sub_dafa.row_number
-        FROM detached_award_financial_assistance_d44_2_{0} as sub_dafa
-            JOIN executive_compensation AS exec_comp
-            ON (CAST(sub_dafa.awardee_or_recipient_uniqu as float) IS NOT DISTINCT FROM CAST(exec_comp.awardee_or_recipient_uniqu as float)
-            AND CAST(sub_dafa.action_date as Date) >= exec_comp.activation_date
+            SELECT DISTINCT sub_dafa.row_number
+            FROM detached_award_financial_assistance_d44_2_{0} as sub_dafa
+                JOIN executive_compensation AS exec_comp
+                ON (sub_dafa.awardee_or_recipient_uniqu IS NOT DISTINCT FROM exec_comp.awardee_or_recipient_uniqu
+                AND (CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
+                    THEN CAST(sub_dafa.action_date as Date)
+                    END) >= CAST(exec_comp.activation_date as DATE)
+                )
             )
-    )

@@ -37,13 +37,20 @@ def test_pubished_date_success(database):
                                                            awardee_or_recipient_uniqu="111111111")
     det_award_09 = DetachedAwardFinancialAssistanceFactory(assistance_type="04", action_date="09/01/2010",
                                                            awardee_or_recipient_uniqu="111111111")
-    det_award_10 = DetachedAwardFinancialAssistanceFactory(assistance_type="06", action_date="10/02/2010",
+    det_award_10 = DetachedAwardFinancialAssistanceFactory(assistance_type="04", action_date="09/01/2010",
+                                                           awardee_or_recipient_uniqu="AAAAAAAAA")
+    det_award_11 = DetachedAwardFinancialAssistanceFactory(assistance_type="04", action_date="09/01/2010",
+                                                           awardee_or_recipient_uniqu="")
+    det_award_12 = DetachedAwardFinancialAssistanceFactory(assistance_type="06", action_date="10/02/2010",
                                                            awardee_or_recipient_uniqu="111111111")
-    det_award_11 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111")
+    det_award_13 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111")
+    det_award_14 = DetachedAwardFinancialAssistanceFactory(assistance_type="05", action_date="AAAAAAAAAA",
+                                                           awardee_or_recipient_uniqu="111111112")
 
     errors = number_of_errors(_FILE, database, models=[exec_comp_1, det_award_01, det_award_02, det_award_03,
                                                        det_award_04, det_award_05, det_award_06, det_award_07,
-                                                       det_award_08, det_award_09, det_award_10, det_award_11])
+                                                       det_award_08, det_award_09, det_award_10, det_award_11,
+                                                       det_award_12, det_award_13, det_award_14])
     assert errors == 0
 
 
