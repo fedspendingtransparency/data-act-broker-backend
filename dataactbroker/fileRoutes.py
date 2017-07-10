@@ -80,10 +80,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         gtas_window = get_gtas_window
 
         data = None
-        window_open = False
 
         if gtas_window is not None:
-            window_open = True
             data = {'start_date': str(gtas_window.start_date), 'end_date': str(gtas_window.end_date)}
 
         return JsonResponse.create(StatusCode.OK, {"data": data})
@@ -472,6 +470,7 @@ def find_existing_submissions_in_period(sess, cgac_code, reporting_fiscal_year,
         return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
     return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
+
 def get_gtas_window():
     sess = GlobalDB.db().session
 
@@ -480,5 +479,3 @@ def get_gtas_window():
     return sess.query(GTASSubmissionWindow).filter(
                                             GTASSubmissionWindow.start_date < curr_date,
                                             GTASSubmissionWindow.end_date > curr_date).one_or_none()
-    
-
