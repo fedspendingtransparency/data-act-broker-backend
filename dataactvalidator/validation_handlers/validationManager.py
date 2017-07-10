@@ -282,7 +282,8 @@ class ValidationManager:
                         passed_validations = True
                         valid = True
                     else:
-                        passed_validations, failures, valid = Validator.validate(record, csv_schema)
+                        passed_validations, failures, valid = Validator.validate(record, csv_schema,
+                                                                                 file_type in ["detached_award"])
                     if valid:
                         # todo: update this logic later when we have actual validations
                         if file_type in ["detached_award"]:

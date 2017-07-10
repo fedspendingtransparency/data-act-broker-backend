@@ -85,12 +85,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                                                 GTASSubmissionWindow.start_date < curr_date,
                                                 GTASSubmissionWindow.end_date > curr_date).one_or_none()
 
-        
         message = 'GTAS Window is not open'
         data = None
         window_open = False
-        start_date = None
-        end_date = None
         data = {}
 
         print(gtas_window)
@@ -394,6 +391,10 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @convert_to_submission_id
     @requires_submission_perms('submitter', check_owner=False)
     def certify_submission(submission):
+        if gtas_window():
+            return JsonResponse.error(ValueError("Submission cannot be certified during the GTAS submission window"),
+                                      StatusCode.CLIENT_ERROR)
+
         if not submission.publishable:
             return JsonResponse.error(ValueError("Submission cannot be certified due to critical errors"),
                                       StatusCode.CLIENT_ERROR)

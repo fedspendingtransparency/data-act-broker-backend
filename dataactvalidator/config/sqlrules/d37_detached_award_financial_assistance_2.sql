@@ -26,7 +26,7 @@ WHERE dafa.action_type IN ('B', 'C', 'D')
         SELECT DISTINCT sub_dafa.row_number
         FROM detached_award_financial_assistance_d37_2_{0} AS sub_dafa
             JOIN cfda_program AS cfda
-            ON (CAST(sub_dafa.cfda_number as float) IS NOT DISTINCT FROM CAST(cfda.program_number as float)
+            ON (sub_dafa.cfda_number IS NOT DISTINCT FROM to_char(cfda.program_number, 'FM99D999')
             AND ((sub_dafa.action_date <= cfda.published_date)
                  OR ((sub_dafa.action_date >= cfda.archived_date)
                      AND (cfda.archived_date != ''))
