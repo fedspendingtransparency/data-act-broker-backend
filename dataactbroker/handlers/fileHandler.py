@@ -196,7 +196,7 @@ class FileHandler:
                 not current_user_can_on_submission(
                     'writer', existing_submission_obj)
             )
-            cant_create = not current_user_can('writer', submission.cgac_code)
+            cant_create = not current_user_can('writer', submission.cgac_code, submission.frec_code)
             if cant_edit or cant_create:
                 raise ResponseException(
                     "User does not have permission to create/modify that "
