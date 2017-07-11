@@ -81,7 +81,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         data = None
 
-        if gtas_window is not None:
+        if gtas_window:
             data = {'start_date': str(gtas_window.start_date), 'end_date': str(gtas_window.end_date)}
 
         return JsonResponse.create(StatusCode.OK, {"data": data})
@@ -388,7 +388,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
 
         window = get_gtas_window()
-        if window is None:
+        if not window:
             return JsonResponse.error(ValueError("Submission cannot be certified during the GTAS submission window"),
                                       StatusCode.CLIENT_ERROR)
 
