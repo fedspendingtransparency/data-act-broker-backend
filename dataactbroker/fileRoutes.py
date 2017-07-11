@@ -176,9 +176,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         # /v1/uploadDetachedFiles/
         # DetachedFiles
-        detached_data = sess.query(Submission).filter(Submission.submission_id == submission_id,
-                                                      Submission.d2_submission)
-        if detached_data.count() > 0:
+        if submission.d2_submission:
             data = {
                 "message": "The current progress of this submission ID is on /v1/uploadDetachedFiles/ page.",
                 "step": "6"
