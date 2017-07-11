@@ -661,7 +661,7 @@ def get_action_dates(submission_id):
         .filter(DetachedAwardFinancialAssistance.submission_id == submission_id)
     res = action_dates.one()
     if res.min_action_date:
-        min_action_date = datetime.strptime(res.min_action_date, date_from_format).date().strftime(date_to_format)
+        min_action_date = datetime.strptime(res.min_action_date, date_from_format).strftime(date_to_format)
     if res.max_action_date:
-        max_action_date = datetime.strptime(res.max_action_date, date_from_format).date().strftime(date_to_format)
+        max_action_date = datetime.strptime(res.max_action_date, date_from_format).strftime(date_to_format)
     return min_action_date, max_action_date
