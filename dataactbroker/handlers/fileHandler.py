@@ -18,6 +18,7 @@ import sqlalchemy as sa
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.sql.expression import case
 from werkzeug.utils import secure_filename
 
 from dataactbroker.permissions import current_user_can, current_user_can_on_submission
@@ -476,12 +477,12 @@ class FileHandler:
 
     def call_d_file_api(self, file_type_name, cgac_code, frec_code, start_date, end_date, job, val_job=None):
         """ Call D file API, return True if results found, False otherwise """
-        sess = GlobalDB.db().session
         file_type = FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]]
         task_key = FileHandler.create_generation_task(job.job_id)
 
         if not self.isLocal:
             # Create file D API URL with dates and callback URL
+            sess = GlobalDB.db().session
             if frec_code:
                 cgac_code = sess.query(FREC).filter_by(frec_code=frec_code).one_or_none().cgac_code
 
@@ -729,7 +730,7 @@ class FileHandler:
                 formatted_start_date = existing_submission_obj.reporting_start_date
                 formatted_end_date = existing_submission_obj.reporting_end_date
                 cgac_code = existing_submission_obj.cgac_code
-                frec_Code = existing_submission_obj.frec_code
+                frec_code = existing_submission_obj.frec_code
             else:
                 sub_tier_agency = sess.query(SubTierAgency).\
                     filter_by(sub_tier_agency_code=request_params["agency_code"]).one()
@@ -1446,8 +1447,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
                           Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
                           Submission.reporting_end_date, Submission.certifying_user_id]
 
-    cgac_columns = [CGAC.cgac_code, CGAC.agency_name]
-    frec_columns = [FREC.frec_code, FREC.agency_name]
+    cgac_columns = [CGAC.cgac_code, CGAC.agency_name.label('cgac_agency_name')]
+    frec_columns = [FREC.frec_code, FREC.agency_name.label('frec_agency_name')]
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
                     certifying_user.name.label('certifying_user_name')]
 
@@ -1456,8 +1457,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
 
     columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
 
-    cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
-    frec_codes = [aff.frec.frec_code for aff in g.user.affiliations]
+    cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
+    frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec]
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id). \
         outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id). \
@@ -1487,13 +1488,18 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
     if not options.get(sort):
         sort = 'modified'
 
-    model = options[sort]['model']
-    col = options[sort]['col']
+    order_by = getattr(options[sort]['model'], options[sort]['col'])
+
+    if sort == "agency":
+        order_by = case([
+            (FREC.agency_name.isnot(None), FREC.agency_name),
+            (CGAC.agency_name.isnot(None), CGAC.agency_name)
+        ])
 
     if order == 'desc':
-        query = query.order_by(getattr(model, col).desc())
-    else:
-        query = query.order_by(getattr(model, col))
+        order_by = order_by.desc()
+
+    query = query.order_by(order_by)
 
     query = query.limit(limit).offset(offset)
 
@@ -1591,14 +1597,14 @@ def serialize_submission(submission):
     """Convert the provided submission into a dictionary in a schema the
     frontend expects"""
     status = get_submission_status(submission)
-
     certified_on = get_lastest_certified_date(submission)
+    agency_name = submission.cgac_agency_name if submission.cgac_agency_name else submission.frec_agency_name
 
     return {
         "submission_id": submission.submission_id,
         "last_modified": str(submission.updated_at),
         "status": status,
-        "agency": submission.agency_name if submission.agency_name else 'N/A',
+        "agency": agency_name if agency_name else 'N/A',
         # @todo why are these a different format?
         "reporting_start_date": str(submission.reporting_start_date),
         "reporting_end_date": str(submission.reporting_end_date),
