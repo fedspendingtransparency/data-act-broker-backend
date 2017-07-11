@@ -388,7 +388,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
 
         window = get_gtas_window()
-        if not window:
+        if window:
             return JsonResponse.error(ValueError("Submission cannot be certified during the GTAS submission window"),
                                       StatusCode.CLIENT_ERROR)
 

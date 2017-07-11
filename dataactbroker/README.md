@@ -725,10 +725,10 @@ This route certifies the specified submission, if possible. If a submission has 
 
 This route checks if there is a gtas window currently open, and if it is returns the start and end date, else returns None
 
-##### Body (JSON)
+##### Body 
 
 ```
-{}
+None
 ```
 
 ##### Body Description
@@ -736,14 +736,14 @@ This route checks if there is a gtas window currently open, and if it is returns
 
 ##### Response (JSON)
 
+Returns a data object with start and end dates if it is a window, or a data object containing null if it is not a window
+
 ```
-{}
-
-OR
-
 {
-  start_date: '2012-05-17',
-  end_date: '2012-06-17'
+  data : {
+    start_date: '2012-05-17',
+    end_date: '2012-06-17'
+  }
 }
 ```
 * `start_date` - The date that the window opens
