@@ -727,12 +727,7 @@ This route checks if there is a gtas window currently open, and if it is returns
 
 ##### Body 
 
-```
 None
-```
-
-##### Body Description
-
 
 ##### Response (JSON)
 
