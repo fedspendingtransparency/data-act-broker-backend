@@ -69,7 +69,7 @@ This route sends a request to the backend with the ticket obtained from the MAX 
 #### Body Description
 
 * `ticket` - ticket string received from MAX from initial login request (pending validation)
-* `service` - URL encoded string that is the source of the initial login request
+* `service` - URL encoded string that is the source of the initial login reqfuest
 
 #### Response (JSON)
 Response will be somewhat similar to the original `/login` endpoint. More data will be added to the response depending on what we get back from MAX upon validating the ticket.
@@ -720,6 +720,34 @@ This route certifies the specified submission, if possible. If a submission has 
 }
 ```
 * `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
+
+#### GET "/v1/gtas_window"
+
+This route checks if there is a gtas window currently open, and if it is returns the start and end date, else returns None
+
+##### Body (JSON)
+
+```
+{}
+```
+
+##### Body Description
+
+
+##### Response (JSON)
+
+```
+{}
+
+OR
+
+{
+  start_date: '2012-05-17',
+  end_date: '2012-06-17'
+}
+```
+* `start_date` - The date that the window opens
+* `end_date` - The date that the window closes
 
 #### POST "/v1/restart_validation"
 
