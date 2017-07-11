@@ -1,14 +1,14 @@
-"""Allowing reporting_start_date reporting_end_date to be null
+"""Allowing reporting_start_end_dates to be null
 
-Revision ID: a002792cf5cf
-Revises: aa10ae595d3e
-Create Date: 2017-07-06 14:48:21.006429
+Revision ID: 9acf8cc4e454
+Revises: df2f541291a5
+Create Date: 2017-07-11 14:14:03.356183
 
 """
 
 # revision identifiers, used by Alembic.
-revision = 'a002792cf5cf'
-down_revision = 'aa10ae595d3e'
+revision = '9acf8cc4e454'
+down_revision = 'df2f541291a5'
 branch_labels = None
 depends_on = None
 
