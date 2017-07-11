@@ -375,7 +375,7 @@ status objects for each job under the key "jobs", and other submission-level dat
     * error_data: Holds a list of errors, each error is a dict with keys:
         - field_name: What field the error occurred on
         - error_name: Type of error that occurred, values are:
-            * type_error: Value was of the wrong type
+            * type_error: Value was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line.
             * required_error: A required value was missing
             * read_error: Could not parse this value from the file
             * write_error: This was a problem writing the value to the staging table
@@ -443,7 +443,7 @@ Example output:
         {
           "field_name": "allocationtransferagencyid",
           "error_name": "type_error",
-          "error_description": "The value provided was of the wrong type",
+          "error_description": "The value provided was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line.",
           "occurrences": 27,
           "rule_failed": "",
           "original_label":""
@@ -720,6 +720,29 @@ This route certifies the specified submission, if possible. If a submission has 
 }
 ```
 * `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
+
+#### GET "/v1/gtas_window"
+
+This route checks if there is a gtas window currently open, and if it is returns the start and end date, else returns None
+
+##### Body 
+
+None
+
+##### Response (JSON)
+
+Returns a data object with start and end dates if it is a window, or a data object containing null if it is not a window
+
+```
+{
+  data : {
+    start_date: '2012-05-17',
+    end_date: '2012-06-17'
+  }
+}
+```
+* `start_date` - The date that the window opens
+* `end_date` - The date that the window closes
 
 #### POST "/v1/restart_validation"
 
