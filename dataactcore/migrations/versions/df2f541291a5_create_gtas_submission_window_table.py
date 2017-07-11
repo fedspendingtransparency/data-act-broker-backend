@@ -1,14 +1,14 @@
-"""creating a new model to store dates for the GTAS submission window
+"""Create gtas_submission_window table
 
 Revision ID: df2f541291a5
-Revises: aa10ae595d3e
+Revises: 427320dea2ab
 Create Date: 2017-07-06 12:06:53.946926
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'df2f541291a5'
-down_revision = 'aa10ae595d3e'
+down_revision = '427320dea2ab'
 branch_labels = None
 depends_on = None
 
