@@ -476,6 +476,7 @@ class FileHandler:
 
     def call_d_file_api(self, file_type_name, cgac_code, frec_code, start_date, end_date, job, val_job=None):
         """ Call D file API, return True if results found, False otherwise """
+        sess = GlobalDB.db().session
         file_type = FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]]
         task_key = FileHandler.create_generation_task(job.job_id)
 
@@ -490,7 +491,6 @@ class FileHandler:
             try:
                 # Check for numFound = 0
                 if "numFound='0'" in get_xml_response_content(api_url):
-                    sess = GlobalDB.db().session
                     # No results found, skip validation and mark as finished.
                     #
                     # Skip check here is true since we don't need to check the dependencies for the upload job
