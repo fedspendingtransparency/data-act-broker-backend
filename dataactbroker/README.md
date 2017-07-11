@@ -721,6 +721,29 @@ This route certifies the specified submission, if possible. If a submission has 
 ```
 * `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
 
+#### GET "/v1/gtas_window"
+
+This route checks if there is a gtas window currently open, and if it is returns the start and end date, else returns None
+
+##### Body 
+
+None
+
+##### Response (JSON)
+
+Returns a data object with start and end dates if it is a window, or a data object containing null if it is not a window
+
+```
+{
+  data : {
+    start_date: '2012-05-17',
+    end_date: '2012-06-17'
+  }
+}
+```
+* `start_date` - The date that the window opens
+* `end_date` - The date that the window closes
+
 #### POST "/v1/restart_validation"
 
 This route alters a submission's jobs' statuses and then restarts all validations for the specified submission.
