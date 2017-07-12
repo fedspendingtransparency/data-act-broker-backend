@@ -649,22 +649,19 @@ def get_last_validated_date(submission_id):
     return oldest_date.strftime('%m/%d/%Y') if oldest_date else oldest_date
 
 
-def get_action_dates(submission_id, valid=True):
+def get_action_dates(submission_id):
     """ Pull the earliest/latest action dates from the DetachedAwardFinancialAssistance table
 
     Arguments:
         submission_id: submission ID pull action dates from
-        valid: true if we should only go over valid action dates
 
     Returns:
-        the earliest action date (str)
-        the latest action date (str)
+        the earliest action date (str) or None if not found
+        the latest action date (str) or None if not found
     """
 
     sess = GlobalDB.db().session
-    action_dates = sess.query(func.min(DetachedAwardFinancialAssistance.action_date).label("min_action_date"),
-                              func.max(DetachedAwardFinancialAssistance.action_date).label("max_action_date"))\
+    return sess.query(func.min(DetachedAwardFinancialAssistance.action_date).label("min_action_date"),
+                      func.max(DetachedAwardFinancialAssistance.action_date).label("max_action_date"))\
         .filter(DetachedAwardFinancialAssistance.submission_id == submission_id,
-                DetachedAwardFinancialAssistance.is_valid == valid)
-    res = action_dates.one()
-    return res.min_action_date, res.max_action_date
+                DetachedAwardFinancialAssistance.is_valid.is_(True)).one()
