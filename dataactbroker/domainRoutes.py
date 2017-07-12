@@ -51,7 +51,7 @@ def add_domain_routes(app):
         """
         sess = GlobalDB.db().session
 
-        cgac_ids = [cgac.cgac_id for cgac in cgacs]
+        cgac_ids = [cgac.cgac_id for cgac in cgacs if cgac]
         sub_tier_agencies = []
         for cgac_id in cgac_ids:
             sub_tier_agencies.extend(sess.query(SubTierAgency).filter_by(cgac_id=cgac_id))
