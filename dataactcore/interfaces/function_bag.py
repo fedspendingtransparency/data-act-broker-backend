@@ -649,7 +649,7 @@ def get_last_validated_date(submission_id):
     return oldest_date.strftime('%m/%d/%Y') if oldest_date else oldest_date
 
 
-def get_action_dates(submission_id, valid = True):
+def get_action_dates(submission_id, valid=True):
     """ Pull the earliest/latest action dates from the DetachedAwardFinancialAssistance table
 
     Arguments:
