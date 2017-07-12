@@ -662,18 +662,9 @@ def get_action_dates(submission_id, valid=True):
     """
 
     sess = GlobalDB.db().session
-
-    min_action_date = None
-    max_action_date = None
-    date_from_format = '%Y%m%d'
-    date_to_format = '%Y-%m-%d'
     action_dates = sess.query(func.min(DetachedAwardFinancialAssistance.action_date).label("min_action_date"),
                               func.max(DetachedAwardFinancialAssistance.action_date).label("max_action_date"))\
         .filter(DetachedAwardFinancialAssistance.submission_id == submission_id,
                 DetachedAwardFinancialAssistance.is_valid == valid)
     res = action_dates.one()
-    if res.min_action_date:
-        min_action_date = datetime.strptime(res.min_action_date, date_from_format).strftime(date_to_format)
-    if res.max_action_date:
-        max_action_date = datetime.strptime(res.max_action_date, date_from_format).strftime(date_to_format)
-    return min_action_date, max_action_date
+    return res.min_action_date, res.max_action_date
