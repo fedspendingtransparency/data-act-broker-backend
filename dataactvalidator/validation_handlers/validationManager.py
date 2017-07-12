@@ -14,7 +14,8 @@ from dataactcore.models.validationModels import FileColumn
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, FlexField
 from dataactcore.interfaces.function_bag import (
     create_file_if_needed, write_file_error, mark_file_complete, run_job_checks,
-    mark_job_status, populate_submission_error_info, populate_job_error_info
+    mark_job_status, populate_submission_error_info, populate_job_error_info,
+    get_action_dates
 )
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
@@ -344,11 +345,17 @@ class ValidationManager:
             valid_rows = total_rows_excluding_header - len(error_rows_unique)
 
             # Update detached_award is_valid rows where applicable
+            # Update submission to include action dates where applicable
             if file_type in ["detached_award"]:
                 sess.query(DetachedAwardFinancialAssistance).\
                     filter(DetachedAwardFinancialAssistance.row_number.in_(error_rows_unique),
                            DetachedAwardFinancialAssistance.submission_id == submission_id).\
                     update({"is_valid": False}, synchronize_session=False)
+                sess.commit()
+                min_action_date, max_action_date = get_action_dates(submission_id)
+                sess.query(Submission).filter(Submission.submission_id == submission_id).\
+                    update({"reporting_start_date": min_action_date, "reporting_end_date": max_action_date},
+                           synchronize_session=False)
 
             # Update job metadata
             job.number_of_rows = row_number

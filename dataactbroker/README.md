@@ -772,7 +772,7 @@ This route alters a submission's jobs' statuses and then restarts all validation
 ## File Generation Routes
 
 #### GET "/v1/list_submissions/"
-List submissions for all agencies for which the current user is a member of. Optional query parameters are `?page=[page #]&limit=[limit #]&certified=[true|false]` which correspond to the current page number and how many submissions to return per page (limit). If the query parameters are not present, the default is `page=1`, `limit=5` and if `certified` is not provided, all submissions will be returned containing a mix of the two.
+List submissions for all agencies for which the current user is a member of. Optional query parameters are `?page=[page #]&limit=[limit #]&certified=[true|false]&d2_submission=[true|false]` which correspond to the current page number and how many submissions to return per page (limit). If the query parameters are not present, the default is `page=1`, `limit=5`, and if `certified` is not provided, all submissions will be returned containing a mix of the two. By default, the list will not include d2_submissions.
 
 ##### Example input:
 

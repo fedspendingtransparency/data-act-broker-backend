@@ -10,7 +10,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import Job, Submission, JobDependency, CertifyHistory
-from dataactcore.models.stagingModels import AwardFinancial
+from dataactcore.models.stagingModels import AwardFinancial, DetachedAwardFinancialAssistance
 from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
@@ -647,3 +647,21 @@ def get_last_validated_date(submission_id):
     # Still need to do a check here in case there aren't any jobs for a submission.
     # This is the case for a single unit test
     return oldest_date.strftime('%m/%d/%Y') if oldest_date else oldest_date
+
+
+def get_action_dates(submission_id):
+    """ Pull the earliest/latest action dates from the DetachedAwardFinancialAssistance table
+
+    Arguments:
+        submission_id: submission ID pull action dates from
+
+    Returns:
+        the earliest action date (str) or None if not found
+        the latest action date (str) or None if not found
+    """
+
+    sess = GlobalDB.db().session
+    return sess.query(func.min(DetachedAwardFinancialAssistance.action_date).label("min_action_date"),
+                      func.max(DetachedAwardFinancialAssistance.action_date).label("max_action_date"))\
+        .filter(DetachedAwardFinancialAssistance.submission_id == submission_id,
+                DetachedAwardFinancialAssistance.is_valid.is_(True)).one()
