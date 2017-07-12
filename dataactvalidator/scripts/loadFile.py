@@ -68,13 +68,35 @@ def load_cgac(file_name):
         logger.info('%s CGAC records inserted', len(models))
 
 
+def delete_missing_frecs(models, new_data):
+    """If the new file doesn't contain CGACs we had before, we should delete
+    the non-existent ones"""
+    to_delete = set(models.keys()) - set(new_data['frec_code'])
+    sess = GlobalDB.db().session
+    if to_delete:
+        sess.query(FREC).filter(FREC.frec_code.in_(to_delete)).delete(
+            synchronize_session=False)
+    for frec_code in to_delete:
+        del models[frec_code]
+
+
+def update_frecs(models, new_data):
+    """Modify existing models or create new ones"""
+    for _, row in new_data.iterrows():
+        frec_code = row['frec_code']
+        if frec_code not in models:
+            models[frec_code] = FREC()
+
+
 def load_frec(file_name):
     model = FREC
     """Load FREC (high-level agency names) lookup table."""
     with create_app().app_context():
         sess = GlobalDB.db().session
 
-        # read CGAC values from csv
+        models = {frec.frec_code: frec for frec in sess.query(FREC)}
+
+        # read FREC values from csv
         data = pd.read_csv(file_name, dtype=str)
         # clean data
         data = clean_data(
@@ -87,11 +109,12 @@ def load_frec(file_name):
         data.drop_duplicates(subset=['frec_code'], inplace=True)
 
         # insert to db
-        table_name = model.__table__.name
-        num = insert_dataframe(data, table_name, sess.connection())
+        delete_missing_frecs(models, data)
+        update_frecs(models, data)
+        sess.add_all(models.values())
         sess.commit()
 
-        logger.info('{} records inserted to {}'.format(num, table_name))
+        logger.info('%s FREC records inserted', len(models))
 
 
 def delete_missing_sub_tier_agencies(models, new_data):

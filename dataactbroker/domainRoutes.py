@@ -36,7 +36,10 @@ def add_domain_routes(app):
         agency_list = [{'agency_name': cgac.agency_name, 'cgac_code': cgac.cgac_code} for cgac in cgacs if cgac]
         frecs = sess.query(FREC).all()
         shared_list = [{'agency_name': frec.agency_name, 'frec_code': frec.frec_code} for frec in frecs if frec]
-        return JsonResponse.create(StatusCode.OK, {'agency_list': agency_list, 'shared_agency_list': shared_list})
+        return JsonResponse.create(StatusCode.OK, {
+            'agency_list': agency_list,
+            'shared_agency_list': shared_list
+        })
 
     @app.route("/v1/list_sub_tier_agencies/", methods=["GET"])
     @get_cgacs
@@ -87,6 +90,8 @@ def get_frecs(fn):
     def wrapped(*args, **kwargs):
         sess = GlobalDB.db().session
         if g.user is None:
+            frecs = []
+        elif g.user.website_admin:
             frecs = sess.query(FREC).all()
         else:
             frecs = []
