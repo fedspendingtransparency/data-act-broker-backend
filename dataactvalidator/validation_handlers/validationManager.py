@@ -351,6 +351,7 @@ class ValidationManager:
                     filter(DetachedAwardFinancialAssistance.row_number.in_(error_rows_unique),
                            DetachedAwardFinancialAssistance.submission_id == submission_id).\
                     update({"is_valid": False}, synchronize_session=False)
+                sess.commit()
                 min_action_date, max_action_date = get_action_dates(submission_id)
                 sess.query(Submission).filter(Submission.submission_id == submission_id).\
                     update({"reporting_start_date": min_action_date, "reporting_end_date": max_action_date},
