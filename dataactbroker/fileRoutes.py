@@ -77,12 +77,12 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/gtas_window/", methods=["GET"])
     def gtas_window():
-        gtas_window = get_gtas_window()
+        current_gtas_window = get_gtas_window()
 
         data = None
 
-        if gtas_window:
-            data = {'start_date': str(gtas_window.start_date), 'end_date': str(gtas_window.end_date)}
+        if current_gtas_window:
+            data = {'start_date': str(current_gtas_window.start_date), 'end_date': str(current_gtas_window.end_date)}
 
         return JsonResponse.create(StatusCode.OK, {"data": data})
 
@@ -474,8 +474,8 @@ def find_existing_submissions_in_period(sess, cgac_code, reporting_fiscal_year,
 def get_gtas_window():
     sess = GlobalDB.db().session
 
-    curr_date = datetime.utcnow()
+    curr_date = datetime.now().date()
 
     return sess.query(GTASSubmissionWindow).filter(
-                                            GTASSubmissionWindow.start_date < curr_date,
-                                            GTASSubmissionWindow.end_date > curr_date).one_or_none()
+                                            GTASSubmissionWindow.start_date <= curr_date,
+                                            GTASSubmissionWindow.end_date >= curr_date).one_or_none()
