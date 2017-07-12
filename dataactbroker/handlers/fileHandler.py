@@ -748,9 +748,10 @@ class FileHandler:
                         job_data.get('reporting_start_date'), job_data.get('reporting_end_date')),
                         StatusCode.CLIENT_ERROR)
 
-            if not current_user_can('writer', job_data["cgac_code"]):
-                raise ResponseException("User does not have permission to create jobs for this agency",
-                                        StatusCode.PERMISSION_DENIED)
+            ### Commented out to temporarily allow all users to upload FABS data for all agencies during testing
+            # if not current_user_can('writer', job_data["cgac_code"]):
+            #     raise ResponseException("User does not have permission to create jobs for this agency",
+            #                             StatusCode.PERMISSION_DENIED)
 
             submission = create_submission(g.user.user_id, job_data, existing_submission_obj)
             sess.add(submission)
