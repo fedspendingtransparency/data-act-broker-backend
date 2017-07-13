@@ -108,3 +108,12 @@ class SubmissionNarrativeFactory(factory.Factory):
     file_type_id = fuzzy.FuzzyInteger(9999)
     file_type = factory.SubFactory(FileTypeFactory)
     narrative = fuzzy.FuzzyText()
+
+
+class GTASWindowFactory(factory.Factory):
+    class Meta:
+        model = jobModels.GTASSubmissionWindow
+
+    window_id = fuzzy.FuzzyInteger(9999)
+    start_date = fuzzy.FuzzyDate(date(2010, 1, 1))
+    end_date = fuzzy.FuzzyDate(date(2010, 1, 1))

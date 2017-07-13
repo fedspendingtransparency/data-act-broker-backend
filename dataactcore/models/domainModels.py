@@ -205,6 +205,8 @@ class ExecutiveCompensation(Base):
     high_comp_officer4_amount = Column(Text)
     high_comp_officer5_full_na = Column(Text)
     high_comp_officer5_amount = Column(Text)
+    activation_date = Column(Date)
+    expiration_date = Column(Date)
 
 
 class CFDAProgram(Base):

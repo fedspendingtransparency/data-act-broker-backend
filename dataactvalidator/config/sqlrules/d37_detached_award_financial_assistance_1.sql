@@ -17,8 +17,7 @@ SELECT
     correction_late_delete_ind,
     action_date
 FROM detached_award_financial_assistance_d37_1_{0} AS dafa
-WHERE submission_id = {0}
-    AND dafa.action_type = 'A'
+WHERE (dafa.action_type = 'A'
     AND ((dafa.correction_late_delete_ind != 'C')
         or (dafa.correction_late_delete_ind is null)
     )
@@ -26,8 +25,15 @@ WHERE submission_id = {0}
         SELECT DISTINCT sub_dafa.row_number
         FROM detached_award_financial_assistance_d37_1_{0} AS sub_dafa
             JOIN cfda_program AS cfda
-            ON (CAST(sub_dafa.cfda_number as float) IS NOT DISTINCT FROM CAST(cfda.program_number as float)
+            ON (sub_dafa.cfda_number IS NOT DISTINCT FROM to_char(cfda.program_number, 'FM00.000')
             AND (((cfda.published_date <= sub_dafa.action_date) AND (cfda.archived_date = ''))
                 OR (sub_dafa.action_date <= cfda.archived_date) AND (cfda.archived_date != ''))
             )
-    )
+    ))
+    OR
+    -- should always fail if the ID isn't in the history at all
+    dafa.row_number NOT IN (
+        SELECT DISTINCT sub_dafa.row_number
+        FROM detached_award_financial_assistance_d37_1_{0} AS sub_dafa
+            JOIN cfda_program AS cfda
+            ON sub_dafa.cfda_number IS NOT DISTINCT FROM to_char(cfda.program_number, 'FM00.000'))

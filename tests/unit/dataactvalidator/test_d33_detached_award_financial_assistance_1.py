@@ -25,6 +25,7 @@ def test_failure(database):
     det_award_1 = DetachedAwardFinancialAssistanceFactory(period_of_performance_curr="19990132")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(period_of_performance_curr="19991331")
     det_award_3 = DetachedAwardFinancialAssistanceFactory(period_of_performance_curr="1234")
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(period_of_performance_curr="200912")
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
-    assert errors == 3
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4])
+    assert errors == 4

@@ -1,7 +1,7 @@
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
-_FILE = 'd38_detached_award_financial_assistance'
+_FILE = 'd38_detached_award_financial_assistance_1'
 
 
 def test_column_headers(database):
@@ -11,8 +11,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ FundingOfficeCode must be six characters long.
-    """
+    """ FundingOfficeCode must be six characters long. """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(funding_office_code='AAAAAA')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_office_code='111111')
@@ -24,8 +23,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ FundingOfficeCode must be six characters long.
-    """
+    """ FundingOfficeCode must be six characters long. """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(funding_office_code='AAAA1')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_office_code='AAAAAAA')

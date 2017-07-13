@@ -17,8 +17,8 @@ from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory,
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
-def list_submissions_result():
-    json_response = fileHandler.list_submissions(1, 10, "mixed")
+def list_submissions_result(d2_submission=False):
+    json_response = fileHandler.list_submissions(1, 10, "mixed", d2_submission=d2_submission)
     assert json_response.status_code == 200
     return json.loads(json_response.get_data().decode('UTF-8'))
 
@@ -138,6 +138,19 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
     assert result['submissions'][0]['status'] == "ready"
     delete_models(database, [user, sub, job])
 
+    sess = database.session
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1, d2_submission=True)
+    job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='ready').one(),
+                     job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
+                     file_type=sess.query(FileType).filter_by(name='award').one())
+    add_models(database, [user, sub, job])
+
+    result = list_submissions_result(d2_submission=True)
+    assert result['total'] == 1
+    assert result['submissions'][0]['status'] == "ready"
+    delete_models(database, [user, sub, job])
+
 
 def test_list_submissions_failure(database, job_constants, monkeypatch):
     user = UserFactory(user_id=1)
@@ -175,6 +188,23 @@ def test_list_submissions_failure(database, job_constants, monkeypatch):
     assert result['total'] == 1
     assert result['submissions'][0]['status'] == "file_errors"
     delete_models(database, [user, sub, job])
+
+
+def test_list_submissions_detached(database, job_constants, monkeypatch):
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
+    d2_sub = SubmissionFactory(user_id=1, submission_id=2, d2_submission=True, publish_status_id=1)
+    add_models(database, [user, sub, d2_sub])
+
+    monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
+    result = list_submissions_result()
+    d2_result = list_submissions_result(d2_submission=True)
+
+    assert result['total'] == 1
+    assert result['submissions'][0]['submission_id'] == sub.submission_id
+    assert d2_result['total'] == 1
+    assert d2_result['submissions'][0]['submission_id'] == d2_sub.submission_id
+    delete_models(database, [user, sub, d2_sub])
 
 
 @pytest.mark.usefixtures('user_constants')
