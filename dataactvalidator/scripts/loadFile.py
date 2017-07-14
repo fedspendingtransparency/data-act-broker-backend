@@ -103,7 +103,7 @@ def load_frec(file_name):
             data,
             model,
             {"fr_entity_type": "frec_code", "agency_aid": "cgac_code", "fr_entity_description": "agency_name"},
-            {}
+            {"cgac_code": {"pad_to_length": 3}, "frec_code": {"pad_to_length": 4}}
         )
         # de-dupe
         data.drop_duplicates(subset=['frec_code'], inplace=True)
