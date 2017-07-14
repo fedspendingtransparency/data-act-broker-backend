@@ -86,6 +86,8 @@ def update_frecs(models, new_data):
         frec_code = row['frec_code']
         if frec_code not in models:
             models[frec_code] = FREC()
+        for field, value in row.items():
+            setattr(models[frec_code], field, value)
 
 
 def load_frec(file_name):
