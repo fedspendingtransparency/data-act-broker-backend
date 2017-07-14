@@ -26,8 +26,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test failure for PrimaryPlaceOfPerformanceCode for aggregate records (i.e., when RecordType = 1)
-        must be in countywide format (XX**###). """
+    """ Test failure for if PrimaryPlaceOfPerformanceCode is not USA, Congressional District must be blank """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="Nk",
                                                           place_of_performance_congr="12")
