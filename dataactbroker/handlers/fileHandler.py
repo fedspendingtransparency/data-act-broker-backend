@@ -1743,5 +1743,18 @@ def fabs_derivations(obj):
                 filter_by(zip5=zip_five).first()
         obj['place_of_performance_congr'] = zip_info.congressional_district_no
 
+    # deriving legal entity congressional district where applicable
+    if obj['legal_entity_zip5']:
+        # if we have a legal entity zip+4 provided
+        if obj['legal_entity_zip_last4']:
+            zip_data = sess.query(Zips).\
+                filter_by(zip5=obj['legal_entity_zip5'], zip_last4=obj['legal_entity_zip_last4']).first()
+        else:
+            zip_data = sess.query(Zips).filter_by(zip5=obj['legal_entity_zip5']).first()
+        # set zip_data to the congressional district if we got a result
+        if zip_data:
+            zip_data = zip_data.congressional_district_no
+        obj['legal_entity_congressional'] = zip_data
+
     GlobalDB.close()
     return obj

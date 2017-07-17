@@ -810,7 +810,6 @@ class DetachedAwardFinancialAssistance(Base):
     legal_entity_address_line1 = Column(Text)
     legal_entity_address_line2 = Column(Text)
     legal_entity_address_line3 = Column(Text)
-    legal_entity_congressional = Column(Text)
     legal_entity_country_code = Column(Text)
     legal_entity_foreign_city = Column(Text)
     legal_entity_foreign_posta = Column(Text)
