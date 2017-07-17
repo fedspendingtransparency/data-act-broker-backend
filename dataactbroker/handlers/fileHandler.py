@@ -687,13 +687,6 @@ class FileHandler:
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
 
-            # unfortunately, field names in the request don't match
-            # field names in the db/response. create a mapping here.
-            request_job_mapping = {
-                "reporting_period_start_date": "reporting_start_date",
-                "reporting_period_end_date": "reporting_end_date"
-            }
-
             job_data = {}
             # Check for existing submission
             existing_submission_id = request_params.get('existing_submission_id')
@@ -711,43 +704,23 @@ class FileHandler:
                 existing_submission = None
                 existing_submission_obj = None
 
-            for request_field, submission_field in request_job_mapping.items():
-                if request_field in request_params:
-                    job_data[submission_field] = request_params[request_field]
-                # all of those fields are required
-                # unless existing_submission_id exists
-                elif 'existing_submission_id' not in request_params and request_field in request_params:
-                    raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
-
             if existing_submission_obj is not None:
-                formatted_start_date = existing_submission_obj.reporting_start_date
-                formatted_end_date = existing_submission_obj.reporting_end_date
                 cgac_code = existing_submission_obj.cgac_code
             else:
                 sub_tier_agency = sess.query(SubTierAgency).\
                     filter_by(sub_tier_agency_code=request_params["agency_code"]).one()
                 cgac_code = sub_tier_agency.cgac.cgac_code
-                date_format = '%d/%m/%Y'
-                try:
-                    # convert submission start/end dates from the request into Python date objects
-                    formatted_start_date = datetime.strptime(job_data['reporting_start_date'], date_format).date()
-                    formatted_end_date = datetime.strptime(job_data['reporting_end_date'], date_format).date()
-                except ValueError:
-                    raise ResponseException("Date must be provided as DD/MM/YYYY", StatusCode.CLIENT_ERROR, ValueError)
 
             # get the cgac code associated with this sub tier agency
             job_data["cgac_code"] = cgac_code
             job_data["d2_submission"] = True
-            job_data['reporting_start_date'] = formatted_start_date
-            job_data['reporting_end_date'] = formatted_end_date
+            job_data['reporting_start_date'] = None
+            job_data['reporting_end_date'] = None
 
-            # the front-end is doing date checks, but we'll also do a few server side to ensure everything is correct
-            # when clients call the API directly
-            if job_data.get('reporting_start_date') > job_data.get('reporting_end_date'):
-                raise ResponseException("Submission start date {} is after the end date {}".format(
-                        job_data.get('reporting_start_date'), job_data.get('reporting_end_date')),
-                        StatusCode.CLIENT_ERROR)
-
+            """
+            Below lines commented out to temporarily allow all users
+            to upload FABS data for all agencies during testing
+            """
             # if not current_user_can('writer', job_data["cgac_code"]):
             #     raise ResponseException("User does not have permission to create jobs for this agency",
             #                             StatusCode.PERMISSION_DENIED)
@@ -1322,6 +1295,8 @@ def job_to_dict(job):
 
 def reporting_date(submission):
     """Format submission reporting date"""
+    if not (submission.reporting_start_date or submission.reporting_end_date):
+        return None
     if submission.is_quarter_format:
         return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3,
                                submission.reporting_fiscal_year)
@@ -1415,7 +1390,7 @@ def get_error_metrics(submission):
         return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
 
-def list_submissions(page, limit, certified, sort='modified', order='desc'):
+def list_submissions(page, limit, certified, sort='modified', order='desc', d2_submission=False):
     """ List submission based on current page and amount to display. If provided, filter based on
     certification status """
     sess = GlobalDB.db().session
@@ -1446,7 +1421,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
         outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id). \
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
-        filter(Submission.d2_submission.is_(False))
+        filter(Submission.d2_submission.is_(d2_submission))
     if not g.user.website_admin:
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
                                     Submission.user_id == g.user.user_id))
@@ -1581,8 +1556,8 @@ def serialize_submission(submission):
         "status": status,
         "agency": submission.agency_name if submission.agency_name else 'N/A',
         # @todo why are these a different format?
-        "reporting_start_date": str(submission.reporting_start_date),
-        "reporting_end_date": str(submission.reporting_end_date),
+        "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date else None,
+        "reporting_end_date": str(submission.reporting_end_date) if submission.reporting_end_date else None,
         "user": {"user_id": submission.user_id,
                  "name": submission.name if submission.name else "No User"},
         "certifying_user": submission.certifying_user_name if submission.certifying_user_name else "",
@@ -1727,15 +1702,17 @@ def fabs_derivations(obj):
     if cfda_title:
         obj['cfda_title'] = cfda_title.program_title
     else:
-        logging.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
+        logger.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
 
-    # deriving awarding agency name
-    if obj['awarding_agency_code']:
-        awarding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['awarding_agency_code']).one()
-        obj['awarding_agency_name'] = awarding_agency_name.agency_name
-
-    # deriving awarding sub tier agency name
     if obj['awarding_sub_tier_agency_c']:
+        # deriving awarding agency name and code
+        awarding_agency = sess.query(CGAC).\
+            filter(CGAC.cgac_id == SubTierAgency.cgac_id,
+                   SubTierAgency.sub_tier_agency_code == obj['awarding_sub_tier_agency_c']).one()
+        obj['awarding_agency_code'] = awarding_agency.cgac_code
+        obj['awarding_agency_name'] = awarding_agency.agency_name
+
+        # deriving awarding sub tier agency name
         awarding_sub_tier_agency_name = sess.query(SubTierAgency).\
             filter_by(sub_tier_agency_code=obj['awarding_sub_tier_agency_c']).one()
         print(obj['awarding_sub_tier_agency_c'])
