@@ -45,7 +45,7 @@ def test_list_agencies_superuser(database, monkeypatch, domain_app):
     result = domain_app.get('/v1/list_agencies/').data.decode('UTF-8')
     result = json.loads(result)
     result = {el['cgac_code'] for el in result['cgac_agency_list']}
-    assert result == {'0', '1', '2', '1'}    # i.e. all of them
+    assert result == {'0', '1', '2'}    # i.e. all of them
 
 
 def test_list_agencies_all(monkeypatch, user_constants, domain_app):
@@ -62,6 +62,6 @@ def test_list_agencies_all(monkeypatch, user_constants, domain_app):
     result = domain_app.get('/v1/list_all_agencies/').data.decode('UTF-8')
     response = json.loads(result)
     result = {el['cgac_code'] for el in response['agency_list']}
-    assert result == {'0', '1', '2', '1'}  # i.e. all of them
+    assert result == {'0', '1', '2'}  # i.e. all of them
     result = {el['frec_code'] for el in response['shared_agency_list']}
-    assert result == {'0', '1', '2', '1'}    # i.e. all of them
+    assert result == {'0', '1', '2'}    # i.e. all of them
