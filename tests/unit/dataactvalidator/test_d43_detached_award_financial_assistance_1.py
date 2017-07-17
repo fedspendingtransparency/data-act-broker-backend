@@ -5,7 +5,7 @@ _FILE = 'd43_detached_award_financial_assistance_1'
 
 
 def test_column_headers(database):
-    expected_subset = {"row_number", "place_of_perform_country_c", "place_of_performance_congr"}
+    expected_subset = {"row_number", "place_of_performance_code", "place_of_perform_country_c"}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
@@ -26,7 +26,8 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test failure for if PrimaryPlaceOfPerformanceCode is not USA, Congressional District must be blank """
+    """ Test failure for PrimaryPlaceOfPerformanceCode for aggregate records (i.e., when RecordType = 1)
+        must be in countywide format (XX**###). """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="Nk",
                                                           place_of_performance_congr="12")
