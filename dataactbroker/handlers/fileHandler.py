@@ -1464,18 +1464,18 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     if not options.get(sort):
         sort = 'modified'
 
-    order_by = getattr(options[sort]['model'], options[sort]['col'])
+    sort_order = getattr(options[sort]['model'], options[sort]['col'])
 
     if sort == "agency":
-        order_by = case([
+        sort_order = case([
             (FREC.agency_name.isnot(None), FREC.agency_name),
             (CGAC.agency_name.isnot(None), CGAC.agency_name)
         ])
 
     if order == 'desc':
-        order_by = order_by.desc()
+        sort_order = sort_order.desc()
 
-    query = query.order_by(order_by)
+    query = query.order_by(sort_order)
 
     query = query.limit(limit).offset(offset)
 
@@ -1730,13 +1730,6 @@ def fabs_derivations(obj):
     else:
         logger.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
 
-    # deriving awarding agency name
-    if 'awarding_agency_code' in obj.values() and obj['awarding_agency_code']:
-        awarding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['awarding_agency_code']).one()
-        if not awarding_agency_name:
-            awarding_agency_name = sess.query(FREC).filter_by(frec_code=obj['awarding_agency_code']).one()
-        obj['awarding_agency_name'] = awarding_agency_name.agency_name
-
     if obj['awarding_sub_tier_agency_c']:
         # deriving awarding agency name and code
         awarding_agency = sess.query(CGAC).\
@@ -1748,7 +1741,6 @@ def fabs_derivations(obj):
         # deriving awarding sub tier agency name
         awarding_sub_tier_agency_name = sess.query(SubTierAgency).\
             filter_by(sub_tier_agency_code=obj['awarding_sub_tier_agency_c']).one()
-        print(obj['awarding_sub_tier_agency_c'])
         obj['awarding_sub_tier_agency_n'] = awarding_sub_tier_agency_name.sub_tier_agency_name
 
     # deriving funding agency name

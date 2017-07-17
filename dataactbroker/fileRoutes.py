@@ -274,6 +274,10 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     })
     def generate_detached_file(file_type, cgac_code, frec_code, start, end):
         """ Generate a file from external API, independent from a submission """
+        if not cgac_code and not frec_code:
+            return JsonResponse.error(ValueError("Detached file generation requires CGAC or FR Entity Code"),
+                                      StatusCode.CLIENT_ERROR)
+
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.generate_detached_file(file_type, cgac_code, frec_code, start, end)
 
@@ -384,9 +388,11 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                  'reporting_fiscal_year': webargs_fields.String(required=True),
                  'reporting_fiscal_period': webargs_fields.String(required=True)})
     def check_year_and_quarter(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period):
-        """ Check if cgac code, year, and quarter already has a published submission """
-        sess = GlobalDB.db().session
+        """ Check if cgac (or frec) code, year, and quarter already has a published submission """
+        if not cgac_code and not frec_code:
+            return JsonResponse.error(ValueError("CGAC or FR Entity Code required"), StatusCode.CLIENT_ERROR)
 
+        sess = GlobalDB.db().session
         return find_existing_submissions_in_period(sess, cgac_code, frec_code, reporting_fiscal_year,
                                                    reporting_fiscal_period)
 
