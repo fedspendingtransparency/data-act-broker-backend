@@ -260,12 +260,14 @@ def perms_to_affiliations(perms):
         codes, perm_level = components
         split_codes = codes.split('-FREC_')
         frec_code = cgac_code = None
-        if len(split_codes) == 2:  # permissions for FR entity code
+        if len(split_codes) == 2:
+            # permissions for FR entity code
             frec_code = split_codes[1]
             if frec_code not in available_frecs:
                 logger.warning('Malformed permission: %s', perm)
                 continue
-        else:  # permissions for CGAC
+        else:
+            # permissions for CGAC
             cgac_code = codes
             if cgac_code not in available_cgacs:
                 logger.warning('Malformed permission: %s', perm)

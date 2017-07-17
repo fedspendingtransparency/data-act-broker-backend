@@ -274,12 +274,12 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     })
     def generate_detached_file(file_type, cgac_code, frec_code, start, end):
         """ Generate a file from external API, independent from a submission """
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        if cgac_code or frec_code:
-            return file_manager.generate_detached_file(file_type, cgac_code, frec_code, start, end)
-        else:
+        if not cgac_code or not frec_code:
             return JsonResponse.error(ValueError("Detached file generation requires CGAC or FR Entity Code"),
                                       StatusCode.CLIENT_ERROR)
+
+        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+        return file_manager.generate_detached_file(file_type, cgac_code, frec_code, start, end)
 
     @app.route("/v1/check_detached_generation_status/", methods=["POST"])
     @requires_login
@@ -389,12 +389,12 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                  'reporting_fiscal_period': webargs_fields.String(required=True)})
     def check_year_and_quarter(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period):
         """ Check if cgac (or frec) code, year, and quarter already has a published submission """
-        if cgac_code or frec_code:
-            sess = GlobalDB.db().session
-            return find_existing_submissions_in_period(sess, cgac_code, frec_code, reporting_fiscal_year,
-                                                       reporting_fiscal_period)
-        else:
+        if not cgac_code or not frec_code:
             return JsonResponse.error(ValueError("CGAC or FR Entity Code required"), StatusCode.CLIENT_ERROR)
+
+        sess = GlobalDB.db().session
+        return find_existing_submissions_in_period(sess, cgac_code, frec_code, reporting_fiscal_year,
+                                                       reporting_fiscal_period)
 
     @app.route("/v1/certify_submission/", methods=['POST'])
     @convert_to_submission_id
