@@ -117,7 +117,8 @@ class FileTests(BaseTestAPI):
             if CONFIG_BROKER["use_aws"]:
                 self.filenames = {"appropriations": "test1.csv",
                                   "award_financial": "test2.csv",
-                                  "program_activity": "test4.csv", "cgac_code": "SYS",
+                                  "program_activity": "test4.csv",
+                                  "cgac_code": "SYS", "frec_code": None,
                                   "reporting_period_start_date": "01/2001",
                                   "reporting_period_end_date": "03/2001", "is_quarter": True}
             else:
