@@ -125,7 +125,8 @@ class FileTests(BaseTestAPI):
                 file_path = CONFIG_BROKER["broker_files"]
                 self.filenames = {"appropriations": os.path.join(file_path, "test1.csv"),
                                   "award_financial": os.path.join(file_path, "test2.csv"),
-                                  "program_activity": os.path.join(file_path, "test4.csv"), "cgac_code": "SYS",
+                                  "program_activity": os.path.join(file_path, "test4.csv"),
+                                  "cgac_code": "SYS", "frec_code": None,
                                   "reporting_period_start_date": "01/2001",
                                   "reporting_period_end_date": "03/2001", "is_quarter": True}
             self.submitFilesResponse = self.app.post_json("/v1/submit_files/", self.filenames,

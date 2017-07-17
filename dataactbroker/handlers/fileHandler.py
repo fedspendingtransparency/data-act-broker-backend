@@ -1144,7 +1144,8 @@ class FileHandler:
         new_bucket = CONFIG_BROKER['certified_bucket']
 
         # route is used in multiple places, might as well just make it out here
-        new_route = '{}/{}/{}/{}/'.format(submission.cgac_code, submission.frec_code, submission.reporting_fiscal_year,
+        identifying_code = submission.cgac_code if submission.cgac_code else submission.frec_code
+        new_route = '{}/{}/{}/{}/'.format(identifying_code, submission.reporting_fiscal_year,
                                           submission.reporting_fiscal_period // 3,
                                           certify_history.certify_history_id)
         for job in jobs:
@@ -1730,7 +1731,7 @@ def fabs_derivations(obj):
         logger.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
 
     # deriving awarding agency name
-    if obj['awarding_agency_code']:
+    if 'awarding_agency_code' in obj.values() and obj['awarding_agency_code']:
         awarding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['awarding_agency_code']).one()
         if not awarding_agency_name:
             awarding_agency_name = sess.query(FREC).filter_by(frec_code=obj['awarding_agency_code']).one()
