@@ -27,7 +27,7 @@ class Validator(object):
     META_FIELDS = ["row_number"]
 
     @classmethod
-    def validate(cls, record, csv_schema):
+    def validate(cls, record, csv_schema, fabs_record=False):
         """
         Run initial set of single file validation:
         - check if required fields are present
@@ -95,7 +95,10 @@ class Validator(object):
                len(current_data.strip()) > current_schema.length:
                 # Length failure, add to failedRules
                 record_failed = True
-                failed_rules.append(Failure(field_name, ValidationError.lengthError, current_data, "", "warning"))
+                warning_type = "warning"
+                if fabs_record:
+                    warning_type = "fatal"
+                failed_rules.append(Failure(field_name, ValidationError.lengthError, current_data, "", warning_type))
 
         # if all columns are blank (empty row), set it so it doesn't add to the error messages or write the line,
         # just ignore it

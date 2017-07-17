@@ -17,7 +17,8 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.jobModels import Submission, Job, CertifyHistory
+from dataactcore.models.jobModels import (
+    Submission, SubmissionSubTierAffiliation, Job, CertifyHistory, GTASSubmissionWindow)
 
 
 # Add the file submission route
@@ -75,6 +76,17 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     def check_status(submission):
         return get_status(submission)
 
+    @app.route("/v1/gtas_window/", methods=["GET"])
+    def gtas_window():
+        current_gtas_window = get_gtas_window()
+
+        data = None
+
+        if current_gtas_window:
+            data = {'start_date': str(current_gtas_window.start_date), 'end_date': str(current_gtas_window.end_date)}
+
+        return JsonResponse.create(StatusCode.OK, {"data": data})
+
     @app.route("/v1/submission_error_reports/", methods=["POST"])
     @requires_login
     @use_kwargs({'submission_id': webargs_fields.Int(required=True)})
@@ -110,11 +122,12 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             required=True,
             validate=webargs_validate.OneOf(('mixed', 'true', 'false'))),
         'sort': webargs_fields.String(missing='modified'),
-        'order': webargs_fields.String(missing='desc')
+        'order': webargs_fields.String(missing='desc'),
+        'd2_submission': webargs_fields.Bool(missing=False),
     })
-    def list_submissions(page, limit, certified, sort, order):
+    def list_submissions(page, limit, certified, sort, order, d2_submission):
         """ List submission IDs associated with the current user """
-        return list_submissions_handler(page, limit, certified, sort, order)
+        return list_submissions_handler(page, limit, certified, sort, order, d2_submission)
 
     @app.route("/v1/list_certifications/", methods=["POST"])
     @convert_to_submission_id
@@ -160,6 +173,15 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         sess = GlobalDB.db().session
 
         submission_id = submission.submission_id
+
+        # /v1/uploadDetachedFiles/
+        # DetachedFiles
+        if submission.d2_submission:
+            data = {
+                "message": "The current progress of this submission ID is on /v1/uploadDetachedFiles/ page.",
+                "step": "6"
+            }
+            return JsonResponse.create(StatusCode.OK, data)
 
         # /v1/reviewData/
         # Checks that both E and F files are finished
@@ -344,6 +366,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             return JsonResponse.error(ValueError("Submissions with running jobs cannot be deleted"),
                                       StatusCode.CLIENT_ERROR)
 
+        sess.query(SubmissionSubTierAffiliation).filter(
+            SubmissionSubTierAffiliation.submission_id == submission.submission_id).delete(
+                synchronize_session=False)
         sess.query(Submission).filter(Submission.submission_id == submission.submission_id).delete(
             synchronize_session=False)
         sess.expire_all()
@@ -375,6 +400,11 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
             return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
+
+        window = get_gtas_window()
+        if window:
+            return JsonResponse.error(ValueError("Submission cannot be certified during the GTAS submission window"),
+                                      StatusCode.CLIENT_ERROR)
 
         sess = GlobalDB.db().session
 
@@ -453,3 +483,13 @@ def find_existing_submissions_in_period(sess, cgac_code, reporting_fiscal_year,
         }
         return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
     return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
+
+def get_gtas_window():
+    sess = GlobalDB.db().session
+
+    curr_date = datetime.now().date()
+
+    return sess.query(GTASSubmissionWindow).filter(
+                                            GTASSubmissionWindow.start_date <= curr_date,
+                                            GTASSubmissionWindow.end_date >= curr_date).one_or_none()

@@ -39,6 +39,18 @@ def test_success(database):
                                                        det_award_6, det_award_7, zips])
     assert errors == 0
 
+    # random wrong length zips and zips with '-' in the wrong place, formatting is checked in another rule
+    det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny10986",
+                                                          place_of_performance_zip4a="12345678")
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny10986",
+                                                          place_of_performance_zip4a="1234567898")
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny10986",
+                                                          place_of_performance_zip4a="12345678-9")
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny10986",
+                                                          place_of_performance_zip4a="123-456789")
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, zips])
+    assert errors == 0
+
 
 def test_failure(database):
     """ Test failure for PrimaryPlaceOfPerformanceCode XX##### city must exist in provided state
@@ -62,15 +74,3 @@ def test_failure(database):
                                                           place_of_performance_zip4a='12345-6788')
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, zips])
     assert errors == 3
-
-    # random wrong length zips and zips with '-' in the wrong place
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny10986",
-                                                          place_of_performance_zip4a="12345678")
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny10986",
-                                                          place_of_performance_zip4a="1234567898")
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny10986",
-                                                          place_of_performance_zip4a="12345678-9")
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny10986",
-                                                          place_of_performance_zip4a="123-456789")
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, zips])
-    assert errors == 4

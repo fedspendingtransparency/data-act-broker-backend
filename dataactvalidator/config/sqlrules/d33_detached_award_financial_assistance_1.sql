@@ -13,6 +13,8 @@ SELECT
     period_of_performance_curr
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND period_of_performance_curr IS NOT NULL
-    AND period_of_performance_curr != ''
-    AND NOT pg_temp.is_date(COALESCE(period_of_performance_curr, '0'));
+    AND COALESCE(period_of_performance_curr, '') != ''
+    AND CASE WHEN pg_temp.is_date(COALESCE(period_of_performance_curr, '0'))
+        THEN period_of_performance_curr !~ '\d\d\d\d\d\d\d\d'
+        ELSE TRUE
+        END
