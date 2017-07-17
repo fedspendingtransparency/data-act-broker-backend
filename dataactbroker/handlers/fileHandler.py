@@ -727,10 +727,9 @@ class FileHandler:
             job_data['reporting_start_date'] = None
             job_data['reporting_end_date'] = None
 
-            '''
+            """
             Below lines commented out to temporarily allow all users
             to upload FABS data for all agencies during testing
-            '''
             # if not current_user_can('writer', job_data["cgac_code"], job_data["frec_code"]):
             #     raise ResponseException("User does not have permission to create jobs for this agency",
             #                             StatusCode.PERMISSION_DENIED)
