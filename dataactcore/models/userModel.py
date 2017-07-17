@@ -1,6 +1,6 @@
 """ These classes define the ORM models to be used by sqlalchemy for the user database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean, Index
+from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean, Index, UniqueConstraint
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT_ID
@@ -31,14 +31,19 @@ class PermissionType(Base):
 
 class UserAffiliation(Base):
     __tablename__ = 'user_affiliation'
-    # composite primary_key
+    user_affiliation_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.user_id", name="user_affiliation_user_fk", ondelete='CASCADE'),
-                     primary_key=True)
+                     index=True, nullable=False)
     cgac_id = Column(Integer, ForeignKey("cgac.cgac_id", name="user_affiliation_cgac_fk", ondelete='CASCADE'),
-                     primary_key=True)
+                     index=True, nullable=True)
+    frec_id = Column(Integer, ForeignKey("frec.frec_id", name="user_affiliation_frec_fk", ondelete='CASCADE'),
+                     index=True, nullable=True)
     cgac = relationship("CGAC")
+    frec = relationship("FREC")
     permission_type_id = Column(
         Integer, ForeignKey(column="permission_type.permission_type_id", name="user_affiliation_permission_type_fk"))
+
+    __tableargs__ = (UniqueConstraint('user_id', 'cgac_id', 'frec_id', name='unique_user_cgac_frec'))
 
     @property
     def permission_type_name(self):
