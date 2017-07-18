@@ -12,8 +12,9 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ When provided, PrimaryPlaceofPerformanceZIP+4 must be in the state specified by PrimaryPlaceOfPerformanceCode.
-        Ignore cases where zip4 isn't provided """
+    """ The provided PrimaryPlaceofPerformanceZIP+4 must be in the state specified by PrimaryPlaceOfPerformanceCode.
+        In this specific submission row, the first five digits are valid and located in the correct state, but the
+        last 4 are invalid."""
 
     # XX00000 validates here because it passes as long as the zip is valid in that state, this is checked
     # in a different place
@@ -61,8 +62,9 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test failure for PrimaryPlaceOfPerformanceCode XX##### city must exist in provided state
-        (zip4 provided, warning). """
+    """ Test failure for when the provided PrimaryPlaceofPerformanceZIP+4 must be in the state specified by
+        PrimaryPlaceOfPerformanceCode. In this specific submission row, the first five digits are valid and located
+        in the correct state, but the last 4 are invalid."""
     zips = Zips(zip5="12345", zip_last4="6789", state_abbreviation="NY")
 
     # invalid 9 digit zip - first 5 digits good

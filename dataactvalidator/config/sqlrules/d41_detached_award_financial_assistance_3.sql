@@ -1,4 +1,4 @@
--- The provided PrimaryPlaceofPerformanceZIP+4 must be in the state specified by the PrimaryPlaceOfPerformanceCode. In this specific submission row, neither the ZIP5 nor the full ZIP+4 are valid ZIP codes in the state in question.
+-- The provided PrimaryPlaceofPerformanceZIP+4 must be in the state specified by the PrimaryPlaceOfPerformanceCode. In this specific submission row, the ZIP5 (and by extension the full ZIP+4) is not a valid ZIP code in the state in question.
 WITH detached_award_financial_assistance_d41_3_{0} AS
     (SELECT submission_id,
     	row_number,
