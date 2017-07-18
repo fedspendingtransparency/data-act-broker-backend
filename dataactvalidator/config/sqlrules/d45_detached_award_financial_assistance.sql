@@ -1,7 +1,9 @@
--- When provided, CorrectionLateDeleteIndicator must contain one of the following values: ""C"", ""D"", or ""L"".
+-- All characters in AwardeeOrRecipientUniqueIdentifier must be numeric. If, for example, "ABCDEFGHI" is provided, it should trigger a format error.
+
 SELECT
     row_number,
-    correction_late_delete_ind
+    awardee_or_recipient_uniqu
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND COALESCE(UPPER(correction_late_delete_ind),'') not in ('','C','D','L')
+    AND COALESCE(awardee_or_recipient_uniqu, '') != ''
+    AND awardee_or_recipient_uniqu !~ '^\d\d\d\d\d\d\d\d\d$'
