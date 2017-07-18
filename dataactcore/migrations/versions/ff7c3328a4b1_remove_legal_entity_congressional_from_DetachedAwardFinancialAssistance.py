@@ -1,14 +1,14 @@
 """Remove legal_entity_congressional from DetachedAwardFinancialAssistance table
 
 Revision ID: ff7c3328a4b1
-Revises: 9acf8cc4e454
+Revises: 5350b3e22c39
 Create Date: 2017-07-17 10:29:42.577175
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'ff7c3328a4b1'
-down_revision = '9acf8cc4e454'
+down_revision = '5350b3e22c39'
 branch_labels = None
 depends_on = None
 
