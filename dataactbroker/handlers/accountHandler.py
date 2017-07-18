@@ -15,7 +15,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy import func
 
 from dataactcore.models.userModel import User, UserAffiliation
-from dataactcore.models.domainModels import CGAC
+from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import get_email_template, check_correct_password
@@ -215,6 +215,10 @@ class AccountHandler:
         _, agency_name = sess.query(Submission.submission_id, CGAC.agency_name)\
             .join(CGAC, Submission.cgac_code == CGAC.cgac_code)\
             .filter(Submission.submission_id == submission_id).one()
+        if not agency_name:
+            _, agency_name = sess.query(Submission.submission_id, FREC.agency_name) \
+                .join(FREC, Submission.frec_code == FREC.frec_code) \
+                .filter(Submission.submission_id == submission_id).one()
 
         template_type = request_dict['email_template']
         # Check if email template type is valid
@@ -239,9 +243,13 @@ class AccountHandler:
 def perms_to_affiliations(perms):
     """Convert a list of perms from MAX to a list of UserAffiliations. Filter
     out and log any malformed perms"""
-    available_codes = {
+    available_cgacs = {
         cgac.cgac_code: cgac
         for cgac in GlobalDB.db().session.query(CGAC)
+    }
+    available_frecs = {
+        frec.frec_code: frec
+        for frec in GlobalDB.db().session.query(FREC)
     }
     for perm in perms:
         components = perm.split('-PERM_')
@@ -249,14 +257,30 @@ def perms_to_affiliations(perms):
             logger.warning('Malformed permission: %s', perm)
             continue
 
-        cgac_code, perm_level = components
+        codes, perm_level = components
+        split_codes = codes.split('-FREC_')
+        frec_code = cgac_code = None
+        if len(split_codes) == 2:
+            # permissions for FR entity code
+            frec_code = split_codes[1]
+            if frec_code not in available_frecs:
+                logger.warning('Malformed permission: %s', perm)
+                continue
+        else:
+            # permissions for CGAC
+            cgac_code = codes
+            if cgac_code not in available_cgacs:
+                logger.warning('Malformed permission: %s', perm)
+                continue
+
         perm_level = perm_level.lower()
-        if cgac_code not in available_codes or perm_level not in 'rws':
+        if perm_level not in 'rws':
             logger.warning('Malformed permission: %s', perm)
             continue
 
         yield UserAffiliation(
-            cgac=available_codes[cgac_code],
+            cgac=available_cgacs[cgac_code] if cgac_code else None,
+            frec=available_frecs[frec_code] if frec_code else None,
             permission_type_id=PERMISSION_SHORT_DICT[perm_level]
         )
 
@@ -267,7 +291,7 @@ def best_affiliation(affiliations):
     by_agency = {}
     affiliations = sorted(affiliations, key=attrgetter('permission_type_id'))
     for affiliation in affiliations:
-        by_agency[affiliation.cgac] = affiliation
+        by_agency[affiliation.cgac, affiliation.frec] = affiliation
     return by_agency.values()
 
 
@@ -277,6 +301,7 @@ def set_max_perms(user, max_group_list):
 
     Permissions are encoded as a comma-separated list of
     {parent-group}-CGAC_{cgac-code}-PERM_{one-of-R-W-S}
+    {parent-group}-CGAC_{cgac-code}-FREC_{frec_code}-PERM_{one-of-R-W-S}
     or
     {parent-group}-CGAC_SYS to indicate website_admin"""
     prefix = CONFIG_BROKER['parent_group'] + '-CGAC_'
@@ -304,8 +329,9 @@ def json_for_user(user):
         "title": user.title,
         "skip_guide": user.skip_guide,
         "website_admin": user.website_admin,
-        "affiliations": [{"agency_name": affil.cgac.agency_name,
-                          "permission": affil.permission_type_name}
+        "affiliations": [{"agency_name": affil.cgac.agency_name, "permission": affil.permission_type_name}
+                         if affil.cgac else
+                         {"agency_name": affil.frec.agency_name, "permission": affil.permission_type_name}
                          for affil in user.affiliations]
     }
 

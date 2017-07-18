@@ -18,13 +18,14 @@ import sqlalchemy as sa
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.sql.expression import case
 from werkzeug.utils import secure_filename
 
 from dataactbroker.permissions import current_user_can, current_user_can_on_submission
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import CGAC, CFDAProgram, SubTierAgency, Zips
+from dataactcore.models.domainModels import CGAC, FREC, CFDAProgram, SubTierAgency, Zips
 from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.jobModels import (
@@ -157,6 +158,7 @@ class FileHandler:
             # field names in the db/response. create a mapping here.
             request_submission_mapping = {
                 "cgac_code": "cgac_code",
+                "frec_code": "frec_code",
                 "reporting_period_start_date": "reporting_start_date",
                 "reporting_period_end_date": "reporting_end_date",
                 "is_quarter": "is_quarter_format"}
@@ -196,7 +198,7 @@ class FileHandler:
                 not current_user_can_on_submission(
                     'writer', existing_submission_obj)
             )
-            cant_create = not current_user_can('writer', submission.cgac_code)
+            cant_create = not current_user_can('writer', submission.cgac_code, submission.frec_code)
             if cant_edit or cant_create:
                 raise ResponseException(
                     "User does not have permission to create/modify that "
@@ -404,6 +406,7 @@ class FileHandler:
 
         submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
         cgac_code = submission.cgac_code
+        frec_code = submission.frec_code
 
         # Generate and upload file to S3
         job = self.add_generation_job_info(file_type_name=file_type_name, job=job)
@@ -412,7 +415,7 @@ class FileHandler:
         if file_type in ["D1", "D2"]:
             logger.debug('Adding job info for job id of %s', job.job_id)
             return self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission.submission_id, file_type,
-                                                file_type_name, start_date, end_date, cgac_code, job)
+                                                file_type_name, start_date, end_date, cgac_code, frec_code, job)
         elif file_type == 'E':
             # Start separate thread to generate file E
             t = threading.Thread(target=generate_e_file, args=(submission.submission_id, job.job_id, timestamped_name,
@@ -427,7 +430,7 @@ class FileHandler:
         return True, None
 
     def add_job_info_for_d_file(self, upload_file_name, timestamped_name, submission_id, file_type, file_type_name,
-                                start_date, end_date, cgac_code, job):
+                                start_date, end_date, cgac_code, frec_code, job):
         """ Populates upload and validation job objects with start and end dates, filenames, and status
 
         Args:
@@ -439,6 +442,7 @@ class FileHandler:
             start_date - Beginning of period for D file
             end_date - End of period for D file
             cgac_code - Agency to generate D file for
+            frec_code - Alternate Agency to generate D file for
             job - Job object for upload job
         """
         sess = GlobalDB.db().session
@@ -467,24 +471,27 @@ class FileHandler:
                 file_type=file_type
             )
 
-        error = self.call_d_file_api(file_type_name, cgac_code, start_date, end_date, job, val_job)
+        error = self.call_d_file_api(file_type_name, cgac_code, frec_code, start_date, end_date, job, val_job)
 
         return not error, error
 
-    def call_d_file_api(self, file_type_name, cgac_code, start_date, end_date, job, val_job=None):
+    def call_d_file_api(self, file_type_name, cgac_code, frec_code, start_date, end_date, job, val_job=None):
         """ Call D file API, return True if results found, False otherwise """
         file_type = FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]]
         task_key = FileHandler.create_generation_task(job.job_id)
 
         if not self.isLocal:
             # Create file D API URL with dates and callback URL
+            sess = GlobalDB.db().session
+            if frec_code:
+                cgac_code = sess.query(FREC).filter_by(frec_code=frec_code).one_or_none().cgac_code
+
             api_url = FileHandler.get_d_file_url(task_key, file_type_name, cgac_code, start_date, end_date)
 
             logger.debug('Calling D file API => %s', api_url)
             try:
                 # Check for numFound = 0
                 if "numFound='0'" in get_xml_response_content(api_url):
-                    sess = GlobalDB.db().session
                     # No results found, skip validation and mark as finished.
                     #
                     # Skip check here is true since we don't need to check the dependencies for the upload job
@@ -647,7 +654,7 @@ class FileHandler:
         # Return same response as check generation route
         return self.check_generation(submission, file_type)
 
-    def generate_detached_file(self, file_type, cgac_code, start, end):
+    def generate_detached_file(self, file_type, cgac_code, frec_code, start, end):
         """ Start a file generation job for the specified file type """
         logger.debug("Starting detached D file generation")
 
@@ -662,7 +669,7 @@ class FileHandler:
             dates={'start_date': start, 'end_date': end}
         )
 
-        result = self.call_d_file_api(file_type_name, cgac_code, start, end, new_job)
+        result = self.call_d_file_api(file_type_name, cgac_code, frec_code, start, end, new_job)
 
         # Return same response as check generation route
         return result or self.check_detached_generation(new_job.job_id)
@@ -706,22 +713,25 @@ class FileHandler:
 
             if existing_submission_obj is not None:
                 cgac_code = existing_submission_obj.cgac_code
+                frec_code = existing_submission_obj.frec_code
             else:
                 sub_tier_agency = sess.query(SubTierAgency).\
                     filter_by(sub_tier_agency_code=request_params["agency_code"]).one()
                 cgac_code = sub_tier_agency.cgac.cgac_code
+                frec_code = sub_tier_agency.frec.frec_code
 
             # get the cgac code associated with this sub tier agency
             job_data["cgac_code"] = cgac_code
+            job_data["frec_code"] = frec_code
             job_data["d2_submission"] = True
             job_data['reporting_start_date'] = None
             job_data['reporting_end_date'] = None
 
-            '''
+            """
             Below lines commented out to temporarily allow all users
             to upload FABS data for all agencies during testing
-            '''
-            # if not current_user_can('writer', job_data["cgac_code"]):
+            """
+            # if not current_user_can('writer', job_data["cgac_code"], job_data["frec_code"]):
             #     raise ResponseException("User does not have permission to create jobs for this agency",
             #                             StatusCode.PERMISSION_DENIED)
 
@@ -1009,7 +1019,8 @@ class FileHandler:
                                                                   CONFIG_SERVICES["broker_api_host"],
                                                                   CONFIG_SERVICES["broker_api_port"], task_key)
         logger.debug('Callback URL for %s: %s', FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]], callback)
-        url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
+        url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date,
+                                                                      callback)
         return url
 
     @staticmethod
@@ -1133,7 +1144,8 @@ class FileHandler:
         new_bucket = CONFIG_BROKER['certified_bucket']
 
         # route is used in multiple places, might as well just make it out here
-        new_route = '{}/{}/{}/{}/'.format(submission.cgac_code, submission.reporting_fiscal_year,
+        identifying_code = submission.cgac_code if submission.cgac_code else submission.frec_code
+        new_route = '{}/{}/{}/{}/'.format(identifying_code, submission.reporting_fiscal_year,
                                           submission.reporting_fiscal_period // 3,
                                           certify_history.certify_history_id)
         for job in jobs:
@@ -1316,8 +1328,12 @@ def submission_to_dict_for_status(submission):
     # @todo replace with a relationship
     cgac = sess.query(CGAC).\
         filter_by(cgac_code=submission.cgac_code).one_or_none()
+    frec = sess.query(FREC).\
+        filter_by(frec_code=submission.frec_code).one_or_none()
     if cgac:
         agency_name = cgac.agency_name
+    elif frec:
+        agency_name = frec.agency_name
     else:
         agency_name = ''
 
@@ -1333,6 +1349,7 @@ def submission_to_dict_for_status(submission):
 
     return {
         'cgac_code': submission.cgac_code,
+        'frec_code': submission.frec_code,
         'agency_name': agency_name,
         'created_on': submission.created_at.strftime('%m/%d/%Y'),
         'number_of_errors': submission.number_of_errors,
@@ -1401,29 +1418,33 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
 
     certifying_user = aliased(User)
 
-    submission_columns = [Submission.submission_id, Submission.cgac_code, Submission.user_id,
+    submission_columns = [Submission.submission_id, Submission.cgac_code, Submission.frec_code, Submission.user_id,
                           Submission.publish_status_id, Submission.d2_submission, Submission.number_of_warnings,
                           Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
                           Submission.reporting_end_date, Submission.certifying_user_id]
 
-    cgac_columns = [CGAC.cgac_code, CGAC.agency_name]
+    cgac_columns = [CGAC.cgac_code, CGAC.agency_name.label('cgac_agency_name')]
+    frec_columns = [FREC.frec_code, FREC.agency_name.label('frec_agency_name')]
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
                     certifying_user.name.label('certifying_user_name')]
 
     view_columns = [submission_updated_view.submission_id,
                     submission_updated_view.updated_at.label('updated_at')]
 
-    columns_to_query = submission_columns + cgac_columns + user_columns + view_columns
+    columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
 
-    cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
+    cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
+    frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec]
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id). \
         outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id). \
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
+        outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
         filter(Submission.d2_submission.is_(d2_submission))
     if not g.user.website_admin:
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
+                                    Submission.frec_code.in_(frec_codes),
                                     Submission.user_id == g.user.user_id))
     if certified != 'mixed':
         if certified == 'true':
@@ -1443,13 +1464,18 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     if not options.get(sort):
         sort = 'modified'
 
-    model = options[sort]['model']
-    col = options[sort]['col']
+    sort_order = getattr(options[sort]['model'], options[sort]['col'])
+
+    if sort == "agency":
+        sort_order = case([
+            (FREC.agency_name.isnot(None), FREC.agency_name),
+            (CGAC.agency_name.isnot(None), CGAC.agency_name)
+        ])
 
     if order == 'desc':
-        query = query.order_by(getattr(model, col).desc())
-    else:
-        query = query.order_by(getattr(model, col))
+        sort_order = sort_order.desc()
+
+    query = query.order_by(sort_order)
 
     query = query.limit(limit).offset(offset)
 
@@ -1547,14 +1573,14 @@ def serialize_submission(submission):
     """Convert the provided submission into a dictionary in a schema the
     frontend expects"""
     status = get_submission_status(submission)
-
     certified_on = get_lastest_certified_date(submission)
+    agency_name = submission.cgac_agency_name if submission.cgac_agency_name else submission.frec_agency_name
 
     return {
         "submission_id": submission.submission_id,
         "last_modified": str(submission.updated_at),
         "status": status,
-        "agency": submission.agency_name if submission.agency_name else 'N/A',
+        "agency": agency_name if agency_name else 'N/A',
         # @todo why are these a different format?
         "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date else None,
         "reporting_end_date": str(submission.reporting_end_date) if submission.reporting_end_date else None,
@@ -1715,12 +1741,13 @@ def fabs_derivations(obj):
         # deriving awarding sub tier agency name
         awarding_sub_tier_agency_name = sess.query(SubTierAgency).\
             filter_by(sub_tier_agency_code=obj['awarding_sub_tier_agency_c']).one()
-        print(obj['awarding_sub_tier_agency_c'])
         obj['awarding_sub_tier_agency_n'] = awarding_sub_tier_agency_name.sub_tier_agency_name
 
     # deriving funding agency name
     if obj['funding_agency_code']:
         funding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['funding_agency_code']).one()
+        if not funding_agency_name:
+            funding_agency_name = sess.query(FREC).filter_by(frec_code=obj['funding_agency_code']).one()
         obj['funding_agency_name'] = funding_agency_name.agency_name
 
     # deriving funding sub tier agency name
