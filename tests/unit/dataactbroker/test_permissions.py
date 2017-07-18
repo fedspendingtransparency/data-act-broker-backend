@@ -7,31 +7,51 @@ from dataactbroker import permissions
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT
 from dataactcore.models.userModel import UserAffiliation
 from dataactcore.utils.responseException import ResponseException
-from tests.unit.dataactcore.factories.domain import CGACFactory
+from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
 def test_current_user_can(database, monkeypatch, user_constants):
     user_cgac, other_cgac = [CGACFactory() for _ in range(2)]
-    user = UserFactory(affiliations=[
+    user_one = UserFactory(affiliations=[
         UserAffiliation(cgac=user_cgac, permission_type_id=PERMISSION_TYPE_DICT['writer'])
     ])
-    database.session.add_all([user_cgac, other_cgac, user])
+    database.session.add_all([user_cgac, other_cgac, user_one])
     database.session.commit()
 
-    monkeypatch.setattr(permissions, 'g', Mock(user=user))
+    monkeypatch.setattr(permissions, 'g', Mock(user=user_one))
 
     # has permission level, but wrong agency
-    assert not permissions.current_user_can('reader', other_cgac.cgac_code)
+    assert not permissions.current_user_can('reader', other_cgac.cgac_code, None)
     # has agency, but not permission level
-    assert not permissions.current_user_can('submitter', user_cgac.cgac_code)
+    assert not permissions.current_user_can('submitter', user_cgac.cgac_code, None)
     # right agency, right permission
-    assert permissions.current_user_can('writer', user_cgac.cgac_code)
-    assert permissions.current_user_can('reader', user_cgac.cgac_code)
+    assert permissions.current_user_can('writer', user_cgac.cgac_code, None)
+    assert permissions.current_user_can('reader', user_cgac.cgac_code, None)
     # wrong permission level, wrong agency, but superuser
-    user.website_admin = True
-    assert permissions.current_user_can('submitter', user_cgac.cgac_code)
+    user_one.website_admin = True
+    assert permissions.current_user_can('submitter', user_cgac.cgac_code, None)
+
+    user_frec, other_frec = [FRECFactory() for _ in range(2)]
+    user_two = UserFactory(affiliations=[
+        UserAffiliation(frec=user_frec, permission_type_id=PERMISSION_TYPE_DICT['writer'])
+    ])
+    database.session.add_all([user_frec, other_frec, user_two])
+    database.session.commit()
+
+    monkeypatch.setattr(permissions, 'g', Mock(user=user_two))
+
+    # has permission level, but wrong agency
+    assert not permissions.current_user_can('reader', None, other_frec.frec_code)
+    # has agency, but not permission level
+    assert not permissions.current_user_can('submitter', None, user_frec.frec_code)
+    # right agency, right permission
+    assert permissions.current_user_can('writer', None, user_frec.frec_code)
+    assert permissions.current_user_can('reader', None, user_frec.frec_code)
+    # wrong permission level, wrong agency, but superuser
+    user_two.website_admin = True
+    assert permissions.current_user_can('submitter', None, user_frec.frec_code)
 
 
 def test_current_user_can_on_submission(monkeypatch, database):
