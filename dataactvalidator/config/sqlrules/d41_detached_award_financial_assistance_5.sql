@@ -22,4 +22,4 @@ WHERE dafa.place_of_performance_zip4a ~ '^\d\d\d\d\d\-?\d\d\d\d$'
                                 JOIN zips
                                 ON UPPER(LEFT(sub_dafa.place_of_performance_code, 2)) = zips.state_abbreviation
                                    AND LEFT(sub_dafa.place_of_performance_zip4a, 5) = zips.zip5
-                                   AND SUBSTRING(REPLACE(sub_dafa.place_of_performance_zip4a, '-', ''), 6, 4) = zips.zip_last4)
+                                   AND RIGHT(sub_dafa.place_of_performance_zip4a, 4) = zips.zip_last4)
