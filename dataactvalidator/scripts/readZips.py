@@ -66,32 +66,36 @@ def parse_zip4_file(f, sess):
         while len(curr_chunk) >= zip4_line_size:
             # grab another line and get the data that's always the same
             curr_row = curr_chunk[:zip4_line_size]
-            zip5 = curr_row[1:6]
             state = curr_row[157:159]
-            county = curr_row[159:162]
-            congressional_district = curr_row[162:164]
 
-            try:
-                zip4_low = int(curr_row[140:144])
-                zip4_high = int(curr_row[144:148])
-                # if the zip4 low and zip4 high are the same, it's just one zip code and we can just add it
-                if zip4_low == zip4_high:
-                    zip_string = str(zip4_low).zfill(4)
-                    data_array[zip5 + zip_string] = {"zip5": zip5, "zip_last4": zip_string, "state_abbreviation": state,
-                                                     "county_number": county,
-                                                     "congressional_district_no": congressional_district}
-                # if the zip codes are different, we have to loop through and add each zip4 as a different object/key
-                else:
-                    i = zip4_low
-                    while i <= zip4_high:
-                        zip_string = str(i).zfill(4)
-                        data_array[zip5 + zip_string] = {"zip5": zip5, "zip_last4": zip_string,
-                                                         "state_abbreviation": state, "county_number": county,
+            # ignore state codes AA, AE, and AP because they're just for military routing
+            if state not in ['AA', 'AE', 'AP']:
+                zip5 = curr_row[1:6]
+                county = curr_row[159:162]
+                congressional_district = curr_row[162:164]
+
+                try:
+                    zip4_low = int(curr_row[140:144])
+                    zip4_high = int(curr_row[144:148])
+                    # if the zip4 low and zip4 high are the same, it's just one zip code and we can just add it
+                    if zip4_low == zip4_high:
+                        zip_string = str(zip4_low).zfill(4)
+                        data_array[zip5 + zip_string] = {"zip5": zip5, "zip_last4": zip_string, "county_number": county,
+                                                         "state_abbreviation": state,
                                                          "congressional_district_no": congressional_district}
-                        i += 1
-            # catch entries where zip code isn't an int (12ND for example, ND stands for "no delivery")
-            except ValueError:
-                logger.error("error parsing entry: " + curr_row)
+                    # if the zip codes are different, we have to loop through and add each zip4
+                    # as a different object/key
+                    else:
+                        i = zip4_low
+                        while i <= zip4_high:
+                            zip_string = str(i).zfill(4)
+                            data_array[zip5 + zip_string] = {"zip5": zip5, "zip_last4": zip_string,
+                                                             "state_abbreviation": state, "county_number": county,
+                                                             "congressional_district_no": congressional_district}
+                            i += 1
+                # catch entries where zip code isn't an int (12ND for example, ND stands for "no delivery")
+                except ValueError:
+                    logger.error("error parsing entry: " + curr_row)
 
             # cut the current line out of the chunk we're processing
             curr_chunk = curr_chunk[zip4_line_size:]
@@ -136,11 +140,14 @@ def parse_citystate_file(f, sess):
             # grab another line and get the data if it's a "detail record"
             curr_row = curr_chunk[:citystate_line_size]
             if curr_row[0] == "D":
-                zip5 = curr_row[1:6]
                 state = curr_row[99:101]
-                county = curr_row[101:104]
-                data_array[zip5] = {"zip5": zip5, "zip_last4": None, "state_abbreviation": state,
-                                    "county_number": county, "congressional_district_no": None}
+
+                # ignore state codes AA, AE, and AP because they're just for military routing
+                if state not in ['AA', 'AE', 'AP']:
+                    zip5 = curr_row[1:6]
+                    county = curr_row[101:104]
+                    data_array[zip5] = {"zip5": zip5, "zip_last4": None, "state_abbreviation": state,
+                                        "county_number": county, "congressional_district_no": None}
 
             # cut the current line out of the chunk we're processing
             curr_chunk = curr_chunk[citystate_line_size:]
@@ -152,6 +159,13 @@ def parse_citystate_file(f, sess):
 
     add_to_table(data_array, sess)
     return f
+
+
+def handle_special_cases(sess):
+    # replace all zip5 of 96898 with specific content
+    sess.query(Zips).filter_by(zip5="96898").\
+        update({"state_abbreviation": "UM", "congressional_district_no": "99", "county_number": "450"})
+    sess.commit()
 
 
 def read_zips():
@@ -184,6 +198,9 @@ def read_zips():
             # parse remaining 5 digit zips that weren't in the first file
             citystate_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "ctystate.txt")
             parse_citystate_file(open(citystate_file), sess)
+
+        # handle specific rules/cases we know aren't handled by the 2 files
+        handle_special_cases(sess)
 
         logger.info("Zipcode script complete")
 
