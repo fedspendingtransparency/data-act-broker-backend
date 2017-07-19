@@ -16,8 +16,6 @@ def test_success(database):
         In this specific submission row, the ZIP5 (and by extension the full ZIP+4) is not a valid ZIP code in the
         state in question."""
 
-    # XX00000 validates here because it passes as long as the zip is valid in that state, this is checked
-    # in a different place
     zips = Zips(zip5="12345", zip_last4="6789", state_abbreviation="NY")
     # ignored because no zip4
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY*****",
@@ -70,7 +68,7 @@ def test_failure(database):
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, zips])
     assert errors == 2
 
-    # invalid 9 digit zip - first five fail (see d41_5 for the last five to fail)
+    # invalid 9 digit zip - first five fail (see d41_5 for the last four to fail)
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny10986",
                                                           place_of_performance_zip4a="123466789")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY*****",
