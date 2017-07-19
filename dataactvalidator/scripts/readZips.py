@@ -8,6 +8,7 @@ import boto
 import urllib.request
 
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
@@ -24,21 +25,28 @@ chunk_size = 1024 * 10
 
 # add data to the zips table
 def add_to_table(data, sess):
-    i = 0
-    # loop through all the items in the current array
-    for _, new_zip in data.items():
-        # create an insert statement that overrides old values if there's a conflict
-        insert_statement = insert(Zips).values(**new_zip). \
-            on_conflict_do_update(index_elements=[Zips.zip5, Zips.zip_last4],
-                                  set_=dict(state_abbreviation=new_zip["state_abbreviation"],
-                                            county_number=new_zip["county_number"],
-                                            congressional_district_no=new_zip["congressional_district_no"]))
-        sess.execute(insert_statement)
+    try:
+        sess.bulk_save_objects([Zips(**zip_data) for _, zip_data in data.items()])
+        sess.commit()
+    except IntegrityError:
+        sess.rollback()
+        logger.error("Attempted to insert duplicate zip. Inserting each row in batch individually.")
 
-        if i % 10000 == 0:
-            logger.info("inserting row " + str(i) + " of current batch")
-        i += 1
-    sess.commit()
+        i = 0
+        # loop through all the items in the current array
+        for _, new_zip in data.items():
+            # create an insert statement that overrides old values if there's a conflict
+            insert_statement = insert(Zips).values(**new_zip). \
+                on_conflict_do_update(index_elements=[Zips.zip5, Zips.zip_last4],
+                                      set_=dict(state_abbreviation=new_zip["state_abbreviation"],
+                                                county_number=new_zip["county_number"],
+                                                congressional_district_no=new_zip["congressional_district_no"]))
+            sess.execute(insert_statement)
+
+            if i % 10000 == 0:
+                logger.info("inserting row " + str(i) + " of current batch")
+            i += 1
+        sess.commit()
 
 
 def parse_zip4_file(f, sess):
@@ -187,6 +195,7 @@ def parse_citystate_file(f, sess):
         if item.zip5 in data_array:
             del data_array[item.zip5]
 
+    logger.info("Starting insert on zip5 data")
     add_to_table(data_array, sess)
     return f
 
