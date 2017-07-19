@@ -71,7 +71,7 @@ def parse_zip4_file(f, sess):
             # ignore state codes AA, AE, and AP because they're just for military routing
             if state not in ['AA', 'AE', 'AP']:
                 zip5 = curr_row[1:6]
-
+                # zip of 96898 is a special case
                 if zip5 == "96898":
                     congressional_district = "99"
                     state = "UM"
@@ -79,6 +79,14 @@ def parse_zip4_file(f, sess):
                 else:
                     county = curr_row[159:162]
                     congressional_district = curr_row[162:164]
+
+                # certain states require specific CDs
+                if state in ["AK", "DE", "MT", "ND", "SD", "VT", "WY"]:
+                    congressional_district = "00"
+                elif state in ["AS", "DC", "GU", "MP", "PR", "VI"]:
+                    congressional_district = "98"
+                elif state in ["FM", "MH", "PW", "UM"]:
+                    congressional_district = "99"
 
                 try:
                     zip4_low = int(curr_row[140:144])
@@ -151,6 +159,7 @@ def parse_citystate_file(f, sess):
                 # ignore state codes AA, AE, and AP because they're just for military routing
                 if state not in ['AA', 'AE', 'AP']:
                     zip5 = curr_row[1:6]
+                    # zip of 96898 is a special case
                     if zip5 == "96898":
                         congressional_district = "99"
                         state = "UM"
@@ -158,6 +167,15 @@ def parse_citystate_file(f, sess):
                     else:
                         congressional_district = None
                         county = curr_row[101:104]
+
+                    # certain states require specific CDs
+                    if state in ["AK", "DE", "MT", "ND", "SD", "VT", "WY"]:
+                        congressional_district = "00"
+                    elif state in ["AS", "DC", "GU", "MP", "PR", "VI"]:
+                        congressional_district = "98"
+                    elif state in ["FM", "MH", "PW", "UM"]:
+                        congressional_district = "99"
+
                     data_array[zip5] = {"zip5": zip5, "zip_last4": None, "state_abbreviation": state,
                                         "county_number": county, "congressional_district_no": congressional_district}
 
