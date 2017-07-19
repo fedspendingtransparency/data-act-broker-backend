@@ -96,7 +96,7 @@ ALL_PERMISSION_TYPES = [
     LookupType(5, 'fabs', 'This user is allowed to create and publish any FABS data for their agency')
 ]
 PERMISSION_TYPE_DICT = {item.name: item.id for item in PERMISSION_TYPE}
-PERMISSION_TYPE_DICT_ID = {item.id: item.name for item in PERMISSION_TYPE}
+PERMISSION_TYPE_DICT_ID = {item.id: item.name for item in ALL_PERMISSION_TYPES}
 PERMISSION_SHORT_DICT = {item.name[0]: item.id for item in ALL_PERMISSION_TYPES}
 
 FIELD_TYPE = [

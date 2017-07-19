@@ -35,7 +35,7 @@ from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
     JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT, PUBLISH_STATUS_DICT_ID,
-    FILE_TYPE_DICT_LETTER_NAME)
+    FILE_TYPE_DICT_LETTER_NAME, PERMISSION_SHORT_DICT)
 from dataactcore.models.views import SubmissionUpdatedView
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
@@ -1433,8 +1433,6 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
 
     columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
 
-    cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
-    frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec]
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id). \
         outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id). \
@@ -1443,6 +1441,9 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
         filter(Submission.d2_submission.is_(d2_submission))
     if not g.user.website_admin:
+        perms = [PERMISSION_SHORT_DICT[perm] for perm in (['r', 'w', 's', 'f'] if d2_submission else ['r', 'w', 's'])]
+        cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac and aff.permission_type_id in perms]
+        frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec and aff.permission_type_id in perms]
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
                                     Submission.frec_code.in_(frec_codes),
                                     Submission.user_id == g.user.user_id))

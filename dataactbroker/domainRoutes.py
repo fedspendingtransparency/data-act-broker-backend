@@ -47,7 +47,6 @@ def add_domain_routes(app):
         sess = GlobalDB.db().session
 
         cgac_ids = [cgac.cgac_id for cgac in cgacs]
-        print('---- TESTING HERE ----')
         sub_tier_agencies = []
         # sub_tier_agencies.extend(sess.query(SubTierAgency))
         for cgac_id in cgac_ids:
@@ -74,7 +73,8 @@ def get_cgacs(fn):
         else:
             cgacs = []
             for affil in g.user.affiliations:
-                if affil.permission_type_id >= PERMISSION_SHORT_DICT['w'] and affil.cgac:
+                if affil.permission_type_id >= PERMISSION_SHORT_DICT['w'] and affil.cgac and \
+                   affil.permission_type_id != PERMISSION_SHORT_DICT['f']:
                     cgacs.append(affil.cgac)
         return fn(cgacs, *args, **kwargs)
     return wrapped
