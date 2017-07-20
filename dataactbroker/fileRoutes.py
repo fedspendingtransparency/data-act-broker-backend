@@ -17,7 +17,8 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.jobModels import Submission, Job, CertifyHistory
+from dataactcore.models.jobModels import (
+    Submission, SubmissionSubTierAffiliation, Job, CertifyHistory, GTASSubmissionWindow)
 
 
 # Add the file submission route
@@ -42,6 +43,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
             submissions = sess.query(Submission).filter(
                 Submission.cgac_code == request.json.get('cgac_code'),
+                Submission.frec_code == request.json.get('frec_code'),
                 Submission.reporting_start_date == formatted_start_date,
                 Submission.reporting_end_date == formatted_end_date,
                 Submission.is_quarter_format == request.json.get('is_quarter'),
@@ -74,6 +76,17 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @requires_submission_perms('reader')
     def check_status(submission):
         return get_status(submission)
+
+    @app.route("/v1/gtas_window/", methods=["GET"])
+    def gtas_window():
+        current_gtas_window = get_gtas_window()
+
+        data = None
+
+        if current_gtas_window:
+            data = {'start_date': str(current_gtas_window.start_date), 'end_date': str(current_gtas_window.end_date)}
+
+        return JsonResponse.create(StatusCode.OK, {"data": data})
 
     @app.route("/v1/submission_error_reports/", methods=["POST"])
     @requires_login
@@ -110,11 +123,12 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             required=True,
             validate=webargs_validate.OneOf(('mixed', 'true', 'false'))),
         'sort': webargs_fields.String(missing='modified'),
-        'order': webargs_fields.String(missing='desc')
+        'order': webargs_fields.String(missing='desc'),
+        'd2_submission': webargs_fields.Bool(missing=False),
     })
-    def list_submissions(page, limit, certified, sort, order):
+    def list_submissions(page, limit, certified, sort, order, d2_submission):
         """ List submission IDs associated with the current user """
-        return list_submissions_handler(page, limit, certified, sort, order)
+        return list_submissions_handler(page, limit, certified, sort, order, d2_submission)
 
     @app.route("/v1/list_certifications/", methods=["POST"])
     @convert_to_submission_id
@@ -160,6 +174,15 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         sess = GlobalDB.db().session
 
         submission_id = submission.submission_id
+
+        # /v1/uploadDetachedFiles/
+        # DetachedFiles
+        if submission.d2_submission:
+            data = {
+                "message": "The current progress of this submission ID is on /v1/uploadDetachedFiles/ page.",
+                "step": "6"
+            }
+            return JsonResponse.create(StatusCode.OK, data)
 
         # /v1/reviewData/
         # Checks that both E and F files are finished
@@ -244,14 +267,19 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @use_kwargs({
         'file_type': webargs_fields.String(
             required=True, validate=webargs_validate.OneOf(('D1', 'D2'))),
-        'cgac_code': webargs_fields.String(required=True),
+        'cgac_code': webargs_fields.String(),
+        'frec_code': webargs_fields.String(),
         'start': webargs_fields.String(required=True),
         'end': webargs_fields.String(required=True)
     })
-    def generate_detached_file(file_type, cgac_code, start, end):
+    def generate_detached_file(file_type, cgac_code, frec_code, start, end):
         """ Generate a file from external API, independent from a submission """
+        if not cgac_code and not frec_code:
+            return JsonResponse.error(ValueError("Detached file generation requires CGAC or FR Entity Code"),
+                                      StatusCode.CLIENT_ERROR)
+
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.generate_detached_file(file_type, cgac_code, start, end)
+        return file_manager.generate_detached_file(file_type, cgac_code, frec_code, start, end)
 
     @app.route("/v1/check_detached_generation_status/", methods=["POST"])
     @requires_login
@@ -344,6 +372,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             return JsonResponse.error(ValueError("Submissions with running jobs cannot be deleted"),
                                       StatusCode.CLIENT_ERROR)
 
+        sess.query(SubmissionSubTierAffiliation).filter(
+            SubmissionSubTierAffiliation.submission_id == submission.submission_id).delete(
+                synchronize_session=False)
         sess.query(Submission).filter(Submission.submission_id == submission.submission_id).delete(
             synchronize_session=False)
         sess.expire_all()
@@ -352,14 +383,17 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/check_year_quarter/", methods=["GET"])
     @requires_login
-    @use_kwargs({'cgac_code': webargs_fields.String(required=True),
-                 'reporting_fiscal_year': webargs_fields.String(requrired=True),
-                 'reporting_fiscal_period': webargs_fields.String(requrired=True)})
-    def check_year_and_quarter(cgac_code, reporting_fiscal_year, reporting_fiscal_period):
-        """ Check if cgac code, year, and quarter already has a published submission """
-        sess = GlobalDB.db().session
+    @use_kwargs({'cgac_code': webargs_fields.String(),
+                 'frec_code': webargs_fields.String(),
+                 'reporting_fiscal_year': webargs_fields.String(required=True),
+                 'reporting_fiscal_period': webargs_fields.String(required=True)})
+    def check_year_and_quarter(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period):
+        """ Check if cgac (or frec) code, year, and quarter already has a published submission """
+        if not cgac_code and not frec_code:
+            return JsonResponse.error(ValueError("CGAC or FR Entity Code required"), StatusCode.CLIENT_ERROR)
 
-        return find_existing_submissions_in_period(sess, cgac_code, reporting_fiscal_year,
+        sess = GlobalDB.db().session
+        return find_existing_submissions_in_period(sess, cgac_code, frec_code, reporting_fiscal_year,
                                                    reporting_fiscal_period)
 
     @app.route("/v1/certify_submission/", methods=['POST'])
@@ -376,9 +410,14 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
             return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
 
+        window = get_gtas_window()
+        if window:
+            return JsonResponse.error(ValueError("Submission cannot be certified during the GTAS submission window"),
+                                      StatusCode.CLIENT_ERROR)
+
         sess = GlobalDB.db().session
 
-        response = find_existing_submissions_in_period(sess, submission.cgac_code,
+        response = find_existing_submissions_in_period(sess, submission.cgac_code, submission.frec_code,
                                                        submission.reporting_fiscal_year,
                                                        submission.reporting_fiscal_period, submission.submission_id)
 
@@ -433,13 +472,14 @@ def convert_to_submission_id(fn):
     return wrapped
 
 
-def find_existing_submissions_in_period(sess, cgac_code, reporting_fiscal_year,
+def find_existing_submissions_in_period(sess, cgac_code, frec_code, reporting_fiscal_year,
                                         reporting_fiscal_period, submission_id=None):
     submission_query = sess.query(Submission).filter(
-        Submission.cgac_code == cgac_code,
+        (Submission.cgac_code == cgac_code) if cgac_code else (Submission.frec_code == frec_code),
         Submission.reporting_fiscal_year == reporting_fiscal_year,
         Submission.reporting_fiscal_period == reporting_fiscal_period,
         Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
+
     if submission_id:
         submission_query = submission_query.filter(
             Submission.submission_id != submission_id)
@@ -453,3 +493,13 @@ def find_existing_submissions_in_period(sess, cgac_code, reporting_fiscal_year,
         }
         return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
     return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
+
+def get_gtas_window():
+    sess = GlobalDB.db().session
+
+    curr_date = datetime.now().date()
+
+    return sess.query(GTASSubmissionWindow).filter(
+                                            GTASSubmissionWindow.start_date <= curr_date,
+                                            GTASSubmissionWindow.end_date >= curr_date).one_or_none()

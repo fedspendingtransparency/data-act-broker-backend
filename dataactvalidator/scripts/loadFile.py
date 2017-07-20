@@ -7,7 +7,8 @@ import boto
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import CGAC, SubTierAgency, ObjectClass, ProgramActivity, CountryCode, CFDAProgram
+from dataactcore.models.domainModels import (CGAC, SubTierAgency, ObjectClass, ProgramActivity, CountryCode,
+                                             CFDAProgram, FREC)
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe, format_date
 
@@ -65,6 +66,57 @@ def load_cgac(file_name):
         sess.commit()
 
         logger.info('%s CGAC records inserted', len(models))
+
+
+def delete_missing_frecs(models, new_data):
+    """If the new file doesn't contain CGACs we had before, we should delete
+    the non-existent ones"""
+    to_delete = set(models.keys()) - set(new_data['frec_code'])
+    sess = GlobalDB.db().session
+    if to_delete:
+        sess.query(FREC).filter(FREC.frec_code.in_(to_delete)).delete(
+            synchronize_session=False)
+    for frec_code in to_delete:
+        del models[frec_code]
+
+
+def update_frecs(models, new_data):
+    """Modify existing models or create new ones"""
+    for _, row in new_data.iterrows():
+        frec_code = row['frec_code']
+        if frec_code not in models:
+            models[frec_code] = FREC()
+        for field, value in row.items():
+            setattr(models[frec_code], field, value)
+
+
+def load_frec(file_name):
+    model = FREC
+    """Load FREC (high-level agency names) lookup table."""
+    with create_app().app_context():
+        sess = GlobalDB.db().session
+
+        models = {frec.frec_code: frec for frec in sess.query(FREC)}
+
+        # read FREC values from csv
+        data = pd.read_csv(file_name, dtype=str)
+        # clean data
+        data = clean_data(
+            data,
+            model,
+            {"fr_entity_type": "frec_code", "agency_aid": "cgac_code", "fr_entity_description": "agency_name"},
+            {"cgac_code": {"pad_to_length": 3}, "frec_code": {"pad_to_length": 4}}
+        )
+        # de-dupe
+        data.drop_duplicates(subset=['frec_code'], inplace=True)
+
+        # insert to db
+        delete_missing_frecs(models, data)
+        update_frecs(models, data)
+        sess.add_all(models.values())
+        sess.commit()
+
+        logger.info('%s FREC records inserted', len(models))
 
 
 def delete_missing_sub_tier_agencies(models, new_data):
@@ -300,6 +352,7 @@ def load_domain_values(base_path, local_program_activity=None):
         program_activity_file = s3bucket.get_key("program_activity.csv").generate_url(expires_in=600)
         country_codes_file = s3bucket.get_key("country_codes.csv").generate_url(expires_in=600)
         cfda_program_file = s3bucket.get_key("cfda_program.csv").generate_url(expires_in=600)
+        cars_tas_file = s3bucket.get_key("cars_tas.csv").generate_url(expires_in=600)
 
     else:
         agency_list_file = os.path.join(base_path, "agency_list.csv")
@@ -307,9 +360,12 @@ def load_domain_values(base_path, local_program_activity=None):
         program_activity_file = os.path.join(base_path, "program_activity.csv")
         country_codes_file = os.path.join(base_path, "country_codes.csv")
         cfda_program_file = os.path.join(base_path, "cfda_program.csv")
+        cars_tas_file = os.path.join(base_path, "cars_tas.csv")
 
     logger.info('Loading CGAC')
     load_cgac(agency_list_file)
+    logger.info('Loading FREC')
+    load_frec(cars_tas_file)
     logger.info('Loading Sub Tier Agencies')
     load_sub_tier_agencies(agency_list_file)
     logger.info('Loading object class')

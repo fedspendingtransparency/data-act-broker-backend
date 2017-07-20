@@ -10,17 +10,21 @@ from dataactcore.models.lookups import FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, JO
 def generate_fiscal_year(context):
     """ Generate fiscal year based on the date provided """
     reporting_end_date = context.current_parameters['reporting_end_date']
-    year = reporting_end_date.year
-    if reporting_end_date.month in [10, 11, 12]:
-        year += 1
+    year = 0
+    if reporting_end_date:
+        year = reporting_end_date.year
+        if reporting_end_date.month in [10, 11, 12]:
+            year += 1
     return year
 
 
 def generate_fiscal_period(context):
     """ Generate fiscal period based on the date provided """
     reporting_end_date = context.current_parameters['reporting_end_date']
-    period = (reporting_end_date.month + 3) % 12
-    period = 12 if period == 0 else period
+    period = 0
+    if reporting_end_date:
+        period = (reporting_end_date.month + 3) % 12
+        period = 12 if period == 0 else period
     return period
 
 
@@ -59,8 +63,9 @@ class Submission(Base):
                      nullable=True)
     user = relationship("User", foreign_keys=[user_id])
     cgac_code = Column(Text)
-    reporting_start_date = Column(Date, nullable=False)
-    reporting_end_date = Column(Date, nullable=False)
+    frec_code = Column(Text)
+    reporting_start_date = Column(Date)
+    reporting_end_date = Column(Date)
     reporting_fiscal_year = Column(Integer, nullable=False, default=generate_fiscal_year, server_default='0')
     reporting_fiscal_period = Column(Integer, nullable=False, default=generate_fiscal_period, server_default='0')
     is_quarter_format = Column(Boolean, nullable=False, default="False", server_default="False")
@@ -221,3 +226,11 @@ class CertifiedFilesHistory(Base):
     file_type = relationship("FileType", uselist=False, lazy='joined')
     warning_filename = Column(Text)
     narrative = Column(Text)
+
+
+class GTASSubmissionWindow(Base):
+    __tablename__ = "gtas_submission_window"
+
+    window_id = Column(Integer, primary_key=True)
+    start_date = Column(Date)
+    end_date = Column(Date)

@@ -108,6 +108,14 @@ class CGAC(Base):
     agency_name = Column(Text)
 
 
+class FREC(Base):
+    __tablename__ = "frec"
+    frec_id = Column(Integer, primary_key=True)
+    frec_code = Column(Text, nullable=True, index=True, unique=True)
+    agency_name = Column(Text)
+    cgac_code = Column(Text)
+
+
 class SubTierAgency(Base):
     __tablename__ = "sub_tier_agency"
     sub_tier_agency_id = Column(Integer, primary_key=True)
@@ -197,6 +205,8 @@ class ExecutiveCompensation(Base):
     high_comp_officer4_amount = Column(Text)
     high_comp_officer5_full_na = Column(Text)
     high_comp_officer5_amount = Column(Text)
+    activation_date = Column(Date)
+    expiration_date = Column(Date)
 
 
 class CFDAProgram(Base):

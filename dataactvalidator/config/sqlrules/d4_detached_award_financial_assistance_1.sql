@@ -12,4 +12,8 @@ SELECT
     row_number,
     action_date
 FROM detached_award_financial_assistance
-WHERE submission_id = {0} AND NOT pg_temp.is_date(COALESCE(action_date, '0'));
+WHERE submission_id = {0}
+    AND CASE WHEN pg_temp.is_date(COALESCE(action_date, '0'))
+        THEN action_date !~ '\d\d\d\d\d\d\d\d'
+        ELSE TRUE
+        END

@@ -26,7 +26,8 @@ FILE_STATUS_DICT = {item.name: item.id for item in FILE_STATUS}
 FILE_STATUS_DICT_ID = {item.id: item.name for item in FILE_STATUS}
 
 ERROR_TYPE = [
-    LookupType(1, 'type_error', 'The value provided was of the wrong type'),
+    LookupType(1, 'type_error', 'The value provided was of the wrong type. Note that all type errors in a line'
+                                ' must be fixed before the rest of the validation logic is applied to that line.'),
     LookupType(2, 'required_error', 'A required value was not provided'),
     LookupType(3, 'value_error', 'The value provided was invalid'),
     LookupType(4, 'read_error', 'Could not parse this record correctly'),
