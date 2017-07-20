@@ -162,8 +162,6 @@ class FieldCleaner(StringCleaner):
         if value is not None and field.padded_flag and field.length is not None:
             # Pad to specified length with leading zeros
             return value.zfill(field.length)
-        if value == '0' and field.name_short == 'object_class':
-            return value.zfill(3)
         else:
             return value
 
