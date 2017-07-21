@@ -1,4 +1,5 @@
--- For AssistanceType of 02, 03, 04, or 05 whose ActionDate is after October 1, 2010, DUNS is required.
+-- For AssistanceType of 02, 03, 04, or 05 whose ActionDate is after October 1, 2010,
+-- the DUNS must be found in our records.
 
 CREATE OR REPLACE function pg_temp.is_date(str text) returns boolean AS $$
 BEGIN
@@ -22,4 +23,8 @@ WHERE submission_id = {0}
         THEN
             CAST(action_date as DATE)
     END) > CAST('10/01/2010' as DATE)
-    AND COALESCE(awardee_or_recipient_uniqu, '') = ''
+    AND awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
+    AND COALESCE(dafa.awardee_or_recipient_uniqu, '') NOT IN (
+        SELECT DISTINCT exec_comp.awardee_or_recipient_uniqu
+        FROM executive_compensation as exec_comp
+    )
