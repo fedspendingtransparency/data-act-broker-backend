@@ -32,10 +32,10 @@ def upgrade_data_broker():
     op.create_table('states',
         sa.Column('created_at', sa.DateTime(), nullable=True),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
-        sa.Column('county_code_id', sa.Integer(), nullable=False),
+        sa.Column('states_id', sa.Integer(), nullable=False),
         sa.Column('state_code', sa.Text(), nullable=True),
         sa.Column('state_name', sa.Text(), nullable=True),
-        sa.PrimaryKeyConstraint('county_code_id')
+        sa.PrimaryKeyConstraint('states_id')
     )
     ### end Alembic commands ###
 

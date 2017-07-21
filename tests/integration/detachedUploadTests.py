@@ -7,7 +7,7 @@ from dataactcore.models.userModel import User
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
-from dataactcore.models.domainModels import SubTierAgency
+from dataactcore.models.domainModels import SubTierAgency, States
 
 
 class DetachedUploadTests(BaseTestAPI):
@@ -100,18 +100,21 @@ class DetachedUploadTests(BaseTestAPI):
 
         sub_tier_agency = SubTierAgency(created_at=datetime.utcnow(), cgac_id=1,
                                         sub_tier_agency_code="abc", sub_tier_agency_name="test name")
+        state = States(created_at=datetime.utcnow(), states_id=1, state_code='NY', state_name='New York')
 
         det_award = DetachedAwardFinancialAssistance(created_at=datetime.utcnow(),
                                                      submission_id=self.d2_submission_dupe,
                                                      job_id=1, row_number=1, is_valid=True,
                                                      fain="abc", uri="def", awarding_sub_tier_agency_c="abc",
-                                                     award_modification_amendme="def")
+                                                     award_modification_amendme="def",
+                                                     place_of_performance_code="NY*****")
 
         det_award_2 = DetachedAwardFinancialAssistance(created_at=datetime.utcnow(),
                                                        submission_id=self.d2_submission_dupe_2,
                                                        job_id=1, row_number=1, is_valid=True,
                                                        fain="abc", uri="def", awarding_sub_tier_agency_c="abc",
-                                                       award_modification_amendme="def")
+                                                       award_modification_amendme="def",
+                                                       place_of_performance_code="NY*****")
 
-        self.session.add_all([det_award, det_award_2, sub_tier_agency])
+        self.session.add_all([det_award, det_award_2, sub_tier_agency, state])
         self.session.commit()

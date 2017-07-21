@@ -297,7 +297,7 @@ class States(Base):
     """ State abbreviations and names """
     __tablename__ = "states"
 
-    county_code_id = Column(Integer, primary_key=True)
+    states_id = Column(Integer, primary_key=True)
     state_code = Column(Text)
     state_name = Column(Text)
 
