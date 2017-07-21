@@ -7,7 +7,7 @@ from datetime import datetime
 from dataactcore.logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.domainModels import CityCode, CountyCode
+from dataactcore.models.domainModels import CityCode, CountyCode, States
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import insert_dataframe
@@ -88,6 +88,24 @@ def parse_county_file(county_file, sess):
     sess.commit()
 
 
+def parse_state_file(state_file, sess):
+    # read the data. Cleaning is in there in case something changes, doesn't really do anything now
+    data = pd.read_csv(state_file, dtype=str)
+    data = clean_data(
+        data,
+        {"state_name": "state_name",
+         "state_code": "state_code"})
+
+    # add created_at and updated_at columns
+    now = datetime.utcnow()
+    data = data.assign(created_at=now, updated_at=now)
+
+    # insert data into table
+    num = insert_dataframe(data, States.__table__.name, sess.connection())
+    logger.info('{} records inserted to states'.format(num))
+    sess.commit()
+
+
 def load_city_data(city_file):
     with create_app().app_context():
         sess = GlobalDB.db().session
@@ -110,20 +128,35 @@ def load_county_data(county_file):
         parse_county_file(county_file, sess)
 
 
+def load_state_data(state_file):
+    with create_app().app_context():
+        sess = GlobalDB.db().session
+
+        # delete any data in the States table
+        sess.query(States).delete()
+
+        # parse the new state data
+        parse_state_file(state_file, sess)
+
+
 def load_location_data():
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
         s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
         city_file = s3bucket.get_key("NationalFedCodes.txt").generate_url(expires_in=600)
         county_file = s3bucket.get_key("GOVT_UNITS.txt").generate_url(expires_in=600)
+        state_file = s3bucket.get_key("state_list.txt").generate_url(expires_in=600)
     else:
         city_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "NationalFedCodes.txt")
         county_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "GOVT_UNITS.txt")
+        state_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "state_list.txt")
 
     logger.info('Loading city data')
     load_city_data(city_file)
     logger.info('Loading county data')
     load_county_data(county_file)
+    logger.info('Loading state data')
+    load_state_data(state_file)
 
 
 if __name__ == '__main__':
