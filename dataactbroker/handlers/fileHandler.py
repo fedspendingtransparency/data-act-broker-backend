@@ -1800,7 +1800,7 @@ def fabs_derivations(obj):
                 filter_by(county_number=county_code, state_code=ppop_state.state_code).first()
             obj['place_of_perform_county_na'] = county_info.county_name
         # if ppop_code is in city format
-        elif re.match('^[A-Z]{2}\d{5}$', ppop_code):
+        elif re.match('^[A-Z]{2}\d{5}$', ppop_code) and not re.match('^[A-Z]{2}0{5}$', ppop_code):
             # getting city and county name
             city_code = ppop_code[-5:]
             city_info = sess.query(CityCode).filter_by(city_code=city_code, state_code=ppop_state.state_code).first()
