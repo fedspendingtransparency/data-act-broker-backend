@@ -713,16 +713,13 @@ class FileHandler:
 
             if existing_submission_obj is not None:
                 cgac_code = existing_submission_obj.cgac_code
-                frec_code = existing_submission_obj.frec_code
             else:
                 sub_tier_agency = sess.query(SubTierAgency).\
                     filter_by(sub_tier_agency_code=request_params["agency_code"]).one()
                 cgac_code = sub_tier_agency.cgac.cgac_code
-                frec_code = sub_tier_agency.frec.frec_code
 
             # get the cgac code associated with this sub tier agency
             job_data["cgac_code"] = cgac_code
-            job_data["frec_code"] = frec_code
             job_data["d2_submission"] = True
             job_data['reporting_start_date'] = None
             job_data['reporting_end_date'] = None
@@ -731,7 +728,7 @@ class FileHandler:
             Below lines commented out to temporarily allow all users
             to upload FABS data for all agencies during testing
             """
-            # if not current_user_can('writer', job_data["cgac_code"], job_data["frec_code"]):
+            # if not current_user_can('writer', job_data["cgac_code"]):
             #     raise ResponseException("User does not have permission to create jobs for this agency",
             #                             StatusCode.PERMISSION_DENIED)
 
@@ -1769,6 +1766,19 @@ def fabs_derivations(obj):
             zip_info = sess.query(Zips).\
                 filter_by(zip5=zip_five).first()
         obj['place_of_performance_congr'] = zip_info.congressional_district_no
+
+    # deriving legal entity congressional district where applicable
+    if obj['legal_entity_zip5']:
+        # if we have a legal entity zip+4 provided
+        if obj['legal_entity_zip_last4']:
+            zip_data = sess.query(Zips).\
+                filter_by(zip5=obj['legal_entity_zip5'], zip_last4=obj['legal_entity_zip_last4']).first()
+        else:
+            zip_data = sess.query(Zips).filter_by(zip5=obj['legal_entity_zip5']).first()
+        # set zip_data to the congressional district if we got a result
+        if zip_data:
+            zip_data = zip_data.congressional_district_no
+        obj['legal_entity_congressional'] = zip_data
 
     GlobalDB.close()
     return obj
