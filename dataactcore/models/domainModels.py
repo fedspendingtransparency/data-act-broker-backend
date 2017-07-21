@@ -300,3 +300,12 @@ class States(Base):
     county_code_id = Column(Integer, primary_key=True)
     state_code = Column(Text)
     state_name = Column(Text)
+
+
+class ZipCity(Base):
+    """ zip-5 to city name mapping """
+    __tablename__ = "zip_city"
+
+    zip_city_id = Column(Integer, primary_key=True)
+    zip_code = Column(Text)
+    city_name = Column(Text)

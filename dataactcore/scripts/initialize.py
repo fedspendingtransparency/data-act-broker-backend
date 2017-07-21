@@ -149,6 +149,7 @@ def main():
 
     if args.load_zips:
         load_zip_codes()
+        load_location_codes()
 
 if __name__ == '__main__':
     configure_logging()
