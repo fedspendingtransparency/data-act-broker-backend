@@ -25,7 +25,7 @@ from dataactbroker.permissions import current_user_can, current_user_can_on_subm
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import CGAC, FREC, CFDAProgram, SubTierAgency, Zips
+from dataactcore.models.domainModels import CGAC, FREC, CFDAProgram, SubTierAgency, Zips, States
 from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.jobModels import (
@@ -1752,6 +1752,10 @@ def fabs_derivations(obj):
         funding_sub_tier_agency_name = sess.query(SubTierAgency).\
             filter_by(sub_tier_agency_code=obj['funding_sub_tier_agency_co']).one()
         obj['funding_sub_tier_agency_na'] = funding_sub_tier_agency_name.sub_tier_agency_name
+
+    # deriving ppop state name (ppop code is required so we don't have to check that it exists)
+    ppop_state = sess.query(States).filter_by(state_code=obj['place_of_performance_code'][:2]).one()
+    obj['place_of_perform_state_nam'] = ppop_state.state_name
 
     # deriving place of performance
     if obj['place_of_performance_zip4a'] and not obj['place_of_performance_congr']:
