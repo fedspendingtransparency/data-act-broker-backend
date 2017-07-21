@@ -509,6 +509,9 @@ class ValidationManager:
 
         # write all recorded errors to database
         error_list.write_all_row_errors(job_id)
+        # Update error info for submission
+        populate_job_error_info(job)
+
         # mark job status as "finished"
         mark_job_status(job_id, "finished")
         job_duration = (datetime.now()-job_start).total_seconds()
