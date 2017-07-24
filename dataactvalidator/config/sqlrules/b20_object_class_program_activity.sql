@@ -17,6 +17,10 @@ WHERE af.submission_id = {}
 			AND (af.program_activity_code IS NOT DISTINCT FROM op.program_activity_code
 				OR COALESCE(af.program_activity_code, '') = ''
 				OR af.program_activity_code = '0000')
-			AND af.object_class IS NOT DISTINCT FROM op.object_class
+			AND (af.object_class IS NOT DISTINCT FROM op.object_class
+				OR (af.object_class IN ('0', '00', '000', '0000')
+					AND af.object_class IN ('0', '00', '000', '0000')
+					)
+				)
 			AND af.submission_id = op.submission_id
 	);
