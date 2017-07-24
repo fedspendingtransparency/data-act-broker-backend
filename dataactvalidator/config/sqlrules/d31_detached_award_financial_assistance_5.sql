@@ -1,5 +1,7 @@
 -- For AssistanceType of 02, 03, 04, or 05 whose ActionDate is after October 1, 2010 and ActionType = A,
--- the DUNS must be active as of the ActionDate.
+-- AwardeeOrRecipientUniqueIdentifier must be active as of the ActionDate, unless the record is an aggregate
+-- record (RecordType=1) or individual recipient (BusinessTypes includes 'P'). This is an error because
+-- CorrectionLateDeleteIndicator is not C or the action date is after January 1, 2017.
 
 CREATE OR REPLACE function pg_temp.is_date(str text) returns boolean AS $$
 BEGIN
@@ -16,6 +18,9 @@ WITH detached_award_financial_assistance_d44_4_{0} AS
         action_date,
         action_type,
         awardee_or_recipient_uniqu,
+        business_types,
+        record_type,
+        correction_late_delete_ind,
         submission_id
     FROM detached_award_financial_assistance
 WHERE submission_id = {0})
@@ -25,9 +30,13 @@ SELECT
     assistance_type,
     action_date,
     action_type,
-    awardee_or_recipient_uniqu
+    awardee_or_recipient_uniqu,
+    business_types,
+    record_type,
+    correction_late_delete_ind
 FROM detached_award_financial_assistance_d44_4_{0} AS dafa
-WHERE COALESCE(assistance_type, '') IN ('02', '03', '04', '05')
+WHERE NOT (record_type = 1 or LOWER(business_types) LIKE '%%p%%')
+    AND COALESCE(assistance_type, '') IN ('02', '03', '04', '05')
     AND (CASE
         WHEN pg_temp.is_date(COALESCE(dafa.action_date, '0'))
         THEN
@@ -52,3 +61,10 @@ WHERE COALESCE(assistance_type, '') IN ('02', '03', '04', '05')
                     END) < CAST(exec_comp.expiration_date as DATE)
                 )
             )
+    AND (COALESCE(dafa.correction_late_delete_ind,'') != 'C'
+        OR (CASE
+            WHEN pg_temp.is_date(COALESCE(dafa.action_date, '0'))
+            THEN
+                CAST(dafa.action_date as DATE)
+        END) >= CAST('01/01/2017' as DATE)
+    )
