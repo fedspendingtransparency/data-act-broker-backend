@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import Mock
 
 from dataactbroker.handlers import accountHandler
-from dataactcore.models.lookups import PERMISSION_TYPE_DICT
+from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PERMISSION_SHORT_DICT
 from dataactcore.models.userModel import UserAffiliation
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
@@ -150,6 +150,18 @@ def test_set_max_perms(database, monkeypatch):
            affil.permission_type_id == PERMISSION_TYPE_DICT['reader']:
             correct_assertions = correct_assertions + 1
     assert correct_assertions == 2
+
+    accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_R,prefix-CGAC_ABC-PERM_S,prefix-CGAC_ABC-PERM_F')
+    database.session.commit()
+    assert len(user.affiliations) == 2
+    affiliations = list(sorted(user.affiliations, key=lambda a: a.permission_type_id))
+    dabs_aff, fabs_aff = affiliations
+    assert dabs_aff.cgac.cgac_code == 'ABC'
+    assert dabs_aff.frec is None
+    assert dabs_aff.permission_type_id == PERMISSION_TYPE_DICT['submitter']
+    assert fabs_aff.cgac.cgac_code == 'ABC'
+    assert fabs_aff.frec is None
+    assert fabs_aff.permission_type_id == PERMISSION_SHORT_DICT['f']
 
 
 @pytest.mark.usefixtures("user_constants")

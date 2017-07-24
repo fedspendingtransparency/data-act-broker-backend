@@ -241,8 +241,7 @@ class AccountHandler:
 
 
 def perms_to_affiliations(perms):
-    """Convert a list of perms from MAX to a list of UserAffiliations. Filter
-    out and log any malformed perms"""
+    """Convert a list of perms from MAX to a list of UserAffiliations. Filter out and log any malformed perms"""
     available_cgacs = {
         cgac.cgac_code: cgac
         for cgac in GlobalDB.db().session.query(CGAC)
@@ -274,7 +273,7 @@ def perms_to_affiliations(perms):
                 continue
 
         perm_level = perm_level.lower()
-        if perm_level not in 'rws':
+        if perm_level not in 'rwsf' or (perm_level == 'f' and frec_code):
             logger.warning('Malformed permission: %s', perm)
             continue
 
@@ -286,28 +285,31 @@ def perms_to_affiliations(perms):
 
 
 def best_affiliation(affiliations):
-    """If a user has multiple permissions for a single agency, select the
-    best"""
-    by_agency = {}
+    """If a user has multiple permissions for a single agency, select the best"""
+    dabs_affils, fabs_affils = {}, {}
     affiliations = sorted(affiliations, key=attrgetter('permission_type_id'))
     for affiliation in affiliations:
-        by_agency[affiliation.cgac, affiliation.frec] = affiliation
-    return by_agency.values()
+        if affiliation.permission_type_id == PERMISSION_SHORT_DICT['f']:
+            fabs_affils[affiliation.cgac, affiliation.frec] = affiliation
+        else:
+            dabs_affils[affiliation.cgac, affiliation.frec] = affiliation
+
+    all_affils = list(dabs_affils.values()) + list(fabs_affils.values())
+    return all_affils
 
 
 def set_max_perms(user, max_group_list):
-    """Convert the user group lists present on MAX into a list of
-    UserAffiliations and/or website_admin status.
+    """Convert the user group lists present on MAX into a list of UserAffiliations and/or website_admin status.
 
-    Permissions are encoded as a comma-separated list of
-    {parent-group}-CGAC_{cgac-code}-PERM_{one-of-R-W-S}
-    {parent-group}-CGAC_{cgac-code}-FREC_{frec_code}-PERM_{one-of-R-W-S}
+    Permissions are encoded as a comma-separated list of:
+    {parent-group}-CGAC_{cgac-code}-PERM_{one-of-R-W-S-F}
+    {parent-group}-CGAC_{cgac-code}-FREC_{frec_code}-PERM_{one-of-R-W-S-F}
     or
     {parent-group}-CGAC_SYS to indicate website_admin"""
     prefix = CONFIG_BROKER['parent_group'] + '-CGAC_'
 
-    # Each group name that we care about begins with the prefix, but once we
-    # have that list, we don't need the prefix anymore, so trim it off.
+    # Each group name that we care about begins with the prefix, but once we have that list, we don't need the
+    # prefix anymore, so trim it off.
     perms = [group_name[len(prefix):]
              for group_name in max_group_list.split(',')
              if group_name.startswith(prefix)]
@@ -315,7 +317,7 @@ def set_max_perms(user, max_group_list):
         user.affiliations = []
         user.website_admin = True
     else:
-        affiliations = list(best_affiliation(perms_to_affiliations(perms)))
+        affiliations = best_affiliation(perms_to_affiliations(perms))
 
         user.affiliations = affiliations
         user.website_admin = False
