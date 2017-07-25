@@ -208,6 +208,17 @@ class ExecutiveCompensation(Base):
     activation_date = Column(Date)
     expiration_date = Column(Date)
 
+class DUNS(Base):
+    """ DUNS Records """
+    __tablename__ = "duns"
+
+    duns_id = Column(Integer, primary_key=True)
+    awardee_or_recipient_uniqu = Column(Text)
+    legal_business_name = Column(Text)
+    activation_date = Column(Date)
+    expiration_date = Column(Date)
+    last_sam_mod_date = Column(Date)
+
 
 class CFDAProgram(Base):
     __tablename__ = "cfda_program"
