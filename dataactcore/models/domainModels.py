@@ -216,6 +216,7 @@ class DUNS(Base):
     awardee_or_recipient_uniqu = Column(Text)
     legal_business_name = Column(Text)
     activation_date = Column(Date)
+    deactivation_date = Column(Date)
     expiration_date = Column(Date)
     last_sam_mod_date = Column(Date)
 

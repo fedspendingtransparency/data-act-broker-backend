@@ -8,7 +8,7 @@ Create Date: 2017-07-25 00:12:22.805037
 
 # revision identifiers, used by Alembic.
 revision = 'ff4728a82180'
-down_revision = '0bf2ed508f33'
+down_revision = '18d9b114c1dc'
 branch_labels = None
 depends_on = None
 
@@ -36,6 +36,7 @@ def upgrade_data_broker():
     sa.Column('awardee_or_recipient_uniqu', sa.Text(), nullable=True),
     sa.Column('legal_business_name', sa.Text(), nullable=True),
     sa.Column('activation_date', sa.Date(), nullable=True),
+    sa.Column('deactivation_date', sa.Date(), nullable=True),
     sa.Column('expiration_date', sa.Date(), nullable=True),
     sa.Column('last_sam_mod_date', sa.Date(), nullable=True),
     sa.PrimaryKeyConstraint('duns_id')
