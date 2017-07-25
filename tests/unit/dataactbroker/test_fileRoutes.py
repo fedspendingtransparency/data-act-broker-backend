@@ -105,12 +105,12 @@ def test_is_period(file_app, database):
 
     curr_date = datetime.now()
     diff = timedelta(days=1)
-    gtas_current = WindowFactory(start_date=curr_date-diff, end_date=curr_date+diff, block_certification=False)
+    gtas_current = WindowFactory(start_date=curr_date-diff, end_date=curr_date+diff, block_certification=True)
     database.session.add(gtas_current)
 
     response = file_app.get("/v1/window/")
     response_json = json.loads(response.data.decode('UTF-8'))
-    assert response_json['data'][0]['notice_block'] is True
+    assert response_json['data'][1]['notice_block'] is True
 
 
 def test_current_page(file_app, database, user_constants, job_constants, monkeypatch):
