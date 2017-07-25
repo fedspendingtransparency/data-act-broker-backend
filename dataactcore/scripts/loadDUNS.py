@@ -38,7 +38,7 @@ def update_duns(models, new_data):
         if awardee_or_recipient_uniqu not in models:
             models[awardee_or_recipient_uniqu] = DUNS()
         for field, value in row.items():
-            value = None if value is np.nan else value
+            value = None if (value in [np.nan, '']) else value
             setattr(models[awardee_or_recipient_uniqu], field, value)
 
 
@@ -47,6 +47,8 @@ def parse_sam_file(file, monthly=False):
 
     zip_file = zipfile.ZipFile(file.name)
     dat_file = os.path.splitext(os.path.basename(file.name))[0]+'.dat'
+    sam_file_type = "MONTHLY" if monthly else "DAILY"
+    dat_file_date = re.findall(".*{}_(.*).dat".format(sam_file_type), dat_file)[0]
 
     with create_app().app_context():
         sess = GlobalDB.db().session
@@ -80,18 +82,24 @@ def parse_sam_file(file, monthly=False):
             csv_data = pd.read_csv(zip_file.open(dat_file), dtype=str, header=None, skiprows=skiprows, nrows=nrows, sep='|',
                                    usecols=column_header_mapping_ordered.values(), names=column_header_mapping_ordered.keys())
 
+            # add deactivation_date column for delete records
+            lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else '']))
+            parsed_data = csv_data["sam_extract_code"].apply(lambda_func)
+            parsed_data.columns = ["deactivation_date"]
+            csv_data = csv_data.join(parsed_data)
+
             # TODO: for update data, if activation_date's already set, keep it, otherwise update it
             #       Requires pinging the database
-            update_data = data[data.sam_extract == '3']
+            update_data = csv_data[csv_data.sam_extract_code == '3']
 
-            # TODO: if there's delete_data, add/update with a deactivated date as of the name of the file
-            delete_data = data[data.sam_extract == '1']
+
 
             # clean data
             data = clean_data(
                 csv_data,
                 DUNS,
                 {"awardee_or_recipient_uniqu": "awardee_or_recipient_uniqu",
+                 "deactivation_date": "deactivation_date",
                  "expiration_date": "expiration_date",
                  "last_sam_mod_date": "last_sam_mod_date",
                  "activation_date": "activation_date",
