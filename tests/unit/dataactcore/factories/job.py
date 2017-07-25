@@ -110,10 +110,12 @@ class SubmissionNarrativeFactory(factory.Factory):
     narrative = fuzzy.FuzzyText()
 
 
-class GTASWindowFactory(factory.Factory):
+class WindowFactory(factory.Factory):
     class Meta:
-        model = jobModels.GTASSubmissionWindow
+        model = jobModels.SubmissionWindow
 
     window_id = fuzzy.FuzzyInteger(9999)
     start_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     end_date = fuzzy.FuzzyDate(date(2010, 1, 1))
+    block_certification = False
+    message = fuzzy.FuzzyText()

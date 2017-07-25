@@ -82,7 +82,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         current_windows = get_window()
 
         data = []
-        print(current_windows.count())
 
         if current_windows.count() is 0:
             data = None
