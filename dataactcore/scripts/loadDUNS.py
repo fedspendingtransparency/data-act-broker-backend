@@ -26,8 +26,8 @@ def get_config():
     sam_config = CONFIG_BROKER.get('sam')
 
     if sam_config:
-        return sam_config.get('private_key'), sam_config.get('username'), sam_config.get('password'), \
-               sam_config.get('host'), sam_config.get('port')
+        return sam_config.get('username'), sam_config.get('password'), sam_config.get('host'), \
+               sam_config.get('port')
 
     return None, None, None, None, None
 
@@ -127,8 +127,8 @@ if __name__ == '__main__':
 
         if not local:
             root_dir = CONFIG_BROKER["d_file_storage_path"]
-            private_key, username, password, host, port = get_config()
-            if None in (private_key, username, password):
+            username, password, host, port = get_config()
+            if None in (username, password):
                 logger.error("Missing config elements for connecting to SAM")
                 sys.exit(1)
 
@@ -137,8 +137,7 @@ if __name__ == '__main__':
             client.connect(
                 hostname=host,
                 username=username,
-                password=password,
-                key_filename=private_key
+                password=password
             )
             sftp = client.open_sftp()
             # dirlist on remote host
