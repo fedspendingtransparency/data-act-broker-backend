@@ -6,6 +6,9 @@ import re
 from collections import OrderedDict
 import numpy as np
 import math
+import argparse
+import zipfile
+import paramiko
 
 from dataactcore.models.domainModels import DUNS
 from dataactcore.interfaces.db import GlobalDB
@@ -17,7 +20,16 @@ from dataactcore.config import CONFIG_BROKER
 
 logger = logging.getLogger(__name__)
 
-REMOTE_SAM_DIR = ' '
+REMOTE_SAM_DIR = '/current/SAM/1_PUBLIC/'
+
+def get_config():
+    sam_config = CONFIG_BROKER.get('sam')
+
+    if sam_config:
+        return sam_config.get('private_key'), sam_config.get('username'), sam_config.get('password'), \
+               sam_config.get('host'), sam_config.get('port')
+
+    return None, None, None, None, None
 
 def update_duns(models, new_data):
     """Modify existing models or create new ones"""
@@ -26,18 +38,24 @@ def update_duns(models, new_data):
         if awardee_or_recipient_uniqu not in models:
             models[awardee_or_recipient_uniqu] = DUNS()
         for field, value in row.items():
+            value = None if value is np.nan else value
             setattr(models[awardee_or_recipient_uniqu], field, value)
 
-def main():
+
+def parse_sam_file(file, monthly=False):
+    logger.info("starting file " + str(file.name))
+
+    zip_file = zipfile.ZipFile(file.name)
+    dat_file = os.path.splitext(os.path.basename(file.name))[0]+'.dat'
+
     with create_app().app_context():
         sess = GlobalDB.db().session
 
         models = {duns.awardee_or_recipient_uniqu: duns for duns in sess.query(DUNS)}
 
         # models = {cgac.cgac_code: cgac for cgac in sess.query(CGAC)}
-        file_name = 'SAM_PUBLIC_UTF-8_MONTHLY_20170702.txt'
         nrows = 0
-        with open(file_name) as f:
+        with zip_file.open(dat_file) as f:
             nrows = len(f.readlines()) - 2
         print(nrows)
         block = 10000
@@ -55,13 +73,20 @@ def main():
         batch = 0
         added_rows = 0
         while batch <= batches[1]:
-
             skiprows = 1 if batch == 0 else (batch*block)
             nrows = (((batch+1)*block)-skiprows) if (batch < batches[1]) else batches[0]*block
             logger.info('loading rows %s to %s',skiprows+1,nrows+skiprows)
 
-            csv_data = pd.read_csv(file_name, dtype=str, header=None, skiprows=skiprows, nrows=nrows, sep='|',
+            csv_data = pd.read_csv(zip_file.open(dat_file), dtype=str, header=None, skiprows=skiprows, nrows=nrows, sep='|',
                                    usecols=column_header_mapping_ordered.values(), names=column_header_mapping_ordered.keys())
+
+            # TODO: for update data, if activation_date's already set, keep it, otherwise update it
+            #       Requires pinging the database
+            update_data = data[data.sam_extract == '3']
+
+            # TODO: if there's delete_data, add/update with a deactivated date as of the name of the file
+            delete_data = data[data.sam_extract == '1']
+
             # clean data
             data = clean_data(
                 csv_data,
@@ -86,7 +111,71 @@ def main():
             logger.info('%s DUNS records inserted', added_rows)
         logger.info('Load complete. %s DUNS records inserted', len(models))
 
+def get_parser():
+    parser = argparse.ArgumentParser(description="Get data from SAM and update execution_compensation table")
+    parser.add_argument("--local", "-l", type=str, default=None, help='use a local directory')
+    return parser
+
 if __name__ == '__main__':
+    parser = get_parser()
+    args = parser.parse_args()
+
+    local = args.local
+
     with create_app().app_context():
         configure_logging()
-        main()
+
+        if not local:
+            root_dir = CONFIG_BROKER["d_file_storage_path"]
+            private_key, username, password, host, port = get_config()
+            if None in (private_key, username, password):
+                logger.error("Missing config elements for connecting to SAM")
+                sys.exit(1)
+
+            client = paramiko.SSHClient()
+            client.load_system_host_keys()
+            client.connect(
+                hostname=host,
+                username=username,
+                password=password,
+                key_filename=private_key
+            )
+            sftp = client.open_sftp()
+            # dirlist on remote host
+            dirlist = sftp.listdir(REMOTE_SAM_DIR)
+        else:
+            root_dir = local
+            dirlist = os.listdir(local)
+
+        # generate chronological list of daily and monthy files
+        sorted_monthly_file_names = sorted([monthly_file for monthly_file in dirlist if re.match(".*MONTHLY_\d+",
+                                                                                                 monthly_file)])
+        sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match(".*DAILY_\d+", daily_file)])
+
+        earliest_monthly_file = sorted_monthly_file_names[0]
+        earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
+        sorted_daily_monthly = sorted(sorted_daily_file_names + [earliest_daily_file])
+        daily_files_after = sorted_daily_monthly[sorted_daily_monthly.index(earliest_daily_file)+1:]
+
+        # parse the earliest monthly file
+        if local:
+            file = open(os.path.join(root_dir, earliest_monthly_file))
+        else:
+            file = open(os.path.join(root_dir, earliest_monthly_file), 'wb')
+            sftp.getfo(''.join([REMOTE_SAM_DIR, '/', earliest_monthly_file]), file)
+        parse_sam_file(open(os.path.join(root_dir, earliest_monthly_file)), monthly=True)
+        file.close()
+        if not local:
+            os.remove(os.path.join(root_dir, earliest_monthly_file))
+
+        # parse all the daily files after that
+        for daily_file in daily_files_after:
+            if local:
+                file = open(os.path.join(root_dir, daily_file))
+            else:
+                file = open(os.path.join(root_dir, daily_file), 'wb')
+                sftp.getfo(''.join([REMOTE_SAM_DIR, '/', daily_file]), file)
+            parse_sam_file(open(os.path.join(root_dir, daily_file)))
+            file.close()
+            if not local:
+                os.remove(os.path.join(root_dir, daily_file))
