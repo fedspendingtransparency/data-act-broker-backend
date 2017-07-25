@@ -86,8 +86,13 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         if current_windows.count() is 0:
             data = None
         else:
-            for window in current_windows: 
-                data.append({'start_date': str(window.start_date), 'end_date': str(window.end_date), 'notice_block': window.block_certification, 'message': window.message})
+            for window in current_windows:
+                data.append({
+                             'start_date': str(window.start_date),
+                             'end_date': str(window.end_date),
+                             'notice_block': window.block_certification,
+                             'message': window.message
+                })
 
         return JsonResponse.create(StatusCode.OK, {"data": data})
 
@@ -416,8 +421,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         windows = get_window()
         for window in windows:
             if window.block_certification:
-                return JsonResponse.error(ValueError(window.message),
-                                      StatusCode.CLIENT_ERROR)
+                return JsonResponse.error(ValueError(window.message), StatusCode.CLIENT_ERROR)
 
         sess = GlobalDB.db().session
 
