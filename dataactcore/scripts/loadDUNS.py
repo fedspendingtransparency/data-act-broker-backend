@@ -176,7 +176,7 @@ if __name__ == '__main__':
         else:
             file = open(os.path.join(root_dir, earliest_monthly_file), 'wb')
             sftp.getfo(''.join([REMOTE_SAM_DIR, '/', earliest_monthly_file]), file)
-        parse_sam_file(open(os.path.join(root_dir, earliest_monthly_file)), monthly=True)
+        parse_sam_file(file, monthly=True)
         file.close()
         if not local:
             os.remove(os.path.join(root_dir, earliest_monthly_file))
@@ -188,7 +188,7 @@ if __name__ == '__main__':
             else:
                 file = open(os.path.join(root_dir, daily_file), 'wb')
                 sftp.getfo(''.join([REMOTE_SAM_DIR, '/', daily_file]), file)
-            parse_sam_file(open(os.path.join(root_dir, daily_file)))
+            parse_sam_file(file)
             file.close()
             if not local:
                 os.remove(os.path.join(root_dir, daily_file))
