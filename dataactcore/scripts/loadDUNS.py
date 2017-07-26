@@ -43,7 +43,6 @@ def activation_check(data, prepopulated_models):
     for index, row in data.iterrows():
         row_duns = str(row.awardee_or_recipient_uniqu).strip().zfill(9)
         if row_duns in prepopulated_models:
-            print("SAVING OLD DATA", prepopulated_models[row_duns].activation_date)
             data.loc[index, 'activation_date'] = str(prepopulated_models[row_duns].activation_date)
 
 def update_duns(models, new_data):
@@ -87,7 +86,6 @@ def parse_sam_file(file, monthly=False):
         nrows = 0
         with zip_file.open(dat_file) as f:
             nrows = len(f.readlines()) - 2
-        print(nrows)
         block = 10000
         batches = math.modf(nrows/block)
 
