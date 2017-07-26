@@ -88,11 +88,17 @@ def parse_sam_file(file, monthly=False):
             parsed_data.columns = ["deactivation_date"]
             csv_data = csv_data.join(parsed_data)
 
-            # TODO: for update data, if activation_date's already set, keep it, otherwise update it
-            #       Requires pinging the database
-            update_data = csv_data[csv_data.sam_extract_code == '3']
-
-
+            # for update data, if activation_date's already set, keep it, otherwise update it (default)
+            # TODO: optimization
+            for index, row in csv_data.iterrows():
+                row_duns = str(row.awardee_or_recipient_uniqu).strip().zfill(9)
+                prior_activation_date = sess.query(DUNS).filter(
+                    DUNS.awardee_or_recipient_uniqu == row_duns,
+                    DUNS.activation_date != None
+                ).one_or_none()
+                if row.sam_extract_code == '3' and prior_activation_date and \
+                        prior_activation_date.activation_date != row.activation_date:
+                    row.activation_date = prior_activation_date.activation_date
 
             # clean data
             data = clean_data(
