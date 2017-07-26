@@ -9,6 +9,7 @@ import math
 import argparse
 import zipfile
 import paramiko
+from sqlalchemy.exc import IntegrityError
 
 from dataactcore.models.domainModels import DUNS
 from dataactcore.interfaces.db import GlobalDB
@@ -31,6 +32,20 @@ def get_config():
 
     return None, None, None, None, None
 
+def load_duns_by_row(data, sess, models, prepopulated_models):
+    activation_check(data, prepopulated_models)
+    update_duns(models, data)
+    sess.add_all(models.values())
+    sess.commit()
+
+def activation_check(data, prepopulated_models):
+    # if activation_date's already set, keep it, otherwise update it (default)
+    for index, row in data.iterrows():
+        row_duns = str(row.awardee_or_recipient_uniqu).strip().zfill(9)
+        if row_duns in prepopulated_models:
+            print("SAVING OLD DATA", prepopulated_models[row_duns].activation_date)
+            data.loc[index, 'activation_date'] = str(prepopulated_models[row_duns].activation_date)
+
 def update_duns(models, new_data):
     """Modify existing models or create new ones"""
     for _, row in new_data.iterrows():
@@ -41,6 +56,18 @@ def update_duns(models, new_data):
             value = None if (value in [np.nan, '']) else value
             setattr(models[awardee_or_recipient_uniqu], field, value)
 
+def clean_sam_sata(data):
+    return clean_data(
+                data,
+                DUNS,
+                {"awardee_or_recipient_uniqu": "awardee_or_recipient_uniqu",
+                 "activation_date": "activation_date",
+                 "deactivation_date": "deactivation_date",
+                 "expiration_date": "expiration_date",
+                 "last_sam_mod_date": "last_sam_mod_date",
+                 "legal_business_name": "legal_business_name"},
+                {'awardee_or_recipient_uniqu': {'pad_to_length': 9, 'keep_null': True}}
+            )
 
 def parse_sam_file(file, monthly=False):
     logger.info("starting file " + str(file.name))
@@ -54,6 +81,7 @@ def parse_sam_file(file, monthly=False):
         sess = GlobalDB.db().session
 
         models = {duns.awardee_or_recipient_uniqu: duns for duns in sess.query(DUNS)}
+        prepopulated_models = {duns_num: duns for duns_num, duns in models.items() if duns.activation_date != None}
 
         # models = {cgac.cgac_code: cgac for cgac in sess.query(CGAC)}
         nrows = 0
@@ -84,44 +112,27 @@ def parse_sam_file(file, monthly=False):
 
             # add deactivation_date column for delete records
             lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else '']))
-            parsed_data = csv_data["sam_extract_code"].apply(lambda_func)
+            parsed_data = pd.Series([np.nan], name='deactivation_date') if monthly else csv_data["sam_extract_code"].apply(lambda_func)
             parsed_data.columns = ["deactivation_date"]
             csv_data = csv_data.join(parsed_data)
 
-            # if activation_date's already set, keep it, otherwise update it (default)
-            # note: this applies for all rows (not just for update rows, i.e. sam_extract == '3')
-            # TODO: optimization
-            for index, row in csv_data.iterrows():
-                row_duns = str(row.awardee_or_recipient_uniqu).strip().zfill(9)
-                prior_activation_date = sess.query(DUNS).filter(
-                    DUNS.awardee_or_recipient_uniqu == row_duns,
-                    DUNS.activation_date != None
-                ).one_or_none()
-                if prior_activation_date and prior_activation_date.activation_date != row.activation_date:
-                    row.activation_date = prior_activation_date.activation_date
+            if monthly:
+                insert_dataframe(clean_sam_sata(csv_data), DUNS.__table__.name, sess.connection())
+            else:
+                add_data = clean_sam_sata(csv_data[csv_data.sam_extract_code == '2'])
+                update_data = clean_sam_sata(csv_data[csv_data.sam_extract_code == '3'])
+                delete_data = clean_sam_sata(csv_data[csv_data.sam_extract_code == '1'])
+                try:
+                    insert_dataframe(add_data, DUNS.__table__.name, sess.connection())
+                    sess.commit()
+                except IntegrityError:
+                    sess.rollback()
+                    load_duns_by_row(add_data, sess, models, prepopulated_models)
+                load_duns_by_row(update_data, sess, models, prepopulated_models)
+                load_duns_by_row(delete_data, sess, models, prepopulated_models)
 
-            # clean data
-            data = clean_data(
-                csv_data,
-                DUNS,
-                {"awardee_or_recipient_uniqu": "awardee_or_recipient_uniqu",
-                 "deactivation_date": "deactivation_date",
-                 "expiration_date": "expiration_date",
-                 "last_sam_mod_date": "last_sam_mod_date",
-                 "activation_date": "activation_date",
-                 "legal_business_name": "legal_business_name"},
-                {'awardee_or_recipient_uniqu': {'pad_to_length': 9, 'keep_null': True}}
-            )
-            # de-dupe
-            # data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], inplace=True)
-
-            update_duns(models, data)
-
-            sess.add_all(models.values())
-            sess.commit()
             added_rows+=nrows
             batch+=1
-
             logger.info('%s DUNS records inserted', added_rows)
         logger.info('Load complete. %s DUNS records inserted', len(models))
 
