@@ -43,7 +43,7 @@ def activation_check(data, prepopulated_models):
     for index, row in data.iterrows():
         row_duns = str(row.awardee_or_recipient_uniqu).strip().zfill(9)
         if row_duns in prepopulated_models:
-            data.loc[index, 'activation_date'] = str(prepopulated_models[row_duns].activation_date)
+            data.loc[index, 'activation_date'] = prepopulated_models[row_duns].activation_date.strftime("%Y%m%d")
 
 def update_duns(models, new_data):
     """Modify existing models or create new ones"""
@@ -112,15 +112,16 @@ def parse_sam_file(file, monthly=False):
                                    usecols=column_header_mapping_ordered.values(), names=column_header_mapping_ordered.keys())
 
             # add deactivation_date column for delete records
-            lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else None]))
+            lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
             parsed_data = pd.Series([np.nan], name='deactivation_date') if monthly else csv_data["sam_extract_code"].apply(lambda_func)
             parsed_data.columns = ["deactivation_date"]
             csv_data = csv_data.join(parsed_data)
-            csv_data = clean_sam_data(csv_data)
+            csv_data = clean_sam_data(csv_data.where(pd.notnull(csv_data), None))
 
             if monthly:
                 del csv_data["sam_extract_code"]
                 insert_dataframe(csv_data, DUNS.__table__.name, sess.connection())
+                sess.commit()
             else:
                 add_data = csv_data[csv_data.sam_extract_code == '2']
                 update_data = csv_data[csv_data.sam_extract_code == '3']
