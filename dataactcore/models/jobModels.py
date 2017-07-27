@@ -228,9 +228,11 @@ class CertifiedFilesHistory(Base):
     narrative = Column(Text)
 
 
-class GTASSubmissionWindow(Base):
-    __tablename__ = "gtas_submission_window"
+class SubmissionWindow(Base):
+    __tablename__ = "submission_window"
 
     window_id = Column(Integer, primary_key=True)
     start_date = Column(Date)
     end_date = Column(Date)
+    block_certification = Column(Boolean, default=False)
+    message = Column(Text)

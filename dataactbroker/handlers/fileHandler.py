@@ -8,6 +8,7 @@ from dateutil.relativedelta import relativedelta
 from uuid import uuid4
 from shutil import copyfile
 import threading
+import re
 
 import calendar
 
@@ -25,7 +26,8 @@ from dataactbroker.permissions import current_user_can, current_user_can_on_subm
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import CGAC, FREC, CFDAProgram, SubTierAgency, Zips
+from dataactcore.models.domainModels import (
+    CGAC, FREC, CFDAProgram, SubTierAgency, Zips, States, CountyCode, CityCode, ZipCity)
 from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.jobModels import (
@@ -35,7 +37,7 @@ from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
     JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT, PUBLISH_STATUS_DICT_ID,
-    FILE_TYPE_DICT_LETTER_NAME)
+    FILE_TYPE_DICT_LETTER_NAME, PERMISSION_SHORT_DICT)
 from dataactcore.models.views import SubmissionUpdatedView
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
@@ -1430,8 +1432,6 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
 
     columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
 
-    cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
-    frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec]
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id). \
         outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id). \
@@ -1440,6 +1440,9 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
         filter(Submission.d2_submission.is_(d2_submission))
     if not g.user.website_admin:
+        perms = [PERMISSION_SHORT_DICT[perm] for perm in (['r', 'w', 's', 'f'] if d2_submission else ['r', 'w', 's'])]
+        cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac and aff.permission_type_id in perms]
+        frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec and aff.permission_type_id in perms]
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
                                     Submission.frec_code.in_(frec_codes),
                                     Submission.user_id == g.user.user_id))
@@ -1753,19 +1756,70 @@ def fabs_derivations(obj):
             filter_by(sub_tier_agency_code=obj['funding_sub_tier_agency_co']).one()
         obj['funding_sub_tier_agency_na'] = funding_sub_tier_agency_name.sub_tier_agency_name
 
-    # deriving place of performance
-    if obj['place_of_performance_zip4a'] and not obj['place_of_performance_congr']:
-        zip_five = obj['place_of_performance_zip4a'][5:]
+    # deriving ppop state name (ppop code is required so we don't have to check that it exists, just upper it)
+    ppop_code = obj['place_of_performance_code'].upper()
+    ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one()
+    obj['place_of_perform_state_nam'] = ppop_state.state_name
+
+    # deriving place of performance values from zip4
+    if obj['place_of_performance_zip4a']:
+        zip_five = obj['place_of_performance_zip4a'][:5]
         zip_four = None
+
+        # if zip4 is 9 digits, set the zip_four value to the last 4 digits
         if len(obj['place_of_performance_zip4a']) > 5:
             zip_four = obj['place_of_performance_zip4a'][-4:]
+
+        # if there's a 9-digit zip code, use both parts to get data, otherwise just grab the first
+        # instance of the zip5 we find
         if zip_four:
             zip_info = sess.query(Zips).\
                 filter_by(zip5=zip_five, zip_last4=zip_four).first()
         else:
             zip_info = sess.query(Zips).\
                 filter_by(zip5=zip_five).first()
-        obj['place_of_performance_congr'] = zip_info.congressional_district_no
+
+        # deriving ppop congressional district
+        if not obj['place_of_performance_congr']:
+            obj['place_of_performance_congr'] = zip_info.congressional_district_no
+
+        # deriving PrimaryPlaceOfPerformanceCountyName
+        county_info = sess.query(CountyCode).\
+            filter_by(county_number=zip_info.county_number, state_code=zip_info.state_abbreviation).first()
+        obj['place_of_perform_county_na'] = county_info.county_name
+
+        # deriving PrimaryPlaceOfPerformanceCityName
+        city_info = sess.query(ZipCity).filter_by(zip_code=zip_five).one()
+        obj['place_of_performance_city'] = city_info.city_name
+    # if there is no ppop zip4, we need to try to derive county/city info from the ppop code
+    else:
+        # if ppop_code is in county format,
+        if re.match('^[A-Z]{2}\*\*\d{3}$', ppop_code):
+            # getting county name
+            county_code = ppop_code[-3:]
+            county_info = sess.query(CountyCode).\
+                filter_by(county_number=county_code, state_code=ppop_state.state_code).first()
+            obj['place_of_perform_county_na'] = county_info.county_name
+        # if ppop_code is in city format
+        elif re.match('^[A-Z]{2}\d{5}$', ppop_code) and not re.match('^[A-Z]{2}0{5}$', ppop_code):
+            # getting city and county name
+            city_code = ppop_code[-5:]
+            city_info = sess.query(CityCode).filter_by(city_code=city_code, state_code=ppop_state.state_code).first()
+            obj['place_of_performance_city'] = city_info.feature_name
+            obj['place_of_perform_county_na'] = city_info.county_name
+
+    # deriving legal entity congressional district where applicable
+    if obj['legal_entity_zip5']:
+        # if we have a legal entity zip+4 provided
+        if obj['legal_entity_zip_last4']:
+            zip_data = sess.query(Zips).\
+                filter_by(zip5=obj['legal_entity_zip5'], zip_last4=obj['legal_entity_zip_last4']).first()
+        else:
+            zip_data = sess.query(Zips).filter_by(zip5=obj['legal_entity_zip5']).first()
+        # set zip_data to the congressional district if we got a result
+        if zip_data:
+            zip_data = zip_data.congressional_district_no
+        obj['legal_entity_congressional'] = zip_data
 
     GlobalDB.close()
     return obj
