@@ -52,10 +52,9 @@ def update_duns(models, new_data):
         if awardee_or_recipient_uniqu not in models:
             models[awardee_or_recipient_uniqu] = DUNS()
         for field, value in row.items():
-            value = None if (value in [np.nan, '']) else value
             setattr(models[awardee_or_recipient_uniqu], field, value)
 
-def clean_sam_sata(data):
+def clean_sam_data(data):
     return clean_data(
                 data,
                 DUNS,
@@ -64,6 +63,7 @@ def clean_sam_sata(data):
                  "deactivation_date": "deactivation_date",
                  "expiration_date": "expiration_date",
                  "last_sam_mod_date": "last_sam_mod_date",
+                 "sam_extract_code": "sam_extract_code",
                  "legal_business_name": "legal_business_name"},
                 {'awardee_or_recipient_uniqu': {'pad_to_length': 9, 'keep_null': True}}
             )
@@ -85,9 +85,12 @@ def parse_sam_file(file, monthly=False):
         # models = {cgac.cgac_code: cgac for cgac in sess.query(CGAC)}
         nrows = 0
         with zip_file.open(dat_file) as f:
-            nrows = len(f.readlines()) - 2
-        block = 10000
-        batches = math.modf(nrows/block)
+            nrows = len(f.readlines())
+        block_size = 10000
+        batches = nrows//block_size
+        # skip the first line again if the last batch is also the first batch
+        skiplastrows = 2 if batches == 0 else 1
+        last_block_size = (nrows%block_size)-skiplastrows
 
         column_header_mapping = {
             "awardee_or_recipient_uniqu": 0,
@@ -100,39 +103,46 @@ def parse_sam_file(file, monthly=False):
         column_header_mapping_ordered = OrderedDict(sorted(column_header_mapping.items(), key=lambda c: c[1]))
         batch = 0
         added_rows = 0
-        while batch <= batches[1]:
-            skiprows = 1 if batch == 0 else (batch*block)
-            nrows = (((batch+1)*block)-skiprows) if (batch < batches[1]) else batches[0]*block
+        while batch <= batches:
+            skiprows = 1 if batch == 0 else (batch*block_size)
+            nrows = (((batch+1)*block_size)-skiprows) if (batch < batches) else last_block_size
             logger.info('loading rows %s to %s',skiprows+1,nrows+skiprows)
 
             csv_data = pd.read_csv(zip_file.open(dat_file), dtype=str, header=None, skiprows=skiprows, nrows=nrows, sep='|',
                                    usecols=column_header_mapping_ordered.values(), names=column_header_mapping_ordered.keys())
 
             # add deactivation_date column for delete records
-            lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else '']))
+            lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else None]))
             parsed_data = pd.Series([np.nan], name='deactivation_date') if monthly else csv_data["sam_extract_code"].apply(lambda_func)
             parsed_data.columns = ["deactivation_date"]
             csv_data = csv_data.join(parsed_data)
+            csv_data = clean_sam_data(csv_data)
 
             if monthly:
-                insert_dataframe(clean_sam_sata(csv_data), DUNS.__table__.name, sess.connection())
+                del csv_data["sam_extract_code"]
+                insert_dataframe(csv_data, DUNS.__table__.name, sess.connection())
             else:
-                add_data = clean_sam_sata(csv_data[csv_data.sam_extract_code == '2'])
-                update_data = clean_sam_sata(csv_data[csv_data.sam_extract_code == '3'])
-                delete_data = clean_sam_sata(csv_data[csv_data.sam_extract_code == '1'])
-                try:
-                    insert_dataframe(add_data, DUNS.__table__.name, sess.connection())
-                    sess.commit()
-                except IntegrityError:
-                    sess.rollback()
-                    load_duns_by_row(add_data, sess, models, prepopulated_models)
-                load_duns_by_row(update_data, sess, models, prepopulated_models)
-                load_duns_by_row(delete_data, sess, models, prepopulated_models)
+                add_data = csv_data[csv_data.sam_extract_code == '2']
+                update_data = csv_data[csv_data.sam_extract_code == '3']
+                delete_data = csv_data[csv_data.sam_extract_code == '1']
+                for dataframe in [add_data, update_data, delete_data]:
+                    del dataframe["sam_extract_code"]
+
+                if not add_data.empty:
+                    try:
+                        insert_dataframe(add_data, DUNS.__table__.name, sess.connection())
+                        sess.commit()
+                    except IntegrityError:
+                        sess.rollback()
+                        load_duns_by_row(add_data, sess, models, prepopulated_models)
+                if not update_data.empty:
+                    load_duns_by_row(update_data, sess, models, prepopulated_models)
+                if not delete_data.empty:
+                    load_duns_by_row(delete_data, sess, models, prepopulated_models)
 
             added_rows+=nrows
             batch+=1
             logger.info('%s DUNS records inserted', added_rows)
-        logger.info('Load complete. %s DUNS records inserted', len(models))
 
 def get_parser():
     parser = argparse.ArgumentParser(description="Get data from SAM and update execution_compensation table")
