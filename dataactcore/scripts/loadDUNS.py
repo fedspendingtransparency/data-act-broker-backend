@@ -21,7 +21,7 @@ from dataactcore.config import CONFIG_BROKER
 
 logger = logging.getLogger(__name__)
 
-REMOTE_SAM_DIR = '/current/SAM/2_FOUO/'
+REMOTE_SAM_DIR = '/current/SAM/2_FOUO/UTF-8/'
 
 def get_config():
     sam_config = CONFIG_BROKER.get('sam')
