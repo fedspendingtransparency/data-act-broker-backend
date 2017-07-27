@@ -236,3 +236,12 @@ class SubmissionWindow(Base):
     end_date = Column(Date)
     block_certification = Column(Boolean, default=False)
     message = Column(Text)
+    application_type = Column(Integer, ForeignKey("application_type.application_id", name="application"))
+    application = relationship("ApplicationType")
+
+
+class ApplicationType(Base):
+    __tablename__ = "application_type"
+
+    application_id = Column(Integer, primary_key=True)
+    application_name = Column(Text, nullable=False)
