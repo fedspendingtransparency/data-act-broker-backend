@@ -366,6 +366,10 @@ class ValidationManager:
             # Update error info for submission
             populate_job_error_info(job)
 
+            if file_type in ["detached_award"]:
+                # set number of errors and warnings for submission.
+                submission = populate_submission_error_info(submission_id)
+
             # Mark validation as finished in job tracker
             mark_job_status(job_id, "finished")
             mark_file_complete(job_id, file_name)

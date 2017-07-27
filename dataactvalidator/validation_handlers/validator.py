@@ -95,9 +95,7 @@ class Validator(object):
                len(current_data.strip()) > current_schema.length:
                 # Length failure, add to failedRules
                 record_failed = True
-                warning_type = "warning"
-                if fabs_record:
-                    warning_type = "fatal"
+                warning_type = "warning" if fabs_record else "fatal"
                 failed_rules.append(Failure(field_name, ValidationError.lengthError, current_data, "", warning_type))
 
         # if all columns are blank (empty row), set it so it doesn't add to the error messages or write the line,
