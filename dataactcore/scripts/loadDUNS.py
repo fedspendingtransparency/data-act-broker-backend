@@ -33,7 +33,9 @@ def get_config():
     return None, None, None, None, None
 
 def load_duns_by_row(data, sess, models, prepopulated_models):
+    logger.info("going through activation check")
     activation_check(data, prepopulated_models)
+    logger.info("updating duns")
     update_duns(models, data)
     sess.add_all(models.values())
     sess.commit()
@@ -79,7 +81,9 @@ def parse_sam_file(file, monthly=False):
     with create_app().app_context():
         sess = GlobalDB.db().session
 
+        logger.info("getting models")
         models = {duns.awardee_or_recipient_uniqu: duns for duns in sess.query(DUNS)}
+        logger.info("getting models with activation dates already set")
         prepopulated_models = {duns_num: duns for duns_num, duns in models.items() if duns.activation_date != None}
 
         # models = {cgac.cgac_code: cgac for cgac in sess.query(CGAC)}
@@ -119,10 +123,12 @@ def parse_sam_file(file, monthly=False):
             csv_data = clean_sam_data(csv_data.where(pd.notnull(csv_data), None))
 
             if monthly:
+                logger.info("adding all monthly data with bulk load")
                 del csv_data["sam_extract_code"]
                 insert_dataframe(csv_data, DUNS.__table__.name, sess.connection())
                 sess.commit()
             else:
+                logger.info("splitting daily file into add/update/delete rows")
                 add_data = csv_data[csv_data.sam_extract_code == '2']
                 update_data = csv_data[csv_data.sam_extract_code == '3']
                 delete_data = csv_data[csv_data.sam_extract_code == '1']
@@ -131,19 +137,24 @@ def parse_sam_file(file, monthly=False):
 
                 if not add_data.empty:
                     try:
+                        logger.info("attempting to bulk load add data")
                         insert_dataframe(add_data, DUNS.__table__.name, sess.connection())
                         sess.commit()
                     except IntegrityError:
+                        logger.info("bulk loading add data failed, loading add data by row")
                         sess.rollback()
                         load_duns_by_row(add_data, sess, models, prepopulated_models)
                 if not update_data.empty:
+                    logger.info("loading update data by row")
                     load_duns_by_row(update_data, sess, models, prepopulated_models)
                 if not delete_data.empty:
+                    logger.info("loading delete data by row")
                     load_duns_by_row(delete_data, sess, models, prepopulated_models)
 
             added_rows+=nrows
             batch+=1
             logger.info('%s DUNS records inserted', added_rows)
+        sess.close()
 
 def get_parser():
     parser = argparse.ArgumentParser(description="Get data from SAM and update execution_compensation table")
