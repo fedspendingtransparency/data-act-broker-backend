@@ -34,7 +34,7 @@ def get_config():
 
 def load_duns_by_row(data, sess, models, prepopulated_models):
     logger.info("going through activation check")
-    activation_check(data, prepopulated_models)
+    data = activation_check(data, prepopulated_models)
     logger.info("updating duns")
     update_duns(models, data)
     sess.add_all(models.values())
@@ -42,10 +42,14 @@ def load_duns_by_row(data, sess, models, prepopulated_models):
 
 def activation_check(data, prepopulated_models):
     # if activation_date's already set, keep it, otherwise update it (default)
-    for index, row in data.iterrows():
-        row_duns = str(row.awardee_or_recipient_uniqu).strip().zfill(9)
-        if row_duns in prepopulated_models:
-            data.loc[index, 'activation_date'] = prepopulated_models[row_duns].activation_date.strftime("%Y%m%d")
+    lambda_func = (lambda duns_num: pd.Series([prepopulated_models[duns_num].activation_date.strftime("%Y%m%d")
+                                               if duns_num in prepopulated_models else np.nan]))
+    old_activation_data = data["awardee_or_recipient_uniqu"].apply(lambda_func)
+    old_activation_data.columns = ["old_activation_date"]
+    data = data.join(old_activation_data)
+    data.loc[pd.notnull(data["old_activation_date"]), "activation_date"] = data["old_activation_date"]
+    del data["old_activation_date"]
+    return data
 
 def update_duns(models, new_data):
     """Modify existing models or create new ones"""
