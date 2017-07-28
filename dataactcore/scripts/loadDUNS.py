@@ -148,6 +148,8 @@ def parse_sam_file(file, monthly=False):
 def get_parser():
     parser = argparse.ArgumentParser(description="Get data from SAM and update execution_compensation table")
     parser.add_argument("--local", "-l", type=str, default=None, help='use a local directory')
+    parser.add_argument("--monthly", "-m", type=str, default=None, help='load a local monthly file')
+    parser.add_argument("--daily", "-d", type=str, default=None, help='load a local daily file')
     return parser
 
 if __name__ == '__main__':
@@ -155,60 +157,77 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     local = args.local
+    monthly = args.monthly
+    daily = args.daily
 
     with create_app().app_context():
         configure_logging()
 
-        if not local:
-            root_dir = CONFIG_BROKER["d_file_storage_path"]
-            username, password, host, port = get_config()
-            if None in (username, password):
-                logger.error("Missing config elements for connecting to SAM")
-                sys.exit(1)
-
-            client = paramiko.SSHClient()
-            client.load_system_host_keys()
-            client.connect(
-                hostname=host,
-                username=username,
-                password=password
-            )
-            sftp = client.open_sftp()
-            # dirlist on remote host
-            dirlist = sftp.listdir(REMOTE_SAM_DIR)
-        else:
-            root_dir = local
-            dirlist = os.listdir(local)
-
-        # generate chronological list of daily and monthy files
-        sorted_monthly_file_names = sorted([monthly_file for monthly_file in dirlist if re.match(".*MONTHLY_\d+",
-                                                                                                 monthly_file)])
-        sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match(".*DAILY_\d+", daily_file)])
-
-        earliest_monthly_file = sorted_monthly_file_names[0]
-        earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
-        sorted_daily_monthly = sorted(sorted_daily_file_names + [earliest_daily_file])
-        daily_files_after = sorted_daily_monthly[sorted_daily_monthly.index(earliest_daily_file)+1:]
-
-        # parse the earliest monthly file
-        if local:
-            file = open(os.path.join(root_dir, earliest_monthly_file))
-        else:
-            file = open(os.path.join(root_dir, earliest_monthly_file), 'wb')
-            sftp.getfo(''.join([REMOTE_SAM_DIR, '/', earliest_monthly_file]), file)
-        parse_sam_file(file, monthly=True)
-        file.close()
-        if not local:
-            os.remove(os.path.join(root_dir, earliest_monthly_file))
-
-        # parse all the daily files after that
-        for daily_file in daily_files_after:
-            if local:
-                file = open(os.path.join(root_dir, daily_file))
-            else:
-                file = open(os.path.join(root_dir, daily_file), 'wb')
-                sftp.getfo(''.join([REMOTE_SAM_DIR, '/', daily_file]), file)
+        if monthly and daily:
+            print("For loading a single local file, you must provide either monthly or daily.")
+            logger.error("For loading a single local file, you must provide either monthly or daily.")
+            sys.exit(1)
+        if (monthly or daily) and local:
+            print("Local directory specified with a local file. Please choose one.")
+            logger.error("Local directory specified with a local file.")
+            sys.exit(1)
+        elif monthly:
+            file = open(monthly)
+            parse_sam_file(file, monthly=True)
+        elif daily:
+            file = open(daily)
             parse_sam_file(file)
+        else:
+            if not local:
+                root_dir = CONFIG_BROKER["d_file_storage_path"]
+                username, password, host, port = get_config()
+                if None in (username, password):
+                    logger.error("Missing config elements for connecting to SAM")
+                    sys.exit(1)
+
+                client = paramiko.SSHClient()
+                client.load_system_host_keys()
+                client.connect(
+                    hostname=host,
+                    username=username,
+                    password=password
+                )
+                sftp = client.open_sftp()
+                # dirlist on remote host
+                dirlist = sftp.listdir(REMOTE_SAM_DIR)
+            else:
+                root_dir = local
+                dirlist = os.listdir(local)
+
+            # generate chronological list of daily and monthy files
+            sorted_monthly_file_names = sorted([monthly_file for monthly_file in dirlist if re.match(".*MONTHLY_\d+",
+                                                                                                     monthly_file)])
+            sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match(".*DAILY_\d+", daily_file)])
+
+            earliest_monthly_file = sorted_monthly_file_names[0]
+            earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
+            sorted_daily_monthly = sorted(sorted_daily_file_names + [earliest_daily_file])
+            daily_files_after = sorted_daily_monthly[sorted_daily_monthly.index(earliest_daily_file)+1:]
+
+            # parse the earliest monthly file
+            if local:
+                file = open(os.path.join(root_dir, earliest_monthly_file))
+            else:
+                file = open(os.path.join(root_dir, earliest_monthly_file), 'wb')
+                sftp.getfo(''.join([REMOTE_SAM_DIR, '/', earliest_monthly_file]), file)
+            parse_sam_file(file, monthly=True)
             file.close()
             if not local:
-                os.remove(os.path.join(root_dir, daily_file))
+                os.remove(os.path.join(root_dir, earliest_monthly_file))
+
+            # parse all the daily files after that
+            for daily_file in daily_files_after:
+                if local:
+                    file = open(os.path.join(root_dir, daily_file))
+                else:
+                    file = open(os.path.join(root_dir, daily_file), 'wb')
+                    sftp.getfo(''.join([REMOTE_SAM_DIR, '/', daily_file]), file)
+                parse_sam_file(file)
+                file.close()
+                if not local:
+                    os.remove(os.path.join(root_dir, daily_file))
