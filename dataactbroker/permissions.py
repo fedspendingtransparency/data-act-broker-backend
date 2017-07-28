@@ -4,7 +4,7 @@ from flask import g
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission
-from dataactcore.models.lookups import PERMISSION_TYPE_DICT
+from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PERMISSION_SHORT_DICT
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -37,14 +37,27 @@ def requires_admin(func):
     return inner
 
 
-def current_user_can(permission, cgac_code, frec_code):
-    """Can the current user perform the act (described by the permission level) for the given cgac_code or frec_code?"""
+def current_user_can(perm, cgac_code, frec_code):
+    """Can the current user perform the act (described by the perm level) for the given cgac_code or frec_code?"""
     admin = hasattr(g, 'user') and g.user.website_admin
-    has_affil = hasattr(g, 'user') and any(
-        ((aff.cgac and aff.cgac.cgac_code == cgac_code) or (aff.frec and aff.frec.frec_code == frec_code)) and
-        aff.permission_type_id >= PERMISSION_TYPE_DICT[permission]
-        for aff in g.user.affiliations
-    )
+    matching_perms = []
+    try:
+        permission = PERMISSION_TYPE_DICT[perm]
+    except KeyError:
+        permission = 999
+
+    for aff in g.user.affiliations:
+        # affiliation matches agency args
+        agency = (aff.cgac and aff.cgac.cgac_code == cgac_code) or (aff.frec and aff.frec.frec_code == frec_code)
+        # affiliation permissions are FABS
+        fabs = aff.permission_type_id == PERMISSION_SHORT_DICT['f']
+        # affiliation has permission higher than perm args
+        dabs_perms = aff.permission_type_id >= permission
+
+        if agency and ((dabs_perms and not fabs) or (perm == 'fabs' and fabs)):
+            matching_perms.append(aff)
+
+    has_affil = hasattr(g, 'user') and len(matching_perms)
     return admin or has_affil
 
 
