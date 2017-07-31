@@ -34,7 +34,7 @@ def get_config():
 
 def load_duns_by_row(data, sess, models, prepopulated_models):
     logger.info("going through activation check")
-    data = activation_check(data, prepopulated_models)
+    data = activation_check(data, prepopulated_models).where(pd.notnull(data), None)
     logger.info("updating duns")
     update_duns(models, data)
     sess.add_all(models.values())
