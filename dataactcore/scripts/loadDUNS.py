@@ -44,7 +44,7 @@ def activation_check(data, prepopulated_models):
     # if activation_date's already set, keep it, otherwise update it (default)
     lambda_func = (lambda duns_num: pd.Series([prepopulated_models[duns_num].activation_date.strftime("%Y%m%d")
                                                if duns_num in prepopulated_models else np.nan]))
-    data["old_activation_date"] = data["awardee_or_recipient_uniqu"].apply(lambda_func)
+    data = data.assign(old_activation_date = data["awardee_or_recipient_uniqu"].apply(lambda_func))
     data.loc[pd.notnull(data["old_activation_date"]), "activation_date"] = data["old_activation_date"]
     del data["old_activation_date"]
     return data
@@ -123,8 +123,11 @@ def parse_sam_file(file_path, monthly=False):
 
                     # add deactivation_date column for delete records
                     lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
-                    csv_data["deactivation_date"] = (pd.Series([np.nan], name='deactivation_date')
-                                                     if monthly else csv_data["sam_extract_code"].apply(lambda_func))
+                    csv_data = csv_data.assign(deactivation_date = pd.Series([np.nan], name='deactivation_date')
+                                               if monthly else csv_data["sam_extract_code"].apply(lambda_func))
+                    # removing rows where DUNS number isn't even provided
+                    csv_data = csv_data.where(csv_data["awardee_or_recipient_uniqu"].notnull())
+                    # cleaning and replacing NaN/NaT with None's
                     csv_data = clean_sam_data(csv_data.where(pd.notnull(csv_data), None))
 
                     if monthly:
@@ -188,11 +191,9 @@ if __name__ == '__main__':
             logger.error("Local directory specified with a local file.")
             sys.exit(1)
         elif monthly:
-            file = open(monthly)
-            parse_sam_file(file, monthly=True)
+            parse_sam_file(monthly, monthly=True)
         elif daily:
-            file = open(daily)
-            parse_sam_file(file)
+            parse_sam_file(daily)
         else:
             if not local:
                 root_dir = CONFIG_BROKER["d_file_storage_path"]
