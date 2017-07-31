@@ -110,6 +110,14 @@ class SubmissionNarrativeFactory(factory.Factory):
     narrative = fuzzy.FuzzyText()
 
 
+class ApplicationTypeFactory(factory.Factory):
+    class Meta:
+        model = jobModels.ApplicationType
+
+    application_id = fuzzy.FuzzyInteger(9999)
+    application_name = fuzzy.FuzzyText()
+
+
 class WindowFactory(factory.Factory):
     class Meta:
         model = jobModels.SubmissionWindow
@@ -119,3 +127,5 @@ class WindowFactory(factory.Factory):
     end_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     block_certification = False
     message = fuzzy.FuzzyText()
+    application_type = fuzzy.FuzzyInteger(9999)
+    application = factory.SubFactory(ApplicationTypeFactory)

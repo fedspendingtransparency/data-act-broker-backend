@@ -7,7 +7,7 @@ import pytest
 from dataactbroker import fileRoutes
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
 from tests.unit.dataactcore.factories.domain import CGACFactory
-from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory, WindowFactory
+from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory, WindowFactory, ApplicationTypeFactory
 from tests.unit.dataactcore.factories.user import UserFactory
 from dataactcore.models.jobModels import JobStatus, JobType, FileType
 from datetime import datetime, timedelta
@@ -80,14 +80,18 @@ def test_is_period(file_app, database):
     the number of submissions within the agency of the user that is logged in
     """
 
-    gtas = WindowFactory(start_date=datetime(2007, 1, 3), end_date=datetime(2010, 3, 5), block_certification=False)
+    application = ApplicationTypeFactory(application_id=1, application_name='fabs')
+
+    gtas = WindowFactory(start_date=datetime(2007, 1, 3), end_date=datetime(2010, 3, 5), block_certification=False,
+                         message='first', application_type=application.application_id)
     database.session.add(gtas)
 
     response = file_app.get("/v1/window/")
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['data'] is None
 
-    gtas = WindowFactory(start_date=datetime(2007, 1, 3), end_date=datetime(2010, 3, 5), block_certification=True)
+    gtas = WindowFactory(start_date=datetime(2007, 1, 3), end_date=datetime(2010, 3, 5), block_certification=True,
+                         message='first', application_type=application.application_id)
     database.session.add(gtas)
 
     response = file_app.get("/v1/window/")
@@ -96,7 +100,8 @@ def test_is_period(file_app, database):
 
     curr_date = datetime.now()
     diff = timedelta(days=1)
-    gtas_current = WindowFactory(start_date=curr_date-diff, end_date=curr_date+diff, block_certification=False)
+    gtas_current = WindowFactory(start_date=curr_date-diff, end_date=curr_date+diff, block_certification=False,
+                                 message='first', application_type=application.application_id)
     database.session.add(gtas_current)
 
     response = file_app.get("/v1/window/")
@@ -105,7 +110,8 @@ def test_is_period(file_app, database):
 
     curr_date = datetime.now()
     diff = timedelta(days=1)
-    gtas_current = WindowFactory(start_date=curr_date-diff, end_date=curr_date+diff, block_certification=True)
+    gtas_current = WindowFactory(start_date=curr_date-diff, end_date=curr_date+diff, block_certification=True,
+                                 message='first', application_type=application.application_id)
     database.session.add(gtas_current)
 
     response = file_app.get("/v1/window/")
