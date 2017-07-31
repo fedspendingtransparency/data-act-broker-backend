@@ -215,9 +215,9 @@ if __name__ == '__main__':
                 dirlist = os.listdir(local)
 
             # generate chronological list of daily and monthy files
-            sorted_monthly_file_names = sorted([monthly_file for monthly_file in dirlist if re.match(".*MONTHLY_\d+",
+            sorted_monthly_file_names = sorted([monthly_file for monthly_file in dirlist if re.match(".*MONTHLY_\d+\.ZIP",
                                                                                                      monthly_file)])
-            sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match(".*DAILY_\d+", daily_file)])
+            sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match(".*DAILY_\d+\.ZIP", daily_file)])
 
             earliest_monthly_file = sorted_monthly_file_names[0]
             earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
