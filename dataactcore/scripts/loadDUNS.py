@@ -32,6 +32,16 @@ def get_config():
 
     return None, None, None, None, None
 
+def process_from_dir(root_dir, file_name, local, monthly=False):
+    file_path = os.path.join(root_dir, file_name)
+    if not local:
+        logger.info("Pulling {}".format(file_name))
+        with open(file_path, "wb") as zip_file:
+            sftp.getfo(''.join([REMOTE_SAM_DIR, '/', file_name]), zip_file)
+    parse_sam_file(file_path, monthly=monthly)
+    if not local:
+        os.remove(file_path)
+
 def load_duns_by_row(data, sess, models, prepopulated_models):
     logger.info("going through activation check")
     data = activation_check(data, prepopulated_models).where(pd.notnull(data), None)
@@ -165,8 +175,11 @@ def parse_sam_file(file_path, monthly=False):
         sess.close()
 
 def get_parser():
-    parser = argparse.ArgumentParser(description="Get data from SAM and update execution_compensation table")
-    parser.add_argument("--local", "-l", type=str, default=None, help='use a local directory')
+    parser = argparse.ArgumentParser(description="Get the latest data from SAM and update duns table. By default, it "
+                                                 "loads the latest daily file.")
+    parser.add_argument("--historic", "-i", action="store_true", help='load the oldest monthly zip and all the daily'
+                                                                      'files afterwards from the directory.')
+    parser.add_argument("--local", "-l", type=str, default=None, help='work from a local directory')
     parser.add_argument("--monthly", "-m", type=str, default=None, help='load a local monthly file')
     parser.add_argument("--daily", "-d", type=str, default=None, help='load a local daily file')
     return parser
@@ -175,6 +188,7 @@ if __name__ == '__main__':
     parser = get_parser()
     args = parser.parse_args()
 
+    historic = args.historic
     local = args.local
     monthly = args.monthly
     daily = args.daily
@@ -186,7 +200,7 @@ if __name__ == '__main__':
             print("For loading a single local file, you must provide either monthly or daily.")
             logger.error("For loading a single local file, you must provide either monthly or daily.")
             sys.exit(1)
-        if (monthly or daily) and local:
+        elif (monthly or daily) and local:
             print("Local directory specified with a local file. Please choose one.")
             logger.error("Local directory specified with a local file.")
             sys.exit(1)
@@ -195,6 +209,7 @@ if __name__ == '__main__':
         elif daily:
             parse_sam_file(daily)
         else:
+            # dealing with a local or remote directory
             if not local:
                 root_dir = CONFIG_BROKER["d_file_storage_path"]
                 username, password, host, port = get_config()
@@ -217,33 +232,20 @@ if __name__ == '__main__':
                 dirlist = os.listdir(local)
 
             # generate chronological list of daily and monthy files
-            sorted_monthly_file_names = sorted([monthly_file for monthly_file in dirlist if re.match(".*MONTHLY_\d+\.ZIP",
-                                                                                                     monthly_file.upper())])
-            sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match(".*DAILY_\d+\.ZIP",
-                                                                                               daily_file.upper())])
+            sorted_monthly_file_names = sorted([monthly_file for monthly_file in dirlist
+                                                if re.match(".*MONTHLY_\d+\.ZIP", monthly_file.upper())])
+            sorted_daily_file_names = sorted([daily_file for daily_file in dirlist
+                                              if re.match(".*DAILY_\d+\.ZIP", daily_file.upper())])
             earliest_monthly_file = sorted_monthly_file_names[0]
             earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
             sorted_daily_monthly = sorted(sorted_daily_file_names + [earliest_daily_file])
             daily_files_after = sorted_daily_monthly[sorted_daily_monthly.index(earliest_daily_file)+1:]
             latest_daily_file = sorted_daily_file_names[-1]
 
-            # parse the earliest monthly file
-            file_path = os.path.join(root_dir, earliest_monthly_file)
-            if not local:
-                logger.info("Pulling {}".format(earliest_monthly_file))
-                with open(file_path, "wb") as zip_file:
-                    sftp.getfo(''.join([REMOTE_SAM_DIR, '/', earliest_monthly_file]), zip_file)
-            parse_sam_file(file_path, monthly=True)
-            if not local:
-                os.remove(file_path)
+            if historic:
+                process_from_dir(root_dir, earliest_monthly_file, local, monthly=True)
 
-            # parse all the daily files after that
-            for daily_file in daily_files_after:
-                file_path = os.path.join(root_dir, daily_file)
-                if not local:
-                    logger.info("Pulling {}".format(daily_file))
-                    with open(file_path, 'wb') as zip_file:
-                        sftp.getfo(''.join([REMOTE_SAM_DIR, '/', daily_file]), zip_file)
-                parse_sam_file(file_path)
-                if not local:
-                    os.remove(file_path)
+                for daily_file in daily_files_after:
+                    process_from_dir(root_dir, daily_file, local)
+            else:
+                process_from_dir(root_dir, latest_daily_file, local)
