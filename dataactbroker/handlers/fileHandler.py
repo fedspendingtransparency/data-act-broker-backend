@@ -884,7 +884,7 @@ class FileHandler:
                     temp_obj.pop('is_valid', None)
                     temp_obj.pop('_sa_instance_state', None)
 
-                    temp_obj = fabs_derivations(temp_obj)
+                    temp_obj = fabs_derivations(temp_obj, sess)
                     # if it is a new row, just insert it
                     if row.correction_late_delete_ind is None:
                         new_row = PublishedAwardFinancialAssistance(**temp_obj)
@@ -1714,9 +1714,7 @@ def map_generate_status(upload_job, validation_job=None):
     return response_status
 
 
-def fabs_derivations(obj):
-
-    sess = GlobalDB.db().session
+def fabs_derivations(obj, sess):
 
     # deriving total_funding_amount
     federal_action_obligation = obj['federal_action_obligation'] or 0
@@ -1857,5 +1855,4 @@ def fabs_derivations(obj):
         # legal entity cd data
         obj['legal_entity_congressional'] = obj['place_of_performance_congr']
 
-    GlobalDB.close()
     return obj
