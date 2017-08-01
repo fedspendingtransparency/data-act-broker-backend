@@ -80,10 +80,12 @@ def test_is_period(file_app, database):
     the number of submissions within the agency of the user that is logged in
     """
 
-    application = ApplicationTypeFactory(application_id=1, application_name='fabs')
+    application = ApplicationTypeFactory(application_name='fabs')
+
+    database.session.add(application)
 
     gtas = WindowFactory(start_date=datetime(2007, 1, 3), end_date=datetime(2010, 3, 5), block_certification=False,
-                         message='first', application_type=application.application_id)
+                         message='first', application_type=application.application_type_id)
     database.session.add(gtas)
 
     response = file_app.get("/v1/window/")
@@ -91,7 +93,7 @@ def test_is_period(file_app, database):
     assert response_json['data'] is None
 
     gtas = WindowFactory(start_date=datetime(2007, 1, 3), end_date=datetime(2010, 3, 5), block_certification=True,
-                         message='first', application_type=application.application_id)
+                         message='second', application_type=application.application_type_id)
     database.session.add(gtas)
 
     response = file_app.get("/v1/window/")
@@ -101,7 +103,7 @@ def test_is_period(file_app, database):
     curr_date = datetime.now()
     diff = timedelta(days=1)
     gtas_current = WindowFactory(start_date=curr_date-diff, end_date=curr_date+diff, block_certification=False,
-                                 message='first', application_type=application.application_id)
+                                 message='third', application_type=application.application_type_id)
     database.session.add(gtas_current)
 
     response = file_app.get("/v1/window/")
@@ -111,7 +113,7 @@ def test_is_period(file_app, database):
     curr_date = datetime.now()
     diff = timedelta(days=1)
     gtas_current = WindowFactory(start_date=curr_date-diff, end_date=curr_date+diff, block_certification=True,
-                                 message='first', application_type=application.application_id)
+                                 message='fourth', application_type=application.application_type_id)
     database.session.add(gtas_current)
 
     response = file_app.get("/v1/window/")
