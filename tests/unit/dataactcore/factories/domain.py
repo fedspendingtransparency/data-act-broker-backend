@@ -88,7 +88,7 @@ class CFDAProgramFactory(factory.Factory):
     class Meta:
         model = domainModels.CFDAProgram
     cfda_program_id = None
-    program_number = fuzzy.FuzzyText()
+    program_number = fuzzy.FuzzyDecimal(0, 99, 3)
     program_title = fuzzy.FuzzyText()
     popular_name = fuzzy.FuzzyText()
     federal_agency = fuzzy.FuzzyText()
@@ -140,3 +140,33 @@ class ZipsFactory(factory.Factory):
     state_abbreviation = fuzzy.FuzzyText()
     county_number = fuzzy.FuzzyText()
     congressional_district_no = fuzzy.FuzzyText()
+
+
+class SubTierAgencyFactory(factory.Factory):
+    class Meta:
+        model = domainModels.SubTierAgency
+
+    sub_tier_agency_id = None
+    sub_tier_agency_code = fuzzy.FuzzyText()
+    sub_tier_agency_name = fuzzy.FuzzyText()
+    cgac = factory.SubFactory(CGACFactory)
+    priority = fuzzy.FuzzyInteger(1, 2)
+
+
+class StatesFactory(factory.Factory):
+    class Meta:
+        model = domainModels.States
+
+    states_id = None
+    state_code = fuzzy.FuzzyText()
+    state_name = fuzzy.FuzzyText()
+
+
+class CountyCodeFactory(factory.Factory):
+    class Meta:
+        model = domainModels.CountyCode
+
+    county_code_id = None
+    county_number = fuzzy.FuzzyText()
+    county_name = fuzzy.FuzzyText()
+    state_code = fuzzy.FuzzyText()
