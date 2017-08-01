@@ -1808,18 +1808,54 @@ def fabs_derivations(obj):
             obj['place_of_performance_city'] = city_info.feature_name
             obj['place_of_perform_county_na'] = city_info.county_name
 
-    # deriving legal entity congressional district where applicable
+    # deriving legal entity stuff where applicable (record type is 2 in this case)
     if obj['legal_entity_zip5']:
+        # legal entity city data
+        city_info = sess.query(ZipCity).filter_by(zip_code=obj['legal_entity_zip5']).one()
+        obj['legal_entity_city_name'] = city_info.city_name
+
+        zip_data = None
         # if we have a legal entity zip+4 provided
         if obj['legal_entity_zip_last4']:
             zip_data = sess.query(Zips).\
                 filter_by(zip5=obj['legal_entity_zip5'], zip_last4=obj['legal_entity_zip_last4']).first()
-        else:
+
+        # if legal_entity_zip_last4 returned no results (invalid combination), grab the first entry for this zip5
+        # for derivation purposes. This will exist because we wouldn't have gotten this far if it didn't,
+        # invalid legal_entity_zip5 when present is an error
+        if not zip_data:
             zip_data = sess.query(Zips).filter_by(zip5=obj['legal_entity_zip5']).first()
-        # set zip_data to the congressional district if we got a result
-        if zip_data:
-            zip_data = zip_data.congressional_district_no
-        obj['legal_entity_congressional'] = zip_data
+
+        obj['legal_entity_congressional'] = zip_data.congressional_district_no
+
+        # legal entity city data
+        county_info = sess.query(CountyCode). \
+            filter_by(county_number=zip_data.county_number, state_code=zip_data.state_abbreviation).first()
+        obj['legal_entity_county_code'] = county_info.county_number
+        obj['legal_entity_county_name'] = county_info.county_name
+
+        # legal entity state data
+        state_info = sess.query(States).filter_by(state_code=zip_data.state_abbreviation).one()
+        obj['legal_entity_state_code'] = state_info.state_code
+        obj['legal_entity_state_name'] = state_info.state_name
+
+    # deriving legal entity stuff that's based on record type of 1 (ppop code must be in the format XX**### for these)
+    if obj['record_type'] == 1:
+        obj['legal_entity_city_name'] = None
+
+        # legal entity county data
+        county_code = ppop_code[-3:]
+        county_info = sess.query(CountyCode). \
+            filter_by(county_number=county_code, state_code=ppop_state.state_code).first()
+        obj['legal_entity_county_code'] = county_code
+        obj['legal_entity_county_name'] = county_info.county_name
+
+        # legal entity state data
+        obj['legal_entity_state_code'] = ppop_state.state_code
+        obj['legal_entity_state_name'] = ppop_state.state_name
+
+        # legal entity cd data
+        obj['legal_entity_congressional'] = obj['place_of_performance_congr']
 
     GlobalDB.close()
     return obj
