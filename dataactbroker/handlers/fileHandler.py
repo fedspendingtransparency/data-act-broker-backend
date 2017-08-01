@@ -1727,6 +1727,7 @@ def fabs_derivations(obj, sess):
         obj['cfda_title'] = cfda_title.program_title
     else:
         logger.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
+        obj['cfda_title'] = None
 
     if obj['awarding_sub_tier_agency_c']:
         # deriving awarding agency name and code
@@ -1798,6 +1799,7 @@ def fabs_derivations(obj, sess):
             county_info = sess.query(CountyCode).\
                 filter_by(county_number=county_code, state_code=ppop_state.state_code).first()
             obj['place_of_perform_county_na'] = county_info.county_name
+            obj['place_of_performance_city'] = None
         # if ppop_code is in city format
         elif re.match('^[A-Z]{2}\d{5}$', ppop_code) and not re.match('^[A-Z]{2}0{5}$', ppop_code):
             # getting city and county name

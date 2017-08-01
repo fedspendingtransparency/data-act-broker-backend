@@ -4,13 +4,13 @@ from tests.unit.dataactcore.factories.domain import (
     CGACFactory, SubTierAgencyFactory, StatesFactory, CountyCodeFactory, CFDAProgramFactory)
 
 
-def initialize_db_values(db):
+def initialize_db_values(db, cfda_title=None):
     """ Initialize the values in the DB that can be used throughout the tests """
     cgac = CGACFactory()
     db.session.add(cgac)
     db.session.commit()
 
-    cfda_number = CFDAProgramFactory(program_number=12.345)
+    cfda_number = CFDAProgramFactory(program_number=12.345, program_title=cfda_title)
     sub_tier = SubTierAgencyFactory(sub_tier_agency_code="1234", cgac=cgac)
     state = StatesFactory(state_code="NY")
     county_code = CountyCodeFactory(state_code=state.state_code)
@@ -53,3 +53,17 @@ def test_total_funding_amount(database):
     obj = initialize_test_obj(fao=-10.6, nffa=123)
     obj = fabs_derivations(obj, database.session)
     assert obj['total_funding_amount'] == 112.4
+
+
+def test_cfda_title(database):
+    initialize_db_values(database, cfda_title="Test Title")
+
+    # when cfda_number isn't in the database
+    obj = initialize_test_obj()
+    obj = fabs_derivations(obj, database.session)
+    assert obj['cfda_title'] is None
+
+    # when cfda_number is in the database
+    obj = initialize_test_obj(cfda_num="12.345")
+    obj = fabs_derivations(obj, database.session)
+    assert obj['cfda_title'] == "Test Title"
