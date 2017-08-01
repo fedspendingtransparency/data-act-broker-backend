@@ -1748,12 +1748,16 @@ def fabs_derivations(obj, sess):
         if not funding_agency_name:
             funding_agency_name = sess.query(FREC).filter_by(frec_code=obj['funding_agency_code']).one()
         obj['funding_agency_name'] = funding_agency_name.agency_name
+    else:
+        obj['funding_agency_name'] = None
 
     # deriving funding sub tier agency name
     if obj['funding_sub_tier_agency_co']:
         funding_sub_tier_agency_name = sess.query(SubTierAgency).\
             filter_by(sub_tier_agency_code=obj['funding_sub_tier_agency_co']).one()
         obj['funding_sub_tier_agency_na'] = funding_sub_tier_agency_name.sub_tier_agency_name
+    else:
+        obj['funding_sub_tier_agency_na'] = None
 
     # deriving ppop state name (ppop code is required so we don't have to check that it exists, just upper it)
     ppop_code = obj['place_of_performance_code'].upper()
