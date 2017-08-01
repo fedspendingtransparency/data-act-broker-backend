@@ -170,3 +170,27 @@ class CountyCodeFactory(factory.Factory):
     county_number = fuzzy.FuzzyText()
     county_name = fuzzy.FuzzyText()
     state_code = fuzzy.FuzzyText()
+
+
+class CityCodeFactory(factory.Factory):
+    class Meta:
+        model = domainModels.CityCode
+
+    city_code_id = None
+    feature_name = fuzzy.FuzzyText()
+    feature_class = fuzzy.FuzzyText()
+    city_code = fuzzy.FuzzyText()
+    state_code = fuzzy.FuzzyText()
+    county_number = fuzzy.FuzzyText()
+    county_name = fuzzy.FuzzyText()
+    latitude = fuzzy.FuzzyText()
+    longitude = fuzzy.FuzzyText()
+
+
+class ZipCityFactory(factory.Factory):
+    class Meta:
+        model = domainModels.ZipCity
+
+    zip_city_id = None
+    zip_code = fuzzy.FuzzyText()
+    city_name = fuzzy.FuzzyText()
