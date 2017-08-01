@@ -114,7 +114,7 @@ class ApplicationTypeFactory(factory.Factory):
     class Meta:
         model = jobModels.ApplicationType
 
-    application_id = fuzzy.FuzzyInteger(9999)
+    application_type_id = fuzzy.FuzzyInteger(9999)
     application_name = fuzzy.FuzzyText()
 
 
