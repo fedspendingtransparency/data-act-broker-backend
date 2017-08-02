@@ -5,7 +5,7 @@ from dataactcore.models.jobModels import ApplicationType
 from dataactvalidator.health_check import create_app
 
 
-def set_submission_type_db():
+def setup_submission_type_db():
     """Create job tracker tables from model metadata."""
     with create_app().app_context():
         sess = GlobalDB.db().session
@@ -24,4 +24,4 @@ def insert_codes(sess):
 
 if __name__ == '__main__':
     configure_logging()
-    set_submission_type_db()
+    setup_submission_type_db()

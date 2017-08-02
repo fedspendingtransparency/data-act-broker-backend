@@ -6,6 +6,7 @@ from dataactcore.scripts.setupJobQueueDB import setup_job_queue_db
 from dataactcore.scripts.setupJobTrackerDB import setup_job_tracker_db
 from dataactcore.scripts.setupUserDB import setup_user_db
 from dataactcore.scripts.setupValidationDB import setup_validation_db
+from dataactcore.scripts.setupSubmissionTypeDB import setup_submission_type_db
 
 
 def setup_all_db():
@@ -17,6 +18,7 @@ def setup_all_db():
     setup_user_db()
     setup_job_queue_db()
     setup_validation_db()
+    setup_submission_type_db()
 
 
 if __name__ == '__main__':

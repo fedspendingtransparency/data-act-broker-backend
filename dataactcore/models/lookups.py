@@ -114,4 +114,4 @@ SUBMISSION_TYPE = [
     LookupType(2, 'dabs', 'Warning for DABS pages'),
     LookupType(3, 'fabs', 'Warning for FABS pages')
 ]
-SUBMISSION_TYPE = {item.name: item.id for item in SUBMISSION_TYPE}
+SUBMISSION_TYPE_DICT = {item.name: item.id for item in SUBMISSION_TYPE}
