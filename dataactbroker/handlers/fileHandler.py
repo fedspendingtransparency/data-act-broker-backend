@@ -884,7 +884,7 @@ class FileHandler:
                     temp_obj.pop('is_valid', None)
                     temp_obj.pop('_sa_instance_state', None)
 
-                    temp_obj = fabs_derivations(temp_obj)
+                    temp_obj = fabs_derivations(temp_obj, sess)
                     # if it is a new row, just insert it
                     if row.correction_late_delete_ind is None:
                         new_row = PublishedAwardFinancialAssistance(**temp_obj)
@@ -1714,9 +1714,7 @@ def map_generate_status(upload_job, validation_job=None):
     return response_status
 
 
-def fabs_derivations(obj):
-
-    sess = GlobalDB.db().session
+def fabs_derivations(obj, sess):
 
     # deriving total_funding_amount
     federal_action_obligation = obj['federal_action_obligation'] or 0
@@ -1729,6 +1727,7 @@ def fabs_derivations(obj):
         obj['cfda_title'] = cfda_title.program_title
     else:
         logger.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
+        obj['cfda_title'] = None
 
     if obj['awarding_sub_tier_agency_c']:
         # deriving awarding agency name and code
@@ -1749,12 +1748,16 @@ def fabs_derivations(obj):
         if not funding_agency_name:
             funding_agency_name = sess.query(FREC).filter_by(frec_code=obj['funding_agency_code']).one()
         obj['funding_agency_name'] = funding_agency_name.agency_name
+    else:
+        obj['funding_agency_name'] = None
 
     # deriving funding sub tier agency name
     if obj['funding_sub_tier_agency_co']:
         funding_sub_tier_agency_name = sess.query(SubTierAgency).\
             filter_by(sub_tier_agency_code=obj['funding_sub_tier_agency_co']).one()
         obj['funding_sub_tier_agency_na'] = funding_sub_tier_agency_name.sub_tier_agency_name
+    else:
+        obj['funding_sub_tier_agency_na'] = None
 
     # deriving ppop state name (ppop code is required so we don't have to check that it exists, just upper it)
     ppop_code = obj['place_of_performance_code'].upper()
@@ -1800,6 +1803,7 @@ def fabs_derivations(obj):
             county_info = sess.query(CountyCode).\
                 filter_by(county_number=county_code, state_code=ppop_state.state_code).first()
             obj['place_of_perform_county_na'] = county_info.county_name
+            obj['place_of_performance_city'] = None
         # if ppop_code is in city format
         elif re.match('^[A-Z]{2}\d{5}$', ppop_code) and not re.match('^[A-Z]{2}0{5}$', ppop_code):
             # getting city and county name
@@ -1857,5 +1861,4 @@ def fabs_derivations(obj):
         # legal entity cd data
         obj['legal_entity_congressional'] = obj['place_of_performance_congr']
 
-    GlobalDB.close()
     return obj
