@@ -86,7 +86,7 @@ def test_pubished_date_success(database):
                                                            record_type=2, business_types="A",
                                                            correction_late_delete_ind="C")
 
-    errors = number_of_errors(_FILE, database, models=[exec_comp_1, det_award_1, det_award_2, det_award_3,
+    errors = number_of_errors(_FILE, database, models=[duns_1, det_award_1, det_award_2, det_award_3,
                                                        det_award_4, det_award_5, det_award_6, det_award_7,
                                                        det_award_8, det_award_9, det_award_10, det_award_11,
                                                        det_award_12, det_award_13, det_award_14])

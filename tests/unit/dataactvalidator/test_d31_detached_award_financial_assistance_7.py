@@ -86,7 +86,7 @@ def test_pubished_date_failure(database):
         includes 'P')."""
 
     duns_1 = DUNS(awardee_or_recipient_uniqu="111111111", activation_date="06/21/2017",
-                       expiration_date="06/21/2018")
+                  expiration_date="06/21/2018")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111", action_type="B",
                                                           assistance_type="02", action_date="06/20/2017",
                                                           record_type=2, business_types="A")
