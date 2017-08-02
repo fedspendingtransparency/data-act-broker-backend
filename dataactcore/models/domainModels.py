@@ -208,6 +208,7 @@ class ExecutiveCompensation(Base):
     activation_date = Column(Date)
     expiration_date = Column(Date)
 
+
 class DUNS(Base):
     """ DUNS Records """
     __tablename__ = "duns"
