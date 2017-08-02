@@ -51,14 +51,14 @@ WHERE NOT (record_type = 1 or LOWER(business_types) LIKE '%%p%%')
     AND dafa.row_number NOT IN (
             SELECT DISTINCT sub_dafa.row_number
             FROM detached_award_financial_assistance_d44_4_{0} as sub_dafa
-                JOIN executive_compensation AS exec_comp
-                ON (sub_dafa.awardee_or_recipient_uniqu IS NOT DISTINCT FROM exec_comp.awardee_or_recipient_uniqu
+                JOIN duns
+                ON (sub_dafa.awardee_or_recipient_uniqu IS NOT DISTINCT FROM duns.awardee_or_recipient_uniqu
                 AND (CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
                     THEN CAST(sub_dafa.action_date as Date)
-                    END) >= CAST(exec_comp.activation_date as DATE)
+                    END) >= CAST(duns.activation_date as DATE)
                 AND (CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
                     THEN CAST(sub_dafa.action_date as Date)
-                    END) < CAST(exec_comp.expiration_date as DATE)
+                    END) < CAST(duns.expiration_date as DATE)
                 )
             )
     AND (COALESCE(dafa.correction_late_delete_ind,'') != 'C'

@@ -1,5 +1,5 @@
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
-from dataactcore.models.domainModels import ExecutiveCompensation
+from dataactcore.models.domainModels import DUNS
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'd31_detached_award_financial_assistance_5'
@@ -18,8 +18,8 @@ def test_pubished_date_success(database):
         unless the record is an aggregate record (RecordType=1) or individual recipient
         (BusinessTypes includes 'P'). This is an error because CorrectionLateDeleteIndicator is not C or the
         action date is after January 1, 2017."""
-    exec_comp_1 = ExecutiveCompensation(awardee_or_recipient_uniqu="111111111", activation_date="06/21/2017",
-                                        expiration_date="06/21/2018")
+    duns_1 = DUNS(awardee_or_recipient_uniqu="111111111", activation_date="06/21/2017",
+                  expiration_date="06/21/2018")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111", action_type="A",
                                                           assistance_type="02", action_date="06/22/2017",
                                                           record_type=2, business_types="A",
@@ -82,7 +82,7 @@ def test_pubished_date_success(database):
                                                            record_type=2, business_types="A",
                                                            correction_late_delete_ind="D")
 
-    errors = number_of_errors(_FILE, database, models=[exec_comp_1, det_award_1, det_award_2, det_award_3,
+    errors = number_of_errors(_FILE, database, models=[duns_1, det_award_1, det_award_2, det_award_3,
                                                        det_award_4, det_award_5, det_award_6, det_award_7,
                                                        det_award_8, det_award_9, det_award_10, det_award_11,
                                                        det_award_12, det_award_13])
@@ -96,8 +96,8 @@ def test_pubished_date_failure(database):
         (BusinessTypes includes 'P'). This is an error because CorrectionLateDeleteIndicator is not C or the
         action date is after January 1, 2017."""
 
-    exec_comp_1 = ExecutiveCompensation(awardee_or_recipient_uniqu="111111111", activation_date="06/21/2017",
-                                        expiration_date="06/21/2018")
+    duns_1 = DUNS(awardee_or_recipient_uniqu="111111111", activation_date="06/21/2017",
+                  expiration_date="06/21/2018")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(assistance_type="02", action_date="06/20/2017",
                                                           awardee_or_recipient_uniqu="111111111", action_type="A",
                                                           record_type=2, business_types="A",
@@ -124,6 +124,6 @@ def test_pubished_date_failure(database):
                                                           record_type=2, business_types="A",
                                                           correction_late_delete_ind="D")
 
-    errors = number_of_errors(_FILE, database, models=[exec_comp_1, det_award_1, det_award_2, det_award_3,
+    errors = number_of_errors(_FILE, database, models=[duns_1, det_award_1, det_award_2, det_award_3,
                                                        det_award_4, det_award_5, det_award_6])
     assert errors == 6

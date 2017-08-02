@@ -29,6 +29,6 @@ WHERE submission_id = {0}
     END) > CAST('10/01/2010' as DATE)
     AND awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
     AND COALESCE(dafa.awardee_or_recipient_uniqu, '') NOT IN (
-        SELECT DISTINCT exec_comp.awardee_or_recipient_uniqu
-        FROM executive_compensation as exec_comp
+        SELECT DISTINCT duns.awardee_or_recipient_uniqu
+        FROM duns
     )
