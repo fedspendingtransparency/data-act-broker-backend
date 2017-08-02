@@ -111,21 +111,9 @@ def parse_sam_file(file_path, monthly=False, benchmarks=False):
         if benchmarks:
             initial_sweep = time.time()
         nrows = 0
-        duns_found = []
         with zipfile.ZipFile(file_path) as zip_file:
             with zip_file.open(dat_file_name) as dat_file:
-                if not monthly:
-                    csv_data = pd.read_csv(dat_file, dtype=str, skiprows=1, header=None, sep='|',
-                                           usecols={"awardee_or_recipient_uniqu": 0},
-                                           names=["awardee_or_recipient_uniqu"])
-                    nrows = csv_data.size+1
-                    # removing rows where DUNS number isn't even provided
-                    csv_data = csv_data.where(csv_data["awardee_or_recipient_uniqu"].notnull())
-                    # padding to 9 to match what's already in the table
-                    duns_found = [duns.strip().zfill(9) for duns in
-                                  list(csv_data["awardee_or_recipient_uniqu"].unique())][:-1]
-                else:
-                    nrows = len(dat_file.readlines())
+                nrows = len(dat_file.readlines())
         if benchmarks:
             logger.info("Initial sweep took {} seconds".format(time.time() - initial_sweep))
 
@@ -134,8 +122,7 @@ def parse_sam_file(file_path, monthly=False, benchmarks=False):
             if benchmarks:
                 get_models = time.time()
             logger.info("getting models")
-            duns_objs_found = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu.in_(duns_found))
-            models = {duns.awardee_or_recipient_uniqu: duns for duns in duns_objs_found}
+            models = {duns.awardee_or_recipient_uniqu: duns for duns in sess.query(DUNS)}
             logger.info("getting models with activation dates already set")
             prepopulated_models = {duns_num: duns for duns_num, duns in models.items()
                                    if duns.activation_date is not None}
