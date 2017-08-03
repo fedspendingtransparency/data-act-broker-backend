@@ -85,7 +85,7 @@ def test_is_period(file_app, database):
     database.session.add(application)
 
     gtas = SubmissionWindowFactory(start_date=datetime(2007, 1, 3), end_date=datetime(2010, 3, 5),
-                                   block_certification=False, message='first', application=application)
+                                   block_certification=False, message='first', application_type=application)
     database.session.add(gtas)
 
     response = file_app.get("/v1/window/")
@@ -93,7 +93,7 @@ def test_is_period(file_app, database):
     assert response_json['data'] is None
 
     gtas = SubmissionWindowFactory(start_date=datetime(2007, 1, 3), end_date=datetime(2010, 3, 5),
-                                   block_certification=True, message='second', application=application)
+                                   block_certification=True, message='second', application_type=application)
     database.session.add(gtas)
 
     response = file_app.get("/v1/window/")
@@ -103,7 +103,7 @@ def test_is_period(file_app, database):
     curr_date = datetime.now()
     diff = timedelta(days=1)
     gtas_current = SubmissionWindowFactory(start_date=curr_date-diff, end_date=curr_date+diff,
-                                           block_certification=False, message='third', application=application)
+                                           block_certification=False, message='third', application_type=application)
     database.session.add(gtas_current)
 
     response = file_app.get("/v1/window/")
@@ -113,7 +113,7 @@ def test_is_period(file_app, database):
     curr_date = datetime.now()
     diff = timedelta(days=1)
     gtas_current = SubmissionWindowFactory(start_date=curr_date-diff, end_date=curr_date+diff, block_certification=True,
-                                           message='fourth', application=application)
+                                           message='fourth', application_type=application)
     database.session.add(gtas_current)
 
     response = file_app.get("/v1/window/")

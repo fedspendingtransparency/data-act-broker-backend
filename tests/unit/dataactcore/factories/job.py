@@ -127,4 +127,4 @@ class SubmissionWindowFactory(factory.Factory):
     end_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     block_certification = False
     message = fuzzy.FuzzyText()
-    application = factory.SubFactory(ApplicationTypeFactory)
+    application_type = factory.SubFactory(ApplicationTypeFactory)

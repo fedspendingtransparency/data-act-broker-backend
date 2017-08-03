@@ -237,7 +237,7 @@ class SubmissionWindow(Base):
     block_certification = Column(Boolean, default=False)
     message = Column(Text)
     application_type_id = Column(Integer, ForeignKey("application_type.application_type_id",
-                              name="fk_submission_window_application"))
+                                 name="fk_submission_window_application"))
     application_type = relationship("ApplicationType")
 
 
