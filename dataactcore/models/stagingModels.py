@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean, UniqueConstraint, ForeignKey
+from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean, UniqueConstraint, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
@@ -887,6 +887,7 @@ class PublishedAwardFinancialAssistance(Base):
     legal_entity_state_name = Column(Text)
     legal_entity_zip5 = Column(Text)
     legal_entity_zip_last4 = Column(Text)
+    modified_at = Column(DateTime)
     non_federal_funding_amount = Column(Numeric)
     original_loan_subsidy_cost = Column(Numeric)
     period_of_performance_curr = Column(Text)
