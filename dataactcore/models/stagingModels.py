@@ -870,7 +870,7 @@ class PublishedAwardFinancialAssistance(Base):
     funding_office_code = Column(Text)
     funding_sub_tier_agency_co = Column(Text)
     funding_sub_tier_agency_na = Column(Text)
-    is_active = Column(Boolean)
+    is_active = Column(Boolean, default=False, nullable=False, server_default="False")
     is_historical = Column(Boolean)
     legal_entity_address_line1 = Column(Text)
     legal_entity_address_line2 = Column(Text)

@@ -34,7 +34,7 @@ def upgrade_data_broker():
     op.drop_index('ix_detached_award_financial_assistance_fain', table_name='detached_award_financial_assistance')
     op.drop_index('ix_detached_award_financial_assistance_uri', table_name='detached_award_financial_assistance')
     op.add_column('published_award_financial_assistance', sa.Column('afa_generated_unique', sa.Text(), nullable=True))
-    op.add_column('published_award_financial_assistance', sa.Column('is_active', sa.Boolean(), nullable=True))
+    op.add_column('published_award_financial_assistance', sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('false')))
     op.create_index(op.f('ix_published_award_financial_assistance_afa_generated_unique'), 'published_award_financial_assistance', ['afa_generated_unique'], unique=False)
     op.create_index(op.f('ix_published_award_financial_assistance_correction_late_delete_ind'), 'published_award_financial_assistance', ['correction_late_delete_ind'], unique=False)
     op.drop_index('ix_published_award_financial_assistance_award_modificat_2eb3', table_name='published_award_financial_assistance')
