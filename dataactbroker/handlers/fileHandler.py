@@ -1861,4 +1861,9 @@ def fabs_derivations(obj, sess):
         # legal entity cd data
         obj['legal_entity_congressional'] = obj['place_of_performance_congr']
 
+    # generate the identifier
+    obj['afa_generated_unique'] = (obj['award_modification_amendme'] or '-none-') + \
+                                  (obj['awarding_sub_tier_agency_c'] or '-none-') + \
+                                  (obj['fain'] or '-none-') + (obj['uri'] or '-none-')
+
     return obj
