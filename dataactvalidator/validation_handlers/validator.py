@@ -24,7 +24,7 @@ class Validator(object):
     tableAbbreviations = {"appropriations": "approp", "award_financial_assistance": "afa", "award_financial": "af",
                           "object_class_program_activity": "op", "appropriation": "approp"}
     # Set of metadata fields that should not be directly validated
-    META_FIELDS = ["row_number"]
+    META_FIELDS = ["row_number", "afa_generated_unique"]
 
     @classmethod
     def validate(cls, record, csv_schema, fabs_record=False):

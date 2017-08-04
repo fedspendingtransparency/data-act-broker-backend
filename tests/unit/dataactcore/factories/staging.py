@@ -223,6 +223,7 @@ class DetachedAwardFinancialAssistanceFactory(factory.Factory):
         model = stagingModels.DetachedAwardFinancialAssistance
 
     detached_award_financial_assistance_id = None
+    afa_generated_unique = fuzzy.FuzzyText()
     submission_id = fuzzy.FuzzyInteger(9999)
     job_id = fuzzy.FuzzyInteger(9999)
     row_number = fuzzy.FuzzyInteger(9999)
@@ -275,6 +276,7 @@ class PublishedAwardFinancialAssistanceFactory(factory.Factory):
         model = stagingModels.PublishedAwardFinancialAssistance
 
     published_award_financial_assistance_id = None
+    afa_generated_unique = fuzzy.FuzzyText()
     action_date = fuzzy.FuzzyText()
     action_type = fuzzy.FuzzyText()
     assistance_type = fuzzy.FuzzyText()
