@@ -34,20 +34,34 @@ def get_config():
     return None, None, None, None, None
 
 
-def load_duns_by_row(data, sess, models, prepopulated_models, benchmarks=False):
-    data = activation_check(data, prepopulated_models, benchmarks).where(pd.notnull(data), None)
+def get_relevant_models(data, all_models, benchmarks=False):
+    # Get a list of the duns we're gonna work off of to prevent multiple calls to the database
+    if benchmarks:
+        get_models = time.time()
+    logger.info("getting relevant models")
+    duns_found = [duns.strip().zfill(9) for duns in list(data["awardee_or_recipient_uniqu"].unique())]
+    models = {duns_num: duns for duns_num, duns in all_models.items() if duns_num in duns_found}
+    logger.info("getting models with activation dates already set")
+    activated_models = {duns_num: duns for duns_num, duns in models.items()
+                           if duns.activation_date is not None}
+    if benchmarks:
+        logger.info("Getting models took {} seconds".format(time.time() - get_models))
+    return models, activated_models
+
+
+def load_duns_by_row(data, sess, models, activated_models, all_models, benchmarks=False):
+    data = activation_check(data, activated_models, benchmarks).where(pd.notnull(data), None)
     update_duns(models, data, benchmarks=benchmarks)
-    sess.add_all(models.values())
-    sess.commit()
+    all_models.update(models)
 
 
-def activation_check(data, prepopulated_models, benchmarks=False):
+def activation_check(data, activated_models, benchmarks=False):
     # if activation_date's already set, keep it, otherwise update it (default)
     logger.info("going through activation check")
     if benchmarks:
         activation_check_start = time.time()
-    lambda_func = (lambda duns_num: pd.Series([prepopulated_models[duns_num].activation_date.strftime("%Y%m%d")
-                                               if duns_num in prepopulated_models else np.nan]))
+    lambda_func = (lambda duns_num: pd.Series([activated_models[duns_num].activation_date
+                                               if duns_num in activated_models else np.nan]))
     data = data.assign(old_activation_date=data["awardee_or_recipient_uniqu"].apply(lambda_func))
     data.loc[pd.notnull(data["old_activation_date"]), "activation_date"] = data["old_activation_date"]
     del data["old_activation_date"]
@@ -86,7 +100,7 @@ def clean_sam_data(data):
             )
 
 
-def parse_sam_file(file_path, monthly=False, benchmarks=False):
+def parse_sam_file(file_path, sess, monthly=False, all_models=None, benchmarks=False):
     parse_start_time = time.time()
     logger.info("starting file " + str(file_path))
 
@@ -95,7 +109,6 @@ def parse_sam_file(file_path, monthly=False, benchmarks=False):
     dat_file_date = re.findall(".*{}_(.*).dat".format(sam_file_type), dat_file_name)[0]
 
     with create_app().app_context():
-        sess = GlobalDB.db().session
 
         column_header_mapping = {
             "awardee_or_recipient_uniqu": 0,
@@ -107,40 +120,22 @@ def parse_sam_file(file_path, monthly=False, benchmarks=False):
         }
         column_header_mapping_ordered = OrderedDict(sorted(column_header_mapping.items(), key=lambda c: c[1]))
 
+        if not monthly and not all_models:
+            if benchmarks:
+                get_models = time.time()
+            all_models = {duns.awardee_or_recipient_uniqu: duns for duns in sess.query(DUNS)}
+            if benchmarks:
+                logger.info("Getting all models for the first time took {} seconds".format(time.time() - get_models))
+
         # Initial sweep of the file to see rows and possibly what DUNS we're updating
         if benchmarks:
             initial_sweep = time.time()
         nrows = 0
-        duns_found = []
         with zipfile.ZipFile(file_path) as zip_file:
             with zip_file.open(dat_file_name) as dat_file:
-                if not monthly:
-                    csv_data = pd.read_csv(dat_file, dtype=str, skiprows=1, header=None, sep='|',
-                                           usecols={"awardee_or_recipient_uniqu": 0},
-                                           names=["awardee_or_recipient_uniqu"])
-                    nrows = csv_data.size+1
-                    # removing rows where DUNS number isn't even provided
-                    csv_data = csv_data.where(csv_data["awardee_or_recipient_uniqu"].notnull())
-                    # padding to 9 to match what's already in the table
-                    duns_found = [duns.strip().zfill(9) for duns in
-                                  list(csv_data["awardee_or_recipient_uniqu"].unique())][:-1]
-                else:
-                    nrows = len(dat_file.readlines())
+                nrows = len(dat_file.readlines())
         if benchmarks:
             logger.info("Initial sweep took {} seconds".format(time.time() - initial_sweep))
-
-        # For daily files, get a list of the duns we're gonna work off of to prevent multiple calls to the database
-        if not monthly:
-            if benchmarks:
-                get_models = time.time()
-            logger.info("getting models")
-            duns_objs_found = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu.in_(duns_found))
-            models = {duns.awardee_or_recipient_uniqu: duns for duns in duns_objs_found}
-            logger.info("getting models with activation dates already set")
-            prepopulated_models = {duns_num: duns for duns_num, duns in models.items()
-                                   if duns.activation_date is not None}
-            if benchmarks:
-                logger.info("Getting models took {} seconds".format(time.time() - get_models))
 
         block_size = 10000
         batches = nrows//block_size
@@ -168,10 +163,10 @@ def parse_sam_file(file_path, monthly=False, benchmarks=False):
                     csv_data = csv_data.where(csv_data["awardee_or_recipient_uniqu"].notnull())
                     # cleaning and replacing NaN/NaT with None's
                     csv_data = clean_sam_data(csv_data.where(pd.notnull(csv_data), None))
+                    del csv_data["sam_extract_code"]
 
                     if monthly:
                         logger.info("adding all monthly data with bulk load")
-                        del csv_data["sam_extract_code"]
                         if benchmarks:
                             bulk_month_load = time.time()
                         insert_dataframe(csv_data, DUNS.__table__.name, sess.connection())
@@ -179,47 +174,31 @@ def parse_sam_file(file_path, monthly=False, benchmarks=False):
                         if benchmarks:
                             logger.info("Bulk month load took {} seconds".format(time.time()-bulk_month_load))
                     else:
-                        logger.info("splitting daily file into add/update/delete rows")
-                        add_data = csv_data[csv_data.sam_extract_code == '2']
-                        update_data = csv_data[csv_data.sam_extract_code == '3']
-                        delete_data = csv_data[csv_data.sam_extract_code == '1']
-                        for dataframe in [add_data, update_data, delete_data]:
-                            del dataframe["sam_extract_code"]
-
-                        if not add_data.empty:
-                            try:
-                                logger.info("attempting to bulk load add data")
-                                insert_dataframe(add_data, DUNS.__table__.name, sess.connection())
-                                sess.commit()
-                            except IntegrityError:
-                                logger.info("bulk loading add data failed, loading add data by row")
-                                sess.rollback()
-                                load_duns_by_row(add_data, sess, models, prepopulated_models, benchmarks=benchmarks)
-                        if not update_data.empty:
-                            logger.info("loading update data by row")
-                            load_duns_by_row(update_data, sess, models, prepopulated_models, benchmarks=benchmarks)
-                        if not delete_data.empty:
-                            logger.info("loading delete data by row")
-                            load_duns_by_row(delete_data, sess, models, prepopulated_models, benchmarks=benchmarks)
+                        logger.info("loading csv data ({} rows)".format(len(csv_data.index)))
+                        models, activated_models = get_relevant_models(csv_data, all_models,
+                                                                          benchmarks=benchmarks)
+                        load_duns_by_row(csv_data, sess, models, activated_models, all_models,
+                                         benchmarks=benchmarks)
 
             added_rows += nrows
             batch += 1
             logger.info('%s DUNS records inserted', added_rows)
-        sess.close()
         if benchmarks:
             logger.info("Parsing {} took {} seconds with {} rows".format(dat_file_name, time.time()-parse_start_time,
                                                                          added_rows))
+        return all_models
 
 
-def process_from_dir(root_dir, file_name, local, monthly=False, benchmarks=False):
+def process_from_dir(root_dir, file_name, sess, local, monthly=False, all_models=None, benchmarks=False):
     file_path = os.path.join(root_dir, file_name)
     if not local:
         logger.info("Pulling {}".format(file_name))
         with open(file_path, "wb") as zip_file:
             sftp.getfo(''.join([REMOTE_SAM_DIR, '/', file_name]), zip_file)
-    parse_sam_file(file_path, monthly=monthly, benchmarks=benchmarks)
+    all_models = parse_sam_file(file_path, sess, monthly=monthly, all_models=all_models, benchmarks=benchmarks)
     if not local:
         os.remove(file_path)
+    return all_models
 
 
 def get_parser():
@@ -246,6 +225,7 @@ if __name__ == '__main__':
 
     with create_app().app_context():
         configure_logging()
+        sess = GlobalDB.db().session
 
         if monthly and daily:
             print("For loading a single local file, you must provide either monthly or daily.")
@@ -282,7 +262,7 @@ if __name__ == '__main__':
                 root_dir = local
                 dirlist = os.listdir(local)
 
-            # generate chronological list of daily and monthy files
+            # generate chronological list of daily and monthly files
             sorted_monthly_file_names = sorted([monthly_file for monthly_file in dirlist
                                                 if re.match(".*MONTHLY_\d+\.ZIP", monthly_file.upper())])
             sorted_daily_file_names = sorted([daily_file for daily_file in dirlist
@@ -293,10 +273,15 @@ if __name__ == '__main__':
             daily_files_after = sorted_daily_monthly[sorted_daily_monthly.index(earliest_daily_file)+1:]
             latest_daily_file = sorted_daily_file_names[-1]
 
+            all_models = None
             if historic:
-                process_from_dir(root_dir, earliest_monthly_file, local, monthly=True, benchmarks=benchmarks)
+                process_from_dir(root_dir, earliest_monthly_file, sess, local, monthly=True, benchmarks=benchmarks)
 
                 for daily_file in daily_files_after:
-                    process_from_dir(root_dir, daily_file, local, benchmarks=benchmarks)
+                    all_models = process_from_dir(root_dir, daily_file, sess, local, all_models=all_models,
+                                                  benchmarks=benchmarks)
             else:
-                process_from_dir(root_dir, latest_daily_file, local, benchmarks=benchmarks)
+                all_models = process_from_dir(root_dir, latest_daily_file, sess, local, benchmarks=benchmarks)
+            sess.add_all(all_models.values())
+            sess.commit()
+        sess.close()
