@@ -108,3 +108,10 @@ RULE_SEVERITY = [
     LookupType(2, 'fatal', 'fatal error')
 ]
 RULE_SEVERITY_DICT = {item.name: item.id for item in RULE_SEVERITY}
+
+SUBMISSION_TYPE = [
+    LookupType(1, 'all', 'Warning for all pages'),
+    LookupType(2, 'dabs', 'Warning for DABS pages'),
+    LookupType(3, 'fabs', 'Warning for FABS pages')
+]
+SUBMISSION_TYPE_DICT = {item.name: item.id for item in SUBMISSION_TYPE}
