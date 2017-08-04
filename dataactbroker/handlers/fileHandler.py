@@ -893,7 +893,7 @@ class FileHandler:
                         row_id = check_row.published_award_financial_assistance_id
                         sess.query(PublishedAwardFinancialAssistance).\
                             filter_by(published_award_financial_assistance_id=row_id).\
-                            update({"is_active": False, "updated_at": check_row.modified_at}, synchronize_session=False)
+                            update({"is_active": False, "updated_at": row.modified_at}, synchronize_session=False)
 
                 # for all rows, insert the new row (active/inactive should be handled by fabs_derivations)
                 new_row = PublishedAwardFinancialAssistance(**temp_obj)
