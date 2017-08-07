@@ -91,7 +91,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                              'start_date': str(window.start_date),
                              'end_date': str(window.end_date),
                              'notice_block': window.block_certification,
-                             'message': window.message
+                             'message': window.message,
+                             'type': window.application_type.application_name
                 })
 
         return JsonResponse.create(StatusCode.OK, {"data": data})
