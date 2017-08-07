@@ -36,13 +36,14 @@ def parse_fabs_file(f, sess):
         'face_loan_guran', 'orig_sub_guran', 'recipient_cd', 'rec_flag', 'recipient_country_code', 'uri',
         'recipient_state_code', 'last_modified_date'
     ])
-
+    
     clean_data = format_fabs_data(data)
 
-    logger.info("loading {} rows".format(len(clean_data.index)))
+    if data is not None:
+        logger.info("loading {} rows".format(len(clean_data.index)))
 
-    insert_dataframe(clean_data, PublishedAwardFinancialAssistance.__table__.name, sess.connection())
-    sess.commit()
+        insert_dataframe(clean_data, PublishedAwardFinancialAssistance.__table__.name, sess.connection())
+        sess.commit()
 
 
 def format_fabs_data(data):
@@ -50,6 +51,9 @@ def format_fabs_data(data):
 
     # drop rows with null FAIN and URI
     data = data[~((data['federal_award_id'].isnull()) & (data['uri'].isnull()))].copy()
+
+    if len(data.index) == 0:
+        return None
 
     proper_casing_cols = ['recipient_name', 'recipient_city_name', 'recipient_county_name', 'receip_addr1',
                           'receip_addr2', 'receip_addr3']
