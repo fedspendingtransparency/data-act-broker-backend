@@ -242,9 +242,9 @@ if __name__ == '__main__':
             logger.error("Local directory specified with a local file.")
             sys.exit(1)
         elif monthly:
-            parse_sam_file(monthly, monthly=True, benchmarks=benchmarks)
+            parse_sam_file(monthly, sess=sess, monthly=True, benchmarks=benchmarks)
         elif daily:
-            parse_sam_file(daily, benchmarks=benchmarks)
+            parse_sam_file(daily, sess=sess, benchmarks=benchmarks)
         else:
             # dealing with a local or remote directory
             if not local:
@@ -273,17 +273,29 @@ if __name__ == '__main__':
                                                 if re.match(".*MONTHLY_\d+\.ZIP", monthly_file.upper())])
             sorted_daily_file_names = sorted([daily_file for daily_file in dirlist
                                               if re.match(".*DAILY_\d+\.ZIP", daily_file.upper())])
-            earliest_monthly_file = sorted_monthly_file_names[0]
-            earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
-            sorted_daily_monthly = sorted(sorted_daily_file_names + [earliest_daily_file])
-            daily_files_after = sorted_daily_monthly[sorted_daily_monthly.index(earliest_daily_file)+1:]
-            latest_daily_file = sorted_daily_file_names[-1]
 
             if historic:
-                process_from_dir(root_dir, earliest_monthly_file, sess, local, monthly=True, benchmarks=benchmarks)
+                if sorted_monthly_file_names:
+                    process_from_dir(root_dir, sorted_monthly_file_names[0], sess, local, monthly=True, benchmarks=benchmarks)
+                else:
+                    logger.info("No monthly file found.")
 
-                for daily_file in daily_files_after:
-                    process_from_dir(root_dir, daily_file, sess, local, benchmarks=benchmarks)
+                if sorted_daily_file_names:
+                    if sorted_monthly_file_names:
+                        earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
+                        sorted_daily_monthly = sorted(sorted_daily_file_names + [earliest_daily_file])
+                        daily_files_after = sorted_daily_monthly[sorted_daily_monthly.index(earliest_daily_file) + 1:]
+                    else:
+                        daily_files_after = sorted_daily_file_names
+
+                if daily_files_after:
+                    for daily_file in daily_files_after:
+                        process_from_dir(root_dir, daily_file, sess, local, benchmarks=benchmarks)
+                else:
+                    logger.info("No daily file found.")
             else:
-                process_from_dir(root_dir, latest_daily_file, sess, local, benchmarks=benchmarks)
+                if sorted_daily_file_names:
+                    process_from_dir(root_dir, sorted_daily_file_names[-1], sess, local, benchmarks=benchmarks)
+                else:
+                    logger.info("No daily file found.")
         sess.close()
