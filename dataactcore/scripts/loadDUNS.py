@@ -168,7 +168,8 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False):
                             logger.info("Bulk month load took {} seconds".format(time.time()-bulk_month_load))
                     else:
                         add_data = csv_data[csv_data.sam_extract_code == '2']
-                        update_delete_data = csv_data[(csv_data.sam_extract_code == '3') | (csv_data.sam_extract_code == '1')]
+                        update_delete_data = csv_data[(csv_data.sam_extract_code == '3') |
+                                                      (csv_data.sam_extract_code == '1')]
                         for dataframe in [add_data, update_delete_data]:
                             del dataframe["sam_extract_code"]
 
@@ -215,8 +216,10 @@ def get_parser():
     parser.add_argument("--local", "-l", type=str, default=None, help='work from a local directory')
     parser.add_argument("--monthly", "-m", type=str, default=None, help='load a local monthly file')
     parser.add_argument("--daily", "-d", type=str, default=None, help='load a local daily file')
-    parser.add_argument("--benchmarks", "-b", action="store_true", help='log times of operations for testing')
-    parser.add_argument("--update", "-u", action="store_true", help='Run all daily files since latest last_sam_mod_date in table')
+    parser.add_argument("--benchmarks", "-b", action="store_true",
+                        help='log times of operations for testing')
+    parser.add_argument("--update", "-u", action="store_true",
+                        help='Run all daily files since latest last_sam_mod_date in table')
     return parser
 
 
@@ -229,6 +232,7 @@ if __name__ == '__main__':
     monthly = args.monthly
     daily = args.daily
     benchmarks = args.benchmarks
+    update = args.update
 
     with create_app().app_context():
         configure_logging()
@@ -282,7 +286,8 @@ if __name__ == '__main__':
             if historic or update:
                 if historic:
                     if sorted_monthly_file_names:
-                        process_from_dir(root_dir, sorted_monthly_file_names[0], sess, local, monthly=True, benchmarks=benchmarks)
+                        process_from_dir(root_dir, sorted_monthly_file_names[0],
+                                         sess, local, monthly=True, benchmarks=benchmarks)
                     else:
                         logger.info("No monthly file found.")
 
@@ -291,13 +296,13 @@ if __name__ == '__main__':
                         if sorted_monthly_file_names:
                             earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
                     else:
-                        ## insert item into sorted file list with date of last sam mod
-                        last_update = sess.query(DUNS.last_sam_mod_date).order_by \
-                                (DUNS.last_sam_mod_date.desc()). \
+                        # Insert item into sorted file list with date of last sam mod
+                        last_update = sess.query(DUNS.last_sam_mod_date).\
+                                order_by(DUNS.last_sam_mod_date.desc()). \
                                 filter(DUNS.last_sam_mod_date.isnot(None)). \
                                 limit(1).one()[0].strftime("%Y%m%d")
-                        earliest_daily_file = re.sub("_DAILY_[0-9]{8}\.ZIP","_DAILY_" + \
-                                last_update+".ZIP",sorted_daily_file_names[0])
+                        earliest_daily_file = re.sub("_DAILY_[0-9]{8}\.ZIP", "_DAILY_" +
+                                                     last_update + ".ZIP", sorted_daily_file_names[0])
                     if earliest_daily_file:
                         sorted_full_list = sorted(sorted_daily_file_names + [earliest_daily_file])
                         daily_files_after = sorted_full_list[sorted_full_list.index(earliest_daily_file) + 1:]
