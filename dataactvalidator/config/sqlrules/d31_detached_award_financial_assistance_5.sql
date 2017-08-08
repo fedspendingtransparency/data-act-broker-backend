@@ -44,8 +44,8 @@ WHERE NOT (record_type = 1 or LOWER(business_types) LIKE '%%p%%')
     END) > CAST('10/01/2010' as DATE)
     AND awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
     AND COALESCE(dafa.awardee_or_recipient_uniqu, '') IN (
-        SELECT DISTINCT exec_comp.awardee_or_recipient_uniqu
-        FROM executive_compensation as exec_comp
+        SELECT DISTINCT duns.awardee_or_recipient_uniqu
+        FROM duns
     )
     AND dafa.action_type = 'A'
     AND dafa.row_number NOT IN (

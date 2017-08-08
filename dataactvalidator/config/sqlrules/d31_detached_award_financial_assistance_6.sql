@@ -44,15 +44,15 @@ WHERE NOT (record_type = 1 or LOWER(business_types) LIKE '%%p%%')
     END) > CAST('10/01/2010' as DATE)
     AND awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
     AND COALESCE(dafa.awardee_or_recipient_uniqu, '') IN (
-        SELECT DISTINCT exec_comp.awardee_or_recipient_uniqu
-        FROM executive_compensation as exec_comp
+        SELECT DISTINCT duns.awardee_or_recipient_uniqu
+        FROM duns
     )
     AND dafa.action_type = 'A'
     AND dafa.row_number NOT IN (
             SELECT DISTINCT sub_dafa.row_number
             FROM detached_award_financial_assistance_d44_4_{0} as sub_dafa
                 JOIN duns
-                ON (sub_dafa.awardee_or_recipient_uniqu IS NOT DISTINCT FROM exec_comp.awardee_or_recipient_uniqu
+                ON (sub_dafa.awardee_or_recipient_uniqu IS NOT DISTINCT FROM duns.awardee_or_recipient_uniqu
                 AND (CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
                     THEN CAST(sub_dafa.action_date as Date)
                     END) >= CAST(duns.activation_date as DATE)
