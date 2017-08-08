@@ -33,7 +33,7 @@ def initialize_db_values(db, cfda_title=None, cgac_code=None):
 
 def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1234", fund_agency_code=None,
                         sub_fund_agency_code=None, ppop_code="NY00000", ppop_zip4a=None, ppop_cd=None, le_zip5=None,
-                        le_zip4=None, record_type=2):
+                        le_zip4=None, record_type=2, award_mod_amend=None, fain=None, uri=None, cldi=None):
     """ Initialize the values in the object being run through the fabs_derivations function """
     obj = {
         'federal_action_obligation': fao,
@@ -47,7 +47,11 @@ def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1
         'place_of_performance_congr': ppop_cd,
         'legal_entity_zip5': le_zip5,
         'legal_entity_zip_last4': le_zip4,
-        'record_type': record_type
+        'record_type': record_type,
+        'award_modification_amendme': award_mod_amend,
+        'fain': fain,
+        'uri': uri,
+        'correction_late_delete_ind': cldi
     }
     return obj
 
@@ -203,3 +207,36 @@ def test_legal_entity_derivations(database):
     assert obj['legal_entity_county_name'] == "Test County"
     assert obj['legal_entity_state_code'] == "NY"
     assert obj['legal_entity_state_name'] == "New York"
+
+
+def test_afa_generated_unique(database):
+    initialize_db_values(database)
+
+    # Testing with none values
+    obj = initialize_test_obj()
+    obj = fabs_derivations(obj, database.session)
+    assert obj['afa_generated_unique'] == '-none-1234-none--none-'
+
+    # testing with no none values
+    obj = initialize_test_obj(award_mod_amend='award', fain='fain', uri='uri')
+    obj = fabs_derivations(obj, database.session)
+    assert obj['afa_generated_unique'] == 'award1234fainuri'
+
+
+def test_is_active(database):
+    initialize_db_values(database)
+
+    # Testing with none values
+    obj = initialize_test_obj()
+    obj = fabs_derivations(obj, database.session)
+    assert obj['is_active'] is True
+
+    # Testing with value other than D
+    obj = initialize_test_obj(cldi="c")
+    obj = fabs_derivations(obj, database.session)
+    assert obj['is_active'] is True
+
+    # Testing with D
+    obj = initialize_test_obj(cldi="D")
+    obj = fabs_derivations(obj, database.session)
+    assert obj['is_active'] is False

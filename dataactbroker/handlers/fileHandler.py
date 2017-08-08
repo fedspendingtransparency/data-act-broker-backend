@@ -873,45 +873,32 @@ class FileHandler:
                 filter_by(is_valid=True, submission_id=submission_id).all()
 
             for row in query:
-                # if it is not a delete row
-                if row.correction_late_delete_ind is None or row.correction_late_delete_ind.upper() != "D":
-                    # remove all keys in the row that are not in the intermediate table
-                    temp_obj = row.__dict__
-                    temp_obj.pop('detached_award_financial_assistance_id', None)
-                    temp_obj.pop('submission_id', None)
-                    temp_obj.pop('job_id', None)
-                    temp_obj.pop('row_number', None)
-                    temp_obj.pop('is_valid', None)
-                    temp_obj.pop('_sa_instance_state', None)
+                # remove all keys in the row that are not in the intermediate table
+                temp_obj = row.__dict__
+                temp_obj.pop('detached_award_financial_assistance_id', None)
+                temp_obj.pop('submission_id', None)
+                temp_obj.pop('job_id', None)
+                temp_obj.pop('row_number', None)
+                temp_obj.pop('is_valid', None)
+                temp_obj.pop('_sa_instance_state', None)
 
-                    temp_obj = fabs_derivations(temp_obj, sess)
-                    # if it is a new row, just insert it
-                    if row.correction_late_delete_ind is None:
-                        new_row = PublishedAwardFinancialAssistance(**temp_obj)
-                        sess.add(new_row)
-                    # if it's a correction row, check if it exists
-                    else:
-                        check_row = sess.query(PublishedAwardFinancialAssistance).\
-                            filter_by(fain=row.fain, uri=row.uri,
-                                      awarding_sub_tier_agency_c=row.awarding_sub_tier_agency_c,
-                                      award_modification_amendme=row.award_modification_amendme).one_or_none()
-                        # if the row exists, update the existing row
-                        if check_row:
-                            sess.query(PublishedAwardFinancialAssistance).\
-                                filter_by(fain=row.fain, uri=row.uri,
-                                          awarding_sub_tier_agency_c=row.awarding_sub_tier_agency_c,
-                                          award_modification_amendme=row.award_modification_amendme).\
-                                update(temp_obj, synchronize_session=False)
-                        # if the row doesn't exist, add a new one
-                        else:
-                            new_row = PublishedAwardFinancialAssistance(**temp_obj)
-                            sess.add(new_row)
-                # if it is a delete row, delete the associated row from the list
-                else:
-                    sess.query(PublishedAwardFinancialAssistance).\
-                        filter_by(fain=row.fain, uri=row.uri,
-                                  awarding_sub_tier_agency_c=row.awarding_sub_tier_agency_c,
-                                  award_modification_amendme=row.award_modification_amendme).delete()
+                temp_obj = fabs_derivations(temp_obj, sess)
+
+                # if it's a correction or deletion row and an old row is active, update the old row to be inactive
+                if row.correction_late_delete_ind is not None and row.correction_late_delete_ind.upper() in ['C', 'D']:
+                    check_row = sess.query(PublishedAwardFinancialAssistance).\
+                        filter_by(afa_generated_unique=row.afa_generated_unique, is_active=True).one_or_none()
+                    if check_row:
+                        # just creating this as a variable because flake thinks the row is too long
+                        row_id = check_row.published_award_financial_assistance_id
+                        sess.query(PublishedAwardFinancialAssistance).\
+                            filter_by(published_award_financial_assistance_id=row_id).\
+                            update({"is_active": False, "updated_at": row.modified_at}, synchronize_session=False)
+
+                # for all rows, insert the new row (active/inactive should be handled by fabs_derivations)
+                new_row = PublishedAwardFinancialAssistance(**temp_obj)
+                sess.add(new_row)
+
             sess.commit()
         except Exception as e:
             # rollback the changes if there are any errors. We want to submit everything together
@@ -1860,5 +1847,17 @@ def fabs_derivations(obj, sess):
 
         # legal entity cd data
         obj['legal_entity_congressional'] = obj['place_of_performance_congr']
+
+    # generate the identifier
+    obj['afa_generated_unique'] = (obj['award_modification_amendme'] or '-none-') + \
+                                  (obj['awarding_sub_tier_agency_c'] or '-none-') + \
+                                  (obj['fain'] or '-none-') + (obj['uri'] or '-none-')
+
+    if obj['correction_late_delete_ind'] and obj['correction_late_delete_ind'].upper() == 'D':
+        obj['is_active'] = False
+    else:
+        obj['is_active'] = True
+
+    obj['modified_at'] = datetime.utcnow()
 
     return obj
