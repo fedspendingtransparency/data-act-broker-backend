@@ -24,7 +24,7 @@ class Validator(object):
     tableAbbreviations = {"appropriations": "approp", "award_financial_assistance": "afa", "award_financial": "af",
                           "object_class_program_activity": "op", "appropriation": "approp"}
     # Set of metadata fields that should not be directly validated
-    META_FIELDS = ["row_number"]
+    META_FIELDS = ["row_number", "afa_generated_unique"]
 
     @classmethod
     def validate(cls, record, csv_schema, fabs_record=False):
@@ -95,9 +95,7 @@ class Validator(object):
                len(current_data.strip()) > current_schema.length:
                 # Length failure, add to failedRules
                 record_failed = True
-                warning_type = "warning"
-                if fabs_record:
-                    warning_type = "fatal"
+                warning_type = "fatal" if fabs_record else "warning"
                 failed_rules.append(Failure(field_name, ValidationError.lengthError, current_data, "", warning_type))
 
         # if all columns are blank (empty row), set it so it doesn't add to the error messages or write the line,
