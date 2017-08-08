@@ -239,15 +239,12 @@ if __name__ == '__main__':
         sess = GlobalDB.db().session
 
         if monthly and daily:
-            print("For loading a single local file, you must provide either monthly or daily.")
             logger.error("For loading a single local file, you must provide either monthly or daily.")
             sys.exit(1)
         if historic and update:
-            print("For multiple file loads you must choose either historic or update.")
             logger.error("For multiple file loads you must choose either historic or update.")
             sys.exit(1)
         elif (monthly or daily) and local:
-            print("Local directory specified with a local file. Please choose one.")
             logger.error("Local directory specified with a local file.")
             sys.exit(1)
         elif monthly:

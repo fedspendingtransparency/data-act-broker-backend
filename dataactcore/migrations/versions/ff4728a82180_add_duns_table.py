@@ -1,4 +1,4 @@
-"""add_duns_table
+"""add duns table
 
 Revision ID: ff4728a82180
 Revises: 0bf2ed508f33
@@ -33,7 +33,7 @@ def upgrade_data_broker():
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('duns_id', sa.Integer(), nullable=False),
-    sa.Column('awardee_or_recipient_uniqu', sa.Text(), nullable=True),
+    sa.Column('awardee_or_recipient_uniqu', sa.Text(), nullable=True, index=True),
     sa.Column('legal_business_name', sa.Text(), nullable=True),
     sa.Column('activation_date', sa.Date(), nullable=True),
     sa.Column('deactivation_date', sa.Date(), nullable=True),
