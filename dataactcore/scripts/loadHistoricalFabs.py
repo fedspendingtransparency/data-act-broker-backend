@@ -36,7 +36,7 @@ def parse_fabs_file(f, sess):
         'face_loan_guran', 'orig_sub_guran', 'recipient_cd', 'rec_flag', 'recipient_country_code', 'uri',
         'recipient_state_code', 'last_modified_date'
     ])
-    
+
     clean_data = format_fabs_data(data)
 
     if data is not None:
