@@ -39,7 +39,7 @@ def parse_fabs_file(f, sess):
 
     clean_data = format_fabs_data(data)
 
-    if data is not None:
+    if clean_data is not None:
         logger.info("loading {} rows".format(len(clean_data.index)))
 
         insert_dataframe(clean_data, PublishedAwardFinancialAssistance.__table__.name, sess.connection())
@@ -291,8 +291,7 @@ def set_active_rows(sess):
         "FROM published_award_financial_assistance GROUP BY afa_generated_unique) sub_pafa " +
         "ON pafa.modified_at = sub_pafa.modified_at AND " +
         "COALESCE(pafa.afa_generated_unique, '') = COALESCE(sub_pafa.afa_generated_unique, '') " +
-        "WHERE COALESCE(pafa.correction_late_delete_ind, '') != 'D' AND " +
-        "COALESCE(pafa.correction_late_delete_ind, '') != 'd' ) AS selected " +
+        "WHERE COALESCE(UPPER(pafa.correction_late_delete_ind), '') != 'D' AS selected " +
         "WHERE all_pafa.published_award_financial_assistance_id = selected.published_award_financial_assistance_id"
     )
     sess.commit()

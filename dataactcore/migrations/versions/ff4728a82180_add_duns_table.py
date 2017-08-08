@@ -1,4 +1,4 @@
-"""add_duns_table
+"""add duns table
 
 Revision ID: ff4728a82180
 Revises: 0bf2ed508f33
@@ -41,6 +41,7 @@ def upgrade_data_broker():
     sa.Column('last_sam_mod_date', sa.Date(), nullable=True),
     sa.PrimaryKeyConstraint('duns_id')
     )
+    op.create_index('ix_duns_awardee_or_recipient_uniqu', 'duns', ['awardee_or_recipient_uniqu'], unique=False)
     ### end Alembic commands ###
 
 
