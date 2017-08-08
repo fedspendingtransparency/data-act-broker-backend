@@ -33,7 +33,7 @@ def upgrade_data_broker():
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('duns_id', sa.Integer(), nullable=False),
-    sa.Column('awardee_or_recipient_uniqu', sa.Text(), nullable=True, index=True),
+    sa.Column('awardee_or_recipient_uniqu', sa.Text(), nullable=True),
     sa.Column('legal_business_name', sa.Text(), nullable=True),
     sa.Column('activation_date', sa.Date(), nullable=True),
     sa.Column('deactivation_date', sa.Date(), nullable=True),
@@ -41,6 +41,7 @@ def upgrade_data_broker():
     sa.Column('last_sam_mod_date', sa.Date(), nullable=True),
     sa.PrimaryKeyConstraint('duns_id')
     )
+    op.create_index('ix_duns_awardee_or_recipient_uniqu', 'duns', ['awardee_or_recipient_uniqu'], unique=False)
     ### end Alembic commands ###
 
 
