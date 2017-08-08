@@ -216,6 +216,7 @@ def get_parser():
     parser.add_argument("--monthly", "-m", type=str, default=None, help='load a local monthly file')
     parser.add_argument("--daily", "-d", type=str, default=None, help='load a local daily file')
     parser.add_argument("--benchmarks", "-b", action="store_true", help='log times of operations for testing')
+    parser.add_argument("--update", "-u", action="store_true", help='Run all daily files since latest last_sam_mod_date in table')
     return parser
 
 
@@ -236,6 +237,10 @@ if __name__ == '__main__':
         if monthly and daily:
             print("For loading a single local file, you must provide either monthly or daily.")
             logger.error("For loading a single local file, you must provide either monthly or daily.")
+            sys.exit(1)
+        if historic and update:
+            print("For multiple file loads you must choose either historic or update.")
+            logger.error("For multiple file loads you must choose either historic or update.")
             sys.exit(1)
         elif (monthly or daily) and local:
             print("Local directory specified with a local file. Please choose one.")
@@ -274,17 +279,28 @@ if __name__ == '__main__':
             sorted_daily_file_names = sorted([daily_file for daily_file in dirlist
                                               if re.match(".*DAILY_\d+\.ZIP", daily_file.upper())])
 
-            if historic:
-                if sorted_monthly_file_names:
-                    process_from_dir(root_dir, sorted_monthly_file_names[0], sess, local, monthly=True, benchmarks=benchmarks)
-                else:
-                    logger.info("No monthly file found.")
+            if historic or update:
+                if historic:
+                    if sorted_monthly_file_names:
+                        process_from_dir(root_dir, sorted_monthly_file_names[0], sess, local, monthly=True, benchmarks=benchmarks)
+                    else:
+                        logger.info("No monthly file found.")
 
                 if sorted_daily_file_names:
-                    if sorted_monthly_file_names:
-                        earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
-                        sorted_daily_monthly = sorted(sorted_daily_file_names + [earliest_daily_file])
-                        daily_files_after = sorted_daily_monthly[sorted_daily_monthly.index(earliest_daily_file) + 1:]
+                    if historic:
+                        if sorted_monthly_file_names:
+                            earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
+                    else:
+                        ## insert item into sorted file list with date of last sam mod
+                        last_update = sess.query(DUNS.last_sam_mod_date).order_by \
+                                (DUNS.last_sam_mod_date.desc()). \
+                                filter(DUNS.last_sam_mod_date.isnot(None)). \
+                                limit(1).one()[0].strftime("%Y%m%d")
+                        earliest_daily_file = re.sub("_DAILY_[0-9]{8}\.ZIP","_DAILY_" + \
+                                last_update+".ZIP",sorted_daily_file_names[0])
+                    if earliest_daily_file:
+                        sorted_full_list = sorted(sorted_daily_file_names + [earliest_daily_file])
+                        daily_files_after = sorted_full_list[sorted_full_list.index(earliest_daily_file) + 1:]
                     else:
                         daily_files_after = sorted_daily_file_names
 
