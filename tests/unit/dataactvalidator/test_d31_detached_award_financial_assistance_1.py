@@ -5,14 +5,15 @@ _FILE = 'd31_detached_award_financial_assistance_1'
 
 
 def test_column_headers(database):
-    expected_subset = {"row_number", "record_type", "business_types", "awardee_or_recipient_uniqu"}
+    expected_subset = {"row_number", "record_type", "business_types", "awardee_or_recipient_uniqu",
+                       "business_types", "record_type"}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
 
 def test_success(database):
-    """ Test success for AwardeeOrRecipientUniqueIdentifier Field must be blank for aggregate records
-    (i.e., when RecordType = 1) and individual recipients. """
+    """ AwardeeOrRecipientUniqueIdentifier Field must be blank for aggregate records (RecordType=1)
+        and individual recipients (BusinessTypes includes 'P'). """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(record_type=1, business_types="ABP",
                                                           awardee_or_recipient_uniqu='')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(record_type=1, business_types="ABC",
@@ -38,8 +39,8 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test failure for AwardeeOrRecipientUniqueIdentifier Field must be blank for aggregate records
-    (i.e., when RecordType = 1) and individual recipients. """
+    """ Test Failure for AwardeeOrRecipientUniqueIdentifier Field must be blank for aggregate records (RecordType=1)
+        and individual recipients (BusinessTypes includes 'P'). """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(record_type=1, business_types="ABC",
                                                           awardee_or_recipient_uniqu='test')
