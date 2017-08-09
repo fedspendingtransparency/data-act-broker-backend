@@ -31,21 +31,21 @@ def test_pubished_date_success(database):
                                                           record_type=2, business_types="A")
     # Handled by d31_1
     det_award_4 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111112",
-                                                          assistance_type="02", action_date="10/02/2010",
+                                                          assistance_type="03", action_date="10/02/2010",
                                                           record_type=1, business_types="A")
     det_award_5 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111112",
-                                                          assistance_type="02", action_date="10/02/2010",
+                                                          assistance_type="04", action_date="10/02/2010",
                                                           record_type=2, business_types="P")
     # Handled by d31_2
     det_award_6 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="",
-                                                          assistance_type="02", action_date="10/02/2010",
+                                                          assistance_type="05", action_date="10/02/2010",
                                                           record_type=2, business_types="A")
     det_award_7 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu=None,
                                                           assistance_type="02", action_date="10/02/2010",
                                                           record_type=2, business_types="A")
     # Handled by d31_3
     det_award_8 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="ABCDEFGHI",
-                                                          assistance_type="02", action_date="10/02/2010",
+                                                          assistance_type="03", action_date="10/02/2010",
                                                           record_type=2, business_types="A")
 
     errors = number_of_errors(_FILE, database, models=[duns_1, det_award_1, det_award_2, det_award_3,
@@ -63,6 +63,15 @@ def test_pubished_date_failure(database):
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111112",
                                                           assistance_type="02", action_date="10/02/2010",
                                                           record_type=2, business_types="A")
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111113",
+                                                          assistance_type="03", action_date="10/03/2010",
+                                                          record_type=2, business_types="A")
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111114",
+                                                          assistance_type="04", action_date="10/04/2010",
+                                                          record_type=2, business_types="A")
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111114",
+                                                          assistance_type="05", action_date="10/05/2010",
+                                                          record_type=2, business_types="A")
 
-    errors = number_of_errors(_FILE, database, models=[duns_1, det_award_1])
-    assert errors == 1
+    errors = number_of_errors(_FILE, database, models=[duns_1, det_award_1, det_award_2, det_award_3, det_award_4])
+    assert errors == 4

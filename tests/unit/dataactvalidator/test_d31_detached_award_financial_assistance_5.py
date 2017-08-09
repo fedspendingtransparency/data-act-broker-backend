@@ -36,16 +36,16 @@ def test_pubished_date_success(database):
                                                           correction_late_delete_ind="D")
     # Handled by d31_1
     det_award_4 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111", action_type="A",
-                                                          assistance_type="02", action_date="06/20/2017",
+                                                          assistance_type="03", action_date="06/20/2017",
                                                           record_type=1, business_types="A",
                                                           correction_late_delete_ind="D")
     det_award_5 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111", action_type="A",
-                                                          assistance_type="02", action_date="06/20/2017",
+                                                          assistance_type="04", action_date="06/20/2017",
                                                           record_type=2, business_types="P",
                                                           correction_late_delete_ind="D")
     # Handled by d31_2
     det_award_6 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="", action_type="A",
-                                                          assistance_type="02", action_date="06/20/2017",
+                                                          assistance_type="05", action_date="06/20/2017",
                                                           record_type=2, business_types="A",
                                                           correction_late_delete_ind="D")
     det_award_7 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu=None, action_type="A",
@@ -54,22 +54,22 @@ def test_pubished_date_success(database):
                                                           correction_late_delete_ind="D")
     # Handled by d31_3
     det_award_8 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="ABCDEFGHI", action_type="A",
-                                                          assistance_type="02", action_date="06/20/2017",
+                                                          assistance_type="03", action_date="06/20/2017",
                                                           record_type=2, business_types="A",
                                                           correction_late_delete_ind="D")
     # Handled by d31_4
     det_award_9 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111112", action_type="A",
-                                                          assistance_type="02", action_date="06/20/2017",
+                                                          assistance_type="04", action_date="06/20/2017",
                                                           record_type=2, business_types="A",
                                                           correction_late_delete_ind="D")
     # Handled by d31_6
     det_award_10 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111", action_type="A",
-                                                           assistance_type="02", action_date="06/20/2010",
+                                                           assistance_type="05", action_date="06/20/2010",
                                                            record_type=2, business_types="A",
                                                            correction_late_delete_ind="C")
     # handled in d31_7
     det_award_11 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111", action_type="B",
-                                                           assistance_type="03", action_date="06/20/2017",
+                                                           assistance_type="02", action_date="06/20/2017",
                                                            record_type=2, business_types="A",
                                                            correction_late_delete_ind="D")
     # handled in d4
@@ -78,7 +78,7 @@ def test_pubished_date_success(database):
                                                            record_type=2, business_types="A",
                                                            correction_late_delete_ind="D")
     det_award_13 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111", action_type="A",
-                                                           assistance_type="03", action_date="AAAAAAAAAA",
+                                                           assistance_type="04", action_date="AAAAAAAAAA",
                                                            record_type=2, business_types="A",
                                                            correction_late_delete_ind="D")
 
