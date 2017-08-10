@@ -873,45 +873,32 @@ class FileHandler:
                 filter_by(is_valid=True, submission_id=submission_id).all()
 
             for row in query:
-                # if it is not a delete row
-                if row.correction_late_delete_ind is None or row.correction_late_delete_ind.upper() != "D":
-                    # remove all keys in the row that are not in the intermediate table
-                    temp_obj = row.__dict__
-                    temp_obj.pop('detached_award_financial_assistance_id', None)
-                    temp_obj.pop('submission_id', None)
-                    temp_obj.pop('job_id', None)
-                    temp_obj.pop('row_number', None)
-                    temp_obj.pop('is_valid', None)
-                    temp_obj.pop('_sa_instance_state', None)
+                # remove all keys in the row that are not in the intermediate table
+                temp_obj = row.__dict__
+                temp_obj.pop('detached_award_financial_assistance_id', None)
+                temp_obj.pop('submission_id', None)
+                temp_obj.pop('job_id', None)
+                temp_obj.pop('row_number', None)
+                temp_obj.pop('is_valid', None)
+                temp_obj.pop('_sa_instance_state', None)
 
-                    temp_obj = fabs_derivations(temp_obj)
-                    # if it is a new row, just insert it
-                    if row.correction_late_delete_ind is None:
-                        new_row = PublishedAwardFinancialAssistance(**temp_obj)
-                        sess.add(new_row)
-                    # if it's a correction row, check if it exists
-                    else:
-                        check_row = sess.query(PublishedAwardFinancialAssistance).\
-                            filter_by(fain=row.fain, uri=row.uri,
-                                      awarding_sub_tier_agency_c=row.awarding_sub_tier_agency_c,
-                                      award_modification_amendme=row.award_modification_amendme).one_or_none()
-                        # if the row exists, update the existing row
-                        if check_row:
-                            sess.query(PublishedAwardFinancialAssistance).\
-                                filter_by(fain=row.fain, uri=row.uri,
-                                          awarding_sub_tier_agency_c=row.awarding_sub_tier_agency_c,
-                                          award_modification_amendme=row.award_modification_amendme).\
-                                update(temp_obj, synchronize_session=False)
-                        # if the row doesn't exist, add a new one
-                        else:
-                            new_row = PublishedAwardFinancialAssistance(**temp_obj)
-                            sess.add(new_row)
-                # if it is a delete row, delete the associated row from the list
-                else:
-                    sess.query(PublishedAwardFinancialAssistance).\
-                        filter_by(fain=row.fain, uri=row.uri,
-                                  awarding_sub_tier_agency_c=row.awarding_sub_tier_agency_c,
-                                  award_modification_amendme=row.award_modification_amendme).delete()
+                temp_obj = fabs_derivations(temp_obj, sess)
+
+                # if it's a correction or deletion row and an old row is active, update the old row to be inactive
+                if row.correction_late_delete_ind is not None and row.correction_late_delete_ind.upper() in ['C', 'D']:
+                    check_row = sess.query(PublishedAwardFinancialAssistance).\
+                        filter_by(afa_generated_unique=row.afa_generated_unique, is_active=True).one_or_none()
+                    if check_row:
+                        # just creating this as a variable because flake thinks the row is too long
+                        row_id = check_row.published_award_financial_assistance_id
+                        sess.query(PublishedAwardFinancialAssistance).\
+                            filter_by(published_award_financial_assistance_id=row_id).\
+                            update({"is_active": False, "updated_at": row.modified_at}, synchronize_session=False)
+
+                # for all rows, insert the new row (active/inactive should be handled by fabs_derivations)
+                new_row = PublishedAwardFinancialAssistance(**temp_obj)
+                sess.add(new_row)
+
             sess.commit()
         except Exception as e:
             # rollback the changes if there are any errors. We want to submit everything together
@@ -1714,9 +1701,7 @@ def map_generate_status(upload_job, validation_job=None):
     return response_status
 
 
-def fabs_derivations(obj):
-
-    sess = GlobalDB.db().session
+def fabs_derivations(obj, sess):
 
     # deriving total_funding_amount
     federal_action_obligation = obj['federal_action_obligation'] or 0
@@ -1729,6 +1714,7 @@ def fabs_derivations(obj):
         obj['cfda_title'] = cfda_title.program_title
     else:
         logger.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
+        obj['cfda_title'] = None
 
     if obj['awarding_sub_tier_agency_c']:
         # deriving awarding agency name and code
@@ -1749,12 +1735,16 @@ def fabs_derivations(obj):
         if not funding_agency_name:
             funding_agency_name = sess.query(FREC).filter_by(frec_code=obj['funding_agency_code']).one()
         obj['funding_agency_name'] = funding_agency_name.agency_name
+    else:
+        obj['funding_agency_name'] = None
 
     # deriving funding sub tier agency name
     if obj['funding_sub_tier_agency_co']:
         funding_sub_tier_agency_name = sess.query(SubTierAgency).\
             filter_by(sub_tier_agency_code=obj['funding_sub_tier_agency_co']).one()
         obj['funding_sub_tier_agency_na'] = funding_sub_tier_agency_name.sub_tier_agency_name
+    else:
+        obj['funding_sub_tier_agency_na'] = None
 
     # deriving ppop state name (ppop code is required so we don't have to check that it exists, just upper it)
     ppop_code = obj['place_of_performance_code'].upper()
@@ -1800,6 +1790,7 @@ def fabs_derivations(obj):
             county_info = sess.query(CountyCode).\
                 filter_by(county_number=county_code, state_code=ppop_state.state_code).first()
             obj['place_of_perform_county_na'] = county_info.county_name
+            obj['place_of_performance_city'] = None
         # if ppop_code is in city format
         elif re.match('^[A-Z]{2}\d{5}$', ppop_code) and not re.match('^[A-Z]{2}0{5}$', ppop_code):
             # getting city and county name
@@ -1808,18 +1799,65 @@ def fabs_derivations(obj):
             obj['place_of_performance_city'] = city_info.feature_name
             obj['place_of_perform_county_na'] = city_info.county_name
 
-    # deriving legal entity congressional district where applicable
+    # deriving legal entity stuff where applicable (record type is 2 in this case)
     if obj['legal_entity_zip5']:
+        # legal entity city data
+        city_info = sess.query(ZipCity).filter_by(zip_code=obj['legal_entity_zip5']).one()
+        obj['legal_entity_city_name'] = city_info.city_name
+
+        zip_data = None
         # if we have a legal entity zip+4 provided
         if obj['legal_entity_zip_last4']:
             zip_data = sess.query(Zips).\
                 filter_by(zip5=obj['legal_entity_zip5'], zip_last4=obj['legal_entity_zip_last4']).first()
-        else:
-            zip_data = sess.query(Zips).filter_by(zip5=obj['legal_entity_zip5']).first()
-        # set zip_data to the congressional district if we got a result
-        if zip_data:
-            zip_data = zip_data.congressional_district_no
-        obj['legal_entity_congressional'] = zip_data
 
-    GlobalDB.close()
+        # if legal_entity_zip_last4 returned no results (invalid combination), grab the first entry for this zip5
+        # for derivation purposes. This will exist because we wouldn't have gotten this far if it didn't,
+        # invalid legal_entity_zip5 when present is an error
+        if not zip_data:
+            zip_data = sess.query(Zips).filter_by(zip5=obj['legal_entity_zip5']).first()
+
+        obj['legal_entity_congressional'] = zip_data.congressional_district_no
+
+        # legal entity city data
+        county_info = sess.query(CountyCode). \
+            filter_by(county_number=zip_data.county_number, state_code=zip_data.state_abbreviation).first()
+        obj['legal_entity_county_code'] = county_info.county_number
+        obj['legal_entity_county_name'] = county_info.county_name
+
+        # legal entity state data
+        state_info = sess.query(States).filter_by(state_code=zip_data.state_abbreviation).one()
+        obj['legal_entity_state_code'] = state_info.state_code
+        obj['legal_entity_state_name'] = state_info.state_name
+
+    # deriving legal entity stuff that's based on record type of 1 (ppop code must be in the format XX**### for these)
+    if obj['record_type'] == 1:
+        obj['legal_entity_city_name'] = None
+
+        # legal entity county data
+        county_code = ppop_code[-3:]
+        county_info = sess.query(CountyCode). \
+            filter_by(county_number=county_code, state_code=ppop_state.state_code).first()
+        obj['legal_entity_county_code'] = county_code
+        obj['legal_entity_county_name'] = county_info.county_name
+
+        # legal entity state data
+        obj['legal_entity_state_code'] = ppop_state.state_code
+        obj['legal_entity_state_name'] = ppop_state.state_name
+
+        # legal entity cd data
+        obj['legal_entity_congressional'] = obj['place_of_performance_congr']
+
+    # generate the identifier
+    obj['afa_generated_unique'] = (obj['award_modification_amendme'] or '-none-') + \
+                                  (obj['awarding_sub_tier_agency_c'] or '-none-') + \
+                                  (obj['fain'] or '-none-') + (obj['uri'] or '-none-')
+
+    if obj['correction_late_delete_ind'] and obj['correction_late_delete_ind'].upper() == 'D':
+        obj['is_active'] = False
+    else:
+        obj['is_active'] = True
+
+    obj['modified_at'] = datetime.utcnow()
+
     return obj

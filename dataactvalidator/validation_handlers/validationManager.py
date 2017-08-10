@@ -283,6 +283,10 @@ class ValidationManager:
                         passed_validations = True
                         valid = True
                     else:
+                        if file_type in ["detached_award"]:
+                            record['afa_generated_unique'] = (record['award_modification_amendme'] or '-none-') + \
+                                  (record['awarding_sub_tier_agency_c'] or '-none-') + \
+                                  (record['fain'] or '-none-') + (record['uri'] or '-none-')
                         passed_validations, failures, valid = Validator.validate(record, csv_schema,
                                                                                  file_type in ["detached_award"])
                     if valid:
@@ -365,6 +369,10 @@ class ValidationManager:
             error_list.write_all_row_errors(job_id)
             # Update error info for submission
             populate_job_error_info(job)
+
+            if file_type in ["detached_award"]:
+                # set number of errors and warnings for detached submission
+                populate_submission_error_info(submission_id)
 
             # Mark validation as finished in job tracker
             mark_job_status(job_id, "finished")
