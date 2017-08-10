@@ -1,6 +1,5 @@
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
-from dataactcore.models.domainModels import Zips
 
 _FILE = 'fabs41_detached_award_financial_assistance_6'
 
