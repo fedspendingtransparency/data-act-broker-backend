@@ -34,8 +34,10 @@ def test_success(database):
                                                           place_of_performance_zip4a='')
     det_award_8 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="nY000000",
                                                           place_of_performance_zip4a='12345')
+    det_award_9 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="Ny10988",
+                                                          place_of_performance_zip4a='city-wide')
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6, det_award_7, det_award_8, city_code])
+                                                       det_award_6, det_award_7, det_award_8, det_award_9, city_code])
     assert errors == 0
 
 
