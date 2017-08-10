@@ -11,7 +11,9 @@ SELECT
     dafa.place_of_performance_code,
     dafa.place_of_performance_zip4a
 FROM detached_award_financial_assistance_d41_5_{0} AS dafa
-WHERE dafa.place_of_performance_zip4a ~ '^\d\d\d\d\d\-?\d\d\d\d$'
+WHERE COALESCE(dafa.place_of_performance_zip4a, '') != ''
+    AND dafa.place_of_performance_zip4a != 'city-wide'
+    AND dafa.place_of_performance_zip4a ~ '^\d\d\d\d\d\-?\d\d\d\d$'
     AND dafa.row_number IN (SELECT DISTINCT sub_dafa.row_number
                             FROM detached_award_financial_assistance_d41_5_{0} AS sub_dafa
                             JOIN zips
