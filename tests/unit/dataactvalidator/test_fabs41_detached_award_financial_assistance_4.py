@@ -11,25 +11,30 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ When provided, PrimaryPlaceofPerformanceZIP+4 must be in the format #####, #########, or #####-#### """
+    """ When provided, PrimaryPlaceofPerformanceZIP+4 must be in the format #####, #########, #####-####,
+        or "city-wide"."""
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a=None)
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="12345")
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="123456789")
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="12345-6789")
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5])
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="city-wide")
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="12345")
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="123456789")
+    det_award_6 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="12345-6789")
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
+                                                       det_award_6])
     assert errors == 0
 
 
 def test_failure(database):
     """ Test failure for when provided, PrimaryPlaceofPerformanceZIP+4 must be in the format #####, #########,
-        or #####-#### """
+        #####-####, or "city-wide"."""
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="123456")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a='12345_6789')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a='1234F')
     det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a='1234567890')
     det_award_5 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a='1234')
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5])
-    assert errors == 5
+    det_award_6 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a='citywide')
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
+                                                       det_award_6])
+    assert errors == 6

@@ -7,6 +7,7 @@ SELECT
     place_of_perform_country_c
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND COALESCE(place_of_performance_zip4a, '') = ''
+    AND (COALESCE(place_of_performance_zip4a, '') = ''
+         OR place_of_performance_zip4a = 'city-wide')
     AND COALESCE(place_of_performance_congr, '') = ''
     AND UPPER(place_of_perform_country_c) = 'USA'

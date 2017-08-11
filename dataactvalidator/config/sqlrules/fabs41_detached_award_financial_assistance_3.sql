@@ -12,6 +12,7 @@ SELECT
     dafa.place_of_performance_zip4a
 FROM detached_award_financial_assistance_d41_3_{0} AS dafa
 WHERE CASE WHEN (COALESCE(dafa.place_of_performance_zip4a, '') != ''
+                 AND dafa.place_of_performance_zip4a != 'city-wide'
                  AND (dafa.place_of_performance_zip4a ~ '^\d\d\d\d\d$'
                       OR dafa.place_of_performance_zip4a ~ '^\d\d\d\d\d\-?\d\d\d\d$'))
            THEN dafa.row_number NOT IN (SELECT DISTINCT sub_dafa.row_number

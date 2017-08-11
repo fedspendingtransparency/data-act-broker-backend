@@ -22,23 +22,25 @@ def test_success(database):
                                                           place_of_performance_zip4a="")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="Ny**123",
                                                           place_of_performance_zip4a=None)
-    # valid 5 digit zip
     det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="Ny**123",
+                                                          place_of_performance_zip4a="city-wide")
+    # valid 5 digit zip
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="Ny**123",
                                                           place_of_performance_zip4a="12345")
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY98765",
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY98765",
                                                           place_of_performance_zip4a="12345")
     # valid 9 digit zip
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY98765",
-                                                          place_of_performance_zip4a="123456789")
-    det_award_6 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny98765",
+    det_award_6 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY98765",
                                                           place_of_performance_zip4a="123456789")
     det_award_7 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny98765",
+                                                          place_of_performance_zip4a="123456789")
+    det_award_8 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny98765",
                                                           place_of_performance_zip4a="12345-6789")
     # invalid 9 digit zip but this should pass for this rule, it will be handled for d_41_5
-    det_award_8 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny98765",
+    det_award_9 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny98765",
                                                           place_of_performance_zip4a="12345-6788")
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6, det_award_7, det_award_8, zips])
+                                                       det_award_6, det_award_7, det_award_8, det_award_9, zips])
     assert errors == 0
 
     # random wrong length zips and zips with '-' in the wrong place, formatting is checked in another rule
