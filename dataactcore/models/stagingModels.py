@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean, UniqueConstraint, ForeignKey
+from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
@@ -780,6 +780,7 @@ class DetachedAwardFinancialAssistance(Base):
     __tablename__ = "detached_award_financial_assistance"
 
     detached_award_financial_assistance_id = Column(Integer, primary_key=True)
+    afa_generated_unique = Column(Text, index=True, nullable=False)
     submission_id = Column(Integer,
                            ForeignKey("submission.submission_id", ondelete="CASCADE",
                                       name="fk_detached_award_financial_assistance_submission_id"),
@@ -801,7 +802,7 @@ class DetachedAwardFinancialAssistance(Base):
     cfda_number = Column(Text)
     correction_late_delete_ind = Column(Text)
     face_value_loan_guarantee = Column(Numeric)
-    fain = Column(Text, index=True)
+    fain = Column(Text)
     federal_action_obligation = Column(Numeric)
     fiscal_year_and_quarter_co = Column(Text)
     funding_agency_code = Column(Text)
@@ -827,7 +828,7 @@ class DetachedAwardFinancialAssistance(Base):
     place_of_performance_zip4a = Column(Text)
     record_type = Column(Integer)
     sai_number = Column(Text)
-    uri = Column(Text, index=True)
+    uri = Column(Text)
     is_valid = Column(Boolean, nullable=False, default="False", server_default="False")
 
     def __init__(self, **kwargs):
@@ -837,12 +838,12 @@ class DetachedAwardFinancialAssistance(Base):
         super(DetachedAwardFinancialAssistance, self).__init__(**clean_kwargs)
 
 
-# TODO update /dataactcore/scripts/loadHistoricalFabs when this model changes
 class PublishedAwardFinancialAssistance(Base):
     """Model for D2-Award (Financial Assistance)."""
     __tablename__ = "published_award_financial_assistance"
 
     published_award_financial_assistance_id = Column(Integer, primary_key=True)
+    afa_generated_unique = Column(Text, index=True, nullable=False)
     action_date = Column(Text)
     action_type = Column(Text)
     assistance_type = Column(Text)
@@ -852,16 +853,16 @@ class PublishedAwardFinancialAssistance(Base):
     awarding_agency_code = Column(Text)
     awarding_agency_name = Column(Text)
     awarding_office_code = Column(Text)
-    awarding_sub_tier_agency_c = Column(Text, index=True)
+    awarding_sub_tier_agency_c = Column(Text)
     awarding_sub_tier_agency_n = Column(Text)
-    award_modification_amendme = Column(Text, index=True)
+    award_modification_amendme = Column(Text)
     business_funds_indicator = Column(Text)
     business_types = Column(Text)
     cfda_number = Column(Text)
     cfda_title = Column(Text)
-    correction_late_delete_ind = Column(Text)
+    correction_late_delete_ind = Column(Text, index=True)
     face_value_loan_guarantee = Column(Numeric)
-    fain = Column(Text, index=True)
+    fain = Column(Text)
     federal_action_obligation = Column(Numeric)
     fiscal_year_and_quarter_co = Column(Text)
     funding_agency_name = Column(Text)
@@ -869,17 +870,24 @@ class PublishedAwardFinancialAssistance(Base):
     funding_office_code = Column(Text)
     funding_sub_tier_agency_co = Column(Text)
     funding_sub_tier_agency_na = Column(Text)
+    is_active = Column(Boolean, default=False, nullable=False, server_default="False")
     is_historical = Column(Boolean)
     legal_entity_address_line1 = Column(Text)
     legal_entity_address_line2 = Column(Text)
     legal_entity_address_line3 = Column(Text)
+    legal_entity_city_name = Column(Text)
     legal_entity_congressional = Column(Text)
     legal_entity_country_code = Column(Text)
+    legal_entity_county_code = Column(Text)
+    legal_entity_county_name = Column(Text)
     legal_entity_foreign_city = Column(Text)
     legal_entity_foreign_posta = Column(Text)
     legal_entity_foreign_provi = Column(Text)
+    legal_entity_state_code = Column(Text)
+    legal_entity_state_name = Column(Text)
     legal_entity_zip5 = Column(Text)
     legal_entity_zip_last4 = Column(Text)
+    modified_at = Column(DateTime)
     non_federal_funding_amount = Column(Numeric)
     original_loan_subsidy_cost = Column(Numeric)
     period_of_performance_curr = Column(Text)
@@ -895,10 +903,7 @@ class PublishedAwardFinancialAssistance(Base):
     record_type = Column(Integer)
     sai_number = Column(Text)
     total_funding_amount = Column(Text)
-    uri = Column(Text, index=True)
-
-    __table_args__ = (UniqueConstraint('awarding_sub_tier_agency_c', 'award_modification_amendme', 'fain', 'uri',
-                                       name='uniq_award_mod_sub_tier_fain_uri'),)
+    uri = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
