@@ -1,3 +1,5 @@
+import logging
+
 from functools import wraps
 
 from flask import g
@@ -12,6 +14,7 @@ from dataactcore.utils.statusCode import StatusCode
 NOT_AUTHORIZED_MSG = ("You are not authorized to perform the requested task. "
                       "Please contact your administrator.")
 
+logger = logging.getLogger(__name__)
 
 def requires_login(func):
     """Decorator requiring that _a_ user be logged in (i.e. that we're not using an anonymous session)"""
