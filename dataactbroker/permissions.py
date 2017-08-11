@@ -49,10 +49,7 @@ def current_user_can(perm, cgac_code, frec_code):
     except KeyError:
         permission = 999
 
-    logger.info('submission cgac_code: {}'.format(cgac_code))
-
     for aff in g.user.affiliations:
-        logger.info('user_affiliation agency code: {}'.format(aff.cgac.cgac_code if aff.cgac else aff.frec.frec_code))
         # affiliation matches agency args
         agency = (aff.cgac and aff.cgac.cgac_code == cgac_code) or (aff.frec and aff.frec.frec_code == frec_code)
         # affiliation permissions are FABS
@@ -60,7 +57,12 @@ def current_user_can(perm, cgac_code, frec_code):
         # affiliation has permission higher than perm args
         dabs_perms = aff.permission_type_id >= permission
 
-        if agency and ((perm == 'r') or (dabs_perms and not fabs) or (perm == 'fabs' and fabs)):
+        logger.info("agency: {}".format(agency))
+        logger.info("perm == 'reader': {}".format(perm == 'reader'))
+        logger.info("dabs_perms and not fabs: {}".format(dabs_perms and not fabs))
+        logger.info("perm == 'fabs' and fabs: {}".format(perm == 'fabs' and fabs))
+
+        if agency and ((perm == 'reader') or (dabs_perms and not fabs) or (perm == 'fabs' and fabs)):
             matching_perms.append(aff)
 
     has_affil = hasattr(g, 'user') and len(matching_perms)
