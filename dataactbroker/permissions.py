@@ -46,7 +46,10 @@ def current_user_can(perm, cgac_code, frec_code):
     except KeyError:
         permission = 999
 
+    logger.info('submission cgac_code: {}'.format(cgac_code))
+
     for aff in g.user.affiliations:
+        logger.info('user_affiliation cgac_code: {}'.format(cgac_code))
         # affiliation matches agency args
         agency = (aff.cgac and aff.cgac.cgac_code == cgac_code) or (aff.frec and aff.frec.frec_code == frec_code)
         # affiliation permissions are FABS
