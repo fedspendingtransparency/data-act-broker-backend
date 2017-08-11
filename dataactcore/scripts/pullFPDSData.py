@@ -1,7 +1,12 @@
+import os
+import urllib.request
+import boto
+import zipfile
 import logging
 import argparse
 import requests
 import xmltodict
+import pandas as pd
 
 import datetime
 import time
@@ -9,6 +14,7 @@ import re
 import threading
 
 from dataactcore.logging import configure_logging
+from dataactcore.config import CONFIG_BROKER
 
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
@@ -1120,6 +1126,204 @@ def get_delete_data(contract_type, now, sess, last_run):
             delete(synchronize_session=False)
 
 
+def parse_fpds_file(f, sess):
+    logger.info("starting file " + str(f.name))
+
+    csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(f.name))[0]
+    zfile = zipfile.ZipFile(f.name)
+    data = pd.read_csv(zfile.open(csv_file), dtype=str)
+
+    # clean_data = format_fpds_data(data)
+    # unique columns in order: 'agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id', 'transaction_number'
+    data = data[data.duplicated(subset=['agencyid', 'idvagencyid', 'piid', 'modnumber', 'idvpiid', 'transactionnumber'])]
+    print(len(data))
+
+    # add these after adding them to the model/table: vendoralternatename,vendorlegalorganizationname,divisionname,divisionnumberorofficecode,vendorenabled,vendorlocationdisableflag,vendorsitecode,vendoralternatesitecode, numberofemployees, annualrevenue
+    mappings = {
+        'a76action': 'a_76_fair_act_action',
+        'agencyid': 'agency_id', # in 12C2: FOREST SERVICE format, so it will have to be parsed into the code only.
+        'aiobflag': 'american_indian_owned_busi',
+        'apaobflag': 'asian_pacific_american_own',
+        'baobflag': 'black_american_owned_busin',
+        'baseandexercisedoptionsvalue': 'current_total_value_award',
+        'baseandalloptionsvalue': 'potential_total_value_awar',
+        'ccrexception': 'sam_exception',
+        'city': 'legal_entity_city_name',
+        'claimantprogramcode': 'dod_claimant_program_code', # in "A1C: OTHER AIRCRAFT EQUIPMENT" format. First part should go in this field, second in dod_claimant_prog_cod_desc
+        'clingercohenact': 'clinger_cohen_act_planning',
+        'commercialitemacquisitionprocedures': 'commercial_item_acquisitio', # in "A: COMMERCIAL ITEM" format. First part should go in this field, second in commercial_item_acqui_desc
+        'commercialitemtestprogram': 'commercial_item_test_progr', # in "N: NO" format. First part should go in this field, second in commercial_item_test_desc
+        'consolidatedcontract': 'consolidated_contract', # in "D: NOT CONSOLIDATED" format. First part should go in this field, second in consolidated_contract_desc
+        'contingencyhumanitarianpeacekeepingoperation': 'contingency_humanitarian_o', # in "X: NOT APPLICABLE" format. First part should go in this field, second in contingency_humanitar_desc
+        # 'contractactiontype': '', # see excel doc for very complicated notes
+        'contractbundling': 'contract_bundling', # in "D: NOT A BUNDLED REQUIREMENT" format. First part should go in this field, second in contract_bundling_descrip
+        'contractfinancing': 'contract_financing', # in "Z: NOT APPLICABLE" format. First part should go in this field, second in contract_financing_descrip
+        'contractingofficeagencyid': 'awarding_sub_tier_agency_c', # in "1540: FEDERAL PRISON SYSTEM / BUREAU OF PRISONS" format. First part should go in this field, second in awarding_sub_tier_agency_n
+        'contractingofficeid': 'awarding_office_code', # in "15B308: FCI MARIANNA" format. First part should go in this field, second in awarding_office_name
+        'contractingofficerbusinesssizedetermination': 'contracting_officers_deter', # in "O: OTHER THAN SMALL BUSINESS" format. First part should go in this field, second in contracting_officers_desc
+        'costaccountingstandardsclause': 'cost_accounting_standards',
+        'costorpricingdata': 'cost_or_pricing_data', # in "N: No" format. First part should go in this field, second in cost_or_pricing_data_desc
+        'countryoforigin': 'country_of_product_or_serv', # in "USA: UNITED STATES OF AMERICA" format. First part should go in this field, second in country_of_product_or_desc
+        'currentcompletiondate': 'period_of_performance_curr', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
+        'davisbaconact': 'davis_bacon_act',
+        'descriptionofcontractrequirement': 'award_description',
+        'dollarsobligated': 'federal_action_obligation',
+        'dunsnumber': 'awardee_or_recipient_uniqu',
+        'educationalinstitutionflag': 'educational_institution',
+        'effectivedate': 'period_of_performance_star', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
+        'emergingsmallbusinessflag': 'emerging_small_business',
+        'evaluatedpreference': 'evaluated_preference', # in ""NONE: NO PREFERENCE USED"" format. First part should go in this field, second in evaluated_preference_desc
+        'extentcompeted': 'extent_competed', # in "A: FULL AND OPEN COMPETITION" format. First part should go in this field, second in extent_compete_description
+        'faxno': 'vendor_fax_number',
+        'fedbizopps': 'fed_biz_opps',
+        'federalgovernmentflag': 'us_federal_government',
+        'firm8aflag': 'c8a_program_participant',
+        'fundedbyforeignentity': 'foreign_funding',
+        'fundingrequestingagencyid': 'funding_sub_tier_agency_co', # in "1540: FEDERAL PRISON SYSTEM / BUREAU OF PRISONS" format. First part should go in this field, second in funding_sub_tier_agency_na
+        'fundingrequestingofficeid': 'funding_office_code', # in "15B308: FCI MARIANNA" format. First part should go in this field, second in funding_office_name
+        'gfe_gfp': 'government_furnished_equip', # in "N: Transaction does not use GFE/GFP" format. First part should go in this field, second in government_furnished_desc
+        'haobflag': 'hispanic_american_owned_bu',
+        'hbcuflag': 'historically_black_college',
+        'hospitalflag': 'hospital_flag',
+        'hubzoneflag': 'historically_underutilized',
+        'idvagencyid': 'referenced_idv_agency_iden',
+        'idvmodificationnumber': 'referenced_idv_modificatio',
+        'idvpiid': 'parent_award_id',
+        'informationtechnologycommercialitemcategory': 'information_technology_com', # in "Z: NOT IT PRODUCTS OR SERVICES" format. First part should go in this field, second in information_technolog_desc
+        'interagencycontractingauthority': 'interagency_contracting_au', # in "B: OTHER STATUTORY AUTHORITY" format. First part should go in this field, second in interagency_contract_desc
+        'is1862landgrantcollege': 'c1862_land_grant_college',
+        'is1890landgrantcollege': 'c1890_land_grant_college',
+        'is1994landgrantcollege': 'c1994_land_grant_college',
+        'isairportauthority': 'airport_authority',
+        'isalaskannativeownedcorporationorfirm': 'alaskan_native_owned_corpo',
+        'iscitylocalgovernment': 'city_local_government',
+        'iscommunitydevelopedcorporationownedfirm': 'community_developed_corpor',
+        'iscommunitydevelopmentcorporation': 'community_development_corp',
+        'iscorporateentitynottaxexempt': 'corporate_entity_not_tax_e',
+        'iscorporateentitytaxexempt': 'corporate_entity_tax_exemp',
+        'iscouncilofgovernments': 'council_of_governments',
+        'iscountylocalgovernment': 'county_local_government',
+        'isdomesticshelter': 'domestic_shelter',
+        'isdotcertifieddisadvantagedbusinessenterprise': 'dot_certified_disadvantage',
+        'isecondisadvwomenownedsmallbusiness': 'economically_disadvantaged',
+        'isfederalgovernmentagency': 'federal_agency',
+        'isfederallyfundedresearchanddevelopmentcorp': 'federally_funded_research',
+        'isforeigngovernment': 'foreign_government',
+        'isforeignownedandlocated': 'foreign_owned_and_located',
+        'isforprofitorganization': 'for_profit_organization',
+        'isfoundation': 'foundation',
+        'ishispanicservicinginstitution': 'hispanic_servicing_institu',
+        'ishousingauthoritiespublicortribal': 'housing_authorities_public',
+        'isindiantribe': 'indian_tribe_federally_rec',
+        'isintermunicipallocalgovernment': 'inter_municipal_local_gove',
+        'isinternationalorganization': 'international_organization',
+        'isinterstateentity': 'interstate_entity',
+        'isjointventureecondisadvwomenownedsmallbusiness': 'joint_venture_economically',
+        'isjointventurewomenownedsmallbusiness': 'joint_venture_women_owned',
+        'islaborsurplusareafirm': 'labor_surplus_area_firm',
+        'islimitedliabilitycorporation': 'limited_liability_corporat',
+        'islocalgovernmentowned': 'local_government_owned',
+        'ismanufacturerofgoods': 'manufacturer_of_goods',
+        'ismunicipalitylocalgovernment': 'municipality_local_governm',
+        'isnativehawaiianownedorganizationorfirm': 'native_hawaiian_owned_busi',
+        'isotherminorityowned': 'other_minority_owned_busin',
+        'isothernotforprofitorganization': 'other_not_for_profit_organ',
+        'ispartnershiporlimitedliabilitypartnership': 'partnership_or_limited_lia',
+        'isplanningcommission': 'planning_commission',
+        'isportauthority': 'port_authority',
+        'isprivateuniversityorcollege': 'private_university_or_coll',
+        'issbacertifiedsmalldisadvantagedbusiness': 'small_disadvantaged_busine',
+        'isschooldistrictlocalgovernment': 'school_district_local_gove',
+        'isschoolofforestry': 'school_of_forestry',
+        'issmallagriculturalcooperative': 'small_agricultural_coopera',
+        'issoleproprietorship': 'sole_proprietorship',
+        'isstatecontrolledinstitutionofhigherlearning': 'state_controlled_instituti',
+        'issubchapterscorporation': 'subchapter_s_corporation',
+        'istownshiplocalgovernment': 'township_local_government',
+        'istransitauthority': 'transit_authority',
+        'istribalcollege': 'tribal_college',
+        'istriballyownedfirm': 'tribally_owned_business',
+        'isveterinarycollege': 'veterinary_college',
+        'isveterinaryhospital': 'veterinary_hospital',
+        'iswomenownedsmallbusiness': 'women_owned_small_business',
+        'lastdatetoorder': 'ordering_period_end_date', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
+        'last_modified_date': 'last_modified', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
+        'lettercontract': 'undefinitized_action',
+        'localareasetaside': 'local_area_set_aside',
+        'localgovernmentflag': 'us_local_government',
+        'locationcode': 'place_of_performance_locat',
+        'majorprogramcode': 'major_program',
+        'manufacturingorganizationtype': 'domestic_or_foreign_entity', # in "A: U.S. OWNED BUSINESS" format. First part should go in this field, second in domestic_or_foreign_e_desc
+        'minorityinstitutionflag': 'minority_institution',
+        'minorityownedbusinessflag': 'minority_owned_business',
+        'mod_parent': 'ultimate_parent_legal_enti',
+        'modnumber': 'award_modification_amendme',
+        'multipleorsingleawardidc': 'multiple_or_single_award_i', # in "S: SINGLE AWARD" format. First part should go in this field, second in multiple_or_single_aw_desc
+        'multiyearcontract': 'multi_year_contract', # in "N: NO" format. First part should go in this field, second in multi_year_contract_desc
+        'naobflag': 'native_american_owned_busi',
+        'nationalinterestactioncode': 'national_interest_action', # in "O15F: OPERATION FREEDOM'S SENTINEL (OFS)" format. First part should go in this field, second in national_interest_desc
+        'nonprofitorganizationflag': 'nonprofit_organization',
+        'numberofactions': 'number_of_actions',
+        'numberofoffersreceived': 'number_of_offers_received',
+        'otherstatutoryauthority': 'other_statutory_authority',
+        'parentdunsnumber': 'ultimate_parent_unique_ide',
+        'performancebasedservicecontract': 'performance_based_service', # in "N: NO - SERVICE WHERE PBA IS NOT USED." format. First part should go in this field, second in performance_based_se_desc
+        'phoneno': 'vendor_phone_number',
+        'piid': 'piid',
+        'placeofmanufacture': 'place_of_manufacture', # in "C: NOT A MANUFACTURED END PRODUCT" format. First part should go in this field, second in place_of_manufacture_desc
+        'PlaceofPerformanceCity': 'place_of_perform_city_name',
+        'placeofperformancecountrycode': 'place_of_perform_country_c', # in "USA: UNITED STATES OF AMERICA" format. First part should go in this field, second in place_of_perf_country_desc
+        'placeofperformancezipcode': 'place_of_performance_zip4a',
+        'pop_cd': 'place_of_performance_congr',
+        'pop_state_code': 'place_of_performance_state', # in "AL: Alabama" format. First part should go in this field, second in place_of_perfor_state_desc
+        'priceevaluationpercentdifference': 'price_evaluation_adjustmen',
+        'principalnaicscode': 'naics',
+        'productorservicecode': 'product_or_service_code', # in "Q201: MEDICAL- GENERAL HEALTH CARE" format. First part should go in this field, second in product_or_service_co_desc
+        'programacronym': 'program_acronym',
+        'purchasecardaspaymentmethod': 'purchase_card_as_payment_m', # in "N: No" format. First part should go in this field, second in purchase_card_as_paym_desc
+        'reasonformodification': 'action_type', # in "K: CLOSE OUT" format. First part should go in this field, second in action_type_description
+        'reasonnotcompeted': 'other_than_full_and_open_c', # in "OTH: AUTHORIZED BY STATUTE" format. First part should go in this field, second in other_than_full_and_o_desc
+        'receivescontracts': 'contracts',
+        'receivescontractsandgrants': 'receives_contracts_and_gra',
+        'receivesgrants': 'grants',
+        'recoveredmaterialclauses': 'recovered_materials_sustai', # in "C: NO CLAUSES INCLUDED AND NO SUSTAINABILITY INCLUDED" format. First part should go in this field, second in recovered_materials_s_desc
+        'research': 'research',
+        'saaobflag': 'subcontinent_asian_asian_i',
+        'sdbflag': 'self_certified_small_disad',
+        'seatransportation': 'sea_transportation', # in "N: No" format. First part should go in this field, second in sea_transportation_desc
+        'servicecontractact': 'service_contract_act',
+        'signeddate': 'action_date', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
+        'shelteredworkshopflag': 'the_ability_one_program',
+        'smallbusinesscompetitivenessdemonstrationprogram': 'small_business_competitive', # Weird format in usaspending. I'm seeing "false:" (just grab whatever is to the left of the :)
+        'solicitationid': 'solicitation_identifier',
+        'solicitationprocedures': 'solicitation_procedures', # in "NP: NEGOTIATED PROPOSAL/QUOTE" format. First part should go in this field, second in solicitation_procedur_desc
+        'stategovernmentflag': 'us_state_government',
+        'statutoryexceptiontofairopportunity': 'fair_opportunity_limited_s',
+        'srdvobflag': 'service_disabled_veteran_o',
+        'streetaddress': 'legal_entity_address_line1',
+        'streetaddress2': 'legal_entity_address_line2',
+        'streetaddress3': 'legal_entity_address_line3',
+        'subcontractplan': 'subcontracting_plan', # in "B: PLAN NOT REQUIRED" format. First part should go in this field, second in subcontracting_plan_desc
+        'systemequipmentcode': 'program_system_or_equipmen', # in ""CAA: MDA SUPPORT"" format. First part should go in this field, second in program_system_or_equ_desc
+        'transactionnumber': 'transaction_number',
+        'tribalgovernmentflag': 'us_tribal_government',
+        'typeofcontractpricing': 'type_of_contract_pricing', # in "J: FIRM FIXED PRICE" format. First part should go in this field, second in type_of_contract_pric_desc
+        'typeofidc': 'type_of_idc',
+        'typeofsetaside': 'type_set_aside', # in "WOSB: WOMEN OWNED SMALL BUSINESS" format. First part should go in this field, second in type_set_aside_description
+        'ultimatecompletiondate': 'period_of_perf_potential_e', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
+        'useofepadesignatedproducts': 'epa_designated_product', # in "E: NOT REQUIRED" format. First part should go in this field, second in epa_designated_produc_desc
+        'vendor_cd': 'legal_entity_congressional',
+        'vendorcountrycode': 'legal_entity_country_code', # Note: in "USA: UNITED STATES OF AMERICA" format. First part should go in this field, second in legal_entity_country_name
+        'vendordoingasbusinessname': 'vendor_doing_as_business_n',
+        'vendorname': 'awardee_or_recipient_legal',
+        'vendor_state_code': 'legal_entity_state_code', # see mapping in the atom feed pull for how it needs to be changed
+        'veteranownedflag': 'veteran_owned_business',
+        'walshhealyact': 'walsh_healey_act', # in "X: NOT APPLICABLE" format. First part should go in this field, second in walsh_healey_act_descrip
+        'womenownedflag': 'woman_owned_business',
+        'zipcode': 'legal_entity_zip4'
+    }
+
+
 def main():
     sess = GlobalDB.db().session
 
@@ -1133,6 +1337,7 @@ def main():
     parser.add_argument('-o', '--other',
                         help='Used in conjunction with -a to indicate all feeds other than delivery order',
                         action='store_true')
+    parser.add_argument('-f', '--files', help='Load historical data from files', action='store_true')
     args = parser.parse_args()
 
     award_types_award = ["BPA Call", "Definitive Contract", "Purchase Order", "Delivery Order"]
@@ -1213,6 +1418,30 @@ def main():
         get_delete_data("IDV", now, sess, last_update)
         get_delete_data("award", now, sess, last_update)
         sess.query(FPDSUpdate).update({"update_date": now}, synchronize_session=False)
+
+        logger.info("Ending at: " + str(datetime.datetime.now()))
+        sess.commit()
+    elif args.files:
+        logger.info("Starting file loads at: " + str(datetime.datetime.now()))
+        max_year = 2015
+
+        if CONFIG_BROKER["use_aws"]:
+            s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
+            s3bucket = s3connection.lookup(CONFIG_BROKER['archive_bucket'])
+            for key in s3bucket.list():
+                if re.match('^\d{4}_All_Contracts_Full_\d{8}.csv.zip', key.name):
+                    # we only want up through 2015 for this data
+                    if int(key.name[:4]) <= max_year:
+                        file_path = key.generate_url(expires_in=600)
+                        parse_fpds_file(urllib.request.urlopen(file_path), sess)
+        else:
+            base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "fabs")
+            file_list = [f for f in os.listdir(base_path)]
+            for file in file_list:
+                if re.match('^\d{4}_All_Contracts_Full_\d{8}.csv.zip', file):
+                    # we only want up through 2015 for this data
+                    if int(file[:4]) <= max_year:
+                        parse_fpds_file(open(os.path.join(base_path, file)), sess)
 
         logger.info("Ending at: " + str(datetime.datetime.now()))
         sess.commit()
