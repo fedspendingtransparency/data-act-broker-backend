@@ -1,5 +1,3 @@
-import logging
-
 from functools import wraps
 
 from flask import g
@@ -13,8 +11,6 @@ from dataactcore.utils.statusCode import StatusCode
 
 NOT_AUTHORIZED_MSG = ("You are not authorized to perform the requested task. "
                       "Please contact your administrator.")
-
-logger = logging.getLogger(__name__)
 
 def requires_login(func):
     """Decorator requiring that _a_ user be logged in (i.e. that we're not using an anonymous session)"""
@@ -56,11 +52,6 @@ def current_user_can(perm, cgac_code, frec_code):
         fabs = aff.permission_type_id == PERMISSION_SHORT_DICT['f']
         # affiliation has permission higher than perm args
         dabs_perms = aff.permission_type_id >= permission
-
-        logger.info("agency: {}".format(agency))
-        logger.info("perm == 'reader': {}".format(perm == 'reader'))
-        logger.info("dabs_perms and not fabs: {}".format(dabs_perms and not fabs))
-        logger.info("perm == 'fabs' and fabs: {}".format(perm == 'fabs' and fabs))
 
         if agency and ((perm == 'reader') or (dabs_perms and not fabs) or (perm == 'fabs' and fabs)):
             matching_perms.append(aff)
