@@ -12,6 +12,7 @@ from dataactcore.utils.statusCode import StatusCode
 NOT_AUTHORIZED_MSG = ("You are not authorized to perform the requested task. "
                       "Please contact your administrator.")
 
+
 def requires_login(func):
     """Decorator requiring that _a_ user be logged in (i.e. that we're not using an anonymous session)"""
     @wraps(func)
