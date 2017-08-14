@@ -211,6 +211,12 @@ class ValidationManager:
         csv_schema = {row.name_short: row for row in fields}
 
         try:
+            # Read file: this throws a File Level Error for non-UTF8 characters
+            f = open(file_name, encoding='utf-8')
+            buf = f.read(1048576)  # 1024 * 1024 bytes
+            while buf:
+                buf = f.read(1048576)  # 1024 * 1024 bytes
+
             # Pull file and return info on whether it's using short or long col headers
             reader.open_file(region_name, bucket_name, file_name, fields, bucket_name, error_file_name,
                              self.long_to_short_dict)
@@ -347,30 +353,6 @@ class ValidationManager:
             error_rows_unique = set(error_rows)
             total_rows_excluding_header = row_number - 1
             valid_rows = total_rows_excluding_header - len(error_rows_unique)
-
-            # Manually count number of rows in file
-            # this throws a File Level Error for non-UTF8 characters
-            db_row_count = sess.query(model).filter(model.job_id == job_id).count()
-            f = open(file_name, encoding='utf-8')
-            lines = 0
-            buf_size = 1024 * 1024  # 1,048,576
-            read_f = f.read
-
-            buf = read_f(buf_size)
-            while buf:
-                lines += buf.count('\n')
-                buf = read_f(buf_size)
-
-            # Compare row counts
-            if ((lines - 1) != db_row_count):
-                raise ResponseException(
-                    'Database row count {} does not match raw file row count {}'.format(db_row_count, (lines - 1)),
-                    StatusCode.CLIENT_ERROR, None, ValidationError.jobError)
-            if (total_rows_excluding_header != db_row_count):
-                raise ResponseException(
-                    'Database row count {} does not match validated row count {}'.format(
-                        db_row_count, total_rows_excluding_header),
-                    StatusCode.CLIENT_ERROR, None, ValidationError.jobError)
 
             # Update detached_award is_valid rows where applicable
             # Update submission to include action dates where applicable
