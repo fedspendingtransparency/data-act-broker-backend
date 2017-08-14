@@ -451,7 +451,10 @@ def vendor_values(data, obj):
             obj[value] = None
 
     # vendorHeader sub-level
-    value_map = {'vendorDoingAsBusinessName': 'vendor_doing_as_business_n',
+    value_map = {'vendorAlternateName': 'vendor_alternate_name',
+                 'vendorDoingAsBusinessName': 'vendor_doing_as_business_n',
+                 'vendorEnabled': 'vendor_enabled',
+                 'vendorLegalOrganizationName': 'vendor_legal_org_name',
                  'vendorName': 'awardee_or_recipient_legal'}
 
     for key, value in value_map.items():
@@ -473,6 +476,18 @@ def vendor_values(data, obj):
 
 def vendor_site_details_values(data, obj):
     """ Get values from the vendorSiteDetails level of the xml (sub-level of vendor) """
+    # base vendorSiteDetails level
+    value_map = {'divisionName': 'division_name',
+                 'divisionNumberOrOfficeCode': 'division_number_or_office',
+                 'vendorAlternateSiteCode': 'vendor_alternate_site_code',
+                 'vendorSiteCode': 'vendor_site_code'}
+
+    for key, value in value_map.items():
+        try:
+            obj[value] = extract_text(data[key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
     # typeOfEducationalEntity sub-level
     value_map = {'is1862LandGrantCollege': 'c1862_land_grant_college',
                  'is1890LandGrantCollege': 'c1890_land_grant_college',
@@ -613,6 +628,7 @@ def vendor_site_details_values(data, obj):
                  'streetAddress': 'legal_entity_address_line1',
                  'streetAddress2': 'legal_entity_address_line2',
                  'streetAddress3': 'legal_entity_address_line3',
+                 'vendorLocationDisabledFlag': 'vendor_location_disabled_f',
                  'ZIPCode': 'legal_entity_zip4'}
 
     for key, value in value_map.items():
@@ -644,10 +660,12 @@ def vendor_site_details_values(data, obj):
         obj['legal_entity_country_name'] = None
 
     # vendorOrganizationFactors sub-level
-    value_map = {'isForeignOwnedAndLocated': 'foreign_owned_and_located',
+    value_map = {'annualRevenue': 'annual_revenue',
+                 'isForeignOwnedAndLocated': 'foreign_owned_and_located',
                  'isLimitedLiabilityCorporation': 'limited_liability_corporat',
                  'isShelteredWorkshop': 'the_ability_one_program',
-                 'isSubchapterSCorporation': 'subchapter_s_corporation'}
+                 'isSubchapterSCorporation': 'subchapter_s_corporation',
+                 'numberOfEmployees': 'number_of_employees'}
 
     for key, value in value_map.items():
         try:
@@ -736,7 +754,7 @@ def calculate_remaining_fields(obj, sub_tier_list):
             agency_data = sub_tier_list[obj['funding_sub_tier_agency_co']].cgac
             obj['funding_agency_code'] = agency_data.cgac_code
             obj['funding_agency_name'] = agency_data.agency_name
-        except:
+        except KeyError:
             logger.info('WARNING: MissingSubtierCGAC: The funding sub-tier cgac_code: %s does not exist in cgac table. '
                         'The FPDS-provided funding sub-tier agency name (if given) for this cgac_code is %s. '
                         'The award has been loaded with funding_agency_code 999.',
@@ -1138,11 +1156,11 @@ def parse_fpds_file(f, sess):
     data = data[data.duplicated(subset=['agencyid', 'idvagencyid', 'piid', 'modnumber', 'idvpiid', 'transactionnumber'])]
     print(len(data))
 
-    # add these after adding them to the model/table: vendoralternatename,vendorlegalorganizationname,divisionname,divisionnumberorofficecode,vendorenabled,vendorlocationdisableflag,vendorsitecode,vendoralternatesitecode, numberofemployees, annualrevenue
     mappings = {
         'a76action': 'a_76_fair_act_action',
         'agencyid': 'agency_id', # in 12C2: FOREST SERVICE format, so it will have to be parsed into the code only.
         'aiobflag': 'american_indian_owned_busi',
+        'annualrevenue': 'annual_revenue',
         'apaobflag': 'asian_pacific_american_own',
         'baobflag': 'black_american_owned_busin',
         'baseandexercisedoptionsvalue': 'current_total_value_award',
@@ -1167,6 +1185,8 @@ def parse_fpds_file(f, sess):
         'currentcompletiondate': 'period_of_performance_curr', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
         'davisbaconact': 'davis_bacon_act',
         'descriptionofcontractrequirement': 'award_description',
+        'divisionname': 'division_name',
+        'divisionnumberorofficecode': 'division_number_or_office',
         'dollarsobligated': 'federal_action_obligation',
         'dunsnumber': 'awardee_or_recipient_uniqu',
         'educationalinstitutionflag': 'educational_institution',
@@ -1264,6 +1284,7 @@ def parse_fpds_file(f, sess):
         'nationalinterestactioncode': 'national_interest_action', # in "O15F: OPERATION FREEDOM'S SENTINEL (OFS)" format. First part should go in this field, second in national_interest_desc
         'nonprofitorganizationflag': 'nonprofit_organization',
         'numberofactions': 'number_of_actions',
+        'numberofemployees': 'number_of_employees',
         'numberofoffersreceived': 'number_of_offers_received',
         'otherstatutoryauthority': 'other_statutory_authority',
         'parentdunsnumber': 'ultimate_parent_unique_ide',
@@ -1313,10 +1334,16 @@ def parse_fpds_file(f, sess):
         'ultimatecompletiondate': 'period_of_perf_potential_e', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
         'useofepadesignatedproducts': 'epa_designated_product', # in "E: NOT REQUIRED" format. First part should go in this field, second in epa_designated_produc_desc
         'vendor_cd': 'legal_entity_congressional',
+        'vendor_state_code': 'legal_entity_state_code', # see mapping in the atom feed pull for how it needs to be changed
+        'vendoralternatename': 'vendor_alternate_name',
+        'vendoralternatesitecode': 'vendor_alternate_site_code',
         'vendorcountrycode': 'legal_entity_country_code', # Note: in "USA: UNITED STATES OF AMERICA" format. First part should go in this field, second in legal_entity_country_name
         'vendordoingasbusinessname': 'vendor_doing_as_business_n',
+        'vendorenabled': 'vendor_enabled',
+        'vendorlegalorganizationname': 'vendor_legal_org_name',
+        'vendorlocationdisableflag': 'vendor_location_disabled_f',
         'vendorname': 'awardee_or_recipient_legal',
-        'vendor_state_code': 'legal_entity_state_code', # see mapping in the atom feed pull for how it needs to be changed
+        'vendorsitecode': 'vendor_site_code',
         'veteranownedflag': 'veteran_owned_business',
         'walshhealyact': 'walsh_healey_act', # in "X: NOT APPLICABLE" format. First part should go in this field, second in walsh_healey_act_descrip
         'womenownedflag': 'woman_owned_business',
