@@ -1149,59 +1149,130 @@ def parse_fpds_file(f, sess):
 
     csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(f.name))[0]
     zfile = zipfile.ZipFile(f.name)
-    data = pd.read_csv(zfile.open(csv_file), dtype=str)
+    data = pd.read_csv(zfile.open(csv_file), dtype=str, usecols=[
+        'a76action', 'agencyid', 'aiobflag', 'annualrevenue', 'apaobflag', 'baobflag', 'baseandexercisedoptionsvalue',
+        'baseandalloptionsvalue', 'ccrexception', 'city', 'claimantprogramcode', 'clingercohenact',
+        'commercialitemacquisitionprocedures', 'commercialitemtestprogram', 'consolidatedcontract',
+        'contingencyhumanitarianpeacekeepingoperation', 'contractactiontype', 'contractbundling', 'contractfinancing',
+        'contractingofficeagencyid', 'contractingofficeid', 'contractingofficerbusinesssizedetermination',
+        'costaccountingstandardsclause', 'costorpricingdata', 'countryoforigin', 'currentcompletiondate',
+        'davisbaconact', 'descriptionofcontractrequirement', 'divisionname', 'divisionnumberorofficecode',
+        'dollarsobligated', 'dunsnumber', 'educationalinstitutionflag', 'effectivedate', 'emergingsmallbusinessflag',
+        'evaluatedpreference', 'extentcompeted', 'faxno', 'fedbizopps', 'federalgovernmentflag', 'firm8aflag',
+        'fundedbyforeignentity', 'fundingrequestingagencyid', 'fundingrequestingofficeid', 'gfe_gfp', 'haobflag',
+        'hbcuflag', 'hospitalflag', 'hubzoneflag', 'idvagencyid', 'idvmodificationnumber', 'idvpiid',
+        'informationtechnologycommercialitemcategory', 'interagencycontractingauthority', 'is1862landgrantcollege',
+        'is1890landgrantcollege', 'is1994landgrantcollege', 'isairportauthority',
+        'isalaskannativeownedcorporationorfirm', 'iscitylocalgovernment', 'iscommunitydevelopedcorporationownedfirm',
+        'iscommunitydevelopmentcorporation', 'iscorporateentitynottaxexempt', 'iscorporateentitytaxexempt',
+        'iscouncilofgovernments', 'iscountylocalgovernment', 'isdomesticshelter',
+        'isdotcertifieddisadvantagedbusinessenterprise', 'isecondisadvwomenownedsmallbusiness',
+        'isfederalgovernmentagency', 'isfederallyfundedresearchanddevelopmentcorp', 'isforeigngovernment',
+        'isforeignownedandlocated', 'isforprofitorganization', 'isfoundation', 'ishispanicservicinginstitution',
+        'ishousingauthoritiespublicortribal', 'isindiantribe', 'isintermunicipallocalgovernment',
+        'isinternationalorganization', 'isinterstateentity', 'isjointventureecondisadvwomenownedsmallbusiness',
+        'isjointventurewomenownedsmallbusiness', 'islaborsurplusareafirm', 'islimitedliabilitycorporation',
+        'islocalgovernmentowned', 'ismanufacturerofgoods', 'ismunicipalitylocalgovernment',
+        'isnativehawaiianownedorganizationorfirm', 'isotherminorityowned', 'isothernotforprofitorganization',
+        'ispartnershiporlimitedliabilitypartnership', 'isplanningcommission', 'isportauthority',
+        'isprivateuniversityorcollege', 'issbacertifiedsmalldisadvantagedbusiness', 'isschooldistrictlocalgovernment',
+        'isschoolofforestry', 'issmallagriculturalcooperative', 'issoleproprietorship',
+        'isstatecontrolledinstitutionofhigherlearning', 'issubchapterscorporation', 'istownshiplocalgovernment',
+        'istransitauthority', 'istribalcollege', 'istriballyownedfirm', 'isveterinarycollege', 'isveterinaryhospital',
+        'iswomenownedsmallbusiness', 'lastdatetoorder', 'last_modified_date', 'lettercontract', 'localareasetaside',
+        'localgovernmentflag', 'locationcode', 'majorprogramcode', 'manufacturingorganizationtype',
+        'minorityinstitutionflag', 'minorityownedbusinessflag', 'mod_parent', 'modnumber', 'multipleorsingleawardidc',
+        'multiyearcontract', 'naobflag', 'nationalinterestactioncode', 'nonprofitorganizationflag', 'numberofactions',
+        'numberofemployees', 'numberofoffersreceived', 'otherstatutoryauthority', 'parentdunsnumber',
+        'performancebasedservicecontract', 'phoneno', 'piid', 'placeofmanufacture', 'PlaceofPerformanceCity',
+        'placeofperformancecountrycode', 'placeofperformancezipcode', 'pop_cd', 'pop_state_code',
+        'priceevaluationpercentdifference', 'principalnaicscode', 'productorservicecode', 'programacronym',
+        'purchasecardaspaymentmethod', 'reasonformodification', 'reasonnotcompeted', 'receivescontracts',
+        'receivescontractsandgrants', 'receivesgrants', 'recoveredmaterialclauses', 'research', 'saaobflag', 'sdbflag',
+        'seatransportation', 'servicecontractact', 'signeddate', 'shelteredworkshopflag',
+        'smallbusinesscompetitivenessdemonstrationprogram', 'solicitationid', 'solicitationprocedures',
+        'stategovernmentflag', 'statutoryexceptiontofairopportunity', 'srdvobflag', 'streetaddress', 'streetaddress2',
+        'streetaddress3', 'subcontractplan', 'systemequipmentcode', 'transactionnumber', 'tribalgovernmentflag',
+        'typeofcontractpricing', 'typeofidc', 'typeofsetaside', 'ultimatecompletiondate', 'useofepadesignatedproducts',
+        'vendor_cd', 'vendor_state_code', 'vendoralternatename', 'vendoralternatesitecode', 'vendorcountrycode',
+        'vendordoingasbusinessname', 'vendorenabled', 'vendorlegalorganizationname', 'vendorlocationdisableflag',
+        'vendorname', 'vendorsitecode', 'veteranownedflag', 'walshhealyact', 'womenownedflag', 'zipcode'
+    ])
 
-    # clean_data = format_fpds_data(data)
+    clean_data = format_fpds_data(data)
+    # print(clean_data.iloc[0])
     # unique columns in order: 'agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id', 'transaction_number'
-    data = data[data.duplicated(subset=['agencyid', 'idvagencyid', 'piid', 'modnumber', 'idvpiid', 'transactionnumber'])]
+    print(clean_data[['claimantprogramcode', 'dod_claimant_prog_cod_desc', 'commercialitemacquisitionprocedures', 'commercial_item_acqui_desc']].iloc[0])
+    # data = data[data.duplicated(subset=['agencyid', 'idvagencyid', 'piid', 'modnumber', 'idvpiid', 'transactionnumber'])]
     print(len(data))
 
+    # TODO: might not have to change format on dates, check back on this
     mappings = {
         'a76action': 'a_76_fair_act_action',
-        'agencyid': 'agency_id', # in 12C2: FOREST SERVICE format, so it will have to be parsed into the code only.
+        'action_type_description': 'action_type_description',
+        'agencyid': 'agency_id',
         'aiobflag': 'american_indian_owned_busi',
         'annualrevenue': 'annual_revenue',
         'apaobflag': 'asian_pacific_american_own',
+        'awarding_office_name': 'awarding_office_name',
+        'awarding_sub_tier_agency_n': 'awarding_sub_tier_agency_n',
         'baobflag': 'black_american_owned_busin',
         'baseandexercisedoptionsvalue': 'current_total_value_award',
         'baseandalloptionsvalue': 'potential_total_value_awar',
         'ccrexception': 'sam_exception',
         'city': 'legal_entity_city_name',
-        'claimantprogramcode': 'dod_claimant_program_code', # in "A1C: OTHER AIRCRAFT EQUIPMENT" format. First part should go in this field, second in dod_claimant_prog_cod_desc
+        'claimantprogramcode': 'dod_claimant_program_code',
         'clingercohenact': 'clinger_cohen_act_planning',
-        'commercialitemacquisitionprocedures': 'commercial_item_acquisitio', # in "A: COMMERCIAL ITEM" format. First part should go in this field, second in commercial_item_acqui_desc
-        'commercialitemtestprogram': 'commercial_item_test_progr', # in "N: NO" format. First part should go in this field, second in commercial_item_test_desc
-        'consolidatedcontract': 'consolidated_contract', # in "D: NOT CONSOLIDATED" format. First part should go in this field, second in consolidated_contract_desc
-        'contingencyhumanitarianpeacekeepingoperation': 'contingency_humanitarian_o', # in "X: NOT APPLICABLE" format. First part should go in this field, second in contingency_humanitar_desc
+        'commercial_item_acqui_desc': 'commercial_item_acqui_desc',
+        'commercial_item_test_desc': 'commercial_item_test_desc',
+        'commercialitemacquisitionprocedures': 'commercial_item_acquisitio',
+        'commercialitemtestprogram': 'commercial_item_test_progr',
+        'consolidated_contract_desc': 'consolidated_contract_desc',
+        'consolidatedcontract': 'consolidated_contract',
+        'contingency_humanitar_desc': 'contingency_humanitar_desc',
+        'contingencyhumanitarianpeacekeepingoperation': 'contingency_humanitarian_o',
         # 'contractactiontype': '', # see excel doc for very complicated notes
-        'contractbundling': 'contract_bundling', # in "D: NOT A BUNDLED REQUIREMENT" format. First part should go in this field, second in contract_bundling_descrip
-        'contractfinancing': 'contract_financing', # in "Z: NOT APPLICABLE" format. First part should go in this field, second in contract_financing_descrip
-        'contractingofficeagencyid': 'awarding_sub_tier_agency_c', # in "1540: FEDERAL PRISON SYSTEM / BUREAU OF PRISONS" format. First part should go in this field, second in awarding_sub_tier_agency_n
-        'contractingofficeid': 'awarding_office_code', # in "15B308: FCI MARIANNA" format. First part should go in this field, second in awarding_office_name
-        'contractingofficerbusinesssizedetermination': 'contracting_officers_deter', # in "O: OTHER THAN SMALL BUSINESS" format. First part should go in this field, second in contracting_officers_desc
+        'contract_bundling_descrip': 'contract_bundling_descrip',
+        'contract_financing_descrip': 'contract_financing_descrip',
+        'contractbundling': 'contract_bundling',
+        'contractfinancing': 'contract_financing',
+        'contracting_officers_desc': 'contracting_officers_desc',
+        'contractingofficeagencyid': 'awarding_sub_tier_agency_c',
+        'contractingofficeid': 'awarding_office_code',
+        'contractingofficerbusinesssizedetermination': 'contracting_officers_deter',
+        'cost_or_pricing_data_desc': 'cost_or_pricing_data_desc',
         'costaccountingstandardsclause': 'cost_accounting_standards',
-        'costorpricingdata': 'cost_or_pricing_data', # in "N: No" format. First part should go in this field, second in cost_or_pricing_data_desc
-        'countryoforigin': 'country_of_product_or_serv', # in "USA: UNITED STATES OF AMERICA" format. First part should go in this field, second in country_of_product_or_desc
+        'costorpricingdata': 'cost_or_pricing_data',
+        'country_of_product_or_desc': 'country_of_product_or_desc',
+        'countryoforigin': 'country_of_product_or_serv',
         'currentcompletiondate': 'period_of_performance_curr', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
         'davisbaconact': 'davis_bacon_act',
         'descriptionofcontractrequirement': 'award_description',
         'divisionname': 'division_name',
         'divisionnumberorofficecode': 'division_number_or_office',
+        'dod_claimant_prog_cod_desc': 'dod_claimant_prog_cod_desc',
         'dollarsobligated': 'federal_action_obligation',
+        'domestic_or_foreign_e_desc': 'domestic_or_foreign_e_desc',
         'dunsnumber': 'awardee_or_recipient_uniqu',
         'educationalinstitutionflag': 'educational_institution',
         'effectivedate': 'period_of_performance_star', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
         'emergingsmallbusinessflag': 'emerging_small_business',
-        'evaluatedpreference': 'evaluated_preference', # in ""NONE: NO PREFERENCE USED"" format. First part should go in this field, second in evaluated_preference_desc
-        'extentcompeted': 'extent_competed', # in "A: FULL AND OPEN COMPETITION" format. First part should go in this field, second in extent_compete_description
+        'epa_designated_produc_desc': 'epa_designated_produc_desc',
+        'evaluated_preference_desc': 'evaluated_preference_desc',
+        'evaluatedpreference': 'evaluated_preference',
+        'extent_compete_description': 'extent_compete_description',
+        'extentcompeted': 'extent_competed',
         'faxno': 'vendor_fax_number',
         'fedbizopps': 'fed_biz_opps',
         'federalgovernmentflag': 'us_federal_government',
         'firm8aflag': 'c8a_program_participant',
         'fundedbyforeignentity': 'foreign_funding',
-        'fundingrequestingagencyid': 'funding_sub_tier_agency_co', # in "1540: FEDERAL PRISON SYSTEM / BUREAU OF PRISONS" format. First part should go in this field, second in funding_sub_tier_agency_na
-        'fundingrequestingofficeid': 'funding_office_code', # in "15B308: FCI MARIANNA" format. First part should go in this field, second in funding_office_name
-        'gfe_gfp': 'government_furnished_equip', # in "N: Transaction does not use GFE/GFP" format. First part should go in this field, second in government_furnished_desc
+        'funding_office_name': 'funding_office_name',
+        'funding_sub_tier_agency_na': 'funding_sub_tier_agency_na',
+        'fundingrequestingagencyid': 'funding_sub_tier_agency_co',
+        'fundingrequestingofficeid': 'funding_office_code',
+        'gfe_gfp': 'government_furnished_equip',
+        'government_furnished_desc': 'government_furnished_desc',
         'haobflag': 'hispanic_american_owned_bu',
         'hbcuflag': 'historically_black_college',
         'hospitalflag': 'hospital_flag',
@@ -1209,8 +1280,10 @@ def parse_fpds_file(f, sess):
         'idvagencyid': 'referenced_idv_agency_iden',
         'idvmodificationnumber': 'referenced_idv_modificatio',
         'idvpiid': 'parent_award_id',
-        'informationtechnologycommercialitemcategory': 'information_technology_com', # in "Z: NOT IT PRODUCTS OR SERVICES" format. First part should go in this field, second in information_technolog_desc
-        'interagencycontractingauthority': 'interagency_contracting_au', # in "B: OTHER STATUTORY AUTHORITY" format. First part should go in this field, second in interagency_contract_desc
+        'information_technolog_desc': 'information_technolog_desc',
+        'informationtechnologycommercialitemcategory': 'information_technology_com',
+        'interagency_contract_desc': 'interagency_contract_desc',
+        'interagencycontractingauthority': 'interagency_contracting_au',
         'is1862landgrantcollege': 'c1862_land_grant_college',
         'is1890landgrantcollege': 'c1890_land_grant_college',
         'is1994landgrantcollege': 'c1994_land_grant_college',
@@ -1268,76 +1341,94 @@ def parse_fpds_file(f, sess):
         'iswomenownedsmallbusiness': 'women_owned_small_business',
         'lastdatetoorder': 'ordering_period_end_date', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
         'last_modified_date': 'last_modified', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
+        'legal_entity_country_name': 'legal_entity_country_name',
         'lettercontract': 'undefinitized_action',
         'localareasetaside': 'local_area_set_aside',
         'localgovernmentflag': 'us_local_government',
         'locationcode': 'place_of_performance_locat',
         'majorprogramcode': 'major_program',
-        'manufacturingorganizationtype': 'domestic_or_foreign_entity', # in "A: U.S. OWNED BUSINESS" format. First part should go in this field, second in domestic_or_foreign_e_desc
+        'manufacturingorganizationtype': 'domestic_or_foreign_entity',
         'minorityinstitutionflag': 'minority_institution',
         'minorityownedbusinessflag': 'minority_owned_business',
         'mod_parent': 'ultimate_parent_legal_enti',
         'modnumber': 'award_modification_amendme',
-        'multipleorsingleawardidc': 'multiple_or_single_award_i', # in "S: SINGLE AWARD" format. First part should go in this field, second in multiple_or_single_aw_desc
-        'multiyearcontract': 'multi_year_contract', # in "N: NO" format. First part should go in this field, second in multi_year_contract_desc
+        'multiple_or_single_aw_desc': 'multiple_or_single_aw_desc',
+        'multipleorsingleawardidc': 'multiple_or_single_award_i',
+        'multi_year_contract_desc': 'multi_year_contract_desc',
+        'multiyearcontract': 'multi_year_contract',
         'naobflag': 'native_american_owned_busi',
-        'nationalinterestactioncode': 'national_interest_action', # in "O15F: OPERATION FREEDOM'S SENTINEL (OFS)" format. First part should go in this field, second in national_interest_desc
+        'national_interest_desc': 'national_interest_desc',
+        'nationalinterestactioncode': 'national_interest_action',
         'nonprofitorganizationflag': 'nonprofit_organization',
         'numberofactions': 'number_of_actions',
         'numberofemployees': 'number_of_employees',
         'numberofoffersreceived': 'number_of_offers_received',
+        'other_than_full_and_o_desc': 'other_than_full_and_o_desc',
         'otherstatutoryauthority': 'other_statutory_authority',
         'parentdunsnumber': 'ultimate_parent_unique_ide',
-        'performancebasedservicecontract': 'performance_based_service', # in "N: NO - SERVICE WHERE PBA IS NOT USED." format. First part should go in this field, second in performance_based_se_desc
+        'performance_based_se_desc': 'performance_based_se_desc',
+        'performancebasedservicecontract': 'performance_based_service',
         'phoneno': 'vendor_phone_number',
         'piid': 'piid',
-        'placeofmanufacture': 'place_of_manufacture', # in "C: NOT A MANUFACTURED END PRODUCT" format. First part should go in this field, second in place_of_manufacture_desc
+        'place_of_manufacture_desc': 'place_of_manufacture_desc',
+        'place_of_perf_country_desc': 'place_of_perf_country_desc',
+        'place_of_perfor_state_desc': 'place_of_perfor_state_desc',
+        'placeofmanufacture': 'place_of_manufacture',
         'PlaceofPerformanceCity': 'place_of_perform_city_name',
-        'placeofperformancecountrycode': 'place_of_perform_country_c', # in "USA: UNITED STATES OF AMERICA" format. First part should go in this field, second in place_of_perf_country_desc
+        'placeofperformancecountrycode': 'place_of_perform_country_c',
         'placeofperformancezipcode': 'place_of_performance_zip4a',
         'pop_cd': 'place_of_performance_congr',
-        'pop_state_code': 'place_of_performance_state', # in "AL: Alabama" format. First part should go in this field, second in place_of_perfor_state_desc
+        'pop_state_code': 'place_of_performance_state',
         'priceevaluationpercentdifference': 'price_evaluation_adjustmen',
         'principalnaicscode': 'naics',
-        'productorservicecode': 'product_or_service_code', # in "Q201: MEDICAL- GENERAL HEALTH CARE" format. First part should go in this field, second in product_or_service_co_desc
+        'product_or_service_co_desc': 'product_or_service_co_desc',
+        'productorservicecode': 'product_or_service_code',
+        'program_system_or_equ_desc': 'program_system_or_equ_desc',
         'programacronym': 'program_acronym',
-        'purchasecardaspaymentmethod': 'purchase_card_as_payment_m', # in "N: No" format. First part should go in this field, second in purchase_card_as_paym_desc
-        'reasonformodification': 'action_type', # in "K: CLOSE OUT" format. First part should go in this field, second in action_type_description
-        'reasonnotcompeted': 'other_than_full_and_open_c', # in "OTH: AUTHORIZED BY STATUTE" format. First part should go in this field, second in other_than_full_and_o_desc
+        'purchase_card_as_paym_desc': 'purchase_card_as_paym_desc',
+        'purchasecardaspaymentmethod': 'purchase_card_as_payment_m',
+        'reasonformodification': 'action_type',
+        'reasonnotcompeted': 'other_than_full_and_open_c',
         'receivescontracts': 'contracts',
         'receivescontractsandgrants': 'receives_contracts_and_gra',
         'receivesgrants': 'grants',
-        'recoveredmaterialclauses': 'recovered_materials_sustai', # in "C: NO CLAUSES INCLUDED AND NO SUSTAINABILITY INCLUDED" format. First part should go in this field, second in recovered_materials_s_desc
+        'recovered_materials_s_desc': 'recovered_materials_s_desc',
+        'recoveredmaterialclauses': 'recovered_materials_sustai',
         'research': 'research',
         'saaobflag': 'subcontinent_asian_asian_i',
         'sdbflag': 'self_certified_small_disad',
-        'seatransportation': 'sea_transportation', # in "N: No" format. First part should go in this field, second in sea_transportation_desc
+        'sea_transportation_desc': 'sea_transportation_desc',
+        'seatransportation': 'sea_transportation',
         'servicecontractact': 'service_contract_act',
         'signeddate': 'action_date', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
         'shelteredworkshopflag': 'the_ability_one_program',
         'smallbusinesscompetitivenessdemonstrationprogram': 'small_business_competitive', # Weird format in usaspending. I'm seeing "false:" (just grab whatever is to the left of the :)
+        'solicitation_procedur_desc': 'solicitation_procedur_desc',
         'solicitationid': 'solicitation_identifier',
-        'solicitationprocedures': 'solicitation_procedures', # in "NP: NEGOTIATED PROPOSAL/QUOTE" format. First part should go in this field, second in solicitation_procedur_desc
+        'solicitationprocedures': 'solicitation_procedures',
         'stategovernmentflag': 'us_state_government',
         'statutoryexceptiontofairopportunity': 'fair_opportunity_limited_s',
         'srdvobflag': 'service_disabled_veteran_o',
         'streetaddress': 'legal_entity_address_line1',
         'streetaddress2': 'legal_entity_address_line2',
         'streetaddress3': 'legal_entity_address_line3',
-        'subcontractplan': 'subcontracting_plan', # in "B: PLAN NOT REQUIRED" format. First part should go in this field, second in subcontracting_plan_desc
-        'systemequipmentcode': 'program_system_or_equipmen', # in ""CAA: MDA SUPPORT"" format. First part should go in this field, second in program_system_or_equ_desc
+        'subcontracting_plan_desc': 'subcontracting_plan_desc',
+        'subcontractplan': 'subcontracting_plan',
+        'systemequipmentcode': 'program_system_or_equipmen',
         'transactionnumber': 'transaction_number',
         'tribalgovernmentflag': 'us_tribal_government',
-        'typeofcontractpricing': 'type_of_contract_pricing', # in "J: FIRM FIXED PRICE" format. First part should go in this field, second in type_of_contract_pric_desc
+        'type_of_contract_pric_desc': 'type_of_contract_pric_desc',
+        'type_set_aside_description': 'type_set_aside_description',
+        'typeofcontractpricing': 'type_of_contract_pricing',
         'typeofidc': 'type_of_idc',
-        'typeofsetaside': 'type_set_aside', # in "WOSB: WOMEN OWNED SMALL BUSINESS" format. First part should go in this field, second in type_set_aside_description
+        'typeofsetaside': 'type_set_aside',
         'ultimatecompletiondate': 'period_of_perf_potential_e', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
-        'useofepadesignatedproducts': 'epa_designated_product', # in "E: NOT REQUIRED" format. First part should go in this field, second in epa_designated_produc_desc
+        'useofepadesignatedproducts': 'epa_designated_product',
         'vendor_cd': 'legal_entity_congressional',
         'vendor_state_code': 'legal_entity_state_code', # see mapping in the atom feed pull for how it needs to be changed
         'vendoralternatename': 'vendor_alternate_name',
         'vendoralternatesitecode': 'vendor_alternate_site_code',
-        'vendorcountrycode': 'legal_entity_country_code', # Note: in "USA: UNITED STATES OF AMERICA" format. First part should go in this field, second in legal_entity_country_name
+        'vendorcountrycode': 'legal_entity_country_code',
         'vendordoingasbusinessname': 'vendor_doing_as_business_n',
         'vendorenabled': 'vendor_enabled',
         'vendorlegalorganizationname': 'vendor_legal_org_name',
@@ -1345,10 +1436,89 @@ def parse_fpds_file(f, sess):
         'vendorname': 'awardee_or_recipient_legal',
         'vendorsitecode': 'vendor_site_code',
         'veteranownedflag': 'veteran_owned_business',
-        'walshhealyact': 'walsh_healey_act', # in "X: NOT APPLICABLE" format. First part should go in this field, second in walsh_healey_act_descrip
+        'walsh_healey_act_descrip': 'walsh_healey_act_descrip',
+        'walshhealyact': 'walsh_healey_act',
         'womenownedflag': 'woman_owned_business',
         'zipcode': 'legal_entity_zip4'
     }
+
+
+def format_fpds_data(data):
+    logger.info("formatting data")
+
+    if len(data.index) == 0:
+        return None
+
+    # mappings to split the columns that have the tag and description in the same entry into 2
+    colon_split_mappings = {
+        'claimantprogramcode': 'dod_claimant_prog_cod_desc',
+        'commercialitemacquisitionprocedures': 'commercial_item_acqui_desc',
+        'commercialitemtestprogram': 'commercial_item_test_desc',
+        'consolidatedcontract': 'consolidated_contract_desc',
+        'contingencyhumanitarianpeacekeepingoperation': 'contingency_humanitar_desc',
+        'contractbundling': 'contract_bundling_descrip',
+        'contractfinancing': 'contract_financing_descrip',
+        'contractingofficeagencyid': 'awarding_sub_tier_agency_n',
+        'contractingofficeid': 'awarding_office_name',
+        'contractingofficerbusinesssizedetermination': 'contracting_officers_desc',
+        'costorpricingdata': 'cost_or_pricing_data_desc',
+        'countryoforigin': 'country_of_product_or_desc',
+        'evaluatedpreference': 'evaluated_preference_desc',
+        'extentcompeted': 'extent_compete_description',
+        'fundingrequestingagencyid': 'funding_sub_tier_agency_na',
+        'fundingrequestingofficeid': 'funding_office_name',
+        'gfe_gfp': 'government_furnished_desc',
+        'informationtechnologycommercialitemcategory': 'information_technolog_desc',
+        'interagencycontractingauthority': 'interagency_contract_desc',
+        'manufacturingorganizationtype': 'domestic_or_foreign_e_desc',
+        'multipleorsingleawardidc': 'multiple_or_single_aw_desc',
+        'multiyearcontract': 'multi_year_contract_desc',
+        'nationalinterestactioncode': 'national_interest_desc',
+        'performancebasedservicecontract': 'performance_based_se_desc',
+        'placeofmanufacture': 'place_of_manufacture_desc',
+        'placeofperformancecountrycode': 'place_of_perf_country_desc',
+        'pop_state_code': 'place_of_perfor_state_desc',
+        'productorservicecode': 'product_or_service_co_desc',
+        'purchasecardaspaymentmethod': 'purchase_card_as_paym_desc',
+        'reasonformodification': 'action_type_description',
+        'reasonnotcompeted': 'other_than_full_and_o_desc',
+        'recoveredmaterialclauses': 'recovered_materials_s_desc',
+        'seatransportation': 'sea_transportation_desc',
+        'solicitationprocedures': 'solicitation_procedur_desc',
+        'subcontractplan': 'subcontracting_plan_desc',
+        'systemequipmentcode': 'program_system_or_equ_desc',
+        'typeofcontractpricing': 'type_of_contract_pric_desc',
+        'typeofsetaside': 'type_set_aside_description',
+        'useofepadesignatedproducts': 'epa_designated_produc_desc',
+        'vendorcountrycode': 'legal_entity_country_name',
+        'walshhealyact': 'walsh_healey_act_descrip'
+    }
+    for tag, description in colon_split_mappings.items():
+        logger.info('splitting column: ' + tag)
+        data[description] = data.apply(lambda x: get_data_after_colon(x, tag), axis=1)
+        data[tag] = data.apply(lambda x: get_data_before_colon(x, tag), axis=1)
+
+    logger.info('Starting pre-colon data gathering')
+    # clean up a couple other tags that just need the tag in the data
+    tag_only = ['agencyid', 'smallbusinesscompetitivenessdemonstrationprogram']
+    for tag in tag_only:
+        data[tag] = data.apply(lambda x: get_data_before_colon(x, tag), axis=1)
+
+    return data
+
+
+def get_data_after_colon(row, header):
+    if ':' in str(row[header]):
+        colon_loc = str(row[header]).find(':') + 1
+        return str(row[header])[colon_loc:].strip()
+    return None
+
+
+def get_data_before_colon(row, header):
+    # return the data before the colon in the row, or None
+    if ':' in str(row[header]):
+        return str(row[header]).split(':')[0]
+    return None
 
 
 def main():
