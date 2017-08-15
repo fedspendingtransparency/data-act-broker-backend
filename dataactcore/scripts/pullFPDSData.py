@@ -1200,11 +1200,12 @@ def parse_fpds_file(f, sess):
     ])
 
     clean_data = format_fpds_data(data)
-    # print(clean_data.iloc[0])
-    # unique columns in order: 'agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id', 'transaction_number'
-    print(clean_data[['claimantprogramcode', 'dod_claimant_prog_cod_desc', 'commercialitemacquisitionprocedures', 'commercial_item_acqui_desc']].iloc[0])
-    # data = data[data.duplicated(subset=['agencyid', 'idvagencyid', 'piid', 'modnumber', 'idvpiid', 'transactionnumber'])]
-    print(len(data))
+    if clean_data is not None:
+        # print(clean_data.iloc[0])
+        # unique columns in order: 'agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id', 'transaction_number'
+        print(clean_data[['claimantprogramcode', 'dod_claimant_prog_cod_desc', 'commercialitemacquisitionprocedures', 'commercial_item_acqui_desc']].iloc[0])
+        # data = data[data.duplicated(subset=['agencyid', 'idvagencyid', 'piid', 'modnumber', 'idvpiid', 'transactionnumber'])]
+        print(len(clean_data.index))
 
     # TODO: might not have to change format on dates, check back on this
     mappings = {
@@ -1231,7 +1232,8 @@ def parse_fpds_file(f, sess):
         'consolidatedcontract': 'consolidated_contract',
         'contingency_humanitar_desc': 'contingency_humanitar_desc',
         'contingencyhumanitarianpeacekeepingoperation': 'contingency_humanitarian_o',
-        # 'contractactiontype': '', # see excel doc for very complicated notes
+        'contract_award_type': 'contract_award_type',
+        'contract_award_type_desc': 'contract_award_type_desc',
         'contract_bundling_descrip': 'contract_bundling_descrip',
         'contract_financing_descrip': 'contract_financing_descrip',
         'contractbundling': 'contract_bundling',
@@ -1277,6 +1279,8 @@ def parse_fpds_file(f, sess):
         'hbcuflag': 'historically_black_college',
         'hospitalflag': 'hospital_flag',
         'hubzoneflag': 'historically_underutilized',
+        'idv_type': 'idv_type',
+        'idv_type_description': 'idv_type_description',
         'idvagencyid': 'referenced_idv_agency_iden',
         'idvmodificationnumber': 'referenced_idv_modificatio',
         'idvpiid': 'parent_award_id',
@@ -1342,6 +1346,8 @@ def parse_fpds_file(f, sess):
         'lastdatetoorder': 'ordering_period_end_date', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
         'last_modified_date': 'last_modified', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
         'legal_entity_country_name': 'legal_entity_country_name',
+        'legal_entity_state_code': 'legal_entity_state_code',
+        'legal_entity_state_descrip': 'legal_entity_state_descrip',
         'lettercontract': 'undefinitized_action',
         'localareasetaside': 'local_area_set_aside',
         'localgovernmentflag': 'us_local_government',
@@ -1385,6 +1391,7 @@ def parse_fpds_file(f, sess):
         'productorservicecode': 'product_or_service_code',
         'program_system_or_equ_desc': 'program_system_or_equ_desc',
         'programacronym': 'program_acronym',
+        'pulled_from': 'pulled_from',
         'purchase_card_as_paym_desc': 'purchase_card_as_paym_desc',
         'purchasecardaspaymentmethod': 'purchase_card_as_payment_m',
         'reasonformodification': 'action_type',
@@ -1402,7 +1409,7 @@ def parse_fpds_file(f, sess):
         'servicecontractact': 'service_contract_act',
         'signeddate': 'action_date', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
         'shelteredworkshopflag': 'the_ability_one_program',
-        'smallbusinesscompetitivenessdemonstrationprogram': 'small_business_competitive', # Weird format in usaspending. I'm seeing "false:" (just grab whatever is to the left of the :)
+        'smallbusinesscompetitivenessdemonstrationprogram': 'small_business_competitive',
         'solicitation_procedur_desc': 'solicitation_procedur_desc',
         'solicitationid': 'solicitation_identifier',
         'solicitationprocedures': 'solicitation_procedures',
@@ -1425,7 +1432,6 @@ def parse_fpds_file(f, sess):
         'ultimatecompletiondate': 'period_of_perf_potential_e', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
         'useofepadesignatedproducts': 'epa_designated_product',
         'vendor_cd': 'legal_entity_congressional',
-        'vendor_state_code': 'legal_entity_state_code', # see mapping in the atom feed pull for how it needs to be changed
         'vendoralternatename': 'vendor_alternate_name',
         'vendoralternatesitecode': 'vendor_alternate_site_code',
         'vendorcountrycode': 'legal_entity_country_code',
@@ -1504,10 +1510,48 @@ def format_fpds_data(data):
     for tag in tag_only:
         data[tag] = data.apply(lambda x: get_data_before_colon(x, tag), axis=1)
 
+    # map legal_entity_state data depending on given conditions then drop vendor_state_code since it's been split now
+    data['legal_entity_state_code'] = data.apply(lambda x: map_legal_entity_state_code(x), axis=1)
+    data['legal_entity_state_descrip'] = data.apply(lambda x: map_legal_entity_state_descrip(x), axis=1)
+    del data['vendor_state_code']
+
+    # map contents of contractactiontype to relevant columns then delete contractactiontype column
+    award_contract_type_mappings = {
+        'BPA Call Blanket Purchase Agreement': 'A', 'PO Purchase Order': 'B',
+        'DO Delivery Order': 'C', 'DCA Definitive Contract': 'D'
+    }
+    award_contract_desc_mappings = {
+        'BPA Call Blanket Purchase Agreement': 'BPA CALL', 'PO Purchase Order': 'PURCHASE ORDER',
+        'DO Delivery Order': 'DELIVERY ORDER', 'DCA Definitive Contract': 'DEFINITIVE CONTRACT'
+    }
+    idv_type_mappings = {
+        'GWAC Government Wide Acquisition Contract': 'A',
+        'IDC Indefinite Delivery Contract': 'B',
+        'FSS Federal Supply Schedule': 'C',
+        'BOA Basic Ordering Agreement': 'D',
+        'BPA Blanket Purchase Agreement': 'E'
+    }
+    idv_desc_mappings = {
+        'GWAC Government Wide Acquisition Contract': 'GWAC',
+        'IDC Indefinite Delivery Contract': 'IDC',
+        'FSS Federal Supply Schedule': 'FSS',
+        'BOA Basic Ordering Agreement': 'BOA',
+        'BPA Blanket Purchase Agreement': 'BPA'
+    }
+    data['contract_award_type'] = data.apply(lambda x: map_type(x, award_contract_type_mappings), axis=1)
+    data['contract_award_type_desc'] = data.apply(lambda x: map_type_description(x, award_contract_desc_mappings),
+                                                  axis=1)
+    data['idv_type'] = data.apply(lambda x: map_type(x, idv_type_mappings), axis=1)
+    data['idv_type_description'] = data.apply(lambda x: map_type_description(x, idv_desc_mappings), axis=1)
+    data['pulled_from'] = data.apply(lambda x: map_pulled_from(x, award_contract_type_mappings, idv_type_mappings),
+                                     axis=1)
+    del data['contractactiontype']
+
     return data
 
 
 def get_data_after_colon(row, header):
+    # return the data after the colon in the row, or None
     if ':' in str(row[header]):
         colon_loc = str(row[header]).find(':') + 1
         return str(row[header])[colon_loc:].strip()
@@ -1515,9 +1559,46 @@ def get_data_after_colon(row, header):
 
 
 def get_data_before_colon(row, header):
-    # return the data before the colon in the row, or None
+    # return the data before the colon in the row, or all the data if there is no colon
     if ':' in str(row[header]):
         return str(row[header]).split(':')[0]
+    return str(row[header])
+
+
+def map_legal_entity_state_code(row):
+    # only return a value if the country code is USA
+    if row['vendorcountrycode'] and (str(row['vendorcountrycode']).upper() == "USA" or
+                                     str(row['vendorcountrycode']).upper() == "UNITED STATES"):
+        return str(row['vendor_state_code'])
+    return None
+
+
+def map_legal_entity_state_descrip(row):
+    # if the country code doesn't exist or isn't USA, use the country code as the state description
+    if not row['vendorcountrycode'] or (str(row['vendorcountrycode']).upper() != "USA" and
+                                        str(row['vendorcountrycode']).upper() != "UNITED STATES"):
+        return str(row['vendor_state_code'])
+    return None
+
+
+def map_type(row, mappings):
+    if str(row['contractactiontype']) in mappings:
+        return mappings[str(row['contractactiontype'])]
+    return None
+
+
+def map_type_description(row, mappings):
+    if str(row['contractactiontype']) in mappings:
+        return str(row['contractactiontype']).split(' ')[0]
+    return None
+
+
+def map_pulled_from(row, award_contract, idv):
+    field_contents = str(row['contractactiontype'])
+    if field_contents in award_contract:
+        return 'award'
+    if field_contents in idv:
+        return 'IDV'
     return None
 
 
