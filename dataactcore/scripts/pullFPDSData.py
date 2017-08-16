@@ -1203,16 +1203,18 @@ def parse_fpds_file(f, sess):
     if clean_data is not None:
         # print(clean_data.iloc[0])
         # unique columns in order: 'agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id', 'transaction_number'
-        print(clean_data[['claimantprogramcode', 'dod_claimant_prog_cod_desc', 'commercialitemacquisitionprocedures', 'commercial_item_acqui_desc']].iloc[0])
+        print(clean_data[['costaccountingstandardsclause', 'cost_accounting_stand_desc', 'fundedbyforeignentity', 'foreign_funding_desc']].iloc[0])
         # data = data[data.duplicated(subset=['agencyid', 'idvagencyid', 'piid', 'modnumber', 'idvpiid', 'transactionnumber'])]
         print(len(clean_data.index))
 
     # TODO: might not have to change format on dates, check back on this
     mappings = {
+        'a_76_fair_act_action_desc': 'a_76_fair_act_action_desc',
         'a76action': 'a_76_fair_act_action',
         'action_type_description': 'action_type_description',
         'agencyid': 'agency_id',
         'aiobflag': 'american_indian_owned_busi',
+        'alaskan_native_servicing_i': 'alaskan_native_servicing_i',
         'annualrevenue': 'annual_revenue',
         'apaobflag': 'asian_pacific_american_own',
         'awarding_office_name': 'awarding_office_name',
@@ -1223,6 +1225,7 @@ def parse_fpds_file(f, sess):
         'ccrexception': 'sam_exception',
         'city': 'legal_entity_city_name',
         'claimantprogramcode': 'dod_claimant_program_code',
+        'clinger_cohen_act_pla_desc': 'clinger_cohen_act_pla_desc',
         'clingercohenact': 'clinger_cohen_act_planning',
         'commercial_item_acqui_desc': 'commercial_item_acqui_desc',
         'commercial_item_test_desc': 'commercial_item_test_desc',
@@ -1242,12 +1245,14 @@ def parse_fpds_file(f, sess):
         'contractingofficeagencyid': 'awarding_sub_tier_agency_c',
         'contractingofficeid': 'awarding_office_code',
         'contractingofficerbusinesssizedetermination': 'contracting_officers_deter',
+        'cost_accounting_stand_desc': 'cost_accounting_stand_desc',
         'cost_or_pricing_data_desc': 'cost_or_pricing_data_desc',
         'costaccountingstandardsclause': 'cost_accounting_standards',
         'costorpricingdata': 'cost_or_pricing_data',
         'country_of_product_or_desc': 'country_of_product_or_desc',
         'countryoforigin': 'country_of_product_or_serv',
         'currentcompletiondate': 'period_of_performance_curr', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
+        'davis_bacon_act_descrip': 'davis_bacon_act_descrip',
         'davisbaconact': 'davis_bacon_act',
         'descriptionofcontractrequirement': 'award_description',
         'divisionname': 'division_name',
@@ -1264,10 +1269,13 @@ def parse_fpds_file(f, sess):
         'evaluatedpreference': 'evaluated_preference',
         'extent_compete_description': 'extent_compete_description',
         'extentcompeted': 'extent_competed',
+        'fair_opportunity_limi_desc': 'fair_opportunity_limi_desc',
         'faxno': 'vendor_fax_number',
+        'fed_biz_opps_description': 'fed_biz_opps_description',
         'fedbizopps': 'fed_biz_opps',
         'federalgovernmentflag': 'us_federal_government',
         'firm8aflag': 'c8a_program_participant',
+        'foreign_funding_desc': 'foreign_funding_desc',
         'fundedbyforeignentity': 'foreign_funding',
         'funding_office_name': 'funding_office_name',
         'funding_sub_tier_agency_na': 'funding_sub_tier_agency_na',
@@ -1349,6 +1357,7 @@ def parse_fpds_file(f, sess):
         'legal_entity_state_code': 'legal_entity_state_code',
         'legal_entity_state_descrip': 'legal_entity_state_descrip',
         'lettercontract': 'undefinitized_action',
+        'local_area_set_aside_desc': 'local_area_set_aside_desc',
         'localareasetaside': 'local_area_set_aside',
         'localgovernmentflag': 'us_local_government',
         'locationcode': 'place_of_performance_locat',
@@ -1362,9 +1371,11 @@ def parse_fpds_file(f, sess):
         'multipleorsingleawardidc': 'multiple_or_single_award_i',
         'multi_year_contract_desc': 'multi_year_contract_desc',
         'multiyearcontract': 'multi_year_contract',
+        'naics_description': 'naics_description',
         'naobflag': 'native_american_owned_busi',
         'national_interest_desc': 'national_interest_desc',
         'nationalinterestactioncode': 'national_interest_action',
+        'native_hawaiian_servicing': 'native_hawaiian_servicing',
         'nonprofitorganizationflag': 'nonprofit_organization',
         'numberofactions': 'number_of_actions',
         'numberofemployees': 'number_of_employees',
@@ -1379,6 +1390,7 @@ def parse_fpds_file(f, sess):
         'place_of_manufacture_desc': 'place_of_manufacture_desc',
         'place_of_perf_country_desc': 'place_of_perf_country_desc',
         'place_of_perfor_state_desc': 'place_of_perfor_state_desc',
+        'place_of_perform_county_na': 'place_of_perform_county_na',
         'placeofmanufacture': 'place_of_manufacture',
         'PlaceofPerformanceCity': 'place_of_perform_city_name',
         'placeofperformancecountrycode': 'place_of_perform_country_c',
@@ -1401,11 +1413,19 @@ def parse_fpds_file(f, sess):
         'receivesgrants': 'grants',
         'recovered_materials_s_desc': 'recovered_materials_s_desc',
         'recoveredmaterialclauses': 'recovered_materials_sustai',
+        'referenced_idv_type': 'referenced_idv_type',
+        'referenced_idv_type_desc': 'referenced_idv_type_desc',
+        'referenced_mult_or_single': 'referenced_mult_or_single',
+        'referenced_mult_or_si_desc': 'referenced_mult_or_si_desc',
         'research': 'research',
+        'research_description': 'research_description',
         'saaobflag': 'subcontinent_asian_asian_i',
+        'sam_exception_description': 'sam_exception_description',
+        'sba_certified_8_a_joint_ve': 'sba_certified_8_a_joint_ve',
         'sdbflag': 'self_certified_small_disad',
         'sea_transportation_desc': 'sea_transportation_desc',
         'seatransportation': 'sea_transportation',
+        'service_contract_act_desc': 'service_contract_act_desc',
         'servicecontractact': 'service_contract_act',
         'signeddate': 'action_date', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
         'shelteredworkshopflag': 'the_ability_one_program',
@@ -1425,11 +1445,14 @@ def parse_fpds_file(f, sess):
         'transactionnumber': 'transaction_number',
         'tribalgovernmentflag': 'us_tribal_government',
         'type_of_contract_pric_desc': 'type_of_contract_pric_desc',
+        'type_of_idc_description': 'type_of_idc_description',
         'type_set_aside_description': 'type_set_aside_description',
         'typeofcontractpricing': 'type_of_contract_pricing',
         'typeofidc': 'type_of_idc',
         'typeofsetaside': 'type_set_aside',
         'ultimatecompletiondate': 'period_of_perf_potential_e', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
+        'undefinitized_action_desc': 'undefinitized_action_desc',
+        'us_government_entity': 'us_government_entity',
         'useofepadesignatedproducts': 'epa_designated_product',
         'vendor_cd': 'legal_entity_congressional',
         'vendoralternatename': 'vendor_alternate_name',
@@ -1484,6 +1507,7 @@ def format_fpds_data(data):
         'placeofmanufacture': 'place_of_manufacture_desc',
         'placeofperformancecountrycode': 'place_of_perf_country_desc',
         'pop_state_code': 'place_of_perfor_state_desc',
+        'principalnaicscode': 'naics_description',
         'productorservicecode': 'product_or_service_co_desc',
         'purchasecardaspaymentmethod': 'purchase_card_as_paym_desc',
         'reasonformodification': 'action_type_description',
@@ -1503,6 +1527,88 @@ def format_fpds_data(data):
         logger.info('splitting column: ' + tag)
         data[description] = data.apply(lambda x: get_data_after_colon(x, tag), axis=1)
         data[tag] = data.apply(lambda x: get_data_before_colon(x, tag), axis=1)
+
+    # mappings for manual description entry
+    manual_description_mappings = {
+        'ccrexception': 'sam_exception_description',
+        'costaccountingstandardsclause': 'cost_accounting_stand_desc',
+        'davisbaconact': 'davis_bacon_act_descrip',
+        'fedbizopps': 'fed_biz_opps_description',
+        'fundedbyforeignentity': 'foreign_funding_desc',
+        'lettercontract': 'undefinitized_action_desc',
+        'research': 'research_description',
+        'servicecontractact': 'service_contract_act_desc',
+        'statutoryexceptiontofairopportunity': 'fair_opportunity_limi_desc',
+        'typeofidc': 'type_of_idc_description',
+    }
+    type_to_description = {
+        'ccrexception': {
+            '1': 'GOVERNMENT - WIDE COMMERCIAL PURCHASE CARD',
+            '2': 'CLASSIFIED CONTRACTS',
+            '3': 'CONTRACTING OFFICERS DEPLOYED IN THE COURSE OF MILITARY OPERATIONS',
+            '4': 'CONTRACTING OFFICERS CONDUCTING EMERGENCY OPERATIONS',
+            '5': 'CONTRACTS TO SUPPORT UNUSUAL OR COMPELLING NEEDS',
+            '6': 'AWARDS TO FOREIGN VENDORS FOR WORK PERFORMED OUTSIDE THE UNITED STATES',
+            '7': 'MICRO-PURCHASES THAT DO NOT USE THE EFT'
+        },
+        'costaccountingstandardsclause': {
+            'Y': 'YES - CAS CLAUSE INCLUDED',
+            'N': 'NO - CAS WAIVER APPROVED',
+            'X': 'NOT APPLICABLE EXEMPT FROM CAS'
+        },
+        'davisbaconact': {
+            'Y': 'YES',
+            'N': 'NO',
+            'X': 'NOT APPLICABLE'
+        },
+        'fedbizopps': {
+            'Y': 'YES',
+            'N': 'NO',
+            'X': 'NOT APPLICABLE'
+        },
+        'fundedbyforeignentity': {
+            'A': 'FOREIGN FUNDS FMS',
+            'B': 'FOREIGN FUNDS NON-FMS',
+            'X': 'NOT APPLICABLE'
+        },
+        'lettercontract': {
+            'A': 'LETTER CONTRACT',
+            'B': 'OTHER UNDEFINITIZED ACTION',
+            'X': 'NO'
+        },
+        'research': {
+            'SR1': 'SMALL BUSINESS INNOVATION RESEARCH PROGRAM PHASE I ACTION',
+            'SR2': 'SMALL BUSINESS INNOVATION RESEARCH PROGRAM PHASE II ACTION',
+            'SR3': 'SMALL BUSINESS INNOVATION RESEARCH PROGRAM PHASE III ACTION',
+            'ST1': 'SMALL TECHNOLOGY TRANSFER RESEARCH PROGRAM PHASE I',
+            'ST2': 'SMALL TECHNOLOGY TRANSFER RESEARCH PROGRAM PHASE II',
+            'ST3': 'SMALL TECHNOLOGY TRANSFER RESEARCH PROGRAM PHASE III'
+        },
+        'servicecontractact': {
+            'Y': 'YES',
+            'N': 'NO',
+            'X': 'NOT APPLICABLE'
+        },
+        'statutoryexceptiontofairopportunity': {
+            'URG': 'URGENCY',
+            'ONE': 'ONLY ONE SOURCE - OTHER',
+            'FOO': 'FOLLOW-ON ACTION FOLLOWING COMPETITIVE INITIAL ACTION',
+            'MG': 'MINIMUM GUARANTEE',
+            'OSA': 'OTHER STATUTORY AUTHORITY',
+            'FAIR': 'FAIR OPPORTUNITY GIVEN',
+            'CSA': 'COMPETITIVE SET ASIDE',
+            'SS': 'SOLE SOURCE'
+        },
+        'typeofidc': {
+            'A': 'INDEFINITE DELIVERY / REQUIREMENTS',
+            'B': 'INDEFINITE DELIVERY / INDEFINITE QUANTITY',
+            'C': 'INDEFINITE DELIVERY / DEFINITE QUANTITY'
+        },
+    }
+    for tag, description in manual_description_mappings.items():
+        logger.info('manually mapping column: ' + tag)
+        data[description] = data.apply(lambda x: map_description_manual(x, tag, type_to_description[tag]), axis=1)
+        data[tag] = data.apply(lambda x: map_type_manual(x, tag, type_to_description[tag]), axis=1)
 
     logger.info('Starting pre-colon data gathering')
     # clean up a couple other tags that just need the tag in the data
@@ -1546,6 +1652,16 @@ def format_fpds_data(data):
     data['pulled_from'] = data.apply(lambda x: map_pulled_from(x, award_contract_type_mappings, idv_type_mappings),
                                      axis=1)
     del data['contractactiontype']
+
+    # adding columns missing from historical data
+    null_list = [
+        'a_76_fair_act_action_desc', 'alaskan_native_servicing_i', 'clinger_cohen_act_pla_desc',
+        'local_area_set_aside_desc', 'native_hawaiian_servicing', 'place_of_perform_county_na', 'referenced_idv_type',
+        'referenced_idv_type_desc', 'referenced_mult_or_single', 'referenced_mult_or_si_desc',
+        'sba_certified_8_a_joint_ve', 'us_government_entity'
+    ]
+    for item in null_list:
+        data[item] = None
 
     return data
 
@@ -1591,6 +1707,26 @@ def map_type_description(row, mappings):
     if str(row['contractactiontype']) in mappings:
         return str(row['contractactiontype']).split(' ')[0]
     return None
+
+
+def map_type_manual(row, header, mappings):
+    content = str(row[header])
+    if ':' in content:
+        content = content.split(':')[0].strip()
+
+    if content in mappings:
+        return content
+    return None
+
+
+def map_description_manual(row, header, mappings):
+    content = str(row[header])
+    if ':' in content:
+        content = content.split(':')[0].strip()
+
+    if content in mappings:
+        return mappings[content]
+    return content.upper()
 
 
 def map_pulled_from(row, award_contract, idv):
