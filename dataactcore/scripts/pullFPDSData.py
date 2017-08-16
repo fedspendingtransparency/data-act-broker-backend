@@ -1203,7 +1203,7 @@ def parse_fpds_file(f, sess):
     if clean_data is not None:
         # print(clean_data.iloc[0])
         # unique columns in order: 'agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id', 'transaction_number'
-        print(clean_data[['costaccountingstandardsclause', 'cost_accounting_stand_desc', 'fundedbyforeignentity', 'foreign_funding_desc']].iloc[0])
+        print(clean_data[['ultimatecompletiondate', 'lastdatetoorder', 'currentcompletiondate', 'effectivedate']].iloc[0])
         # data = data[data.duplicated(subset=['agencyid', 'idvagencyid', 'piid', 'modnumber', 'idvpiid', 'transactionnumber'])]
         print(len(clean_data.index))
 
@@ -1251,7 +1251,7 @@ def parse_fpds_file(f, sess):
         'costorpricingdata': 'cost_or_pricing_data',
         'country_of_product_or_desc': 'country_of_product_or_desc',
         'countryoforigin': 'country_of_product_or_serv',
-        'currentcompletiondate': 'period_of_performance_curr', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
+        'currentcompletiondate': 'period_of_performance_curr',
         'davis_bacon_act_descrip': 'davis_bacon_act_descrip',
         'davisbaconact': 'davis_bacon_act',
         'descriptionofcontractrequirement': 'award_description',
@@ -1262,7 +1262,7 @@ def parse_fpds_file(f, sess):
         'domestic_or_foreign_e_desc': 'domestic_or_foreign_e_desc',
         'dunsnumber': 'awardee_or_recipient_uniqu',
         'educationalinstitutionflag': 'educational_institution',
-        'effectivedate': 'period_of_performance_star', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
+        'effectivedate': 'period_of_performance_star',
         'emergingsmallbusinessflag': 'emerging_small_business',
         'epa_designated_produc_desc': 'epa_designated_produc_desc',
         'evaluated_preference_desc': 'evaluated_preference_desc',
@@ -1351,8 +1351,8 @@ def parse_fpds_file(f, sess):
         'isveterinarycollege': 'veterinary_college',
         'isveterinaryhospital': 'veterinary_hospital',
         'iswomenownedsmallbusiness': 'women_owned_small_business',
-        'lastdatetoorder': 'ordering_period_end_date', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
-        'last_modified_date': 'last_modified', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
+        'lastdatetoorder': 'ordering_period_end_date',
+        'last_modified_date': 'last_modified',
         'legal_entity_country_name': 'legal_entity_country_name',
         'legal_entity_state_code': 'legal_entity_state_code',
         'legal_entity_state_descrip': 'legal_entity_state_descrip',
@@ -1427,7 +1427,7 @@ def parse_fpds_file(f, sess):
         'seatransportation': 'sea_transportation',
         'service_contract_act_desc': 'service_contract_act_desc',
         'servicecontractact': 'service_contract_act',
-        'signeddate': 'action_date', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
+        'signeddate': 'action_date',
         'shelteredworkshopflag': 'the_ability_one_program',
         'smallbusinesscompetitivenessdemonstrationprogram': 'small_business_competitive',
         'solicitation_procedur_desc': 'solicitation_procedur_desc',
@@ -1450,7 +1450,7 @@ def parse_fpds_file(f, sess):
         'typeofcontractpricing': 'type_of_contract_pricing',
         'typeofidc': 'type_of_idc',
         'typeofsetaside': 'type_set_aside',
-        'ultimatecompletiondate': 'period_of_perf_potential_e', # in USAspending, this is in MM/DD/YYYY format, whereas DAIMS is YYYYMMDD
+        'ultimatecompletiondate': 'period_of_perf_potential_e',
         'undefinitized_action_desc': 'undefinitized_action_desc',
         'us_government_entity': 'us_government_entity',
         'useofepadesignatedproducts': 'epa_designated_product',
@@ -1616,6 +1616,7 @@ def format_fpds_data(data):
     for tag in tag_only:
         data[tag] = data.apply(lambda x: get_data_before_colon(x, tag), axis=1)
 
+    logger.info('Starting specialized mappings')
     # map legal_entity_state data depending on given conditions then drop vendor_state_code since it's been split now
     data['legal_entity_state_code'] = data.apply(lambda x: map_legal_entity_state_code(x), axis=1)
     data['legal_entity_state_descrip'] = data.apply(lambda x: map_legal_entity_state_descrip(x), axis=1)
@@ -1652,6 +1653,13 @@ def format_fpds_data(data):
     data['pulled_from'] = data.apply(lambda x: map_pulled_from(x, award_contract_type_mappings, idv_type_mappings),
                                      axis=1)
     del data['contractactiontype']
+
+    logger.info('Starting date formatting and null filling')
+    # formatting dates for relevant columns
+    date_format_list = ['currentcompletiondate', 'effectivedate', 'last_modified_date', 'lastdatetoorder', 'signeddate',
+                        'ultimatecompletiondate']
+    for col in date_format_list:
+        data[col] = data.apply(lambda x: format_date(x, col), axis=1)
 
     # adding columns missing from historical data
     null_list = [
@@ -1736,6 +1744,15 @@ def map_pulled_from(row, award_contract, idv):
     if field_contents in idv:
         return 'IDV'
     return None
+
+
+def format_date(row, header):
+    given_date = str(row[header])
+    given_date_split = given_date.split('/')
+    if given_date == '01/01/1900' or len(given_date_split) != 3:
+        return None
+
+    return given_date_split[2] + '-' + given_date_split[0] + '-' + given_date_split[1] + ' 00:00:00'
 
 
 def main():
