@@ -649,7 +649,7 @@ def get_last_validated_date(submission_id):
     return oldest_date.strftime('%m/%d/%Y') if oldest_date else oldest_date
 
 def get_fabs_meta(submission_id, published):
-    if not published:
+    if published:
         return {
             'valid_rows': 0,
             'total_rows': 0,
