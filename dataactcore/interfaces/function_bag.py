@@ -648,13 +648,9 @@ def get_last_validated_date(submission_id):
     # This is the case for a single unit test
     return oldest_date.strftime('%m/%d/%Y') if oldest_date else oldest_date
 
-def get_fabs_meta(submission_id, published):
-    if published:
-        return {
-            'valid_rows': 0,
-            'total_rows': 0,
-            'publish_date': None
-        }
+
+def get_fabs_meta(submission_id):
+
     sess = GlobalDB.db().session
 
     total_rows = sess.query(DetachedAwardFinancialAssistance).filter(
@@ -663,7 +659,7 @@ def get_fabs_meta(submission_id, published):
     valid_rows = total_rows.filter(DetachedAwardFinancialAssistance.is_valid == True)
 
     publish_date = sess.query(CertifyHistory).filter(CertifyHistory.submission_id == submission_id).one_or_none()
-    if publish_date: 
+    if publish_date:
         publish_date = publish_date.created_at.strftime('%-I:%M%p %m/%d/%Y')
 
     return {
@@ -671,6 +667,7 @@ def get_fabs_meta(submission_id, published):
         'total_rows': len(total_rows.all()),
         'publish_date': publish_date
     }
+
 
 def get_action_dates(submission_id):
     """ Pull the earliest/latest action dates from the DetachedAwardFinancialAssistance table

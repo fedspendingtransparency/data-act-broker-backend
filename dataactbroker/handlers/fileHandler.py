@@ -1333,7 +1333,7 @@ def submission_to_dict_for_status(submission):
     revalidation_threshold = sess.query(RevalidationThreshold).one_or_none()
     last_validated = get_last_validated_date(submission.submission_id)
 
-    fabs_meta = get_fabs_meta(submission.submission_id, submission.publish_status.name == 'unpublished')
+    fabs_meta = get_fabs_meta(submission.submission_id)
 
     return {
         'cgac_code': submission.cgac_code,
