@@ -777,6 +777,7 @@ class DetachedAwardProcurement(Base):
     vendor_site_code = Column(Text)
     pulled_from = Column(Text)
     last_modified = Column(Text)
+    initial_report_date = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

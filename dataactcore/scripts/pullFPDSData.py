@@ -882,6 +882,11 @@ def process_data(data, atom_type, sub_tier_list):
     except (KeyError, TypeError):
         obj['last_modified'] = None
 
+    try:
+        obj['initial_report_date'] = data['transactionInformation']['createdDate']
+    except (KeyError, TypeError):
+        obj['initial_report_date'] = None
+
     obj['pulled_from'] = atom_type
 
     # clear out potentially excel-breaking whitespace from specific fields
@@ -1294,6 +1299,7 @@ def parse_fpds_file(f, sess):
         'idvpiid': 'parent_award_id',
         'information_technolog_desc': 'information_technolog_desc',
         'informationtechnologycommercialitemcategory': 'information_technology_com',
+        'initial_report_date': 'initial_report_date',
         'interagency_contract_desc': 'interagency_contract_desc',
         'interagencycontractingauthority': 'interagency_contracting_au',
         'is1862landgrantcollege': 'c1862_land_grant_college',
@@ -1663,7 +1669,7 @@ def format_fpds_data(data):
 
     # adding columns missing from historical data
     null_list = [
-        'a_76_fair_act_action_desc', 'alaskan_native_servicing_i', 'clinger_cohen_act_pla_desc',
+        'a_76_fair_act_action_desc', 'alaskan_native_servicing_i', 'clinger_cohen_act_pla_desc', 'initial_report_date'
         'local_area_set_aside_desc', 'native_hawaiian_servicing', 'place_of_perform_county_na', 'referenced_idv_type',
         'referenced_idv_type_desc', 'referenced_mult_or_single', 'referenced_mult_or_si_desc',
         'sba_certified_8_a_joint_ve', 'us_government_entity'
