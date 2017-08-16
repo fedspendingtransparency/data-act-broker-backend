@@ -1149,7 +1149,7 @@ def get_delete_data(contract_type, now, sess, last_run):
             delete(synchronize_session=False)
 
 
-def parse_fpds_file(f, sess):
+def parse_fpds_file(f, sess, sub_tier_list):
     logger.info("starting file " + str(f.name))
 
     csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(f.name))[0]
@@ -1204,10 +1204,10 @@ def parse_fpds_file(f, sess):
         'vendorname', 'vendorsitecode', 'veteranownedflag', 'walshhealyact', 'womenownedflag', 'zipcode'
     ])
 
-    clean_data = format_fpds_data(data)
+    clean_data = format_fpds_data(data, sub_tier_list)
     if clean_data is not None:
         # print(clean_data.iloc[0])
-        print(clean_data[['detached_award_proc_unique']].iloc[0])
+        print(clean_data[['awarding_agency_code', 'awarding_agency_name', 'funding_agency_code', 'funding_agency_name']].iloc[0])
         # data = data[data.duplicated(subset=['detached_award_proc_unique'])]
         print(len(clean_data.index))
 
@@ -1221,6 +1221,8 @@ def parse_fpds_file(f, sess):
         'alaskan_native_servicing_i': 'alaskan_native_servicing_i',
         'annualrevenue': 'annual_revenue',
         'apaobflag': 'asian_pacific_american_own',
+        'awarding_agency_code': 'awarding_agency_code',
+        'awarding_agency_name': 'awarding_agency_name',
         'awarding_office_name': 'awarding_office_name',
         'awarding_sub_tier_agency_n': 'awarding_sub_tier_agency_n',
         'baobflag': 'black_american_owned_busin',
@@ -1282,6 +1284,8 @@ def parse_fpds_file(f, sess):
         'firm8aflag': 'c8a_program_participant',
         'foreign_funding_desc': 'foreign_funding_desc',
         'fundedbyforeignentity': 'foreign_funding',
+        'funding_agency_code': 'funding_agency_code',
+        'funding_agency_name': 'funding_agency_name',
         'funding_office_name': 'funding_office_name',
         'funding_sub_tier_agency_na': 'funding_sub_tier_agency_na',
         'fundingrequestingagencyid': 'funding_sub_tier_agency_co',
@@ -1478,7 +1482,7 @@ def parse_fpds_file(f, sess):
     }
 
 
-def format_fpds_data(data):
+def format_fpds_data(data, sub_tier_list):
     logger.info("formatting data")
 
     if len(data.index) == 0:
@@ -1677,6 +1681,16 @@ def format_fpds_data(data):
     for item in null_list:
         data[item] = None
 
+    # map using cgac codes
+    data['awarding_agency_code'] = data.apply(lambda x: map_agency_code(x, 'contractingofficeagencyid', sub_tier_list),
+                                              axis=1)
+    data['awarding_agency_name'] = data.apply(lambda x: map_agency_name(x, 'contractingofficeagencyid', sub_tier_list),
+                                              axis=1)
+    data['funding_agency_code'] = data.apply(lambda x: map_agency_code(x, 'fundingrequestingagencyid', sub_tier_list),
+                                             axis=1)
+    data['funding_agency_name'] = data.apply(lambda x: map_agency_name(x, 'fundingrequestingagencyid', sub_tier_list),
+                                             axis=1)
+
     # create the unique key
     data['detached_award_proc_unique'] = data.apply(lambda x: create_unique_key(x), axis=1)
 
@@ -1744,6 +1758,22 @@ def map_description_manual(row, header, mappings):
     if content in mappings:
         return mappings[content]
     return content.upper()
+
+
+def map_agency_code(row, header, sub_tier_list):
+    try:
+        code = str(row[header])
+        return sub_tier_list[code].cgac.cgac_code
+    except KeyError:
+        return '999'
+
+
+def map_agency_name(row, header, sub_tier_list):
+    try:
+        code = str(row[header])
+        return sub_tier_list[code].cgac.agency_name
+    except KeyError:
+        return None
 
 
 def map_pulled_from(row, award_contract, idv):
@@ -1884,7 +1914,7 @@ def main():
                     # we only want up through 2015 for this data
                     if int(key.name[:4]) <= max_year:
                         file_path = key.generate_url(expires_in=600)
-                        parse_fpds_file(urllib.request.urlopen(file_path), sess)
+                        parse_fpds_file(urllib.request.urlopen(file_path), sess, sub_tier_list)
         else:
             base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "fabs")
             file_list = [f for f in os.listdir(base_path)]
@@ -1892,7 +1922,7 @@ def main():
                 if re.match('^\d{4}_All_Contracts_Full_\d{8}.csv.zip', file):
                     # we only want up through 2015 for this data
                     if int(file[:4]) <= max_year:
-                        parse_fpds_file(open(os.path.join(base_path, file)), sess)
+                        parse_fpds_file(open(os.path.join(base_path, file)), sess, sub_tier_list)
 
         logger.info("Ending at: " + str(datetime.datetime.now()))
         sess.commit()
