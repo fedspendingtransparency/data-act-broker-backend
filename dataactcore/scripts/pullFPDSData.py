@@ -1207,9 +1207,8 @@ def parse_fpds_file(f, sess):
     clean_data = format_fpds_data(data)
     if clean_data is not None:
         # print(clean_data.iloc[0])
-        # unique columns in order: 'agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id', 'transaction_number'
-        print(clean_data[['ultimatecompletiondate', 'lastdatetoorder', 'currentcompletiondate', 'effectivedate']].iloc[0])
-        # data = data[data.duplicated(subset=['agencyid', 'idvagencyid', 'piid', 'modnumber', 'idvpiid', 'transactionnumber'])]
+        print(clean_data[['detached_award_proc_unique']].iloc[0])
+        # data = data[data.duplicated(subset=['detached_award_proc_unique'])]
         print(len(clean_data.index))
 
     # TODO: might not have to change format on dates, check back on this
@@ -1257,6 +1256,7 @@ def parse_fpds_file(f, sess):
         'country_of_product_or_desc': 'country_of_product_or_desc',
         'countryoforigin': 'country_of_product_or_serv',
         'currentcompletiondate': 'period_of_performance_curr',
+        'detached_award_proc_unique': 'detached_award_proc_unique',
         'davis_bacon_act_descrip': 'davis_bacon_act_descrip',
         'davisbaconact': 'davis_bacon_act',
         'descriptionofcontractrequirement': 'award_description',
@@ -1677,6 +1677,9 @@ def format_fpds_data(data):
     for item in null_list:
         data[item] = None
 
+    # create the unique key
+    data['detached_award_proc_unique'] = data.apply(lambda x: create_unique_key(x), axis=1)
+
     return data
 
 
@@ -1759,6 +1762,17 @@ def format_date(row, header):
         return None
 
     return given_date_split[2] + '-' + given_date_split[0] + '-' + given_date_split[1] + ' 00:00:00'
+
+
+def create_unique_key(row):
+    key_list = ['agencyid', 'idvagencyid', 'piid', 'modnumber', 'idvpiid', 'transactionnumber']
+    unique_string = ""
+    for item in key_list:
+        if row[item] and str(row[item]) != 'nan':
+            unique_string += str(row[item])
+        else:
+            unique_string += "-none-"
+    return unique_string
 
 
 def main():
