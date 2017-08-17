@@ -1156,64 +1156,93 @@ def parse_fpds_file(f, sess, sub_tier_list, naics_dict):
     logger.info("Starting file " + str(f.name))
 
     csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(f.name))[0]
-    zfile = zipfile.ZipFile(f.name)
-    data = pd.read_csv(zfile.open(csv_file), dtype=str, usecols=[
-        'a76action', 'agencyid', 'aiobflag', 'annualrevenue', 'apaobflag', 'baobflag', 'baseandexercisedoptionsvalue',
-        'baseandalloptionsvalue', 'ccrexception', 'city', 'claimantprogramcode', 'clingercohenact',
-        'commercialitemacquisitionprocedures', 'commercialitemtestprogram', 'consolidatedcontract',
-        'contingencyhumanitarianpeacekeepingoperation', 'contractactiontype', 'contractbundling', 'contractfinancing',
-        'contractingofficeagencyid', 'contractingofficeid', 'contractingofficerbusinesssizedetermination',
-        'costaccountingstandardsclause', 'costorpricingdata', 'countryoforigin', 'currentcompletiondate',
-        'davisbaconact', 'descriptionofcontractrequirement', 'divisionname', 'divisionnumberorofficecode',
-        'dollarsobligated', 'dunsnumber', 'educationalinstitutionflag', 'effectivedate', 'emergingsmallbusinessflag',
-        'evaluatedpreference', 'extentcompeted', 'faxno', 'fedbizopps', 'federalgovernmentflag', 'firm8aflag',
-        'fundedbyforeignentity', 'fundingrequestingagencyid', 'fundingrequestingofficeid', 'gfe_gfp', 'haobflag',
-        'hbcuflag', 'hospitalflag', 'hubzoneflag', 'idvagencyid', 'idvmodificationnumber', 'idvpiid',
-        'informationtechnologycommercialitemcategory', 'interagencycontractingauthority', 'is1862landgrantcollege',
-        'is1890landgrantcollege', 'is1994landgrantcollege', 'isairportauthority',
-        'isalaskannativeownedcorporationorfirm', 'iscitylocalgovernment', 'iscommunitydevelopedcorporationownedfirm',
-        'iscommunitydevelopmentcorporation', 'iscorporateentitynottaxexempt', 'iscorporateentitytaxexempt',
-        'iscouncilofgovernments', 'iscountylocalgovernment', 'isdomesticshelter',
-        'isdotcertifieddisadvantagedbusinessenterprise', 'isecondisadvwomenownedsmallbusiness',
-        'isfederalgovernmentagency', 'isfederallyfundedresearchanddevelopmentcorp', 'isforeigngovernment',
-        'isforeignownedandlocated', 'isforprofitorganization', 'isfoundation', 'ishispanicservicinginstitution',
-        'ishousingauthoritiespublicortribal', 'isindiantribe', 'isintermunicipallocalgovernment',
-        'isinternationalorganization', 'isinterstateentity', 'isjointventureecondisadvwomenownedsmallbusiness',
-        'isjointventurewomenownedsmallbusiness', 'islaborsurplusareafirm', 'islimitedliabilitycorporation',
-        'islocalgovernmentowned', 'ismanufacturerofgoods', 'ismunicipalitylocalgovernment',
-        'isnativehawaiianownedorganizationorfirm', 'isotherminorityowned', 'isothernotforprofitorganization',
-        'ispartnershiporlimitedliabilitypartnership', 'isplanningcommission', 'isportauthority',
-        'isprivateuniversityorcollege', 'issbacertifiedsmalldisadvantagedbusiness', 'isschooldistrictlocalgovernment',
-        'isschoolofforestry', 'issmallagriculturalcooperative', 'issoleproprietorship',
-        'isstatecontrolledinstitutionofhigherlearning', 'issubchapterscorporation', 'istownshiplocalgovernment',
-        'istransitauthority', 'istribalcollege', 'istriballyownedfirm', 'isveterinarycollege', 'isveterinaryhospital',
-        'iswomenownedsmallbusiness', 'lastdatetoorder', 'last_modified_date', 'lettercontract', 'localareasetaside',
-        'localgovernmentflag', 'locationcode', 'majorprogramcode', 'manufacturingorganizationtype',
-        'minorityinstitutionflag', 'minorityownedbusinessflag', 'mod_parent', 'modnumber', 'multipleorsingleawardidc',
-        'multiyearcontract', 'naobflag', 'nationalinterestactioncode', 'nonprofitorganizationflag', 'numberofactions',
-        'numberofemployees', 'numberofoffersreceived', 'otherstatutoryauthority', 'parentdunsnumber',
-        'performancebasedservicecontract', 'phoneno', 'piid', 'placeofmanufacture', 'PlaceofPerformanceCity',
-        'placeofperformancecountrycode', 'placeofperformancezipcode', 'pop_cd', 'pop_state_code',
-        'priceevaluationpercentdifference', 'principalnaicscode', 'productorservicecode', 'programacronym',
-        'purchasecardaspaymentmethod', 'reasonformodification', 'reasonnotcompeted', 'receivescontracts',
-        'receivescontractsandgrants', 'receivesgrants', 'recoveredmaterialclauses', 'research', 'saaobflag', 'sdbflag',
-        'seatransportation', 'servicecontractact', 'signeddate', 'shelteredworkshopflag',
-        'smallbusinesscompetitivenessdemonstrationprogram', 'solicitationid', 'solicitationprocedures',
-        'stategovernmentflag', 'statutoryexceptiontofairopportunity', 'srdvobflag', 'streetaddress', 'streetaddress2',
-        'streetaddress3', 'subcontractplan', 'systemequipmentcode', 'transactionnumber', 'tribalgovernmentflag',
-        'typeofcontractpricing', 'typeofidc', 'typeofsetaside', 'ultimatecompletiondate', 'useofepadesignatedproducts',
-        'vendor_cd', 'vendor_state_code', 'vendoralternatename', 'vendoralternatesitecode', 'vendorcountrycode',
-        'vendordoingasbusinessname', 'vendorenabled', 'vendorlegalorganizationname', 'vendorlocationdisableflag',
-        'vendorname', 'vendorsitecode', 'veteranownedflag', 'walshhealyact', 'womenownedflag', 'zipcode',
-        'transaction_status'
-    ])
 
-    cdata = format_fpds_data(data, sub_tier_list, naics_dict)
-    if cdata is not None:
-        logger.info("loading {} rows".format(len(cdata.index)))
+    nrows = 0
+    with zipfile.ZipFile(f.name) as zfile:
+        with zfile.open(csv_file) as dat_file:
+            nrows = len(dat_file.readlines())
 
-        insert_dataframe(clean_data, DetachedAwardProcurement.__table__.name, sess.connection())
-        sess.commit()
+    block_size = 10000
+    batches = nrows // block_size
+    last_block_size = (nrows % block_size)
+    batch = 0
+    added_rows = 0
+
+    all_cols = [
+        "unique_transaction_id", "transaction_status", "dollarsobligated", "baseandexercisedoptionsvalue",
+        "baseandalloptionsvalue", "maj_agency_cat", "mod_agency", "maj_fund_agency_cat", "contractingofficeagencyid",
+        "contractingofficeid", "fundingrequestingagencyid", "fundingrequestingofficeid", "fundedbyforeignentity",
+        "signeddate", "effectivedate", "currentcompletiondate", "ultimatecompletiondate", "lastdatetoorder",
+        "contractactiontype", "reasonformodification", "typeofcontractpricing", "priceevaluationpercentdifference",
+        "subcontractplan", "lettercontract", "multiyearcontract", "performancebasedservicecontract", "majorprogramcode",
+        "contingencyhumanitarianpeacekeepingoperation", "contractfinancing", "costorpricingdata",
+        "costaccountingstandardsclause", "descriptionofcontractrequirement", "purchasecardaspaymentmethod",
+        "numberofactions", "nationalinterestactioncode", "progsourceagency", "progsourceaccount", "progsourcesubacct",
+        "account_title", "rec_flag", "typeofidc", "multipleorsingleawardidc", "programacronym", "vendorname",
+        "vendoralternatename", "vendorlegalorganizationname", "vendordoingasbusinessname", "divisionname",
+        "divisionnumberorofficecode", "vendorenabled", "vendorlocationdisableflag", "ccrexception", "streetaddress",
+        "streetaddress2", "streetaddress3", "city", "state", "zipcode", "vendorcountrycode", "vendor_state_code",
+        "vendor_cd", "congressionaldistrict", "vendorsitecode", "vendoralternatesitecode", "dunsnumber",
+        "parentdunsnumber", "phoneno", "faxno", "registrationdate", "renewaldate", "mod_parent", "locationcode",
+        "statecode", "PlaceofPerformanceCity", "pop_state_code", "placeofperformancecountrycode",
+        "placeofperformancezipcode", "pop_cd", "placeofperformancecongressionaldistrict", "psc_cat",
+        "productorservicecode", "systemequipmentcode", "claimantprogramcode", "principalnaicscode",
+        "informationtechnologycommercialitemcategory", "gfe_gfp", "useofepadesignatedproducts",
+        "recoveredmaterialclauses", "seatransportation", "contractbundling", "consolidatedcontract", "countryoforigin",
+        "placeofmanufacture", "manufacturingorganizationtype", "agencyid", "piid", "modnumber", "transactionnumber",
+        "fiscal_year", "idvagencyid", "idvpiid", "idvmodificationnumber", "solicitationid", "extentcompeted",
+        "reasonnotcompeted", "numberofoffersreceived", "commercialitemacquisitionprocedures",
+        "commercialitemtestprogram", "smallbusinesscompetitivenessdemonstrationprogram", "a76action",
+        "competitiveprocedures", "solicitationprocedures", "typeofsetaside", "localareasetaside", "evaluatedpreference",
+        "fedbizopps", "research", "statutoryexceptiontofairopportunity", "organizationaltype", "numberofemployees",
+        "annualrevenue", "firm8aflag", "hubzoneflag", "sdbflag", "issbacertifiedsmalldisadvantagedbusiness",
+        "shelteredworkshopflag", "hbcuflag", "educationalinstitutionflag", "womenownedflag", "veteranownedflag",
+        "srdvobflag", "localgovernmentflag", "minorityinstitutionflag", "aiobflag", "stategovernmentflag",
+        "federalgovernmentflag", "minorityownedbusinessflag", "apaobflag", "tribalgovernmentflag", "baobflag",
+        "naobflag", "saaobflag", "nonprofitorganizationflag", "isothernotforprofitorganization",
+        "isforprofitorganization", "isfoundation", "haobflag", "ishispanicservicinginstitution",
+        "emergingsmallbusinessflag", "hospitalflag", "contractingofficerbusinesssizedetermination",
+        "is1862landgrantcollege", "is1890landgrantcollege", "is1994landgrantcollege", "isveterinarycollege",
+        "isveterinaryhospital", "isprivateuniversityorcollege", "isschoolofforestry",
+        "isstatecontrolledinstitutionofhigherlearning", "isserviceprovider", "receivescontracts", "receivesgrants",
+        "receivescontractsandgrants", "isairportauthority", "iscouncilofgovernments",
+        "ishousingauthoritiespublicortribal", "isinterstateentity", "isplanningcommission", "isportauthority",
+        "istransitauthority", "issubchapterscorporation", "islimitedliabilitycorporation", "isforeignownedandlocated",
+        "isarchitectureandengineering", "isdotcertifieddisadvantagedbusinessenterprise", "iscitylocalgovernment",
+        "iscommunitydevelopedcorporationownedfirm", "iscommunitydevelopmentcorporation", "isconstructionfirm",
+        "ismanufacturerofgoods", "iscorporateentitynottaxexempt", "iscountylocalgovernment", "isdomesticshelter",
+        "isfederalgovernmentagency", "isfederallyfundedresearchanddevelopmentcorp", "isforeigngovernment",
+        "isindiantribe", "isintermunicipallocalgovernment", "isinternationalorganization", "islaborsurplusareafirm",
+        "islocalgovernmentowned", "ismunicipalitylocalgovernment", "isnativehawaiianownedorganizationorfirm",
+        "isotherbusinessororganization", "isotherminorityowned", "ispartnershiporlimitedliabilitypartnership",
+        "isschooldistrictlocalgovernment", "issmallagriculturalcooperative", "issoleproprietorship",
+        "istownshiplocalgovernment", "istriballyownedfirm", "istribalcollege", "isalaskannativeownedcorporationorfirm",
+        "iscorporateentitytaxexempt", "iswomenownedsmallbusiness", "isecondisadvwomenownedsmallbusiness",
+        "isjointventurewomenownedsmallbusiness", "isjointventureecondisadvwomenownedsmallbusiness", "walshhealyact",
+        "servicecontractact", "davisbaconact", "clingercohenact", "otherstatutoryauthority", "prime_awardee_executive1",
+        "prime_awardee_executive1_compensation", "prime_awardee_executive2", "prime_awardee_executive2_compensation",
+        "prime_awardee_executive3", "prime_awardee_executive3_compensation", "prime_awardee_executive4",
+        "prime_awardee_executive4_compensation", "prime_awardee_executive5", "prime_awardee_executive5_compensation",
+        "interagencycontractingauthority", "last_modified_date"]
+
+    while batch <= batches:
+        skiprows = 1 if batch == 0 else (batch * block_size)
+        nrows = (((batch + 1) * block_size) - skiprows) if (batch < batches) else last_block_size
+        logger.info('loading rows %s to %s', skiprows + 1, nrows + skiprows)
+
+        with zipfile.ZipFile(f.name) as zfile:
+            with zfile.open(csv_file) as dat_file:
+                data = pd.read_csv(dat_file, dtype=str, header=None, skiprows=skiprows, nrows=nrows, names=all_cols)
+
+                cdata = format_fpds_data(data, sub_tier_list, naics_dict)
+                if cdata is not None:
+                    logger.info("loading {} rows".format(len(cdata.index)))
+
+                    insert_dataframe(cdata, DetachedAwardProcurement.__table__.name, sess.connection())
+
+        added_rows += nrows
+        batch += 1
+    sess.commit()
 
 
 def format_fpds_data(data, sub_tier_list, naics_data):
@@ -1222,10 +1251,25 @@ def format_fpds_data(data, sub_tier_list, naics_data):
     if len(data.index) == 0:
         return None
 
+    # drop all columns we don't want
+    bad_cols = [
+        'unique_transaction_id', 'maj_agency_cat', 'mod_agency', 'maj_fund_agency_cat', 'progsourceagency',
+        'progsourceaccount', 'progsourcesubacct', 'account_title', 'rec_flag', 'state', 'congressionaldistrict',
+        'registrationdate', 'renewaldate', 'statecode', 'placeofperformancecongressionaldistrict', 'psc_cat',
+        'fiscal_year', 'competitiveprocedures', 'organizationaltype', 'isserviceprovider',
+        'isarchitectureandengineering', 'isconstructionfirm', 'isotherbusinessororganization',
+        'prime_awardee_executive1', 'prime_awardee_executive1_compensation', 'prime_awardee_executive2',
+        'prime_awardee_executive2_compensation', 'prime_awardee_executive3', 'prime_awardee_executive3_compensation',
+        'prime_awardee_executive4', 'prime_awardee_executive4_compensation', 'prime_awardee_executive5',
+        'prime_awardee_executive5_compensation']
+    for tag in bad_cols:
+        del data[tag]
+
     # drop rows with transaction_status not active, drop transaction_status column when done
     data = data[data['transaction_status'] == "active"].copy()
     del data['transaction_status']
 
+    logger.info('Starting splitting columns')
     # mappings to split the columns that have the tag and description in the same entry into 2
     colon_split_mappings = {
         'claimantprogramcode': 'dod_claimant_prog_cod_desc',
@@ -1271,10 +1315,10 @@ def format_fpds_data(data, sub_tier_list, naics_data):
         'walshhealyact': 'walsh_healey_act_descrip'
     }
     for tag, description in colon_split_mappings.items():
-        logger.info('splitting column: ' + tag)
         data[description] = data.apply(lambda x: get_data_after_colon(x, tag), axis=1)
         data[tag] = data.apply(lambda x: get_data_before_colon(x, tag), axis=1)
 
+    logger.info('Starting manually mapping columns')
     # mappings for manual description entry
     manual_description_mappings = {
         'ccrexception': 'sam_exception_description',
@@ -1353,13 +1397,12 @@ def format_fpds_data(data, sub_tier_list, naics_data):
         },
     }
     for tag, description in manual_description_mappings.items():
-        logger.info('manually mapping column: ' + tag)
         data[description] = data.apply(lambda x: map_description_manual(x, tag, type_to_description[tag]), axis=1)
         data[tag] = data.apply(lambda x: map_type_manual(x, tag, type_to_description[tag]), axis=1)
 
     logger.info('Starting pre-colon data gathering')
     # clean up a couple other tags that just need the tag in the data
-    tag_only = ['agencyid', 'smallbusinesscompetitivenessdemonstrationprogram']
+    tag_only = ['agencyid', 'smallbusinesscompetitivenessdemonstrationprogram', 'principalnaicscode']
     for tag in tag_only:
         data[tag] = data.apply(lambda x: get_data_before_colon(x, tag), axis=1)
 
@@ -1410,7 +1453,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
 
     # adding columns missing from historical data
     null_list = [
-        'a_76_fair_act_action_desc', 'alaskan_native_servicing_i', 'clinger_cohen_act_pla_desc', 'initial_report_date'
+        'a_76_fair_act_action_desc', 'alaskan_native_servicing_i', 'clinger_cohen_act_pla_desc', 'initial_report_date',
         'local_area_set_aside_desc', 'native_hawaiian_servicing', 'place_of_perform_county_na', 'referenced_idv_type',
         'referenced_idv_type_desc', 'referenced_mult_or_single', 'referenced_mult_or_si_desc',
         'sba_certified_8_a_joint_ve', 'us_government_entity'
@@ -1632,7 +1675,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
             'place_of_perfor_state_desc': 'place_of_perfor_state_desc',
             'place_of_perform_county_na': 'place_of_perform_county_na',
             'placeofmanufacture': 'place_of_manufacture',
-            'PlaceofPerformanceCity': 'place_of_perform_city_name',
+            'placeofperformancecity': 'place_of_perform_city_name',
             'placeofperformancecountrycode': 'place_of_perform_country_c',
             'placeofperformancezipcode': 'place_of_performance_zip4a',
             'pop_cd': 'place_of_performance_congr',
@@ -1811,8 +1854,6 @@ def map_sub_tier_name(row, header, sub_tier_list):
 def map_naics(row, header, naics_list):
     try:
         code = str(row[header])
-        if ':' in code:
-            code = code.split(':')[0]
         return naics_list[code]
     except KeyError:
         return None
