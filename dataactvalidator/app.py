@@ -67,8 +67,9 @@ def run_app():
                         # job pass prerequisites for validation, but an error
                         # happened somewhere. mark job as 'invalid'
                         mark_job_status(job.job_id, 'invalid')
-                        if e.errorType == ValidationError.rowCountError and current_message:
-                            current_message.delete()
+                        if current_message:
+                            if e.errorType in [ValidationError.rowCountError, ValidationError.headerError]:
+                                current_message.delete()
             except Exception as e:
                 # Handle uncaught exceptions in validation process.
                 logger.error(str(e))
