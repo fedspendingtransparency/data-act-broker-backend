@@ -1842,6 +1842,14 @@ def main():
     for sub_tier in sub_tiers:
         sub_tier_list[sub_tier.sub_tier_agency_code] = sub_tier
 
+    s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
+    # get naics dictionary
+    s3bucket_naics = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
+    agency_list_file = s3bucket_naics.get_key("naics.csv").generate_url(expires_in=600)
+    reader = csv.reader(agency_list_file)
+    naics_dict = {rows[0]: rows[1].upper() for rows in reader}
+    logger.info(naics_dict)
+
     if args.all:
         if (not args.delivery and not args.other) or (args.delivery and args.other):
             logger.error("When using the -a flag, please include either -d or -o "
