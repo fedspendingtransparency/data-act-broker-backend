@@ -1150,8 +1150,8 @@ def get_delete_data(contract_type, now, sess, last_run):
             delete(synchronize_session=False)
 
 
-def parse_fpds_file(f, sess, sub_tier_list):
-    logger.info("starting file " + str(f.name))
+def parse_fpds_file(f, sess, sub_tier_list, naics_dict):
+    logger.info("Starting file " + str(f.name))
 
     csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(f.name))[0]
     zfile = zipfile.ZipFile(f.name)
@@ -1202,13 +1202,14 @@ def parse_fpds_file(f, sess, sub_tier_list):
         'typeofcontractpricing', 'typeofidc', 'typeofsetaside', 'ultimatecompletiondate', 'useofepadesignatedproducts',
         'vendor_cd', 'vendor_state_code', 'vendoralternatename', 'vendoralternatesitecode', 'vendorcountrycode',
         'vendordoingasbusinessname', 'vendorenabled', 'vendorlegalorganizationname', 'vendorlocationdisableflag',
-        'vendorname', 'vendorsitecode', 'veteranownedflag', 'walshhealyact', 'womenownedflag', 'zipcode'
+        'vendorname', 'vendorsitecode', 'veteranownedflag', 'walshhealyact', 'womenownedflag', 'zipcode',
+        'transaction_status'
     ])
 
-    clean_data = format_fpds_data(data, sub_tier_list)
+    clean_data = format_fpds_data(data, sub_tier_list, naics_dict)
     if clean_data is not None:
         # print(clean_data.iloc[0])
-        print(clean_data[['awarding_agency_code', 'awarding_agency_name', 'funding_agency_code', 'funding_agency_name']].iloc[0])
+        print(clean_data[['naics_description']].iloc[0])
         # data = data[data.duplicated(subset=['detached_award_proc_unique'])]
         print(len(clean_data.index))
 
@@ -1484,11 +1485,15 @@ def parse_fpds_file(f, sess, sub_tier_list):
     }
 
 
-def format_fpds_data(data, sub_tier_list):
-    logger.info("formatting data")
+def format_fpds_data(data, sub_tier_list, naics_data):
+    logger.info("Formatting data")
 
     if len(data.index) == 0:
         return None
+
+    # drop rows with transaction_status not active, drop transaction_status column when done
+    data = data[data['transaction_status'] == "active"].copy()
+    del data['transaction_status']
 
     # mappings to split the columns that have the tag and description in the same entry into 2
     colon_split_mappings = {
@@ -1519,7 +1524,6 @@ def format_fpds_data(data, sub_tier_list):
         'placeofmanufacture': 'place_of_manufacture_desc',
         'placeofperformancecountrycode': 'place_of_perf_country_desc',
         'pop_state_code': 'place_of_perfor_state_desc',
-        'principalnaicscode': 'naics_description',
         'productorservicecode': 'product_or_service_co_desc',
         'purchasecardaspaymentmethod': 'purchase_card_as_paym_desc',
         'reasonformodification': 'action_type_description',
@@ -1683,6 +1687,7 @@ def format_fpds_data(data, sub_tier_list):
     for item in null_list:
         data[item] = None
 
+    logger.info('Starting cgac/naics and unique key derivations')
     # map using cgac codes
     data['awarding_agency_code'] = data.apply(lambda x: map_agency_code(x, 'contractingofficeagencyid', sub_tier_list),
                                               axis=1)
@@ -1694,6 +1699,9 @@ def format_fpds_data(data, sub_tier_list):
                                              axis=1)
     data['referenced_idv_agency_desc'] = data.apply(lambda x: map_sub_tier_name(x, 'idvagencyid', sub_tier_list),
                                                     axis=1)
+
+    # map naics codes
+    data['naics_description'] = data.apply(lambda x: map_naics(x, 'principalnaicscode', naics_data), axis=1)
 
     # create the unique key
     data['detached_award_proc_unique'] = data.apply(lambda x: create_unique_key(x), axis=1)
@@ -1788,6 +1796,16 @@ def map_sub_tier_name(row, header, sub_tier_list):
         return None
 
 
+def map_naics(row, header, naics_list):
+    try:
+        code = str(row[header])
+        if ':' in code:
+            code = code.split(':')[0]
+        return naics_list[code]
+    except KeyError:
+        return None
+
+
 def map_pulled_from(row, award_contract, idv):
     field_contents = str(row['contractactiontype'])
     if field_contents in award_contract:
@@ -1841,16 +1859,6 @@ def main():
 
     for sub_tier in sub_tiers:
         sub_tier_list[sub_tier.sub_tier_agency_code] = sub_tier
-
-    s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-    # get naics dictionary
-    s3bucket_naics = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-    agency_list_path = s3bucket_naics.get_key("naics.csv").generate_url(expires_in=600)
-    agency_list_file = urllib.request.urlopen(agency_list_path)
-    reader = csv.reader(agency_list_file.read().decode("utf-8").splitlines())
-
-    naics_dict = {rows[0]: rows[1].upper() for rows in reader}
-    logger.info(naics_dict)
 
     if args.all:
         if (not args.delivery and not args.other) or (args.delivery and args.other):
@@ -1932,10 +1940,10 @@ def main():
             s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
             # get naics dictionary
             s3bucket_naics = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-            agency_list_file = s3bucket_naics.get_key("naics.csv").generate_url(expires_in=600)
-            reader = csv.reader(agency_list_file)
+            agency_list_path = s3bucket_naics.get_key("naics.csv").generate_url(expires_in=600)
+            agency_list_file = urllib.request.urlopen(agency_list_path)
+            reader = csv.reader(agency_list_file.read().decode("utf-8").splitlines())
             naics_dict = {rows[0]: rows[1].upper() for rows in reader}
-            logger.info(naics_dict)
 
             # parse contracts files
             s3bucket = s3connection.lookup(CONFIG_BROKER['archive_bucket'])
@@ -1944,7 +1952,7 @@ def main():
                     # we only want up through 2015 for this data
                     if int(key.name[:4]) <= max_year:
                         file_path = key.generate_url(expires_in=600)
-                        parse_fpds_file(urllib.request.urlopen(file_path), sess, sub_tier_list)
+                        parse_fpds_file(urllib.request.urlopen(file_path), sess, sub_tier_list, naics_dict)
         else:
             # get naics dictionary
             naics_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
@@ -1959,7 +1967,7 @@ def main():
                 if re.match('^\d{4}_All_Contracts_Full_\d{8}.csv.zip', file):
                     # we only want up through 2015 for this data
                     if int(file[:4]) <= max_year:
-                        parse_fpds_file(open(os.path.join(base_path, file)), sess, sub_tier_list)
+                        parse_fpds_file(open(os.path.join(base_path, file)), sess, sub_tier_list, naics_dict)
 
         logger.info("Ending at: " + str(datetime.datetime.now()))
         sess.commit()
