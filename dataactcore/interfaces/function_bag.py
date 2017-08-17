@@ -658,7 +658,7 @@ def get_fabs_meta(submission_id):
 
     valid_rows = total_rows.filter(DetachedAwardFinancialAssistance.is_valid)
 
-    publish_date = sess.query(CertifyHistory).filter(CertifyHistory.submission_id == submission_id).one_or_none()
+    publish_date = sess.query(CertifyHistory).filter(CertifyHistory.submission_id == submission_id).one()
     if publish_date:
         publish_date = publish_date.created_at.strftime('%-I:%M%p %m/%d/%Y')
 
