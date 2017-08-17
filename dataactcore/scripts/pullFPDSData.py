@@ -7,6 +7,7 @@ import argparse
 import requests
 import xmltodict
 import pandas as pd
+import csv
 
 import datetime
 import time
@@ -1919,6 +1920,14 @@ def main():
 
         if CONFIG_BROKER["use_aws"]:
             s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
+            # get naics dictionary
+            s3bucket_naics = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
+            agency_list_file = s3bucket_naics.get_key("naics.csv").generate_url(expires_in=600)
+            reader = csv.reader(agency_list_file)
+            naics_dict = {rows[0]: rows[1].upper() for rows in reader}
+            logger.info(naics_dict)
+
+            # parse contracts files
             s3bucket = s3connection.lookup(CONFIG_BROKER['archive_bucket'])
             for key in s3bucket.list():
                 if re.match('^\d{4}_All_Contracts_Full_\d{8}.csv.zip', key.name):
@@ -1927,6 +1936,13 @@ def main():
                         file_path = key.generate_url(expires_in=600)
                         parse_fpds_file(urllib.request.urlopen(file_path), sess, sub_tier_list)
         else:
+            # get naics dictionary
+            naics_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
+            with open(os.path.join(naics_path, 'naics.csv'), 'r') as f:
+                reader = csv.reader(f)
+                naics_dict = {rows[0]: rows[1].upper() for rows in reader}
+
+            # parse contracts files
             base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "fabs")
             file_list = [f for f in os.listdir(base_path)]
             for file in file_list:
