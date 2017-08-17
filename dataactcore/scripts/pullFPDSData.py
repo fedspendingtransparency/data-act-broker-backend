@@ -1423,6 +1423,7 @@ def parse_fpds_file(f, sess, sub_tier_list):
         'receivesgrants': 'grants',
         'recovered_materials_s_desc': 'recovered_materials_s_desc',
         'recoveredmaterialclauses': 'recovered_materials_sustai',
+        'referenced_idv_agency_desc': 'referenced_idv_agency_desc',
         'referenced_idv_type': 'referenced_idv_type',
         'referenced_idv_type_desc': 'referenced_idv_type_desc',
         'referenced_mult_or_single': 'referenced_mult_or_single',
@@ -1690,6 +1691,8 @@ def format_fpds_data(data, sub_tier_list):
                                              axis=1)
     data['funding_agency_name'] = data.apply(lambda x: map_agency_name(x, 'fundingrequestingagencyid', sub_tier_list),
                                              axis=1)
+    data['referenced_idv_agency_desc'] = data.apply(lambda x: map_sub_tier_name(x, 'idvagencyid', sub_tier_list),
+                                                    axis=1)
 
     # create the unique key
     data['detached_award_proc_unique'] = data.apply(lambda x: create_unique_key(x), axis=1)
@@ -1772,6 +1775,14 @@ def map_agency_name(row, header, sub_tier_list):
     try:
         code = str(row[header])
         return sub_tier_list[code].cgac.agency_name
+    except KeyError:
+        return None
+
+
+def map_sub_tier_name(row, header, sub_tier_list):
+    try:
+        code = str(row[header])
+        return sub_tier_list[code].sub_tier_agency_name
     except KeyError:
         return None
 
