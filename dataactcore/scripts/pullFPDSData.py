@@ -1845,7 +1845,8 @@ def main():
     s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
     # get naics dictionary
     s3bucket_naics = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-    agency_list_file = s3bucket_naics.get_key("naics.csv").generate_url(expires_in=600)
+    agency_list_path = s3bucket_naics.get_key("naics.csv").generate_url(expires_in=600)
+    agency_list_file = urllib.request.urlopen(agency_list_path)
     reader = csv.reader(agency_list_file)
     naics_dict = {rows[0]: rows[1].upper() for rows in reader}
     logger.info(naics_dict)
