@@ -1849,6 +1849,9 @@ def main():
                         help='Used in conjunction with -a to indicate all feeds other than delivery order',
                         action='store_true')
     parser.add_argument('-f', '--files', help='Load historical data from files', action='store_true')
+    parser.add_argument('-sf', '--subfolder',
+                        help='Used in conjunction with -f to indicate which Subfolder to load files from',
+                        nargs="+", type=str)
     args = parser.parse_args()
 
     award_types_award = ["BPA Call", "Definitive Contract", "Purchase Order", "Delivery Order"]
@@ -1935,6 +1938,12 @@ def main():
     elif args.files:
         logger.info("Starting file loads at: " + str(datetime.datetime.now()))
         max_year = 2015
+        subfolder = None
+        if args.subfolder:
+            if len(args.subfolder) != 1:
+                logger.error("When using the -sf flag, please enter just one string for the folder name")
+                raise ValueError("When using the -sf flag, please enter just one string for the folder name")
+            subfolder = args.subfolder[0]
 
         if CONFIG_BROKER["use_aws"]:
             s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
@@ -1948,6 +1957,8 @@ def main():
             # parse contracts files
             s3bucket = s3connection.lookup(CONFIG_BROKER['archive_bucket'])
             for key in s3bucket.list():
+                if subfolder:
+                    key = subfolder + "/" + key
                 if re.match('^\d{4}_All_Contracts_Full_\d{8}.csv.zip', key.name):
                     # we only want up through 2015 for this data
                     if int(key.name[:4]) <= max_year:
@@ -1962,6 +1973,8 @@ def main():
 
             # parse contracts files
             base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "fabs")
+            if subfolder:
+                base_path = os.path.join(base_path, subfolder)
             file_list = [f for f in os.listdir(base_path)]
             for file in file_list:
                 if re.match('^\d{4}_All_Contracts_Full_\d{8}.csv.zip', file):
