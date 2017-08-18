@@ -211,16 +211,16 @@ class ValidationManager:
         csv_schema = {row.name_short: row for row in fields}
 
         try:
-            try: 
+            try:
                 # Count file rows: throws a File Level Error for non-UTF8 characters
                 file_path, has_tempfile = reader.get_filename(region_name, bucket_name, file_name)
                 logger.info({
-                    'message': 'Filename: ' + filename + ', file path: ' + file_path,
+                    'message': 'Filename: ' + file_name + ', file path: ' + file_path,
                     'message_type': 'ValidatorInfo',
                     'submission_id': submission_id,
                     'job_id': job_id,
                     'file_type': file_type,
-                    'time': datetime_now()
+                    'time': datetime.now()
                 })
                 file_row_count = sum(1 for row in open(file_path, encoding='utf-8'))
                 try:
@@ -230,8 +230,8 @@ class ValidationManager:
                 except AttributeError:
                     # File does not exist, and so does not need to be closed
                     pass
-            except Exception e:
-                logger.error(e)
+            except Exception as e:
+                logger.error(str(e))
                 pass
 
             # Pull file and return info on whether it's using short or long col headers
