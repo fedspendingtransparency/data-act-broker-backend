@@ -29,6 +29,7 @@ class CsvReader(object):
             filename: The file path for the CSV file (local or in S3)
         """
         self.has_tempfile = False
+        self.filename = filename
 
         if region and bucket:
             # If this is a file in S3, download to a local temp file first
@@ -38,10 +39,9 @@ class CsvReader(object):
 
             s3 = boto3.client('s3', region_name=region)
             s3.download_file(bucket, filename, file_path)
-
             self.filename = file_path
 
-        return self.filename, self.has_tempfile
+        return self.filename
 
     def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
         """Opens file and prepares to read each record, mapping entries to specified column names

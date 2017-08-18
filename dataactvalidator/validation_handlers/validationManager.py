@@ -1,3 +1,4 @@
+import csv
 import os
 import logging
 from datetime import datetime
@@ -211,27 +212,13 @@ class ValidationManager:
         csv_schema = {row.name_short: row for row in fields}
 
         try:
+            # Count file rows: throws a File Level Error for non-UTF8 characters
+            temp_file = open(reader.get_filename(region_name, bucket_name, file_name), encoding='utf-8')
+            file_row_count = len(list(csv.reader(temp_file)))
             try:
-                # Count file rows: throws a File Level Error for non-UTF8 characters
-                file_path, has_tempfile = reader.get_filename(region_name, bucket_name, file_name)
-                logger.info({
-                    'message': 'Filename: ' + file_name + ', file path: ' + file_path,
-                    'message_type': 'ValidatorInfo',
-                    'submission_id': submission_id,
-                    'job_id': job_id,
-                    'file_type': file_type,
-                    'time': datetime.now()
-                })
-                file_row_count = sum(1 for row in open(file_path, encoding='utf-8'))
-                try:
-                    file_row_count.close()
-                    if has_tempfile:
-                        os.remove(file_path)
-                except AttributeError:
-                    # File does not exist, and so does not need to be closed
-                    pass
-            except Exception as e:
-                logger.error(str(e))
+                temp_file.close()
+            except AttributeError:
+                # File does not exist, and so does not need to be closed
                 pass
 
             # Pull file and return info on whether it's using short or long col headers
@@ -383,10 +370,10 @@ class ValidationManager:
                 sess.query(Submission).filter(Submission.submission_id == submission_id).\
                     update({"reporting_start_date": min_action_date, "reporting_end_date": max_action_date},
                            synchronize_session=False)
-            else:
-                # Ensure validated rows match initial row count
-                if file_row_count != row_number:
-                    raise ResponseException("", StatusCode.CLIENT_ERROR, None, ValidationError.rowCountError)
+
+            # Ensure validated rows match initial row count
+            if file_row_count != row_number:
+                raise ResponseException("", StatusCode.CLIENT_ERROR, None, ValidationError.rowCountError)
 
             # Update job metadata
             job.number_of_rows = row_number
