@@ -211,9 +211,6 @@ class ValidationManager:
         csv_schema = {row.name_short: row for row in fields}
 
         try:
-            # Count file rows: throws a File Level Error for non-UTF8 characters
-            file_row_count = sum(1 for row in open(file_name, encoding='utf-8'))
-
             # Pull file and return info on whether it's using short or long col headers
             reader.open_file(region_name, bucket_name, file_name, fields, bucket_name, error_file_name,
                              self.long_to_short_dict)
@@ -350,10 +347,6 @@ class ValidationManager:
             error_rows_unique = set(error_rows)
             total_rows_excluding_header = row_number - 1
             valid_rows = total_rows_excluding_header - len(error_rows_unique)
-
-            # Ensure validated rows match initial row count
-            if (file_row_count - 1) != valid_rows:
-                raise ResponseException("", StatusCode.CLIENT_ERROR, None, ValidationError.rowCountError)
 
             # Update detached_award is_valid rows where applicable
             # Update submission to include action dates where applicable
