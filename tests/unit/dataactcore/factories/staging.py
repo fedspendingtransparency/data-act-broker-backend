@@ -223,6 +223,7 @@ class DetachedAwardFinancialAssistanceFactory(factory.Factory):
         model = stagingModels.DetachedAwardFinancialAssistance
 
     detached_award_financial_assistance_id = None
+    afa_generated_unique = fuzzy.FuzzyText()
     submission_id = fuzzy.FuzzyInteger(9999)
     job_id = fuzzy.FuzzyInteger(9999)
     row_number = fuzzy.FuzzyInteger(9999)
@@ -275,6 +276,7 @@ class PublishedAwardFinancialAssistanceFactory(factory.Factory):
         model = stagingModels.PublishedAwardFinancialAssistance
 
     published_award_financial_assistance_id = None
+    afa_generated_unique = fuzzy.FuzzyText()
     action_date = fuzzy.FuzzyText()
     action_type = fuzzy.FuzzyText()
     assistance_type = fuzzy.FuzzyText()
@@ -305,10 +307,15 @@ class PublishedAwardFinancialAssistanceFactory(factory.Factory):
     legal_entity_address_line1 = fuzzy.FuzzyText()
     legal_entity_address_line2 = fuzzy.FuzzyText()
     legal_entity_address_line3 = fuzzy.FuzzyText()
+    legal_entity_city_name = fuzzy.FuzzyText()
     legal_entity_country_code = fuzzy.FuzzyText()
+    legal_entity_county_code = fuzzy.FuzzyText()
+    legal_entity_county_name = fuzzy.FuzzyText()
     legal_entity_foreign_city = fuzzy.FuzzyText()
     legal_entity_foreign_posta = fuzzy.FuzzyText()
     legal_entity_foreign_provi = fuzzy.FuzzyText()
+    legal_entity_state_code = fuzzy.FuzzyText()
+    legal_entity_state_name = fuzzy.FuzzyText()
     legal_entity_zip5 = fuzzy.FuzzyText()
     legal_entity_zip_last4 = fuzzy.FuzzyText()
     non_federal_funding_amount = fuzzy.FuzzyDecimal(9999)

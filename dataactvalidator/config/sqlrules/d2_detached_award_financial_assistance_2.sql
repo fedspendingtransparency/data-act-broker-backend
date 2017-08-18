@@ -8,11 +8,7 @@ SELECT
     dafa.awarding_sub_tier_agency_c,
     dafa.correction_late_delete_ind
 FROM detached_award_financial_assistance as dafa
-    INNER JOIN published_award_financial_assistance as pafa ON COALESCE(dafa.fain,'') = COALESCE(pafa.fain,'')
-        AND COALESCE(dafa.uri,'') = COALESCE(pafa.uri,'')
-        AND COALESCE(dafa.award_modification_amendme,'') = COALESCE(pafa.award_modification_amendme,'')
-        AND COALESCE(dafa.awarding_sub_tier_agency_c,'') = COALESCE(pafa.awarding_sub_tier_agency_c,'')
+    INNER JOIN published_award_financial_assistance as pafa ON dafa.afa_generated_unique = pafa.afa_generated_unique
+        AND pafa.is_active = True
 WHERE dafa.submission_id = {0}
-    AND ((dafa.correction_late_delete_ind <> 'C'
-        AND dafa.correction_late_delete_ind <> 'D')
-        OR dafa.correction_late_delete_ind IS NULL)
+    AND COALESCE(UPPER(dafa.correction_late_delete_ind), '') NOT IN ('C', 'D')

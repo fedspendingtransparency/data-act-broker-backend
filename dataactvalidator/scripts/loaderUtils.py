@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 from datetime import datetime
 from pandas import isnull
@@ -31,6 +32,12 @@ def insert_dataframe(df, table, engine):
     return len(df.index)
 
 
+def trim_item(item):
+    if type(item) == np.str:
+        return item.strip()
+    return item
+
+
 def clean_data(data, model, field_map, field_options):
     """ Cleans up a dataframe that contains domain values.
 
@@ -60,6 +67,9 @@ def clean_data(data, model, field_map, field_options):
     data = data[list(field_map.keys())]
     # rename columns as specified in fieldMap
     data = data.rename(columns=field_map)
+
+    # trim all columns
+    data = data.applymap(lambda x: trim_item(x) if len(str(x).strip()) else None)
 
     # apply column options as specified in fieldOptions param
     for col, options in field_options.items():
