@@ -28,20 +28,20 @@ class CsvReader(object):
             bucket: Optional parameter; if set, file will be retrieved from S3
             filename: The file path for the CSV file (local or in S3)
         """
-        has_tempfile = False
+        self.has_tempfile = False
 
         if region and bucket:
             # If this is a file in S3, download to a local temp file first
             # Use temp file as local file
             (file, file_path) = tempfile.mkstemp()
-            has_tempfile = True
+            self.has_tempfile = True
 
             s3 = boto3.client('s3', region_name=region)
             s3.download_file(bucket, filename, file_path)
 
-            filename = file_path
+            self.filename = file_path
 
-        return filename, has_tempfile
+        return self.filename, self.has_tempfile
 
     def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
         """Opens file and prepares to read each record, mapping entries to specified column names
@@ -55,10 +55,12 @@ class CsvReader(object):
             long_to_short_dict: mapping of long to short schema column names
         """
 
-        self.filename, self.has_tempfile = self.get_filename(region, bucket, filename)
+        if not self.filename:
+            self.get_filename(region, bucket, filename)
+
         self.is_local = True
         try:
-            self.file = open(filename, "r", newline=None)
+            self.file = open(self.filename, "r", newline=None)
         except:
             raise ValueError("".join(["Filename provided not found : ", str(self.filename)]))
 
