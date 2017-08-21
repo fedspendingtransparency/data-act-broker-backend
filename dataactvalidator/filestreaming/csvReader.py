@@ -21,8 +21,30 @@ class CsvReader(object):
 
     header_report_headers = ["Error type", "Header name"]
 
+    def get_filename(self, region, bucket, filename, from_open_file=None):
+        """Creates a filename based on the file path
+        Args:
+            region: AWS region where the bucket is located
+            bucket: Optional parameter; if set, file will be retrieved from S3
+            filename: The file path for the CSV file (local or in S3)
+        """
+        self.has_tempfile = False
+        self.filename = filename
+
+        if region and bucket:
+            # If this is a file in S3, download to a local temp file first
+            # Use temp file as local file
+            (file, file_path) = tempfile.mkstemp()
+            self.has_tempfile = True
+
+            s3 = boto3.client('s3', region_name=region)
+            s3.download_file(bucket, filename, file_path)
+            self.filename = file_path
+
+        return self.filename
+
     def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
-        """ Opens file and prepares to read each record, mapping entries to specified column names
+        """Opens file and prepares to read each record, mapping entries to specified column names
         Args:
             region: AWS region where the bucket is located
             bucket: Optional parameter; if set, file will be retrieved from S3
@@ -33,16 +55,12 @@ class CsvReader(object):
             long_to_short_dict: mapping of long to short schema column names
         """
 
-        self.has_tempfile = False
-        # If this is a file in S3, download to a local temp file first
-        if region and bucket:
-            # Use temp file as local file
-            filename = self._transfer_s3_file_to_local(region, bucket, filename)
+        if not self.filename:
+            self.get_filename(region, bucket, filename)
 
-        self.filename = filename
         self.is_local = True
         try:
-            self.file = open(filename, "r", newline=None)
+            self.file = open(self.filename, "r", newline=None)
         except:
             raise ValueError("".join(["Filename provided not found : ", str(self.filename)]))
 
@@ -89,17 +107,6 @@ class CsvReader(object):
         if region is None:
             region = CONFIG_BROKER["aws_region"]
         return CsvS3Writer(region, bucket_name, filename, header)
-
-    def _transfer_s3_file_to_local(self, region, bucket, filename):
-        # mkstemp returns a file handle and a path to the created file
-        (file, file_path) = tempfile.mkstemp()
-        self.has_tempfile = True
-
-        s3 = boto3.client('s3', region_name=region)
-
-        s3.download_file(bucket, filename, file_path)
-
-        return file_path
 
     def get_next_record(self):
         """
