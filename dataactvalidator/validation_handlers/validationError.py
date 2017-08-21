@@ -16,18 +16,17 @@ class ValidationError:
     writeError = 5
     unknownErrorMsg = "An unknown error has occurred with this file"
     unknownError = 6
-    singleRow = 7
     singleRowMsg = "CSV file must have a header row and at least one record"
-    jobError = 8
+    singleRow = 7
     jobErrorMsg = "Error occurred in job manager"
-    lengthError = 9
+    jobError = 8
     lengthErrorMsg = "Value was longer than maximum length for this field"
+    lengthError = 9
+    encodingErrorMsg = "File contains invalid characters that could not be validated"
     encodingError = 10
-    encodingErrorMsg = 'File contains invalid characters that could not be validated'
     rowCountErrorMsg = "Raw file row count does not match the number of rows validated"
     rowCountError = 11
-    encodingErrorMsg = 'File contains invalid characters that could not be validated'
-    fileTypeErrorMsg = 'Invalid file type. Valid file types include .csv and .txt'
+    fileTypeErrorMsg = "Invalid file type. Valid file types include .csv and .txt"
     fileTypeError = 12
     # Create dict of error types
     errorDict = {typeError: typeErrorMsg, requiredError: requiredErrorMsg, valueError: valueErrorMsg,
@@ -40,7 +39,6 @@ class ValidationError:
                      unknownError: "unknown_error", singleRow: "single_row_error", jobError: "job_error",
                      lengthError: "length_error", encodingError: "encoding_error", rowCountError: "row_count_error",
                      fileTypeError: "file_type_error"}
-
 
     @staticmethod
     def get_error_message(error_type):
