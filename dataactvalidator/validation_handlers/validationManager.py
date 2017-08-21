@@ -1,3 +1,4 @@
+import csv
 import os
 import logging
 from datetime import datetime
@@ -211,6 +212,15 @@ class ValidationManager:
         csv_schema = {row.name_short: row for row in fields}
 
         try:
+            # Count file rows: throws a File Level Error for non-UTF8 characters
+            temp_file = open(reader.get_filename(region_name, bucket_name, file_name), encoding='utf-8')
+            file_row_count = len(list(csv.reader(temp_file)))
+            try:
+                temp_file.close()
+            except AttributeError:
+                # File does not exist, and so does not need to be closed
+                pass
+
             # Pull file and return info on whether it's using short or long col headers
             reader.open_file(region_name, bucket_name, file_name, fields, bucket_name, error_file_name,
                              self.long_to_short_dict)
@@ -360,6 +370,10 @@ class ValidationManager:
                 sess.query(Submission).filter(Submission.submission_id == submission_id).\
                     update({"reporting_start_date": min_action_date, "reporting_end_date": max_action_date},
                            synchronize_session=False)
+
+            # Ensure validated rows match initial row count
+            if file_row_count != row_number:
+                raise ResponseException("", StatusCode.CLIENT_ERROR, None, ValidationError.rowCountError)
 
             # Update job metadata
             job.number_of_rows = row_number
