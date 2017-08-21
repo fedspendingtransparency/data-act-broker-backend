@@ -213,7 +213,6 @@ class ValidationManager:
 
         try:
             extension = os.path.splitext(file_name)[1]
-            print(extension)
             if not extension or extension not in ['.csv', '.txt']:
                 raise ResponseException("", StatusCode.CLIENT_ERROR, None, ValidationError.fileTypeError)
 
