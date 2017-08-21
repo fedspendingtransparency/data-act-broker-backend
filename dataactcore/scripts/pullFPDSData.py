@@ -1,17 +1,30 @@
+import os
+import urllib.request
+import boto
+import zipfile
 import logging
 import argparse
 import requests
 import xmltodict
+import numpy as np
+import pandas as pd
+import csv
 
 import datetime
+import time
 import re
+import threading
 
 from dataactcore.logging import configure_logging
+from dataactcore.config import CONFIG_BROKER
 
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import CGAC, SubTierAgency
+from dataactcore.utils.statusCode import StatusCode
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.models.domainModels import SubTierAgency
 from dataactcore.models.stagingModels import DetachedAwardProcurement
 from dataactcore.models.jobModels import FPDSUpdate
 
@@ -19,6 +32,7 @@ from dataactcore.models.jobModels import Submission  # noqa
 from dataactcore.models.userModel import User  # noqa
 
 from dataactvalidator.health_check import create_app
+from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 
 feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.4.5&q="
 delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&templateName=1.4.5&q="
@@ -440,7 +454,10 @@ def vendor_values(data, obj):
             obj[value] = None
 
     # vendorHeader sub-level
-    value_map = {'vendorDoingAsBusinessName': 'vendor_doing_as_business_n',
+    value_map = {'vendorAlternateName': 'vendor_alternate_name',
+                 'vendorDoingAsBusinessName': 'vendor_doing_as_business_n',
+                 'vendorEnabled': 'vendor_enabled',
+                 'vendorLegalOrganizationName': 'vendor_legal_org_name',
                  'vendorName': 'awardee_or_recipient_legal'}
 
     for key, value in value_map.items():
@@ -462,6 +479,18 @@ def vendor_values(data, obj):
 
 def vendor_site_details_values(data, obj):
     """ Get values from the vendorSiteDetails level of the xml (sub-level of vendor) """
+    # base vendorSiteDetails level
+    value_map = {'divisionName': 'division_name',
+                 'divisionNumberOrOfficeCode': 'division_number_or_office',
+                 'vendorAlternateSiteCode': 'vendor_alternate_site_code',
+                 'vendorSiteCode': 'vendor_site_code'}
+
+    for key, value in value_map.items():
+        try:
+            obj[value] = extract_text(data[key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
     # typeOfEducationalEntity sub-level
     value_map = {'is1862LandGrantCollege': 'c1862_land_grant_college',
                  'is1890LandGrantCollege': 'c1890_land_grant_college',
@@ -602,6 +631,7 @@ def vendor_site_details_values(data, obj):
                  'streetAddress': 'legal_entity_address_line1',
                  'streetAddress2': 'legal_entity_address_line2',
                  'streetAddress3': 'legal_entity_address_line3',
+                 'vendorLocationDisabledFlag': 'vendor_location_disabled_f',
                  'ZIPCode': 'legal_entity_zip4'}
 
     for key, value in value_map.items():
@@ -633,10 +663,12 @@ def vendor_site_details_values(data, obj):
         obj['legal_entity_country_name'] = None
 
     # vendorOrganizationFactors sub-level
-    value_map = {'isForeignOwnedAndLocated': 'foreign_owned_and_located',
+    value_map = {'annualRevenue': 'annual_revenue',
+                 'isForeignOwnedAndLocated': 'foreign_owned_and_located',
                  'isLimitedLiabilityCorporation': 'limited_liability_corporat',
                  'isShelteredWorkshop': 'the_ability_one_program',
-                 'isSubchapterSCorporation': 'subchapter_s_corporation'}
+                 'isSubchapterSCorporation': 'subchapter_s_corporation',
+                 'numberOfEmployees': 'number_of_employees'}
 
     for key, value in value_map.items():
         try:
@@ -705,33 +737,29 @@ def vendor_site_details_values(data, obj):
     return obj
 
 
-def calculate_remaining_fields(obj, sess):
+def calculate_remaining_fields(obj, sub_tier_list):
     """ calculate values that aren't in any feed but can be calculated """
     if obj['awarding_sub_tier_agency_c']:
-        agency_data = sess.query(CGAC).\
-            filter(CGAC.cgac_id == SubTierAgency.cgac_id,
-                   SubTierAgency.sub_tier_agency_code == obj['awarding_sub_tier_agency_c']).one_or_none()
-        if agency_data:
+        try:
+            agency_data = sub_tier_list[obj['awarding_sub_tier_agency_c']].cgac
             obj['awarding_agency_code'] = agency_data.cgac_code
             obj['awarding_agency_name'] = agency_data.agency_name
-        else:
+        except KeyError:
             logger.info('WARNING: MissingSubtierCGAC: The awarding sub-tier cgac_code: %s does not exist in cgac table.'
-                        'The FPDS-provided awarding sub-tier agency name (if given) for this cgac_code is %s.'
+                        ' The FPDS-provided awarding sub-tier agency name (if given) for this cgac_code is %s. '
                         'The award has been loaded with awarding_agency_code 999.',
                         obj['awarding_sub_tier_agency_c'], obj['awarding_sub_tier_agency_n'])
             obj['awarding_agency_code'] = '999'
             obj['awarding_agency_name'] = None
 
     if obj['funding_sub_tier_agency_co']:
-        agency_data = sess.query(CGAC). \
-            filter(CGAC.cgac_id == SubTierAgency.cgac_id,
-                   SubTierAgency.sub_tier_agency_code == obj['funding_sub_tier_agency_co']).one_or_none()
-        if agency_data:
+        try:
+            agency_data = sub_tier_list[obj['funding_sub_tier_agency_co']].cgac
             obj['funding_agency_code'] = agency_data.cgac_code
             obj['funding_agency_name'] = agency_data.agency_name
-        else:
-            logger.info('WARNING: MissingSubtierCGAC: The funding sub-tier cgac_code: %s does not exist in cgac table.'
-                        'The FPDS-provided funding sub-tier agency name (if given) for this cgac_code is %s.'
+        except KeyError:
+            logger.info('WARNING: MissingSubtierCGAC: The funding sub-tier cgac_code: %s does not exist in cgac table. '
+                        'The FPDS-provided funding sub-tier agency name (if given) for this cgac_code is %s. '
                         'The award has been loaded with funding_agency_code 999.',
                         obj['funding_sub_tier_agency_co'], obj['funding_sub_tier_agency_na'])
             obj['funding_agency_code'] = '999'
@@ -755,7 +783,7 @@ def calculate_remaining_fields(obj, sess):
     return obj
 
 
-def process_data(data, atom_type, sess):
+def process_data(data, atom_type, sub_tier_list):
     """ process the data coming in """
     obj = {}
 
@@ -850,12 +878,17 @@ def process_data(data, atom_type, sess):
         data['vendor'] = {}
     obj = vendor_values(data['vendor'], obj)
 
-    obj = calculate_remaining_fields(obj, sess)
+    obj = calculate_remaining_fields(obj, sub_tier_list)
 
     try:
         obj['last_modified'] = data['transactionInformation']['lastModifiedDate']
     except (KeyError, TypeError):
         obj['last_modified'] = None
+
+    try:
+        obj['initial_report_date'] = data['transactionInformation']['createdDate']
+    except (KeyError, TypeError):
+        obj['initial_report_date'] = None
 
     obj['pulled_from'] = atom_type
 
@@ -940,46 +973,47 @@ def process_delete_data(data, atom_type):
     return unique_string
 
 
-def process_and_add(data, contract_type, sess, last_run=None):
-    """ start the processing for data and add it to the DB """
-    i = 0
-    # if a date that the script was last successfully run is not provided, assume we're inserting for the first
-    # time so we can just add the model rather than making sure it doesn't exist yet
-    if not last_run:
-        for value in data:
-            if i % 5000 == 0:
-                logger.info('inserting row %s for current batch', i)
+def create_processed_data_list(data, contract_type, sub_tier_list):
+    data_list = []
+    for value in data:
+        tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sub_tier_list=sub_tier_list)
+        data_list.append(tmp_obj)
+    return data_list
 
-            tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sess=sess)
-            tmp_award = DetachedAwardProcurement(**tmp_obj)
-            sess.add(tmp_award)
-            i += 1
-    # if a date that the script was last successfully run is provided, we're inserting over something that already
-    # exists so we have to check for conflicts and update when there is one
-    else:
-        for value in data:
-            if i % 5000 == 0:
-                logger.info('inserting row %s for current batch', i)
 
-            tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sess=sess)
-            insert_statement = insert(DetachedAwardProcurement).values(**tmp_obj).\
-                on_conflict_do_update(index_elements=['detached_award_proc_unique'], set_=tmp_obj)
+def add_processed_data_list(data, sess):
+    try:
+        sess.bulk_save_objects([DetachedAwardProcurement(**fpds_data) for fpds_data in data])
+        sess.commit()
+    except IntegrityError:
+        sess.rollback()
+        logger.error("Attempted to insert duplicate FPDS data. Inserting each row in batch individually.")
+
+        for fpds_obj in data:
+            insert_statement = insert(DetachedAwardProcurement).values(**fpds_obj). \
+                on_conflict_do_update(index_elements=['detached_award_proc_unique'], set_=fpds_obj)
             sess.execute(insert_statement)
-            i += 1
+        sess.commit()
 
 
-def get_data(contract_type, award_type, now, sess, last_run=None):
+def process_and_add(data, contract_type, sess, sub_tier_list):
+    """ start the processing for data and add it to the DB """
+    for value in data:
+        tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sub_tier_list=sub_tier_list)
+        insert_statement = insert(DetachedAwardProcurement).values(**tmp_obj).\
+            on_conflict_do_update(index_elements=['detached_award_proc_unique'], set_=tmp_obj)
+        sess.execute(insert_statement)
+
+
+def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None):
     """ get the data from the atom feed based on contract/award type and the last time the script was run """
     data = []
     yesterday = now - datetime.timedelta(days=1)
-    log_interval = 1000
     # if a date that the script was last successfully run is not provided, get all data
     if not last_run:
-        # we want to log less often for a "get all" run
-        log_interval = 10000
         # params = 'SIGNED_DATE:[2015/10/01,'+ yesterday.strftime('%Y/%m/%d') + '] '
         params = 'SIGNED_DATE:[2016/10/01,' + yesterday.strftime('%Y/%m/%d') + '] '
-        # params = 'SIGNED_DATE:[2017/03/01,'+ yesterday.strftime('%Y/%m/%d') + '] '
+        # params = 'SIGNED_DATE:[2017/07/01,' + yesterday.strftime('%Y/%m/%d') + '] '
     # if a date that the script was last successfully run is provided, get data since that date
     else:
         last_run_date = last_run.update_date
@@ -991,35 +1025,59 @@ def get_data(contract_type, award_type, now, sess, last_run=None):
     # params = 'PIID:"0046"+REF_IDV_PIID:"W56KGZ15A6000"'
 
     i = 0
+    loops = 0
     logger.info('Starting get feed: ' + feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() +
                 '" AWARD_TYPE:"' + award_type + '"')
     while True:
-        resp = requests.get(feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' +
-                            award_type + '"&start=' + str(i), timeout=60)
-        resp_data = xmltodict.parse(resp.text, process_namespaces=True,
-                                    namespaces={'http://www.fpdsng.com/FPDS': None,
-                                                'http://www.w3.org/2005/Atom': None})
+        loops += 1
+        exception_retries = -1
+        retry_sleep_times = [5, 30, 60]
+        # looping in case feed breaks
+        while True:
+            try:
+                resp = requests.get(feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' +
+                                    award_type + '"&start=' + str(i), timeout=60)
+                resp_data = xmltodict.parse(resp.text, process_namespaces=True,
+                                            namespaces={'http://www.fpdsng.com/FPDS': None,
+                                                        'http://www.w3.org/2005/Atom': None})
+                break
+            except ConnectionResetError:
+                exception_retries += 1
+                # retry up to 3 times before raising an error
+                if exception_retries < 3:
+                    time.sleep(retry_sleep_times[exception_retries])
+                else:
+                    raise ResponseException(
+                        "Connection to FPDS feed lost, maximum retry attempts exceeded.", StatusCode.INTERNAL_ERROR
+                    )
+
         # only list the data if there's data to list
         try:
             listed_data = list_data(resp_data['feed']['entry'])
         except KeyError:
             listed_data = []
 
-        for ld in listed_data:
-            data.append(ld)
-            i += 1
+        # if we're calling threads, we want to just add to the list, otherwise we want to process the data now
+        if last_run:
+            for ld in listed_data:
+                data.append(ld)
+                i += 1
+        else:
+            data.extend(create_processed_data_list(listed_data, contract_type, sub_tier_list))
+            i += len(listed_data)
 
-        # Log which one we're on so we can keep track of how far we are (different numbers for different pulls)
-        if i % log_interval == 0:
-            logger.info("On line " + str(i) + " of get %s: %s feed", contract_type, award_type)
+        # Log which one we're on so we can keep track of how far we are, insert into DB ever 1k lines
+        if loops % 100 == 0 and loops != 0:
+            logger.info("Retrieved %s lines of get %s: %s feed, writing next 1,000 to DB", i, contract_type, award_type)
+            # if we're calling threads, we want process_and_add, otherwise we want add_processed_data_list
+            if last_run:
+                process_and_add(data, contract_type, sess, sub_tier_list)
+            else:
+                add_processed_data_list(data, sess)
+            data = []
 
-            # every 100,000 records, add the data to the session and clear the data array so we don't run into
-            # a memory error. This can be done inside the 100 tracker because 100,000 is divisible by 100
-            # so we don't have to check this if statement every time. Don't process on row 0
-            if i % 100000 == 0 and i != 0:
-                logger.info("Processing next 100,000 records")
-                process_and_add(data, contract_type, sess, last_run)
-                data = []
+            logger.info("Successfully inserted 1,000 lines of get %s: %s feed, continuing feed retrieval",
+                        contract_type, award_type)
 
         # if we got less than 10 records, we can stop calling the feed
         if len(listed_data) < 10:
@@ -1028,7 +1086,13 @@ def get_data(contract_type, award_type, now, sess, last_run=None):
     logger.info("Total entries in %s: %s feed: " + str(i), contract_type, award_type)
 
     # insert whatever is left
-    process_and_add(data, contract_type, sess, last_run)
+    logger.info("Processing remaining lines for %s: %s feed", contract_type, award_type)
+    # if we're calling threads, we want process_and_add, otherwise we want add_processed_data_list
+    if last_run:
+        process_and_add(data, contract_type, sess, sub_tier_list)
+    else:
+        add_processed_data_list(data, sess)
+
     logger.info("processed " + contract_type + ": " + award_type + " data")
 
 
@@ -1088,6 +1152,742 @@ def get_delete_data(contract_type, now, sess, last_run):
             delete(synchronize_session=False)
 
 
+def parse_fpds_file(f, sess, sub_tier_list, naics_dict):
+    logger.info("Starting file " + str(f.name))
+
+    csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(f.name))[0]
+
+    nrows = 0
+    with zipfile.ZipFile(f.name) as zfile:
+        with zfile.open(csv_file) as dat_file:
+            nrows = len(dat_file.readlines())
+
+    block_size = 10000
+    batches = nrows // block_size
+    last_block_size = (nrows % block_size)
+    batch = 0
+    added_rows = 0
+
+    all_cols = [
+        "unique_transaction_id", "transaction_status", "dollarsobligated", "baseandexercisedoptionsvalue",
+        "baseandalloptionsvalue", "maj_agency_cat", "mod_agency", "maj_fund_agency_cat", "contractingofficeagencyid",
+        "contractingofficeid", "fundingrequestingagencyid", "fundingrequestingofficeid", "fundedbyforeignentity",
+        "signeddate", "effectivedate", "currentcompletiondate", "ultimatecompletiondate", "lastdatetoorder",
+        "contractactiontype", "reasonformodification", "typeofcontractpricing", "priceevaluationpercentdifference",
+        "subcontractplan", "lettercontract", "multiyearcontract", "performancebasedservicecontract", "majorprogramcode",
+        "contingencyhumanitarianpeacekeepingoperation", "contractfinancing", "costorpricingdata",
+        "costaccountingstandardsclause", "descriptionofcontractrequirement", "purchasecardaspaymentmethod",
+        "numberofactions", "nationalinterestactioncode", "progsourceagency", "progsourceaccount", "progsourcesubacct",
+        "account_title", "rec_flag", "typeofidc", "multipleorsingleawardidc", "programacronym", "vendorname",
+        "vendoralternatename", "vendorlegalorganizationname", "vendordoingasbusinessname", "divisionname",
+        "divisionnumberorofficecode", "vendorenabled", "vendorlocationdisableflag", "ccrexception", "streetaddress",
+        "streetaddress2", "streetaddress3", "city", "state", "zipcode", "vendorcountrycode", "vendor_state_code",
+        "vendor_cd", "congressionaldistrict", "vendorsitecode", "vendoralternatesitecode", "dunsnumber",
+        "parentdunsnumber", "phoneno", "faxno", "registrationdate", "renewaldate", "mod_parent", "locationcode",
+        "statecode", "PlaceofPerformanceCity", "pop_state_code", "placeofperformancecountrycode",
+        "placeofperformancezipcode", "pop_cd", "placeofperformancecongressionaldistrict", "psc_cat",
+        "productorservicecode", "systemequipmentcode", "claimantprogramcode", "principalnaicscode",
+        "informationtechnologycommercialitemcategory", "gfe_gfp", "useofepadesignatedproducts",
+        "recoveredmaterialclauses", "seatransportation", "contractbundling", "consolidatedcontract", "countryoforigin",
+        "placeofmanufacture", "manufacturingorganizationtype", "agencyid", "piid", "modnumber", "transactionnumber",
+        "fiscal_year", "idvagencyid", "idvpiid", "idvmodificationnumber", "solicitationid", "extentcompeted",
+        "reasonnotcompeted", "numberofoffersreceived", "commercialitemacquisitionprocedures",
+        "commercialitemtestprogram", "smallbusinesscompetitivenessdemonstrationprogram", "a76action",
+        "competitiveprocedures", "solicitationprocedures", "typeofsetaside", "localareasetaside", "evaluatedpreference",
+        "fedbizopps", "research", "statutoryexceptiontofairopportunity", "organizationaltype", "numberofemployees",
+        "annualrevenue", "firm8aflag", "hubzoneflag", "sdbflag", "issbacertifiedsmalldisadvantagedbusiness",
+        "shelteredworkshopflag", "hbcuflag", "educationalinstitutionflag", "womenownedflag", "veteranownedflag",
+        "srdvobflag", "localgovernmentflag", "minorityinstitutionflag", "aiobflag", "stategovernmentflag",
+        "federalgovernmentflag", "minorityownedbusinessflag", "apaobflag", "tribalgovernmentflag", "baobflag",
+        "naobflag", "saaobflag", "nonprofitorganizationflag", "isothernotforprofitorganization",
+        "isforprofitorganization", "isfoundation", "haobflag", "ishispanicservicinginstitution",
+        "emergingsmallbusinessflag", "hospitalflag", "contractingofficerbusinesssizedetermination",
+        "is1862landgrantcollege", "is1890landgrantcollege", "is1994landgrantcollege", "isveterinarycollege",
+        "isveterinaryhospital", "isprivateuniversityorcollege", "isschoolofforestry",
+        "isstatecontrolledinstitutionofhigherlearning", "isserviceprovider", "receivescontracts", "receivesgrants",
+        "receivescontractsandgrants", "isairportauthority", "iscouncilofgovernments",
+        "ishousingauthoritiespublicortribal", "isinterstateentity", "isplanningcommission", "isportauthority",
+        "istransitauthority", "issubchapterscorporation", "islimitedliabilitycorporation", "isforeignownedandlocated",
+        "isarchitectureandengineering", "isdotcertifieddisadvantagedbusinessenterprise", "iscitylocalgovernment",
+        "iscommunitydevelopedcorporationownedfirm", "iscommunitydevelopmentcorporation", "isconstructionfirm",
+        "ismanufacturerofgoods", "iscorporateentitynottaxexempt", "iscountylocalgovernment", "isdomesticshelter",
+        "isfederalgovernmentagency", "isfederallyfundedresearchanddevelopmentcorp", "isforeigngovernment",
+        "isindiantribe", "isintermunicipallocalgovernment", "isinternationalorganization", "islaborsurplusareafirm",
+        "islocalgovernmentowned", "ismunicipalitylocalgovernment", "isnativehawaiianownedorganizationorfirm",
+        "isotherbusinessororganization", "isotherminorityowned", "ispartnershiporlimitedliabilitypartnership",
+        "isschooldistrictlocalgovernment", "issmallagriculturalcooperative", "issoleproprietorship",
+        "istownshiplocalgovernment", "istriballyownedfirm", "istribalcollege", "isalaskannativeownedcorporationorfirm",
+        "iscorporateentitytaxexempt", "iswomenownedsmallbusiness", "isecondisadvwomenownedsmallbusiness",
+        "isjointventurewomenownedsmallbusiness", "isjointventureecondisadvwomenownedsmallbusiness", "walshhealyact",
+        "servicecontractact", "davisbaconact", "clingercohenact", "otherstatutoryauthority", "prime_awardee_executive1",
+        "prime_awardee_executive1_compensation", "prime_awardee_executive2", "prime_awardee_executive2_compensation",
+        "prime_awardee_executive3", "prime_awardee_executive3_compensation", "prime_awardee_executive4",
+        "prime_awardee_executive4_compensation", "prime_awardee_executive5", "prime_awardee_executive5_compensation",
+        "interagencycontractingauthority", "last_modified_date"]
+
+    while batch <= batches:
+        skiprows = 1 if batch == 0 else (batch * block_size)
+        nrows = (((batch + 1) * block_size) - skiprows) if (batch < batches) else last_block_size
+        logger.info('loading rows %s to %s', skiprows + 1, nrows + skiprows)
+
+        with zipfile.ZipFile(f.name) as zfile:
+            with zfile.open(csv_file) as dat_file:
+                data = pd.read_csv(dat_file, dtype=str, header=None, skiprows=skiprows, nrows=nrows, names=all_cols)
+
+                cdata = format_fpds_data(data, sub_tier_list, naics_dict)
+                if cdata is not None:
+                    logger.info("loading {} rows".format(len(cdata.index)))
+
+                    insert_dataframe(cdata, DetachedAwardProcurement.__table__.name, sess.connection())
+
+        added_rows += nrows
+        batch += 1
+    sess.commit()
+
+
+def format_fpds_data(data, sub_tier_list, naics_data):
+    logger.info("Formatting data")
+
+    if len(data.index) == 0:
+        return None
+
+    # drop all columns we don't want
+    bad_cols = [
+        'unique_transaction_id', 'maj_agency_cat', 'mod_agency', 'maj_fund_agency_cat', 'progsourceagency',
+        'progsourceaccount', 'progsourcesubacct', 'account_title', 'rec_flag', 'state', 'congressionaldistrict',
+        'registrationdate', 'renewaldate', 'statecode', 'placeofperformancecongressionaldistrict', 'psc_cat',
+        'fiscal_year', 'competitiveprocedures', 'organizationaltype', 'isserviceprovider',
+        'isarchitectureandengineering', 'isconstructionfirm', 'isotherbusinessororganization',
+        'prime_awardee_executive1', 'prime_awardee_executive1_compensation', 'prime_awardee_executive2',
+        'prime_awardee_executive2_compensation', 'prime_awardee_executive3', 'prime_awardee_executive3_compensation',
+        'prime_awardee_executive4', 'prime_awardee_executive4_compensation', 'prime_awardee_executive5',
+        'prime_awardee_executive5_compensation']
+    for tag in bad_cols:
+        del data[tag]
+
+    # drop rows with transaction_status not active, drop transaction_status column when done
+    data = data[data['transaction_status'] == "active"].copy()
+    del data['transaction_status']
+
+    logger.info('Starting splitting columns')
+    # mappings to split the columns that have the tag and description in the same entry into 2
+    colon_split_mappings = {
+        'claimantprogramcode': 'dod_claimant_prog_cod_desc',
+        'commercialitemacquisitionprocedures': 'commercial_item_acqui_desc',
+        'commercialitemtestprogram': 'commercial_item_test_desc',
+        'consolidatedcontract': 'consolidated_contract_desc',
+        'contingencyhumanitarianpeacekeepingoperation': 'contingency_humanitar_desc',
+        'contractbundling': 'contract_bundling_descrip',
+        'contractfinancing': 'contract_financing_descrip',
+        'contractingofficeagencyid': 'awarding_sub_tier_agency_n',
+        'contractingofficeid': 'awarding_office_name',
+        'contractingofficerbusinesssizedetermination': 'contracting_officers_desc',
+        'costorpricingdata': 'cost_or_pricing_data_desc',
+        'countryoforigin': 'country_of_product_or_desc',
+        'evaluatedpreference': 'evaluated_preference_desc',
+        'extentcompeted': 'extent_compete_description',
+        'fundingrequestingagencyid': 'funding_sub_tier_agency_na',
+        'fundingrequestingofficeid': 'funding_office_name',
+        'gfe_gfp': 'government_furnished_desc',
+        'informationtechnologycommercialitemcategory': 'information_technolog_desc',
+        'interagencycontractingauthority': 'interagency_contract_desc',
+        'manufacturingorganizationtype': 'domestic_or_foreign_e_desc',
+        'multipleorsingleawardidc': 'multiple_or_single_aw_desc',
+        'multiyearcontract': 'multi_year_contract_desc',
+        'nationalinterestactioncode': 'national_interest_desc',
+        'performancebasedservicecontract': 'performance_based_se_desc',
+        'placeofmanufacture': 'place_of_manufacture_desc',
+        'placeofperformancecountrycode': 'place_of_perf_country_desc',
+        'pop_state_code': 'place_of_perfor_state_desc',
+        'productorservicecode': 'product_or_service_co_desc',
+        'purchasecardaspaymentmethod': 'purchase_card_as_paym_desc',
+        'reasonformodification': 'action_type_description',
+        'reasonnotcompeted': 'other_than_full_and_o_desc',
+        'recoveredmaterialclauses': 'recovered_materials_s_desc',
+        'seatransportation': 'sea_transportation_desc',
+        'solicitationprocedures': 'solicitation_procedur_desc',
+        'subcontractplan': 'subcontracting_plan_desc',
+        'systemequipmentcode': 'program_system_or_equ_desc',
+        'typeofcontractpricing': 'type_of_contract_pric_desc',
+        'typeofsetaside': 'type_set_aside_description',
+        'useofepadesignatedproducts': 'epa_designated_produc_desc',
+        'vendorcountrycode': 'legal_entity_country_name',
+        'walshhealyact': 'walsh_healey_act_descrip'
+    }
+    for tag, description in colon_split_mappings.items():
+        data[description] = data.apply(lambda x: get_data_after_colon(x, tag), axis=1)
+        data[tag] = data.apply(lambda x: get_data_before_colon(x, tag), axis=1)
+
+    logger.info('Starting manually mapping columns')
+    # mappings for manual description entry
+    manual_description_mappings = {
+        'ccrexception': 'sam_exception_description',
+        'costaccountingstandardsclause': 'cost_accounting_stand_desc',
+        'davisbaconact': 'davis_bacon_act_descrip',
+        'fedbizopps': 'fed_biz_opps_description',
+        'fundedbyforeignentity': 'foreign_funding_desc',
+        'lettercontract': 'undefinitized_action_desc',
+        'research': 'research_description',
+        'servicecontractact': 'service_contract_act_desc',
+        'statutoryexceptiontofairopportunity': 'fair_opportunity_limi_desc',
+        'typeofidc': 'type_of_idc_description',
+    }
+    type_to_description = {
+        'ccrexception': {
+            '1': 'GOVERNMENT - WIDE COMMERCIAL PURCHASE CARD',
+            '2': 'CLASSIFIED CONTRACTS',
+            '3': 'CONTRACTING OFFICERS DEPLOYED IN THE COURSE OF MILITARY OPERATIONS',
+            '4': 'CONTRACTING OFFICERS CONDUCTING EMERGENCY OPERATIONS',
+            '5': 'CONTRACTS TO SUPPORT UNUSUAL OR COMPELLING NEEDS',
+            '6': 'AWARDS TO FOREIGN VENDORS FOR WORK PERFORMED OUTSIDE THE UNITED STATES',
+            '7': 'MICRO-PURCHASES THAT DO NOT USE THE EFT'
+        },
+        'costaccountingstandardsclause': {
+            'Y': 'YES - CAS CLAUSE INCLUDED',
+            'N': 'NO - CAS WAIVER APPROVED',
+            'X': 'NOT APPLICABLE EXEMPT FROM CAS'
+        },
+        'davisbaconact': {
+            'Y': 'YES',
+            'N': 'NO',
+            'X': 'NOT APPLICABLE'
+        },
+        'fedbizopps': {
+            'Y': 'YES',
+            'N': 'NO',
+            'X': 'NOT APPLICABLE'
+        },
+        'fundedbyforeignentity': {
+            'A': 'FOREIGN FUNDS FMS',
+            'B': 'FOREIGN FUNDS NON-FMS',
+            'X': 'NOT APPLICABLE'
+        },
+        'lettercontract': {
+            'A': 'LETTER CONTRACT',
+            'B': 'OTHER UNDEFINITIZED ACTION',
+            'X': 'NO'
+        },
+        'research': {
+            'SR1': 'SMALL BUSINESS INNOVATION RESEARCH PROGRAM PHASE I ACTION',
+            'SR2': 'SMALL BUSINESS INNOVATION RESEARCH PROGRAM PHASE II ACTION',
+            'SR3': 'SMALL BUSINESS INNOVATION RESEARCH PROGRAM PHASE III ACTION',
+            'ST1': 'SMALL TECHNOLOGY TRANSFER RESEARCH PROGRAM PHASE I',
+            'ST2': 'SMALL TECHNOLOGY TRANSFER RESEARCH PROGRAM PHASE II',
+            'ST3': 'SMALL TECHNOLOGY TRANSFER RESEARCH PROGRAM PHASE III'
+        },
+        'servicecontractact': {
+            'Y': 'YES',
+            'N': 'NO',
+            'X': 'NOT APPLICABLE'
+        },
+        'statutoryexceptiontofairopportunity': {
+            'URG': 'URGENCY',
+            'ONE': 'ONLY ONE SOURCE - OTHER',
+            'FOO': 'FOLLOW-ON ACTION FOLLOWING COMPETITIVE INITIAL ACTION',
+            'MG': 'MINIMUM GUARANTEE',
+            'OSA': 'OTHER STATUTORY AUTHORITY',
+            'FAIR': 'FAIR OPPORTUNITY GIVEN',
+            'CSA': 'COMPETITIVE SET ASIDE',
+            'SS': 'SOLE SOURCE'
+        },
+        'typeofidc': {
+            'A': 'INDEFINITE DELIVERY / REQUIREMENTS',
+            'B': 'INDEFINITE DELIVERY / INDEFINITE QUANTITY',
+            'C': 'INDEFINITE DELIVERY / DEFINITE QUANTITY'
+        },
+    }
+    for tag, description in manual_description_mappings.items():
+        data[description] = data.apply(lambda x: map_description_manual(x, tag, type_to_description[tag]), axis=1)
+        data[tag] = data.apply(lambda x: map_type_manual(x, tag, type_to_description[tag]), axis=1)
+
+    logger.info('Starting pre-colon data gathering')
+    # clean up a couple other tags that just need the tag in the data
+    tag_only = ['agencyid', 'smallbusinesscompetitivenessdemonstrationprogram', 'principalnaicscode']
+    for tag in tag_only:
+        data[tag] = data.apply(lambda x: get_data_before_colon(x, tag), axis=1)
+
+    logger.info('Starting specialized mappings')
+    # map legal_entity_state data depending on given conditions then drop vendor_state_code since it's been split now
+    data['legal_entity_state_code'] = data.apply(lambda x: map_legal_entity_state_code(x), axis=1)
+    data['legal_entity_state_descrip'] = data.apply(lambda x: map_legal_entity_state_descrip(x), axis=1)
+    del data['vendor_state_code']
+
+    # map contents of contractactiontype to relevant columns then delete contractactiontype column
+    award_contract_type_mappings = {
+        'BPA Call Blanket Purchase Agreement': 'A', 'PO Purchase Order': 'B',
+        'DO Delivery Order': 'C', 'DCA Definitive Contract': 'D'
+    }
+    award_contract_desc_mappings = {
+        'BPA Call Blanket Purchase Agreement': 'BPA CALL', 'PO Purchase Order': 'PURCHASE ORDER',
+        'DO Delivery Order': 'DELIVERY ORDER', 'DCA Definitive Contract': 'DEFINITIVE CONTRACT'
+    }
+    idv_type_mappings = {
+        'GWAC Government Wide Acquisition Contract': 'A',
+        'IDC Indefinite Delivery Contract': 'B',
+        'FSS Federal Supply Schedule': 'C',
+        'BOA Basic Ordering Agreement': 'D',
+        'BPA Blanket Purchase Agreement': 'E'
+    }
+    idv_desc_mappings = {
+        'GWAC Government Wide Acquisition Contract': 'GWAC',
+        'IDC Indefinite Delivery Contract': 'IDC',
+        'FSS Federal Supply Schedule': 'FSS',
+        'BOA Basic Ordering Agreement': 'BOA',
+        'BPA Blanket Purchase Agreement': 'BPA'
+    }
+    data['contract_award_type'] = data.apply(lambda x: map_type(x, award_contract_type_mappings), axis=1)
+    data['contract_award_type_desc'] = data.apply(lambda x: map_type_description(x, award_contract_desc_mappings),
+                                                  axis=1)
+    data['idv_type'] = data.apply(lambda x: map_type(x, idv_type_mappings), axis=1)
+    data['idv_type_description'] = data.apply(lambda x: map_type_description(x, idv_desc_mappings), axis=1)
+    data['pulled_from'] = data.apply(lambda x: map_pulled_from(x, award_contract_type_mappings, idv_type_mappings),
+                                     axis=1)
+    del data['contractactiontype']
+
+    logger.info('Starting date formatting and null filling')
+    # formatting dates for relevant columns
+    date_format_list = ['currentcompletiondate', 'effectivedate', 'last_modified_date', 'lastdatetoorder', 'signeddate',
+                        'ultimatecompletiondate']
+    for col in date_format_list:
+        data[col] = data.apply(lambda x: format_date(x, col), axis=1)
+
+    # adding columns missing from historical data
+    null_list = [
+        'a_76_fair_act_action_desc', 'alaskan_native_servicing_i', 'clinger_cohen_act_pla_desc', 'initial_report_date',
+        'local_area_set_aside_desc', 'native_hawaiian_servicing', 'place_of_perform_county_na', 'referenced_idv_type',
+        'referenced_idv_type_desc', 'referenced_mult_or_single', 'referenced_mult_or_si_desc',
+        'sba_certified_8_a_joint_ve', 'us_government_entity'
+    ]
+    for item in null_list:
+        data[item] = None
+
+    logger.info('Starting cgac/naics and unique key derivations')
+    # map using cgac codes
+    data['awarding_agency_code'] = data.apply(lambda x: map_agency_code(x, 'contractingofficeagencyid', sub_tier_list),
+                                              axis=1)
+    data['awarding_agency_name'] = data.apply(lambda x: map_agency_name(x, 'contractingofficeagencyid', sub_tier_list),
+                                              axis=1)
+    data['funding_agency_code'] = data.apply(lambda x: map_agency_code(x, 'fundingrequestingagencyid', sub_tier_list),
+                                             axis=1)
+    data['funding_agency_name'] = data.apply(lambda x: map_agency_name(x, 'fundingrequestingagencyid', sub_tier_list),
+                                             axis=1)
+    data['referenced_idv_agency_desc'] = data.apply(lambda x: map_sub_tier_name(x, 'idvagencyid', sub_tier_list),
+                                                    axis=1)
+
+    # map naics codes
+    data['naics_description'] = data.apply(lambda x: map_naics(x, 'principalnaicscode', naics_data), axis=1)
+
+    # create the unique key
+    data['detached_award_proc_unique'] = data.apply(lambda x: create_unique_key(x), axis=1)
+
+    logger.info('Cleaning data and fixing np.nan to None')
+    # clean the data
+    cdata = clean_data(
+        data,
+        DetachedAwardProcurement,
+        {
+            'a_76_fair_act_action_desc': 'a_76_fair_act_action_desc',
+            'a76action': 'a_76_fair_act_action',
+            'action_type_description': 'action_type_description',
+            'agencyid': 'agency_id',
+            'aiobflag': 'american_indian_owned_busi',
+            'alaskan_native_servicing_i': 'alaskan_native_servicing_i',
+            'annualrevenue': 'annual_revenue',
+            'apaobflag': 'asian_pacific_american_own',
+            'awarding_agency_code': 'awarding_agency_code',
+            'awarding_agency_name': 'awarding_agency_name',
+            'awarding_office_name': 'awarding_office_name',
+            'awarding_sub_tier_agency_n': 'awarding_sub_tier_agency_n',
+            'baobflag': 'black_american_owned_busin',
+            'baseandexercisedoptionsvalue': 'current_total_value_award',
+            'baseandalloptionsvalue': 'potential_total_value_awar',
+            'ccrexception': 'sam_exception',
+            'city': 'legal_entity_city_name',
+            'claimantprogramcode': 'dod_claimant_program_code',
+            'clinger_cohen_act_pla_desc': 'clinger_cohen_act_pla_desc',
+            'clingercohenact': 'clinger_cohen_act_planning',
+            'commercial_item_acqui_desc': 'commercial_item_acqui_desc',
+            'commercial_item_test_desc': 'commercial_item_test_desc',
+            'commercialitemacquisitionprocedures': 'commercial_item_acquisitio',
+            'commercialitemtestprogram': 'commercial_item_test_progr',
+            'consolidated_contract_desc': 'consolidated_contract_desc',
+            'consolidatedcontract': 'consolidated_contract',
+            'contingency_humanitar_desc': 'contingency_humanitar_desc',
+            'contingencyhumanitarianpeacekeepingoperation': 'contingency_humanitarian_o',
+            'contract_award_type': 'contract_award_type',
+            'contract_award_type_desc': 'contract_award_type_desc',
+            'contract_bundling_descrip': 'contract_bundling_descrip',
+            'contract_financing_descrip': 'contract_financing_descrip',
+            'contractbundling': 'contract_bundling',
+            'contractfinancing': 'contract_financing',
+            'contracting_officers_desc': 'contracting_officers_desc',
+            'contractingofficeagencyid': 'awarding_sub_tier_agency_c',
+            'contractingofficeid': 'awarding_office_code',
+            'contractingofficerbusinesssizedetermination': 'contracting_officers_deter',
+            'cost_accounting_stand_desc': 'cost_accounting_stand_desc',
+            'cost_or_pricing_data_desc': 'cost_or_pricing_data_desc',
+            'costaccountingstandardsclause': 'cost_accounting_standards',
+            'costorpricingdata': 'cost_or_pricing_data',
+            'country_of_product_or_desc': 'country_of_product_or_desc',
+            'countryoforigin': 'country_of_product_or_serv',
+            'currentcompletiondate': 'period_of_performance_curr',
+            'detached_award_proc_unique': 'detached_award_proc_unique',
+            'davis_bacon_act_descrip': 'davis_bacon_act_descrip',
+            'davisbaconact': 'davis_bacon_act',
+            'descriptionofcontractrequirement': 'award_description',
+            'divisionname': 'division_name',
+            'divisionnumberorofficecode': 'division_number_or_office',
+            'dod_claimant_prog_cod_desc': 'dod_claimant_prog_cod_desc',
+            'dollarsobligated': 'federal_action_obligation',
+            'domestic_or_foreign_e_desc': 'domestic_or_foreign_e_desc',
+            'dunsnumber': 'awardee_or_recipient_uniqu',
+            'educationalinstitutionflag': 'educational_institution',
+            'effectivedate': 'period_of_performance_star',
+            'emergingsmallbusinessflag': 'emerging_small_business',
+            'epa_designated_produc_desc': 'epa_designated_produc_desc',
+            'evaluated_preference_desc': 'evaluated_preference_desc',
+            'evaluatedpreference': 'evaluated_preference',
+            'extent_compete_description': 'extent_compete_description',
+            'extentcompeted': 'extent_competed',
+            'fair_opportunity_limi_desc': 'fair_opportunity_limi_desc',
+            'faxno': 'vendor_fax_number',
+            'fed_biz_opps_description': 'fed_biz_opps_description',
+            'fedbizopps': 'fed_biz_opps',
+            'federalgovernmentflag': 'us_federal_government',
+            'firm8aflag': 'c8a_program_participant',
+            'foreign_funding_desc': 'foreign_funding_desc',
+            'fundedbyforeignentity': 'foreign_funding',
+            'funding_agency_code': 'funding_agency_code',
+            'funding_agency_name': 'funding_agency_name',
+            'funding_office_name': 'funding_office_name',
+            'funding_sub_tier_agency_na': 'funding_sub_tier_agency_na',
+            'fundingrequestingagencyid': 'funding_sub_tier_agency_co',
+            'fundingrequestingofficeid': 'funding_office_code',
+            'gfe_gfp': 'government_furnished_equip',
+            'government_furnished_desc': 'government_furnished_desc',
+            'haobflag': 'hispanic_american_owned_bu',
+            'hbcuflag': 'historically_black_college',
+            'hospitalflag': 'hospital_flag',
+            'hubzoneflag': 'historically_underutilized',
+            'idv_type': 'idv_type',
+            'idv_type_description': 'idv_type_description',
+            'idvagencyid': 'referenced_idv_agency_iden',
+            'idvmodificationnumber': 'referenced_idv_modificatio',
+            'idvpiid': 'parent_award_id',
+            'information_technolog_desc': 'information_technolog_desc',
+            'informationtechnologycommercialitemcategory': 'information_technology_com',
+            'initial_report_date': 'initial_report_date',
+            'interagency_contract_desc': 'interagency_contract_desc',
+            'interagencycontractingauthority': 'interagency_contracting_au',
+            'is1862landgrantcollege': 'c1862_land_grant_college',
+            'is1890landgrantcollege': 'c1890_land_grant_college',
+            'is1994landgrantcollege': 'c1994_land_grant_college',
+            'isairportauthority': 'airport_authority',
+            'isalaskannativeownedcorporationorfirm': 'alaskan_native_owned_corpo',
+            'iscitylocalgovernment': 'city_local_government',
+            'iscommunitydevelopedcorporationownedfirm': 'community_developed_corpor',
+            'iscommunitydevelopmentcorporation': 'community_development_corp',
+            'iscorporateentitynottaxexempt': 'corporate_entity_not_tax_e',
+            'iscorporateentitytaxexempt': 'corporate_entity_tax_exemp',
+            'iscouncilofgovernments': 'council_of_governments',
+            'iscountylocalgovernment': 'county_local_government',
+            'isdomesticshelter': 'domestic_shelter',
+            'isdotcertifieddisadvantagedbusinessenterprise': 'dot_certified_disadvantage',
+            'isecondisadvwomenownedsmallbusiness': 'economically_disadvantaged',
+            'isfederalgovernmentagency': 'federal_agency',
+            'isfederallyfundedresearchanddevelopmentcorp': 'federally_funded_research',
+            'isforeigngovernment': 'foreign_government',
+            'isforeignownedandlocated': 'foreign_owned_and_located',
+            'isforprofitorganization': 'for_profit_organization',
+            'isfoundation': 'foundation',
+            'ishispanicservicinginstitution': 'hispanic_servicing_institu',
+            'ishousingauthoritiespublicortribal': 'housing_authorities_public',
+            'isindiantribe': 'indian_tribe_federally_rec',
+            'isintermunicipallocalgovernment': 'inter_municipal_local_gove',
+            'isinternationalorganization': 'international_organization',
+            'isinterstateentity': 'interstate_entity',
+            'isjointventureecondisadvwomenownedsmallbusiness': 'joint_venture_economically',
+            'isjointventurewomenownedsmallbusiness': 'joint_venture_women_owned',
+            'islaborsurplusareafirm': 'labor_surplus_area_firm',
+            'islimitedliabilitycorporation': 'limited_liability_corporat',
+            'islocalgovernmentowned': 'local_government_owned',
+            'ismanufacturerofgoods': 'manufacturer_of_goods',
+            'ismunicipalitylocalgovernment': 'municipality_local_governm',
+            'isnativehawaiianownedorganizationorfirm': 'native_hawaiian_owned_busi',
+            'isotherminorityowned': 'other_minority_owned_busin',
+            'isothernotforprofitorganization': 'other_not_for_profit_organ',
+            'ispartnershiporlimitedliabilitypartnership': 'partnership_or_limited_lia',
+            'isplanningcommission': 'planning_commission',
+            'isportauthority': 'port_authority',
+            'isprivateuniversityorcollege': 'private_university_or_coll',
+            'issbacertifiedsmalldisadvantagedbusiness': 'small_disadvantaged_busine',
+            'isschooldistrictlocalgovernment': 'school_district_local_gove',
+            'isschoolofforestry': 'school_of_forestry',
+            'issmallagriculturalcooperative': 'small_agricultural_coopera',
+            'issoleproprietorship': 'sole_proprietorship',
+            'isstatecontrolledinstitutionofhigherlearning': 'state_controlled_instituti',
+            'issubchapterscorporation': 'subchapter_s_corporation',
+            'istownshiplocalgovernment': 'township_local_government',
+            'istransitauthority': 'transit_authority',
+            'istribalcollege': 'tribal_college',
+            'istriballyownedfirm': 'tribally_owned_business',
+            'isveterinarycollege': 'veterinary_college',
+            'isveterinaryhospital': 'veterinary_hospital',
+            'iswomenownedsmallbusiness': 'women_owned_small_business',
+            'lastdatetoorder': 'ordering_period_end_date',
+            'last_modified_date': 'last_modified',
+            'legal_entity_country_name': 'legal_entity_country_name',
+            'legal_entity_state_code': 'legal_entity_state_code',
+            'legal_entity_state_descrip': 'legal_entity_state_descrip',
+            'lettercontract': 'undefinitized_action',
+            'local_area_set_aside_desc': 'local_area_set_aside_desc',
+            'localareasetaside': 'local_area_set_aside',
+            'localgovernmentflag': 'us_local_government',
+            'locationcode': 'place_of_performance_locat',
+            'majorprogramcode': 'major_program',
+            'manufacturingorganizationtype': 'domestic_or_foreign_entity',
+            'minorityinstitutionflag': 'minority_institution',
+            'minorityownedbusinessflag': 'minority_owned_business',
+            'mod_parent': 'ultimate_parent_legal_enti',
+            'modnumber': 'award_modification_amendme',
+            'multiple_or_single_aw_desc': 'multiple_or_single_aw_desc',
+            'multipleorsingleawardidc': 'multiple_or_single_award_i',
+            'multi_year_contract_desc': 'multi_year_contract_desc',
+            'multiyearcontract': 'multi_year_contract',
+            'naics_description': 'naics_description',
+            'naobflag': 'native_american_owned_busi',
+            'national_interest_desc': 'national_interest_desc',
+            'nationalinterestactioncode': 'national_interest_action',
+            'native_hawaiian_servicing': 'native_hawaiian_servicing',
+            'nonprofitorganizationflag': 'nonprofit_organization',
+            'numberofactions': 'number_of_actions',
+            'numberofemployees': 'number_of_employees',
+            'numberofoffersreceived': 'number_of_offers_received',
+            'other_than_full_and_o_desc': 'other_than_full_and_o_desc',
+            'otherstatutoryauthority': 'other_statutory_authority',
+            'parentdunsnumber': 'ultimate_parent_unique_ide',
+            'performance_based_se_desc': 'performance_based_se_desc',
+            'performancebasedservicecontract': 'performance_based_service',
+            'phoneno': 'vendor_phone_number',
+            'piid': 'piid',
+            'place_of_manufacture_desc': 'place_of_manufacture_desc',
+            'place_of_perf_country_desc': 'place_of_perf_country_desc',
+            'place_of_perfor_state_desc': 'place_of_perfor_state_desc',
+            'place_of_perform_county_na': 'place_of_perform_county_na',
+            'placeofmanufacture': 'place_of_manufacture',
+            'placeofperformancecity': 'place_of_perform_city_name',
+            'placeofperformancecountrycode': 'place_of_perform_country_c',
+            'placeofperformancezipcode': 'place_of_performance_zip4a',
+            'pop_cd': 'place_of_performance_congr',
+            'pop_state_code': 'place_of_performance_state',
+            'priceevaluationpercentdifference': 'price_evaluation_adjustmen',
+            'principalnaicscode': 'naics',
+            'product_or_service_co_desc': 'product_or_service_co_desc',
+            'productorservicecode': 'product_or_service_code',
+            'program_system_or_equ_desc': 'program_system_or_equ_desc',
+            'programacronym': 'program_acronym',
+            'pulled_from': 'pulled_from',
+            'purchase_card_as_paym_desc': 'purchase_card_as_paym_desc',
+            'purchasecardaspaymentmethod': 'purchase_card_as_payment_m',
+            'reasonformodification': 'action_type',
+            'reasonnotcompeted': 'other_than_full_and_open_c',
+            'receivescontracts': 'contracts',
+            'receivescontractsandgrants': 'receives_contracts_and_gra',
+            'receivesgrants': 'grants',
+            'recovered_materials_s_desc': 'recovered_materials_s_desc',
+            'recoveredmaterialclauses': 'recovered_materials_sustai',
+            'referenced_idv_agency_desc': 'referenced_idv_agency_desc',
+            'referenced_idv_type': 'referenced_idv_type',
+            'referenced_idv_type_desc': 'referenced_idv_type_desc',
+            'referenced_mult_or_single': 'referenced_mult_or_single',
+            'referenced_mult_or_si_desc': 'referenced_mult_or_si_desc',
+            'research': 'research',
+            'research_description': 'research_description',
+            'saaobflag': 'subcontinent_asian_asian_i',
+            'sam_exception_description': 'sam_exception_description',
+            'sba_certified_8_a_joint_ve': 'sba_certified_8_a_joint_ve',
+            'sdbflag': 'self_certified_small_disad',
+            'sea_transportation_desc': 'sea_transportation_desc',
+            'seatransportation': 'sea_transportation',
+            'service_contract_act_desc': 'service_contract_act_desc',
+            'servicecontractact': 'service_contract_act',
+            'signeddate': 'action_date',
+            'shelteredworkshopflag': 'the_ability_one_program',
+            'smallbusinesscompetitivenessdemonstrationprogram': 'small_business_competitive',
+            'solicitation_procedur_desc': 'solicitation_procedur_desc',
+            'solicitationid': 'solicitation_identifier',
+            'solicitationprocedures': 'solicitation_procedures',
+            'stategovernmentflag': 'us_state_government',
+            'statutoryexceptiontofairopportunity': 'fair_opportunity_limited_s',
+            'srdvobflag': 'service_disabled_veteran_o',
+            'streetaddress': 'legal_entity_address_line1',
+            'streetaddress2': 'legal_entity_address_line2',
+            'streetaddress3': 'legal_entity_address_line3',
+            'subcontracting_plan_desc': 'subcontracting_plan_desc',
+            'subcontractplan': 'subcontracting_plan',
+            'systemequipmentcode': 'program_system_or_equipmen',
+            'transactionnumber': 'transaction_number',
+            'tribalgovernmentflag': 'us_tribal_government',
+            'type_of_contract_pric_desc': 'type_of_contract_pric_desc',
+            'type_of_idc_description': 'type_of_idc_description',
+            'type_set_aside_description': 'type_set_aside_description',
+            'typeofcontractpricing': 'type_of_contract_pricing',
+            'typeofidc': 'type_of_idc',
+            'typeofsetaside': 'type_set_aside',
+            'ultimatecompletiondate': 'period_of_perf_potential_e',
+            'undefinitized_action_desc': 'undefinitized_action_desc',
+            'us_government_entity': 'us_government_entity',
+            'useofepadesignatedproducts': 'epa_designated_product',
+            'vendor_cd': 'legal_entity_congressional',
+            'vendoralternatename': 'vendor_alternate_name',
+            'vendoralternatesitecode': 'vendor_alternate_site_code',
+            'vendorcountrycode': 'legal_entity_country_code',
+            'vendordoingasbusinessname': 'vendor_doing_as_business_n',
+            'vendorenabled': 'vendor_enabled',
+            'vendorlegalorganizationname': 'vendor_legal_org_name',
+            'vendorlocationdisableflag': 'vendor_location_disabled_f',
+            'vendorname': 'awardee_or_recipient_legal',
+            'vendorsitecode': 'vendor_site_code',
+            'veteranownedflag': 'veteran_owned_business',
+            'walsh_healey_act_descrip': 'walsh_healey_act_descrip',
+            'walshhealyact': 'walsh_healey_act',
+            'womenownedflag': 'woman_owned_business',
+            'zipcode': 'legal_entity_zip4'
+        }, {}
+    )
+
+    # make a pass through the dataframe, changing any empty values to None, to ensure that those are represented as
+    # NULL in the db.
+    cdata = cdata.replace(np.nan, '', regex=True)
+    cdata = cdata.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
+
+    return cdata
+
+
+def get_data_after_colon(row, header):
+    # return the data after the colon in the row, or None
+    if ':' in str(row[header]):
+        colon_loc = str(row[header]).find(':') + 1
+        return str(row[header])[colon_loc:].strip()
+    return None
+
+
+def get_data_before_colon(row, header):
+    # return the data before the colon in the row, or all the data if there is no colon
+    if ':' in str(row[header]):
+        return str(row[header]).split(':')[0]
+    return str(row[header])
+
+
+def map_legal_entity_state_code(row):
+    # only return a value if the country code is USA
+    if row['vendorcountrycode'] and (str(row['vendorcountrycode']).upper() == "USA" or
+                                     str(row['vendorcountrycode']).upper() == "UNITED STATES"):
+        return str(row['vendor_state_code'])
+    return None
+
+
+def map_legal_entity_state_descrip(row):
+    # if the country code doesn't exist or isn't USA, use the country code as the state description
+    if not row['vendorcountrycode'] or (str(row['vendorcountrycode']).upper() != "USA" and
+                                        str(row['vendorcountrycode']).upper() != "UNITED STATES"):
+        return str(row['vendor_state_code'])
+    return None
+
+
+def map_type(row, mappings):
+    if str(row['contractactiontype']) in mappings:
+        return mappings[str(row['contractactiontype'])]
+    return None
+
+
+def map_type_description(row, mappings):
+    if str(row['contractactiontype']) in mappings:
+        return str(row['contractactiontype']).split(' ')[0]
+    return None
+
+
+def map_type_manual(row, header, mappings):
+    content = str(row[header])
+    if ':' in content:
+        content = content.split(':')[0].strip()
+
+    if content in mappings:
+        return content
+    return None
+
+
+def map_description_manual(row, header, mappings):
+    content = str(row[header])
+    if ':' in content:
+        content = content.split(':')[0].strip()
+
+    if content in mappings:
+        return mappings[content]
+    return content.upper()
+
+
+def map_agency_code(row, header, sub_tier_list):
+    try:
+        code = str(row[header])
+        return sub_tier_list[code].cgac.cgac_code
+    except KeyError:
+        return '999'
+
+
+def map_agency_name(row, header, sub_tier_list):
+    try:
+        code = str(row[header])
+        return sub_tier_list[code].cgac.agency_name
+    except KeyError:
+        return None
+
+
+def map_sub_tier_name(row, header, sub_tier_list):
+    try:
+        code = str(row[header])
+        return sub_tier_list[code].sub_tier_agency_name
+    except KeyError:
+        return None
+
+
+def map_naics(row, header, naics_list):
+    try:
+        code = str(row[header])
+        return naics_list[code]
+    except KeyError:
+        return None
+
+
+def map_pulled_from(row, award_contract, idv):
+    field_contents = str(row['contractactiontype'])
+    if field_contents in award_contract:
+        return 'award'
+    if field_contents in idv:
+        return 'IDV'
+    return None
+
+
+def format_date(row, header):
+    given_date = str(row[header])
+    given_date_split = given_date.split('/')
+    if given_date == '01/01/1900' or len(given_date_split) != 3:
+        return None
+
+    return given_date_split[2] + '-' + given_date_split[0] + '-' + given_date_split[1] + ' 00:00:00'
+
+
+def create_unique_key(row):
+    key_list = ['agencyid', 'idvagencyid', 'piid', 'modnumber', 'idvpiid', 'transactionnumber']
+    unique_string = ""
+    for item in key_list:
+        if row[item] and str(row[item]) != 'nan':
+            unique_string += str(row[item])
+        else:
+            unique_string += "-none-"
+    return unique_string
+
+
 def main():
     sess = GlobalDB.db().session
 
@@ -1096,21 +1896,43 @@ def main():
     parser = argparse.ArgumentParser(description='Pull data from the FPDS Atom Feed.')
     parser.add_argument('-a', '--all', help='Clear out the database and get historical data', action='store_true')
     parser.add_argument('-l', '--latest', help='Get by last_mod_date stored in DB', action='store_true')
+    parser.add_argument('-d', '--delivery', help='Used in conjunction with -a to indicate delivery order feed',
+                        action='store_true')
+    parser.add_argument('-o', '--other',
+                        help='Used in conjunction with -a to indicate all feeds other than delivery order',
+                        action='store_true')
+    parser.add_argument('-f', '--files', help='Load historical data from files', action='store_true')
+    parser.add_argument('-sf', '--subfolder',
+                        help='Used in conjunction with -f to indicate which Subfolder to load files from',
+                        nargs="+", type=str)
     args = parser.parse_args()
 
-    award_types_award = ["BPA Call", "Purchase Order", "Delivery Order", "Definitive Contract"]
-    award_types_idv = ["GWAC", "IDC", "FSS", "BOA", "BPA"]
+    award_types_award = ["BPA Call", "Definitive Contract", "Purchase Order", "Delivery Order"]
+    award_types_idv = ["GWAC", "BOA", "BPA", "FSS", "IDC"]
+
+    sub_tiers = sess.query(SubTierAgency).all()
+    sub_tier_list = {}
+
+    for sub_tier in sub_tiers:
+        sub_tier_list[sub_tier.sub_tier_agency_code] = sub_tier
 
     if args.all:
+        if (not args.delivery and not args.other) or (args.delivery and args.other):
+            logger.error("When using the -a flag, please include either -d or -o "
+                         "(but not both) to indicate which feeds to read in")
+            raise ValueError("When using the -a flag, please include either -d or -o "
+                             "(but not both) to indicate which feeds to read in")
         logger.info("Starting at: " + str(datetime.datetime.now()))
-        # clear out table
-        sess.query(DetachedAwardProcurement).delete()
 
-        # loop through and check all award types
-        for award_type in award_types_award:
-            get_data("award", award_type, now, sess)
-        for award_type in award_types_idv:
-            get_data("IDV", award_type, now, sess)
+        if args.other:
+            for award_type in award_types_idv:
+                get_data("IDV", award_type, now, sess, sub_tier_list)
+            for award_type in award_types_award:
+                if award_type != "Delivery Order":
+                    get_data("award", award_type, now, sess, sub_tier_list)
+
+        elif args.delivery:
+            get_data("award", "Delivery Order", now, sess, sub_tier_list)
 
         last_update = sess.query(FPDSUpdate).one_or_none()
 
@@ -1135,22 +1957,88 @@ def main():
             raise ValueError(
                 "No last_update date present, please run the script with the -a flag to generate an initial dataset")
 
-        # loop through and check all award types
-        for award_type in award_types_award:
-            get_data("award", award_type, now, sess, last_update)
+        thread_list = []
+        # loop through and check all award types, check IDV stuff first because it generally has less content
+        # so the threads will actually leave earlier and can be terminated in the loop
         for award_type in award_types_idv:
-            get_data("IDV", award_type, now, sess, last_update)
+            t = threading.Thread(target=get_data, args=("IDV", award_type, now, sess, sub_tier_list, last_update),
+                                 name=award_type)
+            thread_list.append(t)
+            t.start()
+
+        # join the threads between types and then start with a fresh set of threads. We don't want to overtax
+        # the CPU
+        for t in thread_list:
+            t.join()
+
+        thread_list = []
+        for award_type in award_types_award:
+            t = threading.Thread(target=get_data, args=("award", award_type, now, sess, sub_tier_list, last_update),
+                                 name=award_type)
+            thread_list.append(t)
+            t.start()
+
+        for t in thread_list:
+            t.join()
 
         # We also need to process the delete feed
-        get_delete_data("award", now, sess, last_update)
         get_delete_data("IDV", now, sess, last_update)
+        get_delete_data("award", now, sess, last_update)
         sess.query(FPDSUpdate).update({"update_date": now}, synchronize_session=False)
+
+        logger.info("Ending at: " + str(datetime.datetime.now()))
+        sess.commit()
+    elif args.files:
+        logger.info("Starting file loads at: " + str(datetime.datetime.now()))
+        max_year = 2015
+        subfolder = None
+        if args.subfolder:
+            if len(args.subfolder) != 1:
+                logger.error("When using the -sf flag, please enter just one string for the folder name")
+                raise ValueError("When using the -sf flag, please enter just one string for the folder name")
+            subfolder = args.subfolder[0]
+
+        if CONFIG_BROKER["use_aws"]:
+            s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
+            # get naics dictionary
+            s3bucket_naics = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
+            agency_list_path = s3bucket_naics.get_key("naics.csv").generate_url(expires_in=600)
+            agency_list_file = urllib.request.urlopen(agency_list_path)
+            reader = csv.reader(agency_list_file.read().decode("utf-8").splitlines())
+            naics_dict = {rows[0]: rows[1].upper() for rows in reader}
+
+            # parse contracts files
+            s3bucket = s3connection.lookup(CONFIG_BROKER['archive_bucket'])
+            for key in s3bucket.list():
+                if subfolder:
+                    key = subfolder + "/" + key
+                if re.match('^\d{4}_All_Contracts_Full_\d{8}.csv.zip', key.name):
+                    # we only want up through 2015 for this data
+                    if int(key.name[:4]) <= max_year:
+                        file_path = key.generate_url(expires_in=600)
+                        parse_fpds_file(urllib.request.urlopen(file_path), sess, sub_tier_list, naics_dict)
+        else:
+            # get naics dictionary
+            naics_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
+            with open(os.path.join(naics_path, 'naics.csv'), 'r') as f:
+                reader = csv.reader(f)
+                naics_dict = {rows[0]: rows[1].upper() for rows in reader}
+
+            # parse contracts files
+            base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "fabs")
+            if subfolder:
+                base_path = os.path.join(base_path, subfolder)
+            file_list = [f for f in os.listdir(base_path)]
+            for file in file_list:
+                if re.match('^\d{4}_All_Contracts_Full_\d{8}.csv.zip', file):
+                    # we only want up through 2015 for this data
+                    if int(file[:4]) <= max_year:
+                        parse_fpds_file(open(os.path.join(base_path, file)), sess, sub_tier_list, naics_dict)
 
         logger.info("Ending at: " + str(datetime.datetime.now()))
         sess.commit()
     # TODO add a correct start date for "all" so we don't get ALL the data or too little of the data
     # TODO fine-tune indexing
-    # TODO threading
 
 if __name__ == '__main__':
     with create_app().app_context():
