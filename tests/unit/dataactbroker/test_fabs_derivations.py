@@ -1,21 +1,26 @@
 from dataactbroker.handlers.fileHandler import fabs_derivations
 
 from tests.unit.dataactcore.factories.domain import (
-    CGACFactory, SubTierAgencyFactory, StatesFactory, CountyCodeFactory, CFDAProgramFactory, ZipCityFactory,
-    ZipsFactory, CityCodeFactory)
+    CGACFactory, FRECFactory, SubTierAgencyFactory, StatesFactory, CountyCodeFactory, CFDAProgramFactory,
+    ZipCityFactory, ZipsFactory, CityCodeFactory)
 
 
-def initialize_db_values(db, cfda_title=None, cgac_code=None):
+def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, use_frec=False):
     """ Initialize the values in the DB that can be used throughout the tests """
     if cgac_code:
-        cgac = CGACFactory(cgac_code=cgac_code, agency_name="Test Agency")
+        cgac = CGACFactory(cgac_code=cgac_code, agency_name="Test CGAC Agency")
     else:
         cgac = CGACFactory()
-    db.session.add(cgac)
+    if frec_code:
+        frec = FRECFactory(frec_code=frec_code, agency_name="Test FREC Agency", cgac=cgac)
+    else:
+        frec = FRECFactory(cgac=cgac)
+    db.session.add_all([cgac, frec])
     db.session.commit()
 
     cfda_number = CFDAProgramFactory(program_number=12.345, program_title=cfda_title)
-    sub_tier = SubTierAgencyFactory(sub_tier_agency_code="1234", cgac=cgac, sub_tier_agency_name="Test Subtier Agency")
+    sub_tier = SubTierAgencyFactory(sub_tier_agency_code="1234", cgac=cgac, frec=frec, is_frec=use_frec,
+                                    sub_tier_agency_name="Test Subtier Agency")
     state = StatesFactory(state_code="NY", state_name="New York")
     zip_code_1 = ZipsFactory(zip5="12345", zip_last4="6789", state_abbreviation=state.state_code, county_number="001",
                              congressional_district_no="01")
@@ -89,13 +94,23 @@ def test_cfda_title(database):
     assert obj['cfda_title'] == "Test Title"
 
 
-def test_awarding_agency(database):
-    initialize_db_values(database, cgac_code="000")
+def test_awarding_agency_cgac(database):
+    initialize_db_values(database, cgac_code="000", frec_code="1111")
 
-    obj = initialize_test_obj()
+    obj = initialize_test_obj(sub_tier_code="1234")
     obj = fabs_derivations(obj, database.session)
     assert obj['awarding_agency_code'] == "000"
-    assert obj['awarding_agency_name'] == "Test Agency"
+    assert obj['awarding_agency_name'] == "Test CGAC Agency"
+    assert obj['awarding_sub_tier_agency_n'] == "Test Subtier Agency"
+
+
+def test_awarding_agency_frec(database):
+    initialize_db_values(database, cgac_code="000", frec_code="1111", use_frec=True)
+
+    obj = initialize_test_obj(sub_tier_code="1234")
+    obj = fabs_derivations(obj, database.session)
+    assert obj['awarding_agency_code'] == "1111"
+    assert obj['awarding_agency_name'] == "Test FREC Agency"
     assert obj['awarding_sub_tier_agency_n'] == "Test Subtier Agency"
 
 
@@ -110,7 +125,7 @@ def test_funding_agency_name(database):
     # when funding_agency_code is provided
     obj = initialize_test_obj(fund_agency_code="000")
     obj = fabs_derivations(obj, database.session)
-    assert obj['funding_agency_name'] == "Test Agency"
+    assert obj['funding_agency_name'] == "Test CGAC Agency"
 
 
 def test_funding_sub_tier_agency_na(database):
