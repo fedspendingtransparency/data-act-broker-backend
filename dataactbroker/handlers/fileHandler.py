@@ -1718,16 +1718,17 @@ def fabs_derivations(obj, sess):
 
     if obj['awarding_sub_tier_agency_c']:
         # deriving awarding agency name and code
-        awarding_agency = sess.query(CGAC).\
-            filter(CGAC.cgac_id == SubTierAgency.cgac_id,
-                   SubTierAgency.sub_tier_agency_code == obj['awarding_sub_tier_agency_c']).one()
-        obj['awarding_agency_code'] = awarding_agency.cgac_code
-        obj['awarding_agency_name'] = awarding_agency.agency_name
-
-        # deriving awarding sub tier agency name
-        awarding_sub_tier_agency_name = sess.query(SubTierAgency).\
+        awarding_sub_tier = sess.query(SubTierAgency).\
             filter_by(sub_tier_agency_code=obj['awarding_sub_tier_agency_c']).one()
-        obj['awarding_sub_tier_agency_n'] = awarding_sub_tier_agency_name.sub_tier_agency_name
+        use_frec = awarding_sub_tier.is_frec
+        awarding_agency = awarding_sub_tier.frec if use_frec else awarding_sub_tier.cgac
+        obj['awarding_agency_code'] = awarding_agency.frec_code if use_frec else awarding_agency.cgac_code
+        obj['awarding_agency_name'] = awarding_agency.agency_name
+        obj['awarding_sub_tier_agency_n'] = awarding_sub_tier.sub_tier_agency_name
+    else:
+        obj['awarding_agency_code'] = None
+        obj['awarding_agency_name'] = None
+        obj['awarding_sub_tier_agency_n'] = None
 
     # deriving funding agency name
     if obj['funding_agency_code']:

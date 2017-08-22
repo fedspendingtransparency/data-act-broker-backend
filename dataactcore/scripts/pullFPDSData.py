@@ -741,8 +741,10 @@ def calculate_remaining_fields(obj, sub_tier_list):
     """ calculate values that aren't in any feed but can be calculated """
     if obj['awarding_sub_tier_agency_c']:
         try:
-            agency_data = sub_tier_list[obj['awarding_sub_tier_agency_c']].cgac
-            obj['awarding_agency_code'] = agency_data.cgac_code
+            sub_tier_agency = sub_tier_list[obj['awarding_sub_tier_agency_c']]
+            use_frec = sub_tier_agency.is_frec
+            agency_data = sub_tier_agency.frec if use_frec else sub_tier_agency.cgac
+            obj['awarding_agency_code'] = agency_data.frec_code if use_frec else agency_data.cgac_code
             obj['awarding_agency_name'] = agency_data.agency_name
         except KeyError:
             logger.info('WARNING: MissingSubtierCGAC: The awarding sub-tier cgac_code: %s does not exist in cgac table.'
@@ -754,8 +756,10 @@ def calculate_remaining_fields(obj, sub_tier_list):
 
     if obj['funding_sub_tier_agency_co']:
         try:
-            agency_data = sub_tier_list[obj['funding_sub_tier_agency_co']].cgac
-            obj['funding_agency_code'] = agency_data.cgac_code
+            sub_tier_agency = sub_tier_list[obj['funding_sub_tier_agency_co']]
+            use_frec = sub_tier_agency.is_frec
+            agency_data = sub_tier_agency.frec if use_frec else sub_tier_agency.cgac
+            obj['funding_agency_code'] = agency_data.frec_code if use_frec else agency_data.cgac_code
             obj['funding_agency_name'] = agency_data.agency_name
         except KeyError:
             logger.info('WARNING: MissingSubtierCGAC: The funding sub-tier cgac_code: %s does not exist in cgac table. '
@@ -1830,7 +1834,10 @@ def map_description_manual(row, header, mappings):
 def map_agency_code(row, header, sub_tier_list):
     try:
         code = str(row[header])
-        return sub_tier_list[code].cgac.cgac_code
+        sub_tier_agency = sub_tier_list[code]
+        use_frec = sub_tier_agency.is_frec
+        agency_data = sub_tier_agency.frec if use_frec else sub_tier_agency.cgac
+        return agency_data.frec_code if use_frec else agency_data.cgac_code
     except KeyError:
         return '999'
 
@@ -1838,7 +1845,10 @@ def map_agency_code(row, header, sub_tier_list):
 def map_agency_name(row, header, sub_tier_list):
     try:
         code = str(row[header])
-        return sub_tier_list[code].cgac.agency_name
+        sub_tier_agency = sub_tier_list[code]
+        use_frec = sub_tier_agency.is_frec
+        agency_data = sub_tier_agency.frec if use_frec else sub_tier_agency.cgac
+        return agency_data.agency_name
     except KeyError:
         return None
 
