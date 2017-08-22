@@ -170,7 +170,7 @@ def load_sub_tier_agencies(file_name):
             data,
             SubTierAgency,
             {"cgac_agency_code": "cgac_code", "subtier_code": "sub_tier_agency_code", "priority": "priority",
-             "fpds_department_id": "frec_code", "subtier_name": "sub_tier_agency_name"},
+             "fpds_department_id": "frec_code", "subtier_name": "sub_tier_agency_name", "is_frec": "is_frec"},
             {"cgac_code": {"pad_to_length": 3}, "frec_code": {"pad_to_length": 4},
              "sub_tier_agency_code": {"pad_to_length": 4}}
         )
