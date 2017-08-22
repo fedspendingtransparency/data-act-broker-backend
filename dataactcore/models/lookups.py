@@ -21,7 +21,8 @@ FILE_STATUS = [
     LookupType(5, 'job_error', 'File has not yet been validated'),
     LookupType(6, 'incomplete', 'File has not yet been validated'),
     LookupType(7, 'encoding_error', 'File contains invalid characters that could not be validated'),
-    LookupType(8, 'row_count_error', 'Raw file row count does not match the number of rows validated')
+    LookupType(8, 'row_count_error', 'Raw file row count does not match the number of rows validated'),
+    LookupType(9, 'file_type_error', 'Invalid file type. Valid file types include .csv and .txt')
 ]
 FILE_STATUS_DICT = {item.name: item.id for item in FILE_STATUS}
 FILE_STATUS_DICT_ID = {item.id: item.name for item in FILE_STATUS}

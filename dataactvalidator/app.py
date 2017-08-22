@@ -68,7 +68,8 @@ def run_app():
                         # happened somewhere. mark job as 'invalid'
                         mark_job_status(job.job_id, 'invalid')
                         if current_message:
-                            if e.errorType in [ValidationError.rowCountError, ValidationError.headerError]:
+                            if e.errorType in [ValidationError.rowCountError, ValidationError.headerError,
+                                               ValidationError.fileTypeError]:
                                 current_message.delete()
             except Exception as e:
                 # Handle uncaught exceptions in validation process.

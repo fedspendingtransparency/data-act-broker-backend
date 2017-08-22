@@ -26,15 +26,19 @@ class ValidationError:
     encodingError = 10
     rowCountErrorMsg = "Raw file row count does not match the number of rows validated"
     rowCountError = 11
+    fileTypeErrorMsg = "Invalid file type. Valid file types include .csv and .txt"
+    fileTypeError = 12
     # Create dict of error types
     errorDict = {typeError: typeErrorMsg, requiredError: requiredErrorMsg, valueError: valueErrorMsg,
                  headerError: headerErrorMsg, readError: readErrorMsg, writeError: writeErrorMsg,
                  unknownError: unknownErrorMsg, singleRow: singleRowMsg, jobError: jobErrorMsg,
-                 lengthError: lengthErrorMsg, encodingError: encodingErrorMsg, rowCountError: rowCountErrorMsg}
+                 lengthError: lengthErrorMsg, encodingError: encodingErrorMsg, rowCountError: rowCountErrorMsg,
+                 fileTypeError: fileTypeErrorMsg}
     errorTypeDict = {typeError: "type_error", requiredError: "required_error", valueError: "value_error",
                      headerError: "header_error", readError: "read_error", writeError: "write_error",
                      unknownError: "unknown_error", singleRow: "single_row_error", jobError: "job_error",
-                     lengthError: "length_error", encodingError: "encoding_error", rowCountError: "row_count_error"}
+                     lengthError: "length_error", encodingError: "encoding_error", rowCountError: "row_count_error",
+                     fileTypeError: "file_type_error"}
 
     @staticmethod
     def get_error_message(error_type):
