@@ -41,6 +41,7 @@ class FRECFactory(factory.Factory):
     frec_id = None
     frec_code = fuzzy.FuzzyText()
     agency_name = fuzzy.FuzzyText()
+    cgac = factory.SubFactory(CGACFactory)
 
 
 class TASFactory(factory.Factory):
@@ -150,6 +151,7 @@ class SubTierAgencyFactory(factory.Factory):
     sub_tier_agency_code = fuzzy.FuzzyText()
     sub_tier_agency_name = fuzzy.FuzzyText()
     cgac = factory.SubFactory(CGACFactory)
+    frec = factory.SubFactory(FRECFactory)
     priority = fuzzy.FuzzyInteger(1, 2)
 
 

@@ -20,6 +20,7 @@ from dataactvalidator.scripts.load_sf133 import load_all_sf133
 from dataactvalidator.scripts.loadTas import load_tas
 from dataactvalidator.scripts.loadLocationData import load_location_data
 from dataactvalidator.scripts.readZips import read_zips
+from dataactvalidator.scripts.loadAgencies import load_agency_data
 
 logger = logging.getLogger(__name__)
 basePath = CONFIG_BROKER["path"]
@@ -103,7 +104,9 @@ def main():
     parser.add_argument('-db', '--setup_db', help='Create broker database and helper tables', action='store_true')
     parser.add_argument('-a', '--create_admin', help='Create an admin user', action='store_true')
     parser.add_argument('-r', '--load_rules', help='Load SQL-based validation rules', action='store_true')
-    parser.add_argument('-d', '--update_domain', help='load slowly changing domain values such s object class',
+    parser.add_argument('-d', '--update_domain', help='load slowly changing domain values such as object class',
+                        action='store_true')
+    parser.add_argument('-c', '--load_agencies', help='Update agency data (CGACs, FRECs, SubTierAgencies)',
                         action='store_true')
     parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
     parser.add_argument('-s', '--update_sf133', help='Update broker SF-133 reports', action='store_true')
@@ -116,6 +119,7 @@ def main():
         setup_db()
         load_sql_rules()
         load_domain_value_files(validator_config_path)
+        load_agency_data(validator_config_path)
         load_tas_lookup()
         load_sf133()
         load_validator_schema()
@@ -134,6 +138,9 @@ def main():
 
     if args.update_domain:
         load_domain_value_files(validator_config_path)
+
+    if args.load_agencies:
+        load_agency_data(validator_config_path)
 
     if args.update_tas:
         load_tas_lookup()
