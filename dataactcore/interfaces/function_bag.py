@@ -660,12 +660,12 @@ def get_fabs_meta(submission_id):
 
     submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
 
-    publish_date = get_lastest_certified_date(submission).strftime('%-I:%M%p %m/%d/%Y')
+    publish_date = get_lastest_certified_date(submission)
 
     return {
         'valid_rows': len(valid_rows.all()),
         'total_rows': len(total_rows.all()),
-        'publish_date': publish_date
+        'publish_date': publish_date.strftime('%-I:%M%p %m/%d/%Y') if publish_date else None
     }
 
 
