@@ -119,7 +119,7 @@ def main():
         setup_db()
         load_sql_rules()
         load_domain_value_files(validator_config_path)
-        load_agency_data()
+        load_agency_data(validator_config_path)
         load_tas_lookup()
         load_sf133()
         load_validator_schema()
@@ -140,7 +140,7 @@ def main():
         load_domain_value_files(validator_config_path)
 
     if args.load_agencies:
-        load_agency_data()
+        load_agency_data(validator_config_path)
 
     if args.update_tas:
         load_tas_lookup()
