@@ -1834,7 +1834,10 @@ def map_description_manual(row, header, mappings):
 def map_agency_code(row, header, sub_tier_list):
     try:
         code = str(row[header])
-        return sub_tier_list[code].cgac.cgac_code
+        sub_tier_agency = sub_tier_list[code]
+        use_frec = sub_tier_agency.is_frec
+        agency_data = sub_tier_agency.frec if use_frec else sub_tier_agency.cgac
+        return agency_data.frec_code if use_frec else agency_data.cgac_code
     except KeyError:
         return '999'
 
@@ -1842,7 +1845,10 @@ def map_agency_code(row, header, sub_tier_list):
 def map_agency_name(row, header, sub_tier_list):
     try:
         code = str(row[header])
-        return sub_tier_list[code].cgac.agency_name
+        sub_tier_agency = sub_tier_list[code]
+        use_frec = sub_tier_agency.is_frec
+        agency_data = sub_tier_agency.frec if use_frec else sub_tier_agency.cgac
+        return agency_data.agency_name
     except KeyError:
         return None
 
