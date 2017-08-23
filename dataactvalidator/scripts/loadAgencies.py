@@ -139,7 +139,7 @@ def delete_missing_sub_tier_agencies(models, new_data):
 def update_sub_tier_agencies(models, new_data, cgac_dict, frec_dict):
     """Modify existing models or create new ones"""
     for _, row in new_data.iterrows():
-        if row['cgac_code'] not in cgac_dict or row['frec_code'] not in frec_dict:
+        if row['cgac_code'] not in cgac_dict:
             new_data.drop(_)
             continue
         row['cgac_id'] = cgac_dict[row['cgac_code']]
@@ -170,7 +170,7 @@ def load_sub_tier_agencies(file_name):
             data,
             SubTierAgency,
             {"cgac_agency_code": "cgac_code", "subtier_code": "sub_tier_agency_code", "priority": "priority",
-             "fpds_department_id": "frec_code", "subtier_name": "sub_tier_agency_name", "is_frec": "is_frec"},
+             "frec": "frec_code", "subtier_name": "sub_tier_agency_name", "is_frec": "is_frec"},
             {"cgac_code": {"pad_to_length": 3}, "frec_code": {"pad_to_length": 4},
              "sub_tier_agency_code": {"pad_to_length": 4}}
         )
