@@ -43,7 +43,8 @@ class CsvReader(object):
 
         return self.filename
 
-    def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
+    def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict,
+                  is_local=False):
         """Opens file and prepares to read each record, mapping entries to specified column names
         Args:
             region: AWS region where the bucket is located
@@ -58,7 +59,7 @@ class CsvReader(object):
         if not self.filename:
             self.get_filename(region, bucket, filename)
 
-        self.is_local = True
+        self.is_local = is_local
         try:
             self.file = open(self.filename, "r", newline=None)
         except:
