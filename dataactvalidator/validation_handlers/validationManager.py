@@ -227,7 +227,7 @@ class ValidationManager:
 
             # Pull file and return info on whether it's using short or long col headers
             reader.open_file(region_name, bucket_name, file_name, fields, bucket_name, error_file_name,
-                             self.long_to_short_dict)
+                             self.long_to_short_dict, is_local=self.isLocal)
 
             # list to keep track of rows that fail validations
             error_rows = []
