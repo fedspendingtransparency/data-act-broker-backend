@@ -21,7 +21,7 @@ def test_list_agencies_limits(monkeypatch, user_constants, domain_app):
     sess = GlobalDB.db().session
     user = UserFactory()
     cgacs = [CGACFactory() for _ in range(1)]
-    frecs = [FRECFactory() for _ in range(1)]
+    frecs = [FRECFactory(cgac=cgacs[0]) for _ in range(1)]
     user.affiliations = [UserAffiliation(cgac=cgacs[0], frec=frecs[0], permission_type_id=2)]
     sess.add_all(cgacs + frecs + [user])
     sess.commit()
@@ -53,7 +53,7 @@ def test_list_agencies_all(monkeypatch, user_constants, domain_app):
     sess = GlobalDB.db().session
     user = UserFactory()
     cgacs = [CGACFactory(cgac_code=str(i)) for i in range(3)]
-    frecs = [FRECFactory(frec_code=str(i)) for i in range(3)]
+    frecs = [FRECFactory(frec_code=str(i), cgac=cgacs[i]) for i in range(3)]
     user.affiliations = [UserAffiliation(cgac=cgacs[0], frec=frecs[0], permission_type_id=2)]
     sess.add_all(cgacs + frecs + [user])
     sess.commit()

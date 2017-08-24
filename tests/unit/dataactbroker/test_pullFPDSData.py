@@ -32,10 +32,12 @@ def test_calculate_remaining_fields(database):
     database.session.commit()
 
     tmp_obj = pullFPDSData.calculate_remaining_fields({'awarding_sub_tier_agency_c': "0000",
-                                                       'funding_sub_tier_agency_co': None}, database.session)
+                                                       'funding_sub_tier_agency_co': None},
+                                                      {sub_tier.sub_tier_agency_code: sub_tier})
     tmp_obj_2 = pullFPDSData.calculate_remaining_fields({'awarding_sub_tier_agency_c': None,
                                                          'funding_sub_tier_agency_co': "0001",
-                                                         'funding_sub_tier_agency_na': "Not Real"}, database.session)
+                                                         'funding_sub_tier_agency_na': "Not Real"},
+                                                        {sub_tier.sub_tier_agency_code: sub_tier})
     assert tmp_obj['awarding_agency_code'] == '1700'
     assert tmp_obj['awarding_agency_name'] == 'test name'
     assert tmp_obj_2['funding_agency_code'] == '999'
@@ -54,8 +56,8 @@ def test_process_data(database):
     listed_data = pullFPDSData.list_data(resp_data['feed']['entry'])
 
     tmp_obj_award = pullFPDSData.process_data(listed_data[0]['content']['award'], atom_type='award',
-                                              sess=database.session)
-    tmp_obj_idv = pullFPDSData.process_data(listed_data[1]['content']['IDV'], atom_type='IDV', sess=database.session)
+                                              sub_tier_list={})
+    tmp_obj_idv = pullFPDSData.process_data(listed_data[1]['content']['IDV'], atom_type='IDV', sub_tier_list={})
 
     assert tmp_obj_award['piid'] == '0001'
     assert tmp_obj_award['major_program'] is None

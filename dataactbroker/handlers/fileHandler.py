@@ -48,7 +48,7 @@ from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status,
     mark_job_status, run_job_checks, create_file_if_needed, get_last_validated_date,
-    get_lastest_certified_date)
+    get_lastest_certified_date, get_fabs_meta)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 from dataactbroker.handlers.fileGenerationHandler import generate_e_file, generate_f_file
 
@@ -1333,6 +1333,8 @@ def submission_to_dict_for_status(submission):
     revalidation_threshold = sess.query(RevalidationThreshold).one_or_none()
     last_validated = get_last_validated_date(submission.submission_id)
 
+    fabs_meta = get_fabs_meta(submission.submission_id)
+
     return {
         'cgac_code': submission.cgac_code,
         'frec_code': submission.frec_code,
@@ -1351,7 +1353,8 @@ def submission_to_dict_for_status(submission):
         'reporting_period_end_date': reporting_date(submission),
         'jobs': [job_to_dict(job) for job in relevant_jobs],
         'publish_status': submission.publish_status.name,
-        'quarterly_submission': submission.is_quarter_format
+        'quarterly_submission': submission.is_quarter_format,
+        'fabs_meta': fabs_meta
     }
 
 
@@ -1717,16 +1720,17 @@ def fabs_derivations(obj, sess):
 
     if obj['awarding_sub_tier_agency_c']:
         # deriving awarding agency name and code
-        awarding_agency = sess.query(CGAC).\
-            filter(CGAC.cgac_id == SubTierAgency.cgac_id,
-                   SubTierAgency.sub_tier_agency_code == obj['awarding_sub_tier_agency_c']).one()
-        obj['awarding_agency_code'] = awarding_agency.cgac_code
-        obj['awarding_agency_name'] = awarding_agency.agency_name
-
-        # deriving awarding sub tier agency name
-        awarding_sub_tier_agency_name = sess.query(SubTierAgency).\
+        awarding_sub_tier = sess.query(SubTierAgency).\
             filter_by(sub_tier_agency_code=obj['awarding_sub_tier_agency_c']).one()
-        obj['awarding_sub_tier_agency_n'] = awarding_sub_tier_agency_name.sub_tier_agency_name
+        use_frec = awarding_sub_tier.is_frec
+        awarding_agency = awarding_sub_tier.frec if use_frec else awarding_sub_tier.cgac
+        obj['awarding_agency_code'] = awarding_agency.frec_code if use_frec else awarding_agency.cgac_code
+        obj['awarding_agency_name'] = awarding_agency.agency_name
+        obj['awarding_sub_tier_agency_n'] = awarding_sub_tier.sub_tier_agency_name
+    else:
+        obj['awarding_agency_code'] = None
+        obj['awarding_agency_name'] = None
+        obj['awarding_sub_tier_agency_n'] = None
 
     # deriving funding agency name
     if obj['funding_agency_code']:

@@ -35,7 +35,7 @@ def test_current_user_can(database, monkeypatch, user_constants):
     assert permissions.current_user_can('submitter', other_cgac.cgac_code, None)
 
     # Test FREC DABS permissions
-    user_frec, other_frec = [FRECFactory() for _ in range(2)]
+    user_frec, other_frec = [FRECFactory(cgac=user_cgac) for _ in range(2)]
     user_two = UserFactory(affiliations=[
         UserAffiliation(frec=user_frec, permission_type_id=PERMISSION_TYPE_DICT['writer'])
     ])
