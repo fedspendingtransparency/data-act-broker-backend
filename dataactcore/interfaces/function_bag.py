@@ -649,6 +649,26 @@ def get_last_validated_date(submission_id):
     return oldest_date.strftime('%m/%d/%Y') if oldest_date else oldest_date
 
 
+def get_fabs_meta(submission_id):
+
+    sess = GlobalDB.db().session
+
+    total_rows = sess.query(DetachedAwardFinancialAssistance).filter(
+                        DetachedAwardFinancialAssistance.submission_id == submission_id)
+
+    valid_rows = total_rows.filter(DetachedAwardFinancialAssistance.is_valid)
+
+    submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
+
+    publish_date = get_lastest_certified_date(submission)
+
+    return {
+        'valid_rows': len(valid_rows.all()),
+        'total_rows': len(total_rows.all()),
+        'publish_date': publish_date.strftime('%-I:%M%p %m/%d/%Y') if publish_date else None
+    }
+
+
 def get_action_dates(submission_id):
     """ Pull the earliest/latest action dates from the DetachedAwardFinancialAssistance table
 

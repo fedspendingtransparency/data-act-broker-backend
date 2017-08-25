@@ -84,8 +84,8 @@ def test_set_max_perms(database, monkeypatch):
     """Verify that we get the _highest_ permission within our CGAC"""
     cgac_abc = CGACFactory(cgac_code='ABC')
     cgac_def = CGACFactory(cgac_code='DEF')
-    frec_abc = FRECFactory(frec_code='ABC')
-    frec_def = FRECFactory(frec_code='DEF')
+    frec_abc = FRECFactory(frec_code='ABC', cgac=cgac_abc)
+    frec_def = FRECFactory(frec_code='DEF', cgac=cgac_abc)
     user = UserFactory()
     database.session.add_all([cgac_abc, cgac_def, frec_abc, frec_def, user])
     database.session.commit()

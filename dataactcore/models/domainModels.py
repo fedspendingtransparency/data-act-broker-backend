@@ -2,7 +2,7 @@ from datetime import timedelta
 
 import sqlalchemy as sa
 
-from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text, Float, UniqueConstraint
+from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text, Float, UniqueConstraint, Boolean
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
@@ -113,7 +113,8 @@ class FREC(Base):
     frec_id = Column(Integer, primary_key=True)
     frec_code = Column(Text, nullable=True, index=True, unique=True)
     agency_name = Column(Text)
-    cgac_code = Column(Text)
+    cgac_id = Column(Integer, ForeignKey("cgac.cgac_id", name='fk_frec_cgac', ondelete="CASCADE"), nullable=False)
+    cgac = relationship('CGAC', foreign_keys='FREC.cgac_id', cascade="delete")
 
 
 class SubTierAgency(Base):
@@ -125,6 +126,10 @@ class SubTierAgency(Base):
                      nullable=False)
     cgac = relationship('CGAC', foreign_keys='SubTierAgency.cgac_id', cascade="delete")
     priority = Column(Integer, nullable=False, default='2', server_default='2')
+    frec_id = Column(Integer, ForeignKey("frec.frec_id", name='fk_sub_tier_agency_frec', ondelete="CASCADE"),
+                     nullable=True)
+    frec = relationship('FREC', foreign_keys='SubTierAgency.frec_id', cascade="delete")
+    is_frec = Column(Boolean, nullable=False, default=False, server_default="False")
 
 
 class ObjectClass(Base):

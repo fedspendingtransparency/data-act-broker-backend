@@ -1,7 +1,7 @@
 import pandas as pd
 
 from dataactcore.models.domainModels import CGAC
-from dataactvalidator.scripts import loadFile
+from dataactvalidator.scripts import loadAgencies
 from tests.unit.dataactcore.factories.domain import CGACFactory
 
 
@@ -17,7 +17,7 @@ def test_delete_missing_cgacs(database):
     ])
 
     assert set(models.keys()) == {'0', '1', '2', '3', '4'}
-    loadFile.delete_missing_cgacs(models, new_data)
+    loadAgencies.delete_missing_cgacs(models, new_data)
     assert set(models.keys()) == {'0', '2', '4'}
 
     assert {'0', '2', '4'} == {res.cgac_code for res in sess.query(CGAC.cgac_code)}
@@ -40,7 +40,7 @@ def test_update_cgacs(database):
     assert models['1'].agency_name == '11111'
     assert 'something-else' not in models
 
-    loadFile.update_cgacs(models, new_data)
+    loadAgencies.update_cgacs(models, new_data)
     assert models['0'].agency_name == 'other (other)'
     assert models['1'].agency_name == '11111 (11111)'
     assert models['something-else'].agency_name == 'new_agency (new_agency)'

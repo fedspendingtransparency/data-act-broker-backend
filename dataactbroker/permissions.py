@@ -54,7 +54,7 @@ def current_user_can(perm, cgac_code, frec_code):
         # affiliation has permission higher than perm args
         dabs_perms = aff.permission_type_id >= permission
 
-        if agency and ((dabs_perms and not fabs) or (perm == 'fabs' and fabs)):
+        if agency and ((perm == 'reader') or (dabs_perms and not fabs) or (perm == 'fabs' and fabs)):
             matching_perms.append(aff)
 
     has_affil = hasattr(g, 'user') and len(matching_perms)
