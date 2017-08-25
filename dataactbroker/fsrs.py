@@ -198,8 +198,8 @@ def fetch_and_replace_batch(sess, service_type, min_id=None):
         min_id = model.next_id(sess)
 
     awards = list(retrieve_batch(service_type, min_id))
-    ids = [a.id for a in awards]
-    sess.query(model).filter(model.id.in_(ids)).delete(
+    ids = [a.internal_id for a in awards]
+    sess.query(model).filter(model.internal_id.in_(ids)).delete(
         synchronize_session=False)
     sess.add_all(awards)
     sess.commit()
