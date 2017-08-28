@@ -152,7 +152,7 @@ def submission_procurements(submission_id):
 
     results = sess.query(AwardProcurement, FSRSProcurement, FSRSSubcontract).\
         filter(AwardProcurement.submission_id == submission_id).\
-        filter(FSRSProcurement.contract_number.isnot_distinct_from(AwardProcurement.piid)).\
+        filter(FSRSProcurement.contract_number == AwardProcurement.piid).\
         filter(FSRSProcurement.idv_reference_number.isnot_distinct_from(AwardProcurement.parent_award_id)).\
         filter(FSRSSubcontract.parent_id == FSRSProcurement.id)
     for award, proc, sub in results:
@@ -163,10 +163,11 @@ def submission_procurements(submission_id):
 
 def submission_grants(submission_id):
     """Fetch grants and subgrants"""
+    sess = GlobalDB.db().session
+
     logger.debug('Starting submission grants')
 
-    triplets = GlobalDB.db().session.\
-        query(AwardFinancialAssistance, FSRSGrant, FSRSSubgrant).\
+    triplets = sess.query(AwardFinancialAssistance, FSRSGrant, FSRSSubgrant).\
         filter(AwardFinancialAssistance.submission_id == submission_id).\
         filter(FSRSGrant.fain == AwardFinancialAssistance.fain).\
         filter(FSRSSubgrant.parent_id == FSRSGrant.id)
