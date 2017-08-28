@@ -22,5 +22,4 @@ if __name__ == '__main__':
             grants = fetch_and_replace_batch(sess, GRANT)
             awards = procs + grants
             numSubAwards = sum(len(a.subawards) for a in awards)
-            logger.info("Inserted/Updated %s awards, %s subawards",
-                        len(awards), numSubAwards)
+            logger.info("Inserted/Updated %s awards, %s subawards", len(awards), numSubAwards)

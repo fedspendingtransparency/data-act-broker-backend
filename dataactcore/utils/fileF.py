@@ -32,8 +32,7 @@ class CopyValues:
     # Order to check fields
     MODEL_TYPES = ('subcontract', 'subgrant', 'procurement', 'grant', 'award')
 
-    def __init__(self, subcontract=None, subgrant=None, procurement=None,
-                 grant=None, award=None):
+    def __init__(self, subcontract=None, subgrant=None, procurement=None, grant=None, award=None):
         self.procurement_field = procurement
         self.subcontract_field = subcontract
         self.grant_field = grant
@@ -82,33 +81,23 @@ ModelRow.__new__.__defaults__ = (None, None, None, None, None)
 # be placed in a CSV cell), keyed by the CSV column name for that cell. Order
 # matters as it defines the CSV column order
 mappings = OrderedDict([
-    ('SubAwardeeOrRecipientLegalEntityName',
-        CopyValues('company_name', 'awardee_name')),
+    ('SubAwardeeOrRecipientLegalEntityName', CopyValues('company_name', 'awardee_name')),
     ('SubAwardeeOrRecipientUniqueIdentifier', copy_subaward_field('duns')),
-    ('SubAwardeeUltimateParentUniqueIdentifier',
-        copy_subaward_field('parent_duns')),
-    ('SubAwardeeUltimateParentLegalEntityName',
-        CopyValues(subcontract='parent_company_name')),
-    ('LegalEntityAddressLine1',
-        CopyValues('company_address_street', 'awardee_address_street')),
-    ('LegalEntityCityName',
-        CopyValues('company_address_city', 'awardee_address_city')),
-    ('LegalEntityStateCode',
-        CopyValues('company_address_state', 'awardee_address_state')),
+    ('SubAwardeeUltimateParentUniqueIdentifier', copy_subaward_field('parent_duns')),
+    ('SubAwardeeUltimateParentLegalEntityName', CopyValues(subcontract='parent_company_name')),
+    ('LegalEntityAddressLine1', CopyValues('company_address_street', 'awardee_address_street')),
+    ('LegalEntityCityName', CopyValues('company_address_city', 'awardee_address_city')),
+    ('LegalEntityStateCode', CopyValues('company_address_state', 'awardee_address_state')),
     ('LegalEntityZIP+4', SubawardLogic(
-        lambda subcontract:
-            _zipcode_guard(subcontract, 'company_address', True),
+        lambda subcontract: _zipcode_guard(subcontract, 'company_address', True),
         lambda subgrant: _zipcode_guard(subgrant, 'awardee_address', True)
     )),
     ('LegalEntityForeignPostalCode', SubawardLogic(
-        lambda subcontract:
-            _zipcode_guard(subcontract, 'company_address', False),
+        lambda subcontract: _zipcode_guard(subcontract, 'company_address', False),
         lambda subgrant: _zipcode_guard(subgrant, 'awardee_address', False)
     )),
-    ('LegalEntityCongressionalDistrict',
-        CopyValues('company_address_district', 'awardee_address_district')),
-    ('LegalEntityCountryCode',
-        CopyValues('company_address_country', 'awardee_address_country')),
+    ('LegalEntityCongressionalDistrict', CopyValues('company_address_district', 'awardee_address_district')),
+    ('LegalEntityCountryCode', CopyValues('company_address_country', 'awardee_address_country')),
     ('LegalEntityCountryName', SubawardLogic(
         lambda subcontract: _country_name(subcontract.company_address_country),
         lambda subgrant: _country_name(subgrant.awardee_address_country)
@@ -130,29 +119,20 @@ mappings = OrderedDict([
     ('CFDA_NumberAndTitle', CopyValues(subgrant='cfda_numbers')),
     ('AwardingSubTierAgencyName', copy_subaward_field('funding_agency_name')),
     ('AwardingSubTierAgencyCode', copy_subaward_field('funding_agency_id')),
-    ('AwardDescription',
-        CopyValues('overall_description', 'project_description')),
-    ('ActionDate',
-        CopyValues(subcontract='subcontract_date', grant='obligation_date')),
-    ('PrimaryPlaceOfPerformanceCityName',
-        copy_subaward_field('principle_place_city')),
-    ('PrimaryPlaceOfPerformanceAddressLine1',
-        copy_subaward_field('principle_place_street')),
-    ('PrimaryPlaceOfPerformanceStateCode',
-        copy_subaward_field('principle_place_state')),
-    ('PrimaryPlaceOfPerformanceZIP+4',
-        copy_subaward_field('principle_place_zip')),
-    ('PrimaryPlaceOfPerformanceCongressionalDistrict',
-        copy_subaward_field('principle_place_district')),
-    ('PrimaryPlaceOfPerformanceCountryCode',
-        copy_subaward_field('principle_place_country')),
+    ('AwardDescription', CopyValues('overall_description', 'project_description')),
+    ('ActionDate', CopyValues(subcontract='subcontract_date', grant='obligation_date')),
+    ('PrimaryPlaceOfPerformanceCityName', copy_subaward_field('principle_place_city')),
+    ('PrimaryPlaceOfPerformanceAddressLine1', copy_subaward_field('principle_place_street')),
+    ('PrimaryPlaceOfPerformanceStateCode', copy_subaward_field('principle_place_state')),
+    ('PrimaryPlaceOfPerformanceZIP+4', copy_subaward_field('principle_place_zip')),
+    ('PrimaryPlaceOfPerformanceCongressionalDistrict', copy_subaward_field('principle_place_district')),
+    ('PrimaryPlaceOfPerformanceCountryCode', copy_subaward_field('principle_place_country')),
     ('PrimaryPlaceOfPerformanceCountryName', SubawardLogic(
         lambda subcontract: _country_name(subcontract.principle_place_country),
         lambda subgrant: _country_name(subgrant.principle_place_country)
     )),
     ('Vendor Doing As Business Name', copy_subaward_field('dba_name')),
-    ('PrimeAwardReportID',
-        CopyValues(procurement='contract_number', grant='fain')),
+    ('PrimeAwardReportID', CopyValues(procurement='contract_number', grant='fain')),
     ('ParentAwardId', CopyValues(procurement='idv_reference_number')),
     ('AwardReportMonth', copy_prime_field('report_period_mon')),
     ('AwardReportYear', copy_prime_field('report_period_year')),
