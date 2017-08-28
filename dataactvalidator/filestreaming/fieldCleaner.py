@@ -137,8 +137,7 @@ class FieldCleaner(StringCleaner):
                 # Remove extra whitespace
                 value = value.strip()
                 # If field is string and has triple quotes, remove. Single quote because csv converts triple to single
-                if field_type in ["STRING"]:
-                    if value.startswith('"') and value.endswith('"'):
+                if field_type in ["STRING"] and value.startswith('"') and value.endswith('"'):
                         value = value[1:-1]
                 if field_type in ["INT", "DECIMAL", "LONG"]:
                     temp_value = value.replace(",", "")
