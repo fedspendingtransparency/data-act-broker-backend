@@ -93,7 +93,8 @@ def new_client(service_type):
     if config.get('username') and config.get('password'):
         options['transport'] = HttpAuthenticated(
             username=config['username'],
-            password=config['password'])
+            password=config['password'],
+            timeout=300)
 
     return Client(**options)
 
