@@ -8,7 +8,7 @@ from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.jobModels import Job
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.models.domainModels import ExecutiveCompensation
-from dataactcore.utils import fileE, fileF
+from dataactcore.utils import fileD1, fileD2, fileE, fileF
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
@@ -17,8 +17,7 @@ logger = logging.getLogger(__name__)
 
 @contextmanager
 def job_context(job_id):
-    """Common context for file E and F generation. Handles marking the job
-    finished and/or failed"""
+    """Common context for file E and F generation. Handles marking the job finished and/or failed"""
     # Flask context ensures we have access to global.g
     with Flask(__name__).app_context():
         sess = GlobalDB.db().session
@@ -38,13 +37,40 @@ def job_context(job_id):
             GlobalDB.close()
 
 
-def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, is_local):
-    """Write rows from fileF.generate_f_rows to an appropriate CSV."""
+def generate_d_file(file_type, is_submission, agency_code, start, end, job_id, timestamped_name, upload_name, is_local):
+    """ Write file D1 or D2 to an appropriate CSV."""
+    logger.debug('Starting file {} generation'.format(file_type))
 
+    with job_context(job_id) as session:
+        file_utils = fileD1 if file_type == 'D1' else fileD2
+
+        rows = file_utils.query_data(session, '012', start, end)
+
+        if is_submission:
+            logger.debug('Writing {} rows to staging table'.format(file_type))
+            # # upload to staging tables
+            # for row in rows.all():
+            #   # use file_utils.file_model
+            #   session.add(row)
+
+        headers = [key for key in file_utils.mapping]
+        columns = [val for key, val in file_utils.mapping.items()]
+        body = []
+        for row in rows.all():
+            body.append([row.__dict__[value] for value in columns])
+
+        logger.debug('Writing file {} CSV'.format(file_type))
+        write_csv(timestamped_name, upload_name, is_local, headers, body)
+
+    logger.debug('Finished file {} generation'.format(file_type))
+
+
+def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, is_local):
+    """ Write rows from fileF.generate_f_rows to an appropriate CSV."""
     logger.debug('Starting file F generation')
 
     with job_context(job_id):
-        logger.debug('Calling genearte_f_rows')
+        logger.debug('Calling generate_f_rows')
         rows_of_dicts = fileF.generate_f_rows(submission_id)
         header = [key for key in fileF.mappings]    # keep order
         body = []
@@ -58,14 +84,14 @@ def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, i
 
 
 def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, is_local):
-    """Write file E to an appropriate CSV."""
+    """ Write file E to an appropriate CSV."""
+    logger.debug('Starting file E generation')
+
     with job_context(job_id) as session:
-        d1 = session.\
-            query(AwardProcurement.awardee_or_recipient_uniqu).\
+        d1 = session.query(AwardProcurement.awardee_or_recipient_uniqu).\
             filter(AwardProcurement.submission_id == submission_id).\
             distinct()
-        d2 = session.\
-            query(AwardFinancialAssistance.awardee_or_recipient_uniqu).\
+        d2 = session.query(AwardFinancialAssistance.awardee_or_recipient_uniqu).\
             filter(AwardFinancialAssistance.submission_id == submission_id).\
             distinct()
         duns_set = {r.awardee_or_recipient_uniqu for r in d1.union(d2)}
@@ -81,4 +107,7 @@ def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, i
             session.merge(ExecutiveCompensation(**fileE.row_to_dict(row)))
         session.commit()
 
+        logger.debug('Writing file E CSV')
         write_csv(timestamped_name, upload_file_name, is_local, fileE.Row._fields, rows)
+
+    logger.debug('Finished file E generation')
