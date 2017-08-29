@@ -150,12 +150,21 @@ def submission_procurements(submission_id):
 
     logger.debug('Starting submission procurements')
 
-    results = sess.query(AwardProcurement, FSRSProcurement, FSRSSubcontract).\
-        filter(AwardProcurement.submission_id == submission_id).\
-        filter(FSRSProcurement.contract_number == AwardProcurement.piid).\
-        filter(FSRSProcurement.idv_reference_number.isnot_distinct_from(AwardProcurement.parent_award_id)).\
+    award_proc_sub = sess.query(AwardProcurement.piid, AwardProcurement.parent_award_id,
+                                AwardProcurement.naics_description, AwardProcurement.awarding_sub_tier_agency_c,
+                                AwardProcurement.submission_id).\
+        filter(AwardProcurement.submission_id == submission_id).distinct().cte("award_proc_sub")
+
+    results = sess.query(award_proc_sub, FSRSProcurement, FSRSSubcontract).\
+        filter(FSRSProcurement.contract_number == award_proc_sub.c.piid).\
+        filter(FSRSProcurement.idv_reference_number.isnot_distinct_from(award_proc_sub.c.parent_award_id)).\
         filter(FSRSSubcontract.parent_id == FSRSProcurement.id)
-    for award, proc, sub in results:
+
+    # The cte returns a set of columns, not an AwardProcurement object, so we have to unpack each column
+    for award_piid, award_parent_id, award_naics_desc, award_sub_tier, award_sub_id, proc, sub in results:
+        # need to combine those columns again here so we can get a proper ModelRow
+        award = AwardProcurement(piid=award_piid, parent_award_id=award_parent_id, naics_description=award_naics_desc,
+                                 awarding_sub_tier_agency_c=award_sub_tier, submission_id=award_sub_id)
         yield ModelRow(award, proc, sub, naics_desc=award.naics_description)
 
     logger.debug('Finished submission procurements')
@@ -167,11 +176,17 @@ def submission_grants(submission_id):
 
     logger.debug('Starting submission grants')
 
-    triplets = sess.query(AwardFinancialAssistance, FSRSGrant, FSRSSubgrant).\
-        filter(AwardFinancialAssistance.submission_id == submission_id).\
-        filter(FSRSGrant.fain == AwardFinancialAssistance.fain).\
+    afa_sub = sess.query(AwardFinancialAssistance.fain, AwardFinancialAssistance.submission_id).\
+        filter(AwardFinancialAssistance.submission_id == submission_id).distinct().cte("afa_sub")
+
+    triplets = sess.query(afa_sub, FSRSGrant, FSRSSubgrant).\
+        filter(FSRSGrant.fain == afa_sub.c.fain).\
         filter(FSRSSubgrant.parent_id == FSRSGrant.id)
-    for award, grant, sub in triplets:
+
+    # The cte returns a set of columns, not an AwardFinancialAssistance object, so we have to unpack each column
+    for afa_sub_fain, afa_sub_id, grant, sub in triplets:
+        # need to combine those columns again here so we can get a proper ModelRow
+        award = AwardFinancialAssistance(fain=afa_sub_fain, submission_id=afa_sub_id)
         yield ModelRow(award, grant=grant, subgrant=sub)
 
     logger.debug('Finished submission grants')
