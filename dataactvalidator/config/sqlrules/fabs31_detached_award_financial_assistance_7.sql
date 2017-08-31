@@ -44,17 +44,17 @@ SELECT
 FROM detached_award_financial_assistance_fabs31_7_{0} AS dafa
 WHERE NOT (dafa.record_type = 1 or LOWER(dafa.business_types) LIKE '%%p%%')
     AND COALESCE(dafa.assistance_type, '') IN ('02', '03', '04', '05')
+    AND dafa.action_type IN ('B', 'C', 'D')
+    AND dafa.awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
     AND (CASE
         WHEN pg_temp.is_date(COALESCE(dafa.action_date, '0'))
         THEN
             CAST(dafa.action_date as DATE)
-    END) > CAST('10/01/2010' as DATE)
-    AND dafa.awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
+        END) > CAST('10/01/2010' as DATE)
     AND COALESCE(dafa.awardee_or_recipient_uniqu, '') IN (
         SELECT DISTINCT short_duns.awardee_or_recipient_uniqu
         FROM duns_fabs31_7_{0} AS short_duns
     )
-    AND dafa.action_type IN ('B', 'C', 'D')
     AND dafa.row_number NOT IN (
             SELECT DISTINCT sub_dafa.row_number
             FROM detached_award_financial_assistance_fabs31_7_{0} as sub_dafa
