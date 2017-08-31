@@ -5,7 +5,6 @@ from csv import reader
 from datetime import datetime
 import logging
 from dateutil.relativedelta import relativedelta
-from uuid import uuid4
 from shutil import copyfile
 import threading
 import re
@@ -14,7 +13,6 @@ import calendar
 
 import requests
 from flask import g, request
-from requests.exceptions import Timeout
 import sqlalchemy as sa
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
@@ -30,13 +28,12 @@ from dataactcore.models.domainModels import (
     CGAC, FREC, CFDAProgram, SubTierAgency, Zips, States, CountyCode, CityCode, ZipCity)
 from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
-from dataactcore.models.jobModels import (
-    FileGenerationTask, Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation, RevalidationThreshold,
-    CertifyHistory, CertifiedFilesHistory)
+from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
+                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
-    JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT, PUBLISH_STATUS_DICT_ID,
+    JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID,
     FILE_TYPE_DICT_LETTER_NAME)
 from dataactcore.models.views import SubmissionUpdatedView
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -47,9 +44,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status,
-    mark_job_status, run_job_checks, create_file_if_needed, get_last_validated_date,
-    get_lastest_certified_date, get_fabs_meta)
-from dataactvalidator.filestreaming.csv_selection import write_csv
+    mark_job_status, run_job_checks, get_last_validated_date, get_lastest_certified_date, get_fabs_meta)
 from dataactbroker.handlers.fileGenerationHandler import generate_d_file, generate_e_file, generate_f_file
 
 logger = logging.getLogger(__name__)
@@ -406,19 +401,24 @@ class FileHandler:
         upload_file_name, timestamped_name = job.filename, job.original_filename
 
         if file_type in ['D1', 'D2']:
+            date_error = self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission.submission_id,
+                                                      file_type, file_type_name, start, end, job)
+            if date_error is not None:
+                return False, date_error
+
             agency_code = submission.frec_code if submission.frec_code else submission.cgac_code
-            t = threading.Thread(target=generate_d_file, args=(file_type, True, agency_code, start, end, job.job_id,
+            t = threading.Thread(target=generate_d_file, args=(file_type, agency_code, start, end, job.job_id,
                                                                timestamped_name, upload_file_name, self.isLocal))
         else:
-            generate_file_function = generate_e_file if file_type == 'E' else generate_f_file
-            t = threading.Thread(target=generate_file_function, args=(submission.submission_id, job.job_id,
-                                                                      timestamped_name, upload_file_name, self.isLocal))
+            t = threading.Thread(
+                target=generate_e_file if file_type == 'E' else generate_f_file,
+                args=(submission.submission_id, job.job_id, timestamped_name, upload_file_name, self.isLocal))
         t.start()
 
         return True, None
 
     def add_job_info_for_d_file(self, upload_file_name, timestamped_name, submission_id, file_type, file_type_name,
-                                start_date, end_date, cgac_code, frec_code, job):
+                                start_date, end_date, job):
         """ Populates upload and validation job objects with start and end dates, filenames, and status
 
         Args:
@@ -429,16 +429,12 @@ class FileHandler:
             file_type_name - Full name of file type
             start_date - Beginning of period for D file
             end_date - End of period for D file
-            cgac_code - Agency to generate D file for
-            frec_code - Alternate Agency to generate D file for
             job - Job object for upload job
         """
         sess = GlobalDB.db().session
-        val_job = sess.query(Job).filter_by(
-            submission_id=submission_id,
-            file_type_id=FILE_TYPE_DICT[file_type_name],
-            job_type_id=JOB_TYPE_DICT['csv_record_validation']
-        ).one()
+        val_job = sess.query(Job).filter(Job.submission_id == submission_id,
+                                         Job.file_type_id == FILE_TYPE_DICT[file_type_name],
+                                         Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one()
         try:
             val_job.filename = upload_file_name
             val_job.original_filename = timestamped_name
@@ -454,59 +450,9 @@ class FileHandler:
         except ValueError as e:
             # Date was not in expected format
             exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, ValueError)
-            return False, JsonResponse.error(
-                exc, exc.status, url="", start="", end="",
-                file_type=file_type
-            )
+            return JsonResponse.error(exc, exc.status, url="", start="", end="", file_type=file_type)
 
-        error = self.call_d_file_api(file_type_name, cgac_code, frec_code, start_date, end_date, job, val_job)
-
-        return not error, error
-
-    def call_d_file_api(self, file_type_name, cgac_code, frec_code, start_date, end_date, job, val_job=None):
-        """ Call D file API, return True if results found, False otherwise """
-        file_type = FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]]
-        task_key = FileHandler.create_generation_task(job.job_id)
-
-        if not self.isLocal:
-            # Create file D API URL with dates and callback URL
-            sess = GlobalDB.db().session
-            if frec_code:
-                cgac_code = sess.query(FREC).filter_by(frec_code=frec_code).one_or_none().cgac_code
-
-            api_url = FileHandler.get_d_file_url(task_key, file_type_name, cgac_code, start_date, end_date)
-
-            logger.debug('Calling D file API => %s', api_url)
-            try:
-                # Check for numFound = 0
-                if "numFound='0'" in get_xml_response_content(api_url):
-                    # No results found, skip validation and mark as finished.
-                    #
-                    # Skip check here is true since we don't need to check the dependencies for the upload job
-                    # because there are no results. The validation job will manually be update versus running through
-                    # the validator.
-                    mark_job_status(job.job_id, "finished", skip_check=True)
-                    job.filename = None
-
-                    if val_job is not None:
-                        mark_job_status(val_job.job_id, "finished")
-                        # Create File object for this validation job
-                        val_file = create_file_if_needed(val_job.job_id, filename=val_job.filename)
-                        val_file.file_status_id = FILE_STATUS_DICT['complete']
-                        val_job.number_of_rows = 0
-                        val_job.number_of_rows_valid = 0
-                        val_job.file_size = 0
-                        val_job.number_of_errors = 0
-                        val_job.number_of_warnings = 0
-                        val_job.filename = None
-                        # Update last validated date
-                        val_job.last_validated = datetime.utcnow()
-                    sess.commit()
-            except Timeout as e:
-                exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
-                return JsonResponse.error(e, exc.status, url="", start="", end="", file_type=file_type)
-        else:
-            self.complete_generation(task_key, file_type)
+        return None
 
     def download_file(self, local_file_path, file_url, upload_name, response):
         """ Download a file locally from the specified URL, returns True if successful """
@@ -537,50 +483,6 @@ class FileHandler:
             copyfile(file_url, local_file_path)
             return True
 
-    def load_d_file(self, url, upload_name, timestamped_name, job_id, is_local, response=None):
-        """ Pull D file from specified URL and write to S3 """
-        sess = GlobalDB.db().session
-        try:
-            full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
-
-            logger.debug('Downloading file...')
-            if not self.download_file(full_file_path, url, upload_name, response):
-                # Error occurred while downloading file, mark job as failed and record error message
-                mark_job_status(job_id, "failed")
-                job = sess.query(Job).filter_by(job_id=job_id).one()
-                file_type = job.file_type.name
-                if file_type == "award":
-                    source = "ASP"
-                elif file_type == "award_procurement":
-                    source = "FPDS"
-                else:
-                    source = "unknown source"
-                job.error_message = "A problem occurred receiving data from {}".format(source)
-
-                raise ResponseException(job.error_message, StatusCode.CLIENT_ERROR)
-
-            # we're streaming non-locally but locally we still need to write as a csv
-            # because copyfile doesn't do it
-            if self.isLocal:
-                lines = get_lines_from_csv(full_file_path)
-
-                write_csv(timestamped_name, upload_name, is_local, lines[0], lines[1:])
-
-            logger.debug('Marking job id of %s', job_id)
-            mark_job_status(job_id, "finished")
-            return {"message": "Success", "file_name": timestamped_name}
-        except Exception as e:
-            logger.exception('Exception caught => %s', e)
-            # Log the error
-            JsonResponse.error(e, 500)
-            sess.query(Job).filter_by(job_id=job_id).one().error_message = str(e)
-            mark_job_status(job_id, "failed")
-            sess.commit()
-            raise e
-        finally:
-            # need to explicitly close because this function can get called by a thread
-            GlobalDB.close()
-
     def generate_file(self, submission_id, file_type):
         """ Start a file generation job for the specified file type """
         logger.debug('Starting D file generation')
@@ -593,19 +495,15 @@ class FileHandler:
         if error:
             return error
 
-        job = sess.query(Job).filter_by(
-            submission_id=submission_id,
-            file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type],
-            job_type_id=JOB_TYPE_DICT['file_upload']
-        ).one()
-
+        job = sess.query(Job).filter(Job.submission_id == submission_id,
+                                     Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
+                                     Job.job_type_id == JOB_TYPE_DICT['file_upload']).one()
         try:
             # Check prerequisites on upload job
             if not run_job_checks(job.job_id):
                 raise ResponseException(
                     "Must wait for completion of prerequisite validation job",
-                    StatusCode.CLIENT_ERROR
-                )
+                    StatusCode.CLIENT_ERROR)
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
@@ -617,11 +515,8 @@ class FileHandler:
             mark_job_status(job.job_id, "failed")
             return error_response
 
-        submission = sess.query(Submission).\
-            filter_by(submission_id=submission_id).\
-            one()
-
-        if file_type in ["D1", "D2"]:
+        submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
+        if file_type in ['D1', 'D2']:
             # Change the publish status back to updated if certified
             if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
                 submission.publishable = False
@@ -655,11 +550,11 @@ class FileHandler:
             file_type_name=file_type_name,
             dates={'start_date': start, 'end_date': end}
         )
-        upload_file_name, timestamped_name = new_job.filename, new_job.original_filename
 
+        # thread detached D file generation
         agency_code = frec_code if frec_code else cgac_code
-        t = threading.Thread(target=generate_d_file, args=(file_type, False, agency_code, start, end, new_job.job_id,
-                                                           timestamped_name, upload_file_name, self.isLocal))
+        t = threading.Thread(target=generate_d_file, args=(file_type, agency_code, start, end, new_job.job_id,
+                                                           new_job.original_filename, new_job.filename, self.isLocal))
         t.start()
 
         # Return same response as check generation route
@@ -797,41 +692,38 @@ class FileHandler:
         """
         sess = GlobalDB.db().session
 
-        upload_job = sess.query(Job).filter_by(
-            submission_id=submission.submission_id,
-            file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type],
-            job_type_id=JOB_TYPE_DICT['file_upload']
-        ).one()
+        upload_job = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                            Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
+                                            Job.job_type_id == JOB_TYPE_DICT['file_upload']).one()
 
-        if file_type in ["D1", "D2"]:
-            validation_job = sess.query(Job).filter_by(
-                submission_id=submission.submission_id,
-                file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type],
-                job_type_id=JOB_TYPE_DICT['csv_record_validation']
-            ).one()
+        if file_type in ['D1', 'D2']:
+            validation_job = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                                    Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
+                                                    Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one()
         else:
             validation_job = None
-        response_dict = {
+
+        resp_dict = {
             'status': map_generate_status(upload_job, validation_job),
             'file_type': file_type,
             'size': upload_job.file_size,
             'message': upload_job.error_message or ""
         }
-        if upload_job.filename is None:
-            response_dict["url"] = "#"
+        if resp_dict["status"] is not 'finished':
+            resp_dict["url"] = "#"
         elif CONFIG_BROKER["use_aws"]:
             path, file_name = upload_job.filename.split("/")
-            response_dict["url"] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
-                                                              method="GET")
+            resp_dict["url"] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
+                                                          method="GET")
         else:
-            response_dict["url"] = upload_job.filename
+            resp_dict["url"] = upload_job.filename
 
         # Pull start and end from jobs table if D1 or D2
         if file_type in ["D1", "D2"]:
-            response_dict["start"] = upload_job.start_date.strftime("%m/%d/%Y") if upload_job.start_date else ""
-            response_dict["end"] = upload_job.end_date.strftime("%m/%d/%Y") if upload_job.end_date else ""
+            resp_dict['start'] = upload_job.start_date.strftime('%m/%d/%Y') if upload_job.start_date else ''
+            resp_dict['end'] = upload_job.end_date.strftime('%m/%d/%Y') if upload_job.end_date else ''
 
-        return JsonResponse.create(StatusCode.OK, response_dict)
+        return JsonResponse.create(StatusCode.OK, resp_dict)
 
     @staticmethod
     def submit_detached_file(submission):
@@ -907,98 +799,6 @@ class FileHandler:
                                                         path=CONFIG_BROKER["help_files_path"])
         return JsonResponse.create(StatusCode.OK, response)
 
-    def complete_generation(self, generation_id, file_type=None):
-        """ For files D1 and D2, the API uses this route as a callback to load the generated file.
-        Requires an 'href' key in the request that specifies the URL of the file to be downloaded
-
-        Args:
-            generation_id - Unique key stored in file_generation_task table, used in callback to
-                identify which submission this file is for.
-            file_type - the type of file to be generated, D1 or D2. Only used when calling
-                complete_generation for local development
-
-        """
-        sess = GlobalDB.db().session
-        try:
-            if generation_id is None:
-                raise ResponseException("Must include a generation ID", StatusCode.CLIENT_ERROR)
-
-            if not self.isLocal:
-                # Pull url from request
-                request_dict = RequestDictionary.derive(self.request)
-                logger.debug('Request content => %s', request_dict)
-
-                if 'href' not in request_dict:
-                    raise ResponseException("Request must include href key with URL of D file", StatusCode.CLIENT_ERROR)
-
-                url = request_dict['href']
-                logger.debug('Download URL => %s', url)
-            else:
-                if file_type == "D1":
-                    url = CONFIG_SERVICES["d1_file_path"]
-                else:
-                    url = CONFIG_SERVICES["d2_file_path"]
-
-            # Pull information based on task key
-            logger.debug('Pulling information based on task key...')
-            task = sess.query(FileGenerationTask).filter(FileGenerationTask.generation_task_key == generation_id).one()
-            job = sess.query(Job).filter_by(job_id=task.job_id).one()
-            logger.debug('Loading D file...')
-            # if it isn't local, we want to make the actual loading a thread because we need to quickly respond to
-            # metrostar
-            if not self.isLocal:
-                response = requests.get(url, stream=True)
-                if response.status_code != 200:
-                    # Error occurred while downloading file, mark job as failed and record error message
-                    mark_job_status(job.job_id, "failed")
-                    job = sess.query(Job).filter_by(job_id=job.job_id).one()
-                    file_type = job.file_type.name
-                    if file_type == "award":
-                        source = "ASP"
-                    elif file_type == "award_procurement":
-                        source = "FPDS"
-                    else:
-                        source = "unknown source"
-                    job.error_message = "A problem occurred receiving data from {}".format(source)
-
-                    raise ResponseException(job.error_message, StatusCode.CLIENT_ERROR)
-
-                logger.debug('Starting thread')
-                t = threading.Thread(target=self.load_d_file, args=(url, job.filename, job.original_filename,
-                                                                    job.job_id, self.isLocal, response))
-                t.start()
-            # local shouldn't be a thread, just wait, no one is waiting on us.
-            else:
-                result = self.load_d_file(url, job.filename, job.original_filename, job.job_id, self.isLocal)
-                logger.debug('Load D file result => %s', result)
-            return JsonResponse.create(StatusCode.OK, {"message": "File loaded successfully"})
-        except ResponseException as e:
-            return JsonResponse.error(e, e.status)
-        except NoResultFound:
-            # Did not find file generation task
-            return JsonResponse.error(ResponseException("Generation task key not found", StatusCode.CLIENT_ERROR),
-                                      StatusCode.CLIENT_ERROR)
-
-    @staticmethod
-    def get_d_file_url(task_key, file_type_name, cgac_code, start_date, end_date):
-        """ Compiles the URL to be called in order to generate the D files """
-        callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],
-                                                                  CONFIG_SERVICES["broker_api_host"],
-                                                                  CONFIG_SERVICES["broker_api_port"], task_key)
-        logger.debug('Callback URL for %s: %s', FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]], callback)
-        url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date,
-                                                                      callback)
-        return url
-
-    @staticmethod
-    def create_generation_task(job_id):
-        sess = GlobalDB.db().session
-        task_key = uuid4()
-        task = FileGenerationTask(generation_task_key=task_key, job_id=job_id)
-        sess.add(task)
-        sess.commit()
-        return task.generation_task_key
-
     def add_generation_job_info(self, file_type_name, job=None, dates=None):
         # if job is None, that means the info being added is for detached d file generation
         sess = GlobalDB.db().session
@@ -1017,6 +817,7 @@ class FileHandler:
             upload_file_name = "".join([str(job.submission_id), "/", timestamped_name])
 
         # This will update the reference so no need to return the job, just the upload and timestamped file names
+        job.message = ''
         job.filename = upload_file_name
         job.original_filename = timestamped_name
         job.job_status_id = JOB_STATUS_DICT["running"]

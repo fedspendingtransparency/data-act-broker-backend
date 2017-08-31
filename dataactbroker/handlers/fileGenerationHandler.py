@@ -37,22 +37,27 @@ def job_context(job_id):
             GlobalDB.close()
 
 
-def generate_d_file(file_type, is_submission, agency_code, start, end, job_id, timestamped_name, upload_name, is_local):
-    """ Write file D1 or D2 to an appropriate CSV."""
+def generate_d_file(file_type, agency_code, start, end, job_id, timestamped_name, upload_name, is_local):
+    """ Write file D1 or D2 to an appropriate CSV.
+
+        Args:
+            file_type - File type as either "D1" or "D2"
+            agency_code - FREC or CGAC code for generation
+            start - Beginning of period for D file
+            end - End of period for D file
+            job_id - Job ID for upload job
+            timestamped_name - Version of filename without user ID
+            upload_name - Filename to use on S3
+            is_local - True if in local development, False otherwise
+    """
     logger.debug('Starting file {} generation'.format(file_type))
 
     with job_context(job_id) as session:
         file_utils = fileD1 if file_type == 'D1' else fileD2
 
-        rows = file_utils.query_data(session, '012', start, end)
+        rows = file_utils.query_data(session, agency_code, start, end)
 
-        if is_submission:
-            logger.debug('Writing {} rows to staging table'.format(file_type))
-            # # upload to staging tables
-            # for row in rows.all():
-            #   # use file_utils.file_model
-            #   session.add(row)
-
+        # set the order for headers and columns
         headers = [key for key in file_utils.mapping]
         columns = [val for key, val in file_utils.mapping.items()]
         body = []
@@ -66,7 +71,15 @@ def generate_d_file(file_type, is_submission, agency_code, start, end, job_id, t
 
 
 def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, is_local):
-    """ Write rows from fileF.generate_f_rows to an appropriate CSV."""
+    """ Write rows from fileF.generate_f_rows to an appropriate CSV.
+
+        Args:
+            submission_id - Submission ID for generation
+            job_id - Job ID for upload job
+            timestamped_name - Version of filename without user ID
+            upload_name - Filename to use on S3
+            is_local - True if in local development, False otherwise
+    """
     logger.debug('Starting file F generation')
 
     with job_context(job_id):
@@ -84,7 +97,15 @@ def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, i
 
 
 def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, is_local):
-    """ Write file E to an appropriate CSV."""
+    """ Write file E to an appropriate CSV.
+
+        Args:
+            submission_id - Submission ID for generation
+            job_id - Job ID for upload job
+            timestamped_name - Version of filename without user ID
+            upload_name - Filename to use on S3
+            is_local - True if in local development, False otherwise
+    """
     logger.debug('Starting file E generation')
 
     with job_context(job_id) as session:
