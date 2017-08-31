@@ -26,7 +26,8 @@ WITH detached_award_financial_assistance_fabs31_6_{0} AS
 WHERE submission_id = {0}),
 
 duns_fabs31_6_{0} AS
-    (SELECT duns_fabs31.awardee_or_recipient_uniqu,
+    (SELECT DISTINCT
+        duns_fabs31.awardee_or_recipient_uniqu,
         duns_fabs31.activation_date,
         duns_fabs31.expiration_date
     FROM duns AS duns_fabs31
