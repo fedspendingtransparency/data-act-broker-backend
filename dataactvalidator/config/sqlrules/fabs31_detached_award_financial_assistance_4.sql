@@ -11,6 +11,18 @@ EXCEPTION WHEN others THEN
 END;
 $$ LANGUAGE plpgsql;
 
+WITH detached_award_financial_assistance_fabs31_4_{0} AS
+    (SELECT
+        submission_id,
+        row_number,
+        assistance_type,
+        action_date,
+        awardee_or_recipient_uniqu,
+        business_types,
+        record_type
+    FROM detached_award_financial_assistance
+    WHERE submission_id = {0})
+
 SELECT
     row_number,
     assistance_type,
@@ -18,9 +30,8 @@ SELECT
     awardee_or_recipient_uniqu,
     business_types,
     record_type
-FROM detached_award_financial_assistance AS dafa
-WHERE submission_id = {0}
-    AND NOT (record_type = 1 or LOWER(business_types) LIKE '%%p%%')
+FROM detached_award_financial_assistance_fabs31_4_{0} AS dafa
+WHERE NOT (record_type = 1 or LOWER(business_types) LIKE '%%p%%')
     AND COALESCE(assistance_type, '') IN ('02', '03', '04', '05')
     AND (CASE
         WHEN pg_temp.is_date(COALESCE(action_date, '0'))
@@ -31,4 +42,6 @@ WHERE submission_id = {0}
     AND COALESCE(dafa.awardee_or_recipient_uniqu, '') NOT IN (
         SELECT DISTINCT duns.awardee_or_recipient_uniqu
         FROM duns
+        JOIN detached_award_financial_assistance_fabs31_4_{0} AS sub_dafa
+        ON sub_dafa.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
     )
