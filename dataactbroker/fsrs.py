@@ -9,8 +9,7 @@ from suds.transport.https import HttpAuthenticated
 from suds.xsd import doctor
 
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.fsrs import (
-    FSRSProcurement, FSRSSubcontract, FSRSGrant, FSRSSubgrant)
+from dataactcore.models.fsrs import FSRSProcurement, FSRSSubcontract, FSRSGrant, FSRSSubgrant
 
 
 logger = logging.getLogger(__name__)
@@ -85,8 +84,8 @@ def new_client(service_type):
     # The WSDL is missing an import; it's so common that suds has a work around
     parsed_wsdl = urlparse(wsdl_url)
     import_fix = doctor.Import('http://schemas.xmlsoap.org/soap/encoding/')
-    import_fix.filter.add(   # Main namespace is the wsdl domain
-        '{}://{}/'.format(parsed_wsdl.scheme, parsed_wsdl.netloc))
+    # Main namespace is the wsdl domain
+    import_fix.filter.add('{}://{}/'.format(parsed_wsdl.scheme, parsed_wsdl.netloc))
 
     options['doctor'] = doctor.ImportDoctor(import_fix)
     options['plugins'] = [ControlFilter(), ZeroDateFilter()]
@@ -94,7 +93,8 @@ def new_client(service_type):
     if config.get('username') and config.get('password'):
         options['transport'] = HttpAuthenticated(
             username=config['username'],
-            password=config['password'])
+            password=config['password'],
+            timeout=300)
 
     return Client(**options)
 
@@ -109,28 +109,19 @@ def soap_to_dict(soap_obj):
 
 
 # Fields lists to copy
-_common = ('duns', 'dba_name', 'parent_duns', 'funding_agency_id',
-           'funding_agency_name')
-_contract = ('company_name', 'parent_company_name', 'naics',
-             'funding_office_id', 'funding_office_name', 'recovery_model_q1',
-             'recovery_model_q2')
-_grant = ('dunsplus4', 'awardee_name', 'project_description',
-          'compensation_q1', 'compensation_q2')
-_prime = ('internal_id', 'date_submitted', 'report_period_mon',
-          'report_period_year')
+_common = ('duns', 'dba_name', 'parent_duns', 'funding_agency_id', 'funding_agency_name')
+_contract = ('company_name', 'parent_company_name', 'naics', 'funding_office_id', 'funding_office_name',
+             'recovery_model_q1', 'recovery_model_q2')
+_grant = ('dunsplus4', 'awardee_name', 'project_description', 'compensation_q1', 'compensation_q2')
+_prime = ('internal_id', 'date_submitted', 'report_period_mon', 'report_period_year')
 _primeContract = _common + _contract + _prime + (
-    'id', 'contract_number', 'idv_reference_number', 'report_type',
-    'contract_agency_code', 'contract_idv_agency_code',
-    'contracting_office_aid', 'contracting_office_aname',
-    'contracting_office_id', 'contracting_office_name', 'treasury_symbol',
-    'dollar_obligated', 'date_signed', 'transaction_type', 'program_title')
+    'id', 'contract_number', 'idv_reference_number', 'report_type', 'contract_agency_code', 'contract_idv_agency_code',
+    'contracting_office_aid', 'contracting_office_aname', 'contracting_office_id', 'contracting_office_name',
+    'treasury_symbol', 'dollar_obligated', 'date_signed', 'transaction_type', 'program_title')
 _subContract = _common + _contract + (
-    'subcontract_amount', 'subcontract_date', 'subcontract_num',
-    'overall_description', 'recovery_subcontract_amt')
-_primeGrant = _common + _grant + _prime + (
-    'id', 'fain', 'total_fed_funding_amount', 'obligation_date')
-_subGrant = _common + _grant + (
-    'subaward_amount', 'subaward_date', 'subaward_num')
+    'subcontract_amount', 'subcontract_date', 'subcontract_num', 'overall_description', 'recovery_subcontract_amt')
+_primeGrant = _common + _grant + _prime + ('id', 'fain', 'total_fed_funding_amount', 'obligation_date')
+_subGrant = _common + _grant + ('subaward_amount', 'subaward_date', 'subaward_num')
 # Address fields
 _contractAddrs = ('principle_place', 'company_address')
 _grantAddrs = ('principle_place', 'awardee_address')
@@ -198,9 +189,8 @@ def fetch_and_replace_batch(sess, service_type, min_id=None):
         min_id = model.next_id(sess)
 
     awards = list(retrieve_batch(service_type, min_id))
-    ids = [a.id for a in awards]
-    sess.query(model).filter(model.id.in_(ids)).delete(
-        synchronize_session=False)
+    ids = [a.internal_id for a in awards]
+    sess.query(model).filter(model.internal_id.in_(ids)).delete(synchronize_session=False)
     sess.add_all(awards)
     sess.commit()
 
