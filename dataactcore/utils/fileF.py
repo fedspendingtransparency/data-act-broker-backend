@@ -32,8 +32,7 @@ class CopyValues:
     # Order to check fields
     MODEL_TYPES = ('subcontract', 'subgrant', 'procurement', 'grant', 'award')
 
-    def __init__(self, subcontract=None, subgrant=None, procurement=None,
-                 grant=None, award=None):
+    def __init__(self, subcontract=None, subgrant=None, procurement=None, grant=None, award=None):
         self.procurement_field = procurement
         self.subcontract_field = subcontract
         self.grant_field = grant
@@ -82,33 +81,23 @@ ModelRow.__new__.__defaults__ = (None, None, None, None, None)
 # be placed in a CSV cell), keyed by the CSV column name for that cell. Order
 # matters as it defines the CSV column order
 mappings = OrderedDict([
-    ('SubAwardeeOrRecipientLegalEntityName',
-        CopyValues('company_name', 'awardee_name')),
+    ('SubAwardeeOrRecipientLegalEntityName', CopyValues('company_name', 'awardee_name')),
     ('SubAwardeeOrRecipientUniqueIdentifier', copy_subaward_field('duns')),
-    ('SubAwardeeUltimateParentUniqueIdentifier',
-        copy_subaward_field('parent_duns')),
-    ('SubAwardeeUltimateParentLegalEntityName',
-        CopyValues(subcontract='parent_company_name')),
-    ('LegalEntityAddressLine1',
-        CopyValues('company_address_street', 'awardee_address_street')),
-    ('LegalEntityCityName',
-        CopyValues('company_address_city', 'awardee_address_city')),
-    ('LegalEntityStateCode',
-        CopyValues('company_address_state', 'awardee_address_state')),
+    ('SubAwardeeUltimateParentUniqueIdentifier', copy_subaward_field('parent_duns')),
+    ('SubAwardeeUltimateParentLegalEntityName', CopyValues(subcontract='parent_company_name')),
+    ('LegalEntityAddressLine1', CopyValues('company_address_street', 'awardee_address_street')),
+    ('LegalEntityCityName', CopyValues('company_address_city', 'awardee_address_city')),
+    ('LegalEntityStateCode', CopyValues('company_address_state', 'awardee_address_state')),
     ('LegalEntityZIP+4', SubawardLogic(
-        lambda subcontract:
-            _zipcode_guard(subcontract, 'company_address', True),
+        lambda subcontract: _zipcode_guard(subcontract, 'company_address', True),
         lambda subgrant: _zipcode_guard(subgrant, 'awardee_address', True)
     )),
     ('LegalEntityForeignPostalCode', SubawardLogic(
-        lambda subcontract:
-            _zipcode_guard(subcontract, 'company_address', False),
+        lambda subcontract: _zipcode_guard(subcontract, 'company_address', False),
         lambda subgrant: _zipcode_guard(subgrant, 'awardee_address', False)
     )),
-    ('LegalEntityCongressionalDistrict',
-        CopyValues('company_address_district', 'awardee_address_district')),
-    ('LegalEntityCountryCode',
-        CopyValues('company_address_country', 'awardee_address_country')),
+    ('LegalEntityCongressionalDistrict', CopyValues('company_address_district', 'awardee_address_district')),
+    ('LegalEntityCountryCode', CopyValues('company_address_country', 'awardee_address_country')),
     ('LegalEntityCountryName', SubawardLogic(
         lambda subcontract: _country_name(subcontract.company_address_country),
         lambda subgrant: _country_name(subgrant.awardee_address_country)
@@ -130,29 +119,20 @@ mappings = OrderedDict([
     ('CFDA_NumberAndTitle', CopyValues(subgrant='cfda_numbers')),
     ('AwardingSubTierAgencyName', copy_subaward_field('funding_agency_name')),
     ('AwardingSubTierAgencyCode', copy_subaward_field('funding_agency_id')),
-    ('AwardDescription',
-        CopyValues('overall_description', 'project_description')),
-    ('ActionDate',
-        CopyValues(subcontract='subcontract_date', grant='obligation_date')),
-    ('PrimaryPlaceOfPerformanceCityName',
-        copy_subaward_field('principle_place_city')),
-    ('PrimaryPlaceOfPerformanceAddressLine1',
-        copy_subaward_field('principle_place_street')),
-    ('PrimaryPlaceOfPerformanceStateCode',
-        copy_subaward_field('principle_place_state')),
-    ('PrimaryPlaceOfPerformanceZIP+4',
-        copy_subaward_field('principle_place_zip')),
-    ('PrimaryPlaceOfPerformanceCongressionalDistrict',
-        copy_subaward_field('principle_place_district')),
-    ('PrimaryPlaceOfPerformanceCountryCode',
-        copy_subaward_field('principle_place_country')),
+    ('AwardDescription', CopyValues('overall_description', 'project_description')),
+    ('ActionDate', CopyValues(subcontract='subcontract_date', grant='obligation_date')),
+    ('PrimaryPlaceOfPerformanceCityName', copy_subaward_field('principle_place_city')),
+    ('PrimaryPlaceOfPerformanceAddressLine1', copy_subaward_field('principle_place_street')),
+    ('PrimaryPlaceOfPerformanceStateCode', copy_subaward_field('principle_place_state')),
+    ('PrimaryPlaceOfPerformanceZIP+4', copy_subaward_field('principle_place_zip')),
+    ('PrimaryPlaceOfPerformanceCongressionalDistrict', copy_subaward_field('principle_place_district')),
+    ('PrimaryPlaceOfPerformanceCountryCode', copy_subaward_field('principle_place_country')),
     ('PrimaryPlaceOfPerformanceCountryName', SubawardLogic(
         lambda subcontract: _country_name(subcontract.principle_place_country),
         lambda subgrant: _country_name(subgrant.principle_place_country)
     )),
     ('Vendor Doing As Business Name', copy_subaward_field('dba_name')),
-    ('PrimeAwardReportID',
-        CopyValues(procurement='contract_number', grant='fain')),
+    ('PrimeAwardReportID', CopyValues(procurement='contract_number', grant='fain')),
     ('ParentAwardId', CopyValues(procurement='idv_reference_number')),
     ('AwardReportMonth', copy_prime_field('report_period_mon')),
     ('AwardReportYear', copy_prime_field('report_period_year')),
@@ -170,12 +150,21 @@ def submission_procurements(submission_id):
 
     logger.debug('Starting submission procurements')
 
-    results = sess.query(AwardProcurement, FSRSProcurement, FSRSSubcontract).\
-        filter(AwardProcurement.submission_id == submission_id).\
-        filter(FSRSProcurement.contract_number.isnot_distinct_from(AwardProcurement.piid)).\
-        filter(FSRSProcurement.idv_reference_number.isnot_distinct_from(AwardProcurement.parent_award_id)).\
+    award_proc_sub = sess.query(AwardProcurement.piid, AwardProcurement.parent_award_id,
+                                AwardProcurement.naics_description, AwardProcurement.awarding_sub_tier_agency_c,
+                                AwardProcurement.submission_id).\
+        filter(AwardProcurement.submission_id == submission_id).distinct().cte("award_proc_sub")
+
+    results = sess.query(award_proc_sub, FSRSProcurement, FSRSSubcontract).\
+        filter(FSRSProcurement.contract_number == award_proc_sub.c.piid).\
+        filter(FSRSProcurement.idv_reference_number.isnot_distinct_from(award_proc_sub.c.parent_award_id)).\
         filter(FSRSSubcontract.parent_id == FSRSProcurement.id)
-    for award, proc, sub in results:
+
+    # The cte returns a set of columns, not an AwardProcurement object, so we have to unpack each column
+    for award_piid, award_parent_id, award_naics_desc, award_sub_tier, award_sub_id, proc, sub in results:
+        # need to combine those columns again here so we can get a proper ModelRow
+        award = AwardProcurement(piid=award_piid, parent_award_id=award_parent_id, naics_description=award_naics_desc,
+                                 awarding_sub_tier_agency_c=award_sub_tier, submission_id=award_sub_id)
         yield ModelRow(award, proc, sub, naics_desc=award.naics_description)
 
     logger.debug('Finished submission procurements')
@@ -183,14 +172,21 @@ def submission_procurements(submission_id):
 
 def submission_grants(submission_id):
     """Fetch grants and subgrants"""
+    sess = GlobalDB.db().session
+
     logger.debug('Starting submission grants')
 
-    triplets = GlobalDB.db().session.\
-        query(AwardFinancialAssistance, FSRSGrant, FSRSSubgrant).\
-        filter(AwardFinancialAssistance.submission_id == submission_id).\
-        filter(FSRSGrant.fain == AwardFinancialAssistance.fain).\
+    afa_sub = sess.query(AwardFinancialAssistance.fain, AwardFinancialAssistance.submission_id).\
+        filter(AwardFinancialAssistance.submission_id == submission_id).distinct().cte("afa_sub")
+
+    triplets = sess.query(afa_sub, FSRSGrant, FSRSSubgrant).\
+        filter(FSRSGrant.fain == afa_sub.c.fain).\
         filter(FSRSSubgrant.parent_id == FSRSGrant.id)
-    for award, grant, sub in triplets:
+
+    # The cte returns a set of columns, not an AwardFinancialAssistance object, so we have to unpack each column
+    for afa_sub_fain, afa_sub_id, grant, sub in triplets:
+        # need to combine those columns again here so we can get a proper ModelRow
+        award = AwardFinancialAssistance(fain=afa_sub_fain, submission_id=afa_sub_id)
         yield ModelRow(award, grant=grant, subgrant=sub)
 
     logger.debug('Finished submission grants')
