@@ -136,6 +136,9 @@ class FieldCleaner(StringCleaner):
             if value is not None:
                 # Remove extra whitespace
                 value = value.strip()
+                # If field is wrapped in quotes then remove
+                if value.startswith('"') and value.endswith('"'):
+                    value = value[1:-1].strip()
                 if field_type in ["INT", "DECIMAL", "LONG"]:
                     temp_value = value.replace(",", "")
                     if FieldCleaner.is_numeric(temp_value):
