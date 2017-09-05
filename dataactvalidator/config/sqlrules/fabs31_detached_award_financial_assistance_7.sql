@@ -59,7 +59,8 @@ WHERE NOT (dafa.record_type = 1 or LOWER(dafa.business_types) LIKE '%%p%%')
             SELECT DISTINCT sub_dafa.row_number
             FROM detached_award_financial_assistance_fabs31_7_{0} as sub_dafa
                 JOIN duns_fabs31_7_{0} AS duns_short
-                ON ((CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
+                ON duns_short.awardee_or_recipient_uniqu = sub_dafa.awardee_or_recipient_uniqu
+                AND ((CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
                     THEN CAST(sub_dafa.action_date as Date)
                     END) >= CAST(duns_short.activation_date as DATE)
                 AND (CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
