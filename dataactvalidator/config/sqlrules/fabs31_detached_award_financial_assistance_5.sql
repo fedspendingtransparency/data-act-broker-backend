@@ -33,7 +33,19 @@ duns_short_fabs31_5_{0} AS
         duns.activation_date
     FROM duns
     JOIN detached_award_financial_assistance_fabs31_5_{0} AS sub_dafa
-    ON duns.awardee_or_recipient_uniqu = sub_dafa.awardee_or_recipient_uniqu)
+    ON duns.awardee_or_recipient_uniqu = sub_dafa.awardee_or_recipient_uniqu),
+
+duns_dafa_dates_fabs31_5_{0} AS
+    (SELECT DISTINCT sub_dafa.row_number
+    FROM detached_award_financial_assistance_fabs31_5_{0} as sub_dafa
+    JOIN duns_short_fabs31_5_{0} AS duns_short
+    ON ((CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
+                THEN CAST(sub_dafa.action_date as Date)
+                END) >= CAST(duns_short.activation_date as DATE)
+        AND (CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
+                THEN CAST(sub_dafa.action_date as Date)
+                END) < CAST(duns_short.expiration_date as DATE)
+                ))
 
 SELECT
     dafa.row_number,
@@ -66,14 +78,5 @@ WHERE NOT (dafa.record_type = 1 or LOWER(dafa.business_types) LIKE '%%p%%')
         FROM duns_short_fabs31_5_{0} AS short_duns
     )
     AND dafa.row_number NOT IN (
-            SELECT DISTINCT sub_dafa.row_number
-            FROM detached_award_financial_assistance_fabs31_5_{0} as sub_dafa
-                JOIN duns_short_fabs31_5_{0} AS duns_short
-                ON ((CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
-                    THEN CAST(sub_dafa.action_date as Date)
-                    END) >= CAST(duns_short.activation_date as DATE)
-                AND (CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
-                    THEN CAST(sub_dafa.action_date as Date)
-                    END) < CAST(duns_short.expiration_date as DATE)
-                )
-            )
+            SELECT *
+            FROM duns_dafa_dates_fabs31_5_{0})
