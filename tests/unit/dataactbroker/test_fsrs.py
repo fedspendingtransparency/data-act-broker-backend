@@ -184,12 +184,15 @@ def test_fetch_and_replace_batch_saves_data(no_award_db, monkeypatch):
 
 def test_fetch_and_replace_batch_overrides_data(no_award_db, monkeypatch):
     def fetch_duns(award_id):
-        return no_award_db.query(FSRSGrant.duns).filter(
-            FSRSGrant.id == award_id).one()[0]
+        test_result = no_award_db.query(FSRSGrant.duns).filter(
+            FSRSGrant.id == award_id).one_or_none()
+        if test_result:
+            return test_result[0]
+        return None
 
-    award1 = FSRSGrantFactory(id=1, duns='To Be Replaced')
+    award1 = FSRSGrantFactory(id=1, internal_id='12345', duns='To Be Replaced')
     award1.subawards = [FSRSSubgrantFactory() for _ in range(4)]
-    award2 = FSRSGrantFactory(id=2, duns='Not Altered')
+    award2 = FSRSGrantFactory(id=2, internal_id='54321', duns='Not Altered')
     award2.subawards = [FSRSSubgrantFactory()]
     monkeypatch.setattr(fsrs, 'retrieve_batch', Mock(return_value=[award1, award2]))
 
@@ -201,11 +204,12 @@ def test_fetch_and_replace_batch_overrides_data(no_award_db, monkeypatch):
 
     no_award_db.expunge_all()   # Reset the model cache
 
-    award3 = FSRSGrantFactory(id=1, duns='Replaced')
+    award3 = FSRSGrantFactory(id=3, internal_id='12345', duns='Replaced')
     award3.subawards = [FSRSSubgrantFactory() for _ in range(2)]
     monkeypatch.setattr(fsrs, 'retrieve_batch', Mock(return_value=[award3]))
     fsrs.fetch_and_replace_batch(no_award_db, fsrs.GRANT)
-    assert fetch_duns(1) == 'Replaced'
+    assert fetch_duns(1) is None
     assert fetch_duns(2) == 'Not Altered'
+    assert fetch_duns(3) == 'Replaced'
     # 3 subawards, 4 from award1/award3 and 1 from award2
     assert no_award_db.query(FSRSSubgrant).count() == 3
