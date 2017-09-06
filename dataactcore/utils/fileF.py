@@ -158,6 +158,7 @@ def submission_procurements(submission_id):
     results = sess.query(award_proc_sub, FSRSProcurement, FSRSSubcontract).\
         filter(FSRSProcurement.contract_number == award_proc_sub.c.piid).\
         filter(FSRSProcurement.idv_reference_number.isnot_distinct_from(award_proc_sub.c.parent_award_id)).\
+        filter(FSRSProcurement.contracting_office_aid == award_proc_sub.c.awarding_sub_tier_agency_c).\
         filter(FSRSSubcontract.parent_id == FSRSProcurement.id)
 
     # The cte returns a set of columns, not an AwardProcurement object, so we have to unpack each column
