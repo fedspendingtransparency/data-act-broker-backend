@@ -21,6 +21,7 @@ from dataactvalidator.scripts.loadTas import load_tas
 from dataactvalidator.scripts.loadLocationData import load_location_data
 from dataactvalidator.scripts.readZips import read_zips
 from dataactvalidator.scripts.loadAgencies import load_agency_data
+from dataactvalidator.scripts.loadOffices import load_offices
 
 logger = logging.getLogger(__name__)
 basePath = CONFIG_BROKER["path"]
@@ -113,6 +114,7 @@ def main():
     parser.add_argument('-v', '--update_validator', help='Update validator schema', action='store_true')
     parser.add_argument('-l', '--load_location', help='Load city and county codes', action='store_true')
     parser.add_argument('-z', '--load_zips', help='Load zip code data', action='store_true')
+    parser.add_argument('-o', '--load_offices', help='Load FPDS Office Codes', action='store_true')
     args = parser.parse_args()
 
     if args.initialize:
@@ -125,6 +127,7 @@ def main():
         load_validator_schema()
         load_location_codes()
         load_zip_codes()
+        load_offices()
         return
 
     if args.setup_db:
@@ -157,6 +160,9 @@ def main():
     if args.load_zips:
         load_zip_codes()
         load_location_codes()
+
+    if args.load_offices:
+        load_offices()
 
 if __name__ == '__main__':
     configure_logging()

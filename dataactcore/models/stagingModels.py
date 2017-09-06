@@ -864,6 +864,7 @@ class PublishedAwardFinancialAssistance(Base):
     awarding_agency_code = Column(Text)
     awarding_agency_name = Column(Text)
     awarding_office_code = Column(Text)
+    awarding_office_name = Column(Text)
     awarding_sub_tier_agency_c = Column(Text)
     awarding_sub_tier_agency_n = Column(Text)
     award_modification_amendme = Column(Text)
@@ -879,6 +880,7 @@ class PublishedAwardFinancialAssistance(Base):
     funding_agency_name = Column(Text)
     funding_agency_code = Column(Text)
     funding_office_code = Column(Text)
+    funding_office_name = Column(Text)
     funding_sub_tier_agency_co = Column(Text)
     funding_sub_tier_agency_na = Column(Text)
     is_active = Column(Boolean, default=False, nullable=False, server_default="False")
@@ -887,6 +889,7 @@ class PublishedAwardFinancialAssistance(Base):
     legal_entity_address_line2 = Column(Text)
     legal_entity_address_line3 = Column(Text)
     legal_entity_city_name = Column(Text)
+    legal_entity_city_code = Column(Text, index=True)
     legal_entity_congressional = Column(Text)
     legal_entity_country_code = Column(Text)
     legal_entity_county_code = Column(Text)
@@ -921,3 +924,28 @@ class PublishedAwardFinancialAssistance(Base):
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(PublishedAwardFinancialAssistance, self).__init__(**clean_kwargs)
+
+
+class FPDSContractingOffice(Base):
+    """Model for FPDS Contracting Offices """
+    __tablename__ = "fpds_contracting_offices"
+
+    FPDS_contracting_office_id = Column(Integer, primary_key=True)
+    department_id = Column(Text, index=True)
+    department_name = Column(Text)
+    agency_code = Column(Text, index=True)
+    agency_name = Column(Text)
+    contracting_office_code = Column(Text, index=True)
+    contracting_office_name = Column(Text)
+    start_date = Column(DateTime)
+    end_date = Column(DateTime)
+    address_city = Column(Text)
+    address_state = Column(Text)
+    zip_code = Column(Text)
+    country_code = Column(Text)
+
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(FPDSContractingOffice, self).__init__(**clean_kwargs)

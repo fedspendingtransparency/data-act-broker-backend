@@ -6,6 +6,7 @@ import urllib.request
 import zipfile
 import numpy as np
 import pandas as pd
+from sqlalchemy import func
 
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
@@ -13,6 +14,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
 from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
+from dataactcore.models.domainModels import (SubTierAgency, CountyCode, States, Zips, ZipCity, CityCode)
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
@@ -37,7 +39,7 @@ def parse_fabs_file(f, sess):
         'recipient_state_code', 'last_modified_date'
     ])
 
-    clean_data = format_fabs_data(data)
+    clean_data = format_fabs_data(data, sess)
 
     if clean_data is not None:
         logger.info("loading {} rows".format(len(clean_data.index)))
@@ -46,7 +48,7 @@ def parse_fabs_file(f, sess):
         sess.commit()
 
 
-def format_fabs_data(data):
+def format_fabs_data(data, sess):
     logger.info("formatting data")
 
     # drop rows with null FAIN and URI
@@ -72,19 +74,24 @@ def format_fabs_data(data):
     data['starting_date'] = data.apply(lambda x: format_date(x, 'starting_date'), axis=1)
     data['ending_date'] = data.apply(lambda x: format_date(x, 'ending_date'), axis=1)
     data['record_type'] = data.apply(lambda x: format_record_type(x), axis=1)
-    data['place_of_perform_county_na'] = data.apply(lambda x: format_cc_code(x, True), axis=1)
-    data['place_of_perform_city'] = data.apply(lambda x: format_cc_code(x, False), axis=1)
     data['principal_place_zip'] = data.apply(lambda x: format_full_zip(x), axis=1)
     data['principal_place_cd'] = data.apply(lambda x: format_cd(x, 'principal_place_cd'), axis=1)
     data['recipient_cd'] = data.apply(lambda x: format_cd(x, 'recipient_cd'), axis=1)
     data['is_historical'] = np.full(len(data.index), True, dtype=bool)
+    data['legal_entity_city_code'] = data.apply(lambda x: derive_legal_entity_city_code(x, sess), axis=1)
+    data['awarding_agency_code'] = data.apply(lambda x: derive_awarding_agency_code(x, sess), axis=1)
+    data['awarding_agency_name'] = data.apply(lambda x: derive_awarding_agency_name(x, sess), axis=1)
+    data['awarding_sub_tier_agency_n'] = data.apply(lambda x: derive_awarding_sub_tier_agency_n(x, sess), axis=1)
+    data['place_of_perform_county_na'] = data.apply(lambda x: derive_place_of_perform_county_na(x, sess), axis=1)
+    data['place_of_perform_city'] = data.apply(lambda x: derive_place_of_performance_city(x, sess), axis=1)
+    data['legal_entity_state_name'] = data.apply(lambda x: derive_legal_entity_state_name(x, sess), axis=1)
 
     # adding columns missing from historical data
     null_list = [
-        'awarding_sub_tier_agency_n', 'awarding_agency_code', 'awarding_agency_name', 'awarding_office_code',
+        'awarding_office_code',
         'funding_agency_name', 'funding_agency_code', 'funding_office_code', 'funding_sub_tier_agency_co',
         'funding_sub_tier_agency_na', 'legal_entity_foreign_city', 'legal_entity_foreign_posta',
-        'legal_entity_foreign_provi', 'place_of_performance_forei'
+        'legal_entity_foreign_provi', 'place_of_performance_forei', 'awarding_office_name', 'funding_office_name'
     ]
     for item in null_list:
         data[item] = None
@@ -102,6 +109,7 @@ def format_fabs_data(data):
             'awarding_agency_code': 'awarding_agency_code',
             'awarding_agency_name': 'awarding_agency_name',
             'awarding_office_code': 'awarding_office_code',
+            'awarding_office_name': 'awarding_office_name',
             'agency_code': 'awarding_sub_tier_agency_c',
             'awarding_sub_tier_agency_n': 'awarding_sub_tier_agency_n',
             'federal_award_mod': 'award_modification_amendme',
@@ -117,6 +125,7 @@ def format_fabs_data(data):
             'funding_agency_name': 'funding_agency_name',
             'funding_agency_code': 'funding_agency_code',
             'funding_office_code': 'funding_office_code',
+            'funding_office_name': 'funding_office_name',
             'funding_sub_tier_agency_co': 'funding_sub_tier_agency_co',
             'funding_sub_tier_agency_na': 'funding_sub_tier_agency_na',
             'is_historical': 'is_historical',
@@ -134,6 +143,7 @@ def format_fabs_data(data):
             'legal_entity_foreign_provi': 'legal_entity_foreign_provi',
             'recipient_state_code': 'legal_entity_state_code',
             'legal_entity_zip5': 'legal_entity_zip5',
+            'legal_entity_state_name': 'legal_entity_state_name',
             'legal_entity_zip_last4': 'legal_entity_zip_last4',
             'last_modified_date': 'modified_at',
             'non_fed_funding_amount': 'non_federal_funding_amount',
@@ -175,6 +185,137 @@ def format_proper_casing(row, header):
     if str(row[header]).isupper():
         return str(row[header]).title()
     return row[header]
+
+
+def derive_legal_entity_city_code(row, sess):
+    if row['recipient_city_code'] and not is_nan(row['recipient_city_code']):
+        return row['recipient_city_name']
+    elif row['recipient_city_name'] and row['recipient_state_code'] and not is_nan(row['recipient_city_name']) \
+            and not is_nan(row['recipient_state_code']):
+        city_data = sess.query(CityCode). \
+            filter(func.lower(CityCode.feature_name) == func.lower(row['recipient_city_name'].strip()),
+                   func.lower(CityCode.state_code) == func.lower(
+                       row['recipient_state_code'].strip())).one_or_none()
+        if city_data:
+            return city_data.city_code
+    return None
+
+
+def derive_awarding_agency_code(row, sess):
+    if not row['agency_code']:
+        return None
+    awarding_sub_tier = sess.query(SubTierAgency). \
+        filter_by(sub_tier_agency_code=row['agency_code']).one()
+    use_frec = awarding_sub_tier.is_frec
+    awarding_agency = awarding_sub_tier.frec if use_frec else awarding_sub_tier.cgac
+    return awarding_agency.frec_code if use_frec else awarding_agency.cgac_code
+
+
+def derive_awarding_agency_name(row, sess):
+    if not row['agency_code']:
+        return None
+    awarding_sub_tier = sess.query(SubTierAgency). \
+        filter_by(sub_tier_agency_code=row['agency_code']).one()
+    use_frec = awarding_sub_tier.is_frec
+    awarding_agency = awarding_sub_tier.frec if use_frec else awarding_sub_tier.cgac
+    return awarding_agency.agency_name
+
+
+def derive_awarding_sub_tier_agency_n(row, sess):
+    if not row['agency_code']:
+        return None
+    awarding_sub_tier = sess.query(SubTierAgency). \
+        filter_by(sub_tier_agency_code=row['agency_code']).one()
+    return awarding_sub_tier.sub_tier_agency_name
+
+
+def derive_place_of_perform_county_na(row, sess):
+    if not row['principal_place_zip']:
+        ppop_code = row['principal_place_code'].upper()
+        ppop_state = None
+        if ppop_code[:2] == '00':
+            return None
+        elif re.match('^[0-9]{2}', ppop_code[:2]):
+            ppop_state = sess.query(States).filter_by(fips_code=ppop_code[:2]).one()
+        elif re.match('^[A-Z]{2}\*\*\d{3}$', ppop_code[:2]):
+            ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one()
+        if re.match('\*\*\d{3}$', ppop_code):
+            # getting county name
+            county_code = ppop_code[-3:]
+            county_info = sess.query(CountyCode).\
+                filter_by(county_number=county_code, state_code=ppop_state.state_code).first()
+            return county_info.county_name
+        elif re.match('\d{5}$', ppop_code) and not re.match('0{5}$', ppop_code):
+            # getting city and county name
+            city_code = ppop_code[-5:]
+            city_info = sess.query(CityCode).filter_by(city_code=city_code, state_code=ppop_state.state_code).first()
+            return city_info.county_name
+        return None
+    zip_five = row['principal_place_zip'][:5]
+    zip_four = None
+    if len(row['principal_place_zip']) > 5:
+        zip_four = row['principal_place_zip'][-4:]
+    if zip_four:
+        zip_info = sess.query(Zips). \
+            filter_by(zip5=zip_five, zip_last4=zip_four).first()
+    else:
+        zip_info = sess.query(Zips). \
+            filter_by(zip5=zip_five).first()
+    county_info = sess.query(CountyCode). \
+        filter_by(county_number=zip_info.county_number, state_code=zip_info.state_abbreviation).first()
+    return county_info.county_name
+
+
+def derive_place_of_performance_city(row, sess):
+    if not row['principal_place_zip']:
+        ppop_code = row['principal_place_code'].upper()
+        ppop_state = None
+        if ppop_code[:2] == '00':
+            return None
+        elif re.match('^[0-9]{2}', ppop_code[:2]):
+            ppop_state = sess.query(States).filter_by(fips_code=ppop_code[:2]).one()
+        elif re.match('^[A-Z]{2}\*\*\d{3}$', ppop_code[:2]):
+            ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one()
+        if re.match('\d{5}$', ppop_code) and not re.match('0{5}$', ppop_code):
+            # getting city and county name
+            city_code = ppop_code[-5:]
+            city_info = sess.query(CityCode).filter_by(city_code=city_code, state_code=ppop_state.state_code).first()
+            return city_info.feature_name
+        return None
+    zip_five = row['principal_place_zip'][:5]
+    city_info = sess.query(ZipCity).filter_by(zip_code=zip_five).one()
+    return city_info.city_name
+
+
+def derive_legal_entity_state_name(row, sess):
+    if row['legal_entity_zip5']:
+        zip_data = None
+        # if we have a legal entity zip+4 provided
+        if row['legal_entity_zip_last4']:
+            zip_data = sess.query(Zips).\
+                filter_by(zip5=row['legal_entity_zip5'], zip_last4=row['legal_entity_zip_last4']).first()
+
+        # if legal_entity_zip_last4 returned no results (invalid combination), grab the first entry for this zip5
+        # for derivation purposes. This will exist because we wouldn't have gotten this far if it didn't,
+        # invalid legal_entity_zip5 when present is an error
+        if not zip_data:
+            zip_data = sess.query(Zips).filter_by(zip5=row['legal_entity_zip5']).first()
+
+        # legal entity state data
+        state_info = sess.query(States).filter_by(state_code=zip_data.state_abbreviation).one()
+        return  state_info.state_name
+    if row['record_type'] == 1:
+        ppop_code = row['principal_place_code'].upper()
+        ppop_state = None
+        if ppop_code[:2] == '00':
+            return None
+        elif re.match('^[0-9]{2}', ppop_code[:2]):
+            ppop_state = sess.query(States).filter_by(fips_code=ppop_code[:2]).one()
+        elif re.match('^[A-Z]{2}\*\*\d{3}$', ppop_code[:2]):
+            ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one()
+
+        # legal entity state data
+        return ppop_state.state_name
 
 
 def remove_data_after_colon(row, header):
@@ -234,19 +375,6 @@ def format_cd(row, column_name):
     return congr_district if len(str(congr_district)) > 0 else None
 
 
-def format_cc_code(row, is_county):
-    # if pop_code is ##*****, place_of_perform_county_na and place_of_perform_city should be None
-    # if pop_code is ##**###, cc_code is placed in place_of_perform_county_na
-    # if pop_code is #######, cc_code is placed in place_of_perform_city
-    pop_code = str(row['principal_place_code'])
-    cc_code = None
-    if len(pop_code) and pop_code[3:7] != '*****':
-        if (pop_code[3:4] == '**' and is_county) or (pop_code[3:4] != '**' and not is_county):
-            cc_code = row['principal_place_cc']
-
-    return cc_code
-
-
 def format_record_type(row):
     # Set record_type to integer at beginning of string, otherwise None
     value = None
@@ -278,7 +406,7 @@ def generate_unique_string(row):
     ama = row['award_modification_amendme'] if row['award_modification_amendme'] is not None else '-none-'
     fain = row['fain'] if row['fain'] is not None else '-none-'
     uri = row['uri'] if row['uri'] is not None else '-none-'
-    return astac + ama + fain + uri
+    return ama + "_" + astac + "_" + fain + "_" + uri
 
 
 def set_active_rows(sess):
@@ -291,7 +419,7 @@ def set_active_rows(sess):
         "FROM published_award_financial_assistance GROUP BY afa_generated_unique) sub_pafa " +
         "ON pafa.modified_at = sub_pafa.modified_at AND " +
         "COALESCE(pafa.afa_generated_unique, '') = COALESCE(sub_pafa.afa_generated_unique, '') " +
-        "WHERE COALESCE(UPPER(pafa.correction_late_delete_ind), '') != 'D' AS selected " +
+        "WHERE COALESCE(UPPER(pafa.correction_late_delete_ind), '') != 'D') AS selected " +
         "WHERE all_pafa.published_award_financial_assistance_id = selected.published_award_financial_assistance_id"
     )
     sess.commit()
@@ -322,6 +450,10 @@ def main():
     set_active_rows(sess)
 
     logger.info("Historical FABS script complete")
+
+
+def is_nan(num):
+    return num != num
 
 
 if __name__ == '__main__':
