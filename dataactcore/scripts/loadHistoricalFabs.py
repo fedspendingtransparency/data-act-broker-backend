@@ -88,10 +88,10 @@ def format_fabs_data(data, sess):
 
     # adding columns missing from historical data
     null_list = [
-        'awarding_office_code',
+        'awarding_office_code', 'awarding_office_name', 'funding_office_name',
         'funding_agency_name', 'funding_agency_code', 'funding_office_code', 'funding_sub_tier_agency_co',
         'funding_sub_tier_agency_na', 'legal_entity_foreign_city', 'legal_entity_foreign_posta',
-        'legal_entity_foreign_provi', 'place_of_performance_forei', 'awarding_office_name', 'funding_office_name'
+        'legal_entity_foreign_provi', 'place_of_performance_forei'
     ]
     for item in null_list:
         data[item] = None
@@ -303,7 +303,7 @@ def derive_legal_entity_state_name(row, sess):
 
         # legal entity state data
         state_info = sess.query(States).filter_by(state_code=zip_data.state_abbreviation).one()
-        return  state_info.state_name
+        return state_info.state_name
     if row['record_type'] == 1:
         ppop_code = row['principal_place_code'].upper()
         ppop_state = None
