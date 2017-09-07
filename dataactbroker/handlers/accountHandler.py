@@ -278,16 +278,15 @@ def perms_to_affiliations(perms):
             continue
 
         if frec_code:
-            yield list(
-                UserAffiliation(
-                    cgac=available_cgacs[cgac_code],
-                    frec=None,
-                    permission_type_id=PERMISSION_SHORT_DICT['r']
-                ), UserAffiliation(
-                    cgac=None,
-                    frec=available_frecs[frec_code],
-                    permission_type_id=PERMISSION_SHORT_DICT[perm_level]
-                )
+            yield UserAffiliation(
+                cgac=available_cgacs[cgac_code],
+                frec=None,
+                permission_type_id=PERMISSION_SHORT_DICT['r']
+            )
+            yield UserAffiliation(
+                cgac=None,
+                frec=available_frecs[frec_code],
+                permission_type_id=PERMISSION_SHORT_DICT[perm_level]
             )
         else:
             yield UserAffiliation(
