@@ -59,10 +59,10 @@ def generate_d_file(file_type, agency_code, start, end, job_id, timestamped_name
 
         # set the order for headers and columns
         headers = [key for key in file_utils.mapping]
-        columns = [val for key, val in file_utils.mapping.items()]
+        columns = file_utils.db_columns
         body = []
         for row in rows.all():
-            body.append([row.__dict__[value] for value in columns])
+            body.append([dict(zip(columns, row))[value] for value in columns])
 
         logger.debug('Writing file {} CSV'.format(file_type))
         write_csv(timestamped_name, upload_name, is_local, headers, body)

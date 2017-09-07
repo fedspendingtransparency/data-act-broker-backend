@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from sqlalchemy import cast, Date
+from sqlalchemy import func, cast, Date
 
 from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance, AwardFinancialAssistance
 
@@ -69,10 +69,72 @@ mapping = OrderedDict([
     ('fundingofficename', 'funding_office_code'),  # This isn't in the PublishedAwardFinancialAssistance table
     ('lastmodifieddate', 'modified_at')
 ])
+db_columns = [val for key, val in mapping.items()]
 
 
 def query_data(session, agency_code, start, end):
-    rows = session.query(file_model).\
+    rows = session.query(
+        file_model.action_type,
+        func.to_char(cast(file_model.action_date, Date), 'YYYYMMDD'),
+        file_model.assistance_type,
+        file_model.record_type,
+        file_model.fain,
+        file_model.award_modification_amendme,
+        file_model.uri,
+        file_model.correction_late_delete_ind,
+        file_model.fiscal_year_and_quarter_co,
+        file_model.sai_number,
+        file_model.awardee_or_recipient_legal,
+        file_model.awardee_or_recipient_uniqu,
+        file_model.legal_entity_address_line1,
+        file_model.legal_entity_address_line2,
+        file_model.legal_entity_address_line3,
+        file_model.legal_entity_city_name,
+        file_model.legal_entity_city_name,
+        file_model.legal_entity_county_name,
+        file_model.legal_entity_county_code,
+        file_model.legal_entity_state_name,
+        file_model.legal_entity_state_code,
+        file_model.legal_entity_zip5,
+        file_model.legal_entity_zip_last4,
+        file_model.legal_entity_country_code,
+        file_model.legal_entity_foreign_city,
+        file_model.legal_entity_foreign_provi,
+        file_model.legal_entity_foreign_posta,
+        file_model.legal_entity_congressional,
+        file_model.business_types,
+        file_model.funding_agency_name,
+        file_model.funding_agency_code,
+        file_model.funding_sub_tier_agency_na,
+        file_model.funding_sub_tier_agency_co,
+        file_model.funding_office_code,
+        file_model.awarding_agency_name,
+        file_model.awarding_agency_code,
+        file_model.awarding_sub_tier_agency_n,
+        file_model.awarding_sub_tier_agency_c,
+        file_model.awarding_office_code,
+        file_model.awarding_office_code,
+        file_model.cfda_number,
+        file_model.cfda_title,
+        file_model.place_of_performance_code,
+        file_model.place_of_perform_country_c,
+        file_model.place_of_perform_state_nam,
+        file_model.place_of_perform_county_na,
+        file_model.place_of_performance_city,
+        file_model.place_of_performance_zip4a,
+        file_model.place_of_performance_forei,
+        file_model.place_of_performance_congr,
+        file_model.award_description,
+        func.to_char(cast(file_model.period_of_performance_star, Date), 'YYYYMMDD'),
+        func.to_char(cast(file_model.period_of_performance_curr, Date), 'YYYYMMDD'),
+        file_model.federal_action_obligation,
+        file_model.non_federal_funding_amount,
+        file_model.total_funding_amount,
+        file_model.face_value_loan_guarantee,
+        file_model.original_loan_subsidy_cost,
+        file_model.business_funds_indicator,
+        file_model.funding_office_code,
+        func.to_char(cast(file_model.modified_at, Date), 'YYYYMMDD')).\
         filter(file_model.is_active.is_(True)).\
         filter(file_model.awarding_agency_code == agency_code).\
         filter(cast(file_model.action_date, Date) >= start).\
