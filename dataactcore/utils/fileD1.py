@@ -207,6 +207,16 @@ db_columns = [val for key, val in mapping.items()]
 
 
 def query_data(session, agency_code, start, end, page_start, page_stop):
+    """ Request D1 file data
+
+        Args:
+            session - DB session
+            agency_code - FREC or CGAC code for generation
+            start - Beginning of period for D file
+            end - End of period for D file
+            page_start - Beginning of pagination
+            page_stop - End of pagination
+    """
     rows = session.query(
         file_model.piid,
         file_model.awarding_sub_tier_agency_c,

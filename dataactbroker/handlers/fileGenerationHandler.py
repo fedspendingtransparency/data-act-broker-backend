@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 @contextmanager
 def job_context(job_id):
-    """Common context for file E and F generation. Handles marking the job finished and/or failed"""
+    """Common context for files D1, D2, E, and F generation. Handles marking the job finished and/or failed"""
     # Flask context ensures we have access to global.g
     with Flask(__name__).app_context():
         sess = GlobalDB.db().session
@@ -85,7 +85,7 @@ def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, i
             submission_id - Submission ID for generation
             job_id - Job ID for upload job
             timestamped_name - Version of filename without user ID
-            upload_name - Filename to use on S3
+            upload_file_name - Filename to use on S3
             is_local - True if in local development, False otherwise
     """
     logger.debug('Starting file F generation')
@@ -111,7 +111,7 @@ def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, i
             submission_id - Submission ID for generation
             job_id - Job ID for upload job
             timestamped_name - Version of filename without user ID
-            upload_name - Filename to use on S3
+            upload_file_name - Filename to use on S3
             is_local - True if in local development, False otherwise
     """
     logger.debug('Starting file E generation')
