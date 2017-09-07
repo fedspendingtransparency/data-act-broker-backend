@@ -1867,7 +1867,7 @@ def fabs_derivations(obj, sess):
     # deriving funding_office_name based off funding_office_code
     if obj['funding_office_code']:
         funding_office = sess.query(FPDSContractingOffice). \
-            filter_by(contracting_office_code=obj['awarding_office_code']).one_or_none().contracting_office_name
+            filter_by(contracting_office_code=obj['funding_office_code']).one_or_none().contracting_office_name
         if funding_office:
             obj['funding_office_name'] = funding_office.contracting_office_name
 

@@ -38,7 +38,8 @@ def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, us
 
 def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1234", fund_agency_code=None,
                         sub_fund_agency_code=None, ppop_code="NY00000", ppop_zip4a=None, ppop_cd=None, le_zip5=None,
-                        le_zip4=None, record_type=2, award_mod_amend=None, fain=None, uri=None, cldi=None):
+                        le_zip4=None, record_type=2, award_mod_amend=None, fain=None, uri=None, cldi=None,
+                        awarding_office='033103', funding_office='033103', legal_city="WASHINGTON", legal_state="DC"):
     """ Initialize the values in the object being run through the fabs_derivations function """
     obj = {
         'federal_action_obligation': fao,
@@ -56,7 +57,11 @@ def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1
         'award_modification_amendme': award_mod_amend,
         'fain': fain,
         'uri': uri,
-        'correction_late_delete_ind': cldi
+        'correction_late_delete_ind': cldi,
+        'awarding_office_code': awarding_office,
+        'funding_office_code': funding_office,
+        'legal_entity_city_name': legal_city,
+        'legal_entity_state_code': legal_state
     }
     return obj
 

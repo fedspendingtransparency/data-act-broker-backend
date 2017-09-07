@@ -300,7 +300,8 @@ def derive_legal_entity_state_name(row, sess):
         # invalid legal_entity_zip5 when present is an error
         if not zip_data:
             zip_data = sess.query(Zips).filter_by(zip5=row['legal_entity_zip5']).first()
-
+        if not zip_data:
+            return None
         # legal entity state data
         state_info = sess.query(States).filter_by(state_code=zip_data.state_abbreviation).one()
         return state_info.state_name
@@ -313,6 +314,9 @@ def derive_legal_entity_state_name(row, sess):
             ppop_state = sess.query(States).filter_by(fips_code=ppop_code[:2]).one()
         elif re.match('^[A-Z]{2}\*\*\d{3}$', ppop_code[:2]):
             ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one()
+
+        if not ppop_state:
+            return None
 
         # legal entity state data
         return ppop_state.state_name
