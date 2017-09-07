@@ -414,8 +414,8 @@ def query_data(session, agency_code, start, end, page_start, page_stop):
         func.to_char(cast(file_model.last_modified, Date), 'YYYYMMDD'),
         file_model.place_of_perform_city_name).\
         filter(file_model.awarding_agency_code == agency_code).\
-        filter(cast(file_model.action_date, Date) > start).\
-        filter(cast(file_model.action_date, Date) < end).\
+        filter(cast(file_model.action_date, Date) >= start).\
+        filter(cast(file_model.action_date, Date) <= end).\
         slice(page_start, page_stop)
     session.commit()
     return rows

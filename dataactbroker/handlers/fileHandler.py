@@ -445,8 +445,8 @@ class FileHandler:
             val_job.end_date = datetime.strptime(end_date, "%m/%d/%Y").date()
 
             # Clear out error messages to prevent stale messages
-            job.error_message = ''
-            val_job.error_message = ''
+            job.error_message = None
+            val_job.error_message = None
         except ValueError as e:
             # Date was not in expected format
             exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, ValueError)
@@ -816,7 +816,7 @@ class FileHandler:
             upload_file_name = "".join([str(job.submission_id), "/", timestamped_name])
 
         # This will update the reference so no need to return the job, just the upload and timestamped file names
-        job.message = ''
+        job.message = None
         job.filename = upload_file_name
         job.original_filename = timestamped_name
         job.job_status_id = JOB_STATUS_DICT["running"]
