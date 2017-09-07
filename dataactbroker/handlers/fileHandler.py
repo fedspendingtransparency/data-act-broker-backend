@@ -1,7 +1,6 @@
 import os
 import smart_open
 from collections import namedtuple
-from csv import reader
 from datetime import datetime
 import logging
 from dateutil.relativedelta import relativedelta
@@ -657,30 +656,31 @@ class FileHandler:
         # We want to user first() here so we can see if the job is None so we can mark the status as invalid to
         # indicate that a status request is invoked for a job that isn't created yet
         upload_job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
-        resp_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '', 'start': '', 'end': ''}
+        response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '', 'start': '',
+                         'end': ''}
         if upload_job is None or upload_job.filename is None:
-            resp_dict['status'] = 'invalid'
-            resp_dict['message'] = 'No generation job found with the specified ID' if upload_job is None else\
-                                   'No file has been generated for this submission.'
-            return JsonResponse.create(StatusCode.OK, resp_dict)
+            response_dict['status'] = 'invalid'
+            response_dict['message'] = 'No generation job found with the specified ID' if upload_job is None else\
+                                       'No file has been generated for this submission.'
+            return JsonResponse.create(StatusCode.OK, response_dict)
 
         file_type = FILE_TYPE_DICT_LETTER[upload_job.file_type_id]
-        resp_dict["status"] = JOB_STATUS_DICT_ID[upload_job.job_status_id]
-        resp_dict["file_type"] = file_type
-        resp_dict["message"] = upload_job.error_message or ""
-        if resp_dict["status"] is not 'finished':
-            resp_dict["url"] = "#"
+        response_dict["status"] = JOB_STATUS_DICT_ID[upload_job.job_status_id]
+        response_dict["file_type"] = file_type
+        response_dict["message"] = upload_job.error_message or ""
+        if response_dict["status"] is not 'finished':
+            response_dict["url"] = "#"
         elif CONFIG_BROKER["use_aws"]:
             path, file_name = upload_job.filename.split("/")
-            resp_dict["url"] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
-                                                          method="GET")
+            response_dict["url"] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
+                                                              method="GET")
         else:
-            resp_dict["url"] = upload_job.filename
+            response_dict["url"] = upload_job.filename
 
-        resp_dict["start"] = upload_job.start_date.strftime("%m/%d/%Y") if upload_job.start_date is not None else ""
-        resp_dict["end"] = upload_job.end_date.strftime("%m/%d/%Y") if upload_job.end_date is not None else ""
+        response_dict["start"] = upload_job.start_date.strftime("%m/%d/%Y") if upload_job.start_date is not None else ""
+        response_dict["end"] = upload_job.end_date.strftime("%m/%d/%Y") if upload_job.end_date is not None else ""
 
-        return JsonResponse.create(StatusCode.OK, resp_dict)
+        return JsonResponse.create(StatusCode.OK, response_dict)
 
     @staticmethod
     def check_generation(submission, file_type):
@@ -703,26 +703,26 @@ class FileHandler:
         else:
             validation_job = None
 
-        resp_dict = {
+        response_dict = {
             'status': map_generate_status(upload_job, validation_job),
             'file_type': file_type,
             'size': upload_job.file_size,
             'message': upload_job.error_message or "",
             'url': '#'
         }
-        if CONFIG_BROKER["use_aws"] and resp_dict["status"] is 'finished':
+        if CONFIG_BROKER["use_aws"] and response_dict["status"] is 'finished':
             path, file_name = upload_job.filename.split("/")
-            resp_dict["url"] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
-                                                          method="GET")
-        elif resp_dict["status"] is 'finished' and upload_job.filename:
-            resp_dict["url"] = upload_job.filename
+            response_dict["url"] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
+                                                              method="GET")
+        elif response_dict["status"] is 'finished' and upload_job.filename:
+            response_dict["url"] = upload_job.filename
 
         # Pull start and end from jobs table if D1 or D2
         if file_type in ["D1", "D2"]:
-            resp_dict['start'] = upload_job.start_date.strftime('%m/%d/%Y') if upload_job.start_date else ''
-            resp_dict['end'] = upload_job.end_date.strftime('%m/%d/%Y') if upload_job.end_date else ''
+            response_dict['start'] = upload_job.start_date.strftime('%m/%d/%Y') if upload_job.start_date else ''
+            response_dict['end'] = upload_job.end_date.strftime('%m/%d/%Y') if upload_job.end_date else ''
 
-        return JsonResponse.create(StatusCode.OK, resp_dict)
+        return JsonResponse.create(StatusCode.OK, response_dict)
 
     @staticmethod
     def submit_detached_file(submission):
@@ -1428,15 +1428,6 @@ def get_xml_response_content(api_url):
     result = requests.get(api_url, verify=False, timeout=120).text
     logger.debug('Result for %s: %s', api_url, result)
     return result
-
-
-def get_lines_from_csv(file_path):
-    """ Retrieve all lines from specified CSV file """
-    lines = []
-    with open(file_path) as file:
-        for line in reader(file):
-            lines.append(line)
-    return lines
 
 
 def map_generate_status(upload_job, validation_job=None):
