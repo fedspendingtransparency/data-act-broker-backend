@@ -1,14 +1,14 @@
 -- If PrimaryPlaceOfPerformanceCongressionalDistrict is provided it must be valid in the state indicated by
 -- PrimaryPlaceOfPerformanceCode. The PrimaryPlaceOfPerformanceCongressionalDistrict may be 90 if the state has more
 -- than one congressional district or PrimaryPlaceOfPerformanceCode is 00*****
-WITH detached_award_financial_assistance_d43_3_{0} AS
+WITH detached_award_financial_assistance_fabs43_3_{0} AS
     (SELECT submission_id,
         row_number,
         place_of_performance_code,
         place_of_performance_congr
     FROM detached_award_financial_assistance
     WHERE submission_id = {0}),
-state_congr_short_d43 AS
+state_congr_short_fabs43_3_{0} AS
 	(SELECT DISTINCT state_abbreviation,
         congressional_district_no
 	FROM zips)
@@ -16,19 +16,19 @@ SELECT
     dafa.row_number,
     dafa.place_of_performance_code,
     dafa.place_of_performance_congr
-FROM detached_award_financial_assistance_d43_3_{0} AS dafa
+FROM detached_award_financial_assistance_fabs43_3_{0} AS dafa
 WHERE CASE WHEN COALESCE(dafa.place_of_performance_congr, '') != ''
         THEN ((dafa.place_of_performance_congr != '90'
 		     AND dafa.row_number NOT IN (
                 SELECT DISTINCT sub_dafa.row_number
-                FROM detached_award_financial_assistance_d43_3_{0} AS sub_dafa
-                JOIN state_congr_short_d43 as sc_short_1
+                FROM detached_award_financial_assistance_fabs43_3_{0} AS sub_dafa
+                JOIN state_congr_short_fabs43_3_{0} as sc_short_1
                   ON UPPER(LEFT(sub_dafa.place_of_performance_code, 2)) = sc_short_1.state_abbreviation
                     AND sub_dafa.place_of_performance_congr = sc_short_1.congressional_district_no))
              OR (dafa.place_of_performance_congr = '90'
                 AND dafa.place_of_performance_code != '00*****'
                 AND (SELECT COUNT(DISTINCT sc_short_2.congressional_district_no)
-                    FROM state_congr_short_d43 as sc_short_2
+                    FROM state_congr_short_fabs43_3_{0} as sc_short_2
                     WHERE UPPER(LEFT(dafa.place_of_performance_code, 2)) = sc_short_2.state_abbreviation) < 2)
             )
         ELSE FALSE
