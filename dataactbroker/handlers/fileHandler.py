@@ -707,15 +707,14 @@ class FileHandler:
             'status': map_generate_status(upload_job, validation_job),
             'file_type': file_type,
             'size': upload_job.file_size,
-            'message': upload_job.error_message or ""
+            'message': upload_job.error_message or "",
+            'url': '#'
         }
-        if resp_dict["status"] is not 'finished':
-            resp_dict["url"] = "#"
-        elif CONFIG_BROKER["use_aws"]:
+        if CONFIG_BROKER["use_aws"] and resp_dict["status"] is 'finished':
             path, file_name = upload_job.filename.split("/")
             resp_dict["url"] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
                                                           method="GET")
-        else:
+        elif resp_dict["status"] is 'finished' and upload_job.filename:
             resp_dict["url"] = upload_job.filename
 
         # Pull start and end from jobs table if D1 or D2

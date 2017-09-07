@@ -72,7 +72,7 @@ mapping = OrderedDict([
 db_columns = [val for key, val in mapping.items()]
 
 
-def query_data(session, agency_code, start, end):
+def query_data(session, agency_code, start, end, page_start, page_stop):
     rows = session.query(
         file_model.action_type,
         func.to_char(cast(file_model.action_date, Date), 'YYYYMMDD'),
@@ -138,6 +138,7 @@ def query_data(session, agency_code, start, end):
         filter(file_model.is_active.is_(True)).\
         filter(file_model.awarding_agency_code == agency_code).\
         filter(cast(file_model.action_date, Date) >= start).\
-        filter(cast(file_model.action_date, Date) <= end)
+        filter(cast(file_model.action_date, Date) <= end).\
+        slice(page_start, page_stop)
     session.commit()
     return rows

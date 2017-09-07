@@ -54,18 +54,26 @@ def generate_d_file(file_type, agency_code, start, end, job_id, timestamped_name
 
     with job_context(job_id) as session:
         file_utils = fileD1 if file_type == 'D1' else fileD2
+        page_size, page_idx = 10000, 0
+        while True:
+            page_start, page_stop = page_size * page_idx, page_size * (page_idx + 1)
+            rows = file_utils.query_data(session, agency_code, start, end, page_start, page_stop)
+            all_rows = rows.all()
+            if all_rows is None:
+                break
 
-        rows = file_utils.query_data(session, agency_code, start, end)
+            # set the order for headers and columns
+            headers = [key for key in file_utils.mapping]
+            columns = file_utils.db_columns
+            body = []
+            for row in all_rows:
+                body.append([dict(zip(columns, row))[value] for value in columns])
 
-        # set the order for headers and columns
-        headers = [key for key in file_utils.mapping]
-        columns = file_utils.db_columns
-        body = []
-        for row in rows.all():
-            body.append([dict(zip(columns, row))[value] for value in columns])
-
-        logger.debug('Writing file {} CSV'.format(file_type))
-        write_csv(timestamped_name, upload_name, is_local, headers, body)
+            logger.debug('Writing rows {}-{} to file {} CSV'.format(page_start, page_start+len(all_rows), file_type))
+            write_csv(timestamped_name, upload_name, is_local, headers, body)
+            if len(all_rows) < page_size:
+                break
+            page_idx += 1
 
     logger.debug('Finished file {} generation'.format(file_type))
 
