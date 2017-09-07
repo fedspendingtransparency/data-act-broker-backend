@@ -18,9 +18,10 @@ if __name__ == '__main__':
             logger.error("No config for broker/fsrs/[service]/wsdl")
             sys.exit(1)
         else:
-            procs = fetch_and_replace_batch(sess, PROCUREMENT)
-            grants = fetch_and_replace_batch(sess, GRANT)
-            awards = procs + grants
-            numSubAwards = sum(len(a.subawards) for a in awards)
-            logger.info("Inserted/Updated %s awards, %s subawards",
-                        len(awards), numSubAwards)
+            awards = ['Starting']
+            while len(awards) > 0:
+                procs = fetch_and_replace_batch(sess, PROCUREMENT)
+                grants = fetch_and_replace_batch(sess, GRANT)
+                awards = procs + grants
+                numSubAwards = sum(len(a.subawards) for a in awards)
+                logger.info("Inserted/Updated %s awards, %s subawards", len(awards), numSubAwards)

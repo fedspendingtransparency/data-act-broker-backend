@@ -66,22 +66,28 @@ def test_generate_f_rows(database, monkeypatch):
     sess.add_all([sub_1, sub_2])
     sess.commit()
 
-    awards = [AwardProcurementFactory(submission_id=sub_1.submission_id, piid='PIID1', parent_award_id='PIID1'),
-              AwardProcurementFactory(submission_id=sub_1.submission_id, piid='PIID2', parent_award_id='PIID2'),
+    awards = [AwardProcurementFactory(submission_id=sub_1.submission_id, piid='PIID1', parent_award_id='PIID1',
+                                      awarding_sub_tier_agency_c='1234'),
+              AwardProcurementFactory(submission_id=sub_1.submission_id, piid='PIID2', parent_award_id='PIID2',
+                                      awarding_sub_tier_agency_c='1234'),
               AwardFinancialAssistanceFactory(submission_id=sub_1.submission_id, fain='FAIN1'),
               AwardFinancialAssistanceFactory(submission_id=sub_1.submission_id, fain='FAIN2'),
-              AwardProcurementFactory(submission_id=sub_2.submission_id, piid='PIID1', parent_award_id='PIID1'),
+              AwardProcurementFactory(submission_id=sub_2.submission_id, piid='PIID1', parent_award_id='PIID1',
+                                      awarding_sub_tier_agency_c='1234'),
               AwardFinancialAssistanceFactory(submission_id=sub_2.submission_id, fain='FAIN1')]
     sess.add_all(awards)
     procurements = {}
     for piid in ('PIID1', 'PIID2', 'PIID3'):
         procurements[piid] = [
             FSRSProcurementFactory(contract_number=piid, idv_reference_number=piid,
-                                   subawards=[FSRSSubcontractFactory() for _ in range(3)]),
+                                   subawards=[FSRSSubcontractFactory() for _ in range(3)],
+                                   contracting_office_aid='1234'),
             FSRSProcurementFactory(contract_number=piid, idv_reference_number=piid,
-                                   subawards=[]),
+                                   subawards=[],
+                                   contracting_office_aid='1234'),
             FSRSProcurementFactory(contract_number=piid, idv_reference_number=piid,
-                                   subawards=[FSRSSubcontractFactory() for _ in range(2)])
+                                   subawards=[FSRSSubcontractFactory() for _ in range(2)],
+                                   contracting_office_aid='1234')
         ]
         sess.add_all(procurements[piid])
     grants = {}
@@ -108,10 +114,12 @@ def test_generate_f_rows_naics_desc(database, monkeypatch):
     database.session.add(sub)
     database.session.commit()
 
-    award = AwardProcurementFactory(submission_id=sub.submission_id)
-    other_aps = [AwardProcurementFactory(submission_id=award.submission_id) for _ in range(3)]
+    award = AwardProcurementFactory(submission_id=sub.submission_id, awarding_sub_tier_agency_c='1234')
+    other_aps = [AwardProcurementFactory(submission_id=award.submission_id, awarding_sub_tier_agency_c='1234')
+                 for _ in range(3)]
     proc = FSRSProcurementFactory(contract_number=award.piid, idv_reference_number=award.parent_award_id,
-                                  subawards=[FSRSSubcontractFactory(naics=award.naics)])
+                                  subawards=[FSRSSubcontractFactory(naics=award.naics)],
+                                  contracting_office_aid='1234')
 
     database.session.add_all([award, proc] + other_aps)
     database.session.commit()
@@ -126,11 +134,12 @@ def test_generate_f_rows_false(database, monkeypatch):
     database.session.add(sub)
     database.session.commit()
 
-    award = AwardProcurementFactory(submission_id=sub.submission_id)
+    award = AwardProcurementFactory(submission_id=sub.submission_id, awarding_sub_tier_agency_c='1234')
     proc = FSRSProcurementFactory(
         contract_number=award.piid,
         idv_reference_number=award.parent_award_id,
-        subawards=[FSRSSubcontractFactory(recovery_model_q1=False, recovery_model_q2=None)]
+        subawards=[FSRSSubcontractFactory(recovery_model_q1=False, recovery_model_q2=None)],
+        contracting_office_aid='1234'
     )
 
     database.session.add_all([award, proc])

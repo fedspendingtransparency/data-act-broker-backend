@@ -1751,7 +1751,12 @@ def fabs_derivations(obj, sess):
 
     # deriving ppop state name (ppop code is required so we don't have to check that it exists, just upper it)
     ppop_code = obj['place_of_performance_code'].upper()
-    ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one()
+    if ppop_code == '00*****':
+        ppop_state = States(state_code=None, state_name='Multi-state')
+    elif ppop_code == '00FORGN':
+        ppop_state = States(state_code=None, state_name=None)
+    else:
+        ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one()
     obj['place_of_perform_state_nam'] = ppop_state.state_name
 
     # deriving place of performance values from zip4
