@@ -1,5 +1,5 @@
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
-from dataactcore.models.domainModels import Zips
+from dataactcore.models.domainModels import States
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'fabs39_detached_award_financial_assistance_1'
@@ -17,7 +17,7 @@ def test_success(database):
         If neither of the above, PrimaryPlaceOfPerformanceCode must start with valid 2 character state abbreviation
     """
 
-    zip_code = Zips(zip5="12345", state_abbreviation="NY")
+    state_code = States(state_code="NY")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00*****")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00FORGN")
     det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00FORgN")
@@ -26,15 +26,15 @@ def test_success(database):
     det_award_6 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY**ABC")
     det_award_7 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY12345")
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6, det_award_7, zip_code])
+                                                       det_award_6, det_award_7, state_code])
     assert errors == 0
 
 
 def test_failure(database):
     """ Test for failure that PrimaryPlaceOfPerformanceCode must start with 2 character state abbreviation """
 
-    zip_code = Zips(zip5="12345", state_abbreviation="NY")
+    state_code = States(state_code="NY")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="001****")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NA*****")
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, zip_code])
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, state_code])
     assert errors == 2
