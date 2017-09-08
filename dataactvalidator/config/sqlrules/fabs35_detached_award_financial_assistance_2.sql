@@ -5,7 +5,8 @@ SELECT
 FROM detached_award_financial_assistance as dafa
 WHERE dafa.submission_id = {0}
     AND COALESCE(dafa.legal_entity_zip5, '') != ''
-    AND dafa.legal_entity_zip5 NOT IN (
+    AND NOT EXISTS (
 		SELECT DISTINCT z.zip5
 		FROM zips as z
+		WHERE z.zip5 = dafa.legal_entity_zip5
 	)

@@ -26,6 +26,8 @@ def test_failure(database):
     """ LegalEntityZIP5 is not a valid zip code. """
     zip_1 = ZipsFactory(zip5="12345")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5="54321")
+    # add a valid one to make sure NOT EXISTS is doing what we expect
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5="12345")
 
-    errors = number_of_errors(_FILE, database, models=[zip_1, det_award_1])
+    errors = number_of_errors(_FILE, database, models=[zip_1, det_award_1, det_award_2])
     assert errors == 1
