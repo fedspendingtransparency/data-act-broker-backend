@@ -149,6 +149,10 @@ def test_ppop_state_name(database):
     obj = fabs_derivations(obj, database.session)
     assert obj['place_of_perform_state_nam'] == "New York"
 
+    obj = initialize_test_obj(ppop_code="00*****")
+    obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_perform_state_nam'] == "Multi-state"
+
 
 def test_ppop_derivations(database):
     initialize_db_values(database)

@@ -143,21 +143,21 @@ class SF133(Base):
     """Represents GTAS records"""
     __tablename__ = "sf_133"
     sf133_id = Column(Integer, primary_key=True)
-    agency_identifier = Column(Text, nullable=False)
-    allocation_transfer_agency = Column(Text)
+    agency_identifier = Column(Text, nullable=False, index=True)
+    allocation_transfer_agency = Column(Text, index=True)
     availability_type_code = Column(Text)
     beginning_period_of_availa = Column(Text)
     ending_period_of_availabil = Column(Text)
     main_account_code = Column(Text, nullable=False)
     sub_account_code = Column(Text, nullable=False)
-    tas = Column(Text, nullable=False, default=concat_tas)
-    fiscal_year = Column(Integer, nullable=False)
-    period = Column(Integer, nullable=False)
+    tas = Column(Text, nullable=False, default=concat_tas, index=True)
+    fiscal_year = Column(Integer, nullable=False, index=True)
+    period = Column(Integer, nullable=False, index=True)
     line = Column(Integer, nullable=False)
     amount = Column(Numeric, nullable=False, default=0, server_default="0")
     tas_id = Column(Integer, nullable=True)
 
-Index("ix_sf_133_tas",
+Index("ix_sf_133_tas_group",
       SF133.tas,
       SF133.fiscal_year,
       SF133.period,
@@ -168,12 +168,12 @@ Index("ix_sf_133_tas",
 class ProgramActivity(Base):
     __tablename__ = "program_activity"
     program_activity_id = Column(Integer, primary_key=True)
-    budget_year = Column(Text, nullable=False)
-    agency_id = Column(Text, nullable=False)
+    budget_year = Column(Text, nullable=False, index=True)
+    agency_id = Column(Text, nullable=False, index=True)
     allocation_transfer_id = Column(Text)
-    account_number = Column(Text, nullable=False)
-    program_activity_code = Column(Text, nullable=False)
-    program_activity_name = Column(Text, nullable=False)
+    account_number = Column(Text, nullable=False, index=True)
+    program_activity_code = Column(Text, nullable=False, index=True)
+    program_activity_name = Column(Text, nullable=False, index=True)
 
 Index("ix_pa_tas_pa",
       ProgramActivity.budget_year,
@@ -221,16 +221,16 @@ class DUNS(Base):
     duns_id = Column(Integer, primary_key=True)
     awardee_or_recipient_uniqu = Column(Text, index=True)
     legal_business_name = Column(Text)
-    activation_date = Column(Date)
-    deactivation_date = Column(Date)
-    expiration_date = Column(Date)
+    activation_date = Column(Date, index=True)
+    deactivation_date = Column(Date, index=True)
+    expiration_date = Column(Date, index=True)
     last_sam_mod_date = Column(Date)
 
 
 class CFDAProgram(Base):
     __tablename__ = "cfda_program"
     cfda_program_id = Column(Integer, primary_key=True)
-    program_number = Column(Float, nullable=False)
+    program_number = Column(Float, nullable=False, index=True)
     program_title = Column(Text)
     popular_name = Column(Text)
     federal_agency = Column(Text)
@@ -268,8 +268,8 @@ class CFDAProgram(Base):
     recovery = Column(Text)
     omb_agency_code = Column(Text)
     omb_bureau_code = Column(Text)
-    published_date = Column(Text)
-    archived_date = Column(Text)
+    published_date = Column(Text, index=True)
+    archived_date = Column(Text, index=True)
 
 
 class Zips(Base):
@@ -279,9 +279,9 @@ class Zips(Base):
     zips_id = Column(Integer, primary_key=True)
     zip5 = Column(Text, index=True)
     zip_last4 = Column(Text, index=True)
-    state_abbreviation = Column(Text)
-    county_number = Column(Text)
-    congressional_district_no = Column(Text)
+    state_abbreviation = Column(Text, index=True)
+    county_number = Column(Text, index=True)
+    congressional_district_no = Column(Text, index=True)
 
     __table_args__ = (UniqueConstraint('zip5', 'zip_last4', name='uniq_zip5_zip_last4'),)
 
@@ -293,8 +293,8 @@ class CityCode(Base):
     city_code_id = Column(Integer, primary_key=True)
     feature_name = Column(Text)
     feature_class = Column(Text)
-    city_code = Column(Text)
-    state_code = Column(Text)
+    city_code = Column(Text, index=True)
+    state_code = Column(Text, index=True)
     county_number = Column(Text)
     county_name = Column(Text)
     latitude = Column(Text)
@@ -306,9 +306,9 @@ class CountyCode(Base):
     __tablename__ = "county_code"
 
     county_code_id = Column(Integer, primary_key=True)
-    county_number = Column(Text)
+    county_number = Column(Text, index=True)
     county_name = Column(Text)
-    state_code = Column(Text)
+    state_code = Column(Text, index=True)
 
 
 class States(Base):
@@ -316,7 +316,7 @@ class States(Base):
     __tablename__ = "states"
 
     states_id = Column(Integer, primary_key=True)
-    state_code = Column(Text)
+    state_code = Column(Text, index=True)
     state_name = Column(Text)
 
 
