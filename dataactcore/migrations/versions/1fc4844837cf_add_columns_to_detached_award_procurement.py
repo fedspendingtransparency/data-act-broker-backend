@@ -1,4 +1,4 @@
-"""Add columns to detached_award_financial_assistance and move data
+"""Add columns to detached_award_procurement and move data
 
 Revision ID: 1fc4844837cf
 Revises: 9960bbbe4d92
