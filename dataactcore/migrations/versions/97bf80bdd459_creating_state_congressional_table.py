@@ -1,14 +1,14 @@
 """Creating state_congressional table
 
 Revision ID: 97bf80bdd459
-Revises: 9960bbbe4d92
+Revises: 1fc4844837cf
 Create Date: 2017-09-08 14:34:57.783817
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '97bf80bdd459'
-down_revision = '9960bbbe4d92'
+down_revision = '1fc4844837cf'
 branch_labels = None
 depends_on = None
 
