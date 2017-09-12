@@ -21,6 +21,7 @@ from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
+error_list = []
 
 def parse_fabs_file(f, sess):
     logger.info("starting file " + str(f.name))
@@ -132,7 +133,7 @@ def format_fabs_data(data, sess):
             'receip_addr1': 'legal_entity_address_line1',
             'receip_addr2': 'legal_entity_address_line2',
             'receip_addr3': 'legal_entity_address_line3',
-            # 'recipient_city_code': 'legal_entity_city_code',
+            'legal_entity_city_code': 'legal_entity_city_code',
             'recipient_city_name': 'legal_entity_city_name',
             'recipient_cd': 'legal_entity_congressional',
             'recipient_country_code': 'legal_entity_country_code',
@@ -188,134 +189,187 @@ def format_proper_casing(row, header):
 
 
 def derive_legal_entity_city_code(row, sess):
-    if row['recipient_city_code'] and not is_nan(row['recipient_city_code']):
-        return row['recipient_city_name']
-    elif row['recipient_city_name'] and row['recipient_state_code'] and not is_nan(row['recipient_city_name']) \
-            and not is_nan(row['recipient_state_code']):
-        city_data = sess.query(CityCode). \
+    if row['recipient_city_code']:
+        return row['recipient_city_code']
+    if row['recipient_city_name'] and row['recipient_state_code'] and not pd.isnull(row['recipient_city_name']) \
+            and not pd.isnull(row['recipient_state_code']):
+        city_data = sess.query(CityCode).\
             filter(func.lower(CityCode.feature_name) == func.lower(row['recipient_city_name'].strip()),
                    func.lower(CityCode.state_code) == func.lower(
-                       row['recipient_state_code'].strip())).one_or_none()
+                       row['recipient_state_code'].strip())).first()
         if city_data:
             return city_data.city_code
+
     return None
 
 
 def derive_awarding_agency_code(row, sess):
-    if not row['agency_code']:
+    if not row['agency_code'] or pd.isnull(row['agency_code']):
         return None
-    awarding_sub_tier = sess.query(SubTierAgency). \
-        filter_by(sub_tier_agency_code=row['agency_code']).one()
+    awarding_sub_tier = sess.query(SubTierAgency).\
+        filter_by(sub_tier_agency_code=row['agency_code']).one_or_none()
+    if not awarding_sub_tier:
+        print_error('Agency Code not found: '+row['agency_code'])
+        return None
     use_frec = awarding_sub_tier.is_frec
     awarding_agency = awarding_sub_tier.frec if use_frec else awarding_sub_tier.cgac
     return awarding_agency.frec_code if use_frec else awarding_agency.cgac_code
 
 
 def derive_awarding_agency_name(row, sess):
-    if not row['agency_code']:
+    if not row['agency_code'] or pd.isnull(row['agency_code']):
         return None
-    awarding_sub_tier = sess.query(SubTierAgency). \
-        filter_by(sub_tier_agency_code=row['agency_code']).one()
+    awarding_sub_tier = sess.query(SubTierAgency).\
+        filter_by(sub_tier_agency_code=row['agency_code']).one_or_none()
+    if not awarding_sub_tier:
+        print_error('Agency Code not found: ' + row['agency_code'])
+        return None
     use_frec = awarding_sub_tier.is_frec
     awarding_agency = awarding_sub_tier.frec if use_frec else awarding_sub_tier.cgac
     return awarding_agency.agency_name
 
 
 def derive_awarding_sub_tier_agency_n(row, sess):
-    if not row['agency_code']:
+    if not row['agency_code'] or pd.isnull(row['agency_code']):
         return None
-    awarding_sub_tier = sess.query(SubTierAgency). \
-        filter_by(sub_tier_agency_code=row['agency_code']).one()
+    awarding_sub_tier = sess.query(SubTierAgency).\
+        filter_by(sub_tier_agency_code=row['agency_code']).one_or_none()
+    if not awarding_sub_tier:
+        print_error('Agency Code not found: ' + row['agency_code'])
+        return None
     return awarding_sub_tier.sub_tier_agency_name
 
 
 def derive_place_of_perform_county_na(row, sess):
-    if not row['principal_place_zip']:
-        ppop_code = row['principal_place_code'].upper()
+    if not row['principal_place_zip'] or pd.isnull(row['principal_place_zip']):
+        ppop_code = row['principal_place_code']
         ppop_state = None
+        if not isinstance(ppop_code, str):
+            ppop_code = str(ppop_code).upper()
+        else:
+            ppop_code = ppop_code.upper()
         if ppop_code[:2] == '00':
             return None
-        elif re.match('^[0-9]{2}', ppop_code[:2]):
-            ppop_state = sess.query(States).filter_by(fips_code=ppop_code[:2]).one()
-        elif re.match('^[A-Z]{2}\*\*\d{3}$', ppop_code[:2]):
-            ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one()
-        if re.match('\*\*\d{3}$', ppop_code):
+        elif re.match('[0-9]{2}', ppop_code[:2]):
+            ppop_state = sess.query(States).filter_by(fips_code=ppop_code[:2]).one_or_none()
+        elif re.match('[A-Z]{2}', ppop_code[:2]):
+            ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one_or_none()
+        if not ppop_state:
+            print_error("Invalid ppop_code(1): "+ppop_code)
+            return None
+        if re.match('^([A-Z]{2}|\d{2})\*\*\d{3}$', ppop_code):
             # getting county name
             county_code = ppop_code[-3:]
             county_info = sess.query(CountyCode).\
                 filter_by(county_number=county_code, state_code=ppop_state.state_code).first()
+            if not county_info:
+                print_error('State Code not found: ' + ppop_state.state_code)
+                return None
             return county_info.county_name
-        elif re.match('\d{5}$', ppop_code) and not re.match('0{5}$', ppop_code):
+        elif re.match('^([A-Z]{2}|\d{2})\d{5}$', ppop_code) and not re.match('^([A-Z]{2}|\d{2})0{5}$', ppop_code):
             # getting city and county name
             city_code = ppop_code[-5:]
             city_info = sess.query(CityCode).filter_by(city_code=city_code, state_code=ppop_state.state_code).first()
+            if not city_info:
+                print_error('State Code not found: ' + ppop_state.state_code +'\nCity Code not found: ' + city_code)
+                return None
             return city_info.county_name
+
+        print_error('Invalid ppop_code(2): ' + row['principal_place_code'])
         return None
     zip_five = row['principal_place_zip'][:5]
     zip_four = None
     if len(row['principal_place_zip']) > 5:
         zip_four = row['principal_place_zip'][-4:]
     if zip_four:
-        zip_info = sess.query(Zips). \
+        zip_info = sess.query(Zips).\
             filter_by(zip5=zip_five, zip_last4=zip_four).first()
     else:
-        zip_info = sess.query(Zips). \
+        zip_info = sess.query(Zips).\
             filter_by(zip5=zip_five).first()
-    county_info = sess.query(CountyCode). \
+    if not zip_info:
+        print_error('Zip_info not found: ' + str(zip_five) + ' ' + str(zip_four))
+        return None
+    county_info = sess.query(CountyCode).\
         filter_by(county_number=zip_info.county_number, state_code=zip_info.state_abbreviation).first()
-    return county_info.county_name
+    if county_info:
+        return county_info.county_name
+    print_error('County Info: ' + zip_info.state_abbreviation + ' ' + zip_info.county_number)
+    return None
 
 
 def derive_place_of_performance_city(row, sess):
-    if not row['principal_place_zip']:
-        ppop_code = row['principal_place_code'].upper()
+    if not row['principal_place_zip'] or pd.isnull(row['principal_place_zip']):
+        ppop_code = row['principal_place_code']
         ppop_state = None
+        if not isinstance(ppop_code, str):
+            ppop_code = str(ppop_code).upper()
+        else:
+            ppop_code = ppop_code.upper()
         if ppop_code[:2] == '00':
             return None
-        elif re.match('^[0-9]{2}', ppop_code[:2]):
-            ppop_state = sess.query(States).filter_by(fips_code=ppop_code[:2]).one()
-        elif re.match('^[A-Z]{2}\*\*\d{3}$', ppop_code[:2]):
-            ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one()
-        if re.match('\d{5}$', ppop_code) and not re.match('0{5}$', ppop_code):
+        elif re.match('[0-9]{2}', ppop_code[:2]):
+            ppop_state = sess.query(States).filter_by(fips_code=ppop_code[:2]).one_or_none()
+        elif re.match('[A-Z]{2}', ppop_code[:2]):
+            ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one_or_none()
+        if not ppop_state:
+            print_error('Invalid ppop_code(3): ' + ppop_code)
+            return None
+        if re.match('^([A-Z]{2}|\d{2})\d{5}$', ppop_code) and not re.match('^([A-Z]{2}|\d{2})0{5}$', ppop_code):
             # getting city and county name
             city_code = ppop_code[-5:]
             city_info = sess.query(CityCode).filter_by(city_code=city_code, state_code=ppop_state.state_code).first()
+            if not city_info:
+                print_error('State Code not found: ' + ppop_state.state_code + '\nCity Code not found: ' + city_code)
+                return None
             return city_info.feature_name
+        print_error('Invalid ppop_code(2): ' + row['principal_place_code'])
         return None
     zip_five = row['principal_place_zip'][:5]
-    city_info = sess.query(ZipCity).filter_by(zip_code=zip_five).one()
+    city_info = sess.query(ZipCity).filter_by(zip_code=zip_five).one_or_none()
+    if not city_info:
+        print_error('Invalid Zip: ' + zip_five)
+        return None
     return city_info.city_name
 
 
 def derive_legal_entity_state_name(row, sess):
-    if row['legal_entity_zip5']:
+    if row['legal_entity_zip5'] and not pd.isnull(row['legal_entity_zip5']):
         zip_data = None
         # if we have a legal entity zip+4 provided
-        if row['legal_entity_zip_last4']:
+        if row['legal_entity_zip_last4'] and not pd.isnull(row['legal_entity_zip_last4']):
             zip_data = sess.query(Zips).\
                 filter_by(zip5=row['legal_entity_zip5'], zip_last4=row['legal_entity_zip_last4']).first()
 
         # if legal_entity_zip_last4 returned no results (invalid combination), grab the first entry for this zip5
-        # for derivation purposes. This will exist because we wouldn't have gotten this far if it didn't,
-        # invalid legal_entity_zip5 when present is an error
+        # for derivation purposes.
         if not zip_data:
             zip_data = sess.query(Zips).filter_by(zip5=row['legal_entity_zip5']).first()
         if not zip_data:
+            print_error('Invalid Zip5: ' + row['legal_entity_zip5'])
             return None
         # legal entity state data
-        state_info = sess.query(States).filter_by(state_code=zip_data.state_abbreviation).one()
+        state_info = sess.query(States).filter_by(state_code=zip_data.state_abbreviation).one_or_none()
+        if not state_info:
+            print_error('Invalid state: ' + zip_data.state_abbreviation)
+            return None
         return state_info.state_name
     if row['record_type'] == 1:
-        ppop_code = row['principal_place_code'].upper()
+        ppop_code = row['principal_place_code']
+        if not isinstance(ppop_code, str):
+            ppop_code = str(ppop_code).upper()
+        else:
+            ppop_code = ppop_code.upper()
         ppop_state = None
         if ppop_code[:2] == '00':
             return None
         elif re.match('^[0-9]{2}', ppop_code[:2]):
-            ppop_state = sess.query(States).filter_by(fips_code=ppop_code[:2]).one()
-        elif re.match('^[A-Z]{2}\*\*\d{3}$', ppop_code[:2]):
-            ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one()
+            ppop_state = sess.query(States).filter_by(fips_code=ppop_code[:2]).one_or_none()
+        elif re.match('^[A-Z]{2}', ppop_code[:2]):
+            ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one_or_none()
 
         if not ppop_state:
+            print_error('Invalid ppop_code(4): '+row['principal_place_code'].upper())
             return None
 
         # legal entity state data
@@ -448,16 +502,25 @@ def main():
         base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "fabs")
         file_list = [f for f in os.listdir(base_path)]
         for file in file_list:
-            if re.match('^\d{4}_All_(DirectPayments|Grants|Insurance|Loans|Other)_Full_\d{8}.csv.zip', file):
+            # if re.match('^\d{4}_All_(Grants|DirectPayments|Insurance|Loans|Other)_Full_\d{8}.csv.zip', file):
+            #     parse_fabs_file(open(os.path.join(base_path, file)), sess)
+            if re.match('^\d{4}_All_(Grants)_Full_\d{8}.csv.zip', file):
                 parse_fabs_file(open(os.path.join(base_path, file)), sess)
+            clear_error()
 
     set_active_rows(sess)
 
     logger.info("Historical FABS script complete")
 
 
-def is_nan(num):
-    return num != num
+def print_error(message):
+    if message not in error_list:
+        print(message)
+        error_list.append(message)
+
+
+def clear_error():
+    error_list = []
 
 
 if __name__ == '__main__':
