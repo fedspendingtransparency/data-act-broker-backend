@@ -34,5 +34,6 @@ dataactvalidator/config/cars_tas.csv
 dataactvalidator/config/cgac.csv
 dataactvalidator/config/object_class.csv
 dataactvalidator/config/program_activity.csv
+dataactvalidator/config/agency_codes_list.csv
 dataactvalidator/config/zips/zip4mst*
 temp/
