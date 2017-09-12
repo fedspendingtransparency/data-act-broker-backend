@@ -236,9 +236,24 @@ def contract_data_values(data, obj, atom_type):
 
 def dollar_values_values(data, obj):
     """ Get values from the dollarValues level of the xml """
-    value_map = {'baseAndAllOptionsValue': 'potential_total_value_awar',
-                 'baseAndExercisedOptionsValue': 'current_total_value_award',
+    value_map = {'baseAndAllOptionsValue': 'base_and_all_options_value',
+                 'baseAndExercisedOptionsValue': 'base_exercised_options_val',
                  'obligatedAmount': 'federal_action_obligation'}
+
+    for key, value in value_map.items():
+        try:
+            obj[value] = extract_text(data[key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
+    return obj
+
+
+def total_dollar_values_values(data, obj):
+    """ Get values from the totalDollarValues level of the xml """
+    value_map = {'totalBaseAndAllOptionsValue': 'potential_total_value_awar',
+                 'totalBaseAndExercisedOptionsValue': 'current_total_value_award',
+                 'totalObligatedAmount': 'total_obligated_amount'}
 
     for key, value in value_map.items():
         try:
@@ -828,6 +843,13 @@ def process_data(data, atom_type, sub_tier_list):
     except KeyError:
         data['dollarValues'] = {}
     obj = dollar_values_values(data['dollarValues'], obj)
+
+    # make sure key exists before passing it
+    try:
+        data['totalDollarValues']
+    except KeyError:
+        data['totalDollarValues'] = {}
+    obj = total_dollar_values_values(data['totalDollarValues'], obj)
 
     if atom_type == "award":
         # make sure key exists before passing it
@@ -1503,8 +1525,8 @@ def format_fpds_data(data, sub_tier_list, naics_data):
             'awarding_office_name': 'awarding_office_name',
             'awarding_sub_tier_agency_n': 'awarding_sub_tier_agency_n',
             'baobflag': 'black_american_owned_busin',
-            'baseandexercisedoptionsvalue': 'current_total_value_award',
-            'baseandalloptionsvalue': 'potential_total_value_awar',
+            'baseandexercisedoptionsvalue': 'base_exercised_options_val',
+            'baseandalloptionsvalue': 'base_and_all_options_value',
             'ccrexception': 'sam_exception',
             'city': 'legal_entity_city_name',
             'claimantprogramcode': 'dod_claimant_program_code',
