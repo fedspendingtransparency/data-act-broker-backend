@@ -213,7 +213,7 @@ class ValidationManager:
 
         try:
             extension = os.path.splitext(file_name)[1]
-            if not extension or extension not in ['.csv', '.txt']:
+            if not extension or extension.lower() not in ['.csv', '.txt']:
                 raise ResponseException("", StatusCode.CLIENT_ERROR, None, ValidationError.fileTypeError)
 
             # Count file rows: throws a File Level Error for non-UTF8 characters
