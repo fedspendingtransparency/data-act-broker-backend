@@ -4,6 +4,8 @@ from tests.unit.dataactcore.factories.domain import (
     CGACFactory, FRECFactory, SubTierAgencyFactory, StatesFactory, CountyCodeFactory, CFDAProgramFactory,
     ZipCityFactory, ZipsFactory, CityCodeFactory)
 
+from tests.unit.dataactcore.factories.staging import FPDSContractingOfficeFactory
+
 
 def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, use_frec=False):
     """ Initialize the values in the DB that can be used throughout the tests """
@@ -32,7 +34,11 @@ def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, us
     city_code = CityCodeFactory(feature_name="Test City", city_code="00001", state_code=state.state_code,
                                 county_name="Test City County")
 
-    db.session.add_all([sub_tier, state, cfda_number, zip_code_1, zip_code_2, zip_city, county_code, city_code])
+    contracting_office = FPDSContractingOfficeFactory(contracting_office_code='033103',
+                                                      contracting_office_name='Office')
+
+    db.session.add_all([sub_tier, state, cfda_number, zip_code_1, zip_code_2, zip_city, county_code, city_code,
+                        contracting_office])
     db.session.commit()
 
 
