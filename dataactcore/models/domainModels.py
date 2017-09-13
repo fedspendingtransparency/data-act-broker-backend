@@ -327,3 +327,17 @@ class ZipCity(Base):
     zip_city_id = Column(Integer, primary_key=True)
     zip_code = Column(Text)
     city_name = Column(Text)
+
+
+class StateCongressional(Base):
+    """ state to congressional district mapping """
+    __tablename__ = "state_congressional"
+
+    state_congressional_id = Column(Integer, primary_key=True)
+    state_code = Column(Text, index=True)
+    congressional_district_no = Column(Text, index=True)
+
+Index("ix_sc_state_cd",
+      StateCongressional.state_code,
+      StateCongressional.congressional_district_no,
+      unique=True)
