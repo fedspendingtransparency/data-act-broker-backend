@@ -291,7 +291,7 @@ def perms_to_affiliations(perms):
         else:
             yield UserAffiliation(
                 cgac=available_cgacs[cgac_code] if cgac_code else None,
-                frec=available_frecs[frec_code] if frec_code else None,
+                frec=None,
                 permission_type_id=PERMISSION_SHORT_DICT[perm_level]
             )
 

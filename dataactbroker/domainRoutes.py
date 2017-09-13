@@ -32,6 +32,7 @@ def add_domain_routes(app):
             else:
                 cgac_list.append({'agency_name': sub_tier.cgac.agency_name, 'cgac_code': sub_tier.cgac.cgac_code,
                                   'priority': sub_tier.priority})
+        print(sub_tier_agencies)
 
         return JsonResponse.create(StatusCode.OK, {'cgac_agency_list': cgac_list, 'frec_agency_list': frec_list})
 
@@ -45,12 +46,12 @@ def add_domain_routes(app):
         # distinct SubTierAgency FRECs with a True is_frec
         for agency in sess.query(SubTierAgency).filter_by(is_frec=True).distinct(SubTierAgency.frec_id).all():
             shared_list.append({'agency_name': agency.frec.agency_name, 'frec_code': agency.frec.frec_code,
-                                 'priority': agency.priority})
+                                'priority': agency.priority})
 
         # distinct SubTierAgency CGACs with a False is_frec
         for agency in sess.query(SubTierAgency).filter_by(is_frec=False).distinct(SubTierAgency.cgac_id).all():
             agency_list.append({'agency_name': agency.cgac.agency_name, 'cgac_code': agency.cgac.cgac_code,
-                                 'priority': agency.priority})
+                                'priority': agency.priority})
 
         return JsonResponse.create(StatusCode.OK, {'agency_list': agency_list, 'shared_agency_list': shared_list})
 
@@ -76,9 +77,7 @@ def get_dabs_sub_tier_agencies(fn):
     have a sub_tier_agencies parameter as its first argument. """
     @wraps(fn)
     def wrapped(*args, **kwargs):
-        sess = GlobalDB.db().session
         sub_tier_agencies = []
-
         if g.user is None:
             sub_tier_agencies = []
         else:
