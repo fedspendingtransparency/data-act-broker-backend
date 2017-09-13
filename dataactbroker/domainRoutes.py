@@ -32,7 +32,6 @@ def add_domain_routes(app):
             else:
                 cgac_list.append({'agency_name': sub_tier.cgac.agency_name, 'cgac_code': sub_tier.cgac.cgac_code,
                                   'priority': sub_tier.priority})
-        print(sub_tier_agencies)
 
         return JsonResponse.create(StatusCode.OK, {'cgac_agency_list': cgac_list, 'frec_agency_list': frec_list})
 
