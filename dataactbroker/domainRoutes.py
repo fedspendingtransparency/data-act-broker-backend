@@ -64,9 +64,9 @@ def add_domain_routes(app):
         """
         agencies = []
         for sub_tier in sub_tier_agencies:
-            agency_name = agency.frec.agency_name if sub_tier.is_frec else agency.cgac.agency_name
-            agencies.append({'agency_name': '{}: {}'.format(agency_name, agency.sub_tier_agency_name),
-                             'agency_code': agency.sub_tier_agency_code, 'priority': agency.priority})
+            agency_name = sub_tier.frec.agency_name if sub_tier.is_frec else sub_tier.cgac.agency_name
+            agencies.append({'agency_name': '{}: {}'.format(agency_name, sub_tier.sub_tier_agency_name),
+                             'agency_code': sub_tier.sub_tier_agency_code, 'priority': sub_tier.priority})
 
         return JsonResponse.create(StatusCode.OK, {'sub_tier_agency_list': agencies})
 
@@ -80,34 +80,25 @@ def get_dabs_sub_tier_agencies(fn):
         sub_tier_agencies = []
 
         if g.user is None:
-            cgac_sub_tier_agencies, frec_sub_tier_agencies = [], []
-        elif g.user.website_admin:
-            cgac_sub_tier_agencies = sess.query(SubTierAgency).\
-                filter(SubTierAgency.is_frec == False).\
-                distinct(SubTierAgency.cgac_id).all()
-            frec_sub_tier_agencies = sess.query(SubTierAgency).\
-                filter(SubTierAgency.is_frec == True).\
-                distinct(SubTierAgency.frec_id).all()
+            sub_tier_agencies = []
         else:
             # create list of affiliations
-            cgac_affil_ids, frec_affil_ids = [], []
+            cgac_ids, frec_ids = [], []
             for affil in g.user.affiliations:
                 if affil.permission_type_id >= WRITE_PERM and affil.permission_type_id != FABS_PERM:
                     if affil.frec:
-                        frec_affil_ids.append(affil.frec.frec_id)
+                        frec_ids.append(affil.frec.frec_id)
                     else:
-                        cgac_affil_ids.append(affil.cgac.cgac_id)
+                        cgac_ids.append(affil.cgac.cgac_id)
 
-            cgac_sub_tier_agencies = sess.query(SubTierAgency).\
-                filter(SubTierAgency.is_frec == False).\
-                filter(SubTierAgency.cgac_id in cgac_affil_ids).\
-                distinct(SubTierAgency.cgac_id).all()
-            frec_sub_tier_agencies = sess.query(SubTierAgency).\
-                filter(SubTierAgency.is_frec == True).\
-                filter(SubTierAgency.frec_id in frec_affil_ids).\
-                distinct(SubTierAgency.frec_id).all()
+            # generate SubTierAgencies based on permissions
+            cgac_sub_tiers, frec_sub_tiers = get_sub_tiers_from_perms(g.user.website_admin, cgac_ids, frec_ids)
 
-        sub_tier_agencies = cgac_sub_tier_agencies + frec_sub_tier_agencies
+            # filter out copies of top-tier agencies
+            cgac_sub_tier_agencies = cgac_sub_tiers.distinct(SubTierAgency.cgac_id).all()
+            frec_sub_tier_agencies = frec_sub_tiers.distinct(SubTierAgency.frec_id).all()
+
+            sub_tier_agencies = cgac_sub_tier_agencies + frec_sub_tier_agencies
 
         return fn(sub_tier_agencies, *args, **kwargs)
     return wrapped
@@ -118,38 +109,34 @@ def get_fabs_sub_tier_agencies(fn):
     have a sub_tier_agencies parameter as its first argument. """
     @wraps(fn)
     def wrapped(*args, **kwargs):
-        sess = GlobalDB.db().session
         sub_tier_agencies = []
-
-        if g.user is None:
-            cgac_sub_tier_agencies, frec_sub_tier_agencies = [], []
-        elif g.user.website_admin:
-            cgac_sub_tier_agencies = sess.query(SubTierAgency).\
-                filter(SubTierAgency.is_frec == False).\
-                distinct(SubTierAgency.cgac_id).all()
-            frec_sub_tier_agencies = sess.query(SubTierAgency).\
-                filter(SubTierAgency.is_frec == True).\
-                distinct(SubTierAgency.frec_id).all()
-        else:
+        if g.user is not None:
             # create list of affiliations
-            cgac_affil_ids, frec_affil_ids = [], []
+            cgac_ids, frec_ids = [], []
             for affil in g.user.affiliations:
                 if affil.permission_type_id == FABS_PERM:
                     if affil.frec:
-                        frec_affil_ids.append(affil.frec.frec_id)
+                        frec_ids.append(affil.frec.frec_id)
                     else:
-                        cgac_affil_ids.append(affil.cgac.cgac_id)
+                        cgac_ids.append(affil.cgac.cgac_id)
 
-            cgac_sub_tier_agencies = sess.query(SubTierAgency).\
-                filter(SubTierAgency.is_frec == False).\
-                filter(SubTierAgency.cgac_id in cgac_affil_ids).\
-                distinct(SubTierAgency.cgac_id).all()
-            frec_sub_tier_agencies = sess.query(SubTierAgency).\
-                filter(SubTierAgency.is_frec == True).\
-                filter(SubTierAgency.frec_id in frec_affil_ids).\
-                distinct(SubTierAgency.frec_id).all()
+            # generate SubTierAgencies based on permissions
+            cgac_sub_tiers, frec_sub_tiers = get_sub_tiers_from_perms(g.user.website_admin, cgac_ids, frec_ids)
 
-        sub_tier_agencies = cgac_sub_tier_agencies + frec_sub_tier_agencies
+            sub_tier_agencies = cgac_sub_tiers.all() + frec_sub_tiers.all()
 
         return fn(sub_tier_agencies, *args, **kwargs)
     return wrapped
+
+
+def get_sub_tiers_from_perms(is_admin, cgac_affil_ids, frec_affil_ids):
+    sess = GlobalDB.db().session
+    cgac_sub_tier_agencies = sess.query(SubTierAgency).filter(SubTierAgency.is_frec.is_(False))
+    frec_sub_tier_agencies = sess.query(SubTierAgency).filter(SubTierAgency.is_frec.is_(True))
+
+    # filter by user affiliations if user is not admin
+    if not is_admin:
+        cgac_sub_tier_agencies = cgac_sub_tier_agencies.filter(SubTierAgency.cgac_id.in_(cgac_affil_ids))
+        frec_sub_tier_agencies = frec_sub_tier_agencies.filter(SubTierAgency.frec_id.in_(frec_affil_ids))
+
+    return cgac_sub_tier_agencies, frec_sub_tier_agencies
