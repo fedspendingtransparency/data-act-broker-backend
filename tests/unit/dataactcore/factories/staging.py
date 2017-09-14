@@ -541,7 +541,7 @@ class FPDSContractingOfficeFactory(factory.Factory):
     class Meta:
         model = stagingModels.FPDSContractingOffice
 
-    FPDS_contracting_office_id = fuzzy.FuzzyInteger(1,9999)
+    FPDS_contracting_office_id = fuzzy.FuzzyInteger(1, 9999)
     department_id = fuzzy.FuzzyText()
     department_name = fuzzy.FuzzyText()
     agency_code = fuzzy.FuzzyText()

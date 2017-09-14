@@ -96,7 +96,7 @@ def parse_state_file(state_file, sess):
         data,
         {"state_name": "state_name",
          "state_code": "state_code",
-         "fips_code": "fips_code"})
+         "fipsfips_code": "fips_code"})
 
     # add created_at and updated_at columns
     now = datetime.utcnow()

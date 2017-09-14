@@ -239,20 +239,6 @@ def test_legal_entity_derivations(database):
     assert obj['legal_entity_state_name'] == "New York"
 
 
-def test_afa_generated_unique(database):
-    initialize_db_values(database)
-
-    # Testing with none values
-    obj = initialize_test_obj()
-    obj = fabs_derivations(obj, database.session)
-    assert obj['afa_generated_unique'] == '-none-1234-none--none-'
-
-    # testing with no none values
-    obj = initialize_test_obj(award_mod_amend='award', fain='fain', uri='uri')
-    obj = fabs_derivations(obj, database.session)
-    assert obj['afa_generated_unique'] == 'award1234fainuri'
-
-
 def test_is_active(database):
     initialize_db_values(database)
 
