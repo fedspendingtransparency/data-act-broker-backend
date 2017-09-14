@@ -223,6 +223,7 @@ class DUNS(Base):
     legal_business_name = Column(Text)
     activation_date = Column(Date, index=True)
     deactivation_date = Column(Date, index=True)
+    registration_date = Column(Date, index=True)
     expiration_date = Column(Date, index=True)
     last_sam_mod_date = Column(Date)
 
