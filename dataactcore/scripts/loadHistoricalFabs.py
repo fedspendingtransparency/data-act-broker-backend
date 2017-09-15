@@ -21,8 +21,6 @@ from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
-error_list = []
-
 
 def parse_fabs_file(f, sess, fips_state_list, state_code_list, sub_tier_list, county_code_list):
     logger.info("starting file " + str(f.name))
@@ -226,7 +224,6 @@ def derive_awarding_agency_code(row, sub_tier_list):
     except KeyError:
         awarding_sub_tier = None
     if not awarding_sub_tier:
-        print_error('Agency Code not found: '+row['agency_code'])
         return None
     use_frec = awarding_sub_tier.is_frec
     awarding_agency = awarding_sub_tier.frec if use_frec else awarding_sub_tier.cgac
@@ -241,7 +238,6 @@ def derive_awarding_agency_name(row, sub_tier_list):
     except KeyError:
         awarding_sub_tier = None
     if not awarding_sub_tier:
-        print_error('Agency Code not found: ' + row['agency_code'])
         return None
     use_frec = awarding_sub_tier.is_frec
     awarding_agency = awarding_sub_tier.frec if use_frec else awarding_sub_tier.cgac
@@ -256,7 +252,6 @@ def derive_awarding_sub_tier_agency_n(row, sub_tier_list):
     except KeyError:
         awarding_sub_tier = None
     if not awarding_sub_tier:
-        print_error('Agency Code not found: ' + row['agency_code'])
         return None
     return awarding_sub_tier.sub_tier_agency_name
 
@@ -282,17 +277,15 @@ def derive_place_of_perform_county_na(row, sess, fips_state_list, state_code_lis
             except KeyError:
                 ppop_state = None
         if not ppop_state:
-            print_error("Invalid ppop_code(1): "+ppop_code)
             return None
         if re.match('^([A-Z]{2}|\d{2})\*\*\d{3}$', ppop_code):
             # getting county name
             county_code = ppop_code[-3:]
             try:
-                county_info = county_code_list[county_code + '_' +ppop_state.state_code]
+                county_info = county_code_list[county_code + '_' + ppop_state.state_code]
             except KeyError:
                 county_info = None
             if not county_info:
-                print_error('State Code not found: ' + ppop_state.state_code)
                 return None
             return county_info.county_name
         elif re.match('^([A-Z]{2}|\d{2})\d{5}$', ppop_code) and not re.match('^([A-Z]{2}|\d{2})0{5}$', ppop_code):
@@ -301,11 +294,8 @@ def derive_place_of_perform_county_na(row, sess, fips_state_list, state_code_lis
             city_info = sess.query(CityCode.county_name).\
                 filter_by(city_code=city_code, state_code=ppop_state.state_code).first()
             if not city_info:
-                print_error('State Code not found: ' + ppop_state.state_code + '\nCity Code not found: ' + city_code)
                 return None
             return city_info[0]
-
-        print_error('Invalid ppop_code(2): ' + row['principal_place_code'])
         return None
     zip_five = row['principal_place_zip'][:5]
     zip_four = None
@@ -318,13 +308,11 @@ def derive_place_of_perform_county_na(row, sess, fips_state_list, state_code_lis
         zip_info = sess.query(Zips.state_abbreviation, Zips.county_number).\
             filter_by(zip5=zip_five).first()
     if not zip_info:
-        print_error('Zip_info not found: ' + str(zip_five) + ' ' + str(zip_four))
         return None
     county_info = sess.query(CountyCode.county_name).\
         filter_by(county_number=zip_info[0], state_code=zip_info[1]).first()
     if county_info:
         return county_info[0]
-    print_error('County Info: ' + zip_info[1] + ' ' + zip_info[0])
     return None
 
 
@@ -349,7 +337,6 @@ def derive_place_of_performance_city(row, sess, fips_state_list, state_code_list
             except KeyError:
                 ppop_state = None
         if not ppop_state:
-            print_error('Invalid ppop_code(3): ' + ppop_code)
             return None
         if re.match('^([A-Z]{2}|\d{2})\d{5}$', ppop_code) and not re.match('^([A-Z]{2}|\d{2})0{5}$', ppop_code):
             # getting city and county name
@@ -357,15 +344,12 @@ def derive_place_of_performance_city(row, sess, fips_state_list, state_code_list
             city_info = sess.query(CityCode.feature_name).\
                 filter_by(city_code=city_code, state_code=ppop_state.state_code).first()
             if not city_info:
-                print_error('State Code not found: ' + ppop_state.state_code + '\nCity Code not found: ' + city_code)
                 return None
             return city_info[0]
-        print_error('Invalid ppop_code(2): ' + row['principal_place_code'])
         return None
     zip_five = row['principal_place_zip'][:5]
     city_info = sess.query(ZipCity.city_name).filter_by(zip_code=zip_five).one_or_none()
     if not city_info:
-        print_error('Invalid Zip: ' + zip_five)
         return None
     return city_info[0]
 
@@ -383,12 +367,10 @@ def derive_legal_entity_state_name(row, sess, fips_state_list, state_code_list):
         if not zip_data:
             zip_data = sess.query(Zips.state_abbreviation).filter_by(zip5=row['legal_entity_zip5']).first()
         if not zip_data:
-            print_error('Invalid Zip5: ' + row['legal_entity_zip5'])
             return None
         # legal entity state data
         state_info = state_code_list[zip_data[0]]
         if not state_info:
-            print_error('Invalid state: ' + zip_data[0])
             return None
         return state_info.state_name
     if row['record_type'] == 1:
@@ -412,7 +394,6 @@ def derive_legal_entity_state_name(row, sess, fips_state_list, state_code_list):
                 ppop_state = None
 
         if not ppop_state:
-            print_error('Invalid ppop_code(4): ' + ppop_code)
             return None
 
         # legal entity state data
@@ -546,7 +527,7 @@ def main():
 
     # delete any data in the PublishedAwardFinancialAssistance table
     logger.info('deleting PublishedAwardFinancialAssistance data')
-    # sess.query(PublishedAwardFinancialAssistance).delete(synchronize_session=False)
+    sess.query(PublishedAwardFinancialAssistance).delete(synchronize_session=False)
     sess.commit()
 
     state_list = sess.query(States).all()
@@ -571,12 +552,11 @@ def main():
     for county_code in county_codes:
         county_code_list[county_code.county_number + "_" + county_code.state_code] = county_code
 
-
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
         s3bucket = s3connection.lookup(CONFIG_BROKER['archive_bucket'])
         for key in s3bucket.list():
-            if re.match('^AugustDump/('+years+')_All_(DirectPayments|Grants|Insurance|Loans|Other)_Full_\d{8}.csv.zip', key.name):
+            if re.match('^('+years+')_All_(DirectPayments|Grants|Insurance|Loans|Other)_Full_\d{8}.csv.zip', key.name):
                 file_path = key.generate_url(expires_in=600)
                 parse_fabs_file(urllib.request.urlopen(file_path), sess, fips_state_list, state_code_list,
                                 sub_tier_list, county_code_list)
@@ -584,26 +564,13 @@ def main():
         base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "fabs")
         file_list = [f for f in os.listdir(base_path)]
         for file in file_list:
-            # if re.match('^\d{4}_All_(Grants|DirectPayments|Insurance|Loans|Other)_Full_\d{8}.csv.zip', file):
-            #     parse_fabs_file(open(os.path.join(base_path, file)), sess, fips_state_list, state_code_list,
-            #                     sub_tier_list, county_code_list)
-            if re.match('^('+years+')_All_(Grants|DirectPayments)_Full_\d{8}.csv.zip', file):
-                # parse_fabs_file(open(os.path.join(base_path, file)), sess, fips_state_list, state_code_list,
-                #                 sub_tier_list, county_code_list)
-                print(file)
+            if re.match('^('+years+')_All_(Grants|DirectPayments|Insurance|Loans|Other)_Full_\d{8}.csv.zip', file):
+                parse_fabs_file(open(os.path.join(base_path, file)), sess, fips_state_list, state_code_list,
+                                sub_tier_list, county_code_list)
 
-    # set_active_rows(sess)
-
-    print('Number of errors: ' + str(len(error_list)))
+    set_active_rows(sess)
 
     logger.info("Historical FABS script complete")
-
-
-def print_error(message):
-    if message not in error_list:
-        # print(message)
-        error_list.append(message)
-
 
 if __name__ == '__main__':
     configure_logging()
