@@ -510,19 +510,15 @@ def set_active_rows(sess):
 def main():
     sess = GlobalDB.db().session
 
-    num_nodes = 1
-    node = 1
+    num_nodes = int(sys.argv[1]) if len(sys.argv) == 3 else 1
+    node = int(sys.argv[2]) if len(sys.argv) == 3 else 0
     years = list(range(2000, 2018))
     years_array = []
-    if len(sys.argv) == 3:
-        num_nodes = int(sys.argv[1])
-        node = int(sys.argv[2])
-        for year in years:
-            if year % num_nodes == node:
-                years_array.append(str(year))
-        print(years_array)
-        years = "|".join(years_array)
-    print(years)
+    for year in years:
+        if year % num_nodes == node:
+            years_array.append(str(year))
+    print(years_array)
+    years = "|".join(years_array)
     # return
 
     # delete any data in the PublishedAwardFinancialAssistance table
