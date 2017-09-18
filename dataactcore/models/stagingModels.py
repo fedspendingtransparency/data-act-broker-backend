@@ -900,6 +900,7 @@ class PublishedAwardFinancialAssistance(Base):
     legal_entity_foreign_city = Column(Text)
     legal_entity_foreign_posta = Column(Text)
     legal_entity_foreign_provi = Column(Text)
+    legal_entity_foreign_descr = Column(Text)
     legal_entity_state_code = Column(Text)
     legal_entity_state_name = Column(Text)
     legal_entity_zip5 = Column(Text)
