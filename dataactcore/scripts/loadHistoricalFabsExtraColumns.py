@@ -82,8 +82,8 @@ def format_fabs_data(data):
     # drop all records without any data to be loaded
     data = data.replace('', np.nan, inplace=True)
     data.dropna(subset=["awarding office code", "awarding office name", "funding office name", "funding office code",
-                        "funding agency name", "funding agency code", "funding sub tier agency code", 
-                        "funding sub tier agency name", "legal entity foreign city", "legal entity foreign province", 
+                        "funding agency name", "funding agency code", "funding sub tier agency code",
+                        "funding sub tier agency name", "legal entity foreign city", "legal entity foreign province",
                         "legal entity foreign postal code", "legal entity foreign location description"], inplace=True)
 
     # ensure there are rows to be cleaned and formatted
@@ -122,7 +122,7 @@ def format_fabs_data(data):
     # generate the afa_generated_unique field
     cdata['afa_generated_unique'] = cdata.apply(lambda x: generate_unique_string(x), axis=1)
 
-    # TODO might want to 
+    # TODO might want to
     # drop columns in afa_generated_unique because we aren't updating them
     for col in ["awarding_sub_tier_agency_c", "award_modification_amendme", "fain", "uri"]:
         del cdata[col]
