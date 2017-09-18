@@ -401,6 +401,7 @@ class FileHandler:
         upload_file_name, timestamped_name = job.filename, job.original_filename
 
         if file_type in ['D1', 'D2']:
+            logger.debug('Adding job info for job id of %s', job.job_id)
             date_error = self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission.submission_id,
                                                       file_type, file_type_name, start, end, job)
             if date_error is not None:
@@ -654,7 +655,7 @@ class FileHandler:
         """
         sess = GlobalDB.db().session
 
-        # We want to user first() here so we can see if the job is None so we can mark the status as invalid to
+        # We want to use first() here so we can see if the job is None so we can mark the status as invalid to
         # indicate that a status request is invoked for a job that isn't created yet
         upload_job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
         response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '', 'start': '',
@@ -711,7 +712,7 @@ class FileHandler:
             'message': upload_job.error_message or "",
             'url': '#'
         }
-        if CONFIG_BROKER["use_aws"] and response_dict["status"] is 'finished':
+        if CONFIG_BROKER["use_aws"] and response_dict["status"] is 'finished' and upload_job.filename:
             path, file_name = upload_job.filename.split("/")
             response_dict["url"] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
                                                               method="GET")
