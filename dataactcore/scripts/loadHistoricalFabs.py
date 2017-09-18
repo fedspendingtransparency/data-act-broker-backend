@@ -519,7 +519,6 @@ def main():
             years_array.append(str(year))
     print(years_array)
     years = "|".join(years_array)
-    # return
 
     # delete any data in the PublishedAwardFinancialAssistance table
     logger.info('deleting PublishedAwardFinancialAssistance data')
