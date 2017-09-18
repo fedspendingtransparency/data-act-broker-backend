@@ -507,7 +507,7 @@ class AwardProcurement(Base):
     place_of_perform_country_n = Column(Text)
     place_of_perform_state_nam = Column(Text)
     place_of_perform_county_na = Column(Text)
-    base_and_exercised_opt_val = Column(Text)
+    base_exercised_options_val = Column(Text)
     base_and_all_options_value = Column(Text)
 
     def __init__(self, **kwargs):
@@ -797,8 +797,6 @@ class DetachedAwardProcurement(Base):
     award_or_idv_flag = Column(Text)
     place_of_perform_country_n = Column(Text)
     place_of_perform_state_nam = Column(Text)
-    base_and_exercised_opt_val = Column(Text)
-    base_and_all_options_value = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

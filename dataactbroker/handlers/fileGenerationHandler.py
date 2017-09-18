@@ -58,8 +58,8 @@ def generate_d_file(file_type, agency_code, start, end, job_id, timestamped_name
         page_size, page_idx = 10000, 0
         while True:
             page_start = page_size * page_idx
-            rows = file_utils.query_data(session, agency_code, start, end, page_start, (page_size * (page_idx + 1)))
-            all_rows = rows.all()
+            all_rows = file_utils.\
+                query_data(session, agency_code, start, end, page_start, (page_size * (page_idx + 1))).all()
             if all_rows is None:
                 break
 

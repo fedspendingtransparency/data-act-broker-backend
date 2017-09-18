@@ -23,7 +23,7 @@ mapping = OrderedDict([
     ('legalentityaddressline2', 'legal_entity_address_line2'),
     ('legalentityaddressline3', 'legal_entity_address_line3'),
     ('legalentitycityname', 'legal_entity_city_name'),
-    ('legalentitycitycode', 'legal_entity_city_name'),  # This isn't in the PublishedAwardFinancialAssistance table
+    ('legalentitycitycode', 'legal_entity_city_code'),
     ('legalentitycountyname', 'legal_entity_county_name'),
     ('legalentitycountycode', 'legal_entity_county_code'),
     ('legalentitystatename', 'legal_entity_state_name'),
@@ -45,7 +45,7 @@ mapping = OrderedDict([
     ('awardingagencycode', 'awarding_agency_code'),
     ('awardingsubtieragencyname', 'awarding_sub_tier_agency_n'),
     ('awardingsubtieragencycode', 'awarding_sub_tier_agency_c'),
-    ('awardingofficename', 'awarding_office_code'),  # This isn't in the PublishedAwardFinancialAssistance table
+    ('awardingofficename', 'awarding_office_name'),
     ('awardingofficecode', 'awarding_office_code'),
     ('cfda_number', 'cfda_number'),
     ('cfda_title', 'cfda_title'),
@@ -66,7 +66,7 @@ mapping = OrderedDict([
     ('facevalueloanguarantee', 'face_value_loan_guarantee'),
     ('originalloansubsidycost', 'original_loan_subsidy_cost'),
     ('businessfundsindicator', 'business_funds_indicator'),
-    ('fundingofficename', 'funding_office_code'),  # This isn't in the PublishedAwardFinancialAssistance table
+    ('fundingofficename', 'funding_office_name'),
     ('lastmodifieddate', 'modified_at')
 ])
 db_columns = [val for key, val in mapping.items()]
