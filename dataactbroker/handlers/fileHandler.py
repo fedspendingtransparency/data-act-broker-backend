@@ -1885,3 +1885,5 @@ def fabs_derivations(obj, sess):
         obj['is_active'] = True
 
     obj['modified_at'] = datetime.utcnow()
+
+    return obj
