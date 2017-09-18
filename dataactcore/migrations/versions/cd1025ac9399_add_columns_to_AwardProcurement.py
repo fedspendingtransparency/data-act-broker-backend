@@ -1,4 +1,4 @@
-"""remove duplicate columns
+"""add rows to AwardProcurement
 
 Revision ID: cd1025ac9399
 Revises: a767facf8ea8
