@@ -1761,7 +1761,7 @@ def fabs_derivations(obj, sess):
     obj['place_of_perform_state_nam'] = ppop_state.state_name
 
     # deriving place of performance values from zip4
-    if obj['place_of_performance_zip4a']:
+    if obj['place_of_performance_zip4a'] and obj['place_of_performance_zip4a'] != 'city-wide':
         zip_five = obj['place_of_performance_zip4a'][:5]
         zip_four = None
 
