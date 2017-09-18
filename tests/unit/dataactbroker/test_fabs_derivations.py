@@ -33,7 +33,6 @@ def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, us
                                     county_name="Test County")
     city_code = CityCodeFactory(feature_name="Test City", city_code="00001", state_code=state.state_code,
                                 county_name="Test City County")
-
     contracting_office = FPDSContractingOfficeFactory(contracting_office_code='033103',
                                                       contracting_office_name='Office')
 
