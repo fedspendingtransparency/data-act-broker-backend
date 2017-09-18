@@ -25,13 +25,12 @@ def parse_fabs_file_new_columns(f, sess):
 
     # TODO update column header mappings (their column name: column number (0-indexed))
     # These are just placeholders so you have a sample
-    column_header_mapping = {
-        "awarding_sub_tier_agency": 0,
-        "award_mod_num": 4,
-        "federal_award_id": 7,
-        "uri": 8,
-        "funding_office_code": 9
-    }
+    column_header_mapping = {"agency_code": 0, "federal_award_mod": 1, "federal_award_id": 2, "uri": 3,
+                             "awarding office code": 4, "awarding office name": 5, "funding office name": 6,
+                             "funding office code": 7, "funding agency name": 8, "funding agency code": 9,
+                             "funding sub tier agency code": 10, "funding sub tier agency name": 11,
+                             "legal entity foreign city": 12, "legal entity foreign province": 13,
+                             "legal entity foreign postal code": 14, "legal entity foreign location description": 15}
     column_header_mapping_ordered = OrderedDict(sorted(column_header_mapping.items(), key=lambda c: c[1]))
 
     nrows = 0
@@ -39,11 +38,9 @@ def parse_fabs_file_new_columns(f, sess):
         with zfile.open(csv_file) as dat_file:
             nrows = len(dat_file.readlines())
 
-    block_size = 10000
+    block_size, batch, added_rows = 10000, 0, 0
     batches = nrows // block_size
     last_block_size = (nrows % block_size)
-    batch = 0
-    added_rows = 0
     while batch <= batches:
         skiprows = 1 if batch == 0 else (batch * block_size)
         nrows = (((batch + 1) * block_size) - skiprows) if (batch < batches) else last_block_size
@@ -61,8 +58,18 @@ def parse_fabs_file_new_columns(f, sess):
                         # TODO update this with the columns that need updating
                         sess.query(PublishedAwardFinancialAssistance).\
                             filter_by(afa_generated_unique=row['afa_generated_unique']).\
-                            update({"funding_office_code": row['funding_office_code'],
-                                    "funding_office_name": row['funding_office_name']},
+                            update({"awarding_office_code": row['awarding_office_code'],
+                                    "awarding_office_name": row['awarding_office_name'],
+                                    "funding_office_name": row['funding_office_name'],
+                                    "funding_office_code": row['funding_office_code'],
+                                    "funding_agency_name": row['funding_agency_name'],
+                                    "funding_agency_code": row['funding_agency_code'],
+                                    "funding_sub_tier_agency_co": row['funding_sub_tier_agency_co'],
+                                    "funding_sub_tier_agency_na": row['funding_sub_tier_agency_na'],
+                                    "legal_entity_foreign_city": row['legal_entity_foreign_city'],
+                                    "legal_entity_foreign_provi": row['legal_entity_foreign_provi'],
+                                    "legal_entity_foreign_posta": row['legal_entity_foreign_posta'],
+                                    "legal_entity_foreign_descr": row['legal_entity_foreign_descr']},
                                    synchronize_session=False)
 
             added_rows += nrows
@@ -72,6 +79,14 @@ def parse_fabs_file_new_columns(f, sess):
 
 
 def format_fabs_data(data):
+    # drop all records without any data to be loaded
+    data = data.replace('', np.nan, inplace=True)
+    data.dropna(subset=["awarding office code", "awarding office name", "funding office name", "funding office code",
+                        "funding agency name", "funding agency code", "funding sub tier agency code", 
+                        "funding sub tier agency name", "legal entity foreign city", "legal entity foreign province", 
+                        "legal entity foreign postal code", "legal entity foreign location description"], inplace=True)
+
+    # ensure there are rows to be cleaned and formatted
     if len(data.index) == 0:
         return None
 
@@ -80,11 +95,22 @@ def format_fabs_data(data):
         data,
         PublishedAwardFinancialAssistance,
         {
-            'agency_code': 'awarding_sub_tier_agency_c',
-            'federal_award_mod': 'award_modification_amendme',
-            'federal_award_id': 'fain',
-            'uri': 'uri',
-            'funding_office_code': 'funding_office_code'
+            "agency_code": "awarding_sub_tier_agency_c",
+            "federal_award_mod": "award_modification_amendme",
+            "federal_award_id": "fain",
+            "uri": "uri",
+            "awarding office code": "awarding_office_code",
+            "awarding office name": "awarding_office_name",
+            "funding office name": "funding_office_name",
+            "funding office code": "funding_office_code",
+            "funding agency name": "funding_agency_name",
+            "funding agency code": "funding_agency_code",
+            "funding sub tier agency code": "funding_sub_tier_agency_co",
+            "funding sub tier agency name": "funding_sub_tier_agency_na",
+            "legal entity foreign city": "legal_entity_foreign_city",
+            "legal entity foreign province": "legal_entity_foreign_provi",
+            "legal entity foreign postal code": "legal_entity_foreign_posta",
+            "legal entity foreign location description": "legal_entity_foreign_descr"
         }, {}
     )
 
@@ -96,7 +122,10 @@ def format_fabs_data(data):
     # generate the afa_generated_unique field
     cdata['afa_generated_unique'] = cdata.apply(lambda x: generate_unique_string(x), axis=1)
 
-    # TODO might want to drop 'agency_code' and all the other stuff because we aren't updating them
+    # TODO might want to 
+    # drop columns in afa_generated_unique because we aren't updating them
+    for col in ["awarding_sub_tier_agency_c", "award_modification_amendme", "fain", "uri"]:
+        del cdata[col]
 
     return cdata
 
@@ -119,11 +148,12 @@ def main():
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
         s3bucket = s3connection.lookup(CONFIG_BROKER['archive_bucket'])
         # TODO change this to the correct file name
-        new_columns_file = s3bucket.get_key("FIX FILE NAME HERE").generate_url(expires_in=600)
+        new_columns_file = s3bucket.get_key("Assistance_DataActFields_2017.csv").generate_url(expires_in=600)
         parse_fabs_file_new_columns(urllib.request.urlopen(new_columns_file), sess)
     else:
         # TODO change this to the correct file name
-        new_columns_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "fabs", "FIX FILE NAME HERE")
+        new_columns_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "fabs",
+                                        "Assistance_DataActFields_2017.csv")
         parse_fabs_file_new_columns(open(new_columns_file), sess)
 
     logger.info("Historical FABS column update script complete")
