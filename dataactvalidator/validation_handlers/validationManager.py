@@ -298,9 +298,10 @@ class ValidationManager:
                         valid = True
                     else:
                         if file_type in ["detached_award"]:
-                            record['afa_generated_unique'] = (record['award_modification_amendme'] or '-none-') + \
-                                  (record['awarding_sub_tier_agency_c'] or '-none-') + \
-                                  (record['fain'] or '-none-') + (record['uri'] or '-none-')
+                            record['afa_generated_unique'] = (record['award_modification_amendme'] or '-none-') + "_" \
+                                                             + (record['awarding_sub_tier_agency_c'] or '-none-') + \
+                                                             "_" + (record['fain'] or '-none-') + "_" + \
+                                                             (record['uri'] or '-none-')
                         passed_validations, failures, valid = Validator.validate(record, csv_schema,
                                                                                  file_type in ["detached_award"])
                     if valid:
