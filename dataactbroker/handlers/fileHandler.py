@@ -29,7 +29,8 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import (
     CGAC, FREC, CFDAProgram, SubTierAgency, Zips, States, CountyCode, CityCode, ZipCity)
 from dataactcore.models.errorModels import File
-from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
+from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
+                                              FPDSContractingOffice)
 from dataactcore.models.jobModels import (
     FileGenerationTask, Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation, RevalidationThreshold,
     CertifyHistory, CertifiedFilesHistory)
@@ -1856,10 +1857,27 @@ def fabs_derivations(obj, sess):
         # legal entity cd data
         obj['legal_entity_congressional'] = obj['place_of_performance_congr']
 
-    # generate the identifier
-    obj['afa_generated_unique'] = (obj['award_modification_amendme'] or '-none-') + \
-                                  (obj['awarding_sub_tier_agency_c'] or '-none-') + \
-                                  (obj['fain'] or '-none-') + (obj['uri'] or '-none-')
+    # deriving awarding_office_name based off funding_office_code
+    if obj['awarding_office_code']:
+        award_office = sess.query(FPDSContractingOffice). \
+            filter_by(contracting_office_code=obj['awarding_office_code']).one_or_none()
+        if award_office:
+            obj['awarding_office_name'] = award_office.contracting_office_name
+
+    # deriving funding_office_name based off funding_office_code
+    if obj['funding_office_code']:
+        funding_office = sess.query(FPDSContractingOffice). \
+            filter_by(contracting_office_code=obj['funding_office_code']).one_or_none()
+        if funding_office:
+            obj['funding_office_name'] = funding_office.contracting_office_name
+
+    if obj['legal_entity_city_name'] and obj['legal_entity_state_code']:
+        city_code = sess.query(CityCode). \
+            filter(func.lower(CityCode.feature_name) == func.lower(obj['legal_entity_city_name'].strip()),
+                   func.lower(CityCode.state_code) == func.lower(
+                       obj['legal_entity_state_code'].strip())).one_or_none()
+        if city_code:
+            obj['legal_entity_city_code'] = city_code.city_code
 
     if obj['correction_late_delete_ind'] and obj['correction_late_delete_ind'].upper() == 'D':
         obj['is_active'] = False
@@ -1867,5 +1885,3 @@ def fabs_derivations(obj, sess):
         obj['is_active'] = True
 
     obj['modified_at'] = datetime.utcnow()
-
-    return obj
