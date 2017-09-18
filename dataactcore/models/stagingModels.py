@@ -901,7 +901,6 @@ class PublishedAwardFinancialAssistance(Base):
     legal_entity_state_name = Column(Text)
     legal_entity_zip5 = Column(Text)
     legal_entity_zip_last4 = Column(Text)
-    legal_entity_foreign_descr = Column(Text)
     modified_at = Column(DateTime)
     non_federal_funding_amount = Column(Numeric)
     original_loan_subsidy_cost = Column(Numeric)
