@@ -203,5 +203,5 @@ class CountryCodeFactory(factory.Factory):
         model = domainModels.CountryCode
 
     country_code_id = None
-    country_code =  fuzzy.FuzzyText()
+    country_code = fuzzy.FuzzyText()
     country_name = fuzzy.FuzzyText()
