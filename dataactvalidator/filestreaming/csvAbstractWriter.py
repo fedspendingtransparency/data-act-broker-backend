@@ -21,8 +21,7 @@ class CsvAbstractWriter(object):
 
         """
         self.rows = []
-        if header:
-            self.write(header)
+        self.write(header)
 
     def write(self, data_list):
         """
