@@ -196,3 +196,12 @@ class ZipCityFactory(factory.Factory):
     zip_city_id = None
     zip_code = fuzzy.FuzzyText()
     city_name = fuzzy.FuzzyText()
+
+
+class CountryCodeFactory(factory.Factory):
+    class Meta:
+        model = domainModels.CountryCode
+
+    country_code_id = None
+    country_code =  fuzzy.FuzzyText()
+    country_name = fuzzy.FuzzyText()
