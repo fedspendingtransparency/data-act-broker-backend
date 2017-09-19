@@ -1047,9 +1047,16 @@ def process_and_add(data, contract_type, sess, sub_tier_list):
     """ start the processing for data and add it to the DB """
     for value in data:
         tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sub_tier_list=sub_tier_list)
-        insert_statement = insert(DetachedAwardProcurement).values(**tmp_obj).\
-            on_conflict_do_update(index_elements=['detached_award_proc_unique'], set_=tmp_obj)
-        sess.execute(insert_statement)
+        try:
+            statement = insert(DetachedAwardProcurement).values(**tmp_obj)
+            sess.execute(statement)
+            sess.commit()
+        except IntegrityError:
+            sess.rollback()
+            sess.query(DetachedAwardProcurement).\
+                filter_by(detached_award_proc_unique=tmp_obj['detached_award_proc_unique']).\
+                update(tmp_obj, synchronize_session=False)
+            sess.commit()
 
 
 def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None):
