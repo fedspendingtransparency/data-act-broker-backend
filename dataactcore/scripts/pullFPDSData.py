@@ -9,6 +9,7 @@ import xmltodict
 import numpy as np
 import pandas as pd
 import csv
+import io
 
 import datetime
 import time
@@ -788,6 +789,8 @@ def calculate_remaining_fields(obj, sub_tier_list):
                 'transaction_number']
     unique_string = ""
     for item in key_list:
+        if len(unique_string) > 0:
+            unique_string += "_"
         try:
             if obj[item]:
                 unique_string += obj[item]
@@ -943,25 +946,35 @@ def process_delete_data(data, atom_type):
         except (KeyError, TypeError):
             unique_string += "-none-"
 
+        unique_string += "_"
+
         try:
             unique_string += extract_text(data['awardID']['referencedIDVID']['agencyID'])
         except (KeyError, TypeError):
             unique_string += "-none-"
+
+        unique_string += "_"
 
         try:
             unique_string += extract_text(data['awardID']['awardContractID']['PIID'])
         except (KeyError, TypeError):
             unique_string += "-none-"
 
+        unique_string += "_"
+
         try:
             unique_string += extract_text(data['awardID']['awardContractID']['modNumber'])
         except (KeyError, TypeError):
             unique_string += "-none-"
 
+        unique_string += "_"
+
         try:
             unique_string += extract_text(data['awardID']['referencedIDVID']['PIID'])
         except (KeyError, TypeError):
             unique_string += "-none-"
+
+        unique_string += "_"
 
         try:
             unique_string += extract_text(data['awardID']['awardContractID']['transactionNumber'])
@@ -973,20 +986,28 @@ def process_delete_data(data, atom_type):
         except (KeyError, TypeError):
             unique_string += "-none-"
 
+        unique_string += "_"
+
         try:
             unique_string += extract_text(data['contractID']['referencedIDVID']['agencyID'])
         except (KeyError, TypeError):
             unique_string += "-none-"
+
+        unique_string += "_"
 
         try:
             unique_string += extract_text(data['contractID']['IDVID']['PIID'])
         except (KeyError, TypeError):
             unique_string += "-none-"
 
+        unique_string += "_"
+
         try:
             unique_string += extract_text(data['contractID']['IDVID']['modNumber'])
         except (KeyError, TypeError):
             unique_string += "-none-"
+
+        unique_string += "_"
 
         try:
             unique_string += extract_text(data['contractID']['referencedIDVID']['PIID'])
@@ -994,7 +1015,7 @@ def process_delete_data(data, atom_type):
             unique_string += "-none-"
 
         # transaction_number not in IDV feed, just set it to "-none-"
-        unique_string += "-none-"
+        unique_string += "_-none-"
 
     return unique_string
 
@@ -1178,15 +1199,21 @@ def get_delete_data(contract_type, now, sess, last_run):
             delete(synchronize_session=False)
 
 
-def parse_fpds_file(f, sess, sub_tier_list, naics_dict):
-    logger.info("Starting file " + str(f.name))
+def parse_fpds_file(f, sess, sub_tier_list, naics_dict, filename=None):
+    if not filename:
+        logger.info("Starting file " + str(f))
+        csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(f))[0]
+    else:
+        logger.info("Starting file " + str(filename))
+        csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(filename))[0]
 
     csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(f.name))[0]
 
     nrows = 0
-    with zipfile.ZipFile(f.name) as zfile:
+    with zipfile.ZipFile(f) as zfile:
         with zfile.open(csv_file) as dat_file:
             nrows = len(dat_file.readlines())
+            logger.info("File contains %s rows", nrows)
 
     block_size = 10000
     batches = nrows // block_size
@@ -1254,21 +1281,34 @@ def parse_fpds_file(f, sess, sub_tier_list, naics_dict):
     while batch <= batches:
         skiprows = 1 if batch == 0 else (batch * block_size)
         nrows = (((batch + 1) * block_size) - skiprows) if (batch < batches) else last_block_size
-        logger.info('loading rows %s to %s', skiprows + 1, nrows + skiprows)
+        logger.info('Starting load for rows %s to %s', skiprows + 1, nrows + skiprows)
 
-        with zipfile.ZipFile(f.name) as zfile:
+        with zipfile.ZipFile(f) as zfile:
             with zfile.open(csv_file) as dat_file:
                 data = pd.read_csv(dat_file, dtype=str, header=None, skiprows=skiprows, nrows=nrows, names=all_cols)
 
                 cdata = format_fpds_data(data, sub_tier_list, naics_dict)
                 if cdata is not None:
-                    logger.info("loading {} rows".format(len(cdata.index)))
+                    logger.info("Loading {} rows into database".format(len(cdata.index)))
 
-                    insert_dataframe(cdata, DetachedAwardProcurement.__table__.name, sess.connection())
+                    try:
+                        insert_dataframe(cdata, DetachedAwardProcurement.__table__.name, sess.connection())
+                        sess.commit()
+                    except IntegrityError:
+                        sess.rollback()
+                        logger.info("Bulk load failed, individually loading %s rows into database", len(cdata.index))
+                        for index, row in cdata.iterrows():
+                            try:
+                                statement = insert(DetachedAwardProcurement).values(**row)
+                                sess.execute(statement)
+                                sess.commit()
+                            except IntegrityError:
+                                sess.rollback()
+                                logger.info("Found duplicate: %s, row not inserted", row['detached_award_proc_unique'])
 
         added_rows += nrows
         batch += 1
-    sess.commit()
+    logger.info("Finished loading file")
 
 
 def format_fpds_data(data, sub_tier_list, naics_data):
@@ -1913,6 +1953,8 @@ def create_unique_key(row):
     key_list = ['agencyid', 'idvagencyid', 'piid', 'modnumber', 'idvpiid', 'transactionnumber']
     unique_string = ""
     for item in key_list:
+        if len(unique_string) > 0:
+            unique_string += "_"
         if row[item] and str(row[item]) != 'nan':
             unique_string += str(row[item])
         else:
@@ -2041,14 +2083,22 @@ def main():
 
             # parse contracts files
             s3bucket = s3connection.lookup(CONFIG_BROKER['archive_bucket'])
-            for key in s3bucket.list():
+            if subfolder:
+                subfolder = subfolder + "/"
+            for key in s3bucket.list(prefix=subfolder):
+                match_string = '^\d{4}_All_Contracts_Full_\d{8}.csv.zip'
                 if subfolder:
-                    key = subfolder + "/" + key
-                if re.match('^\d{4}_All_Contracts_Full_\d{8}.csv.zip', key.name):
-                    # we only want up through 2015 for this data
-                    if int(key.name[:4]) <= max_year:
-                        file_path = key.generate_url(expires_in=600)
-                        parse_fpds_file(urllib.request.urlopen(file_path), sess, sub_tier_list, naics_dict)
+                    match_string = "^" + subfolder + "\d{4}_All_Contracts_Full_\d{8}.csv.zip"
+                if re.match(match_string, key.name):
+                    # we only want up through 2015 for this data unless it’s a subfolder, then do all of them
+                    if subfolder or int(key.name[:4]) <= max_year:
+                        # Create an in-memory bytes IO buffer
+                        with io.BytesIO() as b:
+                            # Read the file into it
+                            key.get_file(b)
+
+                            # Reset the file pointer to the beginning
+                            parse_fpds_file(b, sess, sub_tier_list, naics_dict, filename=key.name)
         else:
             # get naics dictionary
             naics_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
@@ -2065,7 +2115,7 @@ def main():
                 if re.match('^\d{4}_All_Contracts_Full_\d{8}.csv.zip', file):
                     # we only want up through 2015 for this data
                     if int(file[:4]) <= max_year:
-                        parse_fpds_file(open(os.path.join(base_path, file)), sess, sub_tier_list, naics_dict)
+                        parse_fpds_file(open(os.path.join(base_path, file)).name, sess, sub_tier_list, naics_dict)
 
         logger.info("Ending at: " + str(datetime.datetime.now()))
         sess.commit()
