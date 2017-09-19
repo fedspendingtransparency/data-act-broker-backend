@@ -34,6 +34,7 @@ LegalEntityCityCode,legal_entity_city_code,ASP: Derived,string,5,
 LegalEntityCityName,legal_entity_city_name,ASP: Derived,string,40,
 LegalEntityCongressionalDistrict,legal_entity_congressional,ASP: Derived,string,2,
 LegalEntityCountryCode,legal_entity_country_code,ASP: Conditional per Validation Rule,string,3,"D1, D2, D12"
+LegalEntityCountryName,legal_entity_country_name,Optional,string,,
 LegalEntityCountyCode,legal_entity_county_code,ASP: Derived,string,3,
 LegalEntityCountyName,legal_entity_county_name,ASP: Derived,string,40,
 LegalEntityForeignCityName,legal_entity_foreign_city,ASP: Conditional per Validation Rule,string,40,D9
@@ -51,6 +52,8 @@ PrimaryPlaceOfPerformanceCityName,place_of_performance_city,ASP: Derived,string,
 PrimaryPlaceOfPerformanceCode,place_of_performance_code,ASP: Required,string,7,"D1, D14, D15"
 PrimaryPlaceOfPerformanceCongressionalDistrict,place_of_performance_congr,ASP: Derived,string,2,
 PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Required,string,3,D1
+PrimaryPlaceOfPerformanceCountryName,place_of_perform_country_n,Optional,string,,
+PrimaryPlaceOfPerformanceCountyCode,place_of_perform_county_co,Optional,string,,
 PrimaryPlaceOfPerformanceCountyName,place_of_perform_county_na,ASP: Derived,string,40,
 PrimaryPlaceOfPerformanceForeignLocationDescription,place_of_performance_forei,ASP: Conditional per Validation Rule,string,100,D17
 PrimaryPlaceOfPerformanceStateName,place_of_perform_state_nam,ASP: Derived,string,50,
