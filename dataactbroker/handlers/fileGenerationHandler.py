@@ -9,7 +9,7 @@ from dataactcore.models.jobModels import Job
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
-from dataactvalidator.filestreaming.csv_selection import write_csv
+from dataactvalidator.filestreaming.csv_selection import write_csv, get_write_csv_writer
 
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ def job_context(job_id):
             GlobalDB.close()
 
 
-def generate_d_file(file_type, agency_code, start, end, job_id, timestamped_name, upload_name, is_local):
+def generate_d_file(file_type, agency_code, start, end, job_id, file_name, upload_name, is_local):
     """ Write file D1 or D2 to an appropriate CSV.
 
         Args:
@@ -46,7 +46,7 @@ def generate_d_file(file_type, agency_code, start, end, job_id, timestamped_name
             start - Beginning of period for D file
             end - End of period for D file
             job_id - Job ID for upload job
-            timestamped_name - Version of filename without user ID
+            file_name - Version of filename without user ID
             upload_name - Filename to use on S3
             is_local - True if in local development, False otherwise
     """
@@ -56,22 +56,25 @@ def generate_d_file(file_type, agency_code, start, end, job_id, timestamped_name
         file_utils = fileD1 if file_type == 'D1' else fileD2
         headers, columns = [key for key in file_utils.mapping], file_utils.db_columns
         page_size, page_idx = 10000, 0
-        while True:
-            page_start = page_size * page_idx
-            all_rows = file_utils.\
-                query_data(session, agency_code, start, end, page_start, (page_size * (page_idx + 1))).all()
-            if all_rows is None:
-                break
+        with get_write_csv_writer(file_name, upload_name, is_local, headers) as writer:
+            # stream to file
+            while True:
+                page_start = page_size * page_idx
+                rows = file_utils.\
+                    query_data(session, agency_code, start, end, page_start, (page_size * (page_idx + 1))).all()
+                if rows is None:
+                    break
 
-            body = [[dict(zip(columns, row))[value] for value in columns] for row in all_rows]
+                logger.debug('Writing rows {}-{} to file {} CSV'.format(page_start, page_start+len(rows), file_type))
+                for row in rows:
+                    writer.write([dict(zip(columns, row))[value] for value in columns])
 
-            logger.debug('Writing rows {}-{} to file {} CSV'.format(page_start, page_start+len(all_rows), file_type))
-            write_csv(timestamped_name, upload_name, is_local, headers, body)
-            headers = None
-            if len(all_rows) < page_size:
-                break
-            page_idx += 1
-        logger.debug('Finished writing to file: {}'.format(timestamped_name))
+                if len(rows) < page_size:
+                    break
+                page_idx += 1
+            writer.finish_batch()
+
+        logger.debug('Finished writing to file: {}'.format(file_name))
     logger.debug('Finished file {} generation'.format(file_type))
 
 
