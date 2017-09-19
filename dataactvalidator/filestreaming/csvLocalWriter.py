@@ -17,7 +17,7 @@ class CsvLocalWriter(CsvAbstractWriter):
         header - list of strings for the header
 
         """
-        self.stream = open(filename, "a+", newline='')
+        self.stream = open(filename, "w", newline='')
         super(CsvLocalWriter, self).__init__(header)
 
     def _write(self, data):
