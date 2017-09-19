@@ -12,7 +12,7 @@ BusinessFundsIndicator,business_funds_indicator,ASP: Required,string,3,D1
 BusinessTypes,business_types,ASP: Required,string,3,D1
 CFDA_Number,cfda_number,ASP: Required,string,7,D13
 CorrectionLateDeleteIndicator,correction_late_delete_ind,ASP: Optional,string,1,D1
-FaceValueLoanGuarantee,face_value_loan_guarantee,ASP: Conditional per Validation Rule,numeric,20,D21
+FaceValueOfDirectLoanOrLoanGuarantee,face_value_loan_guarantee,ASP: Conditional per Validation Rule,numeric,20,D21
 FAIN,fain,ASP: Conditional per Validation Rule,string,30,"C9, D2, D5, D6"
 FederalActionObligation,federal_action_obligation,ASP: Conditional per Validation Rule,numeric,20,"C12, D20"
 FiscalYearAndQuarterCorrection,fiscal_year_and_quarter_co,ASP: Optional,string,5,D8
@@ -40,3 +40,6 @@ PrimaryPlaceOfPerformanceZIP+4,place_of_performance_zip4a,ASP: Conditional per V
 RecordType,record_type,ASP: Required,integer,1,D1
 SAI_Number,sai_number,ASP: Optional,string,50,
 URI,uri,ASP: Conditional per Validation Rule,string,70,"C9, D6, D7"
+PrimaryPlaceOfPerformanceCountryName,place_of_perform_county_co,Optional,string,,
+LegalEntityCountryName,place_of_perform_country_n,Optional,string,,
+PrimaryPlaceOfPerformanceCountyCode,legal_entity_country_name,Optional,string,,
