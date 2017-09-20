@@ -27,7 +27,7 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import (
-    CGAC, FREC, CFDAProgram, SubTierAgency, Zips, States, CountyCode, CityCode, ZipCity)
+    CGAC, FREC, CFDAProgram, SubTierAgency, Zips, States, CountyCode, CityCode, ZipCity, CountryCode)
 from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
                                               FPDSContractingOffice)
@@ -1863,6 +1863,8 @@ def fabs_derivations(obj, sess):
             filter_by(contracting_office_code=obj['awarding_office_code']).one_or_none()
         if award_office:
             obj['awarding_office_name'] = award_office.contracting_office_name
+        else:
+            obj['awarding_office_name'] = None
 
     # deriving funding_office_name based off funding_office_code
     if obj['funding_office_code']:
@@ -1878,6 +1880,57 @@ def fabs_derivations(obj, sess):
                        obj['legal_entity_state_code'].strip())).one_or_none()
         if city_code:
             obj['legal_entity_city_code'] = city_code.city_code
+
+    # deriving primary_place_of_performance_country_name from primary_place_of_performnce_code
+    if obj['primary_place_of_performance_country_code']:
+        country_data = sess.query(CountryCode). \
+            filter_by(country_code=obj['primary_place_of_performance_country_code'].upper()).one_or_none()
+        if country_data:
+            obj['primary_place_of_performance_country_name'] = country_data.country_name
+        else:
+            obj['primary_place_of_performance_country_name'] = None
+
+    # deriving legal_entity_country_name from legal_entity_country_code
+    if obj['legal_entity_country_code']:
+        country_data = sess.query(CountryCode). \
+            filter_by(country_code=obj['legal_entity_country_code'].upper()).one_or_none()
+        if country_data:
+            obj['legal_entity_country_name'] = country_data.country_name
+        else:
+            obj['legal_entity_country_name'] = None
+
+    # deriving primary_place_of_performance_county_code when record_type is 1
+    if obj['record_type'] == 1:
+        county_data = sess.query(CountyCode). \
+            filter_by(county_number=obj['place_of_performance_code'][-3:],
+                      state_code=obj['place_of_performance_code'][:2]).one_or_none()
+        obj['primary_place_of_performance_county_code'] = county_data.county_number
+        obj['primary_place_of_performance_county_name'] = county_data.county_name
+
+    # deriving primary_place_of_performance_county_code from primary_place_of_performance_zip4a
+    if obj['record_type'] == 2 and obj['place_of_performance_zip4a']:
+        zip_five = obj['place_of_performance_zip4a'][:5]
+
+        # if zip4 is 9 digits, set the zip_four value to the last 4 digits
+        if len(obj['place_of_performance_zip4a']) > 5:
+            zip_four = obj['place_of_performance_zip4a'][-4:]
+
+        # if there's a 9-digit zip code, use both parts to get data, otherwise just grab the first
+        # instance of the zip5 we find
+        if zip_four:
+            zip_info = sess.query(Zips). \
+                filter_by(zip5=zip_five, zip_last4=zip_four).first()
+        else:
+            zip_info = sess.query(Zips). \
+                filter_by(zip5=zip_five).first()
+        obj['primary_place_of_performance_county_code'] = zip_info.county_number
+        county_data = sess.query(CountyCode). \
+            filter_by(county_number=zip_info.county_number,
+                      state_code=zip_info.state_abbreviation).one_or_none()
+        if county_data:
+            obj['primary_place_of_performance_county_name'] = county_data.county_name
+        else:
+            obj['primary_place_of_performance_county_name'] = None
 
     if obj['correction_late_delete_ind'] and obj['correction_late_delete_ind'].upper() == 'D':
         obj['is_active'] = False
