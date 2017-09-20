@@ -68,7 +68,7 @@ def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1
         'funding_office_code': funding_office,
         'legal_entity_city_name': legal_city,
         'legal_entity_state_code': legal_state,
-        'primary_place_of_performance_country_code': primary_place_country,
+        'place_of_perform_country_c': primary_place_country,
         'legal_entity_country_code': legal_country
     }
     return obj
@@ -247,11 +247,11 @@ def test_primary_place_country(database):
     # if primary_plce_of_performance_country_code is present get country name
     obj = initialize_test_obj(primary_place_country='USA')
     obj = fabs_derivations(obj, database.session)
-    assert obj['primary_place_of_performance_country_name'] == 'United States of America'
+    assert obj['place_of_perform_country_n'] == 'United States of America'
 
     obj = initialize_test_obj(primary_place_country='NK')
     obj = fabs_derivations(obj, database.session)
-    assert not obj['primary_place_of_performance_country_name']
+    assert not obj['place_of_perform_country_n']
 
 
 def test_awarding_office_codes(database):
@@ -299,14 +299,14 @@ def test_primary_place_county(database):
     # if record type is 1, use ppop to get the county name and code
     obj = initialize_test_obj(record_type=1, ppop_code="NY**001")
     obj = fabs_derivations(obj, database.session)
-    assert obj['primary_place_of_performance_county_code'] == "001"
-    assert obj['primary_place_of_performance_county_name'] == "Test County"
+    assert obj['place_of_perform_county_co'] == "001"
+    assert obj['place_of_perform_county_na'] == "Test County"
 
     # if record type is 2 and has zip4a use zip code to get county name
     obj = initialize_test_obj(record_type=2, ppop_zip4a="123454321")
     obj = fabs_derivations(obj, database.session)
-    assert obj['primary_place_of_performance_county_code'] == "001"
-    assert obj['primary_place_of_performance_county_name'] == "Test County"
+    assert obj['place_of_perform_county_co'] == "001"
+    assert obj['place_of_perform_county_na'] == "Test County"
 
 
 def test_is_active(database):
