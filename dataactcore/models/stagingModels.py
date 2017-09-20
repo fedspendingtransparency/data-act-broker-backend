@@ -867,7 +867,6 @@ class DetachedAwardFinancialAssistance(Base):
     uri = Column(Text, index=True)
     is_valid = Column(Boolean, nullable=False, default="False", server_default="False")
 
-
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
         # so get rid of any extraneous kwargs before instantiating
