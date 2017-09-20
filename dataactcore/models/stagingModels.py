@@ -825,6 +825,7 @@ class DetachedAwardFinancialAssistance(Base):
     awardee_or_recipient_legal = Column(Text)
     awardee_or_recipient_uniqu = Column(Text, index=True)
     awarding_office_code = Column(Text)
+    awarding_office_name = Column(Text)
     awarding_sub_tier_agency_c = Column(Text, index=True)
     award_modification_amendme = Column(Text)
     business_funds_indicator = Column(Text)
