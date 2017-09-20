@@ -241,6 +241,22 @@ def test_legal_entity_derivations(database):
     assert obj['legal_entity_state_name'] == "New York"
 
 
+def test_primary_place_county(database):
+    initialize_db_values(database)
+
+    # if record type is 1, use ppop to get the county name and code
+    obj = initialize_test_obj(record_type=1, ppop_code="NY**001")
+    obj = fabs_derivations(obj, database.session)
+    assert obj['primary_place_of_performance_county_code'] == "001"
+    assert obj['primary_place_of_performance_county_name'] == "Test County"
+
+    #if record type is 2 and has zip4a use zip code to get county name
+    obj = initialize_test_obj(record_type=2, ppop_zip4a="123454321")
+    obj = fabs_derivations(obj, database.session)
+    assert obj['primary_place_of_performance_county_code'] == "001"
+    assert obj['primary_place_of_performance_county_name'] == "Test County"
+
+
 def test_is_active(database):
     initialize_db_values(database)
 
