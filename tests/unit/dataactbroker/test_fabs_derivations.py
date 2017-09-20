@@ -257,7 +257,7 @@ def test_primary_place_country(database):
 def test_awarding_office_codes(database):
     initialize_db_values(database)
 
-    #if awarding office_code is present, get office name
+    # if awarding office_code is present, get office name
     obj = initialize_test_obj()
     obj = fabs_derivations(obj, database.session)
     assert obj['awarding_office_name'] == 'Office'
@@ -270,7 +270,7 @@ def test_awarding_office_codes(database):
 def funding(database):
     initialize_db_values(database)
 
-    #if funding office_code is present, get office name
+    # if funding office_code is present, get office name
     obj = initialize_test_obj()
     obj = fabs_derivations(obj, database.session)
     assert obj['funding_office_name'] == 'Office'
@@ -302,7 +302,7 @@ def test_primary_place_county(database):
     assert obj['primary_place_of_performance_county_code'] == "001"
     assert obj['primary_place_of_performance_county_name'] == "Test County"
 
-    #if record type is 2 and has zip4a use zip code to get county name
+    # if record type is 2 and has zip4a use zip code to get county name
     obj = initialize_test_obj(record_type=2, ppop_zip4a="123454321")
     obj = fabs_derivations(obj, database.session)
     assert obj['primary_place_of_performance_county_code'] == "001"
