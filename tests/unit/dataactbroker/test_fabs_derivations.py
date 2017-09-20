@@ -241,6 +241,58 @@ def test_legal_entity_derivations(database):
     assert obj['legal_entity_state_name'] == "New York"
 
 
+def test_primary_place_country(database):
+    initialize_db_values(database)
+
+    # if primary_plce_of_performance_country_code is present get country name
+    obj = initialize_test_obj(primary_place_country='USA')
+    obj = fabs_derivations(obj, database.session)
+    assert obj['primary_place_of_performance_country_name'] == 'United States of America'
+
+    obj = initialize_test_obj(primary_place_country='NK')
+    obj = fabs_derivations(obj, database.session)
+    assert not obj['primary_place_of_performance_country_name']
+
+
+def test_awarding_office_codes(database):
+    initialize_db_values(database)
+
+    #if awarding office_code is present, get office name
+    obj = initialize_test_obj()
+    obj = fabs_derivations(obj, database.session)
+    assert obj['awarding_office_name'] == 'Office'
+
+    obj = initialize_test_obj(awarding_office='111111')
+    obj = fabs_derivations(obj, database.session)
+    assert not obj['awarding_office_name']
+
+
+def funding(database):
+    initialize_db_values(database)
+
+    #if funding office_code is present, get office name
+    obj = initialize_test_obj()
+    obj = fabs_derivations(obj, database.session)
+    assert obj['funding_office_name'] == 'Office'
+
+    obj = initialize_test_obj(funding_office='111111')
+    obj = fabs_derivations(obj, database.session)
+    assert not obj['funding_office_name']
+
+
+def test_legal_country(database):
+    initialize_db_values(database)
+
+    # if primary_plce_of_performance_country_code is present get country name
+    obj = initialize_test_obj(legal_country='USA')
+    obj = fabs_derivations(obj, database.session)
+    assert obj['legal_entity_country_name'] == 'United States of America'
+
+    obj = initialize_test_obj(legal_country='NK')
+    obj = fabs_derivations(obj, database.session)
+    assert not obj['legal_entity_country_name']
+
+
 def test_primary_place_county(database):
     initialize_db_values(database)
 

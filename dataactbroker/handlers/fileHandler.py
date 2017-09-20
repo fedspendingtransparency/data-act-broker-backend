@@ -1636,6 +1636,8 @@ def fabs_derivations(obj, sess):
             filter_by(contracting_office_code=obj['awarding_office_code']).one_or_none()
         if award_office:
             obj['awarding_office_name'] = award_office.contracting_office_name
+        else:
+            obj['awarding_office_name'] = None
 
     # deriving funding_office_name based off funding_office_code
     if obj['funding_office_code']:
@@ -1643,6 +1645,8 @@ def fabs_derivations(obj, sess):
             filter_by(contracting_office_code=obj['funding_office_code']).one_or_none()
         if funding_office:
             obj['funding_office_name'] = funding_office.contracting_office_name
+        else:
+            obj['funding_office_name'] = None
 
     if obj['legal_entity_city_name'] and obj['legal_entity_state_code']:
         city_code = sess.query(CityCode). \
@@ -1665,7 +1669,10 @@ def fabs_derivations(obj, sess):
     if obj['legal_entity_country_code']:
         country_data = sess.query(CountryCode). \
             filter_by(country_code=obj['legal_entity_country_code'].upper()).one_or_none()
-        obj['legal_entity_country_name'] = country_data.country_name
+        if country_data:
+            obj['legal_entity_country_name'] = country_data.country_name
+        else:
+            obj['legal_entity_country_name'] = None
 
     # deriving primary_place_of_performance_county_code when record_type is 1
     if obj['record_type'] == 1:
