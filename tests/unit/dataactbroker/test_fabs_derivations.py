@@ -68,7 +68,6 @@ def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1
         'funding_office_code': funding_office,
         'legal_entity_city_name': legal_city,
         'legal_entity_state_code': legal_state,
-        'legal_entity_state_code': legal_state,
         'primary_place_of_performance_country_code': primary_place_country,
         'legal_entity_country_code': legal_country
     }
