@@ -1872,6 +1872,8 @@ def fabs_derivations(obj, sess):
             filter_by(contracting_office_code=obj['funding_office_code']).one_or_none()
         if funding_office:
             obj['funding_office_name'] = funding_office.contracting_office_name
+        else:
+            obj['funding_office_name'] = None
 
     if obj['legal_entity_city_name'] and obj['legal_entity_state_code']:
         city_code = sess.query(CityCode). \
