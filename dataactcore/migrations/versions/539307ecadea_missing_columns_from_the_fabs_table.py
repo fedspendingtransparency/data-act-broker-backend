@@ -1,13 +1,13 @@
 """Missing columns from the FABS table
 
-Revision ID: 05cffeda71bb
+Revision ID: 539307ecadea
 Revises: cd1025ac9399
-Create Date: 2017-09-20 12:13:53.536308
+Create Date: 2017-09-20 12:43:21.662081
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '05cffeda71bb'
+revision = '539307ecadea'
 down_revision = 'cd1025ac9399'
 branch_labels = None
 depends_on = None
