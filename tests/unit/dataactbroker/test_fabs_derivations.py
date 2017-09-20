@@ -267,7 +267,7 @@ def test_awarding_office_codes(database):
     assert not obj['awarding_office_name']
 
 
-def funding(database):
+def test_funding_office_codes(database):
     initialize_db_values(database)
 
     # if funding office_code is present, get office name
