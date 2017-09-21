@@ -1918,7 +1918,8 @@ def fabs_derivations(obj, sess):
             obj['place_of_perform_county_na'] = None
 
     # deriving place_of_perform_county_co from primary_place_of_performance_zip4a
-    if obj['record_type'] == 2 and obj['place_of_performance_zip4a']:
+    if obj['record_type'] == 2 and obj['place_of_performance_zip4a'] and\
+       obj['place_of_performance_zip4a'] != 'city-wide':
         zip_five = obj['place_of_performance_zip4a'][:5]
 
         # if zip4 is 9 digits, set the zip_four value to the last 4 digits
