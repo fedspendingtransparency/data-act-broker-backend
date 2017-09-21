@@ -1883,7 +1883,7 @@ def fabs_derivations(obj, sess):
         city_code = sess.query(CityCode). \
             filter(func.lower(CityCode.feature_name) == func.lower(obj['legal_entity_city_name'].strip()),
                    func.lower(CityCode.state_code) == func.lower(
-                       obj['legal_entity_state_code'].strip())).one_or_none()
+                       obj['legal_entity_state_code'].strip())).first()
         if city_code:
             obj['legal_entity_city_code'] = city_code.city_code
 
