@@ -1910,8 +1910,12 @@ def fabs_derivations(obj, sess):
         county_data = sess.query(CountyCode). \
             filter_by(county_number=obj['place_of_performance_code'][-3:],
                       state_code=obj['place_of_performance_code'][:2]).one_or_none()
-        obj['place_of_perform_county_co'] = county_data.county_number
-        obj['place_of_perform_county_na'] = county_data.county_name
+        if county_data:
+            obj['place_of_perform_county_co'] = county_data.county_number
+            obj['place_of_perform_county_na'] = county_data.county_name
+        else:
+            obj['place_of_perform_county_co'] = None
+            obj['place_of_perform_county_na'] = None
 
     # deriving place_of_perform_county_co from primary_place_of_performance_zip4a
     if obj['record_type'] == 2 and obj['place_of_performance_zip4a']:
