@@ -771,6 +771,7 @@ class FileHandler:
         """
         sess = GlobalDB.db().session
 
+        # TODO is this comment wrong or is the code wrong?
         # We want to user first() here so we can see if the job is None so we can mark
         # the status as invalid to indicate that a status request is invoked for a job that
         # isn't created yet
@@ -1424,8 +1425,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
 
     query = sess.query(*columns_to_query).\
-        outerjoin(User, Submission.user_id == User.user_id). \
-        outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id). \
+        outerjoin(User, Submission.user_id == User.user_id).\
+        outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id).\
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
@@ -1739,10 +1740,10 @@ def fabs_derivations(obj, sess):
 
     # deriving funding agency name
     if obj['funding_agency_code']:
-        funding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['funding_agency_code']).one()
-        if not funding_agency_name:
-            funding_agency_name = sess.query(FREC).filter_by(frec_code=obj['funding_agency_code']).one()
-        obj['funding_agency_name'] = funding_agency_name.agency_name
+        funding_agency = sess.query(CGAC).filter_by(cgac_code=obj['funding_agency_code']).one_or_none()
+        if not funding_agency:
+            funding_agency = sess.query(FREC).filter_by(frec_code=obj['funding_agency_code']).one()
+        obj['funding_agency_name'] = funding_agency.agency_name
     else:
         obj['funding_agency_name'] = None
 
@@ -1786,10 +1787,14 @@ def fabs_derivations(obj, sess):
         if not obj['place_of_performance_congr']:
             obj['place_of_performance_congr'] = zip_info.congressional_district_no
 
-        # deriving PrimaryPlaceOfPerformanceCountyName
+        # deriving PrimaryPlaceOfPerformanceCountyName/Code
+        obj['place_of_perform_county_co'] = zip_info.county_number
         county_info = sess.query(CountyCode).\
             filter_by(county_number=zip_info.county_number, state_code=zip_info.state_abbreviation).first()
-        obj['place_of_perform_county_na'] = county_info.county_name
+        if county_info:
+            obj['place_of_perform_county_na'] = county_info.county_name
+        else:
+            obj['place_of_perform_county_na'] = None
 
         # deriving PrimaryPlaceOfPerformanceCityName
         city_info = sess.query(ZipCity).filter_by(zip_code=zip_five).one()
@@ -1802,6 +1807,7 @@ def fabs_derivations(obj, sess):
             county_code = ppop_code[-3:]
             county_info = sess.query(CountyCode).\
                 filter_by(county_number=county_code, state_code=ppop_state.state_code).first()
+            obj['place_of_perform_county_co'] = county_code
             obj['place_of_perform_county_na'] = county_info.county_name
             obj['place_of_performance_city'] = None
         # if ppop_code is in city format
@@ -1810,6 +1816,7 @@ def fabs_derivations(obj, sess):
             city_code = ppop_code[-5:]
             city_info = sess.query(CityCode).filter_by(city_code=city_code, state_code=ppop_state.state_code).first()
             obj['place_of_performance_city'] = city_info.feature_name
+            obj['place_of_perform_county_co'] = city_info.county_number
             obj['place_of_perform_county_na'] = city_info.county_name
 
     # deriving legal entity stuff where applicable (record type is 2 in this case)
@@ -1833,10 +1840,14 @@ def fabs_derivations(obj, sess):
         obj['legal_entity_congressional'] = zip_data.congressional_district_no
 
         # legal entity city data
-        county_info = sess.query(CountyCode). \
+        county_info = sess.query(CountyCode).\
             filter_by(county_number=zip_data.county_number, state_code=zip_data.state_abbreviation).first()
-        obj['legal_entity_county_code'] = county_info.county_number
-        obj['legal_entity_county_name'] = county_info.county_name
+        if county_info:
+            obj['legal_entity_county_code'] = county_info.county_number
+            obj['legal_entity_county_name'] = county_info.county_name
+        else:
+            obj['legal_entity_county_code'] = None
+            obj['legal_entity_county_name'] = None
 
         # legal entity state data
         state_info = sess.query(States).filter_by(state_code=zip_data.state_abbreviation).one()
@@ -1845,11 +1856,9 @@ def fabs_derivations(obj, sess):
 
     # deriving legal entity stuff that's based on record type of 1 (ppop code must be in the format XX**### for these)
     if obj['record_type'] == 1:
-        obj['legal_entity_city_name'] = None
-
         # legal entity county data
         county_code = ppop_code[-3:]
-        county_info = sess.query(CountyCode). \
+        county_info = sess.query(CountyCode).\
             filter_by(county_number=county_code, state_code=ppop_state.state_code).first()
         obj['legal_entity_county_code'] = county_code
         obj['legal_entity_county_name'] = county_info.county_name
@@ -1861,9 +1870,9 @@ def fabs_derivations(obj, sess):
         # legal entity cd data
         obj['legal_entity_congressional'] = obj['place_of_performance_congr']
 
-    # deriving awarding_office_name based off funding_office_code
+    # deriving awarding_office_name based off awarding_office_code
     if obj['awarding_office_code']:
-        award_office = sess.query(FPDSContractingOffice). \
+        award_office = sess.query(FPDSContractingOffice).\
             filter_by(contracting_office_code=obj['awarding_office_code']).one_or_none()
         if award_office:
             obj['awarding_office_name'] = award_office.contracting_office_name
@@ -1872,24 +1881,26 @@ def fabs_derivations(obj, sess):
 
     # deriving funding_office_name based off funding_office_code
     if obj['funding_office_code']:
-        funding_office = sess.query(FPDSContractingOffice). \
-            filter_by(contracting_office_code=obj['funding_office_code']).one_or_none()
+        funding_office = sess.query(FPDSContractingOffice).\
+            filter_by(contracting_office_code=func.upper(obj['funding_office_code'])).one_or_none()
         if funding_office:
             obj['funding_office_name'] = funding_office.contracting_office_name
         else:
             obj['funding_office_name'] = None
 
     if obj['legal_entity_city_name'] and obj['legal_entity_state_code']:
-        city_code = sess.query(CityCode). \
+        city_code = sess.query(CityCode).\
             filter(func.lower(CityCode.feature_name) == func.lower(obj['legal_entity_city_name'].strip()),
-                   func.lower(CityCode.state_code) == func.lower(
-                       obj['legal_entity_state_code'].strip())).first()
+                   func.lower(CityCode.state_code) == func.lower(obj['legal_entity_state_code'].strip())).first()
         if city_code:
             obj['legal_entity_city_code'] = city_code.city_code
+        else:
+            obj['legal_entity_city_code'] = None
 
+    # TODO consider making the CountryCode query before starting the for-loop and just having an object to look up from
     # deriving primary_place_of_performance_country_name from place_of_perform_country_c
     if obj['place_of_perform_country_c']:
-        country_data = sess.query(CountryCode). \
+        country_data = sess.query(CountryCode).\
             filter_by(country_code=obj['place_of_perform_country_c'].upper()).one_or_none()
         if country_data:
             obj['place_of_perform_country_n'] = country_data.country_name
@@ -1898,50 +1909,12 @@ def fabs_derivations(obj, sess):
 
     # deriving legal_entity_country_name from legal_entity_country_code
     if obj['legal_entity_country_code']:
-        country_data = sess.query(CountryCode). \
+        country_data = sess.query(CountryCode).\
             filter_by(country_code=obj['legal_entity_country_code'].upper()).one_or_none()
         if country_data:
             obj['legal_entity_country_name'] = country_data.country_name
         else:
             obj['legal_entity_country_name'] = None
-
-    # deriving place_of_perform_county_co when record_type is 1
-    if obj['record_type'] == 1:
-        county_data = sess.query(CountyCode). \
-            filter_by(county_number=obj['place_of_performance_code'][-3:],
-                      state_code=obj['place_of_performance_code'][:2]).one_or_none()
-        if county_data:
-            obj['place_of_perform_county_co'] = county_data.county_number
-            obj['place_of_perform_county_na'] = county_data.county_name
-        else:
-            obj['place_of_perform_county_co'] = None
-            obj['place_of_perform_county_na'] = None
-
-    # deriving place_of_perform_county_co from primary_place_of_performance_zip4a
-    if obj['record_type'] == 2 and obj['place_of_performance_zip4a'] and\
-       obj['place_of_performance_zip4a'] != 'city-wide':
-        zip_five = obj['place_of_performance_zip4a'][:5]
-
-        # if zip4 is 9 digits, set the zip_four value to the last 4 digits
-        if len(obj['place_of_performance_zip4a']) > 5:
-            zip_four = obj['place_of_performance_zip4a'][-4:]
-
-        # if there's a 9-digit zip code, use both parts to get data, otherwise just grab the first
-        # instance of the zip5 we find
-        if zip_four:
-            zip_info = sess.query(Zips). \
-                filter_by(zip5=zip_five, zip_last4=zip_four).first()
-        else:
-            zip_info = sess.query(Zips). \
-                filter_by(zip5=zip_five).first()
-        obj['place_of_perform_county_co'] = zip_info.county_number
-        county_data = sess.query(CountyCode). \
-            filter_by(county_number=zip_info.county_number,
-                      state_code=zip_info.state_abbreviation).one_or_none()
-        if county_data:
-            obj['place_of_perform_county_na'] = county_data.county_name
-        else:
-            obj['place_of_perform_county_na'] = None
 
     if obj['correction_late_delete_ind'] and obj['correction_late_delete_ind'].upper() == 'D':
         obj['is_active'] = False
