@@ -1883,7 +1883,7 @@ def fabs_derivations(obj, sess):
         city_code = sess.query(CityCode). \
             filter(func.lower(CityCode.feature_name) == func.lower(obj['legal_entity_city_name'].strip()),
                    func.lower(CityCode.state_code) == func.lower(
-                       obj['legal_entity_state_code'].strip())).one_or_none()
+                       obj['legal_entity_state_code'].strip())).first()
         if city_code:
             obj['legal_entity_city_code'] = city_code.city_code
 
@@ -1918,7 +1918,8 @@ def fabs_derivations(obj, sess):
             obj['place_of_perform_county_na'] = None
 
     # deriving place_of_perform_county_co from primary_place_of_performance_zip4a
-    if obj['record_type'] == 2 and obj['place_of_performance_zip4a']:
+    if obj['record_type'] == 2 and obj['place_of_performance_zip4a'] and\
+       obj['place_of_performance_zip4a'] != 'city-wide':
         zip_five = obj['place_of_performance_zip4a'][:5]
 
         # if zip4 is 9 digits, set the zip_four value to the last 4 digits
