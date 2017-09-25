@@ -8,6 +8,7 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND (COALESCE(place_of_performance_zip4a, '') = ''
-         OR place_of_performance_zip4a = 'city-wide')
+         OR place_of_performance_zip4a = 'city-wide'
+         OR len(place_of_performance_zip4a) = 5)
     AND COALESCE(place_of_performance_congr, '') = ''
     AND UPPER(place_of_perform_country_c) = 'USA'
