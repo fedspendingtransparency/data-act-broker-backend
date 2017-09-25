@@ -13,7 +13,6 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
 from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
-from dataactcore.models.domainModels import SubTierAgency
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data
@@ -21,7 +20,7 @@ from dataactvalidator.scripts.loaderUtils import clean_data
 logger = logging.getLogger(__name__)
 
 
-def parse_fabs_file_new_columns(f, sess, sub_tier_list):
+def parse_fabs_file_new_columns(f, sess):
     csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(f.name))[0]
 
     column_header_mapping = {"agency_code": 0, "federal_award_mod": 1, "federal_award_id": 2, "uri": 3,
@@ -51,7 +50,7 @@ def parse_fabs_file_new_columns(f, sess, sub_tier_list):
                                    usecols=column_header_mapping_ordered.values(),
                                    names=column_header_mapping_ordered.keys())
 
-                cdata = format_fabs_data(data, sub_tier_list)
+                cdata = format_fabs_data(data)
                 if cdata is not None:
                     for _, row in cdata.iterrows():
                         sess.query(PublishedAwardFinancialAssistance).\
@@ -76,25 +75,7 @@ def parse_fabs_file_new_columns(f, sess, sub_tier_list):
     sess.commit()
 
 
-def derive_funding_agency_code(row, sub_tier_list):
-    if row['funding_sub_tier_agency_co']:
-        funding_sub_tier_agency = sub_tier_list[row['funding_sub_tier_agency_co']]
-        use_frec = funding_sub_tier_agency.is_frec
-        funding_agency = funding_sub_tier_agency.frec if use_frec else funding_sub_tier_agency.cgac
-        return funding_agency.frec_code if use_frec else funding_agency.cgac_code
-    return None
-
-
-def derive_funding_agency_name(row, sub_tier_list):
-    if row['funding_sub_tier_agency_co']:
-        funding_sub_tier_agency = sub_tier_list[row['funding_sub_tier_agency_co']]
-        use_frec = funding_sub_tier_agency.is_frec
-        funding_agency = funding_sub_tier_agency.frec if use_frec else funding_sub_tier_agency.cgac
-        return funding_agency.agency_name
-    return None
-
-
-def format_fabs_data(data, sub_tier_list):
+def format_fabs_data(data):
     # drop all records without any data to be loaded
     data = data.replace('', np.nan, inplace=True)
     data.dropna(subset=["awarding office code", "awarding office name", "funding office name", "funding office code",
@@ -105,9 +86,6 @@ def format_fabs_data(data, sub_tier_list):
     # ensure there are rows to be cleaned and formatted
     if len(data.index) == 0:
         return None
-
-    data['funding_agency_code'] = data.apply(lambda x: derive_funding_agency_code(x, sub_tier_list), axis=1)
-    data['funding_agency_name'] = data.apply(lambda x: derive_funding_agency_name(x, sub_tier_list), axis=1)
 
     cdata = clean_data(
         data,
@@ -160,21 +138,15 @@ def main():
     sess = GlobalDB.db().session
     logger.info('Starting updates to FABS data')
 
-    sub_tiers = sess.query(SubTierAgency).all()
-    sub_tier_list = {}
-
-    for sub_tier in sub_tiers:
-        sub_tier_list[sub_tier.sub_tier_agency_code] = sub_tier
-
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
         s3bucket = s3connection.lookup(CONFIG_BROKER['archive_bucket'])
         new_columns_file = s3bucket.get_key("Assistance_DataActFields_2017.csv").generate_url(expires_in=600)
-        parse_fabs_file_new_columns(urllib.request.urlopen(new_columns_file), sess, sub_tier_list)
+        parse_fabs_file_new_columns(urllib.request.urlopen(new_columns_file), sess)
     else:
         new_columns_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "fabs",
                                         "Assistance_DataActFields_2017.csv")
-        parse_fabs_file_new_columns(open(new_columns_file), sess, sub_tier_list)
+        parse_fabs_file_new_columns(open(new_columns_file), sess)
 
     logger.info("Historical FABS column update script complete")
 
