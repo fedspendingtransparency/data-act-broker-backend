@@ -1,7 +1,9 @@
 """add columns to AwardProcurement
+
 Revision ID: cd1025ac9399
 Revises: a767facf8ea8
 Create Date: 2017-09-18 15:05:52.772251
+
 """
 
 # revision identifiers, used by Alembic.
@@ -37,3 +39,4 @@ def downgrade_data_broker():
     op.drop_column('award_procurement', 'base_exercised_options_val')
     op.drop_column('award_procurement', 'base_and_all_options_value')
     ### end Alembic commands ###
+

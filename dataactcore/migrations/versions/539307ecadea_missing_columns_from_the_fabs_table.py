@@ -1,7 +1,9 @@
 """Missing columns from the FABS table
+
 Revision ID: 539307ecadea
 Revises: cd1025ac9399
 Create Date: 2017-09-20 12:43:21.662081
+
 """
 
 # revision identifiers, used by Alembic.
@@ -39,3 +41,4 @@ def downgrade_data_broker():
     op.drop_column('detached_award_financial_assistance', 'funding_office_name')
     op.drop_column('detached_award_financial_assistance', 'funding_agency_name')
     ### end Alembic commands ###
+

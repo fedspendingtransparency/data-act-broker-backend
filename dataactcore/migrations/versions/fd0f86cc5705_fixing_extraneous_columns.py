@@ -1,7 +1,9 @@
 """fixing extraneous columns
+
 Revision ID: fd0f86cc5705
 Revises: 539307ecadea
 Create Date: 2017-09-20 13:58:34.720047
+
 """
 
 # revision identifiers, used by Alembic.
@@ -45,3 +47,4 @@ def downgrade_data_broker():
     op.add_column('detached_award_financial_assistance', sa.Column('funding_office_name', sa.TEXT(), autoincrement=False, nullable=True))
     op.add_column('detached_award_financial_assistance', sa.Column('legal_entity_country_name', sa.TEXT(), autoincrement=False, nullable=True))
     ### end Alembic commands ###
+

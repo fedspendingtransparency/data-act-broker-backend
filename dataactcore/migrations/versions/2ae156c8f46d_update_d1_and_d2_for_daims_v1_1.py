@@ -1,7 +1,9 @@
 """update d1 and d2 for daims v1.1
+
 Revision ID: 2ae156c8f46d
 Revises: 4b1ee78268fb
 Create Date: 2017-08-28 15:16:00.926683
+
 """
 
 # revision identifiers, used by Alembic.
@@ -75,3 +77,4 @@ def downgrade_data_broker():
     op.drop_column('award_procurement', 'place_of_perform_country_n')
     op.drop_column('award_procurement', 'award_or_idv_flag')
     ### end Alembic commands ###
+
