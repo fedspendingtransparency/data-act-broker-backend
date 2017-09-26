@@ -745,6 +745,10 @@ class FileHandler:
         submission_id = submission.submission_id
 
         try:
+            sess.query(Submission).filter_by(submission_id=submission_id). \
+                update({"publish_status_id": PUBLISH_STATUS_DICT['publishing']},
+                       synchronize_session=False)
+
             # get all valid lines for this submission
             query = sess.query(DetachedAwardFinancialAssistance).\
                 filter_by(is_valid=True, submission_id=submission_id).all()
