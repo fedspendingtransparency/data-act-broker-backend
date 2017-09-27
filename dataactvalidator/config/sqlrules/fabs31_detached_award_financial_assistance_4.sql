@@ -32,16 +32,15 @@ SELECT
     record_type
 FROM detached_award_financial_assistance_fabs31_4_{0} AS dafa
 WHERE NOT (record_type = 1 or LOWER(business_types) LIKE '%%p%%')
+    AND awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
     AND COALESCE(assistance_type, '') IN ('02', '03', '04', '05')
     AND (CASE
         WHEN pg_temp.is_date(COALESCE(action_date, '0'))
         THEN
             CAST(action_date as DATE)
     END) > CAST('10/01/2010' as DATE)
-    AND awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
-    AND COALESCE(dafa.awardee_or_recipient_uniqu, '') NOT IN (
-        SELECT DISTINCT duns.awardee_or_recipient_uniqu
+    AND NOT EXISTS (
+        SELECT *
         FROM duns
-        JOIN detached_award_financial_assistance_fabs31_4_{0} AS sub_dafa
-        ON sub_dafa.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
+        WHERE dafa.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
     )
