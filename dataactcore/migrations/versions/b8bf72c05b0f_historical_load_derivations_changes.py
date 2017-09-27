@@ -70,3 +70,4 @@ def downgrade_data_broker():
     op.drop_index(op.f('ix_fpds_contracting_offices_agency_code'), table_name='fpds_contracting_offices')
     op.drop_table('fpds_contracting_offices')
     ### end Alembic commands ###
+
