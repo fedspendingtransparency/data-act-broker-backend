@@ -4,6 +4,8 @@ from tests.unit.dataactcore.factories.domain import (
     CGACFactory, FRECFactory, SubTierAgencyFactory, StatesFactory, CountyCodeFactory, CFDAProgramFactory,
     ZipCityFactory, ZipsFactory, CityCodeFactory)
 
+from tests.unit.dataactcore.factories.staging import FPDSContractingOfficeFactory
+
 
 def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, use_frec=False):
     """ Initialize the values in the DB that can be used throughout the tests """
@@ -31,14 +33,17 @@ def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, us
                                     county_name="Test County")
     city_code = CityCodeFactory(feature_name="Test City", city_code="00001", state_code=state.state_code,
                                 county_name="Test City County")
-
-    db.session.add_all([sub_tier, state, cfda_number, zip_code_1, zip_code_2, zip_city, county_code, city_code])
+    contracting_office = FPDSContractingOfficeFactory(contracting_office_code='033103',
+                                                      contracting_office_name='Office')
+    db.session.add_all([sub_tier, state, cfda_number, zip_code_1, zip_code_2, zip_city, county_code, city_code,
+                        contracting_office])
     db.session.commit()
 
 
 def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1234", fund_agency_code=None,
                         sub_fund_agency_code=None, ppop_code="NY00000", ppop_zip4a=None, ppop_cd=None, le_zip5=None,
-                        le_zip4=None, record_type=2, award_mod_amend=None, fain=None, uri=None, cldi=None):
+                        le_zip4=None, record_type=2, award_mod_amend=None, fain=None, uri=None, cldi=None,
+                        awarding_office='033103', funding_office='033103', legal_city="WASHINGTON", legal_state="DC"):
     """ Initialize the values in the object being run through the fabs_derivations function """
     obj = {
         'federal_action_obligation': fao,
@@ -56,7 +61,11 @@ def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1
         'award_modification_amendme': award_mod_amend,
         'fain': fain,
         'uri': uri,
-        'correction_late_delete_ind': cldi
+        'correction_late_delete_ind': cldi,
+        'awarding_office_code': awarding_office,
+        'funding_office_code': funding_office,
+        'legal_entity_city_name': legal_city,
+        'legal_entity_state_code': legal_state
     }
     return obj
 
@@ -226,20 +235,6 @@ def test_legal_entity_derivations(database):
     assert obj['legal_entity_county_name'] == "Test County"
     assert obj['legal_entity_state_code'] == "NY"
     assert obj['legal_entity_state_name'] == "New York"
-
-
-def test_afa_generated_unique(database):
-    initialize_db_values(database)
-
-    # Testing with none values
-    obj = initialize_test_obj()
-    obj = fabs_derivations(obj, database.session)
-    assert obj['afa_generated_unique'] == '-none-1234-none--none-'
-
-    # testing with no none values
-    obj = initialize_test_obj(award_mod_amend='award', fain='fain', uri='uri')
-    obj = fabs_derivations(obj, database.session)
-    assert obj['afa_generated_unique'] == 'award1234fainuri'
 
 
 def test_is_active(database):
