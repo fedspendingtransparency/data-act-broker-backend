@@ -258,11 +258,11 @@ def perms_to_affiliations(perms):
 
         codes, perm_level = components
         split_codes = codes.split('-FREC_')
-        frec_code = cgac_code = None
+        frec_code, cgac_code = None, None
         if len(split_codes) == 2:
-            # permissions for FR entity code
-            frec_code = split_codes[1]
-            if frec_code not in available_frecs:
+            # permissions for FR entity code and readonly CGAC
+            frec_code, cgac_code = split_codes[1], split_codes[0]
+            if frec_code not in available_frecs or cgac_code not in available_cgacs:
                 logger.warning('Malformed permission: %s', perm)
                 continue
         else:
@@ -273,15 +273,27 @@ def perms_to_affiliations(perms):
                 continue
 
         perm_level = perm_level.lower()
-        if perm_level not in 'rwsf' or (perm_level == 'f' and frec_code):
+        if perm_level not in 'rwsf':
             logger.warning('Malformed permission: %s', perm)
             continue
 
-        yield UserAffiliation(
-            cgac=available_cgacs[cgac_code] if cgac_code else None,
-            frec=available_frecs[frec_code] if frec_code else None,
-            permission_type_id=PERMISSION_SHORT_DICT[perm_level]
-        )
+        if frec_code:
+            yield UserAffiliation(
+                cgac=available_cgacs[cgac_code],
+                frec=None,
+                permission_type_id=PERMISSION_SHORT_DICT['r']
+            )
+            yield UserAffiliation(
+                cgac=None,
+                frec=available_frecs[frec_code],
+                permission_type_id=PERMISSION_SHORT_DICT[perm_level]
+            )
+        else:
+            yield UserAffiliation(
+                cgac=available_cgacs[cgac_code] if cgac_code else None,
+                frec=None,
+                permission_type_id=PERMISSION_SHORT_DICT[perm_level]
+            )
 
 
 def best_affiliation(affiliations):

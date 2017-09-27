@@ -16,7 +16,7 @@ def test_pubished_date_success(database):
     """ For AssistanceType of 02, 03, 04, or 05 whose ActionDate is after October 1, 2010 and ActionType = B, C, or D,
         AwardeeOrRecipientUniqueIdentifier should be active on the ActionDate, unless the record is an aggregate
         record (RecordType=1) or individual recipient (BusinessTypes includes 'P'). """
-    duns_1 = DUNS(awardee_or_recipient_uniqu="111111111", activation_date="06/21/2017",
+    duns_1 = DUNS(awardee_or_recipient_uniqu="111111111", registration_date="06/21/2017",
                   expiration_date="06/21/2018")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111", action_type="B",
                                                           assistance_type="02", action_date="06/22/2017",
@@ -85,7 +85,7 @@ def test_pubished_date_failure(database):
         unless the record is an aggregate record (RecordType=1) or individual recipient (BusinessTypes
         includes 'P')."""
 
-    duns_1 = DUNS(awardee_or_recipient_uniqu="111111111", activation_date="06/21/2017",
+    duns_1 = DUNS(awardee_or_recipient_uniqu="111111111", registration_date="06/21/2017",
                   expiration_date="06/21/2018")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111", action_type="B",
                                                           assistance_type="02", action_date="06/20/2017",

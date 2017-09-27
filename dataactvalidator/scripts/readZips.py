@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import Zips
+from dataactcore.models.domainModels import Zips, StateCongressional
 
 from dataactvalidator.health_check import create_app
 
@@ -21,6 +21,22 @@ logger = logging.getLogger(__name__)
 zip4_line_size = 182
 citystate_line_size = 129
 chunk_size = 1024 * 10
+
+
+# update contents of state_congressional table based on zips we just inserted
+def update_state_congr_table(sess):
+    logger.info("Loading zip codes complete, beginning update of state_congressional table")
+    # clear old data out
+    sess.query(StateCongressional).delete(synchronize_session=False)
+    sess.commit()
+
+    # get new data
+    distinct_list = sess.query(Zips.state_abbreviation, Zips.congressional_district_no).distinct().\
+        order_by(Zips.state_abbreviation, Zips.congressional_district_no)
+    sess.bulk_save_objects([StateCongressional(state_code=state_data.state_abbreviation,
+                                               congressional_district_no=state_data.congressional_district_no)
+                            for state_data in distinct_list])
+    sess.commit()
 
 
 # add data to the zips table
@@ -230,6 +246,8 @@ def read_zips():
             # parse remaining 5 digit zips that weren't in the first file
             citystate_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "ctystate.txt")
             parse_citystate_file(open(citystate_file), sess)
+
+        update_state_congr_table(sess)
 
         logger.info("Zipcode script complete")
 

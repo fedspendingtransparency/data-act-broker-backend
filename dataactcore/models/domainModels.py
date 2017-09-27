@@ -223,6 +223,7 @@ class DUNS(Base):
     legal_business_name = Column(Text)
     activation_date = Column(Date, index=True)
     deactivation_date = Column(Date, index=True)
+    registration_date = Column(Date, index=True)
     expiration_date = Column(Date, index=True)
     last_sam_mod_date = Column(Date)
 
@@ -328,3 +329,17 @@ class ZipCity(Base):
     zip_city_id = Column(Integer, primary_key=True)
     zip_code = Column(Text)
     city_name = Column(Text)
+
+
+class StateCongressional(Base):
+    """ state to congressional district mapping """
+    __tablename__ = "state_congressional"
+
+    state_congressional_id = Column(Integer, primary_key=True)
+    state_code = Column(Text, index=True)
+    congressional_district_no = Column(Text, index=True)
+
+Index("ix_sc_state_cd",
+      StateCongressional.state_code,
+      StateCongressional.congressional_district_no,
+      unique=True)
