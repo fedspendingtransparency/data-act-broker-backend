@@ -1,9 +1,7 @@
 """add columns to AwardProcurement
-
 Revision ID: cd1025ac9399
 Revises: a767facf8ea8
 Create Date: 2017-09-18 15:05:52.772251
-
 """
 
 # revision identifiers, used by Alembic.

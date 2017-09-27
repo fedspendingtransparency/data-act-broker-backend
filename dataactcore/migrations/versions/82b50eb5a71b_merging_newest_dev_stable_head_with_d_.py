@@ -1,9 +1,7 @@
 """merging newest dev-stable head with d file gen head
-
 Revision ID: 82b50eb5a71b
 Revises: 1fc4844837cf, bb487e696764
 Create Date: 2017-09-12 15:22:38.523640
-
 """
 
 # revision identifiers, used by Alembic.

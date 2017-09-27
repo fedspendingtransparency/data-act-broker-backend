@@ -1,7 +1,7 @@
 import factory
 from factory import fuzzy
 
-from  datetime import date
+from datetime import date
 
 from dataactcore.models import stagingModels
 

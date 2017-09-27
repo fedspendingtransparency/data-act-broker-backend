@@ -1,9 +1,7 @@
 """merge in schema 1.1 changes
-
 Revision ID: bb487e696764
 Revises: 2ae156c8f46d, 9960bbbe4d92
 Create Date: 2017-09-12 12:44:18.378324
-
 """
 
 # revision identifiers, used by Alembic.
