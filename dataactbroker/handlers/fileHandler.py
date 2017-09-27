@@ -736,6 +736,10 @@ class FileHandler:
         if not submission.d2_submission:
             raise ResponseException("Submission is not a FABS submission", StatusCode.CLIENT_ERROR)
 
+        # Check to see if the submission is  being published
+        if submission.publish_status_id == PUBLISH_STATUS_DICT['publishing']:
+            raise ResponseException("Submission is being published", StatusCode.CLIENT_ERROR)
+
         # Check to make sure it isn't already a published submission
         if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
             raise ResponseException("Submission has already been published", StatusCode.CLIENT_ERROR)
@@ -744,11 +748,12 @@ class FileHandler:
         sess = GlobalDB.db().session
         submission_id = submission.submission_id
 
-        try:
-            sess.query(Submission).filter_by(submission_id=submission_id). \
-                update({"publish_status_id": PUBLISH_STATUS_DICT['publishing']},
-                       synchronize_session=False)
+        sess.query(Submission).filter_by(submission_id=submission_id). \
+            update({"publish_status_id": PUBLISH_STATUS_DICT['publishing']},
+                   synchronize_session=False)
+        sess.commit()
 
+        try:
             # get all valid lines for this submission
             query = sess.query(DetachedAwardFinancialAssistance).\
                 filter_by(is_valid=True, submission_id=submission_id).all()
@@ -784,6 +789,11 @@ class FileHandler:
         except Exception as e:
             # rollback the changes if there are any errors. We want to submit everything together
             sess.rollback()
+            sess.query(Submission).filter_by(submission_id=submission_id). \
+                update({"publish_status_id": PUBLISH_STATUS_DICT['unpublished']},
+                       synchronize_session=False)
+            sess.commit()
+
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
         sess.query(Submission).filter_by(submission_id=submission_id).\
@@ -1485,7 +1495,6 @@ def map_generate_status(upload_job, validation_job=None):
 
 
 def fabs_derivations(obj, sess):
-
     # deriving total_funding_amount
     federal_action_obligation = obj['federal_action_obligation'] or 0
     non_federal_funding_amount = obj['non_federal_funding_amount'] or 0
@@ -1664,13 +1673,13 @@ def fabs_derivations(obj, sess):
             obj['legal_entity_city_code'] = city_code.city_code
 
     # deriving primary_place_of_performance_country_name from primary_place_of_performnce_code
-    if obj['primary_place_of_performance_country_code']:
+    if obj['place_of_perform_country_c']:
         country_data = sess.query(CountryCode). \
-            filter_by(country_code=obj['primary_place_of_performance_country_code'].upper()).one_or_none()
+            filter_by(country_code=obj['place_of_perform_country_c'].upper()).one_or_none()
         if country_data:
-            obj['primary_place_of_performance_country_name'] = country_data.country_name
+            obj['place_of_perform_country_n'] = country_data.country_name
         else:
-            obj['primary_place_of_performance_country_name'] = None
+            obj['place_of_perform_country_n'] = None
 
     # deriving legal_entity_country_name from legal_entity_country_code
     if obj['legal_entity_country_code']:
@@ -1681,15 +1690,15 @@ def fabs_derivations(obj, sess):
         else:
             obj['legal_entity_country_name'] = None
 
-    # deriving primary_place_of_performance_county_code when record_type is 1
+    # deriving place_of_performance_code when record_type is 1
     if obj['record_type'] == 1:
         county_data = sess.query(CountyCode). \
             filter_by(county_number=obj['place_of_performance_code'][-3:],
                       state_code=obj['place_of_performance_code'][:2]).one_or_none()
-        obj['primary_place_of_performance_county_code'] = county_data.county_number
-        obj['primary_place_of_performance_county_name'] = county_data.county_name
+        obj['place_of_perform_county_co'] = county_data.county_number
+        obj['place_of_perform_county_na'] = county_data.county_name
 
-    # deriving primary_place_of_performance_county_code from primary_place_of_performance_zip4a
+    # deriving place_of_perform_county_co from place_of_performance_zip4a
     if obj['record_type'] == 2 and obj['place_of_performance_zip4a']:
         zip_five = obj['place_of_performance_zip4a'][:5]
 
@@ -1705,14 +1714,14 @@ def fabs_derivations(obj, sess):
         else:
             zip_info = sess.query(Zips). \
                 filter_by(zip5=zip_five).first()
-        obj['primary_place_of_performance_county_code'] = zip_info.county_number
+        obj['place_of_perform_county_co'] = zip_info.county_number
         county_data = sess.query(CountyCode). \
             filter_by(county_number=zip_info.county_number,
                       state_code=zip_info.state_abbreviation).one_or_none()
         if county_data:
-            obj['primary_place_of_performance_county_name'] = county_data.county_name
+            obj['place_of_perform_county_na'] = county_data.county_name
         else:
-            obj['primary_place_of_performance_county_name'] = None
+            obj['place_of_perform_county_na'] = None
 
     if obj['correction_late_delete_ind'] and obj['correction_late_delete_ind'].upper() == 'D':
         obj['is_active'] = False
