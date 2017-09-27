@@ -600,13 +600,16 @@ class FileHandler:
 
             if existing_submission_obj is not None:
                 cgac_code = existing_submission_obj.cgac_code
+                frec_code = existing_submission_obj.frec_code
             else:
                 sub_tier_agency = sess.query(SubTierAgency).\
                     filter_by(sub_tier_agency_code=request_params["agency_code"]).one()
-                cgac_code = sub_tier_agency.cgac.cgac_code
+                cgac_code = None if sub_tier_agency.is_frec else sub_tier_agency.cgac.cgac_code
+                frec_code = sub_tier_agency.frec.frec_code if sub_tier_agency.is_frec else None
 
             # get the cgac code associated with this sub tier agency
             job_data["cgac_code"] = cgac_code
+            job_data["frec_code"] = frec_code
             job_data["d2_submission"] = True
             job_data['reporting_start_date'] = None
             job_data['reporting_end_date'] = None

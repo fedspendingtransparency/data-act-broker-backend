@@ -7,3 +7,4 @@ FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND (assistance_type = '07' OR assistance_type = '08')
     AND federal_action_obligation IS NOT NULL
+    AND federal_action_obligation != 0

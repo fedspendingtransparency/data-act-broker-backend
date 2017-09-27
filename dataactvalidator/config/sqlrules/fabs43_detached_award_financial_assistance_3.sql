@@ -7,11 +7,7 @@ WITH detached_award_financial_assistance_fabs43_3_{0} AS
         place_of_performance_code,
         place_of_performance_congr
     FROM detached_award_financial_assistance
-    WHERE submission_id = {0}),
-state_congr_short_fabs43_3_{0} AS
-	(SELECT DISTINCT state_abbreviation,
-        congressional_district_no
-	FROM zips)
+    WHERE submission_id = {0})
 SELECT
     dafa.row_number,
     dafa.place_of_performance_code,
@@ -22,14 +18,14 @@ WHERE CASE WHEN COALESCE(dafa.place_of_performance_congr, '') != ''
 		     AND dafa.row_number NOT IN (
                 SELECT DISTINCT sub_dafa.row_number
                 FROM detached_award_financial_assistance_fabs43_3_{0} AS sub_dafa
-                JOIN state_congr_short_fabs43_3_{0} as sc_short_1
-                  ON UPPER(LEFT(sub_dafa.place_of_performance_code, 2)) = sc_short_1.state_abbreviation
-                    AND sub_dafa.place_of_performance_congr = sc_short_1.congressional_district_no))
+                JOIN state_congressional as sc_1
+                  ON UPPER(LEFT(sub_dafa.place_of_performance_code, 2)) = sc_1.state_code
+                    AND sub_dafa.place_of_performance_congr = sc_1.congressional_district_no))
              OR (dafa.place_of_performance_congr = '90'
                 AND dafa.place_of_performance_code != '00*****'
-                AND (SELECT COUNT(DISTINCT sc_short_2.congressional_district_no)
-                    FROM state_congr_short_fabs43_3_{0} as sc_short_2
-                    WHERE UPPER(LEFT(dafa.place_of_performance_code, 2)) = sc_short_2.state_abbreviation) < 2)
+                AND (SELECT COUNT(DISTINCT sc_2.congressional_district_no)
+                    FROM state_congressional as sc_2
+                    WHERE UPPER(LEFT(dafa.place_of_performance_code, 2)) = sc_2.state_code) < 2)
             )
         ELSE FALSE
         END
