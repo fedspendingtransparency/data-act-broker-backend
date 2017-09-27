@@ -283,6 +283,9 @@ class AwardFinancialAssistance(Base):
     sai_number = Column(Text)
     total_funding_amount = Column(Text)
     uri = Column(Text, index=True)
+    place_of_perform_county_co = Column(Text)
+    place_of_perform_country_n = Column(Text)
+    legal_entity_country_name = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -353,12 +356,10 @@ class AwardProcurement(Base):
     place_of_performance_state = Column(Text)
     place_of_perform_country_c = Column(Text)
     idv_type = Column(Text)
-    # referenced_idv_type = Column(Text)
     vendor_doing_as_business_n = Column(Text)
     vendor_phone_number = Column(Text)
     vendor_fax_number = Column(Text)
     multiple_or_single_award_i = Column(Text)
-    # referenced_mult_or_single = Column(Text)
     type_of_idc = Column(Text)
     a_76_fair_act_action = Column(Text)
     dod_claimant_program_code = Column(Text)
@@ -499,6 +500,15 @@ class AwardProcurement(Base):
     referenced_idv_modificatio = Column(Text)
     undefinitized_action = Column(Text)
     domestic_or_foreign_entity = Column(Text)
+    referenced_idv_type = Column(Text)
+    referenced_idv_agency_name = Column(Text)
+    referenced_multi_or_single = Column(Text)
+    award_or_idv_flag = Column(Text)
+    place_of_perform_country_n = Column(Text)
+    place_of_perform_state_nam = Column(Text)
+    place_of_perform_county_na = Column(Text)
+    base_exercised_options_val = Column(Text)
+    base_and_all_options_value = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -781,6 +791,12 @@ class DetachedAwardProcurement(Base):
     pulled_from = Column(Text)
     last_modified = Column(Text)
     initial_report_date = Column(Text)
+    referenced_idv_type = Column(Text)
+    referenced_idv_agency_name = Column(Text)
+    referenced_multi_or_single = Column(Text)
+    award_or_idv_flag = Column(Text)
+    place_of_perform_country_n = Column(Text)
+    place_of_perform_state_nam = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -844,6 +860,9 @@ class DetachedAwardFinancialAssistance(Base):
     sai_number = Column(Text)
     uri = Column(Text, index=True)
     is_valid = Column(Boolean, nullable=False, default="False", server_default="False")
+    place_of_perform_county_co = Column(Text)
+    place_of_perform_country_n = Column(Text)
+    legal_entity_country_name = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -867,6 +886,7 @@ class PublishedAwardFinancialAssistance(Base):
     awarding_agency_code = Column(Text, index=True)
     awarding_agency_name = Column(Text)
     awarding_office_code = Column(Text)
+    awarding_office_name = Column(Text)
     awarding_sub_tier_agency_c = Column(Text, index=True)
     awarding_sub_tier_agency_n = Column(Text)
     award_modification_amendme = Column(Text)
@@ -882,6 +902,7 @@ class PublishedAwardFinancialAssistance(Base):
     funding_agency_name = Column(Text)
     funding_agency_code = Column(Text, index=True)
     funding_office_code = Column(Text, index=True)
+    funding_office_name = Column(Text)
     funding_sub_tier_agency_co = Column(Text, index=True)
     funding_sub_tier_agency_na = Column(Text)
     is_active = Column(Boolean, default=False, nullable=False, server_default="False")
@@ -890,6 +911,7 @@ class PublishedAwardFinancialAssistance(Base):
     legal_entity_address_line2 = Column(Text)
     legal_entity_address_line3 = Column(Text)
     legal_entity_city_name = Column(Text)
+    legal_entity_city_code = Column(Text)
     legal_entity_congressional = Column(Text)
     legal_entity_country_code = Column(Text)
     legal_entity_county_code = Column(Text)
@@ -897,6 +919,7 @@ class PublishedAwardFinancialAssistance(Base):
     legal_entity_foreign_city = Column(Text)
     legal_entity_foreign_posta = Column(Text)
     legal_entity_foreign_provi = Column(Text)
+    legal_entity_foreign_descr = Column(Text)
     legal_entity_state_code = Column(Text)
     legal_entity_state_name = Column(Text)
     legal_entity_zip5 = Column(Text)
@@ -918,9 +941,37 @@ class PublishedAwardFinancialAssistance(Base):
     sai_number = Column(Text)
     total_funding_amount = Column(Text)
     uri = Column(Text, index=True)
+    place_of_perform_county_co = Column(Text)
+    place_of_perform_country_n = Column(Text)
+    legal_entity_country_name = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(PublishedAwardFinancialAssistance, self).__init__(**clean_kwargs)
+
+
+class FPDSContractingOffice(Base):
+    """Model for FPDS Contracting Offices """
+    __tablename__ = "fpds_contracting_offices"
+
+    FPDS_contracting_office_id = Column(Integer, primary_key=True)
+    department_id = Column(Text, index=True)
+    department_name = Column(Text)
+    agency_code = Column(Text, index=True)
+    agency_name = Column(Text)
+    contracting_office_code = Column(Text, index=True)
+    contracting_office_name = Column(Text)
+    start_date = Column(DateTime)
+    end_date = Column(DateTime)
+    address_city = Column(Text)
+    address_state = Column(Text)
+    zip_code = Column(Text)
+    country_code = Column(Text)
+
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(FPDSContractingOffice, self).__init__(**clean_kwargs)

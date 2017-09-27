@@ -319,6 +319,7 @@ class States(Base):
     states_id = Column(Integer, primary_key=True)
     state_code = Column(Text, index=True)
     state_name = Column(Text)
+    fips_code = Column(Text)
 
 
 class ZipCity(Base):
