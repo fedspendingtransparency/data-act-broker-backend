@@ -1,4 +1,5 @@
--- If no PrimaryPlaceOfPerformanceZIP+4 is provided, a PrimaryPlaceOfPerformanceCongressionalDistrict must be provided.
+-- If PrimaryPlaceOfPerformanceCongressionalDistrict is not provided, a 9 digit PrimaryPlaceOfPerformanceZIP+4 must be
+-- provided.
 -- Only applies to domestic PPoP (PPoPCountry Code = USA)
 SELECT
     row_number,
