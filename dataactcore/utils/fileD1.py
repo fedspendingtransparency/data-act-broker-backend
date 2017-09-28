@@ -417,5 +417,4 @@ def query_data(session, agency_code, start, end, page_start, page_stop):
         filter(cast(file_model.action_date, Date) >= start).\
         filter(cast(file_model.action_date, Date) <= end).\
         slice(page_start, page_stop)
-    session.commit()
     return rows
