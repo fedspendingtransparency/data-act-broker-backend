@@ -487,7 +487,7 @@ class FileHandler:
             # Create file D API URL with dates and callback URL
             sess = GlobalDB.db().session
             if frec_code:
-                cgac_code = sess.query(FREC).filter_by(frec_code=frec_code).one_or_none().cgac_code
+                cgac_code = sess.query(FREC).filter_by(frec_code=frec_code).one_or_none().cgac.cgac_code
 
             api_url = FileHandler.get_d_file_url(task_key, file_type_name, cgac_code, start_date, end_date)
 

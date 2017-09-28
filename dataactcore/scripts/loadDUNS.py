@@ -147,7 +147,7 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False):
                 with zip_file.open(dat_file_name) as dat_file:
                     csv_data = pd.read_csv(dat_file, dtype=str, header=None, skiprows=skiprows, nrows=nrows, sep='|',
                                            usecols=column_header_mapping_ordered.values(),
-                                           names=column_header_mapping_ordered.keys())
+                                           names=column_header_mapping_ordered.keys(), quoting=3)
 
                     # add deactivation_date column for delete records
                     lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
