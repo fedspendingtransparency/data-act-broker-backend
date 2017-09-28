@@ -40,3 +40,6 @@ PrimaryPlaceOfPerformanceZIP+4,place_of_performance_zip4a,ASP: Conditional per V
 RecordType,record_type,ASP: Required,integer,1,D1
 SAI_Number,sai_number,ASP: Optional,string,50,
 URI,uri,ASP: Conditional per Validation Rule,string,70,"C9, D6, D7"
+PrimaryPlaceOfPerformanceCountryName,place_of_perform_county_co,Optional,string,,
+LegalEntityCountryName,place_of_perform_country_n,Optional,string,,
+PrimaryPlaceOfPerformanceCountyCode,legal_entity_country_name,Optional,string,,

@@ -18,7 +18,7 @@ def test_pubished_date_success(database):
         unless the record is an aggregate record (RecordType=1) or individual recipient
         (BusinessTypes includes 'P'). This is an error because CorrectionLateDeleteIndicator is not C or the
         action date is after January 1, 2017."""
-    duns_1 = DUNS(awardee_or_recipient_uniqu="111111111", activation_date="06/21/2017",
+    duns_1 = DUNS(awardee_or_recipient_uniqu="111111111", registration_date="06/21/2017",
                   expiration_date="06/21/2018")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111", action_type="A",
                                                           assistance_type="02", action_date="06/22/2017",
@@ -96,7 +96,7 @@ def test_pubished_date_failure(database):
         (BusinessTypes includes 'P'). This is an error because CorrectionLateDeleteIndicator is not C or the
         action date is after January 1, 2017."""
 
-    duns_1 = DUNS(awardee_or_recipient_uniqu="111111111", activation_date="06/21/2017",
+    duns_1 = DUNS(awardee_or_recipient_uniqu="111111111", registration_date="06/21/2017",
                   expiration_date="06/21/2018")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(assistance_type="02", action_date="06/20/2017",
                                                           awardee_or_recipient_uniqu="111111111", action_type="A",

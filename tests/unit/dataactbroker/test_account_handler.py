@@ -84,20 +84,15 @@ def test_set_max_perms(database, monkeypatch):
     """Verify that we get the _highest_ permission within our CGAC"""
     cgac_abc = CGACFactory(cgac_code='ABC')
     cgac_def = CGACFactory(cgac_code='DEF')
-    frec_abc = FRECFactory(frec_code='ABC', cgac=cgac_abc)
-    frec_def = FRECFactory(frec_code='DEF', cgac=cgac_abc)
+    frec_abc = FRECFactory(frec_code='ABCD', cgac=cgac_abc)
+    frec_def = FRECFactory(frec_code='EFGH', cgac=cgac_abc)
     user = UserFactory()
     database.session.add_all([cgac_abc, cgac_def, frec_abc, frec_def, user])
     database.session.commit()
 
     monkeypatch.setitem(accountHandler.CONFIG_BROKER, 'parent_group', 'prefix')
-    accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_R,prefix-CGAC_ABC-PERM_S')
-    database.session.commit()   # populate ids
-    assert len(user.affiliations) == 1
-    affil = user.affiliations[0]
-    assert affil.cgac_id == cgac_abc.cgac_id
-    assert affil.permission_type_id == PERMISSION_TYPE_DICT['submitter']
 
+    # test creating permission from string
     accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_W')
     database.session.commit()   # populate ids
     assert len(user.affiliations) == 1
@@ -105,6 +100,15 @@ def test_set_max_perms(database, monkeypatch):
     assert affil.cgac_id == cgac_abc.cgac_id
     assert affil.permission_type_id == PERMISSION_TYPE_DICT['writer']
 
+    # test creating max CGAC permission from two strings
+    accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_R,prefix-CGAC_ABC-PERM_S')
+    database.session.commit()   # populate ids
+    assert len(user.affiliations) == 1
+    affil = user.affiliations[0]
+    assert affil.cgac_id == cgac_abc.cgac_id
+    assert affil.permission_type_id == PERMISSION_TYPE_DICT['submitter']
+
+    # test creating two CGAC permissions with two strings
     accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_R,prefix-CGAC_DEF-PERM_S')
     database.session.commit()
     assert len(user.affiliations) == 2
@@ -117,40 +121,56 @@ def test_set_max_perms(database, monkeypatch):
     assert def_aff.frec is None
     assert def_aff.permission_type_id == PERMISSION_TYPE_DICT['submitter']
 
-    accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-FREC_ABC-PERM_R,prefix-CGAC_ABC-FREC_ABC-PERM_S')
-    database.session.commit()
-    assert len(user.affiliations) == 1
-    affil = user.affiliations[0]
-    assert affil.cgac is None
-    assert affil.frec.frec_code == 'ABC'
-    assert affil.permission_type_id == PERMISSION_TYPE_DICT['submitter']
-
-    accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-FREC_ABC-PERM_R,prefix-CGAC_ABC-FREC_DEF-PERM_S')
+    # test creating max FREC permission from two strings
+    accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-FREC_ABCD-PERM_R,prefix-CGAC_ABC-FREC_ABCD-PERM_S')
     database.session.commit()
     assert len(user.affiliations) == 2
-    affiliations = list(sorted(user.affiliations, key=lambda a: a.frec.frec_code))
-    abc_aff, def_aff = affiliations
-    assert abc_aff.cgac is None
-    assert abc_aff.frec.frec_code == 'ABC'
-    assert abc_aff.permission_type_id == PERMISSION_TYPE_DICT['reader']
-    assert def_aff.cgac is None
-    assert def_aff.frec.frec_code == 'DEF'
-    assert def_aff.permission_type_id == PERMISSION_TYPE_DICT['submitter']
+    frec_affils = [affil for affil in user.affiliations if affil.frec is not None]
+    assert frec_affils[0].cgac is None
+    assert frec_affils[0].frec.frec_code == 'ABCD'
+    assert frec_affils[0].permission_type_id == PERMISSION_TYPE_DICT['submitter']
+    cgac_affils = [affil for affil in user.affiliations if affil.cgac is not None]
+    assert cgac_affils[0].cgac.cgac_code == 'ABC'
+    assert cgac_affils[0].frec is None
+    assert cgac_affils[0].permission_type_id == PERMISSION_TYPE_DICT['reader']
 
-    accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_R,prefix-CGAC_DEF-FREC_DEF-PERM_R')
+    # test creating two FREC permissions from two strings
+    accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-FREC_ABCD-PERM_R,prefix-CGAC_ABC-FREC_EFGH-PERM_S')
     database.session.commit()
-    assert len(user.affiliations) == 2
-    # no good way to sort affiliations
-    correct_assertions = 0
-    for affil in user.affiliations:
-        if (affil.cgac and affil.cgac.cgac_code == 'ABC') and affil.frec is None and \
-           affil.permission_type_id == PERMISSION_TYPE_DICT['reader']:
-            correct_assertions = correct_assertions + 1
-        if affil.cgac is None and (affil.frec and affil.frec.frec_code == 'DEF') and \
-           affil.permission_type_id == PERMISSION_TYPE_DICT['reader']:
-            correct_assertions = correct_assertions + 1
-    assert correct_assertions == 2
+    assert len(user.affiliations) == 3
+    frec_affils = [affil for affil in user.affiliations if affil.frec is not None]
+    frec_affiliations = list(sorted(frec_affils, key=lambda a: a.frec.frec_code))
+    abcd_aff, efgh_aff = frec_affiliations
+    assert abcd_aff.cgac is None
+    assert abcd_aff.frec.frec_code == 'ABCD'
+    assert abcd_aff.permission_type_id == PERMISSION_TYPE_DICT['reader']
+    assert efgh_aff.cgac is None
+    assert efgh_aff.frec.frec_code == 'EFGH'
+    assert efgh_aff.permission_type_id == PERMISSION_TYPE_DICT['submitter']
+    cgac_affils = [affil for affil in user.affiliations if affil.cgac is not None]
+    assert cgac_affils[0].cgac.cgac_code == 'ABC'
+    assert cgac_affils[0].frec is None
+    assert cgac_affils[0].permission_type_id == PERMISSION_TYPE_DICT['reader']
 
+    # test creating one CGAC and one FREC permission from two strings
+    accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_S,prefix-CGAC_DEF-FREC_ABCD-PERM_R')
+    database.session.commit()
+    assert len(user.affiliations) == 3
+    frec_affils = [affil for affil in user.affiliations if affil.frec is not None]
+    assert frec_affils[0].cgac is None
+    assert frec_affils[0].frec.frec_code == 'ABCD'
+    assert frec_affils[0].permission_type_id == PERMISSION_TYPE_DICT['reader']
+    cgac_affils = [affil for affil in user.affiliations if affil.cgac is not None]
+    cgac_affiliations = list(sorted(cgac_affils, key=lambda a: a.cgac.cgac_code))
+    abc_aff, def_aff = cgac_affiliations
+    assert abc_aff.cgac.cgac_code == 'ABC'
+    assert abc_aff.frec is None
+    assert abc_aff.permission_type_id == PERMISSION_TYPE_DICT['submitter']
+    assert def_aff.cgac.cgac_code == 'DEF'
+    assert def_aff.frec is None
+    assert def_aff.permission_type_id == PERMISSION_TYPE_DICT['reader']
+
+    # test creating max DABS and FABS CGAC permissions from three strings
     accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_R,prefix-CGAC_ABC-PERM_S,prefix-CGAC_ABC-PERM_F')
     database.session.commit()
     assert len(user.affiliations) == 2
@@ -162,6 +182,25 @@ def test_set_max_perms(database, monkeypatch):
     assert fabs_aff.cgac.cgac_code == 'ABC'
     assert fabs_aff.frec is None
     assert fabs_aff.permission_type_id == PERMISSION_SHORT_DICT['f']
+
+    # test creating max DABS and FABS FREC permissions from three strings
+    perms_string = 'prefix-CGAC_ABC-FREC_ABCD-PERM_R,prefix-CGAC_ABC-FREC_ABCD-PERM_S,prefix-CGAC_ABC-FREC_ABCD-PERM_F'
+    accountHandler.set_max_perms(user, perms_string)
+    database.session.commit()
+    assert len(user.affiliations) == 3
+    frec_affils = [affil for affil in user.affiliations if affil.frec is not None]
+    frec_affiliations = list(sorted(frec_affils, key=lambda a: a.permission_type_id))
+    dabs_aff, fabs_aff = frec_affiliations
+    assert dabs_aff.cgac is None
+    assert dabs_aff.frec.frec_code == 'ABCD'
+    assert dabs_aff.permission_type_id == PERMISSION_TYPE_DICT['submitter']
+    assert fabs_aff.cgac is None
+    assert fabs_aff.frec.frec_code == 'ABCD'
+    assert fabs_aff.permission_type_id == PERMISSION_SHORT_DICT['f']
+    cgac_affils = [affil for affil in user.affiliations if affil.cgac is not None]
+    assert cgac_affils[0].cgac.cgac_code == 'ABC'
+    assert cgac_affils[0].frec is None
+    assert cgac_affils[0].permission_type_id == PERMISSION_TYPE_DICT['reader']
 
 
 @pytest.mark.usefixtures("user_constants")

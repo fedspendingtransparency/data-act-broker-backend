@@ -43,33 +43,32 @@ def get_relevant_models(data, benchmarks=False):
     dun_objects_found = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu.in_(duns_found))
     models = {duns.awardee_or_recipient_uniqu: duns for duns in dun_objects_found}
     logger.info("getting models with activation dates already set")
-    activated_models = {duns_num: duns for duns_num, duns in models.items()
-                        if duns.activation_date is not None}
+    activated_models = {duns_num: duns for duns_num, duns in models.items() if duns.activation_date is not None}
     if benchmarks:
         logger.info("Getting models took {} seconds".format(time.time() - get_models))
     return models, activated_models
 
 
 def load_duns_by_row(data, sess, models, activated_models, benchmarks=False):
-    data = activation_check(data, activated_models, benchmarks).where(pd.notnull(data), None)
+    # data = activation_check(data, activated_models, benchmarks).where(pd.notnull(data), None)
     update_duns(models, data, benchmarks=benchmarks)
     sess.add_all(models.values())
 
 
-def activation_check(data, activated_models, benchmarks=False):
-    # if activation_date's already set, keep it, otherwise update it (default)
-    logger.info("going through activation check")
-    if benchmarks:
-        activation_check_start = time.time()
-    lambda_func = (lambda duns_num: pd.Series([activated_models[duns_num].activation_date
-                                               if duns_num in activated_models else np.nan]))
-    data = data.assign(old_activation_date=data["awardee_or_recipient_uniqu"].apply(lambda_func))
-    data.loc[pd.notnull(data["old_activation_date"]), "activation_date"] = data["old_activation_date"]
-    del data["old_activation_date"]
-    if benchmarks:
-        logger.info("Activation check took {} seconds".format(time.time()-activation_check_start))
-    return data
-
+# Removed this function when adding registration_date
+# def activation_check(data, activated_models, benchmarks=False):
+#     # if activation_date's already set, keep it, otherwise update it (default)
+#     logger.info("going through activation check")
+#     if benchmarks:
+#         activation_check_start = time.time()
+#     lambda_func = (lambda duns_num: pd.Series([activated_models[duns_num].activation_date
+#                                                if duns_num in activated_models else np.nan]))
+#     data = data.assign(old_activation_date=data["awardee_or_recipient_uniqu"].apply(lambda_func))
+#     data.loc[pd.notnull(data["old_activation_date"]), "activation_date"] = data["old_activation_date"]
+#     del data["old_activation_date"]
+#     if benchmarks:
+#         logger.info("Activation check took {} seconds".format(time.time()-activation_check_start))
+#     return data
 
 def update_duns(models, new_data, benchmarks=False):
     """Modify existing models or create new ones"""
@@ -87,18 +86,18 @@ def update_duns(models, new_data, benchmarks=False):
 
 
 def clean_sam_data(data):
-    return clean_data(
-                data,
-                DUNS,
-                {"awardee_or_recipient_uniqu": "awardee_or_recipient_uniqu",
-                 "activation_date": "activation_date",
-                 "deactivation_date": "deactivation_date",
-                 "expiration_date": "expiration_date",
-                 "last_sam_mod_date": "last_sam_mod_date",
-                 "sam_extract_code": "sam_extract_code",
-                 "legal_business_name": "legal_business_name"},
-                {'awardee_or_recipient_uniqu': {'pad_to_length': 9, 'keep_null': True}}
-            )
+    return clean_data(data, DUNS, {
+        "awardee_or_recipient_uniqu": "awardee_or_recipient_uniqu",
+        "activation_date": "activation_date",
+        "deactivation_date": "deactivation_date",
+        "registration_date": "registration_date",
+        "expiration_date": "expiration_date",
+        "last_sam_mod_date": "last_sam_mod_date",
+        "sam_extract_code": "sam_extract_code",
+        "legal_business_name": "legal_business_name"
+    }, {
+        'awardee_or_recipient_uniqu': {'pad_to_length': 9, 'keep_null': True}
+    })
 
 
 def parse_sam_file(file_path, sess, monthly=False, benchmarks=False):
@@ -114,6 +113,7 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False):
         column_header_mapping = {
             "awardee_or_recipient_uniqu": 0,
             "sam_extract_code": 4,
+            "registration_date": 6,
             "expiration_date": 7,
             "last_sam_mod_date": 8,
             "activation_date": 9,

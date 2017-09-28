@@ -1,14 +1,14 @@
-"""merge d file gen and dev-stable heads
+"""Merge cd1025a and e4ac552
 
-Revision ID: a767facf8ea8
-Revises: 82b50eb5a71b, b8bf72c05b0f
-Create Date: 2017-09-18 14:31:47.179968
+Revision ID: 6126ac2553e5
+Revises: cd1025ac9399, e4ac552148ef
+Create Date: 2017-09-19 08:45:33.624295
 
 """
 
 # revision identifiers, used by Alembic.
-revision = 'a767facf8ea8'
-down_revision = ('82b50eb5a71b', 'b8bf72c05b0f')
+revision = '6126ac2553e5'
+down_revision = ('cd1025ac9399', 'e4ac552148ef')
 branch_labels = None
 depends_on = None
 

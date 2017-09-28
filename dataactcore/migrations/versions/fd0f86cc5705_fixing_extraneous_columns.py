@@ -1,7 +1,9 @@
 """fixing extraneous columns
+
 Revision ID: fd0f86cc5705
 Revises: 539307ecadea
 Create Date: 2017-09-20 13:58:34.720047
+
 """
 
 # revision identifiers, used by Alembic.

@@ -1,14 +1,14 @@
-"""merge d file gen and dev-stable heads
+"""merge bd438447496a and fd0f86cc5705
 
-Revision ID: a767facf8ea8
-Revises: 82b50eb5a71b, b8bf72c05b0f
-Create Date: 2017-09-18 14:31:47.179968
+Revision ID: bcdf1134f0df
+Revises: bd438447496a, fd0f86cc5705
+Create Date: 2017-09-27 11:14:01.763062
 
 """
 
 # revision identifiers, used by Alembic.
-revision = 'a767facf8ea8'
-down_revision = ('82b50eb5a71b', 'b8bf72c05b0f')
+revision = 'bcdf1134f0df'
+down_revision = ('bd438447496a', 'fd0f86cc5705')
 branch_labels = None
 depends_on = None
 
