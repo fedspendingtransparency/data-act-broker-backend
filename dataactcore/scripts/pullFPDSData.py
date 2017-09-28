@@ -1043,26 +1043,37 @@ def add_processed_data_list(data, sess):
         sess.commit()
 
 
-def process_and_add(data, contract_type, sess, sub_tier_list):
+def process_and_add(data, contract_type, sess, sub_tier_list, now, threaded=False):
     """ start the processing for data and add it to the DB """
-    for value in data:
-        tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sub_tier_list=sub_tier_list)
-        try:
-            statement = insert(DetachedAwardProcurement).values(**tmp_obj)
-            sess.execute(statement)
-            sess.commit()
-        except IntegrityError:
-            sess.rollback()
-            sess.query(DetachedAwardProcurement).\
-                filter_by(detached_award_proc_unique=tmp_obj['detached_award_proc_unique']).\
-                update(tmp_obj, synchronize_session=False)
-            sess.commit()
+    if threaded:
+        for value in data:
+            tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type,
+                                   sub_tier_list=sub_tier_list)
+            tmp_obj['updated_at'] = now
+            insert_statement = insert(DetachedAwardProcurement).values(**tmp_obj).\
+                on_conflict_do_update(index_elements=['detached_award_proc_unique'], set_=tmp_obj)
+            sess.execute(insert_statement)
+    else:
+        for value in data:
+            tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sub_tier_list=sub_tier_list)
+            try:
+                statement = insert(DetachedAwardProcurement).values(**tmp_obj)
+                sess.execute(statement)
+                sess.commit()
+            except IntegrityError:
+                sess.rollback()
+                tmp_obj['updated_at'] = now
+                sess.query(DetachedAwardProcurement).\
+                    filter_by(detached_award_proc_unique=tmp_obj['detached_award_proc_unique']).\
+                    update(tmp_obj, synchronize_session=False)
+                sess.commit()
 
 
-def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None):
+def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None, threaded=False):
     """ get the data from the atom feed based on contract/award type and the last time the script was run """
     data = []
     yesterday = now - datetime.timedelta(days=1)
+    utcnow = datetime.datetime.utcnow()
     # if a date that the script was last successfully run is not provided, get all data
     if not last_run:
         # params = 'SIGNED_DATE:[2015/10/01,'+ yesterday.strftime('%Y/%m/%d') + '] '
@@ -1125,7 +1136,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None)
             logger.info("Retrieved %s lines of get %s: %s feed, writing next 1,000 to DB", i, contract_type, award_type)
             # if we're calling threads, we want process_and_add, otherwise we want add_processed_data_list
             if last_run:
-                process_and_add(data, contract_type, sess, sub_tier_list)
+                process_and_add(data, contract_type, sess, sub_tier_list, utcnow, threaded)
             else:
                 add_processed_data_list(data, sess)
             data = []
@@ -1143,7 +1154,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None)
     logger.info("Processing remaining lines for %s: %s feed", contract_type, award_type)
     # if we're calling threads, we want process_and_add, otherwise we want add_processed_data_list
     if last_run:
-        process_and_add(data, contract_type, sess, sub_tier_list)
+        process_and_add(data, contract_type, sess, sub_tier_list, utcnow, threaded)
     else:
         add_processed_data_list(data, sess)
 
@@ -1986,6 +1997,7 @@ def main():
     parser.add_argument('-sf', '--subfolder',
                         help='Used in conjunction with -f to indicate which Subfolder to load files from',
                         nargs="+", type=str)
+    parser.add_argument('-t', '--threaded', help='Multithread nightly load', action='store_true')
     args = parser.parse_args()
 
     award_types_award = ["BPA Call", "Definitive Contract", "Purchase Order", "Delivery Order"]
@@ -2037,30 +2049,40 @@ def main():
                 "No last_update date present, please run the script with the -a flag to generate an initial dataset")
             raise ValueError(
                 "No last_update date present, please run the script with the -a flag to generate an initial dataset")
+        # determining if we're doing a threaded call or not
+        if args.threaded:
+            thread_list = []
+            # loop through and check all award types, check IDV stuff first because it generally has less content
+            # so the threads will actually leave earlier and can be terminated in the loop
+            for award_type in award_types_idv:
+                t = threading.Thread(target=get_data,
+                                     args=("IDV", award_type, now, sess, sub_tier_list, last_update, True),
+                                     name=award_type)
+                thread_list.append(t)
+                t.start()
 
-        thread_list = []
-        # loop through and check all award types, check IDV stuff first because it generally has less content
-        # so the threads will actually leave earlier and can be terminated in the loop
-        for award_type in award_types_idv:
-            t = threading.Thread(target=get_data, args=("IDV", award_type, now, sess, sub_tier_list, last_update),
-                                 name=award_type)
-            thread_list.append(t)
-            t.start()
+            # join the threads between types and then start with a fresh set of threads. We don't want to overtax
+            # the CPU
+            for t in thread_list:
+                t.join()
 
-        # join the threads between types and then start with a fresh set of threads. We don't want to overtax
-        # the CPU
-        for t in thread_list:
-            t.join()
+            thread_list = []
+            for award_type in award_types_award:
+                t = threading.Thread(target=get_data,
+                                     args=("award", award_type, now, sess, sub_tier_list, last_update, True),
+                                     name=award_type)
+                thread_list.append(t)
+                t.start()
 
-        thread_list = []
-        for award_type in award_types_award:
-            t = threading.Thread(target=get_data, args=("award", award_type, now, sess, sub_tier_list, last_update),
-                                 name=award_type)
-            thread_list.append(t)
-            t.start()
+            for t in thread_list:
+                t.join()
+            sess.commit()
+        else:
+            for award_type in award_types_idv:
+                get_data("IDV", award_type, now, sess, sub_tier_list, last_update)
 
-        for t in thread_list:
-            t.join()
+            for award_type in award_types_award:
+                get_data("award", award_type, now, sess, sub_tier_list, last_update)
 
         # We also need to process the delete feed
         get_delete_data("IDV", now, sess, last_update)
