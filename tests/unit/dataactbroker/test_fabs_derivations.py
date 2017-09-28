@@ -32,7 +32,7 @@ def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, us
     county_code = CountyCodeFactory(state_code=state.state_code, county_number=zip_code_1.county_number,
                                     county_name="Test County")
     city_code = CityCodeFactory(feature_name="Test City", city_code="00001", state_code=state.state_code,
-                                county_name="Test City County")
+                                county_number=zip_code_1.county_number, county_name="Test City County")
     contracting_office = FPDSContractingOfficeFactory(contracting_office_code='033103',
                                                       contracting_office_name='Office')
     country_code = CountryCodeFactory(country_code='USA', country_name='United States of America')
@@ -174,6 +174,7 @@ def test_ppop_derivations(database):
     obj = initialize_test_obj(ppop_zip4a="123454321")
     obj = fabs_derivations(obj, database.session)
     assert obj['place_of_performance_congr'] == '02'
+    assert obj['place_of_perform_county_co'] == "001"
     assert obj['place_of_perform_county_na'] == "Test County"
     assert obj['place_of_performance_city'] == "Test Zip City"
 
@@ -188,12 +189,14 @@ def test_ppop_derivations(database):
     # hard to tell which will be "first" because it depends on what order it's added by sqlalchemy,
     # but we know it has to be one of them
     assert obj['place_of_performance_congr'] == '01' or '02'
+    assert obj['place_of_perform_county_co'] == "001"
     assert obj['place_of_perform_county_na'] == "Test County"
     assert obj['place_of_performance_city'] == "Test Zip City"
 
     # when we don't have ppop_zip4a and ppop_code is in XX**### format
     obj = initialize_test_obj(ppop_code="NY**001")
     obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_perform_county_co'] == "001"
     assert obj['place_of_perform_county_na'] == "Test County"
     assert obj['place_of_performance_city'] is None
     assert obj['place_of_performance_congr'] is None
@@ -201,6 +204,7 @@ def test_ppop_derivations(database):
     # when we don't have ppop_zip4a and ppop_code is in XX##### format
     obj = initialize_test_obj(ppop_code="NY00001")
     obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_perform_county_co'] == "001"
     assert obj['place_of_perform_county_na'] == "Test City County"
     assert obj['place_of_performance_city'] == "Test City"
     assert obj['place_of_performance_congr'] is None
@@ -251,7 +255,7 @@ def test_primary_place_country(database):
 
     obj = initialize_test_obj(primary_place_country='NK')
     obj = fabs_derivations(obj, database.session)
-    assert not obj['place_of_perform_country_n']
+    assert obj['place_of_perform_country_n'] is None
 
 
 def test_awarding_office_codes(database):
@@ -264,7 +268,7 @@ def test_awarding_office_codes(database):
 
     obj = initialize_test_obj(awarding_office='111111')
     obj = fabs_derivations(obj, database.session)
-    assert not obj['awarding_office_name']
+    assert obj['awarding_office_name'] is None
 
 
 def test_funding_office_codes(database):
@@ -277,7 +281,7 @@ def test_funding_office_codes(database):
 
     obj = initialize_test_obj(funding_office='111111')
     obj = fabs_derivations(obj, database.session)
-    assert not obj['funding_office_name']
+    assert obj['funding_office_name'] is None
 
 
 def test_legal_country(database):
