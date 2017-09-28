@@ -1096,7 +1096,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None,
     while True:
         loops += 1
         exception_retries = -1
-        retry_sleep_times = [5, 30, 60]
+        retry_sleep_times = [5, 30, 60, 180, 300]
         # looping in case feed breaks
         while True:
             try:
@@ -1109,7 +1109,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None,
             except ConnectionResetError:
                 exception_retries += 1
                 # retry up to 3 times before raising an error
-                if exception_retries < 3:
+                if exception_retries < len(retry_sleep_times):
                     time.sleep(retry_sleep_times[exception_retries])
                 else:
                     raise ResponseException(
