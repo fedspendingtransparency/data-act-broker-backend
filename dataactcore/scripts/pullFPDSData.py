@@ -34,6 +34,7 @@ from dataactcore.models.userModel import User  # noqa
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
+from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 
 feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.4.5&q="
 delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&templateName=1.4.5&q="
@@ -1055,7 +1056,8 @@ def process_and_add(data, contract_type, sess, sub_tier_list, now, threaded=Fals
             sess.execute(insert_statement)
     else:
         for value in data:
-            tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sub_tier_list=sub_tier_list)
+            tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type,
+                                   sub_tier_list=sub_tier_list)
             try:
                 statement = insert(DetachedAwardProcurement).values(**tmp_obj)
                 sess.execute(statement)
@@ -1197,6 +1199,7 @@ def get_delete_data(contract_type, now, sess, last_run):
     logger.info("Total entries in %s delete feed: " + str(i), contract_type)
 
     delete_list = []
+    delete_dict = {}
     for value in data:
         # get last modified date
         last_modified = value['content'][contract_type]['transactionInformation']['lastModifiedDate']
@@ -1209,12 +1212,21 @@ def get_delete_data(contract_type, now, sess, last_run):
             # only add to delete list if the last modified date is later than the existing entry's last modified date
             if last_modified > existing_item.last_modified:
                 delete_list.append(existing_item.detached_award_procurement_id)
+                delete_dict[existing_item.detached_award_procurement_id] = existing_item.detached_award_proc_unique
 
     # only need to delete values if there's something to delete
     if delete_list:
         sess.query(DetachedAwardProcurement).\
             filter(DetachedAwardProcurement.detached_award_procurement_id.in_(delete_list)).\
             delete(synchronize_session=False)
+        if CONFIG_BROKER["use_aws"]:
+            file_name = now.strftime('%m-%d-%Y') + "_delete_records_" + contract_type + ".csv"
+            headers = ["detached_award_procurement_id", "detached_award_proc_unique"]
+            with CsvS3Writer(CONFIG_BROKER['aws_region'], CONFIG_BROKER['fpds_delete_bucket'], file_name,
+                             headers) as writer:
+                for key, value in delete_dict.items():
+                    writer.write([key, value])
+                writer.finish_batch()
 
 
 def parse_fpds_file(f, sess, sub_tier_list, naics_dict, filename=None):
@@ -1224,8 +1236,6 @@ def parse_fpds_file(f, sess, sub_tier_list, naics_dict, filename=None):
     else:
         logger.info("Starting file " + str(filename))
         csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(filename))[0]
-
-    csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(f.name))[0]
 
     nrows = 0
     with zipfile.ZipFile(f) as zfile:
