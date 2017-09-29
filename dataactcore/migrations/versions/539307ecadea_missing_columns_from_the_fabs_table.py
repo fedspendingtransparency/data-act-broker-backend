@@ -1,7 +1,9 @@
 """Missing columns from the FABS table
+
 Revision ID: 539307ecadea
 Revises: cd1025ac9399
 Create Date: 2017-09-20 12:43:21.662081
+
 """
 
 # revision identifiers, used by Alembic.

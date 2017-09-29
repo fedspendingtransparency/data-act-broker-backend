@@ -28,7 +28,7 @@ WHERE submission_id = {0}),
 duns_fabs31_6_{0} AS
     (SELECT DISTINCT
         duns_fabs31.awardee_or_recipient_uniqu,
-        duns_fabs31.activation_date,
+        duns_fabs31.registration_date,
         duns_fabs31.expiration_date
     FROM duns AS duns_fabs31
     JOIN detached_award_financial_assistance_fabs31_6_{0} AS sub_dafa
@@ -70,7 +70,7 @@ WHERE NOT (dafa.record_type = 1 or LOWER(dafa.business_types) LIKE '%%p%%')
                 ON short_duns.awardee_or_recipient_uniqu = sub_dafa.awardee_or_recipient_uniqu
                 AND ((CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
                     THEN CAST(sub_dafa.action_date as Date)
-                    END) >= CAST(short_duns.activation_date as DATE)
+                    END) >= CAST(short_duns.registration_date as DATE)
                 AND (CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
                     THEN CAST(sub_dafa.action_date as Date)
                     END) < CAST(short_duns.expiration_date as DATE)
