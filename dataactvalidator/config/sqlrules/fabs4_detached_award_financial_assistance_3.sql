@@ -23,5 +23,5 @@ WHERE submission_id = {0}
     (CASE
         WHEN pg_temp.is_date(COALESCE(action_date, '0'))
         THEN
-            EXTRACT(YEAR FROM CAST(action_date as DATE))
+            EXTRACT(YEAR FROM CAST(action_date as DATE) + INTERVAL '3 month')
     END) != EXTRACT(YEAR FROM (CURRENT_DATE + INTERVAL '3 month'));
