@@ -738,6 +738,9 @@ class FileHandler:
         if not submission.d2_submission:
             raise ResponseException("Submission is not a FABS submission", StatusCode.CLIENT_ERROR)
 
+        if submission.publish_status_id == PUBLISH_STATUS_DICT['publishing']:
+            raise ResponseException("Submission is already publishing", StatusCode.CLIENT_ERROR)
+
         # Check to make sure it isn't already a published submission
         if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
             raise ResponseException("Submission has already been published", StatusCode.CLIENT_ERROR)
@@ -745,6 +748,10 @@ class FileHandler:
         # if it's an unpublished FABS submission, we can start the process
         sess = GlobalDB.db().session
         submission_id = submission.submission_id
+
+        sess.query(Submission).filter_by(submission_id=submission_id).\
+            update({"publish_status_id": PUBLISH_STATUS_DICT['publishing']},synchronize_session = False)
+        sess.commit()
 
         try:
             # get all valid lines for this submission
@@ -782,6 +789,11 @@ class FileHandler:
         except Exception as e:
             # rollback the changes if there are any errors. We want to submit everything together
             sess.rollback()
+
+            sess.query(Submission).filter_by(submission_id=submission_id). \
+                update({"publish_status_id": PUBLISH_STATUS_DICT['unpublished']}, synchronize_session = False)
+            sess.commit()
+
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
         sess.query(Submission).filter_by(submission_id=submission_id).\
