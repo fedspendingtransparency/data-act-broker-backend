@@ -41,7 +41,7 @@ def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, us
     db.session.commit()
 
 
-def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1234", fund_agency_code=None,
+def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1234",
                         sub_fund_agency_code=None, ppop_code="NY00000", ppop_zip4a=None, ppop_cd=None, le_zip5=None,
                         le_zip4=None, record_type=2, award_mod_amend=None, fain=None, uri=None, cldi=None,
                         awarding_office='033103', funding_office='033103', legal_city="WASHINGTON", legal_state="DC",
@@ -52,7 +52,6 @@ def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1
         'non_federal_funding_amount': nffa,
         'cfda_number': cfda_num,
         'awarding_sub_tier_agency_c': sub_tier_code,
-        'funding_agency_code': fund_agency_code,
         'funding_sub_tier_agency_co': sub_fund_agency_code,
         'place_of_performance_code': ppop_code,
         'place_of_performance_zip4a': ppop_zip4a,
@@ -127,32 +126,22 @@ def test_awarding_agency_frec(database):
     assert obj['awarding_sub_tier_agency_n'] == "Test Subtier Agency"
 
 
-def test_funding_agency_name(database):
-    initialize_db_values(database, cgac_code="000")
-
-    # when funding_agency_code is not provided
-    obj = initialize_test_obj()
-    obj = fabs_derivations(obj, database.session)
-    assert obj['funding_agency_name'] is None
-
-    # when funding_agency_code is provided
-    obj = initialize_test_obj(fund_agency_code="000")
-    obj = fabs_derivations(obj, database.session)
-    assert obj['funding_agency_name'] == "Test CGAC Agency"
-
-
 def test_funding_sub_tier_agency_na(database):
-    initialize_db_values(database)
+    initialize_db_values(database, cgac_code="5678")
 
     # when funding_sub_tier_agency_co is not provided
     obj = initialize_test_obj()
     obj = fabs_derivations(obj, database.session)
     assert obj['funding_sub_tier_agency_na'] is None
+    assert obj['funding_agency_code'] is None
+    assert obj['funding_agency_name'] is None
 
     # when funding_sub_tier_agency_co is provided
     obj = initialize_test_obj(sub_fund_agency_code="1234")
     obj = fabs_derivations(obj, database.session)
     assert obj['funding_sub_tier_agency_na'] == "Test Subtier Agency"
+    assert obj['funding_agency_code'] == '5678'
+    assert obj['funding_agency_name'] == 'Test CGAC Agency'
 
 
 def test_ppop_state_name(database):
