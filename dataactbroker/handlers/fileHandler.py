@@ -885,6 +885,8 @@ class FileHandler:
                 temp_obj.pop('job_id', None)
                 temp_obj.pop('row_number', None)
                 temp_obj.pop('is_valid', None)
+                temp_obj.pop('created_at', None)
+                temp_obj.pop('updated_at', None)
                 temp_obj.pop('_sa_instance_state', None)
 
                 temp_obj = fabs_derivations(temp_obj, sess)
