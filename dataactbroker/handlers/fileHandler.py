@@ -1515,22 +1515,20 @@ def fabs_derivations(obj, sess):
         obj['awarding_agency_name'] = None
         obj['awarding_sub_tier_agency_n'] = None
 
-    # deriving funding agency name
-    if obj['funding_agency_code']:
-        funding_agency = sess.query(CGAC).filter_by(cgac_code=obj['funding_agency_code']).one_or_none()
-        if not funding_agency:
-            funding_agency = sess.query(FREC).filter_by(frec_code=obj['funding_agency_code']).one()
-        obj['funding_agency_name'] = funding_agency.agency_name
-    else:
-        obj['funding_agency_name'] = None
-
     # deriving funding sub tier agency name
     if obj['funding_sub_tier_agency_co']:
-        funding_sub_tier_agency_name = sess.query(SubTierAgency).\
+        funding_sub_tier_agency = sess.query(SubTierAgency).\
             filter_by(sub_tier_agency_code=obj['funding_sub_tier_agency_co']).one()
-        obj['funding_sub_tier_agency_na'] = funding_sub_tier_agency_name.sub_tier_agency_name
+        obj['funding_sub_tier_agency_na'] = funding_sub_tier_agency.sub_tier_agency_name
+        use_frec = funding_sub_tier_agency.is_frec
+        funding_agency = funding_sub_tier_agency.frec if use_frec else funding_sub_tier_agency.cgac
+        obj['funding_agency_code'] = funding_agency.frec_code if use_frec else funding_agency.cgac_code
+        obj['funding_agency_name'] = funding_agency.agency_name
+        obj['funding_sub_tier_agency_na'] = funding_sub_tier_agency.sub_tier_agency_name
     else:
         obj['funding_sub_tier_agency_na'] = None
+        obj['funding_agency_name'] = None
+        obj['funding_agency_code'] = None
 
     # deriving ppop state name (ppop code is required so we don't have to check that it exists, just upper it)
     ppop_code = obj['place_of_performance_code'].upper()
