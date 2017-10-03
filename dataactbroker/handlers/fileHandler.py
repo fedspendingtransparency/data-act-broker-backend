@@ -738,6 +738,10 @@ class FileHandler:
         if not submission.d2_submission:
             raise ResponseException("Submission is not a FABS submission", StatusCode.CLIENT_ERROR)
 
+        # Check to see if the submission is  being published
+        if submission.publish_status_id == PUBLISH_STATUS_DICT['publishing']:
+            raise ResponseException("Submission is being published", StatusCode.CLIENT_ERROR)
+
         # Check to make sure it isn't already a published submission
         if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
             raise ResponseException("Submission has already been published", StatusCode.CLIENT_ERROR)
@@ -745,6 +749,11 @@ class FileHandler:
         # if it's an unpublished FABS submission, we can start the process
         sess = GlobalDB.db().session
         submission_id = submission.submission_id
+
+        sess.query(Submission).filter_by(submission_id=submission_id). \
+            update({"publish_status_id": PUBLISH_STATUS_DICT['publishing']},
+                   synchronize_session=False)
+        sess.commit()
 
         try:
             # get all valid lines for this submission
@@ -782,6 +791,11 @@ class FileHandler:
         except Exception as e:
             # rollback the changes if there are any errors. We want to submit everything together
             sess.rollback()
+            sess.query(Submission).filter_by(submission_id=submission_id). \
+                update({"publish_status_id": PUBLISH_STATUS_DICT['unpublished']},
+                       synchronize_session=False)
+            sess.commit()
+
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
         sess.query(Submission).filter_by(submission_id=submission_id).\
@@ -1483,7 +1497,6 @@ def map_generate_status(upload_job, validation_job=None):
 
 
 def fabs_derivations(obj, sess):
-
     # initializing a few of the derivations so the keys exist
     obj['legal_entity_state_code'] = None
     obj['legal_entity_city_name'] = None
@@ -1683,7 +1696,7 @@ def fabs_derivations(obj, sess):
             obj['place_of_perform_country_n'] = country_data.country_name
         else:
             obj['place_of_perform_country_n'] = None
-
+            
     # deriving legal_entity_country_name from legal_entity_country_code
     if obj['legal_entity_country_code']:
         country_data = sess.query(CountryCode).\

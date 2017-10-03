@@ -294,7 +294,23 @@ def test_legal_country(database):
 
     obj = initialize_test_obj(legal_country='NK')
     obj = fabs_derivations(obj, database.session)
-    assert obj['legal_entity_country_name'] is None
+    assert not obj['legal_entity_country_name']
+
+
+def test_primary_place_county(database):
+    initialize_db_values(database)
+
+    # if record type is 1, use ppop to get the county name and code
+    obj = initialize_test_obj(record_type=1, ppop_code="NY**001")
+    obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_perform_county_co'] == "001"
+    assert obj['place_of_perform_county_na'] == "Test County"
+
+    # if record type is 2 and has zip4a use zip code to get county name
+    obj = initialize_test_obj(record_type=2, ppop_zip4a="123454321")
+    obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_perform_county_co'] == "001"
+    assert obj['place_of_perform_county_na'] == "Test County"
 
 
 def test_is_active(database):
