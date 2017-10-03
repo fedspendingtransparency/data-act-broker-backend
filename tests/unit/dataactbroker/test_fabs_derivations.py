@@ -126,32 +126,22 @@ def test_awarding_agency_frec(database):
     assert obj['awarding_sub_tier_agency_n'] == "Test Subtier Agency"
 
 
-def test_funding_agency_name(database):
-    initialize_db_values(database, cgac_code="000")
-
-    # when funding_agency_code is not provided
-    obj = initialize_test_obj()
-    obj = fabs_derivations(obj, database.session)
-    assert obj['funding_agency_name'] is None
-
-    # when funding_agency_code is provided
-    obj = initialize_test_obj(sub_fund_agency_code="1234")
-    obj = fabs_derivations(obj, database.session)
-    assert obj['funding_agency_name'] == "Test CGAC Agency"
-
-
 def test_funding_sub_tier_agency_na(database):
-    initialize_db_values(database)
+    initialize_db_values(database, cgac_code="5678")
 
     # when funding_sub_tier_agency_co is not provided
     obj = initialize_test_obj()
     obj = fabs_derivations(obj, database.session)
     assert obj['funding_sub_tier_agency_na'] is None
+    assert obj['funding_agency_code'] is None
+    assert obj['funding_agency_name'] is None
 
     # when funding_sub_tier_agency_co is provided
     obj = initialize_test_obj(sub_fund_agency_code="1234")
     obj = fabs_derivations(obj, database.session)
     assert obj['funding_sub_tier_agency_na'] == "Test Subtier Agency"
+    assert obj['funding_agency_code'] == '5678'
+    assert obj['funding_agency_name'] == 'Test CGAC Agency'
 
 
 def test_ppop_state_name(database):
