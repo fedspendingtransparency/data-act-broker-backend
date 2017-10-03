@@ -50,39 +50,39 @@ def get_relevant_models(data, benchmarks=False):
 
 
 def load_duns_by_row(data, sess, models, activated_models, benchmarks=False):
-    data = activation_check(data, activated_models, benchmarks).where(pd.notnull(data), None)
-    # update_duns(models, data, benchmarks=benchmarks)
+    # data = activation_check(data, activated_models, benchmarks).where(pd.notnull(data), None)
+    update_duns(models, data, benchmarks=benchmarks)
     sess.add_all(models.values())
 
 
-def activation_check(data, activated_models, benchmarks=False):
-    # if activation_date's already set, keep it, otherwise update it (default)
-    logger.info("going through activation check")
-    if benchmarks:
-        activation_check_start = time.time()
-    lambda_func = (lambda duns_num: pd.Series([activated_models[duns_num].activation_date
-                                               if duns_num in activated_models else np.nan]))
-    data = data.assign(old_activation_date=data["awardee_or_recipient_uniqu"].apply(lambda_func))
-    data.loc[pd.notnull(data["old_activation_date"]), "activation_date"] = data["old_activation_date"]
-    del data["old_activation_date"]
-    if benchmarks:
-        logger.info("Activation check took {} seconds".format(time.time()-activation_check_start))
-    return data
-
 # Removed this function when adding registration_date
-# def update_duns(models, new_data, benchmarks=False):
-#     """Modify existing models or create new ones"""
-#     logger.info("updating duns")
+# def activation_check(data, activated_models, benchmarks=False):
+#     # if activation_date's already set, keep it, otherwise update it (default)
+#     logger.info("going through activation check")
 #     if benchmarks:
-#         update_duns_start = time.time()
-#     for _, row in new_data.iterrows():
-#         awardee_or_recipient_uniqu = row['awardee_or_recipient_uniqu']
-#         if awardee_or_recipient_uniqu not in models:
-#             models[awardee_or_recipient_uniqu] = DUNS()
-#         for field, value in row.items():
-#             setattr(models[awardee_or_recipient_uniqu], field, value)
+#         activation_check_start = time.time()
+#     lambda_func = (lambda duns_num: pd.Series([activated_models[duns_num].activation_date
+#                                                if duns_num in activated_models else np.nan]))
+#     data = data.assign(old_activation_date=data["awardee_or_recipient_uniqu"].apply(lambda_func))
+#     data.loc[pd.notnull(data["old_activation_date"]), "activation_date"] = data["old_activation_date"]
+#     del data["old_activation_date"]
 #     if benchmarks:
-#         logger.info("Updating duns took {} seconds".format(time.time() - update_duns_start))
+#         logger.info("Activation check took {} seconds".format(time.time()-activation_check_start))
+#     return data
+
+def update_duns(models, new_data, benchmarks=False):
+    """Modify existing models or create new ones"""
+    logger.info("updating duns")
+    if benchmarks:
+        update_duns_start = time.time()
+    for _, row in new_data.iterrows():
+        awardee_or_recipient_uniqu = row['awardee_or_recipient_uniqu']
+        if awardee_or_recipient_uniqu not in models:
+            models[awardee_or_recipient_uniqu] = DUNS()
+        for field, value in row.items():
+            setattr(models[awardee_or_recipient_uniqu], field, value)
+    if benchmarks:
+        logger.info("Updating duns took {} seconds".format(time.time() - update_duns_start))
 
 
 def clean_sam_data(data):
@@ -147,7 +147,7 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False):
                 with zip_file.open(dat_file_name) as dat_file:
                     csv_data = pd.read_csv(dat_file, dtype=str, header=None, skiprows=skiprows, nrows=nrows, sep='|',
                                            usecols=column_header_mapping_ordered.values(),
-                                           names=column_header_mapping_ordered.keys())
+                                           names=column_header_mapping_ordered.keys(), quoting=3)
 
                     # add deactivation_date column for delete records
                     lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
