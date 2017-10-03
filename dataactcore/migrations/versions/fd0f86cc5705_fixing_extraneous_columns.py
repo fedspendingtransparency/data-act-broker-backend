@@ -47,3 +47,4 @@ def downgrade_data_broker():
     op.add_column('detached_award_financial_assistance', sa.Column('funding_office_name', sa.TEXT(), autoincrement=False, nullable=True))
     op.add_column('detached_award_financial_assistance', sa.Column('legal_entity_country_name', sa.TEXT(), autoincrement=False, nullable=True))
     ### end Alembic commands ###
+

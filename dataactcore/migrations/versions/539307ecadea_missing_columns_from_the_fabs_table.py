@@ -41,3 +41,4 @@ def downgrade_data_broker():
     op.drop_column('detached_award_financial_assistance', 'funding_office_name')
     op.drop_column('detached_award_financial_assistance', 'funding_agency_name')
     ### end Alembic commands ###
+
