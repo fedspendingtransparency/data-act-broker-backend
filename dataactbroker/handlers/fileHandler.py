@@ -1688,9 +1688,9 @@ def fabs_derivations(obj, sess):
             obj['legal_entity_city_code'] = None
 
     # TODO consider making the CountryCode query before starting the for-loop and just having an object to look up from
-    # deriving primary_place_of_performance_country_name from place_of_perform_country_c
+    # deriving place_of_perform_country_n from place_of_perform_country_c
     if obj['place_of_perform_country_c']:
-        country_data = sess.query(CountryCode).\
+        country_data = sess.query(CountryCode). \
             filter_by(country_code=obj['place_of_perform_country_c'].upper()).one_or_none()
         if country_data:
             obj['place_of_perform_country_n'] = country_data.country_name
