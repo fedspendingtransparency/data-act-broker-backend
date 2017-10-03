@@ -750,7 +750,7 @@ class FileHandler:
         submission_id = submission.submission_id
 
         sess.query(Submission).filter_by(submission_id=submission_id).\
-            update({"publish_status_id": PUBLISH_STATUS_DICT['publishing']},synchronize_session = False)
+            update({"publish_status_id": PUBLISH_STATUS_DICT['publishing']}, synchronize_session=False)
         sess.commit()
 
         try:
@@ -791,7 +791,7 @@ class FileHandler:
             sess.rollback()
 
             sess.query(Submission).filter_by(submission_id=submission_id). \
-                update({"publish_status_id": PUBLISH_STATUS_DICT['unpublished']}, synchronize_session = False)
+                update({"publish_status_id": PUBLISH_STATUS_DICT['unpublished']}, synchronize_session=False)
             sess.commit()
 
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
