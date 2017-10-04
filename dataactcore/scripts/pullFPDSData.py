@@ -35,6 +35,7 @@ from dataactcore.models.userModel import User  # noqa
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
+from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.4.5&q="
 delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&templateName=1.4.5&q="
@@ -1177,7 +1178,8 @@ def get_delete_data(contract_type, now, sess, last_run):
                             timeout=60)
         resp_data = xmltodict.parse(resp.text, process_namespaces=True,
                                     namespaces={'http://www.fpdsng.com/FPDS': None,
-                                                'http://www.w3.org/2005/Atom': None})
+                                                'http://www.w3.org/2005/Atom': None,
+                                                'https://www.fpds.gov/FPDS': None})
         # only list the data if there's data to list
         try:
             listed_data = list_data(resp_data['feed']['entry'])
@@ -1202,8 +1204,8 @@ def get_delete_data(contract_type, now, sess, last_run):
     delete_dict = {}
     for value in data:
         # get last modified date
-        last_modified = value['content']['https://www.fpds.gov/FPDS:'+contract_type]['https://www.fpds.gov/FPDS:transactionInformation']['https://www.fpds.gov/FPDS:lastModifiedDate']
-        unique_string = process_delete_data(value['content']['https://www.fpds.gov/FPDS:'+contract_type], atom_type=contract_type)
+        last_modified = value['content'][contract_type]['transactionInformation']['lastModifiedDate']
+        unique_string = process_delete_data(value['content'][contract_type], atom_type=contract_type)
 
         existing_item = sess.query(DetachedAwardProcurement).\
             filter_by(detached_award_proc_unique=unique_string).one_or_none()
@@ -1213,20 +1215,31 @@ def get_delete_data(contract_type, now, sess, last_run):
             if last_modified > existing_item.last_modified:
                 delete_list.append(existing_item.detached_award_procurement_id)
                 delete_dict[existing_item.detached_award_procurement_id] = existing_item.detached_award_proc_unique
+        # TODO remove this after the first run
+        else:
+            delete_dict[unique_string] = unique_string
 
     # only need to delete values if there's something to delete
     if delete_list:
         sess.query(DetachedAwardProcurement).\
             filter(DetachedAwardProcurement.detached_award_procurement_id.in_(delete_list)).\
             delete(synchronize_session=False)
-        if CONFIG_BROKER["use_aws"]:
-            file_name = now.strftime('%m-%d-%Y') + "_delete_records_" + contract_type + ".csv"
-            headers = ["detached_award_procurement_id", "detached_award_proc_unique"]
-            with CsvS3Writer(CONFIG_BROKER['aws_region'], CONFIG_BROKER['fpds_delete_bucket'], file_name,
-                             headers) as writer:
-                for key, value in delete_dict.items():
-                    writer.write([key, value])
-                writer.finish_batch()
+
+    # writing the file
+    seconds = int((datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)).total_seconds())
+    file_name = now.strftime('%m-%d-%Y') + "_delete_records_" + contract_type + "_" + str(seconds) + ".csv"
+    headers = ["detached_award_procurement_id", "detached_award_proc_unique"]
+    if CONFIG_BROKER["use_aws"]:
+        with CsvS3Writer(CONFIG_BROKER['aws_region'], CONFIG_BROKER['fpds_delete_bucket'], file_name,
+                         headers) as writer:
+            for key, value in delete_dict.items():
+                writer.write([key, value])
+            writer.finish_batch()
+    else:
+        with CsvLocalWriter(file_name, headers) as writer:
+            for key, value in delete_dict.items():
+                writer.write([key, value])
+            writer.finish_batch()
 
 
 def parse_fpds_file(f, sess, sub_tier_list, naics_dict, filename=None):
