@@ -423,7 +423,7 @@ def query_data(session, agency_code, start, end, page_start, page_stop):
         func.to_char(cast(file_model.last_modified, Date), 'YYYYMMDD'),
         file_model.referenced_multi_or_single,
         file_model.referenced_idv_agency_name,
-        file_model.base_exercised_opt_val,
+        file_model.base_exercised_options_val,
         file_model.base_and_all_options_value,
         file_model.place_of_perform_country_n,
         file_model.award_or_idv_flag,
