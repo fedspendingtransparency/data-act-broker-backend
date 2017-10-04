@@ -1202,8 +1202,8 @@ def get_delete_data(contract_type, now, sess, last_run):
     delete_dict = {}
     for value in data:
         # get last modified date
-        last_modified = value['content'][contract_type]['transactionInformation']['lastModifiedDate']
-        unique_string = process_delete_data(value['content'][contract_type], atom_type=contract_type)
+        last_modified = value['content']['https://www.fpds.gov/FPDS:'+contract_type]['https://www.fpds.gov/FPDS:transactionInformation']['https://www.fpds.gov/FPDS:lastModifiedDate']
+        unique_string = process_delete_data(value['content']['https://www.fpds.gov/FPDS:'+contract_type], atom_type=contract_type)
 
         existing_item = sess.query(DetachedAwardProcurement).\
             filter_by(detached_award_proc_unique=unique_string).one_or_none()
