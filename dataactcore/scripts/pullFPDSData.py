@@ -1216,8 +1216,8 @@ def get_delete_data(contract_type, now, sess, last_run):
                 delete_list.append(existing_item.detached_award_procurement_id)
                 delete_dict[existing_item.detached_award_procurement_id] = existing_item.detached_award_proc_unique
         # TODO remove this after the first run
-        else:
-            delete_dict[unique_string] = unique_string
+        # else:
+        #     delete_dict[unique_string] = unique_string
 
     # only need to delete values if there's something to delete
     if delete_list:
