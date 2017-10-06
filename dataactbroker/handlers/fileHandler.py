@@ -914,11 +914,14 @@ class FileHandler:
             response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
 
     @staticmethod
-    def restart_validation(submission):
+    def restart_validation(submission, fabs):
         # update all validation jobs to "ready"
         sess = GlobalDB.db().session
-        initial_file_types = [FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
-                              FILE_TYPE_DICT['award_financial']]
+        if not fabs:
+            initial_file_types = [FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
+                                  FILE_TYPE_DICT['award_financial']]
+        else:
+            initial_file_types = [FILE_TYPE_DICT['detached_award']]
 
         jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id).all()
 
