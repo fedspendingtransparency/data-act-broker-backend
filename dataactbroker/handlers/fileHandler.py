@@ -13,7 +13,7 @@ import calendar
 import requests
 from flask import g, request
 import sqlalchemy as sa
-from sqlalchemy import func
+from sqlalchemy import func, and_
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql.expression import case
@@ -754,6 +754,21 @@ class FileHandler:
         sess.commit()
 
         try:
+            # check to make sure no new entries have been published that collide with the new rows
+            # (correction_late_delete_ind is not C or D)
+            # need to set the models to something because the names are too long and flake gets mad
+            dafa = DetachedAwardFinancialAssistance
+            pafa = PublishedAwardFinancialAssistance
+            colliding_rows = sess.query(dafa.afa_generated_unique). \
+                filter(dafa.is_valid.is_(True),
+                       dafa.submission_id == submission_id,
+                       func.coalesce(func.upper(dafa.correction_late_delete_ind), '').notin_(['C', 'D'])).\
+                join(pafa, and_(dafa.afa_generated_unique == pafa.afa_generated_unique, pafa.is_active.is_(True))).\
+                count()
+            if colliding_rows > 0:
+                raise ResponseException("One or more of the new entries in this submission has been published since "
+                                        "validations completed. Please revalidate.", StatusCode.CLIENT_ERROR)
+
             # get all valid lines for this submission
             query = sess.query(DetachedAwardFinancialAssistance).\
                 filter_by(is_valid=True, submission_id=submission_id).all()
@@ -795,6 +810,11 @@ class FileHandler:
             sess.query(Submission).filter_by(submission_id=submission_id). \
                 update({"publish_status_id": PUBLISH_STATUS_DICT['unpublished']}, synchronize_session=False)
             sess.commit()
+
+            # we want to return response exceptions in such a way that we can see the message, not catching it
+            # separately because we still want to rollback the changes and set the status to unpublished
+            if type(e) == ResponseException:
+                return JsonResponse.error(e, e.status)
 
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
