@@ -1563,12 +1563,13 @@ def fabs_derivations(obj, sess):
         if len(obj['place_of_performance_zip4a']) > 5:
             zip_four = obj['place_of_performance_zip4a'][-4:]
 
-        # if there's a 9-digit zip code, use both parts to get data, otherwise just grab the first
-        # instance of the zip5 we find
+        zip_info = None
+        # if there's a 9-digit zip code, use both parts to get data, otherwise (or if that's invalid) just grab
+        # the first instance of the zip5 we find
         if zip_four:
             zip_info = sess.query(Zips).\
                 filter_by(zip5=zip_five, zip_last4=zip_four).first()
-        else:
+        if not zip_info:
             zip_info = sess.query(Zips).\
                 filter_by(zip5=zip_five).first()
 
