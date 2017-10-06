@@ -1564,6 +1564,7 @@ def fabs_derivations(obj, sess):
             zip_four = obj['place_of_performance_zip4a'][-4:]
 
         zip_info = None
+        cd_count = 1
         # if there's a 9-digit zip code, use both parts to get data, otherwise (or if that's invalid) just grab
         # the first instance of the zip5 we find
         if zip_four:
@@ -1572,10 +1573,16 @@ def fabs_derivations(obj, sess):
         if not zip_info:
             zip_info = sess.query(Zips).\
                 filter_by(zip5=zip_five).first()
+            # if this is a 5-digit zip, there may be more than one congressional district associated with it
+            cd_count = sess.query(Zips.congressional_district_no.label('cd_count')).\
+                filter_by(zip5=zip_five).distinct().count()
 
         # deriving ppop congressional district
         if not obj['place_of_performance_congr']:
-            obj['place_of_performance_congr'] = zip_info.congressional_district_no
+            if zip_info.congressional_district_no and cd_count == 1:
+                obj['place_of_performance_congr'] = zip_info.congressional_district_no
+            else:
+                obj['place_of_performance_congr'] = '90'
 
         # deriving PrimaryPlaceOfPerformanceCountyName/Code
         obj['place_of_perform_county_co'] = zip_info.county_number
@@ -1740,17 +1747,19 @@ def fabs_derivations(obj, sess):
     if obj['record_type'] == 2 and obj['place_of_performance_zip4a'] and\
        obj['place_of_performance_zip4a'] != 'city-wide':
         zip_five = obj['place_of_performance_zip4a'][:5]
+        zip_four = None
 
         # if zip4 is 9 digits, set the zip_four value to the last 4 digits
         if len(obj['place_of_performance_zip4a']) > 5:
             zip_four = obj['place_of_performance_zip4a'][-4:]
 
-        # if there's a 9-digit zip code, use both parts to get data, otherwise just grab the first
-        # instance of the zip5 we find
+        zip_info = None
+        # if there's a 9-digit zip code, use both parts to get data, otherwise (or if that's invalid) just grab
+        # the first instance of the zip5 we find
         if zip_four:
             zip_info = sess.query(Zips). \
                 filter_by(zip5=zip_five, zip_last4=zip_four).first()
-        else:
+        if not zip_info:
             zip_info = sess.query(Zips). \
                 filter_by(zip5=zip_five).first()
         obj['place_of_perform_county_co'] = zip_info.county_number
