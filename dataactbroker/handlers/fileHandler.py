@@ -766,8 +766,11 @@ class FileHandler:
                 join(pafa, and_(dafa.afa_generated_unique == pafa.afa_generated_unique, pafa.is_active.is_(True))).\
                 count()
             if colliding_rows > 0:
-                raise ResponseException("One or more of the new entries in this submission has been published since "
-                                        "validations completed. Please revalidate.", StatusCode.CLIENT_ERROR)
+                raise ResponseException("1 or more rows in this submission were already published (in a separate "
+                                        "submission). This occurred in the time since your validations were completed. "
+                                        "To prevent duplicate records, this submission must be revalidated in order to "
+                                        "publish.",
+                                        StatusCode.CLIENT_ERROR)
 
             # get all valid lines for this submission
             query = sess.query(DetachedAwardFinancialAssistance).\
