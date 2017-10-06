@@ -39,3 +39,4 @@ def downgrade_data_broker():
     op.drop_column('award_procurement', 'base_exercised_options_val')
     op.drop_column('award_procurement', 'base_and_all_options_value')
     ### end Alembic commands ###
+
