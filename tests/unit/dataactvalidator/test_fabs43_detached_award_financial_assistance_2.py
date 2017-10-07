@@ -22,10 +22,10 @@ def test_success(database):
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a=None,
                                                           place_of_performance_congr="01",
                                                           place_of_perform_country_c="USA")
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="12345",
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="123454321",
                                                           place_of_performance_congr="",
                                                           place_of_perform_country_c="usa")
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="12345",
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="123454321",
                                                           place_of_performance_congr=None,
                                                           place_of_perform_country_c="USA")
     det_award_5 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="12345",
@@ -65,6 +65,12 @@ def test_failure(database):
     det_award_6 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a='city-wide',
                                                           place_of_performance_congr="",
                                                           place_of_perform_country_c="USA")
+    det_award_7 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="12345",
+                                                          place_of_performance_congr="",
+                                                          place_of_perform_country_c="usa")
+    det_award_8 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="12345",
+                                                          place_of_performance_congr=None,
+                                                          place_of_perform_country_c="USA")
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6])
-    assert errors == 6
+                                                       det_award_6, det_award_7, det_award_8])
+    assert errors == 8

@@ -77,3 +77,4 @@ def downgrade_data_broker():
     op.drop_column('award_procurement', 'place_of_perform_country_n')
     op.drop_column('award_procurement', 'award_or_idv_flag')
     ### end Alembic commands ###
+
