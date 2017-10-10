@@ -793,6 +793,7 @@ List submissions for all agencies for which the current user is a member of. Opt
         "name": "User Name",
         "user_id": 1
       },
+      "files": ["file1.csv", "file2.csv"],
       "agency": "Department of the Treasury (TREAS)"
       "status": "validation_successful" (will be undergoing changes),
       "size": 0,
@@ -810,6 +811,7 @@ List submissions for all agencies for which the current user is a member of. Opt
         "name": "User2 Name2",
         "user_id": 2
       },
+      "files": ["file1.csv", "file2.csv"],
       "agency": "Department of Defense (DOD)"
       "status": "file_errors" (will be undergoing changes),
       "size": 34482,
