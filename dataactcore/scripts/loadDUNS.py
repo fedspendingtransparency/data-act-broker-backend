@@ -95,9 +95,7 @@ def clean_sam_data(data):
         "last_sam_mod_date": "last_sam_mod_date",
         "sam_extract_code": "sam_extract_code",
         "legal_business_name": "legal_business_name"
-    }, {
-        'awardee_or_recipient_uniqu': {'pad_to_length': 9, 'keep_null': True}
-    })
+    }, {})
 
 
 def parse_sam_file(file_path, sess, monthly=False, benchmarks=False):
