@@ -752,13 +752,15 @@ This route alters a submission's jobs' statuses and then restarts all validation
 
 ```
 {
-  "submission_id": 1
+  "submission_id": 1,
+  "d2_submission": True
 }
 ```
 
 ##### Body Description
 
 * `submission_id` - **required** - an integer corresponding to the ID of the submission for which the validations should be restarted.
+* `d2_submission` - a boolean indicating whether this is a dabs or fabs submission
 
 ##### Response (JSON)
 
