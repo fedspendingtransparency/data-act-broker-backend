@@ -28,7 +28,13 @@ def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, us
                              congressional_district_no="01")
     zip_code_2 = ZipsFactory(zip5="12345", zip_last4="4321", state_abbreviation=state.state_code, county_number="001",
                              congressional_district_no="02")
+    zip_code_3 = ZipsFactory(zip5="54321", zip_last4="4321", state_abbreviation=state.state_code, county_number="001",
+                             congressional_district_no="05")
+    zip_code_4 = ZipsFactory(zip5="98765", zip_last4="4321", state_abbreviation=state.state_code, county_number="001",
+                             congressional_district_no=None)
     zip_city = ZipCityFactory(zip_code=zip_code_1.zip5, city_name="Test Zip City")
+    zip_city_2 = ZipCityFactory(zip_code=zip_code_3.zip5, city_name="Test Zip City 2")
+    zip_city_3 = ZipCityFactory(zip_code=zip_code_4.zip5, city_name="Test Zip City 3")
     county_code = CountyCodeFactory(state_code=state.state_code, county_number=zip_code_1.county_number,
                                     county_name="Test County")
     city_code = CityCodeFactory(feature_name="Test City", city_code="00001", state_code=state.state_code,
@@ -36,8 +42,8 @@ def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, us
     contracting_office = FPDSContractingOfficeFactory(contracting_office_code='033103',
                                                       contracting_office_name='Office')
     country_code = CountryCodeFactory(country_code='USA', country_name='United States of America')
-    db.session.add_all([sub_tier, state, cfda_number, zip_code_1, zip_code_2, zip_city, county_code, city_code,
-                        contracting_office, country_code])
+    db.session.add_all([sub_tier, state, cfda_number, zip_code_1, zip_code_2, zip_code_3, zip_code_4, zip_city,
+                        zip_city_2, zip_city_3, county_code, city_code, contracting_office, country_code])
     db.session.commit()
 
 
@@ -172,15 +178,30 @@ def test_ppop_derivations(database):
     obj = fabs_derivations(obj, database.session)
     assert obj['place_of_performance_congr'] == '03'
 
-    # when ppop_zip4a is 4 digits
+    # when ppop_zip4a is 5 digits
     obj = initialize_test_obj(ppop_zip4a="12345")
     obj = fabs_derivations(obj, database.session)
-    # hard to tell which will be "first" because it depends on what order it's added by sqlalchemy,
-    # but we know it has to be one of them
-    assert obj['place_of_performance_congr'] == '01' or '02'
+    # cd should be 90 if there's more than one option
+    assert obj['place_of_performance_congr'] == '90'
     assert obj['place_of_perform_county_co'] == "001"
     assert obj['place_of_perform_county_na'] == "Test County"
     assert obj['place_of_performance_city'] == "Test Zip City"
+
+    # when ppop_zip4 is 9 digits but last 4 are invalid (one cd available)
+    obj = initialize_test_obj(ppop_zip4a="543210000")
+    obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_performance_congr'] == '05'
+    assert obj['place_of_perform_county_co'] == "001"
+    assert obj['place_of_perform_county_na'] == "Test County"
+    assert obj['place_of_performance_city'] == "Test Zip City 2"
+
+    # when ppop_zip4 is 9 digits (no cd available)
+    obj = initialize_test_obj(ppop_zip4a="987654321")
+    obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_performance_congr'] == '90'
+    assert obj['place_of_perform_county_co'] == "001"
+    assert obj['place_of_perform_county_na'] == "Test County"
+    assert obj['place_of_performance_city'] == "Test Zip City 3"
 
     # when we don't have ppop_zip4a and ppop_code is in XX**### format
     obj = initialize_test_obj(ppop_code="NY**001")
