@@ -1380,7 +1380,8 @@ def serialize_submission(submission_list):
                 "agency": agency_name if agency_name else 'N/A',
                 "files": [submission.filename],
                 # @todo why are these a different format?
-                "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date else None,
+                "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date
+                else None,
                 "reporting_end_date": str(submission.reporting_end_date) if submission.reporting_end_date else None,
                 "user": {"user_id": submission.user_id,
                          "name": submission.name if submission.name else "No User"},
