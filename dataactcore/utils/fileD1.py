@@ -105,7 +105,7 @@ mapping = OrderedDict([
     ('solicitation_procedures', 'solicitation_procedures'),
     ('fair_opportunity_limited_sources', 'fair_opportunity_limited_s'),
     ('subcontracting_plan', 'subcontracting_plan'),
-    ('program_system_or_equipment_code', 'program_system_or_equipmen'),
+    ('dod_acquisition_program', 'program_system_or_equipmen'),
     ('type_set_aside', 'type_set_aside'),
     ('epa_designated_product', 'epa_designated_product'),
     ('walsh_healey_act', 'walsh_healey_act'),
@@ -201,6 +201,15 @@ mapping = OrderedDict([
     ('undefinitized_action', 'undefinitized_action'),
     ('domestic_or_foreign_entity', 'domestic_or_foreign_entity'),
     ('lastmodifieddate', 'last_modified'),
+    ('referenced_idv_multiple_or_single', 'referenced_multi_or_single'),
+    ('referenced_idv_agency_name', 'referenced_idv_agency_name'),
+    ('baseandexercisedoptionsvalue', 'base_exercised_options_val'),
+    ('baseandalloptionsvalue', 'base_and_all_options_value'),
+    ('primaryplaceofperformancecountryname', 'place_of_perform_country_n'),
+    ('award_or_idv_flag', 'award_or_idv_flag'),
+    ('primaryplaceofperformancestatename', 'place_of_perform_state_nam'),
+    ('primaryplaceofperformancecountyname', 'place_of_perform_county_na'),
+    ('referenced_idv_type', 'referenced_idv_type'),
     ('primaryplaceofperformancecityname', 'place_of_perform_city_name')
 ])
 db_columns = [val for key, val in mapping.items()]
@@ -412,6 +421,15 @@ def query_data(session, agency_code, start, end, page_start, page_stop):
         file_model.undefinitized_action,
         file_model.domestic_or_foreign_entity,
         func.to_char(cast(file_model.last_modified, Date), 'YYYYMMDD'),
+        file_model.referenced_multi_or_single,
+        file_model.referenced_idv_agency_name,
+        file_model.base_exercised_options_val,
+        file_model.base_and_all_options_value,
+        file_model.place_of_perform_country_n,
+        file_model.award_or_idv_flag,
+        file_model.place_of_perform_state_nam,
+        file_model.place_of_perform_county_na,
+        file_model.referenced_idv_type,
         file_model.place_of_perform_city_name).\
         filter(file_model.awarding_agency_code == agency_code).\
         filter(cast(file_model.action_date, Date) >= start).\

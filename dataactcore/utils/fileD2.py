@@ -66,7 +66,7 @@ mapping = OrderedDict([
     ('federalactionobligation', 'federal_action_obligation'),
     ('nonfederalfundingamount', 'non_federal_funding_amount'),
     ('totalfundingamount', 'total_funding_amount'),
-    ('facevalueloanguarantee', 'face_value_loan_guarantee'),
+    ('facevalueofdirectloanorloanguarantee', 'face_value_loan_guarantee'),
     ('originalloansubsidycost', 'original_loan_subsidy_cost'),
     ('businessfundsindicator', 'business_funds_indicator'),
     ('fundingofficename', 'funding_office_name'),
