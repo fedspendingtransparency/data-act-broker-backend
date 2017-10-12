@@ -16,6 +16,8 @@ import time
 import re
 import threading
 
+from dateutil.relativedelta import relativedelta
+
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 
@@ -1084,7 +1086,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None,
         # params = 'SIGNED_DATE:[2017/07/01,' + yesterday.strftime('%Y/%m/%d') + '] '
     # if a date that the script was last successfully run is provided, get data since that date
     else:
-        last_run_date = last_run.update_date
+        last_run_date = last_run.update_date - relativedelta(days=1)
         params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
 
     # TODO remove this later, this is just for testing
