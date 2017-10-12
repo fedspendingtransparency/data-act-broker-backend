@@ -49,8 +49,6 @@ def test_list_submissions_sort_success(database, job_constants, monkeypatch):
     assert result['total'] == 5
     sub = result['submissions'][0]
     index = 0
-    for item in result['submissions']:
-        print(item['reporting_start_date'])
     for subit in result['submissions']:
         index += 1
         assert subit['reporting_start_date'] <= sub['reporting_start_date']

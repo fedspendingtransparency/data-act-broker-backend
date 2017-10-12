@@ -43,8 +43,8 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
-    create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status,
-    mark_job_status, run_job_checks, get_last_validated_date, get_lastest_certified_date, get_fabs_meta)
+    create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status, get_fabs_meta,
+    get_submission_files, mark_job_status, run_job_checks, get_last_validated_date, get_lastest_certified_date)
 from dataactbroker.handlers.fileGenerationHandler import generate_d_file, generate_e_file, generate_f_file
 
 logger = logging.getLogger(__name__)
@@ -1244,12 +1244,11 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     frec_columns = [FREC.frec_code, FREC.agency_name.label('frec_agency_name')]
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
                     certifying_user.name.label('certifying_user_name')]
-    job_columns = [Job.filename]
 
     view_columns = [submission_updated_view.submission_id,
                     submission_updated_view.updated_at.label('updated_at')]
 
-    columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns + job_columns
+    columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
 
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id).\
@@ -1257,7 +1256,6 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
-        outerjoin(Job, Submission.submission_id == Job.submission_id).\
         filter(Submission.d2_submission.is_(d2_submission))
     if not g.user.website_admin:
         cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
@@ -1270,8 +1268,6 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
             query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
         else:
             query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
-
-    total_submissions = query.count()
 
     options = {
         'modified': {'model': submission_updated_view, 'col': 'updated_at'},
@@ -1296,12 +1292,12 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
 
     query = query.order_by(sort_order)
 
-    submission_list = serialize_submission(query)
+    total_submissions = query.count()
 
-    total_submissions = len(submission_list)
+    query = query.limit(limit).offset(offset)
 
     return JsonResponse.create(StatusCode.OK, {
-        "submissions": list(submission_list)[slice(offset, offset+limit)],
+        "submissions": [serialize_submission(submission) for submission in query],
         "total": total_submissions
     })
 
@@ -1390,34 +1386,33 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 
-def serialize_submission(submission_list):
+def serialize_submission(submission):
     """Convert the provided submission into a dictionary in a schema the
     frontend expects"""
-    new_list = {}
-    for submission in submission_list:
-        status = get_submission_status(submission)
-        certified_on = get_lastest_certified_date(submission)
-        agency_name = submission.cgac_agency_name if submission.cgac_agency_name else submission.frec_agency_name
-        if submission.submission_id not in new_list:
-            new_list[submission.submission_id] = {
-                "submission_id": submission.submission_id,
-                "last_modified": str(submission.updated_at),
-                "status": status,
-                "agency": agency_name if agency_name else 'N/A',
-                "files": [submission.filename],
-                # @todo why are these a different format?
-                "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date
-                else None,
-                "reporting_end_date": str(submission.reporting_end_date) if submission.reporting_end_date else None,
-                "user": {"user_id": submission.user_id,
-                         "name": submission.name if submission.name else "No User"},
-                "certifying_user": submission.certifying_user_name if submission.certifying_user_name else "",
-                'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
-                "certified_on": str(certified_on) if certified_on else ""
-            }
-        elif submission.filename not in new_list[submission.submission_id]['files']:
-            new_list[submission.submission_id]['files'].append(submission.filename)
-    return new_list.values()
+
+    sess = GlobalDB.db().session
+
+    jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
+    files = get_submission_files(jobs)
+    status = get_submission_status(submission, jobs)
+    certified_on = get_lastest_certified_date(submission)
+    agency_name = submission.cgac_agency_name if submission.cgac_agency_name else submission.frec_agency_name
+    return {
+        "submission_id": submission.submission_id,
+        "last_modified": str(submission.updated_at),
+        "status": status,
+        "agency": agency_name if agency_name else 'N/A',
+        "files": files,
+        # @todo why are these a different format?
+        "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date
+        else None,
+        "reporting_end_date": str(submission.reporting_end_date) if submission.reporting_end_date else None,
+        "user": {"user_id": submission.user_id,
+                 "name": submission.name if submission.name else "No User"},
+        "certifying_user": submission.certifying_user_name if submission.certifying_user_name else "",
+        'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
+        "certified_on": str(certified_on) if certified_on else ""
+    }
 
 
 def submission_report_url(submission, warning, file_type, cross_type):
