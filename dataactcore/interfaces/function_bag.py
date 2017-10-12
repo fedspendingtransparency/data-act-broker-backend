@@ -575,10 +575,8 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
 def get_submission_files(jobs):
     job_list = []
     for job in jobs:
-        print(job)
-        if job['filename'] not in job_list:
-            job_list.append(job['filename'])
-    print(job_list)
+        if job.filename not in job_list:
+            job_list.append(job.filename)
     return job_list
 
 
