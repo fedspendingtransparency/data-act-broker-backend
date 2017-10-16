@@ -67,13 +67,12 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
 
         try:
             # create file locally
-            with open(full_file_path, 'w', newline='') as out_csv:
-                outcsv = csv.writer(out_csv, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+            with open(full_file_path, 'w', newline='') as csv_file:
+                out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
 
                 # write headers to file
                 headers = [key for key in file_utils.mapping]
-                print(headers)
-                outcsv.writerow(headers)
+                out_csv.writerow(headers)
                 while True:
                     # query QUERY_SIZE number of rows
                     page_start = QUERY_SIZE * page_idx
@@ -86,23 +85,21 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
                     # write records to file
                     logger.debug('Writing rows {}-{} to file {} CSV'.format(page_start, page_start + len(rows),
                                                                             file_type))
-                    outcsv.writerows(rows)
+                    out_csv.writerows(rows)
 
                     if len(rows) < QUERY_SIZE:
                         break
-                if not is_local:
-                    # stream file to S3 when not local
-                    s3manager = S3Handler
-                    conn = s3manager.create_file_path(upload_name)
-                    with smart_open.smart_open(conn, 'w') as writer:
-                        for chunk in outcsv.iter_content(chunk_size=CHUNK_SIZE):
-                            if chunk:
-                                writer.write(chunk)
         finally:
             # close file
-            out_csv.close()
+            csv_file.close()
             if not is_local:
                 os.remove(full_file_path)
+
+        if not is_local:
+            # stream file to S3 when not local
+            with open(full_file_path, 'rb') as csv_file:
+                with smart_open.smart_open(S3Handler.create_file_path(upload_name), 'w') as writer:
+                    writer.write(csv_file)
 
         logger.debug('Finished writing to file: {}'.format(file_name))
     logger.debug('Finished file {} generation'.format(file_type))
