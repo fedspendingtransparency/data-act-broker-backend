@@ -89,6 +89,8 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
 
                     if len(rows) < QUERY_SIZE:
                         break
+
+                    page_idx += 1
         finally:
             # close file
             csv_file.close()
