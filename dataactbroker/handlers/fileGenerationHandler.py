@@ -92,14 +92,15 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
         finally:
             # close file
             csv_file.close()
-            if not is_local:
-                os.remove(full_file_path)
 
         if not is_local:
             # stream file to S3 when not local
             with open(full_file_path, 'rb') as csv_file:
                 with smart_open.smart_open(S3Handler.create_file_path(upload_name), 'w') as writer:
                     writer.write(csv_file)
+
+            csv_file.close()
+            os.remove(full_file_path)
 
         logger.debug('Finished writing to file: {}'.format(file_name))
     logger.debug('Finished file {} generation'.format(file_type))
