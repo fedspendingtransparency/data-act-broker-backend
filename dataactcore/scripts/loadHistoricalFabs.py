@@ -179,8 +179,7 @@ def format_fabs_data(data, sess, fips_state_list, state_code_list, sub_tier_list
             'uri': 'uri'
         }, {
             'place_of_performance_congr': {'pad_to_length': 2, 'keep_null': True},
-            'legal_entity_congressional': {'pad_to_length': 2, 'keep_null': True},
-            'awardee_or_recipient_uniqu': {'pad_to_length': 9, 'keep_null': True}
+            'legal_entity_congressional': {'pad_to_length': 2, 'keep_null': True}
         }
     )
 
