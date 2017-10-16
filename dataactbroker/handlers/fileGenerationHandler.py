@@ -97,7 +97,8 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
             # stream file to S3 when not local
             with open(full_file_path, 'rb') as csv_file:
                 with smart_open.smart_open(S3Handler.create_file_path(upload_name), 'w') as writer:
-                    writer.write(csv_file)
+                    for content_in_bytes in bytes_from_file(csv_file):
+                        writer.write(content_in_bytes)
 
             csv_file.close()
             os.remove(full_file_path)
@@ -168,3 +169,12 @@ def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, i
         write_csv(timestamped_name, upload_file_name, is_local, fileE.Row._fields, rows)
 
     logger.debug('Finished file E generation')
+
+def bytes_from_file(file, chunksize=8192):
+    while True:
+        chunk = file.read(chunksize)
+        if chunk:
+            for b in chunk:
+                yield b
+        else:
+            break
