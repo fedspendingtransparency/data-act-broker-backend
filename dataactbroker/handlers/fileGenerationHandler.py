@@ -98,7 +98,7 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
             with open(full_file_path, 'rb') as csv_file:
                 with smart_open.smart_open(S3Handler.create_file_path(upload_name), 'w') as writer:
                     while True:
-                        chunk = file.read(CHUNK_SIZE)
+                        chunk = csv_file.read(CHUNK_SIZE)
                         if chunk:
                             writer.write(chunk)
                         else:
