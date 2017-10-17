@@ -43,8 +43,8 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
-    create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status,
-    mark_job_status, run_job_checks, get_last_validated_date, get_lastest_certified_date, get_fabs_meta)
+    create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status, get_fabs_meta,
+    get_submission_files, mark_job_status, run_job_checks, get_last_validated_date, get_lastest_certified_date)
 from dataactbroker.handlers.fileGenerationHandler import generate_d_file, generate_e_file, generate_f_file
 
 logger = logging.getLogger(__name__)
@@ -1269,8 +1269,6 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         else:
             query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
 
-    total_submissions = query.count()
-
     options = {
         'modified': {'model': submission_updated_view, 'col': 'updated_at'},
         'reporting': {'model': Submission, 'col': 'reporting_start_date'},
@@ -1293,6 +1291,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         sort_order = sort_order.desc()
 
     query = query.order_by(sort_order)
+
+    total_submissions = query.count()
 
     query = query.limit(limit).offset(offset)
 
@@ -1389,17 +1389,23 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
 def serialize_submission(submission):
     """Convert the provided submission into a dictionary in a schema the
     frontend expects"""
-    status = get_submission_status(submission)
+
+    sess = GlobalDB.db().session
+
+    jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
+    files = get_submission_files(jobs)
+    status = get_submission_status(submission, jobs)
     certified_on = get_lastest_certified_date(submission)
     agency_name = submission.cgac_agency_name if submission.cgac_agency_name else submission.frec_agency_name
-
     return {
         "submission_id": submission.submission_id,
         "last_modified": str(submission.updated_at),
         "status": status,
         "agency": agency_name if agency_name else 'N/A',
+        "files": files,
         # @todo why are these a different format?
-        "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date else None,
+        "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date
+        else None,
         "reporting_end_date": str(submission.reporting_end_date) if submission.reporting_end_date else None,
         "user": {"user_id": submission.user_id,
                  "name": submission.name if submission.name else "No User"},
