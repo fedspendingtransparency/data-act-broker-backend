@@ -764,6 +764,11 @@ class FileTests(BaseTestAPI):
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(response.json['message'], "Success")
 
+        post_json = {'submission_id': self.test_fabs_submission_id, 'd2_submission': True}
+        response = self.app.post_json("/v1/restart_validation/", post_json,
+                                      headers={"x-session-id": self.session_id})
+        self.assertEqual(response.json['message'], "Success")
+
     @staticmethod
     def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
                           is_quarter=False, number_of_errors=0, publish_status_id=1, is_fabs=False):
