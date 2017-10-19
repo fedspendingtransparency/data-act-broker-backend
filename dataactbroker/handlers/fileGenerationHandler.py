@@ -1,18 +1,26 @@
-from contextlib import contextmanager
+import csv
 import logging
+import os
+import smart_open
 
+from contextlib import contextmanager
 from flask import Flask
 
+from dataactcore.aws.s3Handler import S3Handler
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.jobModels import Job
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
-from dataactvalidator.filestreaming.csv_selection import write_csv, get_write_csv_writer
+from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = 1024
+QUERY_SIZE = 10000
 
 
 @contextmanager
@@ -54,25 +62,51 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
 
     with job_context(job_id) as session:
         file_utils = fileD1 if file_type == 'D1' else fileD2
-        headers, columns = [key for key in file_utils.mapping], file_utils.db_columns
-        page_size, page_idx = 10000, 0
-        with get_write_csv_writer(file_name, upload_name, is_local, headers) as writer:
-            # stream to file
-            while True:
-                page_start = page_size * page_idx
-                rows = file_utils.\
-                    query_data(session, agency_code, start, end, page_start, (page_size * (page_idx + 1))).all()
-                if rows is None:
-                    break
+        full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], file_name])
+        page_idx = 0
 
-                logger.debug('Writing rows {}-{} to file {} CSV'.format(page_start, page_start+len(rows), file_type))
-                for row in rows:
-                    writer.write([dict(zip(columns, row))[value] for value in columns])
+        try:
+            # create file locally
+            with open(full_file_path, 'w', newline='') as csv_file:
+                out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
 
-                if len(rows) < page_size:
-                    break
-                page_idx += 1
-            writer.finish_batch()
+                # write headers to file
+                headers = [key for key in file_utils.mapping]
+                out_csv.writerow(headers)
+                while True:
+                    # query QUERY_SIZE number of rows
+                    page_start = QUERY_SIZE * page_idx
+                    rows = file_utils.\
+                        query_data(session, agency_code, start, end, page_start, (QUERY_SIZE * (page_idx + 1))).all()
+
+                    if rows is None:
+                        break
+
+                    # write records to file
+                    logger.debug('Writing rows {}-{} to file {} CSV'.format(page_start, page_start + len(rows),
+                                                                            file_type))
+                    out_csv.writerows(rows)
+
+                    if len(rows) < QUERY_SIZE:
+                        break
+
+                    page_idx += 1
+        finally:
+            # close file
+            csv_file.close()
+
+        if not is_local:
+            # stream file to S3 when not local
+            with open(full_file_path, 'rb') as csv_file:
+                with smart_open.smart_open(S3Handler.create_file_path(upload_name), 'w') as writer:
+                    while True:
+                        chunk = csv_file.read(CHUNK_SIZE)
+                        if chunk:
+                            writer.write(chunk)
+                        else:
+                            break
+            csv_file.close()
+            os.remove(full_file_path)
 
         logger.debug('Finished writing to file: {}'.format(file_name))
     logger.debug('Finished file {} generation'.format(file_type))
