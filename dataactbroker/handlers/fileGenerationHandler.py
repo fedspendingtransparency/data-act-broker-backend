@@ -83,8 +83,6 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
         sess.add(file_request)
         sess.commit()
 
-        print(file_request.job)
-
         if not parent_req:
             # generate D file
             file_utils = fileD1 if file_type == 'D1' else fileD2
