@@ -40,13 +40,19 @@ def job_context(job_id):
             logger.exception('Job %s failed', job_id)
             job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
             if job:
+                # mark job as failed
                 job.error_message = str(e)
-                sess.commit()
                 mark_job_status(job_id, "failed")
 
-                # TODO
-                # mark FileRequest jobs as failed
-                # mark FileRequest is_cached_file as False
+                # update FileRequest and its children
+                file_request = sess.query(FileRequest).filter_by(job_id=job_id).one_or_none()
+                if file_request:
+                    file_request.is_cached_file = False
+                    child_requests = sess.query(FileRequest).filter_by(parent_job_id=job_id).all()
+                    for child in child_requests:
+                        copy_parent_file_request_data(child.job, file_request.job, True)
+
+                sess.commit()
         finally:
 
             GlobalDB.close()
@@ -68,16 +74,18 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
     logger.debug('Starting file {} generation'.format(file_type))
     with job_context(job_id) as sess:
         current_date = datetime.now().date()
-        job = sess.query(Job).filter_by(job_id=job_id).one()
         file_request = FileRequest(request_date=current_date, job_id=job_id, start_date=start, end_date=end,
                                    agency_code=agency_code, file_type=file_type, is_cached_file=True)
-        parent_request = sess.query(FileRequest).filter_by(request_date=current_date, file_type=file_type,
-                                                           start_date=start, end_date=end, agency_code=agency_code,
-                                                           is_cached_file=True).one_or_none()
-        file_request.parent_job_id = parent_request.job_id if parent_request else None
+        parent_req = sess.query(FileRequest).filter_by(request_date=current_date, file_type=file_type, start_date=start,
+                                                       end_date=end, agency_code=agency_code, is_cached_file=True).\
+                                             one_or_none()
+        file_request.parent_job_id = parent_req.job_id if parent_req else None
         sess.add(file_request)
+        sess.commit()
 
-        if not parent_request:
+        print(file_request.job)
+
+        if not parent_req:
             # generate D file
             file_utils = fileD1 if file_type == 'D1' else fileD2
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], file_name])
@@ -125,19 +133,19 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
                 os.remove(full_file_path)
             logger.debug('Finished writing to file: {}'.format(file_name))
 
-            if not parent_request:
+            if not parent_req:
                 # copy job data to all child FileRequests
                 child_requests = sess.query(FileRequest).filter_by(parent_job_id=job_id).all()
                 for child in child_requests:
-                    copy_parent_file_request_data(child.job, job, is_local)
+                    copy_parent_file_request_data(child.job, file_request.job, is_local)
         else:
             # copy parent data to this job
             file_request.is_cached_file = False
-            file_request.parent_job_id = parent_request.job.job_id
-            job.is_cached = True
-            if parent_request.job.job_status_id != JOB_STATUS_DICT['running']:
+            file_request.parent_job_id = parent_req.job.job_id
+            file_request.job.is_cached = True
+            if parent_req.job.job_status_id != JOB_STATUS_DICT['running']:
                 # only copy file data if job has finished running
-                copy_parent_file_request_data(job, parent_request.job, is_local)
+                copy_parent_file_request_data(file_request.job, parent_req.job, is_local)
 
         sess.commit()
     logger.debug('Finished file {} generation'.format(file_type))
