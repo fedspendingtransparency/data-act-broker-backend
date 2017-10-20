@@ -110,7 +110,6 @@ class Job(Base):
     last_validated = Column(DateTime, default=datetime.utcnow)
     from_cached = Column(Boolean, nullable=False, default=False)
 
-
     @property
     def job_type_name(self):
         return JOB_TYPE_DICT_ID.get(self.job_type_id)
@@ -260,5 +259,6 @@ class FileRequest(Base):
     parent_job_id = Column(Integer, nullable=True, index=True)
     start_date = Column(Date, nullable=False, index=True)
     end_date = Column(Date, nullable=False, index=True)
-    agency_id = Column(Text, nullable=False, index=True)
-    is_active = Column(Boolean, nullable=False, default=False)
+    agency_code = Column(Text, nullable=False, index=True)
+    file_type = Column(Text, nullable=False, index=True)
+    is_cached_file = Column(Boolean, nullable=False, default=False)

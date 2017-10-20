@@ -3,6 +3,7 @@ import logging
 import os
 import smart_open
 
+from datetime import datetime
 from contextlib import contextmanager
 from flask import Flask
 
@@ -10,9 +11,10 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
-from dataactcore.models.jobModels import Job
-from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.models.domainModels import ExecutiveCompensation
+from dataactcore.models.jobModels import Job, FileRequest
+from dataactcore.models.lookups import JOB_STATUS_DICT
+from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
@@ -41,7 +43,12 @@ def job_context(job_id):
                 job.error_message = str(e)
                 sess.commit()
                 mark_job_status(job_id, "failed")
+
+                # TODO
+                # mark FileRequest jobs as failed
+                # mark FileRequest is_cached_file as False
         finally:
+
             GlobalDB.close()
 
 
@@ -59,56 +66,80 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
             is_local - True if in local development, False otherwise
     """
     logger.debug('Starting file {} generation'.format(file_type))
+    with job_context(job_id) as sess:
+        current_date = datetime.now().date()
+        job = sess.query(Job).filter_by(job_id=job_id).one()
+        file_request = FileRequest(request_date=current_date, job_id=job_id, start_date=start, end_date=end,
+                                   agency_code=agency_code, file_type=file_type, is_cached_file=True)
+        parent_request = sess.query(FileRequest).filter_by(request_date=current_date, file_type=file_type,
+                                                           start_date=start, end_date=end, agency_code=agency_code,
+                                                           is_cached_file=True).one_or_none()
+        file_request.parent_job_id = parent_request.job_id if parent_request else None
+        sess.add(file_request)
 
-    with job_context(job_id) as session:
-        file_utils = fileD1 if file_type == 'D1' else fileD2
-        full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], file_name])
-        page_idx = 0
+        if not parent_request:
+            # generate D file
+            file_utils = fileD1 if file_type == 'D1' else fileD2
+            full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], file_name])
+            page_idx = 0
+            try:
+                # create file locally
+                with open(full_file_path, 'w', newline='') as csv_file:
+                    out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
 
-        try:
-            # create file locally
-            with open(full_file_path, 'w', newline='') as csv_file:
-                out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-
-                # write headers to file
-                headers = [key for key in file_utils.mapping]
-                out_csv.writerow(headers)
-                while True:
-                    # query QUERY_SIZE number of rows
-                    page_start = QUERY_SIZE * page_idx
-                    rows = file_utils.\
-                        query_data(session, agency_code, start, end, page_start, (QUERY_SIZE * (page_idx + 1))).all()
-
-                    if rows is None:
-                        break
-
-                    # write records to file
-                    logger.debug('Writing rows {}-{} to file {} CSV'.format(page_start, page_start + len(rows),
-                                                                            file_type))
-                    out_csv.writerows(rows)
-
-                    if len(rows) < QUERY_SIZE:
-                        break
-
-                    page_idx += 1
-        finally:
-            # close file
-            csv_file.close()
-
-        if not is_local:
-            # stream file to S3 when not local
-            with open(full_file_path, 'rb') as csv_file:
-                with smart_open.smart_open(S3Handler.create_file_path(upload_name), 'w') as writer:
+                    # write headers to file
+                    headers = [key for key in file_utils.mapping]
+                    out_csv.writerow(headers)
                     while True:
-                        chunk = csv_file.read(CHUNK_SIZE)
-                        if chunk:
-                            writer.write(chunk)
-                        else:
-                            break
-            csv_file.close()
-            os.remove(full_file_path)
+                        # query QUERY_SIZE number of rows
+                        page_start = QUERY_SIZE * page_idx
+                        rows = file_utils.\
+                            query_data(sess, agency_code, start, end, page_start, (QUERY_SIZE * (page_idx + 1))).all()
 
-        logger.debug('Finished writing to file: {}'.format(file_name))
+                        if rows is None:
+                            break
+
+                        # write records to file
+                        logger.debug('Writing rows {}-{} to file {} CSV'.format(page_start, page_start + len(rows),
+                                                                                file_type))
+                        out_csv.writerows(rows)
+
+                        if len(rows) < QUERY_SIZE:
+                            break
+                        page_idx += 1
+            finally:
+                # close file
+                csv_file.close()
+
+            if not is_local:
+                # stream file to S3 when not local
+                with open(full_file_path, 'rb') as csv_file:
+                    with smart_open.smart_open(S3Handler.create_file_path(upload_name), 'w') as writer:
+                        while True:
+                            chunk = csv_file.read(CHUNK_SIZE)
+                            if chunk:
+                                writer.write(chunk)
+                            else:
+                                break
+                csv_file.close()
+                os.remove(full_file_path)
+            logger.debug('Finished writing to file: {}'.format(file_name))
+
+            if not parent_request:
+                # copy job data to all child FileRequests
+                child_requests = sess.query(FileRequest).filter_by(parent_job_id=job_id).all()
+                for child in child_requests:
+                    copy_parent_file_request_data(child.job, job, is_local)
+        else:
+            # copy parent data to this job
+            file_request.is_cached_file = False
+            file_request.parent_job_id = parent_request.job.job_id
+            job.is_cached = True
+            if parent_request.job.job_status_id != JOB_STATUS_DICT['running']:
+                # only copy file data if job has finished running
+                copy_parent_file_request_data(job, parent_request.job, is_local)
+
+        sess.commit()
     logger.debug('Finished file {} generation'.format(file_type))
 
 
@@ -174,3 +205,25 @@ def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, i
         write_csv(timestamped_name, upload_file_name, is_local, fileE.Row._fields, rows)
 
     logger.debug('Finished file E generation')
+
+
+def copy_parent_file_request_data(child_job, parent_job, is_local):
+    logger.debug('Copying job {} data to job {}'.format(parent_job.job_id, child_job.job_id))
+    child_job.filename = '{}/{}'.format(child_job.filename.rsplit('/', 1), parent_job.original_filename)
+    child_job.original_filename = parent_job.original_filename
+    child_job.job_status_id = parent_job.job_status_id
+    child_job.number_of_rows = parent_job.number_of_rows
+    child_job.number_of_rows_valid = parent_job.number_of_rows_valid
+    child_job.number_of_errors = parent_job.number_of_errors
+    child_job.number_of_warnings = parent_job.number_of_warnings
+    child_job.error_message = parent_job.error_message
+
+    if not is_local:
+        with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
+            with smart_open.smart_open(S3Handler.create_file_path(child_job.filename), 'w') as writer:
+                while True:
+                    chunk = reader.read(CHUNK_SIZE)
+                    if chunk:
+                        writer.write(chunk)
+                    else:
+                        break
