@@ -93,34 +93,33 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
             file_utils = fileD1 if file_type == 'D1' else fileD2
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], file_name])
             page_idx = 0
-            try:
-                # create file locally
-                with open(full_file_path, 'w', newline='') as csv_file:
-                    out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
 
-                    # write headers to file
-                    headers = [key for key in file_utils.mapping]
-                    out_csv.writerow(headers)
-                    while True:
-                        # query QUERY_SIZE number of rows
-                        page_start = QUERY_SIZE * page_idx
-                        rows = file_utils.\
-                            query_data(sess, agency_code, start, end, page_start, (QUERY_SIZE * (page_idx + 1))).all()
+            # create file locally
+            with open(full_file_path, 'w', newline='') as csv_file:
+                out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
 
-                        if rows is None:
-                            break
+                # write headers to file
+                headers = [key for key in file_utils.mapping]
+                out_csv.writerow(headers)
 
-                        # write records to file
-                        logger.debug('Writing rows {}-{} to file {} CSV'.format(page_start, page_start + len(rows),
-                                                                                file_type))
-                        out_csv.writerows(rows)
+                while True:
+                    # query QUERY_SIZE number of rows
+                    page_start = QUERY_SIZE * page_idx
+                    rows = file_utils.\
+                        query_data(sess, agency_code, start, end, page_start, (QUERY_SIZE * (page_idx + 1))).all()
 
-                        if len(rows) < QUERY_SIZE:
-                            break
-                        page_idx += 1
-            finally:
-                # close file
-                csv_file.close()
+                    if rows is None:
+                        break
+
+                    # write records to file
+                    logger.debug('Writing rows {}-{} to {} CSV'.format(page_start, page_start + len(rows), file_type))
+                    out_csv.writerows(rows)
+                    if len(rows) < QUERY_SIZE:
+                        break
+                    page_idx += 1
+
+            # close file
+            csv_file.close()
 
             if not is_local:
                 # stream file to S3 when not local
@@ -144,13 +143,12 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
         else:
             # copy parent data to this job
             file_request.is_cached_file = False
-            file_request.parent_job_id = parent_req.job.job_id
             file_request.job.is_cached = True
+            sess.commit()
             if parent_req.job.job_status_id != JOB_STATUS_DICT['running']:
                 # only copy file data if job has finished running
                 copy_parent_file_request_data(sess, file_request.job, parent_req.job, file_type, is_local)
 
-        sess.commit()
     logger.debug('Finished file {} generation'.format(file_type))
 
 
