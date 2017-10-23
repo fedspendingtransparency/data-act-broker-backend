@@ -13,7 +13,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.models.jobModels import Job, FileRequest
-from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_STATUS_DICT_ID, JOB_TYPE_DICT, FILE_TYPE_DICT,
+from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_STATUS_DICT_ID, JOB_TYPE_DICT, FILE_TYPE_DICT_LETTER_ID,
                                         FILE_TYPE_DICT_LETTER)
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
@@ -27,7 +27,7 @@ QUERY_SIZE = 10000
 
 
 @contextmanager
-def job_context(job_id):
+def job_context(job_id, is_local):
     """Common context for files D1, D2, E, and F generation. Handles marking the job finished and/or failed"""
     # Flask context ensures we have access to global.g
     with Flask(__name__).app_context():
@@ -46,19 +46,19 @@ def job_context(job_id):
                 sess.commit()
                 mark_job_status(job_id, "failed")
 
+                # ensure FileRequest from failed job is not cached
                 file_request = sess.query(FileRequest).filter_by(job_id=job_id).one_or_none()
-                if file_request:
+                if file_request and file_request.is_cached_file:
                     file_request.is_cached_file = False
                     sess.commit()
         finally:
-            # update FileRequest and its children
-            job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
             file_request = sess.query(FileRequest).filter_by(job_id=job_id).one_or_none()
-            if job and file_request:
+            if file_request and file_request.is_cached_file:
+                # copy job data to all child FileRequests
                 child_requests = sess.query(FileRequest).filter_by(parent_job_id=job_id).all()
-                file_type = FILE_TYPE_DICT_LETTER[job.file_type_id]
+                file_type = FILE_TYPE_DICT_LETTER[file_request.job.file_type_id]
                 for child in child_requests:
-                    copy_parent_file_request_data(sess, child.job, file_request.job, file_type, True)
+                    copy_parent_file_request_data(sess, child.job, file_request.job, file_type, is_local)
 
             GlobalDB.close()
 
@@ -77,7 +77,7 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
             is_local - True if in local development, False otherwise
     """
     logger.debug('Starting file {} generation'.format(file_type))
-    with job_context(job_id) as sess:
+    with job_context(job_id, is_local) as sess:
         # get a FileRequest object by job_id or create one
         current_date = datetime.now().date()
         file_request = sess.query(FileRequest).filter_by(job_id=job_id).one_or_none()
@@ -86,16 +86,19 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
                                        agency_code=agency_code, file_type=file_type, is_cached_file=False)
             sess.add(file_request)
 
-        # search for cached FileRequest to mark as parent FileRequest
-        parent_req = sess.query(FileRequest).\
-            filter_by(request_date=current_date, file_type=file_type, start_date=start, end_date=end,
-                      agency_code=agency_code, is_cached_file=True).\
-            one_or_none()
-        file_request.parent_job_id = parent_req.job_id if parent_req else None
+        # if is cached file, force regeneration
+        parent_req = None
+        if not file_request.is_cached_file:
+            # search for cached file to mark as parent
+            parent_req = sess.query(FileRequest).\
+                filter_by(request_date=current_date, file_type=file_type, start_date=start, end_date=end,
+                          agency_code=agency_code, is_cached_file=True).\
+                one_or_none()
+            file_request.parent_job_id = parent_req.job_id if parent_req else None
         sess.commit()
 
         if not parent_req:
-            # generate D file
+            # start D file generation
             file_utils = fileD1 if file_type == 'D1' else fileD2
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], file_name])
             page_idx = 0
@@ -128,7 +131,7 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
             csv_file.close()
 
             if not is_local:
-                # stream file to S3 when not local
+                # stream file to S3 and delete local version
                 with open(full_file_path, 'rb') as csv_file:
                     with smart_open.smart_open(S3Handler.create_file_path(upload_name), 'w') as writer:
                         while True:
@@ -139,23 +142,16 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
                                 break
                 csv_file.close()
                 os.remove(full_file_path)
-            logger.debug('Finished writing to file: {}'.format(file_name))
 
             # mark this FileRequest as the cached version
             file_request.is_cached_file = True
             sess.commit()
 
-            if not parent_req:
-                # copy job data to all child FileRequests
-                child_requests = sess.query(FileRequest).filter_by(parent_job_id=job_id).all()
-                for child in child_requests:
-                    copy_parent_file_request_data(sess, child.job, file_request.job, file_type, is_local)
+            logger.debug('Finished writing to file: {}'.format(file_name))
         else:
-            # copy parent data to this job
-            file_request.job.is_cached = True
-            sess.commit()
+            # parent FileRequest exists
             if parent_req.job.job_status_id != JOB_STATUS_DICT['running']:
-                # only copy file data if job has finished running
+                # copy parent data to this job if parent is not still running
                 copy_parent_file_request_data(sess, file_request.job, parent_req.job, file_type, is_local)
 
     logger.debug('Finished file {} generation'.format(file_type))
@@ -173,7 +169,7 @@ def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, i
     """
     logger.debug('Starting file F generation')
 
-    with job_context(job_id):
+    with job_context(job_id, is_local):
         logger.debug('Calling generate_f_rows')
         rows_of_dicts = fileF.generate_f_rows(submission_id)
         header = [key for key in fileF.mappings]    # keep order
@@ -199,7 +195,7 @@ def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, i
     """
     logger.debug('Starting file E generation')
 
-    with job_context(job_id) as session:
+    with job_context(job_id, is_local) as session:
         d1 = session.query(AwardProcurement.awardee_or_recipient_uniqu).\
             filter(AwardProcurement.submission_id == submission_id).\
             distinct()
@@ -226,7 +222,7 @@ def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, i
 
 
 def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_local):
-    """ Copy parent FileRequest job data to the child FileRequest job data
+    """ parent FileRequest job data to the child FileRequest job data
 
         Args:
             sess - current DB session
@@ -236,26 +232,32 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
             is_local - True if in local development, False otherwise
     """
     logger.debug('Copying job {} data to job {}'.format(parent_job.job_id, child_job.job_id))
+
+    # keep filename path but update file name
     filename = '{}/{}'.format(child_job.filename.rsplit('/', 1)[0], parent_job.original_filename)
 
+    # copy parent job's data
+    child_job.is_cached = True
     child_job.filename = filename
     child_job.original_filename = parent_job.original_filename
-    mark_job_status(child_job.job_id, JOB_STATUS_DICT_ID[parent_job.job_status_id])
     child_job.number_of_rows = parent_job.number_of_rows
     child_job.number_of_rows_valid = parent_job.number_of_rows_valid
     child_job.number_of_errors = parent_job.number_of_errors
     child_job.number_of_warnings = parent_job.number_of_warnings
     child_job.error_message = parent_job.error_message
-    # change the validation job file data for in-submission D file generations
+    mark_job_status(child_job.job_id, JOB_STATUS_DICT_ID[parent_job.job_status_id])
+
+    # change the validation job's file data when within a submission
     if child_job.submission_id is not None:
         val_job = sess.query(Job).filter(Job.submission_id == child_job.submission_id,
-                                         Job.file_type_id == FILE_TYPE_DICT[file_type],
+                                         Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
                                          Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one()
         val_job.filename = filename
         val_job.original_filename = parent_job.original_filename
     sess.commit()
 
-    if not is_local:
+    if not is_local and parent_job.filename != child_job.filename:
+        # move file to correct S3 location
         with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
             with smart_open.smart_open(S3Handler.create_file_path(child_job.filename), 'w') as writer:
                 while True:
