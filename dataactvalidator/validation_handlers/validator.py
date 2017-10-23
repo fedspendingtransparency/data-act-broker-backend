@@ -324,10 +324,17 @@ def relevant_flex_data(failures, job_id):
     FlexFields"""
     sess = GlobalDB.db().session
     flex_data = defaultdict(list)
-    relevant_rows = {f['row_number'] for f in failures}
-    query = sess.query(FlexField).filter(FlexField.row_number.in_(relevant_rows), FlexField.job_id == job_id).\
-        order_by(FlexField.flex_field_id)
-    for flex_field in query:
+    fail_string = "), (".join(str(f['row_number']) for f in failures)
+    # VALUES and EXISTS are ridiculous in sqlalchemy, using raw sql for this
+    query = (
+        "WITH all_values AS (SELECT * FROM (VALUES (" + fail_string + ")) as all_flexs (row_number)) " +
+        "SELECT * " +
+        "FROM flex_field " +
+        "WHERE job_id=" + str(job_id) +
+        " AND EXISTS (SELECT * FROM all_values WHERE flex_field.row_number = all_values.row_number)"
+    )
+    query_result = sess.execute(query)
+    for flex_field in query_result:
         flex_data[flex_field.row_number].append(flex_field)
     return flex_data
 
@@ -336,12 +343,19 @@ def relevant_cross_flex_data(failed_rows, submission_id, files):
     """Create a dictionary mapping row numbers of cross-file failures to lists of FlexFields"""
     sess = GlobalDB.db().session
     flex_data = defaultdict(list)
-    relevant_rows = {f['row_number'] for f in failed_rows}
-    query = sess.query(FlexField).filter(FlexField.row_number.in_(relevant_rows),
-                                         FlexField.submission_id == submission_id,
-                                         FlexField.file_type_id.in_(files)). \
-        order_by(FlexField.flex_field_id)
-    for flex_field in query:
+    fail_string = "), (".join(str(f['row_number']) for f in failed_rows)
+    file_types = ", ".join(str(f) for f in files)
+    query = (
+        "WITH all_values AS(SELECT * FROM(VALUES(" + fail_string + ")) as all_flexs(row_number)) " +
+        "SELECT * " +
+        "FROM flex_field " +
+        "WHERE submission_id = " + str(submission_id) +
+        " AND file_type_id IN (" + file_types + ")" +
+        " AND EXISTS (SELECT * FROM all_values WHERE flex_field.row_number = all_values.row_number)"
+
+    )
+    query_result = sess.execute(query)
+    for flex_field in query_result:
         flex_data[flex_field.row_number].append(flex_field)
     return flex_data
 
