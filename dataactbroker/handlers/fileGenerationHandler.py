@@ -230,7 +230,7 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
             is_local - True if in local development, False otherwise
     """
     logger.debug('Copying job {} data to job {}'.format(parent_job.job_id, child_job.job_id))
-    filename = '{}/{}'.format(child_job.filename.rsplit('/', 1), parent_job.original_filename)
+    filename = '{}/{}'.format(child_job.filename.rsplit('/', 1)[0]`, parent_job.original_filename)
 
     child_job.filename = filename
     child_job.original_filename = parent_job.original_filename
