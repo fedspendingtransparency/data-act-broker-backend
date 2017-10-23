@@ -13,7 +13,8 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.models.jobModels import Job, FileRequest
-from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_STATUS_DICT_ID, FILE_TYPE_DICT, JOB_TYPE_DICT
+from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_STATUS_DICT_ID, JOB_TYPE_DICT, FILE_TYPE_DICT,
+                                        FILE_TYPE_DICT_LETTER)
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
 from dataactvalidator.filestreaming.csv_selection import write_csv
@@ -46,11 +47,13 @@ def job_context(job_id):
                 mark_job_status(job_id, "failed")
         finally:
             # update FileRequest and its children
+            job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
             file_request = sess.query(FileRequest).filter_by(job_id=job_id).one_or_none()
-            if file_request:
+            if job and file_request:
                 file_request.is_cached_file = False
                 sess.commit()
                 child_requests = sess.query(FileRequest).filter_by(parent_job_id=job_id).all()
+                file_type = FILE_TYPE_DICT_LETTER[job.file_type_id]
                 for child in child_requests:
                     copy_parent_file_request_data(sess, child.job, file_request.job, file_type, True)
 
