@@ -45,13 +45,16 @@ def job_context(job_id):
                 job.error_message = str(e)
                 sess.commit()
                 mark_job_status(job_id, "failed")
+
+                file_request = sess.query(FileRequest).filter_by(job_id=job_id).one_or_none()
+                if file_request:
+                    file_request.is_cached_file = False
+                    sess.commit()
         finally:
             # update FileRequest and its children
             job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
             file_request = sess.query(FileRequest).filter_by(job_id=job_id).one_or_none()
             if job and file_request:
-                file_request.is_cached_file = False
-                sess.commit()
                 child_requests = sess.query(FileRequest).filter_by(parent_job_id=job_id).all()
                 file_type = FILE_TYPE_DICT_LETTER[job.file_type_id]
                 for child in child_requests:
@@ -80,7 +83,7 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
         file_request = sess.query(FileRequest).filter_by(job_id=job_id).one_or_none()
         if not file_request:
             file_request = FileRequest(request_date=current_date, job_id=job_id, start_date=start, end_date=end,
-                                       agency_code=agency_code, file_type=file_type, is_cached_file=True)
+                                       agency_code=agency_code, file_type=file_type, is_cached_file=False)
             sess.add(file_request)
 
         # search for cached FileRequest to mark as parent FileRequest
@@ -138,6 +141,10 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
                 os.remove(full_file_path)
             logger.debug('Finished writing to file: {}'.format(file_name))
 
+            # mark this FileRequest as the cached version
+            file_request.is_cached_file = True
+            sess.commit()
+
             if not parent_req:
                 # copy job data to all child FileRequests
                 child_requests = sess.query(FileRequest).filter_by(parent_job_id=job_id).all()
@@ -145,7 +152,6 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
                     copy_parent_file_request_data(sess, child.job, file_request.job, file_type, is_local)
         else:
             # copy parent data to this job
-            file_request.is_cached_file = False
             file_request.job.is_cached = True
             sess.commit()
             if parent_req.job.job_status_id != JOB_STATUS_DICT['running']:
