@@ -29,7 +29,7 @@ def run_app():
         current_app.debug = CONFIG_SERVICES['debug']
         local = CONFIG_BROKER['local']
         g.is_local = local
-        error_report_path = CONFIG_SERVICES['error_report_path']
+        error_report_path = CONFIG_BROKER['error_report_path']
         current_app.config.from_object(__name__)
 
         # Future: Override config w/ environment variable, if set

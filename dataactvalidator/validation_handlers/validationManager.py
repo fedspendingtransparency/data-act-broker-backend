@@ -1,6 +1,7 @@
 import csv
 import os
 import logging
+import smart_open
 from datetime import datetime
 
 from sqlalchemy import and_, or_
@@ -36,6 +37,8 @@ from dataactcore.models.validationModels import RuleSql
 
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = 1024
 
 
 class ValidationManager:
@@ -481,8 +484,6 @@ class ValidationManager:
         error_list = ErrorInterface()
 
         submission_id = job.submission_id
-        bucket_name = CONFIG_BROKER['aws_bucket']
-        region_name = CONFIG_BROKER['aws_region']
         job_start = datetime.now()
         logger.info(
             {
@@ -513,26 +514,62 @@ class ValidationManager:
             failures = cross_validate_sql(combo_rules.all(), submission_id, self.short_to_long_dict, first_file.id,
                                           second_file.id, job)
             # get error file name
-            report_filename = self.get_file_name(report_file_name(submission_id, False, first_file.name,
-                                                                  second_file.name))
-            warning_report_filename = self.get_file_name(report_file_name(submission_id, True, first_file.name,
-                                                                          second_file.name))
+            report_filename = report_file_name(submission_id, False, first_file.name, second_file.name)
+            report_file_path = "".join([CONFIG_BROKER['error_report_path'], report_filename])
+            warning_report_filename = report_file_name(submission_id, True, first_file.name, second_file.name)
+            warning_report_file_path = "".join([CONFIG_BROKER['error_report_path'], warning_report_filename])
 
             # loop through failures to create the error report
-            with self.get_writer(region_name, bucket_name, report_filename, self.crossFileReportHeaders) as writer, \
-                    self.get_writer(region_name, bucket_name, warning_report_filename, self.crossFileReportHeaders) as \
-                    warning_writer:
-                for failure in failures:
-                    if failure[9] == RULE_SEVERITY_DICT['fatal']:
-                        writer.write(failure[0:7])
-                    if failure[9] == RULE_SEVERITY_DICT['warning']:
-                        warning_writer.write(failure[0:7])
-                    error_list.record_row_error(job_id, "cross_file",
-                                                failure[0], failure[3], failure[5], failure[6],
-                                                failure[7], failure[8], severity_id=failure[9])
-                # write the last unfinished batch
-                writer.finish_batch()
-                warning_writer.finish_batch()
+            try:
+                with open(report_file_path, 'w', newline='') as error_file,\
+                        open(warning_report_file_path, 'w', newline='') as warning_file:
+                    error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+                    warning_csv = csv.writer(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL,
+                                             lineterminator='\n')
+
+                    # write headers to file
+                    error_csv.writerow(self.crossFileReportHeaders)
+                    warning_csv.writerow(self.crossFileReportHeaders)
+                    for failure in failures:
+                        if failure[9] == RULE_SEVERITY_DICT['fatal']:
+                            error_csv.writerow(failure[0:7])
+                        if failure[9] == RULE_SEVERITY_DICT['warning']:
+                            warning_csv.writerow(failure[0:7])
+                        error_list.record_row_error(job_id, "cross_file",
+                                                    failure[0], failure[3], failure[5], failure[6],
+                                                    failure[7], failure[8], severity_id=failure[9])
+            finally:
+                # close files
+                error_file.close()
+                warning_file.close()
+
+            if not self.isLocal:
+                # stream file to S3 when not local
+                # stream error file
+                with open(report_file_path, 'rb') as csv_file:
+                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(report_filename)),
+                                               'w') as writer:
+                        while True:
+                            chunk = csv_file.read(CHUNK_SIZE)
+                            if chunk:
+                                writer.write(chunk)
+                            else:
+                                break
+                csv_file.close()
+                os.remove(report_file_path)
+
+                # stream warning file
+                with open(warning_report_file_path, 'rb') as warning_csv_file:
+                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(warning_report_filename)),
+                                               'w') as warning_writer:
+                        while True:
+                            chunk = warning_csv_file.read(CHUNK_SIZE)
+                            if chunk:
+                                warning_writer.write(chunk)
+                            else:
+                                break
+                warning_csv_file.close()
+                os.remove(warning_report_file_path)
 
         # write all recorded errors to database
         error_list.write_all_row_errors(job_id)

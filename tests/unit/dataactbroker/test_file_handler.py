@@ -442,8 +442,8 @@ def test_move_certified_files(database, monkeypatch, job_constants):
     s3_url_handler = Mock()
     monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'aws_bucket': 'original_bucket',
-                                                       'certified_bucket': 'cert_bucket'})
-    monkeypatch.setattr(fileHandler, 'CONFIG_SERVICES', {'error_report_path': '/path/to/error/reports/'})
+                                                       'certified_bucket': 'cert_bucket',
+                                                       'error_report_path': '/path/to/error/reports/'})
 
     fh = fileHandler.FileHandler(Mock())
 

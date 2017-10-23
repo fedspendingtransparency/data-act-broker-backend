@@ -4,7 +4,6 @@ from datetime import datetime
 import logging
 
 from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER
-from dataactcore.models.stagingModels import FlexField
 from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.interfaces.db import GlobalDB
