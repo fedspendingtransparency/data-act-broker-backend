@@ -164,8 +164,8 @@ logging:
             - sf_133_folder
             - sf_133_file
             - full_url
-        services:
             - error_report_path
+        services:
             - broker_api_host
             - validator_host
             - broker_api_port

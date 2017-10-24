@@ -10,6 +10,7 @@ broker:
     reply_to_email: valid.developer.email@domain.com
     broker_files: /full/path/to/local/broker/files
     d_file_storage_path: /full/path/to/local/d/file/storage
+    error_report_path: /full/path/to/local/error/reports
 
 services:
 
@@ -18,7 +19,6 @@ services:
     broker_api_port: 3333
     validator_host: 127.0.0.1
     validator_port: 3334
-    error_report_path: /full/path/to/local/error/reports
 
 db:
 
