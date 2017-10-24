@@ -2,6 +2,7 @@ import csv
 import logging
 import os
 import smart_open
+import botocore
 
 from datetime import datetime
 from contextlib import contextmanager
@@ -259,17 +260,20 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
 
     if not is_local and parent_job.filename != child_job.filename:
         try:
-            with smart_open.smart_open(S3Handler.create_file_path(child_job.filename), 'r'):
-                # check to see if file already exists
-                logger.debug('Cached {} file CSV already copied'.format(file_type))
-        except FileNotFoundError as e:
-            logger.debug('Copying {} file CSV from cached version'.format(file_type))
-            # move file to correct S3 location
-            with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
-                with smart_open.smart_open(S3Handler.create_file_path(child_job.filename), 'w') as writer:
-                    while True:
-                        chunk = reader.read(CHUNK_SIZE)
-                        if chunk:
-                            writer.write(chunk)
-                        else:
-                            break
+            # check to see if file already exists
+            S3Handler.create_file_path(child_job.filename).load()
+            logger.debug('Cached {} file CSV already copied'.format(file_type))
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error']['Code'] == "404":
+                # move file to correct S3 location
+                logger.debug('Copying {} file CSV from cached version'.format(file_type))
+                with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
+                    with smart_open.smart_open(S3Handler.create_file_path(child_job.filename), 'w') as writer:
+                        while True:
+                            chunk = reader.read(CHUNK_SIZE)
+                            if chunk:
+                                writer.write(chunk)
+                            else:
+                                break
+            else:
+                raise
