@@ -30,10 +30,3 @@ WHERE (dafa.action_type = 'A'
                 OR (sub_dafa.action_date <= cfda.archived_date) AND (cfda.archived_date != ''))
             )
     ))
-    OR
-    -- should always fail if the ID isn't in the history at all
-    dafa.row_number NOT IN (
-        SELECT DISTINCT sub_dafa.row_number
-        FROM detached_award_financial_assistance_fabs37_1_{0} AS sub_dafa
-            JOIN cfda_program AS cfda
-            ON sub_dafa.cfda_number = to_char(cfda.program_number, 'FM00.000'))
