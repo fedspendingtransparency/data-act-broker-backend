@@ -1,8 +1,8 @@
+import boto3
 import csv
 import logging
 import os
 import smart_open
-import boto
 
 from datetime import datetime
 from contextlib import contextmanager
