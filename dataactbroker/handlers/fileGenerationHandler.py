@@ -2,7 +2,7 @@ import csv
 import logging
 import os
 import smart_open
-import botocore
+import boto
 
 from datetime import datetime
 from contextlib import contextmanager
@@ -259,21 +259,19 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
     sess.commit()
 
     if not is_local and parent_job.filename != child_job.filename:
-        try:
-            # check to see if file already exists
-            S3Handler.create_file_path(child_job.filename).load()
-            logger.debug('Cached {} file CSV already copied'.format(file_type))
-        except botocore.exceptions.ClientError as e:
-            if e.response['Error']['Code'] == "404":
-                # move file to correct S3 location
-                logger.debug('Copying {} file CSV from cached version'.format(file_type))
-                with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
-                    with smart_open.smart_open(S3Handler.create_file_path(child_job.filename), 'w') as writer:
-                        while True:
-                            chunk = reader.read(CHUNK_SIZE)
-                            if chunk:
-                                writer.write(chunk)
-                            else:
-                                break
-            else:
-                raise
+        # make a copy of the parent file in child's S3 location
+        bucket, key = CONFIG_BROKER['aws_bucket'], child_job.filename
+        file_object = boto.s3.connect_to_region(CONFIG_BROKER["aws_region"]).head_object(bucket=bucket, key=key)
+        if file_object['ContentLength'] and file_object['ContentLength'] <= 0:
+            # this file already exists in this location
+            logger.debug('Cached {} file CSV already exists in this location'.format(file_type))
+        else:
+            logger.debug('Copying {} file from job {} to job {}'.format(file_type, parent_job.job_id, child_job.job_id))
+            with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
+                with smart_open.smart_open(S3Handler.create_file_path(child_job.filename), 'w') as writer:
+                    while True:
+                        chunk = reader.read(CHUNK_SIZE)
+                        if chunk:
+                            writer.write(chunk)
+                        else:
+                            break
