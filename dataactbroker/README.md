@@ -752,13 +752,15 @@ This route alters a submission's jobs' statuses and then restarts all validation
 
 ```
 {
-  "submission_id": 1
+  "submission_id": 1,
+  "d2_submission": True
 }
 ```
 
 ##### Body Description
 
 * `submission_id` - **required** - an integer corresponding to the ID of the submission for which the validations should be restarted.
+* `d2_submission` - a boolean indicating whether this is a dabs or fabs submission
 
 ##### Response (JSON)
 
@@ -793,6 +795,7 @@ List submissions for all agencies for which the current user is a member of. Opt
         "name": "User Name",
         "user_id": 1
       },
+      "files": ["file1.csv", "file2.csv"],
       "agency": "Department of the Treasury (TREAS)"
       "status": "validation_successful" (will be undergoing changes),
       "size": 0,
@@ -810,6 +813,7 @@ List submissions for all agencies for which the current user is a member of. Opt
         "name": "User2 Name2",
         "user_id": 2
       },
+      "files": ["file1.csv", "file2.csv"],
       "agency": "Department of Defense (DOD)"
       "status": "file_errors" (will be undergoing changes),
       "size": 34482,

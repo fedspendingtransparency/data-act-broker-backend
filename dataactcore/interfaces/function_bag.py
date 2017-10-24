@@ -572,11 +572,17 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
     return validation_job_id, upload_job.job_id
 
 
-def get_submission_status(submission):
-    """Return the status of a submission."""
-    sess = GlobalDB.db().session
+def get_submission_files(jobs):
+    job_list = []
+    for job in jobs:
+        if job.filename not in job_list:
+            job_list.append(job.filename)
+    return job_list
 
-    jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
+
+def get_submission_status(submission, jobs):
+    """Return the status of a submission."""
+
     status_names = JOB_STATUS_DICT.keys()
     statuses = {name: 0 for name in status_names}
     skip_count = 0
