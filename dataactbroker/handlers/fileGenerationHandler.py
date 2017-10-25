@@ -250,7 +250,6 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
     child_job.number_of_errors = parent_job.number_of_errors
     child_job.number_of_warnings = parent_job.number_of_warnings
     child_job.error_message = parent_job.error_message
-    mark_job_status(child_job.job_id, JOB_STATUS_DICT_ID[parent_job.job_status_id])
 
     # change the validation job's file data when within a submission
     if child_job.submission_id is not None:
@@ -281,3 +280,6 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
                         writer.write(chunk)
                     else:
                         break
+
+    # mark job status last so the validation job doesn't start until everything is done
+    mark_job_status(child_job.job_id, JOB_STATUS_DICT_ID[parent_job.job_status_id])
