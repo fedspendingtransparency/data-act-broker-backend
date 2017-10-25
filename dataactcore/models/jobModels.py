@@ -108,6 +108,7 @@ class Job(Base):
     end_date = Column(Date)
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_job_user"), nullable=True)
     last_validated = Column(DateTime, default=datetime.utcnow)
+    from_cached = Column(Boolean, nullable=False, default=False)
 
     @property
     def job_type_name(self):
@@ -246,3 +247,18 @@ class ApplicationType(Base):
 
     application_type_id = Column(Integer, primary_key=True)
     application_name = Column(Text, nullable=False)
+
+
+class FileRequest(Base):
+    __tablename__ = "file_request"
+
+    file_request_id = Column(Integer, primary_key=True)
+    request_date = Column(Date, nullable=False, index=True)
+    job_id = Column(Integer, ForeignKey("job.job_id", name="fk_file_request_job_id"), nullable=False)
+    job = relationship("Job", uselist=False)
+    parent_job_id = Column(Integer, nullable=True, index=True)
+    start_date = Column(Date, nullable=False, index=True)
+    end_date = Column(Date, nullable=False, index=True)
+    agency_code = Column(Text, nullable=False, index=True)
+    file_type = Column(Text, nullable=False, index=True)
+    is_cached_file = Column(Boolean, nullable=False, default=False)
