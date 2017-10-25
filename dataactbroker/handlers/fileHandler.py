@@ -486,8 +486,7 @@ class FileHandler:
 
     def generate_file(self, submission_id, file_type):
         """ Start a file generation job for the specified file type """
-        logger.debug('Starting D file generation')
-        logger.debug('Submission ID = %s / File type = %s', submission_id, file_type)
+        logger.debug('Starting %s file generation, submission_id:%s', file_type, submission_id)
 
         sess = GlobalDB.db().session
 
@@ -539,11 +538,11 @@ class FileHandler:
 
     def generate_detached_file(self, file_type, cgac_code, frec_code, start, end):
         """ Start a file generation job for the specified file type """
-        logger.debug("Starting detached D file generation")
+        logger.debug('Starting detached %s file generation', file_type)
 
         # check if date format is MM/DD/YYYY
         if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
-            raise ResponseException("Start or end date cannot be parsed into a date", StatusCode.CLIENT_ERROR)
+            raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
 
         # add job info
         file_type_name = FILE_TYPE_DICT_ID[FILE_TYPE_DICT_LETTER_ID[file_type]]
