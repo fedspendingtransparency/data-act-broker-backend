@@ -78,13 +78,18 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
             is_local - True if in local development, False otherwise
     """
     with job_context(job_id, is_local) as sess:
-        # get a FileRequest object by job_id or create one
+        # check if FileRequest already exists with this job_id
         current_date = datetime.now().date()
         file_request = sess.query(FileRequest).filter_by(job_id=job_id).one_or_none()
         if not file_request:
             file_request = FileRequest(request_date=current_date, job_id=job_id, start_date=start, end_date=end,
                                        agency_code=agency_code, file_type=file_type, is_cached_file=False)
             sess.add(file_request)
+        elif file_request.request_date != current_date:
+            # cached file is not from today
+            # de-cache it and update its date
+            file_request.request_date = current_date
+            file_request.is_cached_file = False
 
         # search for separate FileRequest to mark as parent
         parent_req = None
