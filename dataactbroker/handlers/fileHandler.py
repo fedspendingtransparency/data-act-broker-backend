@@ -29,7 +29,7 @@ from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
                                               FPDSContractingOffice)
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
-                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory)
+                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
@@ -776,6 +776,7 @@ class FileHandler:
             query = sess.query(DetachedAwardFinancialAssistance).\
                 filter_by(is_valid=True, submission_id=submission_id).all()
 
+            agency_codes_list = []
             for row in query:
                 # remove all keys in the row that are not in the intermediate table
                 temp_obj = row.__dict__
@@ -804,6 +805,22 @@ class FileHandler:
                 # for all rows, insert the new row (active/inactive should be handled by fabs_derivations)
                 new_row = PublishedAwardFinancialAssistance(**temp_obj)
                 sess.add(new_row)
+
+                # update the list of affected agency_codes
+                if temp_obj.awarding_agency_code not in agency_codes_list:
+                    agency_codes_list.append(temp_obj.awarding_agency_code)
+
+            # update all cached D2 FileRequest objects that could have been affected by the publish
+            for agency_code in agency_codes_list:
+                cached = sess.query(FileRequest).filter(FileRequest.request_date == datetime.now().date(),
+                                                        FileRequest.agency_code == agency_code,
+                                                        FileRequest.is_cached_file.is_(True),
+                                                        FileRequest.file_type == 'D2',
+                                                        sa.or_(FileRequest.start_date <= submission.reporting_end_date,
+                                                               FileRequest.end_date >= submission.reporting_start_date))
+                # if there is a cached FileRequest, mark it as no longer cached
+                if cached.one_or_none():
+                    cached.is_cached_file = False
 
             sess.commit()
         except Exception as e:
