@@ -253,129 +253,125 @@ class ValidationManager:
                     'status': 'start',
                     'start_time': loading_start})
 
-            try:
-                with open(error_file_path, 'w', newline='') as error_file,\
-                        open(warning_file_path, 'w', newline='') as warning_file:
-                    error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-                    warning_csv = csv.writer(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL,
-                                             lineterminator='\n')
+            with open(error_file_path, 'w', newline='') as error_file,\
+                    open(warning_file_path, 'w', newline='') as warning_file:
+                error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+                warning_csv = csv.writer(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
 
-                    # write headers to file
-                    error_csv.writerow(self.reportHeaders)
-                    warning_csv.writerow(self.reportHeaders)
-                    while not reader.is_finished:
-                        row_number += 1
+                # write headers to file
+                error_csv.writerow(self.reportHeaders)
+                warning_csv.writerow(self.reportHeaders)
+                while not reader.is_finished:
+                    row_number += 1
 
-                        if row_number % 100 == 0:
+                    if row_number % 100 == 0:
 
-                            elapsed_time = (datetime.now()-loading_start).total_seconds()
-                            logger.info(
-                                {
-                                    'message': 'Loading row: ' + str(row_number) + ' on submission_id: ' +
-                                    str(submission_id) + ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
-                                    'message_type': 'ValidatorInfo',
-                                    'submission_id': submission_id,
-                                    'job_id': job_id,
-                                    'file_type': file_type,
-                                    'action': 'data_loading',
-                                    'status': 'loading',
-                                    'rows_loaded': row_number,
-                                    'start_time': loading_start,
-                                    'elapsed_time': elapsed_time})
-                        #
-                        # first phase of validations: read record and record a
-                        # formatting error if there's a problem
-                        #
-                        (record, reduceRow, skip_row, doneReading, rowErrorHere, flex_cols) = \
-                            self.read_record(reader, error_csv, row_number, job, fields, error_list)
-                        if reduceRow:
-                            row_number -= 1
-                        if rowErrorHere:
+                        elapsed_time = (datetime.now()-loading_start).total_seconds()
+                        logger.info(
+                            {
+                                'message': 'Loading row: ' + str(row_number) + ' on submission_id: ' +
+                                str(submission_id) + ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                                'message_type': 'ValidatorInfo',
+                                'submission_id': submission_id,
+                                'job_id': job_id,
+                                'file_type': file_type,
+                                'action': 'data_loading',
+                                'status': 'loading',
+                                'rows_loaded': row_number,
+                                'start_time': loading_start,
+                                'elapsed_time': elapsed_time})
+                    #
+                    # first phase of validations: read record and record a
+                    # formatting error if there's a problem
+                    #
+                    (record, reduceRow, skip_row, doneReading, rowErrorHere, flex_cols) = \
+                        self.read_record(reader, error_csv, row_number, job, fields, error_list)
+                    if reduceRow:
+                        row_number -= 1
+                    if rowErrorHere:
+                        error_rows.append(row_number)
+                    if doneReading:
+                        # Stop reading from input file
+                        break
+                    elif skip_row:
+                        # Do not write this row to staging, but continue processing future rows
+                        continue
+
+                    #
+                    # second phase of validations: do basic schema checks
+                    # (e.g., require fields, field length, data type)
+                    #
+                    # D files are obtained from upstream systems (ASP and FPDS) that perform their own basic
+                    # validations, so these validations are not repeated here
+                    if file_type in ["award", "award_procurement"]:
+                        # Skip basic validations for D files, set as valid to trigger write to staging
+                        passed_validations = True
+                        valid = True
+                    else:
+                        if file_type in ["detached_award"]:
+                            record['afa_generated_unique'] = (record['award_modification_amendme'] or '-none-') + "_" +\
+                                                             (record['awarding_sub_tier_agency_c'] or '-none-') + \
+                                                             "_" + (record['fain'] or '-none-') + "_" + \
+                                                             (record['uri'] or '-none-')
+                        passed_validations, failures, valid = Validator.validate(record, csv_schema,
+                                                                                 file_type in ["detached_award"])
+                    if valid:
+                        # todo: update this logic later when we have actual validations
+                        if file_type in ["detached_award"]:
+                            record["is_valid"] = True
+
+                        model_instance = model(job_id=job_id, submission_id=submission_id,
+                                               valid_record=passed_validations, **record)
+                        skip_row = not insert_staging_model(model_instance, job, error_csv, error_list)
+                        if flex_cols:
+                            sess.add_all(flex_cols)
+                            sess.commit()
+
+                        if skip_row:
                             error_rows.append(row_number)
-                        if doneReading:
-                            # Stop reading from input file
-                            break
-                        elif skip_row:
-                            # Do not write this row to staging, but continue processing future rows
                             continue
 
-                        #
-                        # second phase of validations: do basic schema checks
-                        # (e.g., require fields, field length, data type)
-                        #
-                        # D files are obtained from upstream systems (ASP and FPDS) that perform their own basic
-                        # validations, so these validations are not repeated here
-                        if file_type in ["award", "award_procurement"]:
-                            # Skip basic validations for D files, set as valid to trigger write to staging
-                            passed_validations = True
-                            valid = True
-                        else:
-                            if file_type in ["detached_award"]:
-                                record['afa_generated_unique'] = (record['award_modification_amendme'] or '-none-') +\
-                                                                 "_" +\
-                                                                 (record['awarding_sub_tier_agency_c'] or '-none-') + \
-                                                                 "_" + (record['fain'] or '-none-') + "_" + \
-                                                                 (record['uri'] or '-none-')
-                            passed_validations, failures, valid = Validator.validate(record, csv_schema,
-                                                                                     file_type in ["detached_award"])
-                        if valid:
-                            # todo: update this logic later when we have actual validations
-                            if file_type in ["detached_award"]:
-                                record["is_valid"] = True
+                    if not passed_validations:
+                        fatal = write_errors(failures, job, self.short_to_long_dict, error_csv, warning_csv, row_number,
+                                             error_list)
+                        if fatal:
+                            error_rows.append(row_number)
 
-                            model_instance = model(job_id=job_id, submission_id=submission_id,
-                                                   valid_record=passed_validations, **record)
-                            skip_row = not insert_staging_model(model_instance, job, error_csv, error_list)
-                            if flex_cols:
-                                sess.add_all(flex_cols)
-                                sess.commit()
+                loading_duration = (datetime.now()-loading_start).total_seconds()
+                logger.info(
+                    {
+                        'message': 'Completed data loading on submission_id: ' + str(submission_id) +
+                        ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                        'message_type': 'ValidatorInfo',
+                        'submission_id': submission_id,
+                        'job_id': job_id,
+                        'file_type': file_type,
+                        'action': 'data_loading',
+                        'status': 'finish',
+                        'start_time': loading_start,
+                        'end_time': datetime.now(),
+                        'duration': loading_duration,
+                        'total_rows': row_number
+                    })
 
-                            if skip_row:
-                                error_rows.append(row_number)
-                                continue
-
-                        if not passed_validations:
-                            fatal = write_errors(failures, job, self.short_to_long_dict, error_csv, warning_csv,
-                                                 row_number, error_list)
-                            if fatal:
-                                error_rows.append(row_number)
-
-                    loading_duration = (datetime.now()-loading_start).total_seconds()
-                    logger.info(
-                        {
-                            'message': 'Completed data loading on submission_id: ' + str(submission_id) +
-                            ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
-                            'message_type': 'ValidatorInfo',
-                            'submission_id': submission_id,
-                            'job_id': job_id,
-                            'file_type': file_type,
-                            'action': 'data_loading',
-                            'status': 'finish',
-                            'start_time': loading_start,
-                            'end_time': datetime.now(),
-                            'duration': loading_duration,
-                            'total_rows': row_number
-                        })
-
-                    if file_type in ('appropriations', 'program_activity', 'award_financial'):
-                        update_tas_ids(model, submission_id)
-                    #
-                    # third phase of validations: run validation rules as specified
-                    # in the schema guidance. these validations are sql-based.
-                    #
-                    sql_error_rows = self.run_sql_validations(job, file_type, self.short_to_long_dict, error_csv,
-                                                              warning_csv, row_number, error_list)
-                    error_rows.extend(sql_error_rows)
-            finally:
-                error_file.close()
-                warning_file.close()
+                if file_type in ('appropriations', 'program_activity', 'award_financial'):
+                    update_tas_ids(model, submission_id)
+                #
+                # third phase of validations: run validation rules as specified
+                # in the schema guidance. these validations are sql-based.
+                #
+                sql_error_rows = self.run_sql_validations(job, file_type, self.short_to_long_dict, error_csv,
+                                                          warning_csv, row_number, error_list)
+                error_rows.extend(sql_error_rows)
+            error_file.close()
+            warning_file.close()
 
             # stream file to S3 when not local
             if not self.isLocal:
                 # stream error file
                 with open(error_file_path, 'rb') as csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(error_file_name)),
-                                               'w') as writer:
+                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(error_file_name)), 'w')\
+                            as writer:
                         while True:
                             chunk = csv_file.read(CHUNK_SIZE)
                             if chunk:
@@ -387,8 +383,8 @@ class ValidationManager:
 
                 # stream warning file
                 with open(warning_file_path, 'rb') as warning_csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(warning_file_name)),
-                                               'w') as warning_writer:
+                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(warning_file_name)), 'w')\
+                            as warning_writer:
                         while True:
                             chunk = warning_csv_file.read(CHUNK_SIZE)
                             if chunk:
@@ -555,25 +551,22 @@ class ValidationManager:
             warning_file_name = report_file_name(submission_id, True, first_file.name, second_file.name)
             warning_file_path = "".join([CONFIG_SERVICES['error_report_path'], warning_file_name])
 
-            # open error report and gather failed rules within it
-            try:
-                with open(error_file_path, 'w', newline='') as error_file,\
-                        open(warning_file_path, 'w', newline='') as warning_file:
-                    error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-                    warning_csv = csv.writer(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL,
-                                             lineterminator='\n')
+        # open error report and gather failed rules within it
+            with open(error_file_path, 'w', newline='') as error_file,\
+                    open(warning_file_path, 'w', newline='') as warning_file:
+                error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+                warning_csv = csv.writer(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
 
-                    # write headers to file
-                    error_csv.writerow(self.crossFileReportHeaders)
-                    warning_csv.writerow(self.crossFileReportHeaders)
+                # write headers to file
+                error_csv.writerow(self.crossFileReportHeaders)
+                warning_csv.writerow(self.crossFileReportHeaders)
 
-                    # send comboRules to validator.crossValidate sql
-                    cross_validate_sql(combo_rules.all(), submission_id, self.short_to_long_dict, first_file.id,
-                                       second_file.id, job, error_csv, warning_csv, error_list, job_id)
-            finally:
-                # close files
-                error_file.close()
-                warning_file.close()
+                # send comboRules to validator.crossValidate sql
+                cross_validate_sql(combo_rules.all(), submission_id, self.short_to_long_dict, first_file.id,
+                                   second_file.id, job, error_csv, warning_csv, error_list, job_id)
+            # close files
+            error_file.close()
+            warning_file.close()
 
             # stream file to S3 when not local
             if not self.isLocal:
