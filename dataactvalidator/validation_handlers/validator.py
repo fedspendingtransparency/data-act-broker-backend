@@ -3,7 +3,8 @@ from decimal import Decimal, DecimalException
 from datetime import datetime
 import logging
 
-from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER
+from dataactcore.models.lookups import (FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER,
+                                        RULE_SEVERITY_DICT)
 from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.interfaces.db import GlobalDB
@@ -148,17 +149,17 @@ class Validator(object):
         raise ValueError("".join(["Data Type Error, Type: ", datatype, ", Value: ", data]))
 
 
-def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, second_file, job):
+def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, second_file, job, error_csv, warning_csv,
+                       error_list, job_id):
     """ Evaluate all sql-based rules for cross file validation
 
     Args:
         rules -- List of Rule objects
         submission_id -- ID of submission to run cross-file validation
     """
-    failures = []
-    # Put each rule through evaluate, appending all failures into list
     conn = GlobalDB.db().connection
 
+    # Put each rule through evaluate, appending all failures into list
     for rule in rules:
 
         rule_start = datetime.now()
@@ -173,7 +174,7 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
                 'status': 'start',
                 'start': rule_start})
         failed_rows = conn.execute(rule.rule_sql.format(submission_id))
-        logger.info("---- Post-flex cross-rule")
+        logger.info("---- Post-flex cross-rule: " + rule.query_name)
         if failed_rows.rowcount:
             # get list of fields involved in this validation
             # note: row_number is metadata, not a field being
@@ -184,27 +185,43 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
 
             # materialize as we'll iterate over the failed_rows twice
             failed_rows = list(failed_rows)
-            logger.info("---- Pre-flex gathering")
-            flex_data = relevant_cross_flex_data(failed_rows, submission_id, [first_file, second_file])
-            logger.info("---- Post-flex gathering")
+            num_failed_rows = len(failed_rows)
+            slice_start = 0
+            slice_size = 10000
+            while slice_start <= num_failed_rows:
+                failed_row_subset = failed_rows[slice_start:slice_start+slice_size]
+                logger.info("---- Pre-flex gathering: " + rule.query_name + " for slice: " + str(slice_start) + "-" +
+                            str(slice_start+slice_size))
+                flex_data = relevant_cross_flex_data(failed_row_subset, submission_id, [first_file, second_file])
+                logger.info("---- Post-flex gathering: " + rule.query_name + " for slice: " + str(slice_start) + "-" +
+                            str(slice_start+slice_size))
 
-            for row in failed_rows:
-                # get list of values for each column
-                values = ["{}: {}".format(short_to_long_dict[c], str(row[c])) if c in short_to_long_dict else
-                          "{}: {}".format(c, str(row[c])) for c in cols]
-                values = ", ".join(values)
-                full_column_string = column_string
-                # go through all flex fields in this row and add to the columns and values
-                for field in flex_data[row['row_number']]:
-                    full_column_string += ", " + field.header + "_file" +\
-                                          FILE_TYPE_DICT_LETTER[field.file_type_id].lower()
-                    values += ", {}: {}".format(field.header + "_file" +
-                                                FILE_TYPE_DICT_LETTER[field.file_type_id].lower(), field.cell)
+                for row in failed_row_subset:
+                    # get list of values for each column
+                    values = ["{}: {}".format(short_to_long_dict[c], str(row[c])) if c in short_to_long_dict else
+                              "{}: {}".format(c, str(row[c])) for c in cols]
+                    values = ", ".join(values)
+                    full_column_string = column_string
+                    # go through all flex fields in this row and add to the columns and values
+                    for field in flex_data[row['row_number']]:
+                        full_column_string += ", " + field.header + "_file" +\
+                                              FILE_TYPE_DICT_LETTER[field.file_type_id].lower()
+                        values += ", {}: {}".format(field.header + "_file" +
+                                                    FILE_TYPE_DICT_LETTER[field.file_type_id].lower(), field.cell)
 
-                target_file_type = FILE_TYPE_DICT_ID[rule.target_file_id]
-                failures.append([rule.file.name, target_file_type, full_column_string,
-                                str(rule.rule_error_message), values, row['row_number'], str(rule.rule_label),
-                                rule.file_id, rule.target_file_id, rule.rule_severity_id])
+                    target_file_type = FILE_TYPE_DICT_ID[rule.target_file_id]
+
+                    failure = [rule.file.name, target_file_type, full_column_string, str(rule.rule_error_message),
+                               values, row['row_number'], str(rule.rule_label), rule.file_id, rule.target_file_id,
+                               rule.rule_severity_id]
+                    if failure[9] == RULE_SEVERITY_DICT['fatal']:
+                        error_csv.writerow(failure[0:7])
+                    if failure[9] == RULE_SEVERITY_DICT['warning']:
+                        warning_csv.writerow(failure[0:7])
+                    error_list.record_row_error(job_id, "cross_file",
+                                                failure[0], failure[3], failure[5], failure[6],
+                                                failure[7], failure[8], severity_id=failure[9])
+                slice_start = slice_start + slice_size
 
         rule_duration = (datetime.now()-rule_start).total_seconds()
         logger.info(
@@ -218,9 +235,6 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
                 'status': 'finish',
                 'start': rule_start,
                 'duration': rule_duration})
-
-    # Return list of cross file validation failures
-    return failures
 
 
 def validate_file_by_sql(job, file_type, short_to_long_dict):
@@ -353,7 +367,6 @@ def relevant_cross_flex_data(failed_rows, submission_id, files):
         "WHERE submission_id = " + str(submission_id) +
         " AND file_type_id IN (" + file_types + ")" +
         " AND EXISTS (SELECT * FROM all_values WHERE flex_field.row_number = all_values.row_number)"
-
     )
     query_result = sess.execute(query)
     for flex_field in query_result:

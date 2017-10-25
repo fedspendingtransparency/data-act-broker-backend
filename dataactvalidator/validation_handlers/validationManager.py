@@ -548,16 +548,14 @@ class ValidationManager:
                 RuleSql.target_file_id == second_file.id), and_(
                 RuleSql.file_id == second_file.id,
                 RuleSql.target_file_id == first_file.id)))
-            # send comboRules to validator.crossValidate sql
-            failures = cross_validate_sql(combo_rules.all(), submission_id, self.short_to_long_dict, first_file.id,
-                                          second_file.id, job)
-            # get error file name
+
+            # get error file name/path
             error_file_name = report_file_name(submission_id, False, first_file.name, second_file.name)
             error_file_path = "".join([CONFIG_SERVICES['error_report_path'], error_file_name])
             warning_file_name = report_file_name(submission_id, True, first_file.name, second_file.name)
             warning_file_path = "".join([CONFIG_SERVICES['error_report_path'], warning_file_name])
 
-            # loop through failures to create the error report
+            # open error report and gather failed rules within it
             try:
                 with open(error_file_path, 'w', newline='') as error_file,\
                         open(warning_file_path, 'w', newline='') as warning_file:
@@ -568,14 +566,10 @@ class ValidationManager:
                     # write headers to file
                     error_csv.writerow(self.crossFileReportHeaders)
                     warning_csv.writerow(self.crossFileReportHeaders)
-                    for failure in failures:
-                        if failure[9] == RULE_SEVERITY_DICT['fatal']:
-                            error_csv.writerow(failure[0:7])
-                        if failure[9] == RULE_SEVERITY_DICT['warning']:
-                            warning_csv.writerow(failure[0:7])
-                        error_list.record_row_error(job_id, "cross_file",
-                                                    failure[0], failure[3], failure[5], failure[6],
-                                                    failure[7], failure[8], severity_id=failure[9])
+
+                    # send comboRules to validator.crossValidate sql
+                    cross_validate_sql(combo_rules.all(), submission_id, self.short_to_long_dict, first_file.id,
+                                       second_file.id, job, error_csv, warning_csv, error_list, job_id)
             finally:
                 # close files
                 error_file.close()
