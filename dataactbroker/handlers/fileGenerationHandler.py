@@ -266,11 +266,11 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
         response = s3.list_objects_v2(Bucket=CONFIG_BROKER['aws_bucket'], Prefix=child_job.filename)
         for obj in response.get('Contents', []):
             if obj['Key'] == child_job.filename:
-                # this file already exists in this location
+                # the file already exists in this location
                 logger.debug('Cached {} file CSV already exists in this location'.format(file_type))
                 return
 
-        # make a copy of the parent file in child's S3 location
+        # copy the parent file into the child's S3 location
         logger.debug('Copying {} file from job {} to job {}'.format(file_type, parent_job.job_id, child_job.job_id))
         with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
             with smart_open.smart_open(S3Handler.create_file_path(child_job.filename), 'w') as writer:

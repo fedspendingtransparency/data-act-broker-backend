@@ -71,8 +71,9 @@ def test_generate_d2_file_query(monkeypatch, mock_broker_config_paths, database,
     pafa_2 = pafa(awarding_agency_code='123', action_date='20170131', afa_generated_unique='unique2', is_active=True)
     pafa_3 = pafa(awarding_agency_code='123', action_date='20161231', afa_generated_unique='unique3', is_active=True)
     pafa_4 = pafa(awarding_agency_code='123', action_date='20170201', afa_generated_unique='unique4', is_active=True)
-    pafa_5 = pafa(awarding_agency_code='234', action_date='20170115', afa_generated_unique='unique5', is_active=True)
-    database.session.add_all([pafa_1, pafa_2, pafa_3, pafa_4, pafa_5])
+    pafa_5 = pafa(awarding_agency_code='123', action_date='20170115', afa_generated_unique='unique5', is_active=False)
+    pafa_6 = pafa(awarding_agency_code='234', action_date='20170115', afa_generated_unique='unique6', is_active=True)
+    database.session.add_all([pafa_1, pafa_2, pafa_3, pafa_4, pafa_5, pafa_6])
 
     jf = JobFactory(
         job_status=database.session.query(JobStatus).filter_by(name='running').one(),
