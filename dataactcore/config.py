@@ -46,7 +46,7 @@ if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
     CONFIG_BROKER['local'] = False
     # AWS flag is on, so make sure all needed AWS info is present
     required_aws_keys = ['aws_bucket', 'aws_role', 'aws_region', 'aws_create_temp_credentials',
-                         'static_files_bucket', 'help_files_path', 'error_report_path']
+                         'static_files_bucket', 'help_files_path']
     for k in required_aws_keys:
         try:
             CONFIG_BROKER[k]
@@ -69,15 +69,19 @@ else:
 
     # if not using AWS and no error report path specified,
     # default to `data_act_broker` in user's home dir
-    error_report_path = CONFIG_BROKER['error_report_path']
+    error_report_path = CONFIG_SERVICES['error_report_path']
     if not error_report_path:
         error_report_path = os.path.join(expanduser('~'), 'data_act_broker')
     normpath(error_report_path)
-    CONFIG_BROKER['error_report_path'] = error_report_path
+    CONFIG_SERVICES['error_report_path'] = error_report_path
 
 storage_path = CONFIG_BROKER['d_file_storage_path']
 if storage_path[-1] != os.path.sep:
     CONFIG_BROKER['d_file_storage_path'] = "".join([storage_path, os.path.sep])
+
+error_storage_path = CONFIG_SERVICES['error_report_path']
+if error_storage_path[-1] != os.path.sep:
+    CONFIG_SERVICES['error_report_path'] = "".join([error_storage_path, os.path.sep])
 
 # if no broker file path specified,
 # default to `data_act_broker` in user's home dir

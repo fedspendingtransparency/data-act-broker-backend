@@ -14,7 +14,7 @@ from dataactcore.scripts.setupJobTrackerDB import setup_job_tracker_db
 from dataactcore.scripts.setupErrorDB import setup_error_db
 from dataactcore.scripts.setupValidationDB import setup_validation_db
 from dataactcore.models.jobModels import Submission
-from dataactcore.config import CONFIG_BROKER, CONFIG_DB
+from dataactcore.config import CONFIG_BROKER, CONFIG_DB, CONFIG_SERVICES
 from dataactcore.scripts.databaseSetup import create_database, run_migrations
 import dataactcore.config
 
@@ -48,7 +48,7 @@ class BaseTestValidator(unittest.TestCase):
         # Run tests for local broker or not
         cls.local = CONFIG_BROKER['local']
         # This needs to be set to the local directory for error reports if local is True
-        cls.local_file_directory = CONFIG_BROKER['error_report_path']
+        cls.local_file_directory = CONFIG_SERVICES['error_report_path']
 
         # drop and re-create test job db/tables
         setup_job_tracker_db()

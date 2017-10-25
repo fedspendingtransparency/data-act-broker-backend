@@ -21,7 +21,7 @@ from werkzeug.utils import secure_filename
 
 from dataactbroker.permissions import current_user_can, current_user_can_on_submission
 from dataactcore.aws.s3Handler import S3Handler
-from dataactcore.config import CONFIG_BROKER
+from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import (
     CGAC, FREC, CFDAProgram, SubTierAgency, Zips, States, CountyCode, CityCode, ZipCity, CountryCode)
@@ -982,8 +982,8 @@ class FileHandler:
                     self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
                                              original_path="errors/" + warning_file_name, new_path=warning_file)
                 else:
-                    warning_file = CONFIG_BROKER['error_report_path'] + report_file_name(submission.submission_id,
-                                                                                         True, job.file_type.name)
+                    warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission.submission_id,
+                                                                                           True, job.file_type.name)
 
             # get the narrative relating to the file
             narrative = sess.query(SubmissionNarrative).\
@@ -1018,8 +1018,8 @@ class FileHandler:
                 self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
                                          original_path="errors/" + warning_file_name, new_path=warning_file)
             else:
-                warning_file = CONFIG_BROKER['error_report_path'] + report_file_name(submission.submission_id, True,
-                                                                                     first_file, second_file)
+                warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission.submission_id, True,
+                                                                                       first_file, second_file)
 
             # add certified history
             certified_file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,

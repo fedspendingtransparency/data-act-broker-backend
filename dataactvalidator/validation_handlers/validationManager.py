@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 
-from dataactcore.config import CONFIG_BROKER
+from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import matching_cars_subquery
 from dataactcore.models.jobModels import Submission
@@ -191,9 +191,9 @@ class ValidationManager:
         region_name = CONFIG_BROKER['aws_region']
 
         error_file_name = report_file_name(job.submission_id, False, job.file_type.name)
-        error_file_path = "".join([CONFIG_BROKER['error_report_path'], error_file_name])
+        error_file_path = "".join([CONFIG_SERVICES['error_report_path'], error_file_name])
         warning_file_name = report_file_name(job.submission_id, True, job.file_type.name)
-        warning_file_path = "".join([CONFIG_BROKER['error_report_path'], warning_file_name])
+        warning_file_path = "".join([CONFIG_SERVICES['error_report_path'], warning_file_name])
 
         # Create File Status object
         create_file_if_needed(job_id, file_name)
@@ -553,9 +553,9 @@ class ValidationManager:
                                           second_file.id, job)
             # get error file name
             error_file_name = report_file_name(submission_id, False, first_file.name, second_file.name)
-            error_file_path = "".join([CONFIG_BROKER['error_report_path'], error_file_name])
+            error_file_path = "".join([CONFIG_SERVICES['error_report_path'], error_file_name])
             warning_file_name = report_file_name(submission_id, True, first_file.name, second_file.name)
-            warning_file_path = "".join([CONFIG_BROKER['error_report_path'], warning_file_name])
+            warning_file_path = "".join([CONFIG_SERVICES['error_report_path'], warning_file_name])
 
             # loop through failures to create the error report
             try:
