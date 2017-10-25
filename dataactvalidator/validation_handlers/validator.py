@@ -172,8 +172,8 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
                 'action': 'run_cross_validation_rule',
                 'status': 'start',
                 'start': rule_start})
-        failed_rows = conn.execute(
-            rule.rule_sql.format(submission_id))
+        failed_rows = conn.execute(rule.rule_sql.format(submission_id))
+        logger.info("---- Post-flex cross-rule")
         if failed_rows.rowcount:
             # get list of fields involved in this validation
             # note: row_number is metadata, not a field being
@@ -184,7 +184,9 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
 
             # materialize as we'll iterate over the failed_rows twice
             failed_rows = list(failed_rows)
+            logger.info("---- Pre-flex gathering")
             flex_data = relevant_cross_flex_data(failed_rows, submission_id, [first_file, second_file])
+            logger.info("---- Post-flex gathering")
 
             for row in failed_rows:
                 # get list of values for each column
