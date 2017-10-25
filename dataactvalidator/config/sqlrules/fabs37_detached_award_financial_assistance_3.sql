@@ -15,7 +15,7 @@ SELECT
     correction_late_delete_ind,
     action_date
 FROM detached_award_financial_assistance_fabs37_1_{0} AS dafa
-WHERE (dafa.action_type = 'A'
+WHERE
     -- should always fail if the ID isn't in the history at all
     dafa.row_number NOT IN (
         SELECT DISTINCT sub_dafa.row_number
