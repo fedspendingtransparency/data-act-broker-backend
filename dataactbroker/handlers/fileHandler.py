@@ -1211,7 +1211,7 @@ def submission_to_dict_for_status(submission):
     revalidation_threshold = sess.query(RevalidationThreshold).one_or_none()
     last_validated = get_last_validated_date(submission.submission_id)
 
-    fabs_meta = get_fabs_meta(submission.submission_id)
+    fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
 
     return {
         'cgac_code': submission.cgac_code,
@@ -1454,11 +1454,9 @@ def serialize_submission(submission):
         "agency": agency_name if agency_name else 'N/A',
         "files": files,
         # @todo why are these a different format?
-        "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date
-        else None,
+        "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date else None,
         "reporting_end_date": str(submission.reporting_end_date) if submission.reporting_end_date else None,
-        "user": {"user_id": submission.user_id,
-                 "name": submission.name if submission.name else "No User"},
+        "user": {"user_id": submission.user_id, "name": submission.name if submission.name else "No User"},
         "certifying_user": submission.certifying_user_name if submission.certifying_user_name else "",
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
         "certified_on": str(certified_on) if certified_on else ""
