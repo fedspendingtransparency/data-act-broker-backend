@@ -14,7 +14,7 @@ from dataactcore.scripts.setupJobTrackerDB import setup_job_tracker_db
 from dataactcore.scripts.setupErrorDB import setup_error_db
 from dataactcore.scripts.setupValidationDB import setup_validation_db
 from dataactcore.models.jobModels import Submission
-from dataactcore.config import CONFIG_BROKER, CONFIG_DB, CONFIG_SERVICES
+from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
 from dataactcore.scripts.databaseSetup import create_database, run_migrations
 import dataactcore.config
 
