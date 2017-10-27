@@ -1078,7 +1078,7 @@ class FileTests(BaseTestAPI):
             field_name="header_four",
             error_type_id=ERROR_TYPE_DICT['required_error'],
             occurrences=5,
-            rule_failed="A required value was not provided",
+            rule_failed="This field is required for all submissions but was not provided in this row",
             severity_id=RULE_SEVERITY_DICT['fatal']
         )
         approp_job.number_of_errors += 5
@@ -1090,7 +1090,7 @@ class FileTests(BaseTestAPI):
             field_name="header_four",
             error_type_id=ERROR_TYPE_DICT['required_error'],
             occurrences=5,
-            rule_failed="A required value was not provided",
+            rule_failed="This field is required for all submissions but was not provided in this row",
             file_type_id=FILE_TYPE_DICT['appropriations'],
             target_file_type_id=FILE_TYPE_DICT['award'],
             severity_id=RULE_SEVERITY_DICT['fatal']
