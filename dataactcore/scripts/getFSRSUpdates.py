@@ -30,6 +30,7 @@ def main():
             return
         mod_date = arg_date
 
+    logger.info("Starting SQL query")
     sess = GlobalDB.db().session
     results = sess.execute("""
     WITH base_transaction AS (
@@ -87,6 +88,7 @@ def main():
         ob.modified_at AS last_modified_date
     FROM only_base AS ob
     WHERE modified_at >= '""" + mod_date + "'")
+    logger.info("Completed SQL query, starting file writing")
 
     full_file_path = os.path.join(os.getcwd(), "fsrs_update.csv")
     with open(full_file_path, 'w', newline='') as csv_file:
@@ -101,6 +103,7 @@ def main():
             out_csv.writerow(row)
     # close file
     csv_file.close()
+    logger.info("Script complete")
 
 if __name__ == '__main__':
     configure_logging()
