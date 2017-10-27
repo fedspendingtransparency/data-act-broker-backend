@@ -16,7 +16,7 @@ from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_STATUS_DICT_ID, JOB
                                         FILE_TYPE_DICT_LETTER)
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
-from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file, write_file_to_s3
+from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file, stream_file_to_s3
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +109,8 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
             headers = [key for key in file_utils.mapping]
 
             # actually generate the file
-            query_utils = {file_utils: file_utils, agency_code: agency_code, start: start, end: end, sess: sess}
+            query_utils = {"file_utils": file_utils, "agency_code": agency_code, "start": start, "end": end,
+                           "sess": sess}
             write_query_to_file(local_filename, upload_name, headers, file_type, is_local, d_file_query, query_utils)
 
             # mark this FileRequest as the cached version
@@ -200,8 +201,8 @@ def d_file_query(query_utils, page_start, page_end):
         Return:
             paginated D1 or D2 query results
     """
-    rows = query_utils.file_utils.query_data(query_utils.sess, query_utils.agency_code, query_utils.start,
-                                             query_utils.end, page_start, page_end).all()
+    rows = query_utils["file_utils"].query_data(query_utils["sess"], query_utils["agency_code"], query_utils["start"],
+                                                query_utils["end"], page_start, page_end)
     return rows.all()
 
 
@@ -250,7 +251,7 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
         # copy the parent file into the child's S3 location
         logger.debug('Copying {} file from job {} to job {}'.format(file_type, parent_job.job_id, child_job.job_id))
         with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
-            write_file_to_s3(child_job.filename, reader)
+            stream_file_to_s3(child_job.filename, reader)
 
     # mark job status last so the validation job doesn't start until everything is done
     mark_job_status(child_job.job_id, JOB_STATUS_DICT_ID[parent_job.job_status_id])

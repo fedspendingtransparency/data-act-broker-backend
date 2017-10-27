@@ -23,7 +23,7 @@ def write_csv(file_name, upload_name, is_local, header, body):
             is_local - True if in local development, False otherwise
             header - value to write as the first line of the file
             body - Iterable to write as the body of the file
-        
+
         Return:
             the final file name (complete with prefix)
     """
@@ -41,7 +41,7 @@ def get_write_csv_writer(file_name, upload_name, is_local, header):
             upload_name - file name to be used as S3 key
             is_local - True if in local development, False otherwise
             header - value to write as the first line of the file
-        
+
         Return:
             the writer object
     """
@@ -103,13 +103,13 @@ def write_query_to_file(local_filename, upload_name, header, file_type, is_local
     if not is_local:
         # stream file to S3
         with open(local_filename, 'rb') as reader:
-            write_file_to_s3(upload_name, reader, is_certified)
+            stream_file_to_s3(upload_name, reader, is_certified)
         # close and delete local copy
         reader.close()
         os.remove(local_filename)
 
 
-def write_file_to_s3(upload_name, reader, is_certified=False):
+def stream_file_to_s3(upload_name, reader, is_certified=False):
     """Stream file to S3
 
         Args:
