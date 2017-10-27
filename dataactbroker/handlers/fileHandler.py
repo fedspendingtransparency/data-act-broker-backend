@@ -803,8 +803,8 @@ class FileHandler:
                 sess.add(new_row)
 
                 # update the list of affected agency_codes
-                if temp_obj.awarding_agency_code not in agency_codes_list:
-                    agency_codes_list.append(temp_obj.awarding_agency_code)
+                if temp_obj['awarding_agency_code'] not in agency_codes_list:
+                    agency_codes_list.append(temp_obj['awarding_agency_code'])
 
             # update all cached D2 FileRequest objects that could have been affected by the publish
             for agency_code in agency_codes_list:
