@@ -443,7 +443,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
                 order_by(CertifyHistory.created_at.desc()).first()
 
-            # move files (locally we don't move but we still need to populate the certified_files_history table
+            # move files (locally we don't move but we still need to populate the certified_files_history table)
             file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
             file_manager.move_certified_files(submission, certify_history, is_local)
 
