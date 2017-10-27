@@ -174,7 +174,14 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
                 'status': 'start',
                 'start': rule_start})
         failed_rows = conn.execute(rule.rule_sql.format(submission_id))
-        logger.info("---- Post-flex cross-rule: " + rule.query_name)
+        logger.info(
+            {
+                'message': 'Finished running cross-file rule ' + rule.query_name + ' on submission_id: ' +
+                           str(submission_id) + '. Starting flex field gathering and file writing',
+                'message_type': 'ValidatorInfo',
+                'rule': rule.query_name,
+                'job_id': job.job_id,
+                'submission_id': submission_id})
         if failed_rows.rowcount:
             # get list of fields involved in this validation
             # note: row_number is metadata, not a field being
@@ -190,11 +197,29 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
             slice_size = 10000
             while slice_start <= num_failed_rows:
                 failed_row_subset = failed_rows[slice_start:slice_start+slice_size]
-                logger.info("---- Pre-flex gathering: " + rule.query_name + " for slice: " + str(slice_start) + "-" +
-                            str(slice_start+slice_size))
+                # finding out row numbers for logger
+                last_error_curr_slice = slice_start + slice_size
+                if last_error_curr_slice > num_failed_rows:
+                    last_error_curr_slice = num_failed_rows
+                logger.info(
+                    {
+                        'message': 'Starting flex field gathering for cross-file rule ' + rule.query_name +
+                                   ' on submission_id: ' + str(submission_id) + ' for failure rows: ' +
+                                   str(slice_start) + '-' + str(last_error_curr_slice),
+                        'message_type': 'ValidatorInfo',
+                        'rule': rule.query_name,
+                        'job_id': job.job_id,
+                        'submission_id': submission_id})
                 flex_data = relevant_cross_flex_data(failed_row_subset, submission_id, [first_file, second_file])
-                logger.info("---- Post-flex gathering: " + rule.query_name + " for slice: " + str(slice_start) + "-" +
-                            str(slice_start+slice_size))
+                logger.info(
+                    {
+                        'message': 'Finished flex field gathering for cross-file rule ' + rule.query_name +
+                                   ' on submission_id: ' + str(submission_id) + ' for failure rows: ' +
+                                   str(slice_start) + '-' + str(last_error_curr_slice),
+                        'message_type': 'ValidatorInfo',
+                        'rule': rule.query_name,
+                        'job_id': job.job_id,
+                        'submission_id': submission_id})
 
                 for row in failed_row_subset:
                     # get list of values for each column
