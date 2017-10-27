@@ -457,8 +457,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @app.route("/v1/restart_validation/", methods=['POST'])
     @convert_to_submission_id
     @requires_submission_perms('writer')
-    def restart_validation(submission):
-        return FileHandler.restart_validation(submission)
+    @use_kwargs({'d2_submission': webargs_fields.Bool(missing=False)})
+    def restart_validation(submission, d2_submission):
+        return FileHandler.restart_validation(submission, d2_submission)
 
 
 def convert_to_submission_id(fn):

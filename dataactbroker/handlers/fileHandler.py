@@ -13,7 +13,7 @@ import calendar
 import requests
 from flask import g, request
 import sqlalchemy as sa
-from sqlalchemy import func
+from sqlalchemy import func, and_
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql.expression import case
@@ -43,8 +43,8 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
-    create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status,
-    mark_job_status, run_job_checks, get_last_validated_date, get_lastest_certified_date, get_fabs_meta)
+    create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status, get_fabs_meta,
+    get_submission_files, mark_job_status, run_job_checks, get_last_validated_date, get_lastest_certified_date)
 from dataactbroker.handlers.fileGenerationHandler import generate_d_file, generate_e_file, generate_f_file
 
 logger = logging.getLogger(__name__)
@@ -754,6 +754,24 @@ class FileHandler:
         sess.commit()
 
         try:
+            # check to make sure no new entries have been published that collide with the new rows
+            # (correction_late_delete_ind is not C or D)
+            # need to set the models to something because the names are too long and flake gets mad
+            dafa = DetachedAwardFinancialAssistance
+            pafa = PublishedAwardFinancialAssistance
+            colliding_rows = sess.query(dafa.afa_generated_unique). \
+                filter(dafa.is_valid.is_(True),
+                       dafa.submission_id == submission_id,
+                       func.coalesce(func.upper(dafa.correction_late_delete_ind), '').notin_(['C', 'D'])).\
+                join(pafa, and_(dafa.afa_generated_unique == pafa.afa_generated_unique, pafa.is_active.is_(True))).\
+                count()
+            if colliding_rows > 0:
+                raise ResponseException("1 or more rows in this submission were already published (in a separate "
+                                        "submission). This occurred in the time since your validations were completed. "
+                                        "To prevent duplicate records, this submission must be revalidated in order to "
+                                        "publish.",
+                                        StatusCode.CLIENT_ERROR)
+
             # get all valid lines for this submission
             query = sess.query(DetachedAwardFinancialAssistance).\
                 filter_by(is_valid=True, submission_id=submission_id).all()
@@ -795,6 +813,11 @@ class FileHandler:
             sess.query(Submission).filter_by(submission_id=submission_id). \
                 update({"publish_status_id": PUBLISH_STATUS_DICT['unpublished']}, synchronize_session=False)
             sess.commit()
+
+            # we want to return response exceptions in such a way that we can see the message, not catching it
+            # separately because we still want to rollback the changes and set the status to unpublished
+            if type(e) == ResponseException:
+                return JsonResponse.error(e, e.status)
 
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
@@ -894,11 +917,14 @@ class FileHandler:
             response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
 
     @staticmethod
-    def restart_validation(submission):
+    def restart_validation(submission, fabs):
         # update all validation jobs to "ready"
         sess = GlobalDB.db().session
-        initial_file_types = [FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
-                              FILE_TYPE_DICT['award_financial']]
+        if not fabs:
+            initial_file_types = [FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
+                                  FILE_TYPE_DICT['award_financial']]
+        else:
+            initial_file_types = [FILE_TYPE_DICT['detached_award']]
 
         jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id).all()
 
@@ -1243,8 +1269,6 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         else:
             query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
 
-    total_submissions = query.count()
-
     options = {
         'modified': {'model': submission_updated_view, 'col': 'updated_at'},
         'reporting': {'model': Submission, 'col': 'reporting_start_date'},
@@ -1267,6 +1291,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         sort_order = sort_order.desc()
 
     query = query.order_by(sort_order)
+
+    total_submissions = query.count()
 
     query = query.limit(limit).offset(offset)
 
@@ -1363,17 +1389,23 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
 def serialize_submission(submission):
     """Convert the provided submission into a dictionary in a schema the
     frontend expects"""
-    status = get_submission_status(submission)
+
+    sess = GlobalDB.db().session
+
+    jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
+    files = get_submission_files(jobs)
+    status = get_submission_status(submission, jobs)
     certified_on = get_lastest_certified_date(submission)
     agency_name = submission.cgac_agency_name if submission.cgac_agency_name else submission.frec_agency_name
-
     return {
         "submission_id": submission.submission_id,
         "last_modified": str(submission.updated_at),
         "status": status,
         "agency": agency_name if agency_name else 'N/A',
+        "files": files,
         # @todo why are these a different format?
-        "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date else None,
+        "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date
+        else None,
         "reporting_end_date": str(submission.reporting_end_date) if submission.reporting_end_date else None,
         "user": {"user_id": submission.user_id,
                  "name": submission.name if submission.name else "No User"},
@@ -1563,18 +1595,26 @@ def fabs_derivations(obj, sess):
         if len(obj['place_of_performance_zip4a']) > 5:
             zip_four = obj['place_of_performance_zip4a'][-4:]
 
-        # if there's a 9-digit zip code, use both parts to get data, otherwise just grab the first
-        # instance of the zip5 we find
+        zip_info = None
+        cd_count = 1
+        # if there's a 9-digit zip code, use both parts to get data, otherwise (or if that's invalid) just grab
+        # the first instance of the zip5 we find
         if zip_four:
             zip_info = sess.query(Zips).\
                 filter_by(zip5=zip_five, zip_last4=zip_four).first()
-        else:
+        if not zip_info:
             zip_info = sess.query(Zips).\
                 filter_by(zip5=zip_five).first()
+            # if this is a 5-digit zip, there may be more than one congressional district associated with it
+            cd_count = sess.query(Zips.congressional_district_no.label('cd_count')).\
+                filter_by(zip5=zip_five).distinct().count()
 
         # deriving ppop congressional district
         if not obj['place_of_performance_congr']:
-            obj['place_of_performance_congr'] = zip_info.congressional_district_no
+            if zip_info.congressional_district_no and cd_count == 1:
+                obj['place_of_performance_congr'] = zip_info.congressional_district_no
+            else:
+                obj['place_of_performance_congr'] = '90'
 
         # deriving PrimaryPlaceOfPerformanceCountyName/Code
         obj['place_of_perform_county_co'] = zip_info.county_number
@@ -1739,17 +1779,19 @@ def fabs_derivations(obj, sess):
     if obj['record_type'] == 2 and obj['place_of_performance_zip4a'] and\
        obj['place_of_performance_zip4a'] != 'city-wide':
         zip_five = obj['place_of_performance_zip4a'][:5]
+        zip_four = None
 
         # if zip4 is 9 digits, set the zip_four value to the last 4 digits
         if len(obj['place_of_performance_zip4a']) > 5:
             zip_four = obj['place_of_performance_zip4a'][-4:]
 
-        # if there's a 9-digit zip code, use both parts to get data, otherwise just grab the first
-        # instance of the zip5 we find
+        zip_info = None
+        # if there's a 9-digit zip code, use both parts to get data, otherwise (or if that's invalid) just grab
+        # the first instance of the zip5 we find
         if zip_four:
             zip_info = sess.query(Zips). \
                 filter_by(zip5=zip_five, zip_last4=zip_four).first()
-        else:
+        if not zip_info:
             zip_info = sess.query(Zips). \
                 filter_by(zip5=zip_five).first()
         obj['place_of_perform_county_co'] = zip_info.county_number
