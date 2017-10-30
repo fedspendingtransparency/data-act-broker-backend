@@ -25,7 +25,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test that the cfda_number exists 
+    """ Test that the cfda_number exists.
     """
 
     # test for cfda_number that doesn't exist in the table
