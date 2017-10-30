@@ -12,10 +12,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Test valid. For ActionType = A, the CFDA_Number must be active as of the ActionDate.
-        Not apply to those with CorrectionLateDeleteIndicator = C.
-        If publish_date <= action_date <= archived_date, it passes validation (active).
-    """
+    """ Test that no errors occur when the cfda_number exists. """
 
     cfda = CFDAProgram(program_number=12.340)
     det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.340")
@@ -25,11 +22,10 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test that the cfda_number exists.
-    """
+    """ Test that its fails when cfda_number does not exists. """
 
     # test for cfda_number that doesn't exist in the table
-    cfda = CFDAProgram(program_number=12.340, published_date="20130427", archived_date="")
+    cfda = CFDAProgram(program_number=12.340)
     det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number="54.321")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number="AB.CDE")
     det_award_3 = DetachedAwardFinancialAssistanceFactory(cfda_number="11.111")
