@@ -973,6 +973,11 @@ class FileHandler:
     def move_certified_files(self, submission, certify_history, is_local):
         """Copy all files within the ceritified submission to the correct certified files bucket/directory. FABS
         submissions also create a file containing all the published rows"""
+        try:
+            self.s3manager
+        except AttributeError:
+            self.s3manager = S3Handler()
+
         sess = GlobalDB.db().session
         submission_id = submission.submission_id
 
