@@ -117,7 +117,12 @@ def stream_file_to_s3(upload_name, reader, is_certified=False):
             reader - reader object to read data from
             is_certified - True if writing to the certified bucket, False otherwise (default False)
     """
-    with smart_open.smart_open(S3Handler.create_file_path(upload_name, is_certified), 'w') as writer:
+    if is_certified:
+        handler = S3Handler.create_file_path(upload_name, CONFIG_BROKER["certified_bucket"])
+    else:
+        handler = S3Handler.create_file_path(upload_name)
+
+    with smart_open.smart_open(handler, 'w') as writer:
         while True:
             chunk = reader.read(CHUNK_SIZE)
             if chunk:
