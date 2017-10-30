@@ -79,6 +79,10 @@ storage_path = CONFIG_BROKER['d_file_storage_path']
 if storage_path[-1] != os.path.sep:
     CONFIG_BROKER['d_file_storage_path'] = "".join([storage_path, os.path.sep])
 
+error_storage_path = CONFIG_SERVICES['error_report_path']
+if error_storage_path[-1] != os.path.sep:
+    CONFIG_SERVICES['error_report_path'] = "".join([error_storage_path, os.path.sep])
+
 # if no broker file path specified,
 # default to `data_act_broker` in user's home dir
 broker_files = CONFIG_BROKER['broker_files']
