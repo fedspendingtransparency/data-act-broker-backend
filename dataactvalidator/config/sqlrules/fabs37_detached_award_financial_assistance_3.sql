@@ -1,4 +1,4 @@
--- The CFDA_Number must have been registered
+-- The CFDA_Number must exist
 WITH detached_award_financial_assistance_fabs37_1_{0} AS
     (SELECT submission_id,
         row_number,
