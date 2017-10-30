@@ -29,7 +29,7 @@ from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
                                               FPDSContractingOffice)
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
-                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory)
+                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
@@ -43,8 +43,8 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
-    create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status,
-    mark_job_status, run_job_checks, get_last_validated_date, get_lastest_certified_date, get_fabs_meta)
+    create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status, get_fabs_meta,
+    get_submission_files, mark_job_status, run_job_checks, get_last_validated_date, get_lastest_certified_date)
 from dataactbroker.handlers.fileGenerationHandler import generate_d_file, generate_e_file, generate_f_file
 
 logger = logging.getLogger(__name__)
@@ -486,8 +486,7 @@ class FileHandler:
 
     def generate_file(self, submission_id, file_type):
         """ Start a file generation job for the specified file type """
-        logger.debug('Starting D file generation')
-        logger.debug('Submission ID = %s / File type = %s', submission_id, file_type)
+        logger.debug('Starting %s file generation, submission_id:%s', file_type, submission_id)
 
         sess = GlobalDB.db().session
 
@@ -539,11 +538,11 @@ class FileHandler:
 
     def generate_detached_file(self, file_type, cgac_code, frec_code, start, end):
         """ Start a file generation job for the specified file type """
-        logger.debug("Starting detached D file generation")
+        logger.debug('Starting detached %s file generation', file_type)
 
         # check if date format is MM/DD/YYYY
         if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
-            raise ResponseException("Start or end date cannot be parsed into a date", StatusCode.CLIENT_ERROR)
+            raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
 
         # add job info
         file_type_name = FILE_TYPE_DICT_ID[FILE_TYPE_DICT_LETTER_ID[file_type]]
@@ -776,6 +775,7 @@ class FileHandler:
             query = sess.query(DetachedAwardFinancialAssistance).\
                 filter_by(is_valid=True, submission_id=submission_id).all()
 
+            agency_codes_list = []
             for row in query:
                 # remove all keys in the row that are not in the intermediate table
                 temp_obj = row.__dict__
@@ -804,6 +804,22 @@ class FileHandler:
                 # for all rows, insert the new row (active/inactive should be handled by fabs_derivations)
                 new_row = PublishedAwardFinancialAssistance(**temp_obj)
                 sess.add(new_row)
+
+                # update the list of affected agency_codes
+                if temp_obj['awarding_agency_code'] not in agency_codes_list:
+                    agency_codes_list.append(temp_obj['awarding_agency_code'])
+
+            # update all cached D2 FileRequest objects that could have been affected by the publish
+            for agency_code in agency_codes_list:
+                cached = sess.query(FileRequest).filter(FileRequest.request_date == datetime.now().date(),
+                                                        FileRequest.agency_code == agency_code,
+                                                        FileRequest.is_cached_file.is_(True),
+                                                        FileRequest.file_type == 'D2',
+                                                        sa.or_(FileRequest.start_date <= submission.reporting_end_date,
+                                                               FileRequest.end_date >= submission.reporting_start_date))
+                # if there is a cached FileRequest, mark it as no longer cached
+                if cached.one_or_none():
+                    cached.is_cached_file = False
 
             sess.commit()
         except Exception as e:
@@ -1269,8 +1285,6 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         else:
             query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
 
-    total_submissions = query.count()
-
     options = {
         'modified': {'model': submission_updated_view, 'col': 'updated_at'},
         'reporting': {'model': Submission, 'col': 'reporting_start_date'},
@@ -1293,6 +1307,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         sort_order = sort_order.desc()
 
     query = query.order_by(sort_order)
+
+    total_submissions = query.count()
 
     query = query.limit(limit).offset(offset)
 
@@ -1389,17 +1405,23 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
 def serialize_submission(submission):
     """Convert the provided submission into a dictionary in a schema the
     frontend expects"""
-    status = get_submission_status(submission)
+
+    sess = GlobalDB.db().session
+
+    jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
+    files = get_submission_files(jobs)
+    status = get_submission_status(submission, jobs)
     certified_on = get_lastest_certified_date(submission)
     agency_name = submission.cgac_agency_name if submission.cgac_agency_name else submission.frec_agency_name
-
     return {
         "submission_id": submission.submission_id,
         "last_modified": str(submission.updated_at),
         "status": status,
         "agency": agency_name if agency_name else 'N/A',
+        "files": files,
         # @todo why are these a different format?
-        "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date else None,
+        "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date
+        else None,
         "reporting_end_date": str(submission.reporting_end_date) if submission.reporting_end_date else None,
         "user": {"user_id": submission.user_id,
                  "name": submission.name if submission.name else "No User"},
