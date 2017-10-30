@@ -627,13 +627,15 @@ def get_lastest_certified_date(submission, is_fabs=False):
         certify_history_query = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id)
         last_certified = certify_history_query.order_by(CertifyHistory.created_at.desc()).first()
 
-        if last_certified and is_fabs:
+        certified_files = None
+        if is_fabs:
             certified_files = sess.query(CertifiedFilesHistory).\
                 filter_by(certify_history_id=last_certified.certify_history_id).first()
+
+        if last_certified and certified_files:
             return last_certified.created_at, certified_files.filename
         elif last_certified:
             return last_certified.created_at
-
     return None
 
 
