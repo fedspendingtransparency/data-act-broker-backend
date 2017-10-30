@@ -51,6 +51,7 @@ def main():
             ELSE False
             END AS currently_active
     FROM published_award_financial_assistance AS pafa_b
+    WHERE assistance_type IN ('02', '03', '04', '05')
     GROUP BY fain),
     only_base AS (SELECT pafa.*, base_date, earliest_start, latest_end, currently_active, obligation_sum
         FROM published_award_financial_assistance AS pafa
