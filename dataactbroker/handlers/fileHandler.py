@@ -1260,7 +1260,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     frec_columns = [FREC.frec_code, FREC.agency_name.label('frec_agency_name')]
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
                     certifying_user.name.label('certifying_user_name')]
-    certify_columns = [CertifyHistory.created_at.lable('certify_date') ]
+    certify_columns = [CertifyHistory.created_at.label('certify_date') ]
 
     view_columns = [submission_updated_view.submission_id,
                     submission_updated_view.updated_at.label('updated_at')]
@@ -1273,8 +1273,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
-        outerjoin(CertifyHistory, Submission.submission_id == CertifyHistory.submission_id)
-        filter(Submission.d2_submission.is_(d2_submission)).
+        outerjoin(CertifyHistory, Submission.submission_id == CertifyHistory.submission_id).\
+        filter(Submission.d2_submission.is_(d2_submission))
     if not g.user.website_admin:
         cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
         frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec]
