@@ -8,6 +8,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
+from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import Job, Submission, JobDependency, CertifyHistory, CertifiedFilesHistory
@@ -676,17 +677,16 @@ def get_fabs_meta(submission_id):
     submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
     publish_date, published_file = None, None
     certify_data = get_lastest_certified_date(submission, is_fabs=True)
-    
+
     try:
-        iterator = iter(certify_data)
+        iter(certify_data)
     except TypeError:
         publish_date = certify_data
     else:
         publish_date, file_path = certify_data
         if CONFIG_BROKER["use_aws"] and file_path:
             path, file_name = file_path.rsplit('/', 1)  # split by last instance of /
-            published_file = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
-                                                              method="GET")
+            published_file = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None, method="GET")
         elif file_path:
             published_file = file_path
 
