@@ -13,18 +13,16 @@ SELECT af.row_number,
 	af.program_activity_name,
 	af.program_activity_code
 FROM award_financial_b9_{0} as af
-WHERE af.submission_id = {0}
-	AND af.program_activity_code <> '0000'
+WHERE af.program_activity_code <> '0000'
 	AND LOWER(af.program_activity_name) <> 'unknown/other'
-	AND af.row_number NOT IN (
-		SELECT DISTINCT af.row_number
-		FROM award_financial_b9_{0} as af
-			JOIN program_activity as pa
-                ON (af.agency_identifier IS NOT DISTINCT FROM pa.agency_id
-                AND af.main_account_code IS NOT DISTINCT FROM pa.account_number
+	AND NOT EXISTS (
+		SELECT *
+		FROM program_activity AS pa
+                WHERE (af.agency_identifier = pa.agency_id
+                AND af.main_account_code = pa.account_number
                 AND LOWER(af.program_activity_name) IS NOT DISTINCT FROM pa.program_activity_name
                 AND af.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code
                 AND (CAST(pa.budget_year as integer) in (2016, (SELECT reporting_fiscal_year
                                                                     FROM submission
-                                                                    WHERE submission_id = af.submission_id))))
+                                                                    WHERE submission_id = {0}))))
 	);
