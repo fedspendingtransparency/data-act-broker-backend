@@ -551,7 +551,7 @@ class ValidationManager:
             warning_file_name = report_file_name(submission_id, True, first_file.name, second_file.name)
             warning_file_path = "".join([CONFIG_SERVICES['error_report_path'], warning_file_name])
 
-        # open error report and gather failed rules within it
+            # open error report and gather failed rules within it
             with open(error_file_path, 'w', newline='') as error_file,\
                     open(warning_file_path, 'w', newline='') as warning_file:
                 error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')

@@ -196,9 +196,9 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
             slice_start = 0
             slice_size = 10000
             while slice_start <= num_failed_rows:
-                failed_row_subset = failed_rows[slice_start:slice_start+slice_size]
                 # finding out row numbers for logger
                 last_error_curr_slice = slice_start + slice_size
+                failed_row_subset = failed_rows[slice_start:last_error_curr_slice]
                 if last_error_curr_slice > num_failed_rows:
                     last_error_curr_slice = num_failed_rows
                 logger.info(
