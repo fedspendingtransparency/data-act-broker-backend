@@ -17,7 +17,7 @@ SELECT
     correction_late_delete_ind,
     action_date
 FROM detached_award_financial_assistance_fabs37_1_{0} AS dafa
-WHERE (dafa.action_type = 'A'
+WHERE dafa.action_type = 'A'
     AND ((dafa.correction_late_delete_ind != 'C')
         or (dafa.correction_late_delete_ind is null)
     )
@@ -29,4 +29,4 @@ WHERE (dafa.action_type = 'A'
             AND (((cfda.published_date <= sub_dafa.action_date) AND (cfda.archived_date = ''))
                 OR (sub_dafa.action_date <= cfda.archived_date) AND (cfda.archived_date != ''))
             )
-    ))
+    )
