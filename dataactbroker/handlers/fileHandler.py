@@ -1273,6 +1273,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
+        outerjoin(CertifyHistory, CertifyHistory.submission_id == Submission.submission_id).\
         filter(Submission.d2_submission.is_(d2_submission))
     if not g.user.website_admin:
         cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
