@@ -1107,7 +1107,7 @@ def update_narratives(submission, narratives_json):
 def create_fabs_published_file(sess, submission_id, new_route):
     """Create a file containing all the published rows from this submission_id"""
     # create timestamped name and paths
-    timestamped_name = S3Handler.get_timestamped_filename('submission_{}_published_fabs'.format(submission_id))
+    timestamped_name = S3Handler.get_timestamped_filename('submission_{}_published_fabs.csv'.format(submission_id))
     local_filename = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
     upload_name = "".join([new_route, timestamped_name])
 
