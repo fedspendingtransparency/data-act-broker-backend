@@ -1260,7 +1260,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     frec_columns = [FREC.frec_code, FREC.agency_name.label('frec_agency_name')]
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
                     certifying_user.name.label('certifying_user_name')]
-    certify_columns = [CertifyHistory.created_at.label('certify_date') ]
+    certify_columns = [CertifyHistory.created_at.label('certify_date')]
 
     view_columns = [submission_updated_view.submission_id,
                     submission_updated_view.updated_at.label('updated_at')]
