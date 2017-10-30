@@ -8,6 +8,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import Job, Submission, JobDependency, CertifyHistory, CertifiedFilesHistory
 from dataactcore.models.stagingModels import AwardFinancial, DetachedAwardFinancialAssistance
@@ -624,8 +625,8 @@ def get_lastest_certified_date(submission, is_fabs=False):
     if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'] and\
        submission.publish_status_id != PUBLISH_STATUS_DICT['publishing']:
         sess = GlobalDB.db().session
-        certify_history_query = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id)
-        last_certified = certify_history_query.order_by(CertifyHistory.created_at.desc()).first()
+        last_certified = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
+            order_by(CertifyHistory.created_at.desc()).first()
 
         certified_files = None
         if is_fabs:
@@ -681,7 +682,13 @@ def get_fabs_meta(submission_id):
     except TypeError:
         publish_date = certify_data
     else:
-        publish_date, published_file = certify_data
+        publish_date, file_path = certify_data
+        if CONFIG_BROKER["use_aws"] and file_path:
+            path, file_name = file_path.split("/")
+            published_file = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
+                                                              method="GET")
+        elif file_path:
+            published_file = file_path
 
     return {
         'valid_rows': len(valid_rows.all()),

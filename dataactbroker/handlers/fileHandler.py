@@ -1025,7 +1025,7 @@ class FileHandler:
 
             # create the FABS published rows file
             if submission.d2_submission:
-                create_fabs_published_file(sess, submission_id, new_route)
+                new_path = create_fabs_published_file(sess, submission_id, new_route)
 
             # get the narrative relating to the file
             narrative = sess.query(SubmissionNarrative).\
@@ -1114,6 +1114,7 @@ def create_fabs_published_file(sess, submission_id, new_route):
     # write file and stream to S3
     write_query_to_file(local_filename, upload_name, [key for key in fileD2.mapping], "published FABS", g.is_local,
                         published_fabs_query, {"sess": sess, "submission_id": submission_id})
+    return local_filename if g.is_local else upload_name
 
 
 def published_fabs_query(data_utils, page_start, page_end):
