@@ -1,7 +1,5 @@
 import boto3
-import csv
 import logging
-import os
 import smart_open
 
 from datetime import datetime
@@ -18,13 +16,9 @@ from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_STATUS_DICT_ID, JOB
                                         FILE_TYPE_DICT_LETTER)
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
-from dataactvalidator.filestreaming.csv_selection import write_csv
-
+from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file, stream_file_to_s3
 
 logger = logging.getLogger(__name__)
-
-CHUNK_SIZE = 1024
-QUERY_SIZE = 10000
 
 
 @contextmanager
@@ -64,8 +58,8 @@ def job_context(job_id, is_local=True):
             GlobalDB.close()
 
 
-def generate_d_file(file_type, agency_code, start, end, job_id, file_name, upload_name, is_local):
-    """ Write file D1 or D2 to an appropriate CSV.
+def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_local):
+    """Write file D1 or D2 to an appropriate CSV.
 
         Args:
             file_type - File type as either "D1" or "D2"
@@ -73,8 +67,7 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
             start - Beginning of period for D file
             end - End of period for D file
             job_id - Job ID for upload job
-            file_name - Version of filename without user ID
-            upload_name - Filename to use on S3
+            upload_name - File key to use on S3
             is_local - True if in local development, False otherwise
     """
     with job_context(job_id, is_local) as sess:
@@ -109,52 +102,16 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
                 copy_parent_file_request_data(sess, file_request.job, parent_req.job, file_type, is_local)
         else:
             # no cached file
-            # start D file generation
             logger.debug('Starting file {} generation'.format(file_type))
             file_utils = fileD1 if file_type == 'D1' else fileD2
-            full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], file_name])
-            page_idx = 0
+            file_name = upload_name.split('/')[-1]
+            local_filename = "".join([CONFIG_BROKER['d_file_storage_path'], file_name])
+            headers = [key for key in file_utils.mapping]
 
-            # create file locally
-            with open(full_file_path, 'w', newline='') as csv_file:
-                out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-
-                # write headers to file
-                headers = [key for key in file_utils.mapping]
-                out_csv.writerow(headers)
-
-                while True:
-                    # query QUERY_SIZE number of rows
-                    page_start = QUERY_SIZE * page_idx
-                    rows = file_utils.\
-                        query_data(sess, agency_code, start, end, page_start, (QUERY_SIZE * (page_idx + 1))).all()
-
-                    if rows is None:
-                        break
-
-                    # write records to file
-                    logger.debug('Writing rows {}-{} to {} CSV'.format(page_start, page_start + len(rows), file_type))
-                    out_csv.writerows(rows)
-                    if len(rows) < QUERY_SIZE:
-                        break
-                    page_idx += 1
-
-            # close file
-            csv_file.close()
-
-            if not is_local:
-                # stream file to S3
-                with open(full_file_path, 'rb') as csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(upload_name), 'w') as writer:
-                        while True:
-                            chunk = csv_file.read(CHUNK_SIZE)
-                            if chunk:
-                                writer.write(chunk)
-                            else:
-                                break
-                # close and delete local copy
-                csv_file.close()
-                os.remove(full_file_path)
+            # actually generate the file
+            query_utils = {"file_utils": file_utils, "agency_code": agency_code, "start": start, "end": end,
+                           "sess": sess}
+            write_query_to_file(local_filename, upload_name, headers, file_type, is_local, d_file_query, query_utils)
 
             # mark this FileRequest as the cached version
             file_request.is_cached_file = True
@@ -165,7 +122,7 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
 
 
 def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, is_local):
-    """ Write rows from fileF.generate_f_rows to an appropriate CSV.
+    """Write rows from fileF.generate_f_rows to an appropriate CSV.
 
         Args:
             submission_id - Submission ID for generation
@@ -191,7 +148,7 @@ def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, i
 
 
 def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, is_local):
-    """ Write file E to an appropriate CSV.
+    """Write file E to an appropriate CSV.
 
         Args:
             submission_id - Submission ID for generation
@@ -228,8 +185,29 @@ def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, i
     logger.debug('Finished file E generation')
 
 
+def d_file_query(query_utils, page_start, page_end):
+    """Retrieve D1 or D2 data.
+
+        Args:
+            query_utils - object containing:
+                file_utils - fileD1 or fileD2 utils
+                session - DB session
+                agency_code - FREC or CGAC code for generation
+                start - Beginning of period for D file
+                end - End of period for D file
+            page_start - Beginning of pagination
+            page_stop - End of pagination
+
+        Return:
+            paginated D1 or D2 query results
+    """
+    rows = query_utils["file_utils"].query_data(query_utils["sess"], query_utils["agency_code"], query_utils["start"],
+                                                query_utils["end"], page_start, page_end)
+    return rows.all()
+
+
 def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_local):
-    """ parent FileRequest job data to the child FileRequest job data
+    """Parent FileRequest job data to the child FileRequest job data.
 
         Args:
             sess - current DB session
@@ -273,13 +251,7 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
         # copy the parent file into the child's S3 location
         logger.debug('Copying {} file from job {} to job {}'.format(file_type, parent_job.job_id, child_job.job_id))
         with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
-            with smart_open.smart_open(S3Handler.create_file_path(child_job.filename), 'w') as writer:
-                while True:
-                    chunk = reader.read(CHUNK_SIZE)
-                    if chunk:
-                        writer.write(chunk)
-                    else:
-                        break
+            stream_file_to_s3(child_job.filename, reader)
 
     # mark job status last so the validation job doesn't start until everything is done
     mark_job_status(child_job.job_id, JOB_STATUS_DICT_ID[parent_job.job_status_id])
