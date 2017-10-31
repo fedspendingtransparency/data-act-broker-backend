@@ -1285,28 +1285,24 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     """ List submission based on current page and amount to display. If provided, filter based on
     certification status """
     sess = GlobalDB.db().session
-
     submission_updated_view = SubmissionUpdatedView()
-
     offset = limit * (page - 1)
-
     certifying_user = aliased(User)
 
     submission_columns = [Submission.submission_id, Submission.cgac_code, Submission.frec_code, Submission.user_id,
                           Submission.publish_status_id, Submission.d2_submission, Submission.number_of_warnings,
                           Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
                           Submission.reporting_end_date, Submission.certifying_user_id]
-
     cgac_columns = [CGAC.cgac_code, CGAC.agency_name.label('cgac_agency_name')]
     frec_columns = [FREC.frec_code, FREC.agency_name.label('frec_agency_name')]
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
                     certifying_user.name.label('certifying_user_name')]
+    view_columns = [submission_updated_view.submission_id, submission_updated_view.updated_at.label('updated_at')]
 
-    view_columns = [submission_updated_view.submission_id,
-                    submission_updated_view.updated_at.label('updated_at')]
     columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
+    columns_to_query_with_max = columns_to_query + func.max(CertifyHistory.created_at)
 
-    query = sess.query(*columns_to_query, func.max(CertifyHistory.created_at)).\
+    query = sess.query(*columns_to_query_with_max).\
         outerjoin(User, Submission.user_id == User.user_id).\
         outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id).\
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
