@@ -1300,9 +1300,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     view_columns = [submission_updated_view.submission_id, submission_updated_view.updated_at.label('updated_at')]
 
     columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
-    columns_to_query_with_max = columns_to_query + func.max(CertifyHistory.created_at)
 
-    query = sess.query(*columns_to_query_with_max).\
+    query = sess.query(*(*columns_to_query, func.max(CertifyHistory.created_at))).\
         outerjoin(User, Submission.user_id == User.user_id).\
         outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id).\
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
