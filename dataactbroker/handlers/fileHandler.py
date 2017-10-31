@@ -1246,7 +1246,6 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     sess = GlobalDB.db().session
 
     submission_updated_view = SubmissionUpdatedView()
-    # submission_certified_view = SubmissionCertifiedView()
 
     offset = limit * (page - 1)
 
@@ -1262,17 +1261,9 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
                     certifying_user.name.label('certifying_user_name')]
 
-    # certify_columns = [submission_certified_view.submission_id,
-    #                    submission_certified_view.certified_at]
-
-    certify_columns = [CertifyHistory.created_at.label('certified_at')]
     view_columns = [submission_updated_view.submission_id,
                     submission_updated_view.updated_at.label('updated_at')]
     columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
-    columns_to_group = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
-
-    # outerjoin(submission_certified_view.table,
-    #               submission_certified_view.submission_id == Submission.submission_id).\
 
     query = sess.query(*columns_to_query, func.max(CertifyHistory.created_at)).\
         outerjoin(User, Submission.user_id == User.user_id).\
