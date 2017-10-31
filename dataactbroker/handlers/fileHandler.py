@@ -1260,12 +1260,11 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     frec_columns = [FREC.frec_code, FREC.agency_name.label('frec_agency_name')]
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
                     certifying_user.name.label('certifying_user_name')]
-    certify_columns = [CertifyHistory.created_at.label('certify_date')]
 
     view_columns = [submission_updated_view.submission_id,
                     submission_updated_view.updated_at.label('updated_at')]
 
-    columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns + certify_columns
+    columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
 
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id).\
@@ -1273,7 +1272,6 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
-        outerjoin(CertifyHistory, CertifyHistory.submission_id == Submission.submission_id).\
         filter(Submission.d2_submission.is_(d2_submission))
     if not g.user.website_admin:
         cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
@@ -1291,8 +1289,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         'modified': {'model': submission_updated_view, 'col': 'updated_at'},
         'reporting': {'model': Submission, 'col': 'reporting_start_date'},
         'agency': {'model': CGAC, 'col': 'agency_name'},
-        'submitted_by': {'model': User, 'col': 'name'},
-        'certified_date:': {'model': CertifyHistory, 'col': 'created_at'}
+        'submitted_by': {'model': User, 'col': 'name'}
     }
 
     if not options.get(sort):
