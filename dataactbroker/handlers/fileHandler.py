@@ -989,14 +989,15 @@ class FileHandler:
         new_bucket = CONFIG_BROKER['certified_bucket']
         agency_code = submission.cgac_code if submission.cgac_code else submission.frec_code
 
-        # select the file types and set the route within the bucket
+        # warning file doesn't apply to FABS submissions
+        possible_warning_files = [FILE_TYPE_DICT["appropriations"], FILE_TYPE_DICT["program_activity"],
+                                  FILE_TYPE_DICT["award_financial"]]
+
+        # set the route within the bucket
         if submission.d2_submission:
-            possible_warning_files = [FILE_TYPE_DICT["award"]]
             created_at_date = certify_history.created_at
             route_vars = ["FABS", agency_code, created_at_date.year, '{:02d}'.format(created_at_date.month)]
         else:
-            possible_warning_files = [FILE_TYPE_DICT["appropriations"], FILE_TYPE_DICT["program_activity"],
-                                      FILE_TYPE_DICT["award_financial"]]
             route_vars = [agency_code, submission.reporting_fiscal_year, submission.reporting_fiscal_period // 3,
                           certify_history.certify_history_id]
         new_route = '/'.join([str(var) for var in route_vars]) + '/'
