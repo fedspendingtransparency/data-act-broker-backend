@@ -36,6 +36,7 @@ from dataactcore.models.lookups import (
     JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID,
     FILE_TYPE_DICT_LETTER_NAME)
 from dataactcore.models.views import SubmissionUpdatedView
+from dataactcore.utils import fileD2
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.requestDictionary import RequestDictionary
@@ -46,6 +47,7 @@ from dataactcore.interfaces.function_bag import (
     create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status, get_fabs_meta,
     get_submission_files, mark_job_status, run_job_checks, get_last_validated_date, get_lastest_certified_date)
 from dataactbroker.handlers.fileGenerationHandler import generate_d_file, generate_e_file, generate_f_file
+from dataactvalidator.filestreaming.csv_selection import write_query_to_file
 
 logger = logging.getLogger(__name__)
 
@@ -409,7 +411,7 @@ class FileHandler:
 
             agency_code = submission.frec_code if submission.frec_code else submission.cgac_code
             t = threading.Thread(target=generate_d_file, args=(file_type, agency_code, start, end, job.job_id,
-                                                               timestamped_name, upload_file_name, self.isLocal))
+                                                               upload_file_name, self.isLocal))
         else:
             t = threading.Thread(
                 target=generate_e_file if file_type == 'E' else generate_f_file,
@@ -733,21 +735,17 @@ class FileHandler:
     @staticmethod
     def submit_detached_file(submission):
         """ Submits the FABS upload file associated with the submission ID """
-        # Check to make sure it's a d2 submission
+        # Check to make sure it's a valid d2 submission who hasn't already started a publish process
         if not submission.d2_submission:
             raise ResponseException("Submission is not a FABS submission", StatusCode.CLIENT_ERROR)
-
         if submission.publish_status_id == PUBLISH_STATUS_DICT['publishing']:
             raise ResponseException("Submission is already publishing", StatusCode.CLIENT_ERROR)
-
-        # Check to make sure it isn't already a published submission
         if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
             raise ResponseException("Submission has already been published", StatusCode.CLIENT_ERROR)
 
         # if it's an unpublished FABS submission, we can start the process
         sess = GlobalDB.db().session
         submission_id = submission.submission_id
-
         sess.query(Submission).filter_by(submission_id=submission_id).\
             update({"publish_status_id": PUBLISH_STATUS_DICT['publishing']}, synchronize_session=False)
         sess.commit()
@@ -780,7 +778,6 @@ class FileHandler:
                 # remove all keys in the row that are not in the intermediate table
                 temp_obj = row.__dict__
                 temp_obj.pop('detached_award_financial_assistance_id', None)
-                temp_obj.pop('submission_id', None)
                 temp_obj.pop('job_id', None)
                 temp_obj.pop('row_number', None)
                 temp_obj.pop('is_valid', None)
@@ -840,10 +837,21 @@ class FileHandler:
         sess.query(Submission).filter_by(submission_id=submission_id).\
             update({"publish_status_id": PUBLISH_STATUS_DICT['published'], "certifying_user_id": g.user.user_id},
                    synchronize_session=False)
+
+        # create the certify_history entry
         certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
                                          submission_id=submission_id)
         sess.add(certify_history)
         sess.commit()
+
+        # get the certify_history entry including the PK
+        certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission_id).\
+            order_by(CertifyHistory.created_at.desc()).first()
+
+        # generate the published rows file and move all files
+        # (locally we don't move but we still need to populate the certified_files_history table)
+        FileHandler.move_certified_files(FileHandler, submission, certify_history, g.is_local)
+
         response_dict = {"submission_id": submission_id}
         return JsonResponse.create(StatusCode.OK, response_dict)
 
@@ -963,21 +971,37 @@ class FileHandler:
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
     def move_certified_files(self, submission, certify_history, is_local):
+        """Copy all files within the ceritified submission to the correct certified files bucket/directory. FABS
+        submissions also create a file containing all the published rows"""
+        try:
+            self.s3manager
+        except AttributeError:
+            self.s3manager = S3Handler()
+
         sess = GlobalDB.db().session
-        # Putting this here for now, get the uploads list
-        jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+        submission_id = submission.submission_id
+
+        # get the list of upload jobs
+        jobs = sess.query(Job).filter(Job.submission_id == submission_id,
                                       Job.job_type_id == JOB_TYPE_DICT['file_upload'],
                                       Job.filename.isnot(None)).all()
-        possible_warning_files = [FILE_TYPE_DICT["appropriations"], FILE_TYPE_DICT["program_activity"],
-                                  FILE_TYPE_DICT["award_financial"]]
         original_bucket = CONFIG_BROKER['aws_bucket']
         new_bucket = CONFIG_BROKER['certified_bucket']
+        agency_code = submission.cgac_code if submission.cgac_code else submission.frec_code
 
-        # route is used in multiple places, might as well just make it out here
-        identifying_code = submission.cgac_code if submission.cgac_code else submission.frec_code
-        new_route = '{}/{}/{}/{}/'.format(identifying_code, submission.reporting_fiscal_year,
-                                          submission.reporting_fiscal_period // 3,
-                                          certify_history.certify_history_id)
+        # warning file doesn't apply to FABS submissions
+        possible_warning_files = [FILE_TYPE_DICT["appropriations"], FILE_TYPE_DICT["program_activity"],
+                                  FILE_TYPE_DICT["award_financial"]]
+
+        # set the route within the bucket
+        if submission.d2_submission:
+            created_at_date = certify_history.created_at
+            route_vars = ["FABS", agency_code, created_at_date.year, '{:02d}'.format(created_at_date.month)]
+        else:
+            route_vars = [agency_code, submission.reporting_fiscal_year, submission.reporting_fiscal_period // 3,
+                          certify_history.certify_history_id]
+        new_route = '/'.join([str(var) for var in route_vars]) + '/'
+
         for job in jobs:
             # non-local instances create a new path, local instances just use the existing one
             if not is_local:
@@ -991,59 +1015,60 @@ class FileHandler:
             if job.file_type_id in possible_warning_files:
                 # warning file is in the new path for non-local instances and just in its normal place for local ones
                 if not is_local:
-                    warning_file_name = report_file_name(submission.submission_id, True, job.file_type.name)
+                    # create names and move warning file
+                    warning_file_name = report_file_name(submission_id, True, job.file_type.name)
                     warning_file = new_route + warning_file_name
-
-                    # move warning file while we're here
                     self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
                                              original_path="errors/" + warning_file_name, new_path=warning_file)
                 else:
-                    warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission.submission_id,
-                                                                                           True, job.file_type.name)
+                    warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission_id, True,
+                                                                                           job.file_type.name)
+
+            # create the FABS published rows file
+            if submission.d2_submission:
+                new_path = create_fabs_published_file(sess, submission_id, new_route)
 
             # get the narrative relating to the file
             narrative = sess.query(SubmissionNarrative).\
-                filter_by(submission_id=submission.submission_id, file_type_id=job.file_type_id).one_or_none()
+                filter_by(submission_id=submission_id, file_type_id=job.file_type_id).one_or_none()
             if narrative:
                 narrative = narrative.narrative
 
             # create the certified_files_history for this file
-            certified_file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
-                                                           submission_id=submission.submission_id,
-                                                           filename=new_path,
-                                                           file_type_id=job.file_type_id, narrative=narrative,
-                                                           warning_filename=warning_file)
-            sess.add(certified_file_history)
+            file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
+                                                 submission_id=submission_id, file_type_id=job.file_type_id,
+                                                 filename=new_path, narrative=narrative, warning_filename=warning_file)
+            sess.add(file_history)
 
             # only actually move the files if it's not a local submission
             if not is_local:
                 self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
                                          original_path=job.filename, new_path=new_path)
 
-        cross_list = {"B": "A", "C": "B", "D1": "C", "D2": "C"}
-        for key, value in cross_list.items():
-            first_file = FILE_TYPE_DICT_LETTER_NAME[value]
-            second_file = FILE_TYPE_DICT_LETTER_NAME[key]
+        # FABS submissions don't have cross-file validations
+        if not submission.d2_submission:
+            cross_list = {"B": "A", "C": "B", "D1": "C", "D2": "C"}
+            for key, value in cross_list.items():
+                first_file = FILE_TYPE_DICT_LETTER_NAME[value]
+                second_file = FILE_TYPE_DICT_LETTER_NAME[key]
 
-            # create warning file path
-            if not is_local:
-                warning_file_name = report_file_name(submission.submission_id, True, first_file, second_file)
-                warning_file = new_route + warning_file_name
+                # create warning file path
+                if not is_local:
+                    warning_file_name = report_file_name(submission_id, True, first_file, second_file)
+                    warning_file = new_route + warning_file_name
 
-                # move the file if we aren't local
-                self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
-                                         original_path="errors/" + warning_file_name, new_path=warning_file)
-            else:
-                warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission.submission_id, True,
-                                                                                       first_file, second_file)
+                    # move the file if we aren't local
+                    self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
+                                             original_path="errors/" + warning_file_name, new_path=warning_file)
+                else:
+                    warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission_id, True,
+                                                                                           first_file, second_file)
 
-            # add certified history
-            certified_file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
-                                                           submission_id=submission.submission_id,
-                                                           filename=None,
-                                                           file_type_id=None, narrative=None,
-                                                           warning_filename=warning_file)
-            sess.add(certified_file_history)
+                # add certified history
+                file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
+                                                     submission_id=submission_id, filename=None, file_type_id=None,
+                                                     narrative=None, warning_filename=warning_file)
+                sess.add(file_history)
         sess.commit()
 
 
@@ -1060,9 +1085,8 @@ def narratives_for_submission(submission):
 
 
 def update_narratives(submission, narratives_json):
-    """Clear existing narratives and replace them with the provided set. We
-    assume narratives_json contains non-empty strings (i.e. that it's been
-    cleaned)"""
+    """Clear existing narratives and replace them with the provided set. We assume narratives_json contains non-empty
+    strings (i.e. that it's been cleaned)"""
     sess = GlobalDB.db().session
     sess.query(SubmissionNarrative).\
         filter_by(submission_id=submission.submission_id).\
@@ -1079,6 +1103,23 @@ def update_narratives(submission, narratives_json):
     sess.commit()
 
     return JsonResponse.create(StatusCode.OK, {})
+
+
+def create_fabs_published_file(sess, submission_id, new_route):
+    """Create a file containing all the published rows from this submission_id"""
+    # create timestamped name and paths
+    timestamped_name = S3Handler.get_timestamped_filename('submission_{}_published_fabs.csv'.format(submission_id))
+    local_filename = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
+    upload_name = "".join([new_route, timestamped_name])
+
+    # write file and stream to S3
+    write_query_to_file(local_filename, upload_name, [key for key in fileD2.mapping], "published FABS", g.is_local,
+                        published_fabs_query, {"sess": sess, "submission_id": submission_id})
+    return local_filename if g.is_local else upload_name
+
+
+def published_fabs_query(data_utils, page_start, page_end):
+    return fileD2.query_published_fabs_data(data_utils["sess"], data_utils["submission_id"], page_start, page_end).all()
 
 
 def _split_csv(string):
@@ -1177,7 +1218,7 @@ def submission_to_dict_for_status(submission):
     revalidation_threshold = sess.query(RevalidationThreshold).one_or_none()
     last_validated = get_last_validated_date(submission.submission_id)
 
-    fabs_meta = get_fabs_meta(submission.submission_id)
+    fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
 
     return {
         'cgac_code': submission.cgac_code,
@@ -1420,11 +1461,9 @@ def serialize_submission(submission):
         "agency": agency_name if agency_name else 'N/A',
         "files": files,
         # @todo why are these a different format?
-        "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date
-        else None,
+        "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date else None,
         "reporting_end_date": str(submission.reporting_end_date) if submission.reporting_end_date else None,
-        "user": {"user_id": submission.user_id,
-                 "name": submission.name if submission.name else "No User"},
+        "user": {"user_id": submission.user_id, "name": submission.name if submission.name else "No User"},
         "certifying_user": submission.certifying_user_name if submission.certifying_user_name else "",
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
         "certified_on": str(certified_on) if certified_on else ""
