@@ -1038,7 +1038,8 @@ class FileHandler:
                 # create the certified_files_history for this file
                 file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
                                                      submission_id=submission_id, file_type_id=job.file_type_id,
-                                                     filename=new_path, narrative=narrative, warning_filename=warning_file)
+                                                     filename=new_path, narrative=narrative,
+                                                     warning_filename=warning_file)
                 sess.add(file_history)
 
                 # only actually move the files if it's not a local submission
