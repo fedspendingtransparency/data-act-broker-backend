@@ -1801,64 +1801,6 @@ def fabs_derivations(obj, sess):
         else:
             obj['legal_entity_country_name'] = None
 
-    # deriving place_of_perform_country_n from place_of_perform_country_c
-    if obj['place_of_perform_country_c']:
-        country_data = sess.query(CountryCode). \
-            filter_by(country_code=obj['place_of_perform_country_c'].upper()).one_or_none()
-        if country_data:
-            obj['place_of_perform_country_n'] = country_data.country_name
-        else:
-            obj['place_of_perform_country_n'] = None
-
-    # deriving legal_entity_country_name from legal_entity_country_code
-    if obj['legal_entity_country_code']:
-        country_data = sess.query(CountryCode). \
-            filter_by(country_code=obj['legal_entity_country_code'].upper()).one_or_none()
-        if country_data:
-            obj['legal_entity_country_name'] = country_data.country_name
-        else:
-            obj['legal_entity_country_name'] = None
-
-    # deriving place_of_perform_county_co when record_type is 1
-    if obj['record_type'] == 1:
-        county_data = sess.query(CountyCode). \
-            filter_by(county_number=obj['place_of_performance_code'][-3:],
-                      state_code=obj['place_of_performance_code'][:2]).one_or_none()
-        if county_data:
-            obj['place_of_perform_county_co'] = county_data.county_number
-            obj['place_of_perform_county_na'] = county_data.county_name
-        else:
-            obj['place_of_perform_county_co'] = None
-            obj['place_of_perform_county_na'] = None
-
-    # deriving place_of_perform_county_co from primary_place_of_performance_zip4a
-    if obj['record_type'] == 2 and obj['place_of_performance_zip4a'] and\
-       obj['place_of_performance_zip4a'] != 'city-wide':
-        zip_five = obj['place_of_performance_zip4a'][:5]
-        zip_four = None
-
-        # if zip4 is 9 digits, set the zip_four value to the last 4 digits
-        if len(obj['place_of_performance_zip4a']) > 5:
-            zip_four = obj['place_of_performance_zip4a'][-4:]
-
-        zip_info = None
-        # if there's a 9-digit zip code, use both parts to get data, otherwise (or if that's invalid) just grab
-        # the first instance of the zip5 we find
-        if zip_four:
-            zip_info = sess.query(Zips). \
-                filter_by(zip5=zip_five, zip_last4=zip_four).first()
-        if not zip_info:
-            zip_info = sess.query(Zips). \
-                filter_by(zip5=zip_five).first()
-        obj['place_of_perform_county_co'] = zip_info.county_number
-        county_data = sess.query(CountyCode). \
-            filter_by(county_number=zip_info.county_number,
-                      state_code=zip_info.state_abbreviation).one_or_none()
-        if county_data:
-            obj['place_of_perform_county_na'] = county_data.county_name
-        else:
-            obj['place_of_perform_county_na'] = None
-
     if obj['correction_late_delete_ind'] and obj['correction_late_delete_ind'].upper() == 'D':
         obj['is_active'] = False
     else:
