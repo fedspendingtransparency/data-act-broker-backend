@@ -35,7 +35,7 @@ from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
     JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID,
     FILE_TYPE_DICT_LETTER_NAME)
-from dataactcore.models.views import SubmissionUpdatedView
+from dataactcore.models.views import SubmissionUpdatedView, LatestCertifyDateView
 from dataactcore.utils import fileD2
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
@@ -1286,6 +1286,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     certification status """
     sess = GlobalDB.db().session
     submission_updated_view = SubmissionUpdatedView()
+    latest_certify_view = LatestCertifyDateView()
     offset = limit * (page - 1)
     certifying_user = aliased(User)
 
@@ -1298,18 +1299,18 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
                     certifying_user.name.label('certifying_user_name')]
     view_columns = [submission_updated_view.submission_id, submission_updated_view.updated_at.label('updated_at')]
+    certify_view_columns = [latest_certify_view.certified_on]
 
-    columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
+    columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns +\
+        certify_view_columns
 
-    columns_to_query_with_max = columns_to_query + [func.max(CertifyHistory.created_at)]
-
-    query = sess.query(*columns_to_query_with_max).\
+    query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id).\
         outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id).\
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
-        outerjoin(CertifyHistory, Submission.submission_id == CertifyHistory.submission_id).\
+        outerjoin(latest_certify_view.table, latest_certify_view.submission_id == Submission.submission_id).\
         group_by(*columns_to_query).\
         filter(Submission.d2_submission.is_(d2_submission))
     if not g.user.website_admin:
@@ -1329,7 +1330,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         'reporting': {'model': Submission, 'col': 'reporting_start_date'},
         'agency': {'model': CGAC, 'col': 'agency_name'},
         'submitted_by': {'model': User, 'col': 'name'},
-        'certified_date:': {'model': CertifyHistory, 'col': 'created_at'}
+        'certified_date': {'model': latest_certify_view, 'col': 'certified_on'}
     }
 
     if not options.get(sort):
