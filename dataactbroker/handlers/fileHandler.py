@@ -1301,7 +1301,9 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
 
     columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
 
-    query = sess.query(*(*columns_to_query, func.max(CertifyHistory.created_at))).\
+    columns_to_query_with_max = columns_to_query + [func.max(CertifyHistory.created_at)]
+
+    query = sess.query(*columns_to_query_with_max).\
         outerjoin(User, Submission.user_id == User.user_id).\
         outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id).\
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
