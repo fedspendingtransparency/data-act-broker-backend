@@ -1024,26 +1024,27 @@ class FileHandler:
                     warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission_id, True,
                                                                                            job.file_type.name)
 
-            # create the FABS published rows file
             if submission.d2_submission:
+                # FABS published submission, create the FABS published rows file
                 new_path = create_fabs_published_file(sess, submission_id, new_route)
+            else:
+                # DABS certified submission
+                # get the narrative relating to the file
+                narrative = sess.query(SubmissionNarrative).\
+                    filter_by(submission_id=submission_id, file_type_id=job.file_type_id).one_or_none()
+                if narrative:
+                    narrative = narrative.narrative
 
-            # get the narrative relating to the file
-            narrative = sess.query(SubmissionNarrative).\
-                filter_by(submission_id=submission_id, file_type_id=job.file_type_id).one_or_none()
-            if narrative:
-                narrative = narrative.narrative
+                # create the certified_files_history for this file
+                file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
+                                                     submission_id=submission_id, file_type_id=job.file_type_id,
+                                                     filename=new_path, narrative=narrative, warning_filename=warning_file)
+                sess.add(file_history)
 
-            # create the certified_files_history for this file
-            file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
-                                                 submission_id=submission_id, file_type_id=job.file_type_id,
-                                                 filename=new_path, narrative=narrative, warning_filename=warning_file)
-            sess.add(file_history)
-
-            # only actually move the files if it's not a local submission
-            if not is_local:
-                self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
-                                         original_path=job.filename, new_path=new_path)
+                # only actually move the files if it's not a local submission
+                if not is_local:
+                    self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
+                                             original_path=job.filename, new_path=new_path)
 
         # FABS submissions don't have cross-file validations
         if not submission.d2_submission:
@@ -1114,7 +1115,7 @@ def create_fabs_published_file(sess, submission_id, new_route):
 
     # write file and stream to S3
     write_query_to_file(local_filename, upload_name, [key for key in fileD2.mapping], "published FABS", g.is_local,
-                        published_fabs_query, {"sess": sess, "submission_id": submission_id})
+                        published_fabs_query, {"sess": sess, "submission_id": submission_id}, is_certified=True)
     return local_filename if g.is_local else upload_name
 
 
