@@ -556,7 +556,7 @@ class FileHandler:
         # thread detached D file generation
         agency_code = frec_code if frec_code else cgac_code
         t = threading.Thread(target=generate_d_file, args=(file_type, agency_code, start, end, new_job.job_id,
-                                                           new_job.original_filename, new_job.filename, self.isLocal))
+                                                           new_job.filename, self.isLocal))
         t.start()
 
         # Return same response as check generation route
