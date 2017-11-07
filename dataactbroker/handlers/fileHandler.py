@@ -1298,11 +1298,10 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     frec_columns = [FREC.frec_code, FREC.agency_name.label('frec_agency_name')]
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
                     certifying_user.name.label('certifying_user_name')]
-    view_columns = [submission_updated_view.submission_id, submission_updated_view.updated_at.label('updated_at')]
-    certify_view_columns = [latest_certify_view.certified_on]
+    view_columns = [submission_updated_view.submission_id, submission_updated_view.updated_at.label('updated_at'),
+                    latest_certify_view.certified_on]
 
-    columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns +\
-        certify_view_columns
+    columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
 
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id).\
