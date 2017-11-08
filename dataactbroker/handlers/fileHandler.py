@@ -838,7 +838,7 @@ class FileHandler:
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
         sess.query(Submission).filter_by(submission_id=submission_id).\
-            update({"publish_status_id": PUBLISH_STATUS_DICT['published'], "certifying_user_id": g.user.user_id
+            update({"publish_status_id": PUBLISH_STATUS_DICT['published'], "certifying_user_id": g.user.user_id,
                     "updated_at": datetime.utcnow()}, synchronize_session=False)
 
         # create the certify_history entry
