@@ -398,10 +398,13 @@ class FileHandler:
 
         submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
 
-        # Generate and upload file to S3
-        job = self.add_generation_job_info(file_type_name=file_type_name, job=job)
-        upload_file_name, timestamped_name = job.filename, job.original_filename
+        # If this job has already generated a D file that is cached, don't request new job info
+        file_request = sess.query(FileRequest).filter_by(job_id=job.job_id).one_or_none()
+        if not file_request or not file_request.is_cached_file:
+            job = self.add_generation_job_info(file_type_name=file_type_name, job=job)
 
+        # Generate and upload file to S3
+        upload_file_name, timestamped_name = job.filename, job.original_filename
         if file_type in ['D1', 'D2']:
             logger.debug('Adding job info for job id of %s', job.job_id)
             date_error = self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission.submission_id,
