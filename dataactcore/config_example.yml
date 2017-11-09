@@ -94,8 +94,7 @@ services:
     # everything on the same server, consider using the
     # same path as the broker_files setting (above)
     # for simplicity.
-    # This should be an absolute path. Note that this path
-    # is ignored if use_aws is true.
+    # This should be an absolute path.
     error_report_path: /full/path/to/error/reports
 
     # The paths to the sample D1 and D2 files for local development
