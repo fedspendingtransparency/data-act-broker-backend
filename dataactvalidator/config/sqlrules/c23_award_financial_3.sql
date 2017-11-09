@@ -40,4 +40,3 @@ WHERE af.sum_ob_amount <> -1*afa.sum_fed_act_ob_amount-afa.sum_orig_loan_sub_amo
 		FROM award_financial_c23_3_{0} AS sub_af
 		WHERE sub_af.fain = af.fain
 			AND COALESCE(sub_af.allocation_transfer_agency,'') <> '')
-ORDER BY fain
