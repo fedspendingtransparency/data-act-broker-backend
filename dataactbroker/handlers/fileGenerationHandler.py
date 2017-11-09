@@ -78,18 +78,13 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
             file_request = FileRequest(request_date=current_date, job_id=job_id, start_date=start, end_date=end,
                                        agency_code=agency_code, file_type=file_type, is_cached_file=False)
             sess.add(file_request)
-        elif file_request.request_date != current_date:
-            # current file is cached, but not from today
-            # un-cache it and update its date
-            file_request.request_date = current_date
-            file_request.is_cached_file = False
 
         # search for separate FileRequest to mark as parent
         parent_req = None
         if not file_request.is_cached_file:
             parent_req = sess.query(FileRequest).\
-                filter_by(request_date=current_date, file_type=file_type, start_date=start, end_date=end,
-                          agency_code=agency_code, is_cached_file=True).one_or_none()
+                filter_by(file_type=file_type, start_date=start, end_date=end, agency_code=agency_code,
+                          is_cached_file=True).one_or_none()
             file_request.parent_job_id = parent_req.job_id if parent_req else None
         sess.commit()
 
