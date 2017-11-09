@@ -1027,6 +1027,7 @@ class FileHandler:
                     warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission_id, True,
                                                                                            job.file_type.name)
 
+            narrative = None
             if submission.d2_submission:
                 # FABS published submission, create the FABS published rows file
                 new_path = create_fabs_published_file(sess, submission_id, new_route)
@@ -1038,17 +1039,17 @@ class FileHandler:
                 if narrative:
                     narrative = narrative.narrative
 
-                # create the certified_files_history for this file
-                file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
-                                                     submission_id=submission_id, file_type_id=job.file_type_id,
-                                                     filename=new_path, narrative=narrative,
-                                                     warning_filename=warning_file)
-                sess.add(file_history)
-
                 # only actually move the files if it's not a local submission
                 if not is_local:
                     self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
                                              original_path=job.filename, new_path=new_path)
+
+            # create the certified_files_history for this file
+            file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
+                                                 submission_id=submission_id, file_type_id=job.file_type_id,
+                                                 filename=new_path, narrative=narrative,
+                                                 warning_filename=warning_file)
+            sess.add(file_history)
 
         # FABS submissions don't have cross-file validations
         if not submission.d2_submission:
