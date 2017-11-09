@@ -398,10 +398,13 @@ class FileHandler:
 
         submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
 
-        # Generate and upload file to S3
-        job = self.add_generation_job_info(file_type_name=file_type_name, job=job)
-        upload_file_name, timestamped_name = job.filename, job.original_filename
+        # If this job has already generated a D file that is cached, don't request new job info
+        file_request = sess.query(FileRequest).filter_by(job_id=job.job_id).one_or_none()
+        if not file_request or not file_request.is_cached_file:
+            job = self.add_generation_job_info(file_type_name=file_type_name, job=job)
 
+        # Generate and upload file to S3
+        upload_file_name, timestamped_name = job.filename, job.original_filename
         if file_type in ['D1', 'D2']:
             logger.debug('Adding job info for job id of %s', job.job_id)
             date_error = self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission.submission_id,
@@ -1027,6 +1030,7 @@ class FileHandler:
                     warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission_id, True,
                                                                                            job.file_type.name)
 
+            narrative = None
             if submission.d2_submission:
                 # FABS published submission, create the FABS published rows file
                 new_path = create_fabs_published_file(sess, submission_id, new_route)
@@ -1038,17 +1042,17 @@ class FileHandler:
                 if narrative:
                     narrative = narrative.narrative
 
-                # create the certified_files_history for this file
-                file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
-                                                     submission_id=submission_id, file_type_id=job.file_type_id,
-                                                     filename=new_path, narrative=narrative,
-                                                     warning_filename=warning_file)
-                sess.add(file_history)
-
                 # only actually move the files if it's not a local submission
                 if not is_local:
                     self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
                                              original_path=job.filename, new_path=new_path)
+
+            # create the certified_files_history for this file
+            file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
+                                                 submission_id=submission_id, file_type_id=job.file_type_id,
+                                                 filename=new_path, narrative=narrative,
+                                                 warning_filename=warning_file)
+            sess.add(file_history)
 
         # FABS submissions don't have cross-file validations
         if not submission.d2_submission:
