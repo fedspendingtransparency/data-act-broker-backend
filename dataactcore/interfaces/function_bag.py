@@ -686,7 +686,8 @@ def get_fabs_meta(submission_id):
         publish_date, file_path = certify_data
         if CONFIG_BROKER["use_aws"] and file_path:
             path, file_name = file_path.rsplit('/', 1)  # split by last instance of /
-            published_file = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None, method="GET")
+            published_file = S3Handler().get_signed_url(path=path, file_name=file_name,
+                                                        bucket_route=CONFIG_BROKER['certified_bucket'], method="GET")
         elif file_path:
             published_file = file_path
 

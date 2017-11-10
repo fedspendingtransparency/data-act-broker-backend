@@ -38,7 +38,7 @@ FROM appropriation_a33_2_{0} AS approp
 	AND NOT EXISTS (
 		SELECT 1
 		FROM sf_133 AS sf
-        WHERE approp.tas IS NOT DISTINCT FROM sf.tas
+        WHERE approp.tas = sf.tas
             AND sf.period = sub.reporting_fiscal_period
 	        AND sf.fiscal_year = sub.reporting_fiscal_year
 	)

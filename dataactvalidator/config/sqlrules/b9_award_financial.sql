@@ -20,8 +20,8 @@ WHERE af.program_activity_code <> '0000'
 		FROM program_activity AS pa
                 WHERE (af.agency_identifier = pa.agency_id
                 AND af.main_account_code = pa.account_number
-                AND LOWER(af.program_activity_name) IS NOT DISTINCT FROM pa.program_activity_name
-                AND af.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code
+                AND LOWER(COALESCE(af.program_activity_name, '')) = pa.program_activity_name
+                AND COALESCE(af.program_activity_code, '') = pa.program_activity_code
                 AND (CAST(pa.budget_year as integer) in (2016, (SELECT reporting_fiscal_year
                                                                     FROM submission
                                                                     WHERE submission_id = {0}))))
