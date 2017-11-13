@@ -84,8 +84,8 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
         'job_id': job_id,
         'file_generation_type': file_type,
         'agency_code': agency_code,
-        'start_date': start_date,
-        'end_date': end_date
+        'start_date': start,
+        'end_date': end
     }
     if submission_id:
         log_data['submission_id'] = submission_id

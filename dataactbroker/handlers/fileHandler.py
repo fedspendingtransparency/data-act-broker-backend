@@ -406,7 +406,13 @@ class FileHandler:
         # Generate and upload file to S3
         upload_file_name, timestamped_name = job.filename, job.original_filename
         if file_type in ['D1', 'D2']:
-            logger.debug('Adding job info for job id of %s', job.job_id)
+            logger.debug({
+                'message': 'Adding job info for job id of {}'.format(job.job_id),
+                'message_type': 'BrokerDebug',
+                'job_id': job.job_id,
+                'submission_id': job.submission_id,
+                'file_generation_type': file_type
+            })
             date_error = self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission.submission_id,
                                                       file_type, file_type_name, start, end, job)
             if date_error is not None:
@@ -491,7 +497,13 @@ class FileHandler:
 
     def generate_file(self, submission_id, file_type):
         """ Start a file generation job for the specified file type """
-        logger.debug('Starting %s file generation, submission_id:%s', file_type, submission_id)
+        log_data = {
+            'message': 'Starting {} file generation within submission {}'.format(file_type, submission_id),
+            'message_type': 'BrokerDebug',
+            'submission_id': submission_id,
+            'file_generation_type': file_type
+        }
+        logger.debug(log_data)
 
         sess = GlobalDB.db().session
 
@@ -514,7 +526,9 @@ class FileHandler:
 
         success, error_response = self.start_generation_job(job)
 
-        logger.debug('Finished start_generation_job method')
+        log_data['message'] = 'Finished start_generation_job method for submission {}'.format(submission_id)
+        log_data['job_id'] = job.job_id
+        logger.debug(log_data)
         if not success:
             # If not successful, set job status as "failed"
             mark_job_status(job.job_id, "failed")
@@ -544,7 +558,15 @@ class FileHandler:
 
     def generate_detached_file(self, file_type, cgac_code, frec_code, start, end):
         """ Start a file generation job for the specified file type """
-        logger.debug('Starting detached %s file generation', file_type)
+        agency_code = frec_code if frec_code else cgac_code
+        logger.debug({
+            'message': 'Starting detached {} file generation'.format(file_type),
+            'message_type': 'BrokerDebug',
+            'file_generation_type': file_type,
+            'agency_code': agency_code,
+            'start_date': start,
+            'end_date': end
+        })
 
         # check if date format is MM/DD/YYYY
         if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
@@ -558,7 +580,6 @@ class FileHandler:
         )
 
         # thread detached D file generation
-        agency_code = frec_code if frec_code else cgac_code
         t = threading.Thread(target=generate_d_file, args=(file_type, agency_code, start, end, new_job.job_id,
                                                            new_job.filename, self.isLocal))
         t.start()
@@ -579,7 +600,7 @@ class FileHandler:
         key_url is the S3 URL for uploading
         key_id is the job id to be passed to the finalize_submission route
         """
-        logger.debug("Starting detached D file upload")
+        logger.debug({'message': 'Starting detached D file upload', 'message_type': 'BrokerDebug'})
         sess = GlobalDB.db().session
         try:
             response_dict = {}
@@ -663,10 +684,8 @@ class FileHandler:
         """
         sess = GlobalDB.db().session
 
-        # TODO is this comment wrong or is the code wrong?
-        # We want to user first() here so we can see if the job is None so we can mark
-        # the status as invalid to indicate that a status request is invoked for a job that
-        # isn't created yet
+        # We want to use one_or_none() here so we can see if the job is None so we can mark the status as invalid to
+        # indicate that a status request is invoked for a job that isn't created yet
         upload_job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
         response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '', 'start': '',
                          'end': ''}
@@ -750,6 +769,14 @@ class FileHandler:
         # if it's an unpublished FABS submission, we can start the process
         sess = GlobalDB.db().session
         submission_id = submission.submission_id
+        log_data = {
+            'message': 'Starting FABS submission publishing',
+            'message_type': 'BrokerDebug',
+            'submission_id': submission_id
+        }
+        logger.debug(log_data)
+
+        # set publish_status to "publishing"
         sess.query(Submission).filter_by(submission_id=submission_id).\
             update({"publish_status_id": PUBLISH_STATUS_DICT['publishing'], "updated_at": datetime.utcnow()},
                    synchronize_session=False)
@@ -779,6 +806,9 @@ class FileHandler:
                 filter_by(is_valid=True, submission_id=submission_id).all()
 
             agency_codes_list = []
+            row_count = 1
+            log_data['message'] = 'Starting derivations for FABS submission'
+            logger.debug(log_data)
             for row in query:
                 # remove all keys in the row that are not in the intermediate table
                 temp_obj = row.__dict__
@@ -811,6 +841,11 @@ class FileHandler:
                 if temp_obj['awarding_agency_code'] not in agency_codes_list:
                     agency_codes_list.append(temp_obj['awarding_agency_code'])
 
+                if row_count % 1000 == 0:
+                    log_data['message'] = 'Completed derivations for {} rows'.format(row_count)
+                    logger.debug(log_data)
+                row_count += 1
+
             # update all cached D2 FileRequest objects that could have been affected by the publish
             for agency_code in agency_codes_list:
                 cached = sess.query(FileRequest).filter(FileRequest.request_date == datetime.now().date(),
@@ -825,6 +860,11 @@ class FileHandler:
 
             sess.commit()
         except Exception as e:
+            log_data['message'] = 'An error occurred while publishing a FABS submission'
+            log_data['message_type'] = 'BrokerError'
+            log_data['error_message'] = str(e)
+            logger.error(log_data)
+
             # rollback the changes if there are any errors. We want to submit everything together
             sess.rollback()
 
@@ -839,6 +879,8 @@ class FileHandler:
                 return JsonResponse.error(e, e.status)
 
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
+        log_data['message'] = 'Completed derivations for FABS submission'
+        logger.debug(log_data)
 
         sess.query(Submission).filter_by(submission_id=submission_id).\
             update({"publish_status_id": PUBLISH_STATUS_DICT['published'], "certifying_user_id": g.user.user_id,
@@ -986,6 +1028,13 @@ class FileHandler:
 
         sess = GlobalDB.db().session
         submission_id = submission.submission_id
+        log_data = {
+            'message': 'Starting move_certified_files',
+            'message_type': 'BrokerDebug',
+            'submission_id': submission_id,
+            'submission_type': 'FABS' if submission.d2_submission else 'DABS'
+        }
+        logger.debug(log_data)
 
         # get the list of upload jobs
         jobs = sess.query(Job).filter(Job.submission_id == submission_id,
@@ -1009,6 +1058,8 @@ class FileHandler:
         new_route = '/'.join([str(var) for var in route_vars]) + '/'
 
         for job in jobs:
+            log_data['job_id'] = job.job_id
+
             # non-local instances create a new path, local instances just use the existing one
             if not is_local:
                 old_path_sections = job.filename.split("/")
@@ -1033,6 +1084,8 @@ class FileHandler:
             narrative = None
             if submission.d2_submission:
                 # FABS published submission, create the FABS published rows file
+                log_data['message'] = 'Generating published FABS file from publishable rows'
+                logger.debug(log_data)
                 new_path = create_fabs_published_file(sess, submission_id, new_route)
             else:
                 # DABS certified submission
@@ -1079,6 +1132,9 @@ class FileHandler:
                                                      narrative=None, warning_filename=warning_file)
                 sess.add(file_history)
         sess.commit()
+
+        log_data['message'] = 'Completed move_certified_files'
+        logger.debug(log_data)
 
 
 def narratives_for_submission(submission):
@@ -1511,8 +1567,7 @@ def submission_error(submission_id, file_type):
 
     submission = sess.query(Submission).filter_by(submission_id=submission_id).one_or_none()
     if submission is None:
-        # Submission does not exist, change to 400 in this case since
-        # route call specified a bad ID
+        # Submission does not exist, change to 400 in this case since route call specified a bad ID
         response_dict = {
             "message": "Submission does not exist",
             "file_type": file_type,
@@ -1592,7 +1647,6 @@ def map_generate_status(upload_job, validation_job=None):
 
 
 def fabs_derivations(obj, sess):
-
     # initializing a few of the derivations so the keys exist
     obj['legal_entity_state_code'] = None
     obj['legal_entity_city_name'] = None
