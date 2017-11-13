@@ -360,7 +360,7 @@ class FileTests(BaseTestAPI):
             self.assertIsNotNone(rule_error_data)
             self.assertEqual(rule_error_data["field_name"], "header_three")
             self.assertEqual(rule_error_data["error_name"], "rule_failed")
-            self.assertEqual(rule_error_data["error_description"], "A rule failed for this value")
+            self.assertEqual(rule_error_data["error_description"], "A rule failed for this value.")
             self.assertEqual(rule_error_data["occurrences"], "7")
             self.assertEqual(rule_error_data["rule_failed"], "Header three value must be real")
             self.assertEqual(rule_error_data["original_label"], "A1")
@@ -372,7 +372,7 @@ class FileTests(BaseTestAPI):
             self.assertIsNotNone(warning_error_data)
             self.assertEqual(warning_error_data["field_name"], "header_three")
             self.assertEqual(warning_error_data["error_name"], "rule_failed")
-            self.assertEqual(warning_error_data["error_description"], "A rule failed for this value")
+            self.assertEqual(warning_error_data["error_description"], "A rule failed for this value.")
             self.assertEqual(warning_error_data["occurrences"], "7")
             self.assertEqual(warning_error_data["rule_failed"], "Header three value looks odd")
             self.assertEqual(warning_error_data["original_label"], "A2")
@@ -1078,7 +1078,7 @@ class FileTests(BaseTestAPI):
             field_name="header_four",
             error_type_id=ERROR_TYPE_DICT['required_error'],
             occurrences=5,
-            rule_failed="This field is required for all submissions but was not provided in this row",
+            rule_failed="This field is required for all submissions but was not provided in this row.",
             severity_id=RULE_SEVERITY_DICT['fatal']
         )
         approp_job.number_of_errors += 5
@@ -1090,7 +1090,7 @@ class FileTests(BaseTestAPI):
             field_name="header_four",
             error_type_id=ERROR_TYPE_DICT['required_error'],
             occurrences=5,
-            rule_failed="This field is required for all submissions but was not provided in this row",
+            rule_failed="This field is required for all submissions but was not provided in this row.",
             file_type_id=FILE_TYPE_DICT['appropriations'],
             target_file_type_id=FILE_TYPE_DICT['award'],
             severity_id=RULE_SEVERITY_DICT['fatal']
