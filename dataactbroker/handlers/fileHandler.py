@@ -414,7 +414,7 @@ class FileHandler:
 
             agency_code = submission.frec_code if submission.frec_code else submission.cgac_code
             t = threading.Thread(target=generate_d_file, args=(file_type, agency_code, start, end, job.job_id,
-                                                               upload_file_name, self.isLocal))
+                                                               upload_file_name, self.isLocal, job.submission_id))
         else:
             t = threading.Thread(
                 target=generate_e_file if file_type == 'E' else generate_f_file,
