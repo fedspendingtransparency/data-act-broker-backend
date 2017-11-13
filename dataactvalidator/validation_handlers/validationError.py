@@ -4,7 +4,7 @@ class ValidationError:
     typeErrorMsg = "The value provided was of the wrong type. Note that all type errors in a line" \
                    " must be fixed before the rest of the validation logic is applied to that line."
     typeError = 0
-    requiredErrorMsg = "A required value was not provided"
+    requiredErrorMsg = "This field is required for all submissions but was not provided in this row"
     requiredError = 1
     valueErrorMsg = "The value provided was invalid"
     valueError = 2

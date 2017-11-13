@@ -8,8 +8,10 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
+from dataactcore.aws.s3Handler import S3Handler
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.errorModels import ErrorMetadata, File
-from dataactcore.models.jobModels import Job, Submission, JobDependency, CertifyHistory
+from dataactcore.models.jobModels import Job, Submission, JobDependency, CertifyHistory, CertifiedFilesHistory
 from dataactcore.models.stagingModels import AwardFinancial, DetachedAwardFinancialAssistance
 from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
@@ -620,15 +622,22 @@ def get_submission_status(submission, jobs):
     return status
 
 
-def get_lastest_certified_date(submission):
-    if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
+def get_lastest_certified_date(submission, is_fabs=False):
+    if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'] and\
+       submission.publish_status_id != PUBLISH_STATUS_DICT['publishing']:
         sess = GlobalDB.db().session
-        last_certified = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id). \
+        last_certified = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
             order_by(CertifyHistory.created_at.desc()).first()
 
-        if last_certified:
-            return last_certified.created_at
+        certified_files = None
+        if is_fabs:
+            certified_files = sess.query(CertifiedFilesHistory).\
+                filter_by(certify_history_id=last_certified.certify_history_id).first()
 
+        if last_certified and certified_files:
+            return last_certified.created_at, certified_files.filename
+        elif last_certified:
+            return last_certified.created_at
     return None
 
 
@@ -656,22 +665,37 @@ def get_last_validated_date(submission_id):
 
 
 def get_fabs_meta(submission_id):
-
+    """Return the total rows, valid rows, publish date, and publish file for FABS submissions"""
     sess = GlobalDB.db().session
 
-    total_rows = sess.query(DetachedAwardFinancialAssistance).filter(
-                        DetachedAwardFinancialAssistance.submission_id == submission_id)
+    # get row counts from the DetachedAwardFinancialAssistance table
+    dafa = DetachedAwardFinancialAssistance
+    total_rows = sess.query(dafa).filter(dafa.submission_id == submission_id)
+    valid_rows = total_rows.filter(dafa.is_valid)
 
-    valid_rows = total_rows.filter(DetachedAwardFinancialAssistance.is_valid)
-
+    # retrieve the published data and file
     submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
+    publish_date, published_file = None, None
+    certify_data = get_lastest_certified_date(submission, is_fabs=True)
 
-    publish_date = get_lastest_certified_date(submission)
+    try:
+        iter(certify_data)
+    except TypeError:
+        publish_date = certify_data
+    else:
+        publish_date, file_path = certify_data
+        if CONFIG_BROKER["use_aws"] and file_path:
+            path, file_name = file_path.rsplit('/', 1)  # split by last instance of /
+            published_file = S3Handler().get_signed_url(path=path, file_name=file_name,
+                                                        bucket_route=CONFIG_BROKER['certified_bucket'], method="GET")
+        elif file_path:
+            published_file = file_path
 
     return {
         'valid_rows': len(valid_rows.all()),
         'total_rows': len(total_rows.all()),
-        'publish_date': publish_date.strftime('%-I:%M%p %m/%d/%Y') if publish_date else None
+        'publish_date': publish_date.strftime('%-I:%M%p %m/%d/%Y') if publish_date else None,
+        'published_file': published_file
     }
 
 

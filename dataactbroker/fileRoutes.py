@@ -9,7 +9,7 @@ from webargs.flaskparser import parser as webargs_parser, use_kwargs
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler,
     narratives_for_submission, submission_report_url, update_narratives, list_certifications, file_history_url)
-from dataactcore.interfaces.function_bag import get_submission_stats
+from dataactcore.interfaces.function_bag import get_submission_stats, get_fabs_meta
 from dataactcore.models.lookups import FILE_TYPE_DICT
 from dataactbroker.permissions import requires_login, requires_submission_perms
 from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER, JOB_STATUS_DICT, PUBLISH_STATUS_DICT
@@ -310,6 +310,13 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.check_generation(submission, file_type)
 
+    @app.route("/v1/get_fabs_meta/", methods=["POST"])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def get_fabs_metadata(submission):
+        """ Return metadata of FABS submission """
+        return JsonResponse.create(StatusCode.OK, get_fabs_meta(submission.submission_id))
+
     @app.route("/v1/complete_generation/<generation_id>/", methods=["POST"])
     def complete_generation(generation_id):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
@@ -443,7 +450,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
                 order_by(CertifyHistory.created_at.desc()).first()
 
-            # move files (locally we don't move but we still need to populate the certified_files_history table
+            # move files (locally we don't move but we still need to populate the certified_files_history table)
             file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
             file_manager.move_certified_files(submission, certify_history, is_local)
 
@@ -473,8 +480,7 @@ def convert_to_submission_id(fn):
             'submission': webargs_fields.Int(),
             'submission_id': webargs_fields.Int()
         })
-        submission_id = req_args.get('submission',
-                                     req_args.get('submission_id'))
+        submission_id = req_args.get('submission', req_args.get('submission_id'))
         if submission_id is None:
             raise ResponseException(
                 "submission_id is required", StatusCode.CLIENT_ERROR)
