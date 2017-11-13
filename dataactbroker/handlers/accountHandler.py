@@ -240,20 +240,16 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK, {"message": "Emails successfully sent"})
 
 
-def perms_to_affiliations(perms):
+def perms_to_affiliations(perms, user_id):
     """Convert a list of perms from MAX to a list of UserAffiliations. Filter out and log any malformed perms"""
-    available_cgacs = {
-        cgac.cgac_code: cgac
-        for cgac in GlobalDB.db().session.query(CGAC)
-    }
-    available_frecs = {
-        frec.frec_code: frec
-        for frec in GlobalDB.db().session.query(FREC)
-    }
+    available_cgacs = {cgac.cgac_code: cgac for cgac in GlobalDB.db().session.query(CGAC)}
+    available_frecs = {frec.frec_code: frec for frec in GlobalDB.db().session.query(FREC)}
+    log_data = {'message_type': 'BrokerWarning', 'user_id': user_id}
     for perm in perms:
+        log_data['message'] = 'Malformed permission: {}'.format(user_id, perm)
         components = perm.split('-PERM_')
         if len(components) != 2:
-            logger.warning('Malformed permission: %s', perm)
+            logger.warning(log_data)
             continue
 
         codes, perm_level = components
@@ -263,18 +259,18 @@ def perms_to_affiliations(perms):
             # permissions for FR entity code and readonly CGAC
             frec_code, cgac_code = split_codes[1], split_codes[0]
             if frec_code not in available_frecs or cgac_code not in available_cgacs:
-                logger.warning('Malformed permission: %s', perm)
+                logger.warning(log_data)
                 continue
         else:
             # permissions for CGAC
             cgac_code = codes
             if cgac_code not in available_cgacs:
-                logger.warning('Malformed permission: %s', perm)
+                logger.warning(log_data)
                 continue
 
         perm_level = perm_level.lower()
         if perm_level not in 'rwsf':
-            logger.warning('Malformed permission: %s', perm)
+            logger.warning(log_data)
             continue
 
         if frec_code:
@@ -329,7 +325,7 @@ def set_max_perms(user, max_group_list):
         user.affiliations = []
         user.website_admin = True
     else:
-        affiliations = best_affiliation(perms_to_affiliations(perms))
+        affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id))
 
         user.affiliations = affiliations
         user.website_admin = False
