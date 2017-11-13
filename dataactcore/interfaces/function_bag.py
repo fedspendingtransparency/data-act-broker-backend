@@ -311,6 +311,7 @@ def check_job_dependencies(job_id):
     and add them to the queue
     """
     sess = GlobalDB.db().session
+    log_data = {'job_id': job_id}
 
     # raise exception if current job is not actually finished
     job = sess.query(Job).filter(Job.job_id == job_id).one()
@@ -322,8 +323,9 @@ def check_job_dependencies(job_id):
     for dependency in dependencies:
         dep_job_id = dependency.job_id
         if dependency.dependent_job.job_status_id != JOB_STATUS_DICT['waiting']:
-            logger.error("%s (dependency of %s) is not in a 'waiting' state",
-                         dep_job_id, job_id)
+            log_data['message_type'] = 'ValidatorError'
+            log_data['message'] = "{} (dependency of {}) is not in a 'waiting' state".format(dep_job_id, job_id)
+            logger.error(log_data)
         else:
             # find the number of this job's prerequisites that do
             # not have a status of 'finished'.
@@ -342,10 +344,13 @@ def check_job_dependencies(job_id):
                 # Only want to send validation jobs to the queue, other job types should be forwarded
                 if dependency.dependent_job.job_type_name in ['csv_record_validation', 'validation']:
                     # add dep_job_id to the SQS job queue
-                    logger.info('Sending job %s to job manager in sqs', dep_job_id)
+                    log_data['message_type'] = 'ValidatorInfo'
+                    log_data['message'] = 'Sending job {} to job manager in sqs'.format(dep_job_id)
+                    logger.info(log_data)
                     queue = sqs_queue()
                     response = queue.send_message(MessageBody=str(dep_job_id))
-                    logger.info('Send message response: %s', response)
+                    log_data['message'] = 'Send message response: {}'.format(response)
+                    logger.info(log_data)
 
 
 def create_submission(user_id, submission_values, existing_submission):
