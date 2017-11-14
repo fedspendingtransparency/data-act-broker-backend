@@ -1,3 +1,4 @@
+-- All TAS values in File B (object class program activity) should exist in File A (appropriations)
 SELECT op.row_number,
 	op.allocation_transfer_agency,
 	op.agency_identifier,
@@ -7,7 +8,7 @@ SELECT op.row_number,
 	op.main_account_code,
 	op.sub_account_code
 FROM object_class_program_activity AS op
-WHERE op.submission_id = {}
+WHERE op.submission_id = {0}
 	AND NOT EXISTS (
 		SELECT 1
 		FROM appropriation AS approp

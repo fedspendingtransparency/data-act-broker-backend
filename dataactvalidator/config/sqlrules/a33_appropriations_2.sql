@@ -1,4 +1,6 @@
 -- Verify that all of the submitted data (from file A) has an associated GTAS
+-- Each TAS reported in File A should be reported in GTAS for SF 133, with the exception of Financing Accounts, or
+-- when all monetary amounts are zero for the TAS.
 WITH appropriation_a33_2_{0} AS 
     (SELECT row_number,
         allocation_transfer_agency,
@@ -24,7 +26,8 @@ WITH appropriation_a33_2_{0} AS
         status_of_budgetary_resour_cpe
     FROM appropriation
     WHERE submission_id = {0})
-SELECT DISTINCT approp.row_number,
+SELECT DISTINCT
+    approp.row_number,
     approp.allocation_transfer_agency,
 	approp.agency_identifier,
 	approp.beginning_period_of_availa,
