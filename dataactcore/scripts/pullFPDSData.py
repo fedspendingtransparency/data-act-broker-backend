@@ -1074,7 +1074,8 @@ def process_and_add(data, contract_type, sess, sub_tier_list, now, threaded=Fals
                 sess.commit()
 
 
-def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None, threaded=False):
+def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None, threaded=False, start_date=None,
+             end_date=None):
     """ get the data from the atom feed based on contract/award type and the last time the script was run """
     data = []
     yesterday = now - datetime.timedelta(days=1)
@@ -1088,6 +1089,8 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None,
     else:
         last_run_date = last_run.update_date - relativedelta(days=1)
         params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
+        if start_date and end_date:
+            params = 'LAST_MOD_DATE:[' + start_date + ',' + end_date + '] '
 
     # TODO remove this later, this is just for testing
     # params += 'CONTRACTING_AGENCY_ID:1542 '
@@ -1166,12 +1169,14 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None,
     logger.info("processed " + contract_type + ": " + award_type + " data")
 
 
-def get_delete_data(contract_type, now, sess, last_run):
+def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_date=None):
     """ Get data from the delete feed """
     data = []
     yesterday = now - datetime.timedelta(days=1)
     last_run_date = last_run.update_date
     params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
+    if start_date and end_date:
+        params = 'LAST_MOD_DATE:[' + start_date + ',' + end_date + '] '
 
     i = 0
     logger.info('Starting delete feed: ' + delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"')
@@ -2023,6 +2028,9 @@ def main():
                         help='Used in conjunction with -f to indicate which Subfolder to load files from',
                         nargs="+", type=str)
     parser.add_argument('-t', '--threaded', help='Multithread nightly load', action='store_true')
+    parser.add_argument('-da', '--dates', help='Used in conjunction with -l to specify dates to gather updates from.'
+                                               'Should have 2 arguments, first and last day, formatted YYYY/mm/dd',
+                        nargs=2, type=str)
     args = parser.parse_args()
 
     award_types_award = ["BPA Call", "Definitive Contract", "Purchase Order", "Delivery Order"]
@@ -2074,6 +2082,11 @@ def main():
                 "No last_update date present, please run the script with the -a flag to generate an initial dataset")
             raise ValueError(
                 "No last_update date present, please run the script with the -a flag to generate an initial dataset")
+        start_date = None
+        end_date = None
+        if args.dates:
+            start_date = args.dates[0]
+            end_date = args.dates[1]
         # determining if we're doing a threaded call or not
         if args.threaded:
             thread_list = []
@@ -2081,7 +2094,8 @@ def main():
             # so the threads will actually leave earlier and can be terminated in the loop
             for award_type in award_types_idv:
                 t = threading.Thread(target=get_data,
-                                     args=("IDV", award_type, now, sess, sub_tier_list, last_update, True),
+                                     args=("IDV", award_type, now, sess, sub_tier_list, last_update, True, start_date,
+                                           end_date),
                                      name=award_type)
                 thread_list.append(t)
                 t.start()
@@ -2094,7 +2108,8 @@ def main():
             thread_list = []
             for award_type in award_types_award:
                 t = threading.Thread(target=get_data,
-                                     args=("award", award_type, now, sess, sub_tier_list, last_update, True),
+                                     args=("award", award_type, now, sess, sub_tier_list, last_update, True, start_date,
+                                           end_date),
                                      name=award_type)
                 thread_list.append(t)
                 t.start()
@@ -2104,15 +2119,18 @@ def main():
             sess.commit()
         else:
             for award_type in award_types_idv:
-                get_data("IDV", award_type, now, sess, sub_tier_list, last_update)
+                get_data("IDV", award_type, now, sess, sub_tier_list, last_update, start_date=start_date,
+                         end_date=end_date)
 
             for award_type in award_types_award:
-                get_data("award", award_type, now, sess, sub_tier_list, last_update)
+                get_data("award", award_type, now, sess, sub_tier_list, last_update, start_date=start_date,
+                         end_date=end_date)
 
         # We also need to process the delete feed
-        get_delete_data("IDV", now, sess, last_update)
-        get_delete_data("award", now, sess, last_update)
-        sess.query(FPDSUpdate).update({"update_date": now}, synchronize_session=False)
+        get_delete_data("IDV", now, sess, last_update, start_date, end_date)
+        get_delete_data("award", now, sess, last_update, start_date, end_date)
+        if not start_date and not end_date:
+            sess.query(FPDSUpdate).update({"update_date": now}, synchronize_session=False)
 
         logger.info("Ending at: " + str(datetime.datetime.now()))
         sess.commit()
