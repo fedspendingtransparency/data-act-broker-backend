@@ -106,10 +106,10 @@ def retrieve_rows(duns_list):
         client = Client(CONFIG_BROKER['sam']['wsdl'])
         return [suds_to_row(e) for e in get_entities(client, duns_list)]
     else:
-        logger.error(
+        logger.error({
             'message': "Invalid sam config",
             'message_type': 'CoreError'
-        )
+        })
         return []
 
 

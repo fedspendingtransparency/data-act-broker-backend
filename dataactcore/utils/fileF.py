@@ -221,6 +221,8 @@ def generate_f_rows(submission_id):
         'file_type': 'F'
     })
 
+    row_num = 1
+    log_block_length = 1000
     for model_row in itertools.chain(submission_procurements(submission_id),
                                      submission_grants(submission_id)):
         result = OrderedDict()
@@ -231,6 +233,14 @@ def generate_f_rows(submission_id):
             else:
                 result[key] = str(value)
         yield result
+        if row_num % log_block_length == 0:
+            logger.debug({
+                'message': 'Generated rows {}-{}'.format(row_num-(log_block_length-1), row_num),
+                'message_type': 'CoreDebug',
+                'submission_id': submission_id,
+                'file_type': 'F'
+            })
+        row_num += 1
 
     logger.info({
         'message': 'Finished generating F rows',
