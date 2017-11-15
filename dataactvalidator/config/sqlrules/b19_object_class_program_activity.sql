@@ -1,4 +1,7 @@
-SELECT row_number,
+-- The combination of TAS/object class/program activity code/reimbursable flag in File B (object class program activity)
+-- should be unique
+SELECT
+    row_number,
 	beginning_period_of_availa,
 	ending_period_of_availabil,
 	agency_identifier,
@@ -22,6 +25,7 @@ FROM (
 		op.program_activity_code,
 		op.by_direct_reimbursable_fun,
 		op.submission_id,
+		-- numbers all instances of this unique combination incrementally (1, 2, 3, etc)
 		ROW_NUMBER() OVER (PARTITION BY
 			op.beginning_period_of_availa,
 			op.ending_period_of_availabil,
@@ -38,4 +42,5 @@ FROM (
 	WHERE op.submission_id = {0}
 	ORDER BY op.row_number
 	) duplicates
+-- if there is any row numbered over 1, that means there's more than one instance of that unique combination
 WHERE duplicates.row > 1;

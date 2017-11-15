@@ -1,3 +1,5 @@
+-- All combinations of TAS/program activity code/object class in File C (award financial) should exist in File B
+-- (object class program activity).
 WITH award_financial_b20_{0} AS
 	(SELECT row_number,
 		allocation_transfer_agency,
@@ -18,7 +20,8 @@ ocpa_b20_{0} AS
         object_class
 	FROM object_class_program_activity
 	WHERE submission_id = {0})
-SELECT af.row_number,
+SELECT
+    af.row_number,
 	af.allocation_transfer_agency,
 	af.agency_identifier,
 	af.beginning_period_of_availa,
@@ -38,7 +41,6 @@ WHERE NOT EXISTS (
                 OR af.program_activity_code = '0000')
             AND (COALESCE(af.object_class, '') = COALESCE(op.object_class, '')
                 OR (af.object_class IN ('0', '00', '000', '0000')
-                    AND af.object_class IN ('0', '00', '000', '0000')
-                    )
+                    AND af.object_class IN ('0', '00', '000', '0000'))
                 )
-        );
+    );
