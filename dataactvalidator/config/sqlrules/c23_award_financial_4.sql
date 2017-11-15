@@ -20,11 +20,11 @@ award_financial_assistance_c23_4_{0} AS
         COALESCE(SUM(CASE WHEN COALESCE(assistance_type, '') IN ('07', '08')
                         THEN original_loan_subsidy_cost::numeric
                         ELSE 0
-                        END),0) AS sum_orig_loan_sub_amount,
+                    END),0) AS sum_orig_loan_sub_amount,
     	COALESCE(SUM(CASE WHEN COALESCE(assistance_type, '') NOT IN ('07', '08')
     	                THEN federal_action_obligation
     	                ELSE 0
-    	                END),0) AS sum_fed_act_ob_amount
+    	            END),0) AS sum_fed_act_ob_amount
     FROM award_financial_assistance
     WHERE submission_id = {0}
     GROUP BY uri)
@@ -39,7 +39,7 @@ JOIN award_financial_assistance_c23_4_{0} AS afa
     ON af.uri = afa.uri
 WHERE af.sum_ob_amount <> -1 * afa.sum_fed_act_ob_amount - afa.sum_orig_loan_sub_amount
 	AND NOT EXISTS (
-		SELECT *
+		SELECT 1
 		FROM award_financial_c23_4_{0} AS sub_af
 		WHERE sub_af.uri = af.uri
 			AND COALESCE(sub_af.allocation_transfer_agency,'') <> ''

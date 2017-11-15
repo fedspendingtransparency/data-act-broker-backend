@@ -62,4 +62,4 @@ WHERE op.program_activity_code <> '0000'
                 pg_temp.is_zero(op.ussgl497100_downward_adjus_cpe) + pg_temp.is_zero(op.ussgl497200_downward_adjus_cpe) +
                 pg_temp.is_zero(op.ussgl498100_upward_adjustm_cpe) + pg_temp.is_zero(op.ussgl498200_upward_adjustm_cpe)
             ELSE 1
-            END) <> 0;
+        END) <> 0;

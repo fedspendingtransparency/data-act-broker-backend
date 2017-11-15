@@ -36,7 +36,7 @@ WHERE NOT EXISTS (
 		    AND query_sub.cgac_code = sub.cgac_code
 		    AND query_sub.reporting_fiscal_year = sub.reporting_fiscal_year
 		    AND (ps.name IN ('published','updated')
-		        OR query_sub.publishable = true
+		        OR query_sub.publishable = TRUE
 		    )
 	)
 	AND (gross_outlay_amount_by_pro_fyb IS NULL

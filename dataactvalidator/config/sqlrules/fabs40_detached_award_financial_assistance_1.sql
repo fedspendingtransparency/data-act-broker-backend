@@ -17,4 +17,4 @@ WHERE SUBSTRING(dafa.place_of_performance_code, 3, 2) = '**'
         JOIN county_code
             ON SUBSTRING(sub_dafa.place_of_performance_code, 5, 3) = county_code.county_number
                 AND UPPER(SUBSTRING(sub_dafa.place_of_performance_code, 1, 2)) = county_code.state_code
-    )
+    );

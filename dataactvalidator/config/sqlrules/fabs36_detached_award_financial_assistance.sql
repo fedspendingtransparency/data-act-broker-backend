@@ -4,4 +4,4 @@ SELECT
     cfda_number
 FROM detached_award_financial_assistance AS dafa
 WHERE submission_id = {0}
-    AND dafa.cfda_number !~ '^\d\d\.\d\d\d$'
+    AND dafa.cfda_number !~ '^\d\d\.\d\d\d$';

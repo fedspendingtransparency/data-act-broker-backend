@@ -13,15 +13,10 @@ SELECT
     period_of_performance_curr
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND
-        ((CASE
-            WHEN pg_temp.is_date(COALESCE(period_of_performance_curr, '0'))
-            THEN
-                CAST(period_of_performance_curr as DATE)
-        END) < CAST('19991001' AS DATE)
-        OR
-        (CASE
-            WHEN pg_temp.is_date(COALESCE(period_of_performance_curr, '0'))
-            THEN
-                CAST(period_of_performance_curr as DATE)
-        END) > CAST('20991231' AS DATE));
+    AND ((CASE WHEN pg_temp.is_date(COALESCE(period_of_performance_curr, '0'))
+                THEN CAST(period_of_performance_curr AS DATE)
+            END) < CAST('19991001' AS DATE)
+        OR (CASE WHEN pg_temp.is_date(COALESCE(period_of_performance_curr, '0'))
+                THEN CAST(period_of_performance_curr AS DATE)
+            END) > CAST('20991231' AS DATE)
+    );

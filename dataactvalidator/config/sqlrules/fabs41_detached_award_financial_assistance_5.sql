@@ -16,12 +16,16 @@ FROM detached_award_financial_assistance_fabs41_5_{0} AS dafa
 WHERE COALESCE(dafa.place_of_performance_zip4a, '') != ''
     AND dafa.place_of_performance_zip4a != 'city-wide'
     AND dafa.place_of_performance_zip4a ~ '^\d\d\d\d\d\-?\d\d\d\d$'
-    AND EXISTS (SELECT *
-                FROM zips
-                WHERE UPPER(LEFT(dafa.place_of_performance_code, 2)) = zips.state_abbreviation
-                    AND LEFT(dafa.place_of_performance_zip4a, 5) = zips.zip5)
-    AND NOT EXISTS (SELECT *
-                    FROM zips
-                    WHERE UPPER(LEFT(dafa.place_of_performance_code, 2)) = zips.state_abbreviation
-                        AND LEFT(dafa.place_of_performance_zip4a, 5) = zips.zip5
-                        AND RIGHT(dafa.place_of_performance_zip4a, 4) = zips.zip_last4)
+    AND EXISTS (
+        SELECT *
+        FROM zips
+        WHERE UPPER(LEFT(dafa.place_of_performance_code, 2)) = zips.state_abbreviation
+            AND LEFT(dafa.place_of_performance_zip4a, 5) = zips.zip5
+    )
+    AND NOT EXISTS (
+        SELECT *
+        FROM zips
+        WHERE UPPER(LEFT(dafa.place_of_performance_code, 2)) = zips.state_abbreviation
+            AND LEFT(dafa.place_of_performance_zip4a, 5) = zips.zip5
+            AND RIGHT(dafa.place_of_performance_zip4a, 4) = zips.zip_last4
+    );

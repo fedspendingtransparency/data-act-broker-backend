@@ -15,6 +15,6 @@ FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND COALESCE(period_of_performance_star, '') != ''
     AND CASE WHEN pg_temp.is_date(COALESCE(period_of_performance_star, '0'))
-        THEN period_of_performance_star !~ '\d\d\d\d\d\d\d\d'
-        ELSE TRUE
-        END
+            THEN period_of_performance_star !~ '\d\d\d\d\d\d\d\d'
+            ELSE TRUE
+        END;

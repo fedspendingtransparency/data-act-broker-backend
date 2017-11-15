@@ -15,4 +15,4 @@ WHERE submission_id = {0}
         CASE WHEN fiscal_year_and_quarter_co ~ '^\d\d\d\d'
              THEN substring(fiscal_year_and_quarter_co from '^\d\d\d\d')::integer
              ELSE 0
-        END
+        END;

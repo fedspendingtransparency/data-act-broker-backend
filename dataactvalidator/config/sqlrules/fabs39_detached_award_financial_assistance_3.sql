@@ -7,4 +7,4 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND UPPER(place_of_performance_code) !~ '^[A-Z][A-Z]\d\d\d\d\d$'
-    AND COALESCE(place_of_performance_zip4a, '') != ''
+    AND COALESCE(place_of_performance_zip4a, '') != '';

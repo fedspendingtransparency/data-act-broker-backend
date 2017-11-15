@@ -18,4 +18,4 @@ WHERE dafa.place_of_performance_code != '00*****'
         FROM detached_award_financial_assistance_fabs39_1_{0} AS sub_dafa
         JOIN states
             ON UPPER(SUBSTRING(sub_dafa.place_of_performance_code, 1, 2)) = states.state_code
-    )
+    );

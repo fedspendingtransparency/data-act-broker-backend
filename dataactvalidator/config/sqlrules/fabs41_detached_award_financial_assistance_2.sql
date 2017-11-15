@@ -20,4 +20,4 @@ WHERE UPPER(dafa.place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d\d$'
         JOIN city_code
             ON SUBSTRING(sub_dafa.place_of_performance_code, 3, 5) = city_code.city_code
                 AND UPPER(SUBSTRING(sub_dafa.place_of_performance_code, 1, 2)) = city_code.state_code
-    )
+    );

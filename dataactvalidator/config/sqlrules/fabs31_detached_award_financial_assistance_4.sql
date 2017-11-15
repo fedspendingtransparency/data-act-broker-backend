@@ -22,7 +22,6 @@ WITH detached_award_financial_assistance_fabs31_4_{0} AS
         record_type
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
-
 SELECT
     row_number,
     assistance_type,
@@ -31,16 +30,17 @@ SELECT
     business_types,
     record_type
 FROM detached_award_financial_assistance_fabs31_4_{0} AS dafa
-WHERE NOT (record_type = 1 or LOWER(business_types) LIKE '%%p%%')
+WHERE NOT (record_type = 1
+        OR LOWER(business_types) LIKE '%%p%%'
+    )
     AND awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
     AND COALESCE(assistance_type, '') IN ('02', '03', '04', '05')
     AND (CASE
-        WHEN pg_temp.is_date(COALESCE(action_date, '0'))
-        THEN
-            CAST(action_date as DATE)
-    END) > CAST('10/01/2010' as DATE)
+            WHEN pg_temp.is_date(COALESCE(action_date, '0'))
+            THEN CAST(action_date AS DATE)
+        END) > CAST('10/01/2010' AS DATE)
     AND NOT EXISTS (
-        SELECT *
+        SELECT 1
         FROM duns
         WHERE dafa.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
-    )
+    );

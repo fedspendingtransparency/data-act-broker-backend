@@ -7,4 +7,4 @@ FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND UPPER(legal_entity_country_code) != 'USA'
     AND legal_entity_zip_last4 != ''
-    AND legal_entity_zip_last4 IS NOT NULL
+    AND legal_entity_zip_last4 IS NOT NULL;

@@ -20,11 +20,12 @@ SELECT
     record_type
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND NOT (record_type = 1 or LOWER(business_types) LIKE '%%p%%')
+    AND NOT (record_type = 1
+            OR LOWER(business_types) LIKE '%%p%%'
+    )
     AND COALESCE(assistance_type, '') IN ('02', '03', '04', '05')
     AND (CASE
             WHEN pg_temp.is_date(COALESCE(action_date, '0'))
-            THEN
-                CAST(action_date as DATE)
-        END) > CAST('10/01/2010' as DATE)
-    AND COALESCE(awardee_or_recipient_uniqu, '') = ''
+            THEN CAST(action_date AS DATE)
+        END) > CAST('10/01/2010' AS DATE)
+    AND COALESCE(awardee_or_recipient_uniqu, '') = '';
