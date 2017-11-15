@@ -81,7 +81,7 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
     log_data = {
         'message_type': 'BrokerInfo',
         'job_id': job_id,
-        'file_generation_type': file_type,
+        'file_type': file_type,
         'agency_code': agency_code,
         'start_date': start,
         'end_date': end
@@ -155,7 +155,7 @@ def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, i
         'message_type': 'BrokerInfo',
         'submission_id': submission_id,
         'job_id': job_id,
-        'file_generation_type': 'F'
+        'file_type': 'F'
     }
     logger.info(log_data)
 
@@ -190,7 +190,7 @@ def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, i
         'message_type': 'BrokerInfo',
         'submission_id': submission_id,
         'job_id': job_id,
-        'file_generation_type': 'E'
+        'file_type': 'E'
     }
     logger.info(log_data)
 
@@ -279,7 +279,7 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
         log_data = {
             'message_type': 'BrokerInfo',
             'job_id': child_job.job_id,
-            'file_generation_type': file_type
+            'file_type': file_type
         }
         # check to see if the same file exists in the child bucket
         s3 = boto3.client('s3', region_name=CONFIG_BROKER["aws_region"])

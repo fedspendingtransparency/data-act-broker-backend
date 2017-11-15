@@ -561,7 +561,7 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
                     'message': "Cannot create E job without a D1 job",
                     'message_type': 'CoreError',
                     'submission_id': submission_id,
-                    'file_generation_type': 'E'
+                    'file_type': 'E'
                 })
                 raise Exception("Cannot create E job without a D1 job")
             # Add dependency on D1 validation job
@@ -580,7 +580,7 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
                     'message': "Cannot create F job without a C job",
                     'message_type': 'CoreError',
                     'submission_id': submission_id,
-                    'file_generation_type': 'F'
+                    'file_type': 'F'
                 })
                 raise Exception("Cannot create F job without a C job")
             # add dependency on C validation job

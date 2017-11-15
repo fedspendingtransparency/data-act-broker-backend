@@ -404,7 +404,7 @@ class FileHandler:
             'message_type': 'BrokerDebug',
             'job_id': job.job_id,
             'submission_id': job.submission_id,
-            'file_generation_type': file_type
+            'file_type': file_type
         }
         if file_request and file_request.is_cached_file:
             log_data['message'] = 'D file generation running on job with cached file'
@@ -518,7 +518,7 @@ class FileHandler:
             'message_type': 'BrokerInfo',
             'submission_id': submission_id,
             'job_id': job.job_id,
-            'file_generation_type': file_type
+            'file_type': file_type
         }
         logger.info(log_data)
 
@@ -580,7 +580,7 @@ class FileHandler:
             'message': 'Starting detached {} file generation'.format(file_type),
             'message_type': 'BrokerInfo',
             'job_id': new_job.job_id,
-            'file_generation_type': file_type,
+            'file_type': file_type,
             'agency_code': agency_code,
             'start_date': start,
             'end_date': end
