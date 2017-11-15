@@ -503,7 +503,7 @@ class FileHandler:
             'submission_id': submission_id,
             'file_generation_type': file_type
         }
-        logger.debug(log_data)
+        logger.info(log_data)
 
         sess = GlobalDB.db().session
 
@@ -528,7 +528,7 @@ class FileHandler:
 
         log_data['message'] = 'Finished start_generation_job method for submission {}'.format(submission_id)
         log_data['job_id'] = job.job_id
-        logger.debug(log_data)
+        logger.info(log_data)
         if not success:
             # If not successful, set job status as "failed"
             mark_job_status(job.job_id, "failed")
@@ -559,7 +559,7 @@ class FileHandler:
     def generate_detached_file(self, file_type, cgac_code, frec_code, start, end):
         """ Start a file generation job for the specified file type """
         agency_code = frec_code if frec_code else cgac_code
-        logger.debug({
+        logger.info({
             'message': 'Starting detached {} file generation'.format(file_type),
             'message_type': 'BrokerDebug',
             'file_generation_type': file_type,
@@ -600,7 +600,7 @@ class FileHandler:
         key_url is the S3 URL for uploading
         key_id is the job id to be passed to the finalize_submission route
         """
-        logger.debug({'message': 'Starting detached D file upload', 'message_type': 'BrokerDebug'})
+        logger.info({'message': 'Starting detached D file upload', 'message_type': 'BrokerDebug'})
         sess = GlobalDB.db().session
         try:
             response_dict = {}
@@ -774,7 +774,7 @@ class FileHandler:
             'message_type': 'BrokerDebug',
             'submission_id': submission_id
         }
-        logger.debug(log_data)
+        logger.info(log_data)
 
         # set publish_status to "publishing"
         sess.query(Submission).filter_by(submission_id=submission_id).\
@@ -808,12 +808,10 @@ class FileHandler:
             agency_codes_list = []
             row_count = 1
             log_data['message'] = 'Starting derivations for FABS submission'
-            logger.debug(log_data)
+            logger.info(log_data)
             for row in query:
                 # remove all keys in the row that are not in the intermediate table
                 temp_obj = row.__dict__
-                temp_obj.pop('detached_award_financial_assistance_id', None)
-                temp_obj.pop('job_id', None)
                 temp_obj.pop('row_number', None)
                 temp_obj.pop('is_valid', None)
                 temp_obj.pop('created_at', None)
@@ -843,7 +841,7 @@ class FileHandler:
 
                 if row_count % 1000 == 0:
                     log_data['message'] = 'Completed derivations for {} rows'.format(row_count)
-                    logger.debug(log_data)
+                    logger.info(log_data)
                 row_count += 1
 
             # update all cached D2 FileRequest objects that could have been affected by the publish
@@ -880,7 +878,7 @@ class FileHandler:
 
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
         log_data['message'] = 'Completed derivations for FABS submission'
-        logger.debug(log_data)
+        logger.info(log_data)
 
         sess.query(Submission).filter_by(submission_id=submission_id).\
             update({"publish_status_id": PUBLISH_STATUS_DICT['published'], "certifying_user_id": g.user.user_id,
@@ -1085,7 +1083,7 @@ class FileHandler:
             if submission.d2_submission:
                 # FABS published submission, create the FABS published rows file
                 log_data['message'] = 'Generating published FABS file from publishable rows'
-                logger.debug(log_data)
+                logger.info(log_data)
                 new_path = create_fabs_published_file(sess, submission_id, new_route)
             else:
                 # DABS certified submission
@@ -1597,7 +1595,7 @@ def submission_error(submission_id, file_type):
 def get_xml_response_content(api_url):
     """ Retrieve XML Response from the provided API url """
     result = requests.get(api_url, verify=False, timeout=120).text
-    logger.debug('Result for %s: %s', api_url, result)
+    logger.debug({'message': 'Result for {}: {}'.format(api_url, result), 'function': 'get_xml_response_content'})
     return result
 
 
@@ -1647,6 +1645,15 @@ def map_generate_status(upload_job, validation_job=None):
 
 
 def fabs_derivations(obj, sess):
+    # create log obj and remove keys in the row left for logging
+    log_data = {
+        'message_type': 'BrokerError',
+        'job_id': obj['job_id'],
+        'detached_award_financial_assistance_id': obj['detached_award_financial_assistance_id']
+    }
+    obj.pop('detached_award_financial_assistance_id', None)
+    obj.pop('job_id', None)
+
     # initializing a few of the derivations so the keys exist
     obj['legal_entity_state_code'] = None
     obj['legal_entity_city_name'] = None
@@ -1661,7 +1668,8 @@ def fabs_derivations(obj, sess):
     if cfda_title:
         obj['cfda_title'] = cfda_title.program_title
     else:
-        logger.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
+        log_data['message'] = 'CFDA title not found for CFDA number {}'.format(obj['cfda_number'])
+        logger.error(log_data)
         obj['cfda_title'] = None
 
     if obj['awarding_sub_tier_agency_c']:
