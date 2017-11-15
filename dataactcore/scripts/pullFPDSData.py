@@ -1052,8 +1052,8 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None)
 
     i = 0
     loops = 0
-    logger.info('Starting get feed: ' + feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() +
-                '" AWARD_TYPE:"' + award_type + '"')
+    logger.info('Starting get feed: %s%sCONTRACT_TYPE:"%s" AWARD_TYPE:"%s"', feed_url, params, contract_type.upper(),
+                award_type)
     while True:
         loops += 1
         exception_retries = -1
@@ -1109,7 +1109,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None)
         if len(listed_data) < 10:
             break
 
-    logger.info("Total entries in %s: %s feed: " + str(i), contract_type, award_type)
+    logger.info("Total entries in %s: %s feed: %s", contract_type, award_type, str(i))
 
     # insert whatever is left
     logger.info("Processing remaining lines for %s: %s feed", contract_type, award_type)
@@ -1119,7 +1119,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None)
     else:
         add_processed_data_list(data, sess)
 
-    logger.info("processed " + contract_type + ": " + award_type + " data")
+    logger.info("Processed %s: %s data", contract_type, award_type)
 
 
 def get_delete_data(contract_type, now, sess, last_run):
@@ -1130,7 +1130,7 @@ def get_delete_data(contract_type, now, sess, last_run):
     params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
 
     i = 0
-    logger.info('Starting delete feed: ' + delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"')
+    logger.info('Starting delete feed: %sCONTRACT_TYPE:"%s"', delete_url, params, contract_type.upper())
     while True:
         resp = requests.get(delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"&start=' + str(i),
                             timeout=60)
@@ -1149,13 +1149,13 @@ def get_delete_data(contract_type, now, sess, last_run):
 
         # Every 100 lines, log which one we're on so we can keep track of how far we are
         if i % 100 == 0:
-            logger.info("On line " + str(i) + " of %s delete feed", contract_type)
+            logger.info("On line %s of %s delete feed", str(i), contract_type)
 
         # if we got less than 10 records, we can stop calling the feed
         if len(listed_data) < 10:
             break
 
-    logger.info("Total entries in %s delete feed: " + str(i), contract_type)
+    logger.info("Total entries in %s delete feed: %s", contract_type, str(i))
 
     delete_list = []
     for value in data:
@@ -1179,7 +1179,7 @@ def get_delete_data(contract_type, now, sess, last_run):
 
 
 def parse_fpds_file(f, sess, sub_tier_list, naics_dict):
-    logger.info("Starting file " + str(f.name))
+    logger.info("Starting file %s", str(f.name))
 
     csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(f.name))[0]
 
@@ -1262,7 +1262,7 @@ def parse_fpds_file(f, sess, sub_tier_list, naics_dict):
 
                 cdata = format_fpds_data(data, sub_tier_list, naics_dict)
                 if cdata is not None:
-                    logger.info("loading {} rows".format(len(cdata.index)))
+                    logger.info("loading %s rows", len(cdata.index))
 
                     insert_dataframe(cdata, DetachedAwardProcurement.__table__.name, sess.connection())
 
@@ -1954,7 +1954,7 @@ def main():
                          "(but not both) to indicate which feeds to read in")
             raise ValueError("When using the -a flag, please include either -d or -o "
                              "(but not both) to indicate which feeds to read in")
-        logger.info("Starting at: " + str(datetime.datetime.now()))
+        logger.info("Starting at: %s", str(datetime.datetime.now()))
 
         if args.other:
             for award_type in award_types_idv:
@@ -1973,11 +1973,11 @@ def main():
         else:
             sess.add(FPDSUpdate(update_date=now))
 
-        logger.info("Ending at: " + str(datetime.datetime.now()))
+        logger.info("Ending at: %s", str(datetime.datetime.now()))
 
         sess.commit()
     elif args.latest:
-        logger.info("Starting at: " + str(datetime.datetime.now()))
+        logger.info("Starting at: %s", str(datetime.datetime.now()))
 
         last_update = sess.query(FPDSUpdate).one_or_none()
 
@@ -2022,10 +2022,10 @@ def main():
         logger.info("Un-caching D1 file generations")
         sess.query(FileRequest).filter_by(file_type="D1", is_cached_file=True).update({"is_cached_file": False})
 
-        logger.info("Ending at: " + str(datetime.datetime.now()))
+        logger.info("Ending at: %s", str(datetime.datetime.now()))
         sess.commit()
     elif args.files:
-        logger.info("Starting file loads at: " + str(datetime.datetime.now()))
+        logger.info("Starting file loads at: %s", str(datetime.datetime.now()))
         max_year = 2015
         subfolder = None
         if args.subfolder:
@@ -2071,7 +2071,7 @@ def main():
                     if int(file[:4]) <= max_year:
                         parse_fpds_file(open(os.path.join(base_path, file)), sess, sub_tier_list, naics_dict)
 
-        logger.info("Ending at: " + str(datetime.datetime.now()))
+        logger.info("Ending at: %s", str(datetime.datetime.now()))
         sess.commit()
     # TODO add a correct start date for "all" so we don't get ALL the data or too little of the data
     # TODO fine-tune indexing
