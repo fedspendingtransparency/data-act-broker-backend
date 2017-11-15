@@ -57,5 +57,5 @@ FROM appropriation_a33_2_{0} AS approp
         OR COALESCE(approp.obligations_incurred_total_cpe, 0) <> 0
         OR COALESCE(approp.deobligations_recoveries_r_cpe, 0) <> 0
         OR COALESCE(approp.unobligated_balance_cpe, 0) <> 0
-        OR COALESCE(approp.status_of_budgetary_resour_cpe ,0) <> 0
+        OR COALESCE(approp.status_of_budgetary_resour_cpe, 0) <> 0
     );
