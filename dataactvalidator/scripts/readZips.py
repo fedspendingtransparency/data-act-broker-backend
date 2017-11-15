@@ -60,13 +60,13 @@ def add_to_table(data, sess):
             sess.execute(insert_statement)
 
             if i % 10000 == 0:
-                logger.info("inserting row " + str(i) + " of current batch")
+                logger.info("Inserting row %s of current batch", str(i))
             i += 1
         sess.commit()
 
 
 def parse_zip4_file(f, sess):
-    logger.info("starting file " + str(f))
+    logger.info("Starting file ", str(f))
     # pull out the copyright data
     f.read(zip4_line_size)
 
@@ -133,7 +133,7 @@ def parse_zip4_file(f, sess):
                             i += 1
                 # catch entries where zip code isn't an int (12ND for example, ND stands for "no delivery")
                 except ValueError:
-                    logger.error("error parsing entry: " + curr_row)
+                    logger.error("Error parsing entry: ", curr_row)
 
             # cut the current line out of the chunk we're processing
             curr_chunk = curr_chunk[zip4_line_size:]
@@ -141,19 +141,19 @@ def parse_zip4_file(f, sess):
         # we want to do DB adding in large chunks so we can hopefully remove duplicates that are near each other
         # in the file just by them having the same key in the dict
         if len(data_array) > 50000:
-            logger.info("inserting next 50k+ records")
+            logger.info("Inserting next 50k+ records")
             add_to_table(data_array, sess)
             data_array.clear()
 
     # add the final chunk of data to the DB
     if len(data_array) > 0:
-        logger.info("adding last set of records for current file")
+        logger.info("Adding last set of records for current file")
         add_to_table(data_array, sess)
         data_array.clear()
 
 
 def parse_citystate_file(f, sess):
-    logger.info("starting file " + str(f))
+    logger.info("Starting file ", str(f))
     # pull out the copyright data
     f.read(citystate_line_size)
 

@@ -146,27 +146,25 @@ class ValidationManager:
         """
 
         sess = GlobalDB.db().session
-        job_id = job.job_id
-
         error_list = ErrorInterface()
-
+        job_id = job.job_id
         submission_id = job.submission_id
 
         row_number = 1
         file_type = job.file_type.name
         validation_start = datetime.now()
 
-        logger.info(
-            {
-                'message': 'Beginning run_validation on submission_id: ' + str(submission_id) +
-                ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
-                'message_type': 'ValidatorInfo',
-                'submission_id': submission_id,
-                'job_id': job_id,
-                'file_type': file_type,
-                'action': 'run_validations',
-                'status': 'start',
-                'start_time': validation_start})
+        log_str = 'on submission_id: {}, job_id: {}, file_type: {}'.format(str(submission_id), str(job_id), file_type)
+        logger.info({
+            'message': 'Beginning run_validation {}'.format(log_str),
+            'message_type': 'ValidatorInfo',
+            'submission_id': submission_id,
+            'job_id': job_id,
+            'file_type': file_type,
+            'action': 'run_validations',
+            'status': 'start',
+            'start_time': validation_start
+        })
         # Get orm model for this file
         model = [ft.model for ft in FILE_TYPE if ft.name == file_type][0]
 
@@ -241,17 +239,16 @@ class ValidationManager:
             # the Validator
 
             loading_start = datetime.now()
-            logger.info(
-                {
-                    'message': 'Beginning data loading on submission_id: ' + str(submission_id) +
-                    ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
-                    'message_type': 'ValidatorInfo',
-                    'submission_id': submission_id,
-                    'job_id': job_id,
-                    'file_type': file_type,
-                    'action': 'data_loading',
-                    'status': 'start',
-                    'start_time': loading_start})
+            logger.info({
+                'message': 'Beginning data loading {}'.format(log_str),
+                'message_type': 'ValidatorInfo',
+                'submission_id': submission_id,
+                'job_id': job_id,
+                'file_type': file_type,
+                'action': 'data_loading',
+                'status': 'start',
+                'start_time': loading_start
+            })
 
             with open(error_file_path, 'w', newline='') as error_file,\
                     open(warning_file_path, 'w', newline='') as warning_file:
@@ -265,21 +262,19 @@ class ValidationManager:
                     row_number += 1
 
                     if row_number % 100 == 0:
-
                         elapsed_time = (datetime.now()-loading_start).total_seconds()
-                        logger.info(
-                            {
-                                'message': 'Loading row: ' + str(row_number) + ' on submission_id: ' +
-                                str(submission_id) + ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
-                                'message_type': 'ValidatorInfo',
-                                'submission_id': submission_id,
-                                'job_id': job_id,
-                                'file_type': file_type,
-                                'action': 'data_loading',
-                                'status': 'loading',
-                                'rows_loaded': row_number,
-                                'start_time': loading_start,
-                                'elapsed_time': elapsed_time})
+                        logger.info({
+                            'message': 'Loading row: {} {}'.format(str(row_number), log_str),
+                            'message_type': 'ValidatorInfo',
+                            'submission_id': submission_id,
+                            'job_id': job_id,
+                            'file_type': file_type,
+                            'action': 'data_loading',
+                            'status': 'loading',
+                            'rows_loaded': row_number,
+                            'start_time': loading_start,
+                            'elapsed_time': elapsed_time
+                        })
                     #
                     # first phase of validations: read record and record a
                     # formatting error if there's a problem
@@ -338,21 +333,19 @@ class ValidationManager:
                             error_rows.append(row_number)
 
                 loading_duration = (datetime.now()-loading_start).total_seconds()
-                logger.info(
-                    {
-                        'message': 'Completed data loading on submission_id: ' + str(submission_id) +
-                        ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
-                        'message_type': 'ValidatorInfo',
-                        'submission_id': submission_id,
-                        'job_id': job_id,
-                        'file_type': file_type,
-                        'action': 'data_loading',
-                        'status': 'finish',
-                        'start_time': loading_start,
-                        'end_time': datetime.now(),
-                        'duration': loading_duration,
-                        'total_rows': row_number
-                    })
+                logger.info({
+                    'message': 'Completed data loading {}'.format(log_str),
+                    'message_type': 'ValidatorInfo',
+                    'submission_id': submission_id,
+                    'job_id': job_id,
+                    'file_type': file_type,
+                    'action': 'data_loading',
+                    'status': 'finish',
+                    'start_time': loading_start,
+                    'end_time': datetime.now(),
+                    'duration': loading_duration,
+                    'total_rows': row_number
+                })
 
                 if file_type in ('appropriations', 'program_activity', 'award_financial'):
                     update_tas_ids(model, submission_id)
@@ -438,20 +431,18 @@ class ValidationManager:
             reader.close()
 
             validation_duration = (datetime.now()-validation_start).total_seconds()
-            logger.info(
-                {
-                    'message': 'Completed run_validation on submission_id: ' + str(submission_id) +
-                    ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
-                    'message_type': 'ValidatorInfo',
-                    'submission_id': submission_id,
-                    'job_id': job_id,
-                    'file_type': file_type,
-                    'action': 'run_validation',
-                    'status': 'finish',
-                    'start_time': validation_start,
-                    'end_time': datetime.now(),
-                    'duration': validation_duration
-                })
+            logger.info({
+                'message': 'Completed run_validation {}'.format(log_str),
+                'message_type': 'ValidatorInfo',
+                'submission_id': submission_id,
+                'job_id': job_id,
+                'file_type': file_type,
+                'action': 'run_validation',
+                'status': 'finish',
+                'start_time': validation_start,
+                'end_time': datetime.now(),
+                'duration': validation_duration
+            })
 
         return True
 
@@ -519,15 +510,15 @@ class ValidationManager:
 
         submission_id = job.submission_id
         job_start = datetime.now()
-        logger.info(
-            {
-                'message': 'Beginning cross-file validations on submission_id: ' + str(submission_id),
-                'message_type': 'ValidatorInfo',
-                'submission_id': submission_id,
-                'job_id': job.job_id,
-                'action': 'run_cross_validations',
-                'start': job_start,
-                'status': 'start'})
+        logger.info({
+            'message': 'Beginning cross-file validations on submission_id: ' + str(submission_id),
+            'message_type': 'ValidatorInfo',
+            'submission_id': submission_id,
+            'job_id': job.job_id,
+            'action': 'run_cross_validations',
+            'start': job_start,
+            'status': 'start'
+        })
         # Delete existing cross file errors for this submission
         sess.query(ErrorMetadata).filter(ErrorMetadata.job_id == job_id).delete()
         sess.commit()
@@ -604,16 +595,16 @@ class ValidationManager:
         # mark job status as "finished"
         mark_job_status(job_id, "finished")
         job_duration = (datetime.now()-job_start).total_seconds()
-        logger.info(
-            {
-                'message': 'Completed cross-file validations on submission_id: ' + str(submission_id),
-                'message_type': 'ValidatorInfo',
-                'submission_id': submission_id,
-                'job_id': job.job_id,
-                'action': 'run_cross_validations',
-                'status': 'finish',
-                'start': job_start,
-                'duration': job_duration})
+        logger.info({
+            'message': 'Completed cross-file validations on submission_id: ' + str(submission_id),
+            'message_type': 'ValidatorInfo',
+            'submission_id': submission_id,
+            'job_id': job.job_id,
+            'action': 'run_cross_validations',
+            'status': 'finish',
+            'start': job_start,
+            'duration': job_duration
+        })
         # set number of errors and warnings for submission.
         submission = populate_submission_error_info(submission_id)
         # TODO: Remove temporary step below
