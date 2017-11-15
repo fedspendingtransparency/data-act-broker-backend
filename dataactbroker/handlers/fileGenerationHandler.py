@@ -12,8 +12,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.models.jobModels import Job, FileRequest
-from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_STATUS_DICT_ID, JOB_TYPE_DICT, FILE_TYPE_DICT_LETTER_ID,
-                                        FILE_TYPE_DICT_LETTER)
+from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT_LETTER_ID, FILE_TYPE_DICT_LETTER
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
 from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file, stream_file_to_s3

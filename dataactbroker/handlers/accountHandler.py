@@ -244,9 +244,12 @@ def perms_to_affiliations(perms, user_id):
     """Convert a list of perms from MAX to a list of UserAffiliations. Filter out and log any malformed perms"""
     available_cgacs = {cgac.cgac_code: cgac for cgac in GlobalDB.db().session.query(CGAC)}
     available_frecs = {frec.frec_code: frec for frec in GlobalDB.db().session.query(FREC)}
-    log_data = {'message_type': 'BrokerWarning', 'user_id': user_id}
+    log_data = {
+        'message_type': 'BrokerWarning',
+        'user_id': user_id
+    }
     for perm in perms:
-        log_data['message'] = 'Malformed permission: {}'.format(user_id, perm)
+        log_data['message'] = 'User with ID {} has malformed permission: {}'.format(user_id, perm)
         components = perm.split('-PERM_')
         if len(components) != 2:
             logger.warning(log_data)

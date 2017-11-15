@@ -400,21 +400,24 @@ class FileHandler:
 
         # If this job has already generated a D file that is cached, don't request new job info
         file_request = sess.query(FileRequest).filter_by(job_id=job.job_id).one_or_none()
+        log_data = {
+            'message_type': 'BrokerDebug',
+            'job_id': job.job_id,
+            'submission_id': job.submission_id,
+            'file_generation_type': file_type
+        }
         if file_request and file_request.is_cached_file:
+            log_data['message'] = 'D file generation running on job with cached file'
+            logger.debug(log_data)
             mark_job_status(job.job_id, "running")
         else:
+            log_data['message'] = 'Adding job info for job id of {}'.format(job.job_id)
+            logger.debug(log_data)
             job = self.add_generation_job_info(file_type_name=file_type_name, job=job)
 
         # Generate and upload file to S3
         upload_file_name, timestamped_name = job.filename, job.original_filename
         if file_type in ['D1', 'D2']:
-            logger.debug({
-                'message': 'Adding job info for job id of {}'.format(job.job_id),
-                'message_type': 'BrokerDebug',
-                'job_id': job.job_id,
-                'submission_id': job.submission_id,
-                'file_generation_type': file_type
-            })
             date_error = self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission.submission_id,
                                                       file_type, file_type_name, start, end, job)
             if date_error is not None:
@@ -499,14 +502,6 @@ class FileHandler:
 
     def generate_file(self, submission_id, file_type):
         """ Start a file generation job for the specified file type """
-        log_data = {
-            'message': 'Starting {} file generation within submission {}'.format(file_type, submission_id),
-            'message_type': 'BrokerDebug',
-            'submission_id': submission_id,
-            'file_generation_type': file_type
-        }
-        logger.info(log_data)
-
         sess = GlobalDB.db().session
 
         # Check permission to submission
@@ -517,6 +512,16 @@ class FileHandler:
         job = sess.query(Job).filter(Job.submission_id == submission_id,
                                      Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
                                      Job.job_type_id == JOB_TYPE_DICT['file_upload']).one()
+
+        log_data = {
+            'message': 'Starting {} file generation within submission {}'.format(file_type, submission_id),
+            'message_type': 'BrokerInfo',
+            'submission_id': submission_id,
+            'job_id': job.job_id,
+            'file_generation_type': file_type
+        }
+        logger.info(log_data)
+
         try:
             # Check prerequisites on upload job
             if not run_job_checks(job.job_id):
@@ -527,10 +532,9 @@ class FileHandler:
             return JsonResponse.error(exc, exc.status)
 
         success, error_response = self.start_generation_job(job)
-
         log_data['message'] = 'Finished start_generation_job method for submission {}'.format(submission_id)
-        log_data['job_id'] = job.job_id
-        logger.info(log_data)
+        logger.debug(log_data)
+
         if not success:
             # If not successful, set job status as "failed"
             mark_job_status(job.job_id, "failed")
@@ -560,16 +564,6 @@ class FileHandler:
 
     def generate_detached_file(self, file_type, cgac_code, frec_code, start, end):
         """ Start a file generation job for the specified file type """
-        agency_code = frec_code if frec_code else cgac_code
-        logger.info({
-            'message': 'Starting detached {} file generation'.format(file_type),
-            'message_type': 'BrokerDebug',
-            'file_generation_type': file_type,
-            'agency_code': agency_code,
-            'start_date': start,
-            'end_date': end
-        })
-
         # check if date format is MM/DD/YYYY
         if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
             raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
@@ -580,6 +574,17 @@ class FileHandler:
             file_type_name=file_type_name,
             dates={'start_date': start, 'end_date': end}
         )
+
+        agency_code = frec_code if frec_code else cgac_code
+        logger.info({
+            'message': 'Starting detached {} file generation'.format(file_type),
+            'message_type': 'BrokerInfo',
+            'job_id': new_job.job_id,
+            'file_generation_type': file_type,
+            'agency_code': agency_code,
+            'start_date': start,
+            'end_date': end
+        })
 
         # thread detached D file generation
         t = threading.Thread(target=generate_d_file, args=(file_type, agency_code, start, end, new_job.job_id,
@@ -602,12 +607,17 @@ class FileHandler:
         key_url is the S3 URL for uploading
         key_id is the job id to be passed to the finalize_submission route
         """
-        logger.info({'message': 'Starting detached D file upload', 'message_type': 'BrokerDebug'})
         sess = GlobalDB.db().session
         try:
             response_dict = {}
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
+            logger.info({
+                'message': 'Starting detached D file upload',
+                'message_type': 'BrokerInfo',
+                'agency_code': request_params['agency_code'],
+                'file_name': request_params.get('detached_award')
+            })
 
             job_data = {}
             # Check for existing submission
@@ -631,7 +641,7 @@ class FileHandler:
                 frec_code = existing_submission_obj.frec_code
             else:
                 sub_tier_agency = sess.query(SubTierAgency).\
-                    filter_by(sub_tier_agency_code=request_params["agency_code"]).one()
+                    filter_by(sub_tier_agency_code=request_params['agency_code']).one()
                 cgac_code = None if sub_tier_agency.is_frec else sub_tier_agency.cgac.cgac_code
                 frec_code = sub_tier_agency.frec.frec_code if sub_tier_agency.is_frec else None
 
@@ -1597,7 +1607,10 @@ def submission_error(submission_id, file_type):
 def get_xml_response_content(api_url):
     """ Retrieve XML Response from the provided API url """
     result = requests.get(api_url, verify=False, timeout=120).text
-    logger.debug({'message': 'Result for {}: {}'.format(api_url, result), 'function': 'get_xml_response_content'})
+    logger.debug({
+        'message': 'Result for {}: {}'.format(api_url, result),
+        'function': 'get_xml_response_content'
+    })
     return result
 
 
@@ -1647,12 +1660,9 @@ def map_generate_status(upload_job, validation_job=None):
 
 
 def fabs_derivations(obj, sess):
-    # create log obj and remove keys in the row left for logging
-    log_data = {
-        'message_type': 'BrokerError',
-        'job_id': obj['job_id'],
-        'detached_award_financial_assistance_id': obj['detached_award_financial_assistance_id']
-    }
+    # copy log data and remove keys in the row left for logging
+    job_id = obj['job_id'],
+    detached_award_financial_assistance_id = obj['detached_award_financial_assistance_id']
     obj.pop('detached_award_financial_assistance_id', None)
     obj.pop('job_id', None)
 
@@ -1670,8 +1680,12 @@ def fabs_derivations(obj, sess):
     if cfda_title:
         obj['cfda_title'] = cfda_title.program_title
     else:
-        log_data['message'] = 'CFDA title not found for CFDA number {}'.format(obj['cfda_number'])
-        logger.error(log_data)
+        logger.error({
+            'message': 'CFDA title not found for CFDA number {}'.format(obj['cfda_number']),
+            'message_type': 'BrokerError',
+            'job_id': job_id,
+            'detached_award_financial_assistance_id': detached_award_financial_assistance_id
+        })
         obj['cfda_title'] = None
 
     if obj['awarding_sub_tier_agency_c']:
