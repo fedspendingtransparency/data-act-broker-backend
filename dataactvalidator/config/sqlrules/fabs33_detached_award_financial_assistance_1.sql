@@ -13,7 +13,7 @@ SELECT
     period_of_performance_curr
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND COALESCE(period_of_performance_curr, '') != ''
+    AND COALESCE(period_of_performance_curr, '') <> ''
     AND CASE WHEN pg_temp.is_date(COALESCE(period_of_performance_curr, '0'))
             THEN period_of_performance_curr !~ '\d\d\d\d\d\d\d\d'
             ELSE TRUE

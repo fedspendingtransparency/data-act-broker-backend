@@ -4,7 +4,7 @@ SELECT
     dafa.funding_sub_tier_agency_co
 FROM detached_award_financial_assistance AS dafa
 WHERE dafa.submission_id = {0}
-    AND dafa.funding_sub_tier_agency_co != ''
+    AND dafa.funding_sub_tier_agency_co <> ''
     AND NOT EXISTS (
         SELECT 1
         FROM sub_tier_agency AS sta

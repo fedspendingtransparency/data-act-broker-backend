@@ -31,7 +31,7 @@ SELECT
     record_type
 FROM detached_award_financial_assistance_fabs31_4_{0} AS dafa
 WHERE NOT (record_type = 1
-        OR LOWER(business_types) LIKE '%%p%%'
+        OR UPPER(business_types) LIKE '%%P%%'
     )
     AND awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
     AND COALESCE(assistance_type, '') IN ('02', '03', '04', '05')

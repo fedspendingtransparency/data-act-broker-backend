@@ -36,5 +36,5 @@ WHERE af.sum_ob_amount <> -1 * ap.sum_fed_amount
 		SELECT 1
 		FROM award_financial_c23_1_{0} AS sub_af
 		WHERE sub_af.piid = af.piid
-			AND COALESCE(sub_af.allocation_transfer_agency,'') <> ''
+			AND COALESCE(sub_af.allocation_transfer_agency, '') <> ''
 	);

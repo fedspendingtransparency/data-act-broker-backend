@@ -9,4 +9,4 @@ WHERE submission_id = {0}
         OR assistance_type = '08'
     )
     AND federal_action_obligation IS NOT NULL
-    AND federal_action_obligation != 0;
+    AND federal_action_obligation <> 0;

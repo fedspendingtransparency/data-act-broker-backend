@@ -5,14 +5,14 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND fiscal_year_and_quarter_co IS NOT NULL
-    AND fiscal_year_and_quarter_co != ''
-    AND EXTRACT(YEAR FROM (CURRENT_DATE + INTERVAL '3 month')) !=
+    AND fiscal_year_and_quarter_co <> ''
+    AND EXTRACT(YEAR FROM (CURRENT_DATE + INTERVAL '3 month')) <>
         CASE WHEN fiscal_year_and_quarter_co ~ '^\d\d\d\d'
-             THEN substring(fiscal_year_and_quarter_co from '^\d\d\d\d')::integer
+             THEN substring(fiscal_year_and_quarter_co from '^\d\d\d\d')::INTEGER
              ELSE 0
         END
-    AND EXTRACT(YEAR FROM (CURRENT_DATE + INTERVAL '3 month')) - 1 !=
+    AND EXTRACT(YEAR FROM (CURRENT_DATE + INTERVAL '3 month')) - 1 <>
         CASE WHEN fiscal_year_and_quarter_co ~ '^\d\d\d\d'
-             THEN substring(fiscal_year_and_quarter_co from '^\d\d\d\d')::integer
+             THEN substring(fiscal_year_and_quarter_co from '^\d\d\d\d')::INTEGER
              ELSE 0
         END;

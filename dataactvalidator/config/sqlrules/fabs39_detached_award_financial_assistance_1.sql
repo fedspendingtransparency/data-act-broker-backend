@@ -11,8 +11,8 @@ SELECT
     dafa.row_number,
     dafa.place_of_performance_code
 FROM detached_award_financial_assistance_fabs39_1_{0} AS dafa
-WHERE dafa.place_of_performance_code != '00*****'
-    AND UPPER(dafa.place_of_performance_code) != '00FORGN'
+WHERE dafa.place_of_performance_code <> '00*****'
+    AND UPPER(dafa.place_of_performance_code) <> '00FORGN'
     AND dafa.row_number NOT IN (
         SELECT DISTINCT sub_dafa.row_number
         FROM detached_award_financial_assistance_fabs39_1_{0} AS sub_dafa

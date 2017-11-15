@@ -5,6 +5,6 @@ SELECT
     legal_entity_zip5
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND UPPER(legal_entity_country_code) != 'USA'
-    AND legal_entity_zip5 != ''
+    AND UPPER(legal_entity_country_code) <> 'USA'
+    AND legal_entity_zip5 <> ''
     AND legal_entity_zip5 IS NOT NULL;

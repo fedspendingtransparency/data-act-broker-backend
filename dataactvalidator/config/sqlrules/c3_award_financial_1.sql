@@ -6,6 +6,6 @@ SELECT
 	ussgl488100_upward_adjustm_cpe
 FROM award_financial
 WHERE submission_id = {0}
-    AND COALESCE(obligations_undelivered_or_cpe,0) <>
-        COALESCE(ussgl480100_undelivered_or_cpe,0) +
-        COALESCE(ussgl488100_upward_adjustm_cpe,0);
+    AND COALESCE(obligations_undelivered_or_cpe, 0) <>
+        COALESCE(ussgl480100_undelivered_or_cpe, 0) +
+        COALESCE(ussgl488100_upward_adjustm_cpe, 0);

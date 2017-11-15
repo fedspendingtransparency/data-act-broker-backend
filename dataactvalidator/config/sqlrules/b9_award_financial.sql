@@ -18,13 +18,13 @@ SELECT
 	af.program_activity_code
 FROM award_financial_b9_{0} AS af
 WHERE af.program_activity_code <> '0000'
-	AND LOWER(af.program_activity_name) <> 'unknown/other'
+	AND UPPER(af.program_activity_name) <> 'UNKNOWN/OTHER'
 	AND NOT EXISTS (
 		SELECT 1
 		FROM program_activity AS pa
         WHERE af.agency_identifier = pa.agency_id
             AND af.main_account_code = pa.account_number
-            AND LOWER(COALESCE(af.program_activity_name, '')) = pa.program_activity_name
+            AND UPPER(COALESCE(af.program_activity_name, '')) = UPPER(pa.program_activity_name)
             AND COALESCE(af.program_activity_code, '') = pa.program_activity_code
             AND CAST(pa.budget_year AS INTEGER) IN (2016, (SELECT reporting_fiscal_year
                                                            FROM submission

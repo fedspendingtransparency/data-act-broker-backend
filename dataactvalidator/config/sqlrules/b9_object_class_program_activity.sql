@@ -28,14 +28,14 @@ SELECT
     op.program_activity_code
 FROM object_class_program_activity_b9_{0} AS op
 WHERE op.program_activity_code <> '0000'
-    AND LOWER(op.program_activity_name) <> 'unknown/other'
+    AND UPPER(op.program_activity_name) <> 'UNKNOWN/OTHER'
 	AND op.row_number NOT IN (
 		SELECT DISTINCT op.row_number
 		FROM object_class_program_activity_b9_{0} AS op
 			JOIN program_activity AS pa
 				ON op.agency_identifier = pa.agency_id
 				AND op.main_account_code = pa.account_number
-				AND LOWER(COALESCE(op.program_activity_name, '')) = pa.program_activity_name
+				AND UPPER(COALESCE(op.program_activity_name, '')) = UPPER(pa.program_activity_name)
 				AND COALESCE(op.program_activity_code, '') = pa.program_activity_code
 				AND CAST(pa.budget_year AS INTEGER) IN (2016, (SELECT reporting_fiscal_year
 				                                               FROM submission

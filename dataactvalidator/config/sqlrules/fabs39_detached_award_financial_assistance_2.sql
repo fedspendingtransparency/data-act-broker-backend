@@ -9,6 +9,7 @@ WHERE submission_id = {0}
     AND ((UPPER(place_of_perform_country_c) = 'USA'
             AND UPPER(place_of_performance_code) = '00FORGN'
         )
-        OR (UPPER(place_of_perform_country_c) != 'USA'
-            AND UPPER(place_of_performance_code) != '00FORGN')
+        OR (UPPER(place_of_perform_country_c) <> 'USA'
+            AND UPPER(place_of_performance_code) <> '00FORGN'
+        )
     )

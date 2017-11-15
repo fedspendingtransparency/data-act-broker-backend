@@ -18,7 +18,7 @@ SELECT
     action_date
 FROM detached_award_financial_assistance_fabs37_1_{0} AS dafa
 WHERE dafa.action_type = 'A'
-    AND (dafa.correction_late_delete_ind != 'C'
+    AND (dafa.correction_late_delete_ind <> 'C'
         OR dafa.correction_late_delete_ind IS NULL
     )
     AND dafa.row_number NOT IN (
@@ -30,7 +30,7 @@ WHERE dafa.action_type = 'A'
                         AND cfda.archived_date = ''
                     )
                     OR (sub_dafa.action_date <= cfda.archived_date
-                        AND cfda.archived_date != ''
+                        AND cfda.archived_date <> ''
                     )
                 )
     );

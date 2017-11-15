@@ -19,7 +19,7 @@ SELECT
     action_date
 FROM detached_award_financial_assistance_fabs37_2_{0} AS dafa
 WHERE dafa.action_type IN ('B', 'C', 'D')
-    AND (dafa.correction_late_delete_ind != 'C'
+    AND (dafa.correction_late_delete_ind <> 'C'
         OR dafa.correction_late_delete_ind IS NULL
     )
     AND dafa.row_number IN (
@@ -29,7 +29,7 @@ WHERE dafa.action_type IN ('B', 'C', 'D')
                 ON sub_dafa.cfda_number = to_char(cfda.program_number, 'FM00.000')
                 AND (sub_dafa.action_date <= cfda.published_date
                      OR (sub_dafa.action_date >= cfda.archived_date
-                         AND cfda.archived_date != ''
+                         AND cfda.archived_date <> ''
                      )
                 )
     );

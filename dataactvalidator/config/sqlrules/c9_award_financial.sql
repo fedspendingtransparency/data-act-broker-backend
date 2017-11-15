@@ -23,7 +23,7 @@ SELECT
     afa.uri
 FROM award_financial_assistance_c9_{0} AS afa
 WHERE (COALESCE(afa.federal_action_obligation, 0) <> 0
-        OR COALESCE(CAST(afa.original_loan_subsidy_cost AS NUMERIC),0) <> 0
+        OR COALESCE(CAST(afa.original_loan_subsidy_cost AS NUMERIC), 0) <> 0
     )
     AND (afa.fain IS NOT NULL
         OR afa.uri IS NOT NULL

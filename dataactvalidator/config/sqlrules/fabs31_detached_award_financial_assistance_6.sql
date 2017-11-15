@@ -42,11 +42,11 @@ SELECT
     dafa.record_type
 FROM detached_award_financial_assistance_fabs31_6_{0} AS dafa
 WHERE NOT (dafa.record_type = 1
-        OR LOWER(dafa.business_types) LIKE '%%p%%'
+        OR UPPER(dafa.business_types) LIKE '%%P%%'
     )
     AND COALESCE(dafa.assistance_type, '') IN ('02', '03', '04', '05')
     AND dafa.action_type = 'A'
-    AND COALESCE(dafa.correction_late_delete_ind,'') = 'C'
+    AND COALESCE(dafa.correction_late_delete_ind, '') = 'C'
     AND dafa.awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
     AND (CASE WHEN pg_temp.is_date(COALESCE(dafa.action_date, '0'))
             THEN CAST(dafa.action_date AS DATE)
@@ -67,5 +67,5 @@ WHERE NOT (dafa.record_type = 1
                     END) >= CAST(short_duns.registration_date AS DATE)
                 AND (CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
                         THEN CAST(sub_dafa.action_date AS DATE)
-                    END) < CAST(short_duns.expiration_date as DATE)
+                    END) < CAST(short_duns.expiration_date AS DATE)
             );

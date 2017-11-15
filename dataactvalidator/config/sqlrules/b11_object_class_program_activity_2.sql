@@ -3,7 +3,7 @@
 -- when reporting in the Schema. Object Class Codes of 000 will prompt a warning.
 CREATE OR REPLACE function pg_temp.is_zero(NUMERIC) returns INTEGER AS $$
 BEGIN
-    perform CAST($1 AS numeric);
+    perform CAST($1 AS NUMERIC);
     CASE WHEN $1 <> 0
         THEN return 1;
         ELSE return 0;

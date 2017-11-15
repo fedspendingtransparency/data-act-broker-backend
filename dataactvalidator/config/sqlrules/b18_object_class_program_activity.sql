@@ -21,8 +21,12 @@ FROM object_class_program_activity AS op
 WHERE op.submission_id = {0}
     AND LENGTH(op.object_class) = 4
     AND NOT COALESCE(op.by_direct_reimbursable_fun, '') = ''
-    AND NOT (SUBSTRING(op.object_class, 1, 1) = '1' AND LOWER(op.by_direct_reimbursable_fun) = 'd')
-    AND NOT (SUBSTRING(op.object_class, 1, 1) = '2' AND LOWER(op.by_direct_reimbursable_fun) = 'r')
+    AND NOT (SUBSTRING(op.object_class, 1, 1) = '1'
+                AND UPPER(op.by_direct_reimbursable_fun) = 'D'
+    )
+    AND NOT (SUBSTRING(op.object_class, 1, 1) = '2'
+                AND UPPER(op.by_direct_reimbursable_fun) = 'R'
+    )
     AND pg_temp.is_zero(op.deobligations_recov_by_pro_cpe) + pg_temp.is_zero(op.gross_outlay_amount_by_pro_cpe) +
         pg_temp.is_zero(op.gross_outlay_amount_by_pro_fyb) + pg_temp.is_zero(op.gross_outlays_delivered_or_cpe) +
         pg_temp.is_zero(op.gross_outlays_delivered_or_fyb) + pg_temp.is_zero(op.gross_outlays_undelivered_cpe) +

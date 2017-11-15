@@ -5,4 +5,4 @@ SELECT
 	ussgl480200_undelivered_or_fyb
 FROM award_financial
 WHERE submission_id = {0}
-    AND COALESCE(gross_outlays_undelivered_fyb,0) <> COALESCE(ussgl480200_undelivered_or_fyb,0);
+    AND COALESCE(gross_outlays_undelivered_fyb, 0) <> COALESCE(ussgl480200_undelivered_or_fyb, 0);

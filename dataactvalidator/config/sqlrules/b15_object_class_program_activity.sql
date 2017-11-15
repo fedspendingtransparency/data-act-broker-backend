@@ -45,7 +45,7 @@ FROM object_class_program_activity_b15_{0} AS op
         AND sf.period = sub.reporting_fiscal_period
         AND sf.fiscal_year = sub.reporting_fiscal_year
 WHERE sf.line = 2104
-    AND LOWER(op.by_direct_reimbursable_fun) = 'r'
+    AND UPPER(op.by_direct_reimbursable_fun) = 'R'
 GROUP BY op.tas,
     sf.amount
 HAVING (

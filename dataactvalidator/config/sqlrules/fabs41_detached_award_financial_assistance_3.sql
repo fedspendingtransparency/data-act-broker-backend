@@ -13,8 +13,8 @@ SELECT
     dafa.place_of_performance_code,
     dafa.place_of_performance_zip4a
 FROM detached_award_financial_assistance_fabs41_3_{0} AS dafa
-WHERE CASE WHEN (COALESCE(dafa.place_of_performance_zip4a, '') != ''
-                 AND dafa.place_of_performance_zip4a != 'city-wide'
+WHERE CASE WHEN (COALESCE(dafa.place_of_performance_zip4a, '') <> ''
+                 AND dafa.place_of_performance_zip4a <> 'city-wide'
                  AND (dafa.place_of_performance_zip4a ~ '^\d\d\d\d\d$'
                       OR dafa.place_of_performance_zip4a ~ '^\d\d\d\d\d\-?\d\d\d\d$'
                  )

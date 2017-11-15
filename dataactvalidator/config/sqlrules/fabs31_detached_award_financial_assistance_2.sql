@@ -21,7 +21,7 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND NOT (record_type = 1
-            OR LOWER(business_types) LIKE '%%p%%'
+            OR UPPER(business_types) LIKE '%%P%%'
     )
     AND COALESCE(assistance_type, '') IN ('02', '03', '04', '05')
     AND (CASE

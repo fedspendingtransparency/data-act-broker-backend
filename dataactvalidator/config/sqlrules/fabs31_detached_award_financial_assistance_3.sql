@@ -10,7 +10,7 @@ SELECT
 FROM detached_award_financial_assistance AS dafa
 WHERE submission_id = {0}
     AND NOT (record_type = 1
-            OR LOWER(business_types) LIKE '%%p%%'
+            OR UPPER(business_types) LIKE '%%P%%'
     )
-    AND COALESCE(awardee_or_recipient_uniqu, '') != ''
+    AND COALESCE(awardee_or_recipient_uniqu, '') <> ''
     AND awardee_or_recipient_uniqu !~ '^\d\d\d\d\d\d\d\d\d$';

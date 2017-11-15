@@ -41,7 +41,7 @@ SELECT
     dafa.record_type
 FROM detached_award_financial_assistance_fabs31_7_{0} AS dafa
 WHERE NOT (dafa.record_type = 1
-        OR LOWER(dafa.business_types) LIKE '%%p%%'
+        OR UPPER(dafa.business_types) LIKE '%%P%%'
     )
     AND COALESCE(dafa.assistance_type, '') IN ('02', '03', '04', '05')
     AND dafa.action_type IN ('B', 'C', 'D')
