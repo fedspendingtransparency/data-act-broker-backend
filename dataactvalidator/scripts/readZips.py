@@ -66,7 +66,7 @@ def add_to_table(data, sess):
 
 
 def parse_zip4_file(f, sess):
-    logger.info("Starting file ", str(f))
+    logger.info("Starting file %s", str(f))
     # pull out the copyright data
     f.read(zip4_line_size)
 
@@ -133,7 +133,7 @@ def parse_zip4_file(f, sess):
                             i += 1
                 # catch entries where zip code isn't an int (12ND for example, ND stands for "no delivery")
                 except ValueError:
-                    logger.error("Error parsing entry: ", curr_row)
+                    logger.error("Error parsing entry: %s", curr_row)
 
             # cut the current line out of the chunk we're processing
             curr_chunk = curr_chunk[zip4_line_size:]
@@ -153,7 +153,7 @@ def parse_zip4_file(f, sess):
 
 
 def parse_citystate_file(f, sess):
-    logger.info("Starting file ", str(f))
+    logger.info("Starting file %s", str(f))
     # pull out the copyright data
     f.read(citystate_line_size)
 

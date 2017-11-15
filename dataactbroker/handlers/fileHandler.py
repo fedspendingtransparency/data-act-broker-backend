@@ -1661,7 +1661,7 @@ def map_generate_status(upload_job, validation_job=None):
 
 def fabs_derivations(obj, sess):
     # copy log data and remove keys in the row left for logging
-    job_id = obj['job_id'],
+    job_id = obj['job_id']
     detached_award_financial_assistance_id = obj['detached_award_financial_assistance_id']
     obj.pop('detached_award_financial_assistance_id', None)
     obj.pop('job_id', None)
