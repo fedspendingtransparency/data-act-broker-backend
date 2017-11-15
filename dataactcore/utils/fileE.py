@@ -46,7 +46,10 @@ def get_entities(client, duns_list):
     result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
 
     if result.transactionInformation.transactionMessage:
-        logger.warning("Message from SAM API: %s", result.transactionInformation.transactionMessage)
+        logger.warning({
+            'message': 'Message from SAM API: {}'.format(result.transactionInformation.transactionMessage),
+            'message_type': 'CoreWarning'
+        })
 
     if result.listOfEntities:
         return result.listOfEntities.entity
@@ -103,7 +106,10 @@ def retrieve_rows(duns_list):
         client = Client(CONFIG_BROKER['sam']['wsdl'])
         return [suds_to_row(e) for e in get_entities(client, duns_list)]
     else:
-        logger.error("Invalid sam config")
+        logger.error(
+            'message': "Invalid sam config",
+            'message_type': 'CoreError'
+        )
         return []
 
 
