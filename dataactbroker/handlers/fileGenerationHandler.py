@@ -160,7 +160,8 @@ def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, i
     logger.info(log_data)
 
     with job_context(job_id):
-        logger.info('Calling generate_f_rows')
+        log_data['message'] = 'Calling generate_f_rows'
+        logger.info(log_data)
         rows_of_dicts = fileF.generate_f_rows(submission_id)
         header = [key for key in fileF.mappings]    # keep order
         body = []
