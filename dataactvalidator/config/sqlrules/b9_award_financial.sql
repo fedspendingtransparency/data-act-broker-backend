@@ -28,5 +28,6 @@ WHERE af.program_activity_code <> '0000'
             AND COALESCE(af.program_activity_code, '') = pa.program_activity_code
             AND CAST(pa.budget_year AS INTEGER) IN (2016, (SELECT reporting_fiscal_year
                                                            FROM submission
-                                                           WHERE submission_id = {0}))
+                                                           WHERE submission_id = {0})
+                                                   )
 	);

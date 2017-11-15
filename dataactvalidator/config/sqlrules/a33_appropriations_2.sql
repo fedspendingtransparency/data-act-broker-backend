@@ -1,4 +1,4 @@
--- Verify that all of the submitted data (from file A) has an associated GTAS
+-- Verify that all of the submitted data (from File A (appropriation)) has an associated GTAS
 -- Each TAS reported in File A should be reported in GTAS for SF 133, with the exception of Financing Accounts, or
 -- when all monetary amounts are zero for the TAS.
 WITH appropriation_a33_2_{0} AS 
@@ -45,8 +45,7 @@ FROM appropriation_a33_2_{0} AS approp
             AND sf.period = sub.reporting_fiscal_period
 	        AND sf.fiscal_year = sub.reporting_fiscal_year
 	)
-    AND (
-        COALESCE(approp.adjustments_to_unobligated_cpe, 0) <> 0
+    AND (COALESCE(approp.adjustments_to_unobligated_cpe, 0) <> 0
         OR COALESCE(approp.budget_authority_appropria_cpe, 0) <> 0
         OR COALESCE(approp.borrowing_authority_amount_cpe, 0) <> 0
         OR COALESCE(approp.contract_authority_amount_cpe, 0) <> 0

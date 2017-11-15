@@ -1,5 +1,5 @@
 -- GrossOutlayAmountByTAS_CPE (file A (appropriation)) = sum of all GrossOutlayAmountByProgramObjectClass (file B
--- (program activity)).
+-- (object class program activity)).
 WITH appropriation_a18_{0} AS
 	(SELECT row_number,
 		allocation_transfer_agency,
@@ -28,7 +28,7 @@ SELECT
 FROM appropriation_a18_{0} AS approp
 	JOIN object_class_program_activity op
 		ON approp.tas_id = op.tas_id
-			AND approp.submission_id = op.submission_id
+		AND approp.submission_id = op.submission_id
 GROUP BY approp.row_number,
 	approp.allocation_transfer_agency,
 	approp.agency_identifier,

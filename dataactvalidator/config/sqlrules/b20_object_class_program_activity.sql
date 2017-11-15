@@ -38,9 +38,11 @@ WHERE NOT EXISTS (
         WHERE COALESCE(af.tas_id, 0) = COALESCE(op.tas_id, 0)
             AND (COALESCE(af.program_activity_code, '') = COALESCE(op.program_activity_code, '')
                 OR COALESCE(af.program_activity_code, '') = ''
-                OR af.program_activity_code = '0000')
+                OR af.program_activity_code = '0000'
+            )
             AND (COALESCE(af.object_class, '') = COALESCE(op.object_class, '')
                 OR (af.object_class IN ('0', '00', '000', '0000')
-                    AND af.object_class IN ('0', '00', '000', '0000'))
+                    AND af.object_class IN ('0', '00', '000', '0000')
                 )
+            )
     );

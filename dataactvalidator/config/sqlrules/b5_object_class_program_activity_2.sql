@@ -1,6 +1,6 @@
--- GrossOutlayAmountByProgramObjectClass_CPE (File B) = GrossOutlaysUndeliveredOrdersPrepaidTotal_CPE (File B) -
--- GrossOutlaysUndeliveredOrdersPrepaidTotal_FYB + GrossOutlaysDeliveredOrdersPaidTotal_CPE (File B) -
--- GrossOutlaysDeliveredOrdersPaidTotal_FYB (File B)
+-- File B (object class program activity): GrossOutlayAmountByProgramObjectClass_CPE =
+-- GrossOutlaysUndeliveredOrdersPrepaidTotal_CPE - GrossOutlaysUndeliveredOrdersPrepaidTotal_FYB +
+-- GrossOutlaysDeliveredOrdersPaidTotal_CPE - GrossOutlaysDeliveredOrdersPaidTotal_FYB
 SELECT
     row_number,
     gross_outlay_amount_by_pro_cpe,

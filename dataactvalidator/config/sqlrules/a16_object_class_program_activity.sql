@@ -1,4 +1,4 @@
--- All the elements that have FYB in file B (program activity) are expected in quarter 1.
+-- All the elements that have FYB in file B (object class program activity) are expected in quarter 1.
 WITH object_class_program_activity_a16_{0} AS
 	(SELECT submission_id,
 		row_number,
@@ -35,7 +35,9 @@ WHERE NOT EXISTS (
 		WHERE query_sub.submission_id <> {0}
 		    AND query_sub.cgac_code = sub.cgac_code
 		    AND query_sub.reporting_fiscal_year = sub.reporting_fiscal_year
-		    AND (ps.name IN ('published','updated') OR query_sub.publishable = true)
+		    AND (ps.name IN ('published','updated')
+		        OR query_sub.publishable = true
+		    )
 	)
 	AND (gross_outlay_amount_by_pro_fyb IS NULL
 			OR gross_outlays_delivered_or_fyb IS NULL
@@ -45,4 +47,5 @@ WHERE NOT EXISTS (
 			OR ussgl480100_undelivered_or_fyb IS NULL
 			OR ussgl480200_undelivered_or_fyb IS NULL
 			OR ussgl490100_delivered_orde_fyb IS NULL
-			OR ussgl490800_authority_outl_fyb IS NULL);
+			OR ussgl490800_authority_outl_fyb IS NULL
+	);

@@ -1,5 +1,5 @@
--- GrossOutlayAmountByProgramObjectClass_FYB (File B) = GrossOutlaysUndeliveredOrdersPrepaidTotal_FYB (File B) +
--- GrossOutlaysDeliveredOrdersPaidTotal_FYB (File B).
+-- File B (object class program activity): GrossOutlayAmountByProgramObjectClass_FYB =
+-- GrossOutlaysUndeliveredOrdersPrepaidTotal_FYB + GrossOutlaysDeliveredOrdersPaidTotal_FYB.
 SELECT
     row_number,
     gross_outlay_amount_by_pro_fyb,

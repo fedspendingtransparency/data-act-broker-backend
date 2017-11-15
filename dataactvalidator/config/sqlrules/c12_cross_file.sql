@@ -1,4 +1,5 @@
--- Validation compares piid and/or program parent_award_id
+-- Each unique PIID (or combination of PIID/ParentAwardId) from file D1 (award procurement) should exist in
+-- file C (award financial) during the same reporting period, except D1 records where FederalActionObligation = 0.
 WITH award_procurement_c12_{0} AS
 	(SELECT row_number,
 		piid,
@@ -23,4 +24,4 @@ WHERE ap.piid IS NOT NULL
         FROM award_financial_c12_{0} AS af
         WHERE af.piid = ap.piid
             AND af.parent_award_id IS NOT DISTINCT FROM ap.parent_award_id
-    )
+    );

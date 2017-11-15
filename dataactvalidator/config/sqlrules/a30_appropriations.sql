@@ -1,4 +1,4 @@
--- All TAS values in File A (appropriations) should exist in File B (object class program activity)
+-- All TAS values in File A (appropriation) should exist in File B (object class program activity)
 SELECT approp.row_number,
 	approp.allocation_transfer_agency,
 	approp.agency_identifier,

@@ -38,7 +38,7 @@ FROM (
 			op.program_activity_code,
 			op.by_direct_reimbursable_fun
 		) AS row
-	FROM object_class_program_activity as op
+	FROM object_class_program_activity AS op
 	WHERE op.submission_id = {0}
 	ORDER BY op.row_number
 	) duplicates

@@ -1,5 +1,6 @@
--- File B: Reimbursable flag indicator is not required if object class is 4 digits. But if either "D" or "R" are given,
--- then they have to correspond to the first digit of object class, R for 1XXX and D for 2XXX.
+-- File B (object class program activity): Reimbursable flag indicator is not required if object class is 4 digits. But
+-- if either "D" or "R" are given, then they have to correspond to the first digit of object class,
+-- R for 1XXX and D for 2XXX.
 CREATE OR REPLACE function pg_temp.is_zero(NUMERIC) returns INTEGER AS $$
 BEGIN
     perform CAST($1 AS NUMERIC);

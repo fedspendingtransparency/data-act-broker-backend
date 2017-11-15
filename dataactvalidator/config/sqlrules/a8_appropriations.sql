@@ -10,7 +10,7 @@ SELECT
     approp.row_number,
     approp.budget_authority_appropria_cpe,
     SUM(sf.amount) AS sf_133_amount_sum
-FROM appropriation_a8_{0} as approp
+FROM appropriation_a8_{0} AS approp
     INNER JOIN sf_133 AS sf
         ON approp.tas = sf.tas
     INNER JOIN submission AS sub

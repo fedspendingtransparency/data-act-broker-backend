@@ -1,4 +1,4 @@
--- All the elements that have FYB in file A (appropriations) are expected in quarter 1.
+-- All the elements that have FYB in file A (appropriation) are expected in quarter 1.
 WITH appropriation_a16_{0} AS
 	(SELECT submission_id,
 		row_number,
@@ -20,6 +20,7 @@ WHERE NOT EXISTS (
 		    AND query_sub.cgac_code = sub.cgac_code
 		    AND query_sub.reporting_fiscal_year = sub.reporting_fiscal_year
 		    AND (ps.name IN ('published','updated')
-		        OR query_sub.publishable = TRUE)
+		        OR query_sub.publishable = TRUE
+		    )
     )
 	AND budget_authority_unobligat_fyb IS NULL;

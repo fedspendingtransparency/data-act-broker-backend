@@ -39,7 +39,8 @@ WHERE op.program_activity_code <> '0000'
 				AND COALESCE(op.program_activity_code, '') = pa.program_activity_code
 				AND CAST(pa.budget_year AS INTEGER) IN (2016, (SELECT reporting_fiscal_year
 				                                               FROM submission
-				                                               WHERE submission_id = {0}))
+				                                               WHERE submission_id = {0})
+				                                       )
 	)
 	-- when there's no program activity name, return sum of true/false statements of whether all numerical values
 	-- are zero or not (1 = not zero) (see if there are any non-zero values basically)

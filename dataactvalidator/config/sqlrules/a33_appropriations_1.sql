@@ -1,8 +1,8 @@
--- Verify that all of the applicable GTASes have an associated entry in the submission (file A).
+-- Verify that all of the applicable GTASes have an associated entry in the submission (File A (appropriation)).
 -- Each TAS reported to GTAS for SF 133 should be reported in File A, with the exception of Financing Accounts, or
 -- when all monetary amounts are zero for the TAS.
 SELECT DISTINCT
-    NULL as row_number,
+    NULL AS row_number,
     sf.allocation_transfer_agency,
 	sf.agency_identifier,
 	sf.beginning_period_of_availa,
@@ -14,10 +14,10 @@ FROM sf_133 AS sf
 	JOIN submission AS sub
 		ON sf.period = sub.reporting_fiscal_period
 		AND sf.fiscal_year = sub.reporting_fiscal_year
-        AND (
-            (sf.agency_identifier = sub.cgac_code
-                AND sf.allocation_transfer_agency IS NULL)
-            OR (sf.allocation_transfer_agency = sub.cgac_code)
+        AND ((sf.agency_identifier = sub.cgac_code
+                AND sf.allocation_transfer_agency IS NULL
+            )
+            OR sf.allocation_transfer_agency = sub.cgac_code
         )
     LEFT JOIN tas_lookup
         ON tas_lookup.tas_id = sf.tas_id

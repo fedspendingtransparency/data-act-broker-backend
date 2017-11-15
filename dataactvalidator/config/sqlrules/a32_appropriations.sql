@@ -1,4 +1,4 @@
--- TAS values in File A (appropriations) should be unique
+-- TAS values in File A (appropriation) should be unique
 SELECT approp.row_number,
 	approp.allocation_transfer_agency,
 	approp.agency_identifier,
