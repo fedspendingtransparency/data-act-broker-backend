@@ -333,7 +333,7 @@ class ValidationManager:
 
                     if not passed_validations:
                         fatal = write_errors(failures, job, self.short_to_long_dict, error_csv, warning_csv, row_number,
-                                             error_list)
+                                             error_list, flex_cols)
                         if fatal:
                             error_rows.append(row_number)
 
@@ -713,7 +713,7 @@ def insert_staging_model(model, job, writer, error_list):
     return True
 
 
-def write_errors(failures, job, short_colnames, writer, warning_writer, row_number, error_list):
+def write_errors(failures, job, short_colnames, writer, warning_writer, row_number, error_list, flex_cols):
     """ Write errors to error database
 
     Args:
@@ -724,10 +724,18 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
         warning_writer: CsvWriter object
         row_number: Current row number
         error_list: instance of ErrorInterface to keep track of errors
+        flex_cols: all flex columns for this row
     Returns:
         True if any fatal errors were found, False if only warnings are present
     """
     fatal_error_found = False
+    # prepare flex cols for all the errors for this row
+    flex_col_headers = []
+    flex_col_cells = []
+    if flex_cols:
+        for flex_col in flex_cols:
+            flex_col_headers.append(flex_col.header)
+            flex_col_cells.append(flex_col.header + ": " + flex_col.cell)
     # For each failure, record it in error report and metadata
     for failure in failures:
         # map short column names back to long names
@@ -744,12 +752,26 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
         except ValueError:
             # If not, treat it literally
             error_msg = failure.description
+        # get flex fields
+        field_names = [field_name]
+        flex_list = []
+        # only add the value if there's something to add, otherwise our join will look bad
+        if failure.value:
+            flex_list = [field_name + ": " + failure.value]
+
+        # append whatever list we made of flex columns to our existing field names and content list
+        field_names.extend(flex_col_headers)
+        flex_list.extend(flex_col_cells)
+
+        # join the field names and flex column values so we have a list instead of a single value
+        combined_field_names = ", ".join(field_names)
+        fail_value = ", ".join(flex_list)
         if failure.severity == 'fatal':
             fatal_error_found = True
-            writer.writerow([field_name, error_msg, str(row_number), failure.value, failure.label])
+            writer.writerow([combined_field_names, error_msg, str(row_number), fail_value, failure.label])
         elif failure.severity == 'warning':
             # write to warnings file
-            warning_writer.writerow([field_name, error_msg, str(row_number), failure.value, failure.label])
-        error_list.record_row_error(job.job_id, job.filename, field_name, failure.description, row_number,
+            warning_writer.writerow([combined_field_names, error_msg, str(row_number), fail_value, failure.label])
+        error_list.record_row_error(job.job_id, job.filename, combined_field_names, failure.description, row_number,
                                     failure.label, severity_id=severity_id)
     return fatal_error_found
