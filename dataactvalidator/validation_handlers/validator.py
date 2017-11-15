@@ -274,7 +274,7 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
     """
 
     sql_val_start = datetime.now()
-    log_string = 'on submission_id: {}, job_id: {}, file_type: {}'.format(str(submission_id), str(job.job_id),
+    log_string = 'on submission_id: {}, job_id: {}, file_type: {}'.format(str(job.submission_id), str(job.job_id),
                                                                           job.file_type.name)
     logger.info({
         'message': 'Beginning SQL validations {}'.format(log_string),
@@ -298,7 +298,7 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
 
         rule_start = datetime.now()
         logger.info({
-            'message': 'Beginning SQL validation rule {} {}'.format(rule.query_name, log_string)
+            'message': 'Beginning SQL validation rule {} {}'.format(rule.query_name, log_string),
             'message_type': 'ValidatorInfo',
             'submission_id': job.submission_id,
             'job_id': job.job_id,
