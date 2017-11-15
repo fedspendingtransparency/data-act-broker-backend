@@ -729,6 +729,13 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
         True if any fatal errors were found, False if only warnings are present
     """
     fatal_error_found = False
+    # prepare flex cols for all the errors for this row
+    flex_col_headers = []
+    flex_col_cells = []
+    if flex_cols:
+        for flex_col in flex_cols:
+            flex_col_headers.append(flex_col.header)
+            flex_col_cells.append(flex_col.header + ": " + flex_col.cell)
     # For each failure, record it in error report and metadata
     for failure in failures:
         # map short column names back to long names
@@ -752,11 +759,9 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
         if failure.value:
             flex_list = [field_name + ": " + failure.value]
 
-        # if there are any flex columns, append them to the field names and values
-        if flex_cols:
-            for flex_col in flex_cols:
-                field_names.append(flex_col.header)
-                flex_list.append(flex_col.header + ": " + flex_col.cell)
+        # append whatever list we made of flex columns to our existing field names and content list
+        field_names.extend(flex_col_headers)
+        flex_list.extend(flex_col_cells)
 
         # join the field names and flex column values so we have a list instead of a single value
         combined_field_names = ", ".join(field_names)
