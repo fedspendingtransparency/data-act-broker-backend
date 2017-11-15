@@ -23,20 +23,15 @@ WHERE af.transaction_obligated_amou IS NOT NULL
     AND NOT EXISTS (
         SELECT cgac_code
         FROM cgac
-        WHERE cgac_code = af.allocation_transfer_agency
-	) AND (af.fain IS NOT NULL
-            OR af.uri IS NOT NULL
-	) AND (af.row_number NOT IN (
-            SELECT DISTINCT af.row_number
-            FROM award_financial_c8_{0} AS af
-                JOIN award_financial_assistance_c8_{0} AS afa
-                    ON af.submission_id = afa.submission_id
-                        AND af.fain = afa.fain
-        ) AND af.row_number NOT IN (
-            SELECT DISTINCT af.row_number
-            FROM award_financial_c8_{0} AS af
-                JOIN award_financial_assistance_c8_{0} AS afa
-                    ON af.submission_id = afa.submission_id
-                        AND af.uri = afa.uri
-        )
+        WHERE cgac_code = af.allocation_transfer_agency)
+    AND (af.fain IS NOT NULL
+            OR af.uri IS NOT NULL)
+    AND (NOT EXISTS
+            (SELECT *
+            FROM award_financial_assistance_c8_{0} AS afa
+            WHERE af.fain = afa.fain)
+		AND NOT EXISTS
+            (SELECT *
+            FROM award_financial_assistance_c8_{0} AS afa
+            WHERE af.uri = afa.uri)
     );

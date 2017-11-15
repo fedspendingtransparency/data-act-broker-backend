@@ -400,7 +400,9 @@ class FileHandler:
 
         # If this job has already generated a D file that is cached, don't request new job info
         file_request = sess.query(FileRequest).filter_by(job_id=job.job_id).one_or_none()
-        if not file_request or not file_request.is_cached_file:
+        if file_request and file_request.is_cached_file:
+            mark_job_status(job.job_id, "running")
+        else:
             job = self.add_generation_job_info(file_type_name=file_type_name, job=job)
 
         # Generate and upload file to S3
