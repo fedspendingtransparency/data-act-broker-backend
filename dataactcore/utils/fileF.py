@@ -173,7 +173,7 @@ def submission_procurements(submission_id):
                                  awarding_sub_tier_agency_c=award_sub_tier, submission_id=award_sub_id)
         yield ModelRow(award, proc, sub, naics_desc=award.naics_description)
 
-    log_data ['message'] = 'Finished file F submission procurements'
+    log_data['message'] = 'Finished file F submission procurements'
     logger.debug(log_data)
 
 
@@ -201,7 +201,7 @@ def submission_grants(submission_id):
         award = AwardFinancialAssistance(fain=afa_sub_fain, submission_id=afa_sub_id)
         yield ModelRow(award, grant=grant, subgrant=sub)
 
-    log_data = ['message'] = 'Finished file F submission grants'
+    log_data['message'] = 'Finished file F submission grants'
     logger.debug(log_data)
 
 
@@ -233,5 +233,5 @@ def generate_f_rows(submission_id):
             logger.debug(log_data)
         row_num += 1
 
-    log_data = ['message'] = 'Finished generate_f_rows'
+    log_data['message'] = 'Finished generate_f_rows'
     logger.debug(log_data)

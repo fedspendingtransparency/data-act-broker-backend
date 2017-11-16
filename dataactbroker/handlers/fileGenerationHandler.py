@@ -162,8 +162,6 @@ def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, i
     logger.info(log_data)
 
     with job_context(job_id):
-        log_data['message'] = 'Calling generate_f_rows'
-        logger.info(log_data)
         rows_of_dicts = fileF.generate_f_rows(submission_id)
         header = [key for key in fileF.mappings]    # keep order
         body = []
@@ -257,7 +255,7 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
             is_local - True if in local development, False otherwise
     """
     log_data = {
-        'message': 'Copying data from parent job with job_id:{}'.format(parent_job.job_id)
+        'message': 'Copying data from parent job with job_id:{}'.format(parent_job.job_id),
         'message_type': 'BrokerInfo',
         'job_id': child_job.job_id,
         'file_type': FILE_TYPE_DICT_LETTER_NAME[file_type]
