@@ -114,7 +114,7 @@ FROM (
 ) AS award_financial_records
 -- The second subquery selects the sum of the corresponding 32 elements in File B
 -- Again, the sum is based on TAS, OC, and Submission ID
--- We do a FULL OUTER JOIN of this result, as we don't care if TAS/OC combindations from File B aren't in File C
+-- We do a FULL OUTER JOIN of this result, as we don't care if TAS/OC combinations from File B aren't in File C
 FULL OUTER JOIN (
     SELECT SUM(op.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_b,
         SUM(op.ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum_b,

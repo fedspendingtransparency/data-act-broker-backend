@@ -115,7 +115,7 @@ FROM (
 ) AS award_financial_records
 -- The second subquery selects the sum of the corresponding 32 elements in File B
 -- Again, the sum is based on TAS, PAC, and Submission ID
--- We do a FULL OUTER JOIN of this result, as we don't care if TAS/PAC combindations from File B aren't in File C
+-- We do a FULL OUTER JOIN of this result, as we don't care if TAS/PAC combinations from File B aren't in File C
 FULL OUTER JOIN (
     SELECT SUM(op.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_b,
         SUM(op.ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum_b,
@@ -162,7 +162,7 @@ FULL OUTER JOIN (
     AND object_class_records.program_activity_code = award_financial_records.program_activity_code
 -- Negative values are expected, which prompts the use of ABS
 -- The total from File B should always be absolutely greater than or equal to the total in File C
--- Thus, we select combindations where the File C sum is greater than the File B sum
+-- Thus, we select combinations where the File C sum is greater than the File B sum
 WHERE ABS(ussgl480100_undelivered_or_fyb_sum_c) > ABS(ussgl480100_undelivered_or_fyb_sum_b)
     OR ABS(ussgl480100_undelivered_or_cpe_sum_c) > ABS(ussgl480100_undelivered_or_cpe_sum_b)
     OR ABS(ussgl483100_undelivered_or_cpe_sum_c) > ABS(ussgl483100_undelivered_or_cpe_sum_b)
