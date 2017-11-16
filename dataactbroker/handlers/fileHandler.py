@@ -1309,26 +1309,29 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
                     certifying_user.name.label('certifying_user_name')]
     view_columns = [submission_updated_view.submission_id, submission_updated_view.updated_at.label('updated_at')]
+    sub_query = sess.query(CertifyHistory.submission_id, func.max(CertifyHistory.created_at).label('certified_date')).\
+        group_by(CertifyHistory.submission_id).\
+        subquery()
 
-    columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
+    columns_to_query = (submission_columns + cgac_columns + frec_columns + user_columns + view_columns +
+                        [sub_query.c.certified_date])
 
-    columns_to_query_with_max = columns_to_query + [func.max(CertifyHistory.created_at)]
-
-    query = sess.query(*columns_to_query_with_max).\
+    query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id).\
         outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id).\
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
-        outerjoin(CertifyHistory, Submission.submission_id == CertifyHistory.submission_id).\
-        group_by(*columns_to_query).\
+        outerjoin(sub_query, Submission.submission_id == sub_query.c.submission_id).\
         filter(Submission.d2_submission.is_(d2_submission))
+
     if not g.user.website_admin:
         cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
         frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec]
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
                                     Submission.frec_code.in_(frec_codes),
                                     Submission.user_id == g.user.user_id))
+
     if certified != 'mixed':
         if certified == 'true':
             query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
@@ -1340,7 +1343,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         'reporting': {'model': Submission, 'col': 'reporting_start_date'},
         'agency': {'model': CGAC, 'col': 'agency_name'},
         'submitted_by': {'model': User, 'col': 'name'},
-        'certified_date:': {'model': CertifyHistory, 'col': 'created_at'}
+        'certified_date': {'model': sub_query.c, 'col': 'certified_date'}
     }
 
     if not options.get(sort):
