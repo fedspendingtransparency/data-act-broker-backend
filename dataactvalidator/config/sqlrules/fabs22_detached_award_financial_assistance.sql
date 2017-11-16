@@ -4,4 +4,4 @@ SELECT
     correction_late_delete_ind
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND COALESCE(UPPER(correction_late_delete_ind), '') NOT IN ('','C','D','L');
+    AND COALESCE(UPPER(correction_late_delete_ind), '') NOT IN ('', 'C', 'D', 'L');

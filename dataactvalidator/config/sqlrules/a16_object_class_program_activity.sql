@@ -35,7 +35,7 @@ WHERE NOT EXISTS (
 		WHERE query_sub.submission_id <> {0}
 		    AND query_sub.cgac_code = sub.cgac_code
 		    AND query_sub.reporting_fiscal_year = sub.reporting_fiscal_year
-		    AND (ps.name IN ('published','updated')
+		    AND (ps.name IN ('published', 'updated')
 		        OR query_sub.publishable = TRUE
 		    )
 	)
