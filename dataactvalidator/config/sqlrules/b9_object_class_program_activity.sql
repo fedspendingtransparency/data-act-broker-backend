@@ -13,7 +13,6 @@ EXCEPTION WHEN others THEN
 END;
 $$ LANGUAGE plpgsql;
 
-
 WITH object_class_program_activity_b9_{0} AS
     (SELECT *
     FROM object_class_program_activity
