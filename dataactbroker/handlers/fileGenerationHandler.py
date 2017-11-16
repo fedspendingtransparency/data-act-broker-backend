@@ -12,7 +12,8 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.models.jobModels import Job, FileRequest
-from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT_LETTER_ID, FILE_TYPE_DICT_LETTER
+from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_STATUS_DICT_ID, JOB_TYPE_DICT, FILE_TYPE_DICT_LETTER_ID,
+                                        FILE_TYPE_DICT_LETTER)
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
 from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file, stream_file_to_s3
@@ -299,4 +300,4 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
             stream_file_to_s3(child_job.filename, reader)
 
     # mark job status last so the validation job doesn't start until everything is done
-    mark_job_status(child_job.job_id, "finished")
+    mark_job_status(child_job.job_id, JOB_STATUS_DICT_ID[parent_job.job_status_id])
