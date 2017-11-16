@@ -1,10 +1,10 @@
 -- SpendingAuthorityfromOffsettingCollectionsAmountTotal_CPE = CPE aggregate value for GTAS SF 133 line #1750 + #1850
 WITH appropriation_a11_{0} AS
-	(SELECT submission_id,
-		row_number,
-		spending_authority_from_of_cpe,
-		tas
-	FROM appropriation
+    (SELECT submission_id,
+        row_number,
+        spending_authority_from_of_cpe,
+        tas
+    FROM appropriation
     WHERE submission_id = {0})
 SELECT
     approp.row_number,

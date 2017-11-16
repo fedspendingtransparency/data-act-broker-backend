@@ -1,9 +1,9 @@
 -- For PrimaryPlaceOfPerformanceCode XX##### city must exist in provided state (zip4 provided, warning)
 WITH detached_award_financial_assistance_d41_2_{0} AS
     (SELECT submission_id,
-    	row_number,
-    	place_of_performance_code,
-    	place_of_performance_zip4a
+        row_number,
+        place_of_performance_code,
+        place_of_performance_zip4a
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT

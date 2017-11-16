@@ -3,6 +3,7 @@
 ## General
 * All SQL must end with a `;`
 * When accessing variables, always use `{0}` with a specific number rather than the implicit `{}`
+* Indentations should be 4 spaces each (except when specifically aligning with an operator)
 
 ## Line Spacing
 * There should be a new line at the end of the file

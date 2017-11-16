@@ -1,11 +1,11 @@
 -- BorrowingAuthorityAmountTotal_CPE = CPE aggregate value for GTAS SF 133 line #1340 + #1440
 WITH appropriation_a10_{0} AS
-	(SELECT submission_id,
-		row_number,
-		borrowing_authority_amount_cpe,
-		tas
-	FROM appropriation
-	WHERE submission_id = {0})
+    (SELECT submission_id,
+        row_number,
+        borrowing_authority_amount_cpe,
+        tas
+    FROM appropriation
+    WHERE submission_id = {0})
 SELECT
     approp.row_number,
     approp.borrowing_authority_amount_cpe,

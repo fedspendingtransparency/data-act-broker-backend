@@ -15,8 +15,8 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND (CASE WHEN pg_temp.is_date(COALESCE(period_of_performance_star, '0'))
-	            THEN CAST(period_of_performance_star AS DATE)
-	    END) >
-	    (CASE WHEN pg_temp.is_date(COALESCE(period_of_performance_curr, '0'))
-		    THEN CAST(period_of_performance_curr AS DATE)
-		END);
+                THEN CAST(period_of_performance_star AS DATE)
+        END) >
+        (CASE WHEN pg_temp.is_date(COALESCE(period_of_performance_curr, '0'))
+            THEN CAST(period_of_performance_curr AS DATE)
+        END);

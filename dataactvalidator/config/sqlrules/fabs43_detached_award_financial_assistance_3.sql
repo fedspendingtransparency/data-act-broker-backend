@@ -15,7 +15,7 @@ SELECT
 FROM detached_award_financial_assistance_fabs43_3_{0} AS dafa
 WHERE CASE WHEN COALESCE(dafa.place_of_performance_congr, '') <> ''
             THEN ((dafa.place_of_performance_congr <> '90'
-		            AND dafa.row_number NOT IN (
+                    AND dafa.row_number NOT IN (
                         SELECT DISTINCT sub_dafa.row_number
                         FROM detached_award_financial_assistance_fabs43_3_{0} AS sub_dafa
                         JOIN state_congressional AS sc_1

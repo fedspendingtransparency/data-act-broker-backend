@@ -1,10 +1,10 @@
 -- BudgetAuthorityAvailableAmountTotal_CPE = CPE value for GTAS SF 133 line #1910
 WITH appropriation_a6_{0} AS
-	(SELECT submission_id,
-		row_number,
-		budget_authority_available_cpe,
-		tas
-	FROM appropriation
+    (SELECT submission_id,
+        row_number,
+        budget_authority_available_cpe,
+        tas
+    FROM appropriation
     WHERE submission_id = {0})
 SELECT
     approp.row_number,

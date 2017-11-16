@@ -3,9 +3,9 @@
 -- in the state in question.
 WITH detached_award_financial_assistance_fabs41_3_{0} AS
     (SELECT submission_id,
-    	row_number,
-    	place_of_performance_code,
-    	place_of_performance_zip4a
+        row_number,
+        place_of_performance_code,
+        place_of_performance_zip4a
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT

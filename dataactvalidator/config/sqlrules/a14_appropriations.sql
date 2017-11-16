@@ -1,10 +1,10 @@
 -- GrossOutlayAmountByTAS_CPE = CPE value for GTAS SF 133 line #3020
 WITH appropriation_a14_{0} AS
-	(SELECT submission_id,
-		row_number,
-		gross_outlay_amount_by_tas_cpe,
-		tas
-	FROM appropriation
+    (SELECT submission_id,
+        row_number,
+        gross_outlay_amount_by_tas_cpe,
+        tas
+    FROM appropriation
     WHERE submission_id = {0})
 SELECT
     approp.row_number,

@@ -1,18 +1,18 @@
 -- Each unique PIID (or combination of PIID/ParentAwardId) from file C (award financial) should exist in
 -- file D1 (award procurement).
 WITH award_financial_c11_{0} AS
-	(SELECT transaction_obligated_amou,
-		piid,
-		parent_award_id,
-		row_number,
-		allocation_transfer_agency
-	FROM award_financial
-	WHERE submission_id = {0}),
+    (SELECT transaction_obligated_amou,
+        piid,
+        parent_award_id,
+        row_number,
+        allocation_transfer_agency
+    FROM award_financial
+    WHERE submission_id = {0}),
 award_procurement_c11_{0} AS
-	(SELECT piid,
-		parent_award_id
-	FROM award_procurement
-	WHERE submission_id = {0})
+    (SELECT piid,
+        parent_award_id
+    FROM award_procurement
+    WHERE submission_id = {0})
 SELECT
     af.row_number,
     af.piid,

@@ -3,8 +3,8 @@
 -- If neither of the above, PrimaryPlaceOfPerformanceCode must start with valid 2 character state abbreviation
 WITH detached_award_financial_assistance_fabs39_1_{0} AS
     (SELECT submission_id,
-    	row_number,
-    	place_of_performance_code
+        row_number,
+        place_of_performance_code
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT

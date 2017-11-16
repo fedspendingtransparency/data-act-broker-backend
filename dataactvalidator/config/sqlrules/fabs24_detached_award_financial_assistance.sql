@@ -5,8 +5,8 @@ SELECT
     dafa.place_of_perform_country_c
 FROM detached_award_financial_assistance AS dafa
 WHERE submission_id={0}
-	AND NOT EXISTS (
-	    SELECT 1
-		FROM country_code AS cc
-		WHERE UPPER(dafa.place_of_perform_country_c) = UPPER(cc.country_code)
-	);
+    AND NOT EXISTS (
+        SELECT 1
+        FROM country_code AS cc
+        WHERE UPPER(dafa.place_of_perform_country_c) = UPPER(cc.country_code)
+    );

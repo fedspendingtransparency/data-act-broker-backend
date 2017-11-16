@@ -1,10 +1,10 @@
 -- BudgetAuthorityUnobligatedBalanceBroughtForward_FYB = value for GTAS SF 133 line #1000
 WITH appropriation_a7_{0} AS
-	(SELECT submission_id,
-		row_number,
-		budget_authority_unobligat_fyb,
-		tas
-	FROM appropriation
+    (SELECT submission_id,
+        row_number,
+        budget_authority_unobligat_fyb,
+        tas
+    FROM appropriation
     WHERE submission_id = {0})
 SELECT
     approp.row_number,

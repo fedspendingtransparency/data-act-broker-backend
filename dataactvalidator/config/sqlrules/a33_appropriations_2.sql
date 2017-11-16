@@ -29,22 +29,22 @@ WITH appropriation_a33_2_{0} AS
 SELECT DISTINCT
     approp.row_number,
     approp.allocation_transfer_agency,
-	approp.agency_identifier,
-	approp.beginning_period_of_availa,
-	approp.ending_period_of_availabil,
-	approp.availability_type_code,
-	approp.main_account_code,
-	approp.sub_account_code
+    approp.agency_identifier,
+    approp.beginning_period_of_availa,
+    approp.ending_period_of_availabil,
+    approp.availability_type_code,
+    approp.main_account_code,
+    approp.sub_account_code
 FROM appropriation_a33_2_{0} AS approp
-	JOIN submission AS sub
-	    ON approp.submission_id = sub.submission_id
-	AND NOT EXISTS (
-		SELECT 1
-		FROM sf_133 AS sf
+    JOIN submission AS sub
+        ON approp.submission_id = sub.submission_id
+    AND NOT EXISTS (
+        SELECT 1
+        FROM sf_133 AS sf
         WHERE approp.tas = sf.tas
             AND sf.period = sub.reporting_fiscal_period
-	        AND sf.fiscal_year = sub.reporting_fiscal_year
-	)
+            AND sf.fiscal_year = sub.reporting_fiscal_year
+    )
     AND (COALESCE(approp.adjustments_to_unobligated_cpe, 0) <> 0
         OR COALESCE(approp.budget_authority_appropria_cpe, 0) <> 0
         OR COALESCE(approp.borrowing_authority_amount_cpe, 0) <> 0

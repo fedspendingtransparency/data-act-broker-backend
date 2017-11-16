@@ -1,10 +1,10 @@
 -- AdjustmentsToUnobligatedBalanceBroughtForward_CPE = CPE aggregate value for GTAS SF 133 line #1010 through 1042
 WITH appropriation_a12_{0} AS
-	(SELECT submission_id,
-		row_number,
-		adjustments_to_unobligated_cpe,
-		tas
-	FROM appropriation
+    (SELECT submission_id,
+        row_number,
+        adjustments_to_unobligated_cpe,
+        tas
+    FROM appropriation
     WHERE submission_id = {0})
 SELECT
     approp.row_number,

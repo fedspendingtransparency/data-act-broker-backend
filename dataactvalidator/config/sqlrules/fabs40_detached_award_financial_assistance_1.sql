@@ -1,8 +1,8 @@
 -- XX**### PrimaryPlaceOfPerformanceCode validates for countywide projects, where ### represents the 3-digit county.
 WITH detached_award_financial_assistance_d40_1_{0} AS
     (SELECT submission_id,
-    	row_number,
-    	place_of_performance_code
+        row_number,
+        place_of_performance_code
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT

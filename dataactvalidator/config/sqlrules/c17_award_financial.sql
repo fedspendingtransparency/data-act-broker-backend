@@ -2,8 +2,8 @@
 SELECT row_number, transaction_obligated_amou
 FROM award_financial
 WHERE submission_id = {0}
-	AND transaction_obligated_amou IS NULL
-	AND COALESCE(ussgl480100_undelivered_or_cpe, 0) = 0
+    AND transaction_obligated_amou IS NULL
+    AND COALESCE(ussgl480100_undelivered_or_cpe, 0) = 0
     AND COALESCE(ussgl480100_undelivered_or_fyb, 0) = 0
     AND COALESCE(ussgl480200_undelivered_or_cpe, 0) = 0
     AND COALESCE(ussgl480200_undelivered_or_fyb, 0) = 0

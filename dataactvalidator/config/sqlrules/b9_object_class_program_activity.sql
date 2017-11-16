@@ -28,23 +28,23 @@ SELECT
 FROM object_class_program_activity_b9_{0} AS op
 WHERE op.program_activity_code <> '0000'
     AND UPPER(op.program_activity_name) <> 'UNKNOWN/OTHER'
-	AND op.row_number NOT IN (
-		SELECT DISTINCT op.row_number
-		FROM object_class_program_activity_b9_{0} AS op
-			JOIN program_activity AS pa
-				ON op.agency_identifier = pa.agency_id
-				AND op.main_account_code = pa.account_number
-				AND UPPER(COALESCE(op.program_activity_name, '')) = UPPER(pa.program_activity_name)
-				AND COALESCE(op.program_activity_code, '') = pa.program_activity_code
-				AND CAST(pa.budget_year AS INTEGER) IN (2016, (SELECT reporting_fiscal_year
-				                                               FROM submission
-				                                               WHERE submission_id = {0})
-				                                       )
-	)
-	-- when there's no program activity name, return sum of true/false statements of whether all numerical values
-	-- are zero or not (1 = not zero) (see if there are any non-zero values basically)
-	AND (CASE WHEN op.program_activity_name = ''
-    	    THEN pg_temp.is_zero(op.deobligations_recov_by_pro_cpe) + pg_temp.is_zero(op.gross_outlay_amount_by_pro_cpe) +
+    AND op.row_number NOT IN (
+        SELECT DISTINCT op.row_number
+        FROM object_class_program_activity_b9_{0} AS op
+            JOIN program_activity AS pa
+                ON op.agency_identifier = pa.agency_id
+                AND op.main_account_code = pa.account_number
+                AND UPPER(COALESCE(op.program_activity_name, '')) = UPPER(pa.program_activity_name)
+                AND COALESCE(op.program_activity_code, '') = pa.program_activity_code
+                AND CAST(pa.budget_year AS INTEGER) IN (2016, (SELECT reporting_fiscal_year
+                                                               FROM submission
+                                                               WHERE submission_id = {0})
+                                                       )
+    )
+    -- when there's no program activity name, return sum of true/false statements of whether all numerical values
+    -- are zero or not (1 = not zero) (see if there are any non-zero values basically)
+    AND (CASE WHEN op.program_activity_name = ''
+            THEN pg_temp.is_zero(op.deobligations_recov_by_pro_cpe) + pg_temp.is_zero(op.gross_outlay_amount_by_pro_cpe) +
                 pg_temp.is_zero(op.gross_outlay_amount_by_pro_fyb) + pg_temp.is_zero(op.gross_outlays_delivered_or_cpe) +
                 pg_temp.is_zero(op.gross_outlays_delivered_or_fyb) + pg_temp.is_zero(op.gross_outlays_undelivered_cpe) +
                 pg_temp.is_zero(op.gross_outlays_undelivered_fyb) + pg_temp.is_zero(op.obligations_delivered_orde_cpe) +
