@@ -2,7 +2,6 @@
 -- AwardeeOrRecipientUniqueIdentifier must be active as of the ActionDate, unless the record is an aggregate
 -- record (RecordType=1) or individual recipient (BusinessTypes includes 'P'). This is an error because
 -- CorrectionLateDeleteIndicator is not C or the action date is after January 1, 2017.
-
 CREATE OR REPLACE function pg_temp.is_date(str text) returns boolean AS $$
 BEGIN
     perform CAST(str AS DATE);
