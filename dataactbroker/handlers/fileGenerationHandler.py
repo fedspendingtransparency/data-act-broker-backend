@@ -13,7 +13,7 @@ from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.models.jobModels import Job, FileRequest
 from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_STATUS_DICT_ID, JOB_TYPE_DICT, FILE_TYPE_DICT_LETTER_ID,
-                                        FILE_TYPE_DICT_LETTER)
+                                        FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_NAME)
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
 from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file, stream_file_to_s3
@@ -82,7 +82,7 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
     log_data = {
         'message_type': 'BrokerInfo',
         'job_id': job_id,
-        'file_type': file_type,
+        'file_type': FILE_TYPE_DICT_LETTER_NAME[file_type],
         'agency_code': agency_code,
         'start_date': start,
         'end_date': end
@@ -118,10 +118,12 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
                 copy_parent_file_request_data(sess, file_request.job, parent_req.job, file_type, is_local)
         else:
             # no cached file
-            log_data['message'] = 'Starting file {} generation'.format(file_type)
-            logger.info(log_data)
-            file_utils = fileD1 if file_type == 'D1' else fileD2
             file_name = upload_name.split('/')[-1]
+            log_data['message'] = 'Starting file {} generation'.format(file_type)
+            log_data['file_name'] = file_name
+            logger.info(log_data)
+
+            file_utils = fileD1 if file_type == 'D1' else fileD2
             local_filename = "".join([CONFIG_BROKER['d_file_storage_path'], file_name])
             headers = [key for key in file_utils.mapping]
 
@@ -135,7 +137,6 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
             sess.commit()
 
             log_data['message'] = 'Finished writing to file: {}'.format(file_name)
-            log_data['file_name'] = file_name
             logger.info(log_data)
     log_data['message'] = 'Finished file {} generation'.format(file_type)
     logger.info(log_data)
@@ -156,7 +157,7 @@ def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, i
         'message_type': 'BrokerInfo',
         'submission_id': submission_id,
         'job_id': job_id,
-        'file_type': 'F'
+        'file_type': 'sub_award'
     }
     logger.info(log_data)
 
@@ -192,7 +193,7 @@ def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, i
         'message_type': 'BrokerInfo',
         'submission_id': submission_id,
         'job_id': job_id,
-        'file_type': 'E'
+        'file_type': 'executive_compensation'
     }
     logger.info(log_data)
 
@@ -230,7 +231,7 @@ def d_file_query(query_utils, page_start, page_end):
         Args:
             query_utils - object containing:
                 file_utils - fileD1 or fileD2 utils
-                session - DB session
+                sess - DB session
                 agency_code - FREC or CGAC code for generation
                 start - Beginning of period for D file
                 end - End of period for D file
@@ -255,6 +256,13 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
             file_type - File type as either "D1" or "D2"
             is_local - True if in local development, False otherwise
     """
+    log_data = {
+        'message': 'Copying data from parent job with job_id:{}'.format(parent_job.job_id)
+        'message_type': 'BrokerInfo',
+        'job_id': child_job.job_id,
+        'file_type': FILE_TYPE_DICT_LETTER_NAME[file_type]
+    }
+
     # keep path but update file name
     filename = '{}/{}'.format(child_job.filename.rsplit('/', 1)[0], parent_job.original_filename)
 
@@ -278,11 +286,6 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
     sess.commit()
 
     if not is_local and parent_job.filename != child_job.filename:
-        log_data = {
-            'message_type': 'BrokerInfo',
-            'job_id': child_job.job_id,
-            'file_type': file_type
-        }
         # check to see if the same file exists in the child bucket
         s3 = boto3.client('s3', region_name=CONFIG_BROKER["aws_region"])
         response = s3.list_objects_v2(Bucket=CONFIG_BROKER['aws_bucket'], Prefix=child_job.filename)
