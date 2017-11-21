@@ -1661,14 +1661,10 @@ def map_generate_status(upload_job, validation_job=None):
 
 def fabs_derivations(obj, sess):
     # copy log data and remove keys in the row left for logging
-    try:
-        job_id = obj['job_id']
-        detached_award_financial_assistance_id = obj['detached_award_financial_assistance_id']
-        obj.pop('detached_award_financial_assistance_id', None)
-        obj.pop('job_id', None)
-    except KeyError as e:
-        job_id = None
-        detached_award_financial_assistance_id = None
+    job_id = obj['job_id']
+    detached_award_financial_assistance_id = obj['detached_award_financial_assistance_id']
+    obj.pop('detached_award_financial_assistance_id', None)
+    obj.pop('job_id', None)
 
     # initializing a few of the derivations so the keys exist
     obj['legal_entity_state_code'] = None
