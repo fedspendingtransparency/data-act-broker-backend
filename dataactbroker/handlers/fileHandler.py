@@ -615,7 +615,7 @@ class FileHandler:
             logger.info({
                 'message': 'Starting detached D file upload',
                 'message_type': 'BrokerInfo',
-                'agency_code': request_params['agency_code'],
+                'agency_code': request_params.get('agency_code'),
                 'file_name': request_params.get('detached_award')
             })
 
