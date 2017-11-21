@@ -147,8 +147,13 @@ mappings = OrderedDict([
 def submission_procurements(submission_id):
     """Fetch procurements and subcontracts"""
     sess = GlobalDB.db().session
-
-    logger.debug('Starting submission procurements')
+    log_data = {
+        'message': 'Starting file F submission procurements',
+        'message_type': 'CoreDebug',
+        'submission_id': submission_id,
+        'file_type': 'F'
+    }
+    logger.debug(log_data)
 
     award_proc_sub = sess.query(AwardProcurement.piid, AwardProcurement.parent_award_id,
                                 AwardProcurement.naics_description, AwardProcurement.awarding_sub_tier_agency_c,
@@ -168,14 +173,20 @@ def submission_procurements(submission_id):
                                  awarding_sub_tier_agency_c=award_sub_tier, submission_id=award_sub_id)
         yield ModelRow(award, proc, sub, naics_desc=award.naics_description)
 
-    logger.debug('Finished submission procurements')
+    log_data['message'] = 'Finished file F submission procurements'
+    logger.debug(log_data)
 
 
 def submission_grants(submission_id):
     """Fetch grants and subgrants"""
     sess = GlobalDB.db().session
-
-    logger.debug('Starting submission grants')
+    log_data = {
+        'message': 'Starting file F submission grants',
+        'message_type': 'CoreDebug',
+        'submission_id': submission_id,
+        'file_type': 'F'
+    }
+    logger.debug(log_data)
 
     afa_sub = sess.query(AwardFinancialAssistance.fain, AwardFinancialAssistance.submission_id).\
         filter(AwardFinancialAssistance.submission_id == submission_id).distinct().cte("afa_sub")
@@ -190,15 +201,23 @@ def submission_grants(submission_id):
         award = AwardFinancialAssistance(fain=afa_sub_fain, submission_id=afa_sub_id)
         yield ModelRow(award, grant=grant, subgrant=sub)
 
-    logger.debug('Finished submission grants')
+    log_data['message'] = 'Finished file F submission grants'
+    logger.debug(log_data)
 
 
 def generate_f_rows(submission_id):
     """Generated OrderedDicts representing File F rows. Subawards are filtered
     to those relevant to a particular submissionId"""
+    log_data = {
+        'message': 'Starting to generate_f_rows',
+        'message_type': 'CoreDebug',
+        'submission_id': submission_id,
+        'file_type': 'F'
+    }
+    logger.debug(log_data)
 
-    logger.debug('Starting generate f rows')
-
+    row_num = 1
+    log_block_length = 1000
     for model_row in itertools.chain(submission_procurements(submission_id),
                                      submission_grants(submission_id)):
         result = OrderedDict()
@@ -209,5 +228,10 @@ def generate_f_rows(submission_id):
             else:
                 result[key] = str(value)
         yield result
+        if row_num % log_block_length == 0:
+            log_data['message'] = 'Generated rows {}-{}'.format(row_num-(log_block_length-1), row_num)
+            logger.debug(log_data)
+        row_num += 1
 
-    logger.debug('Finished generating f rows')
+    log_data['message'] = 'Finished generate_f_rows'
+    logger.debug(log_data)

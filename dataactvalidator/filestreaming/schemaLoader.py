@@ -64,16 +64,24 @@ class SchemaLoader(object):
                             raise ValueError('CSV File does not follow schema')
 
                 sess.commit()
-                logger.info('{} {} schema records added to {}'.format(
-                    file_column_count, file_type_name, FileColumn.__tablename__))
+                logger.info({
+                    'message': '{} {} schema records added to {}'.format(file_column_count, file_type_name,
+                                                                         FileColumn.__tablename__),
+                    'message_type': 'ValidatorInfo',
+                    'file_type': file_type.letter_name
+                })
 
     @staticmethod
     def remove_columns_by_file_type(sess, file_type):
         """Remove the schema for a specified file type."""
         deleted_records = sess.query(FileColumn).filter(FileColumn.file == file_type).delete(
             synchronize_session='fetch')
-        logger.info('{} {} schema records deleted from {}'.format(
-            deleted_records, file_type.name, FileColumn.__tablename__))
+        logger.info({
+            'message': '{} {} schema records deleted from {}'.format(deleted_records, file_type.name,
+                                                                     FileColumn.__tablename__),
+            'message_type': 'ValidatorInfo',
+            'file_type': file_type.letter_name
+        })
 
     @staticmethod
     def add_column_by_file_type(sess, types, file_type, field_name, field_name_short, required, field_type,
