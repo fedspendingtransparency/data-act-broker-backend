@@ -1,41 +1,49 @@
+import calendar
+import logging
 import os
+import re
+import requests
 import smart_open
+import sqlalchemy as sa
+import threading
+
 from collections import namedtuple
 from datetime import datetime
-import logging
 from dateutil.relativedelta import relativedelta
-from shutil import copyfile
-import threading
-import re
-
-import calendar
-
-import requests
 from flask import g, request
-import sqlalchemy as sa
+from shutil import copyfile
 from sqlalchemy import func, and_
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql.expression import case
 from werkzeug.utils import secure_filename
 
+from dataactbroker.handlers.fileGenerationHandler import generate_d_file, generate_e_file, generate_f_file
+from dataactbroker.handlers.submission_handler import create_submission, get_submission_status, get_submission_files
 from dataactbroker.permissions import current_user_can, current_user_can_on_submission
+
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
+
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import (
+    create_jobs, get_error_metrics_by_job_jd, get_error_type, get_fabs_meta, mark_job_status, run_job_checks,
+    get_last_validated_date, get_lastest_certified_date)
+
 from dataactcore.models.domainModels import (
     CGAC, FREC, CFDAProgram, SubTierAgency, Zips, States, CountyCode, CityCode, ZipCity, CountryCode)
 from dataactcore.models.errorModels import File
-from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
-                                              FPDSContractingOffice)
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
-from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
     JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID,
     FILE_TYPE_DICT_LETTER_NAME)
+from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
+                                              FPDSContractingOffice)
+from dataactcore.models.userModel import User
 from dataactcore.models.views import SubmissionUpdatedView
+
 from dataactcore.utils import fileD2
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
@@ -43,10 +51,7 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.interfaces.function_bag import (
-    create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status, get_fabs_meta,
-    get_submission_files, mark_job_status, run_job_checks, get_last_validated_date, get_lastest_certified_date)
-from dataactbroker.handlers.fileGenerationHandler import generate_d_file, generate_e_file, generate_f_file
+
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
 
 logger = logging.getLogger(__name__)
