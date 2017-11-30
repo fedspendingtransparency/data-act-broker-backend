@@ -55,7 +55,10 @@ def get_write_csv_writer(file_name, upload_name, is_local, header):
         csv_writer = CsvS3Writer(region, bucket, upload_name, header)
         message = 'Writing file to S3...'
 
-    logger.debug(message)
+    logger.debug({
+        'message': message,
+        'message_type': 'ValidatorDebug'
+    })
 
     return csv_writer
 
@@ -91,7 +94,12 @@ def write_query_to_file(local_filename, upload_name, header, file_type, is_local
                 break
 
             # write records to file
-            logger.debug('Writing rows {}-{} to {} CSV'.format(page_start, page_start + len(rows), file_type))
+            logger.debug({
+                'message': 'Writing rows {}-{} to {} CSV'.format(page_start, page_start + len(rows), file_type),
+                'message_type': 'ValidatorDebug',
+                'file_type': file_type,
+                'file_name': local_filename
+            })
             out_csv.writerows(rows)
             if len(rows) < QUERY_SIZE:
                 break
@@ -117,6 +125,13 @@ def stream_file_to_s3(upload_name, reader, is_certified=False):
             reader - reader object to read data from
             is_certified - True if writing to the certified bucket, False otherwise (default False)
     """
+    path, file_name = upload_name.rsplit('/', 1)
+    logger.debug({
+        'message': 'Streaming file to S3',
+        'message_type': 'ValidatorDebug',
+        'file_name': file_name if file_name else path
+    })
+
     if is_certified:
         handler = S3Handler.create_file_path(upload_name, CONFIG_BROKER["certified_bucket"])
     else:

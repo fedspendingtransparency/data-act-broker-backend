@@ -136,7 +136,13 @@ def create_file(job_id, filename):
     try:
         int(job_id)
     except:
-        raise ValueError("".join(["Bad job_id: ", str(job_id)]))
+        logger.error({
+            'message': 'Bad job_id: {}'.format(job_id),
+            'message_type': 'CoreError',
+            'job_id': job_id,
+            'function': 'create_file'
+        })
+        raise ValueError('Bad job_id: {}'.format(job_id))
 
     file_rec = File(job_id=job_id, filename=filename, file_status_id=FILE_STATUS_DICT['incomplete'])
     sess.add(file_rec)
@@ -157,7 +163,13 @@ def write_file_error(job_id, filename, error_type, extra_info=None):
     try:
         int(job_id)
     except:
-        raise ValueError("".join(["Bad jobId: ", str(job_id)]))
+        logger.error({
+            'message': 'Bad job_id: {}'.format(job_id),
+            'message_type': 'CoreError',
+            'job_id': job_id,
+            'function': 'write_file_error'
+        })
+        raise ValueError('Bad job_id: {}'.format(job_id))
 
     # Get File object for this job ID or create it if it doesn't exist
     file_rec = create_file_if_needed(job_id, filename)
@@ -311,10 +323,16 @@ def check_job_dependencies(job_id):
     and add them to the queue
     """
     sess = GlobalDB.db().session
+    log_data = {
+        'message_type': 'CoreError',
+        'job_id': job_id
+    }
 
     # raise exception if current job is not actually finished
     job = sess.query(Job).filter(Job.job_id == job_id).one()
     if job.job_status_id != JOB_STATUS_DICT['finished']:
+        log_data['message'] = 'Current job not finished, unable to check dependencies'
+        logger.error(log_data)
         raise ValueError('Current job not finished, unable to check dependencies')
 
     # get the jobs that are dependent on job_id being finished
@@ -322,8 +340,9 @@ def check_job_dependencies(job_id):
     for dependency in dependencies:
         dep_job_id = dependency.job_id
         if dependency.dependent_job.job_status_id != JOB_STATUS_DICT['waiting']:
-            logger.error("%s (dependency of %s) is not in a 'waiting' state",
-                         dep_job_id, job_id)
+            log_data['message_type'] = 'CoreError'
+            log_data['message'] = "{} (dependency of {}) is not in a 'waiting' state".format(dep_job_id, job_id)
+            logger.error(log_data)
         else:
             # find the number of this job's prerequisites that do
             # not have a status of 'finished'.
@@ -342,10 +361,13 @@ def check_job_dependencies(job_id):
                 # Only want to send validation jobs to the queue, other job types should be forwarded
                 if dependency.dependent_job.job_type_name in ['csv_record_validation', 'validation']:
                     # add dep_job_id to the SQS job queue
-                    logger.info('Sending job %s to job manager in sqs', dep_job_id)
+                    log_data['message_type'] = 'CoreInfo'
+                    log_data['message'] = 'Sending job {} to job manager in sqs'.format(dep_job_id)
+                    logger.info(log_data)
                     queue = sqs_queue()
                     response = queue.send_message(MessageBody=str(dep_job_id))
-                    logger.info('Send message response: %s', response)
+                    log_data['message'] = 'Send message response: {}'.format(response)
+                    logger.info(log_data)
 
 
 def create_submission(user_id, submission_values, existing_submission):
@@ -535,6 +557,12 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
                        Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).\
                 one_or_none()
             if d1_val_job is None:
+                logger.error({
+                    'message': "Cannot create E job without a D1 job",
+                    'message_type': 'CoreError',
+                    'submission_id': submission_id,
+                    'file_type': 'E'
+                })
                 raise Exception("Cannot create E job without a D1 job")
             # Add dependency on D1 validation job
             d1_dependency = JobDependency(job_id=upload_job.job_id, prerequisite_id=d1_val_job.job_id)
@@ -548,6 +576,12 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
                        Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).\
                 one_or_none()
             if c_val_job is None:
+                logger.error({
+                    'message': "Cannot create F job without a C job",
+                    'message_type': 'CoreError',
+                    'submission_id': submission_id,
+                    'file_type': 'F'
+                })
                 raise Exception("Cannot create F job without a C job")
             # add dependency on C validation job
             c_dependency = JobDependency(job_id=upload_job.job_id, prerequisite_id=c_val_job.job_id)

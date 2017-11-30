@@ -161,27 +161,26 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
 
     # Put each rule through evaluate, appending all failures into list
     for rule in rules:
-
         rule_start = datetime.now()
-        logger.info(
-            {
-                'message': 'Beginning cross-file rule '+rule.query_name+' on submission_id: '+str(submission_id),
-                'message_type': 'ValidatorInfo',
-                'rule': rule.query_name,
-                'job_id': job.job_id,
-                'submission_id': submission_id,
-                'action': 'run_cross_validation_rule',
-                'status': 'start',
-                'start': rule_start})
+        logger.info({
+            'message': 'Beginning cross-file rule {} on submission_id: {}'.format(rule.query_name, str(submission_id)),
+            'message_type': 'ValidatorInfo',
+            'rule': rule.query_name,
+            'job_id': job.job_id,
+            'submission_id': submission_id,
+            'action': 'run_cross_validation_rule',
+            'status': 'start',
+            'start': rule_start
+        })
         failed_rows = conn.execute(rule.rule_sql.format(submission_id))
-        logger.info(
-            {
-                'message': 'Finished running cross-file rule ' + rule.query_name + ' on submission_id: ' +
-                           str(submission_id) + '. Starting flex field gathering and file writing',
-                'message_type': 'ValidatorInfo',
-                'rule': rule.query_name,
-                'job_id': job.job_id,
-                'submission_id': submission_id})
+        logger.info({
+            'message': 'Finished running cross-file rule {} on submission_id: {}. Starting flex field gathering and ' +
+                       'file writing'.format(rule.query_name, str(submission_id)),
+            'message_type': 'ValidatorInfo',
+            'rule': rule.query_name,
+            'job_id': job.job_id,
+            'submission_id': submission_id
+        })
         if failed_rows.rowcount:
             # get list of fields involved in this validation
             # note: row_number is metadata, not a field being
@@ -201,25 +200,25 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
                 failed_row_subset = failed_rows[slice_start:last_error_curr_slice]
                 if last_error_curr_slice > num_failed_rows:
                     last_error_curr_slice = num_failed_rows
-                logger.info(
-                    {
-                        'message': 'Starting flex field gathering for cross-file rule ' + rule.query_name +
-                                   ' on submission_id: ' + str(submission_id) + ' for failure rows: ' +
-                                   str(slice_start) + '-' + str(last_error_curr_slice),
-                        'message_type': 'ValidatorInfo',
-                        'rule': rule.query_name,
-                        'job_id': job.job_id,
-                        'submission_id': submission_id})
+                logger.info({
+                    'message': 'Starting flex field gathering for cross-file rule {} on submission_id: {} for ' +
+                               'failure rows: {}-{}'.format(rule.query_name, str(submission_id), str(slice_start),
+                                                            str(last_error_curr_slice)),
+                    'message_type': 'ValidatorInfo',
+                    'rule': rule.query_name,
+                    'job_id': job.job_id,
+                    'submission_id': submission_id
+                })
                 flex_data = relevant_cross_flex_data(failed_row_subset, submission_id, [first_file, second_file])
-                logger.info(
-                    {
-                        'message': 'Finished flex field gathering for cross-file rule ' + rule.query_name +
-                                   ' on submission_id: ' + str(submission_id) + ' for failure rows: ' +
-                                   str(slice_start) + '-' + str(last_error_curr_slice),
-                        'message_type': 'ValidatorInfo',
-                        'rule': rule.query_name,
-                        'job_id': job.job_id,
-                        'submission_id': submission_id})
+                logger.info({
+                    'message': 'Finished flex field gathering for cross-file rule {} on submission_id: {} for ' +
+                               'failure rows: {}-{}'.format(rule.query_name, str(submission_id), str(slice_start),
+                                                            str(last_error_curr_slice)),
+                    'message_type': 'ValidatorInfo',
+                    'rule': rule.query_name,
+                    'job_id': job.job_id,
+                    'submission_id': submission_id
+                })
 
                 for row in failed_row_subset:
                     # get list of values for each column
@@ -249,17 +248,17 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
                 slice_start = slice_start + slice_size
 
         rule_duration = (datetime.now()-rule_start).total_seconds()
-        logger.info(
-            {
-                'message': 'Completed cross-file rule '+rule.query_name+' on submission_id: '+str(submission_id),
-                'message_type': 'ValidatorInfo',
-                'rule': rule.query_name,
-                'job_id': job.job_id,
-                'submission_id': submission_id,
-                'action': 'run_cross_validation_rule',
-                'status': 'finish',
-                'start': rule_start,
-                'duration': rule_duration})
+        logger.info({
+            'message': 'Completed cross-file rule {} on submission_id: {}'.format(rule.query_name, str(submission_id)),
+            'message_type': 'ValidatorInfo',
+            'rule': rule.query_name,
+            'job_id': job.job_id,
+            'submission_id': submission_id,
+            'action': 'run_cross_validation_rule',
+            'status': 'finish',
+            'start': rule_start,
+            'duration': rule_duration
+        })
 
 
 def validate_file_by_sql(job, file_type, short_to_long_dict):
@@ -275,17 +274,18 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
     """
 
     sql_val_start = datetime.now()
-    logger.info(
-        {
-            'message': 'Beginning SQL validations on submission_id: ' + str(job.submission_id) +
-            ', job_id: ' + str(job.job_id) + ', file_type: ' + job.file_type.name,
-            'message_type': 'ValidatorInfo',
-            'submission_id': job.submission_id,
-            'job_id': job.job_id,
-            'file_type': job.file_type.name,
-            'action': 'run_sql_validations',
-            'status': 'start',
-            'start_time': sql_val_start})
+    log_string = 'on submission_id: {}, job_id: {}, file_type: {}'.format(str(job.submission_id), str(job.job_id),
+                                                                          job.file_type.name)
+    logger.info({
+        'message': 'Beginning SQL validations {}'.format(log_string),
+        'message_type': 'ValidatorInfo',
+        'submission_id': job.submission_id,
+        'job_id': job.job_id,
+        'file_type': job.file_type.name,
+        'action': 'run_sql_validations',
+        'status': 'start',
+        'start_time': sql_val_start
+    })
     sess = GlobalDB.db().session
 
     # Pull all SQL rules for this file type
@@ -297,18 +297,17 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
     for rule in rules:
 
         rule_start = datetime.now()
-        logger.info(
-            {
-                'message': 'Beginning SQL validation rule ' + rule.query_name + ' on submission_id: ' +
-                str(job.submission_id) + ', job_id: ' + str(job.job_id) + ', file_type: ' + job.file_type.name,
-                'message_type': 'ValidatorInfo',
-                'submission_id': job.submission_id,
-                'job_id': job.job_id,
-                'rule': rule.query_name,
-                'file_type': job.file_type.name,
-                'action': 'run_sql_validation_rule',
-                'status': 'start',
-                'start_time': rule_start})
+        logger.info({
+            'message': 'Beginning SQL validation rule {} {}'.format(rule.query_name, log_string),
+            'message_type': 'ValidatorInfo',
+            'submission_id': job.submission_id,
+            'job_id': job.job_id,
+            'rule': rule.query_name,
+            'file_type': job.file_type.name,
+            'action': 'run_sql_validation_rule',
+            'status': 'start',
+            'start_time': rule_start
+        })
 
         failures = sess.execute(rule.rule_sql.format(job.submission_id))
         if failures.rowcount:
@@ -325,37 +324,33 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
                           for failure in failures)
 
         rule_duration = (datetime.now() - rule_start).total_seconds()
-        logger.info(
-            {
-                'message': 'Completed SQL validation rule ' + rule.query_name + ' on submission_id: ' +
-                str(job.submission_id) + ', job_id: ' + str(job.job_id) + ', file_type: ' + job.file_type.name,
-                'message_type': 'ValidatorInfo',
-                'submission_id': job.submission_id,
-                'job_id': job.job_id,
-                'rule': rule.query_name,
-                'file_type': job.file_type.name,
-                'action': 'run_sql_validation_rule',
-                'status': 'finish',
-                'start_time': rule_start,
-                'end_time': datetime.now(),
-                'duration': rule_duration
-            })
-
-    sql_val_duration = (datetime.now()-sql_val_start).total_seconds()
-    logger.info(
-        {
-            'message': 'Completed SQL validations  on submission_id: ' + str(job.submission_id) +
-            ', job_id: ' + str(job.job_id) + ', file_type: ' + job.file_type.name,
+        logger.info({
+            'message': 'Completed SQL validation rule {} {}'.format(rule.query_name, log_string),
             'message_type': 'ValidatorInfo',
             'submission_id': job.submission_id,
             'job_id': job.job_id,
+            'rule': rule.query_name,
             'file_type': job.file_type.name,
-            'action': 'run_sql_validations',
+            'action': 'run_sql_validation_rule',
             'status': 'finish',
-            'start_time': sql_val_start,
+            'start_time': rule_start,
             'end_time': datetime.now(),
-            'duration': sql_val_duration
+            'duration': rule_duration
         })
+
+    sql_val_duration = (datetime.now()-sql_val_start).total_seconds()
+    logger.info({
+        'message': 'Completed SQL validations {}'.format(log_string),
+        'message_type': 'ValidatorInfo',
+        'submission_id': job.submission_id,
+        'job_id': job.job_id,
+        'file_type': job.file_type.name,
+        'action': 'run_sql_validations',
+        'status': 'finish',
+        'start_time': sql_val_start,
+        'end_time': datetime.now(),
+        'duration': sql_val_duration
+    })
     return errors
 
 

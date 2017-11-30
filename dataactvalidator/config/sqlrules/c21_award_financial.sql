@@ -1,3 +1,6 @@
+-- The totals by combination of TAS/program activity code provided in File C (award financial) must be a subset of, or
+-- equal to, the same combinations in File B (object class program activity). For example, -10 in C and -100 in B
+-- would pass.
 -- This rule selects 32 distinct elements in Files B and C based on TAS/PAC combination
 -- The elements from both files are summed before comparing
 -- As we are comparing sums, we cannot return row numbers, so we select NULL
@@ -112,9 +115,8 @@ FROM (
 ) AS award_financial_records
 -- The second subquery selects the sum of the corresponding 32 elements in File B
 -- Again, the sum is based on TAS, PAC, and Submission ID
--- We do a FULL OUTER JOIN of this result, as we don't care if TAS/PAC combindations from File B aren't in File C
-FULL OUTER JOIN
-(
+-- We do a FULL OUTER JOIN of this result, as we don't care if TAS/PAC combinations from File B aren't in File C
+FULL OUTER JOIN (
     SELECT SUM(op.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_b,
         SUM(op.ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum_b,
         SUM(op.ussgl483100_undelivered_or_cpe) AS ussgl483100_undelivered_or_cpe_sum_b,
@@ -154,14 +156,14 @@ FULL OUTER JOIN
     GROUP BY op.tas,
         op.program_activity_code,
         op.submission_id
--- We join these two subqueries based on the same TAS and PAC combination
 ) AS object_class_records
+    -- We join these two subqueries based on the same TAS and PAC combination
     ON object_class_records.tas = award_financial_records.tas
-        AND object_class_records.program_activity_code = award_financial_records.program_activity_code
+    AND object_class_records.program_activity_code = award_financial_records.program_activity_code
 -- Negative values are expected, which prompts the use of ABS
 -- The total from File B should always be absolutely greater than or equal to the total in File C
--- Thus, we select combindations where the File C sum is greater than the File B sum
-WHERE (ABS(ussgl480100_undelivered_or_fyb_sum_c) > ABS(ussgl480100_undelivered_or_fyb_sum_b)
+-- Thus, we select combinations where the File C sum is greater than the File B sum
+WHERE ABS(ussgl480100_undelivered_or_fyb_sum_c) > ABS(ussgl480100_undelivered_or_fyb_sum_b)
     OR ABS(ussgl480100_undelivered_or_cpe_sum_c) > ABS(ussgl480100_undelivered_or_cpe_sum_b)
     OR ABS(ussgl483100_undelivered_or_cpe_sum_c) > ABS(ussgl483100_undelivered_or_cpe_sum_b)
     OR ABS(ussgl488100_upward_adjustm_cpe_sum_c) > ABS(ussgl488100_upward_adjustm_cpe_sum_b)
@@ -192,4 +194,4 @@ WHERE (ABS(ussgl480100_undelivered_or_fyb_sum_c) > ABS(ussgl480100_undelivered_o
     OR ABS(ussgl497100_downward_adjus_cpe_sum_c) > ABS(ussgl497100_downward_adjus_cpe_sum_b)
     OR ABS(ussgl487200_downward_adjus_cpe_sum_c) > ABS(ussgl487200_downward_adjus_cpe_sum_b)
     OR ABS(ussgl497200_downward_adjus_cpe_sum_c) > ABS(ussgl497200_downward_adjus_cpe_sum_b)
-    OR ABS(deobligations_recov_by_awa_cpe_sum_c) > ABS(deobligations_recov_by_pro_cpe_sum_b));
+    OR ABS(deobligations_recov_by_awa_cpe_sum_c) > ABS(deobligations_recov_by_pro_cpe_sum_b);

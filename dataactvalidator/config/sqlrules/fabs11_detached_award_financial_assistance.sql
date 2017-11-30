@@ -6,5 +6,5 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type = 1
-    AND legal_entity_address_line2 != ''
-    AND legal_entity_address_line2 IS NOT NULL
+    AND legal_entity_address_line2 <> ''
+    AND legal_entity_address_line2 IS NOT NULL;
