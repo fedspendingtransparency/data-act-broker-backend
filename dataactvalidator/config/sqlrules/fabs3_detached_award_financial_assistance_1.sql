@@ -6,4 +6,6 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type = 2
-    AND (action_type = '' OR action_type IS NULL);
+    AND (action_type = ''
+        OR action_type IS NULL
+    );

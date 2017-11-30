@@ -9,4 +9,6 @@ FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND UPPER(legal_entity_country_code) = 'USA'
     AND record_type = 2
-    AND (legal_entity_zip5 = '' OR legal_entity_zip5 IS NULL)
+    AND (legal_entity_zip5 = ''
+        OR legal_entity_zip5 IS NULL
+    );

@@ -7,4 +7,4 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type = 1
-    AND UPPER(place_of_performance_code) !~ '^[A-Z][A-Z]\*\*\d\d\d$'
+    AND UPPER(place_of_performance_code) !~ '^[A-Z][A-Z]\*\*\d\d\d$';

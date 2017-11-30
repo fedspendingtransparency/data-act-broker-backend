@@ -70,8 +70,7 @@ def update_offices(csv_path):
         sess.add(FPDSContractingOffice(**row))
 
     sess.commit()
-    logger.info('%s records in CSV, %s existing',
-                len(data.index), sum(data['existing_id'].notnull()))
+    logger.info('%s records in CSV, %s existing', len(data.index), sum(data['existing_id'].notnull()))
 
 
 def load_offices(load_office=None):
