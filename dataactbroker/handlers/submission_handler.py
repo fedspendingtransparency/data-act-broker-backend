@@ -1,7 +1,7 @@
 import logging
 
 from datetime import datetime
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, and_
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import sum_number_of_errors_for_job_list
@@ -133,18 +133,23 @@ def delete_all_submission_data(submission):
                                   StatusCode.CLIENT_ERROR)
 
     sess = GlobalDB.db().session
-    jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id).all()
-    for job in jobs:
-        # check if the submission has any jobs that are currently running, if so, do not allow deletion
-        if job.job_status_id == JOB_STATUS_DICT['running']:
-            return JsonResponse.error(ValueError("Submissions with running jobs cannot be deleted"),
-                                      StatusCode.CLIENT_ERROR)
+    all_jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id)
 
-        # check if the submission has a cached D file, if so, do not allow deletion
-        child_file_requests = sess.query(FileRequest).filter(FileRequest.parent_job_id == job.job_id).all()
-        if child_file_requests:
-            return JsonResponse.error(ValueError("Submissions with cached D file generations cannot be deleted"),
-                                      StatusCode.CLIENT_ERROR)
+    # check if the submission has any jobs that are currently running, if so, do not allow deletion
+    running_jobs = all_jobs.filter(Job.job_status_id == JOB_STATUS_DICT['running']).all()
+    if running_jobs:
+        return JsonResponse.error(ValueError("Submissions with running jobs cannot be deleted"),
+                                  StatusCode.CLIENT_ERROR)
+
+    for job in all_jobs.all():
+        print(job.job_id)
+        # check if the submission has a cached D file, if so, disconnect that job from the submission
+        cached_file = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id,
+                                                     FileRequest.is_cached_file == True).all()
+        if cached_file:
+            print('has children')
+            job.submission_id = None
+            sess.commit()
 
     sess.query(SubmissionSubTierAffiliation).\
         filter(SubmissionSubTierAffiliation.submission_id == submission.submission_id).\
