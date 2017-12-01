@@ -1,7 +1,7 @@
 import logging
 
 from datetime import datetime
-from sqlalchemy import func, or_, and_
+from sqlalchemy import func, or_
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import sum_number_of_errors_for_job_list
@@ -45,7 +45,13 @@ def create_submission(user_id, submission_values, existing_submission):
 
 
 def populate_submission_error_info(submission_id):
-    """Set number of errors and warnings for submission."""
+    """Set number of errors and warnings for submission.
+
+    Arguments:
+        submission_id: submission to update submission error info
+
+    Returns:
+        submission object"""
     sess = GlobalDB.db().session
     submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
     submission.number_of_errors = sum_number_of_errors_for_job_list(submission_id)
@@ -56,7 +62,13 @@ def populate_submission_error_info(submission_id):
 
 
 def get_submission_stats(submission_id):
-    """Get summarized dollar amounts by submission."""
+    """Get summarized dollar amounts by submission.
+
+    Arguments:
+        submission_id: submission to retrieve info from
+
+    Returns:
+        object containing total_obligations, total_procurement_obligations, total_assistance_obligations"""
     sess = GlobalDB.db().session
     base_query = sess.query(func.sum(AwardFinancial.transaction_obligated_amou)).\
         filter(AwardFinancial.submission_id == submission_id)
@@ -71,8 +83,14 @@ def get_submission_stats(submission_id):
 
 
 def get_submission_status(submission, jobs):
-    """Return the status of a submission."""
+    """Return the status of a submission.
 
+    Arguments:
+        submission: submission to retrieve status from
+        jobs: jobs within the submission to retrieve status from
+
+    Returns:
+        string containing the status of the submission"""
     status_names = JOB_STATUS_DICT.keys()
     statuses = {name: 0 for name in status_names}
     skip_count = 0
@@ -111,6 +129,13 @@ def get_submission_status(submission, jobs):
 
 
 def get_submission_files(jobs):
+    """Return the filenames of all jobs within a submission.
+
+    Arguments:
+        jobs: jobs retrieve filenames from
+
+    Returns:
+        array of all filenames within the jobs given"""
     job_list = []
     for job in jobs:
         if job.filename not in job_list:
@@ -141,13 +166,17 @@ def delete_all_submission_data(submission):
         return JsonResponse.error(ValueError("Submissions with running jobs cannot be deleted"),
                                   StatusCode.CLIENT_ERROR)
 
+    logger.info({
+        "message": "Deleting submission with id {}".format(submission.submission_id),
+        "message_type": "BrokerInfo",
+        "submission_id": submission.submission_id
+    })
+
     for job in all_jobs.all():
-        print(job.job_id)
-        # check if the submission has a cached D file, if so, disconnect that job from the submission
+        # check if the submission has any cached D files, if so, disconnect that job from the submission
         cached_file = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id,
-                                                     FileRequest.is_cached_file == True).all()
+                                                     FileRequest.is_cached_file.is_(True)).all()
         if cached_file:
-            print('has children')
             job.submission_id = None
             sess.commit()
 
