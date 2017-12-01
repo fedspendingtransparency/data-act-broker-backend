@@ -6,6 +6,10 @@ SELECT
     period_of_performance_curr
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND ((period_of_performance_star IS NOT NULL AND period_of_performance_curr IS NULL)
-        OR
-        (period_of_performance_star IS NULL AND period_of_performance_curr IS NOT NULL))
+    AND ((period_of_performance_star IS NOT NULL
+            AND period_of_performance_curr IS NULL
+        )
+        OR (period_of_performance_star IS NULL
+            AND period_of_performance_curr IS NOT NULL
+        )
+    );

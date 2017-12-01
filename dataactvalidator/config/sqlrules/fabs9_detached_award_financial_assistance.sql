@@ -6,4 +6,4 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type = 1
-    AND LOWER(awardee_or_recipient_legal) <> 'multiple recipients'
+    AND UPPER(awardee_or_recipient_legal) <> 'MULTIPLE RECIPIENTS';

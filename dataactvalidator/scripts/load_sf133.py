@@ -29,8 +29,7 @@ def load_all_sf133(sf133_path=None, force_sf133_load=False):
         # and call the SF 133 loader
         file_match = sf_re.match(sf133.file)
         if not file_match:
-            logger.info('Skipping SF 133 file with invalid name: %s',
-                        sf133.full_file)
+            logger.info('Skipping SF 133 file with invalid name: %s', sf133.full_file)
             continue
         logger.info('Starting %s...', sf133.full_file)
         load_sf133(
@@ -82,8 +81,7 @@ def update_tas_id(fiscal_year, fiscal_period):
                     1)
 
     subquery = matching_cars_subquery(sess, SF133, start_date, end_date)
-    logger.info("Updating tas_ids for Fiscal %s-%s", fiscal_year,
-                fiscal_period)
+    logger.info("Updating tas_ids for Fiscal %s-%s", fiscal_year, fiscal_period)
     sess.query(SF133).\
         filter_by(fiscal_year=fiscal_year, period=fiscal_period).\
         update({SF133.tas_id: subquery}, synchronize_session=False)
@@ -100,14 +98,13 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False):
             SF133.fiscal_year == fiscal_year, SF133.period == fiscal_period)
         if force_sf133_load:
             # force a reload of this period's current data
-            logger.info('Force SF 133 load: deleting existing records for {} {}'.format(
-                fiscal_year, fiscal_period))
+            logger.info('Force SF 133 load: deleting existing records for %s %s', fiscal_year, fiscal_period)
             delete_count = existing_records.delete()
-            logger.info('{} records deleted'.format(delete_count))
+            logger.info('%s records deleted', delete_count)
         elif existing_records.count():
             # if there's existing data & we're not forcing a load, skip
-            logger.info('SF133 {} {} already in database ({} records). Skipping file.'.format(
-                fiscal_year, fiscal_period, existing_records.count()))
+            logger.info('SF133 %s %s already in database (%s records). Skipping file.', fiscal_year, fiscal_period,
+                        existing_records.count())
             return
 
         data = clean_sf133_data(filename, SF133)
@@ -141,7 +138,7 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False):
         update_tas_id(int(fiscal_year), int(fiscal_period))
         sess.commit()
 
-    logger.info('{} records inserted to {}'.format(num, table_name))
+    logger.info('%s records inserted to %s', num, table_name)
 
 
 def clean_sf133_data(filename, sf133_data):

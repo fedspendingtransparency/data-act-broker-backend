@@ -38,11 +38,11 @@ def get_relevant_models(data, benchmarks=False):
     # Get a list of the duns we're gonna work off of to prevent multiple calls to the database
     if benchmarks:
         get_models = time.time()
-    logger.info("getting relevant models")
+    logger.info("Getting relevant models")
     duns_found = [duns.strip().zfill(9) for duns in list(data["awardee_or_recipient_uniqu"].unique())]
     dun_objects_found = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu.in_(duns_found))
     models = {duns.awardee_or_recipient_uniqu: duns for duns in dun_objects_found}
-    logger.info("getting models with activation dates already set")
+    logger.info("Getting models with activation dates already set")
     activated_models = {duns_num: duns for duns_num, duns in models.items() if duns.activation_date is not None}
     if benchmarks:
         logger.info("Getting models took {} seconds".format(time.time() - get_models))
@@ -72,7 +72,7 @@ def load_duns_by_row(data, sess, models, activated_models, benchmarks=False):
 
 def update_duns(models, new_data, benchmarks=False):
     """Modify existing models or create new ones"""
-    logger.info("updating duns")
+    logger.info("Updating duns")
     if benchmarks:
         update_duns_start = time.time()
     for _, row in new_data.iterrows():
@@ -100,7 +100,7 @@ def clean_sam_data(data):
 
 def parse_sam_file(file_path, sess, monthly=False, benchmarks=False):
     parse_start_time = time.time()
-    logger.info("starting file " + str(file_path))
+    logger.info("Starting file " + str(file_path))
 
     dat_file_name = os.path.splitext(os.path.basename(file_path))[0]+'.dat'
     sam_file_type = "MONTHLY" if monthly else "DAILY"
@@ -139,7 +139,7 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False):
         while batch <= batches:
             skiprows = 1 if batch == 0 else (batch*block_size)
             nrows = (((batch+1)*block_size)-skiprows) if (batch < batches) else last_block_size
-            logger.info('loading rows %s to %s', skiprows+1, nrows+skiprows)
+            logger.info('Loading rows %s to %s', skiprows+1, nrows+skiprows)
 
             with zipfile.ZipFile(file_path) as zip_file:
                 with zip_file.open(dat_file_name) as dat_file:
@@ -157,7 +157,7 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False):
                     csv_data = clean_sam_data(csv_data.where(pd.notnull(csv_data), None))
 
                     if monthly:
-                        logger.info("adding all monthly data with bulk load")
+                        logger.info("Adding all monthly data with bulk load")
                         if benchmarks:
                             bulk_month_load = time.time()
                         del csv_data["sam_extract_code"]
@@ -173,17 +173,17 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False):
 
                         if not add_data.empty:
                             try:
-                                logger.info("attempting to bulk load add data")
+                                logger.info("Attempting to bulk load add data")
                                 insert_dataframe(add_data, DUNS.__table__.name, sess.connection())
                             except IntegrityError:
-                                logger.info("bulk loading add data failed, loading add data by row")
+                                logger.info("Bulk loading add data failed, loading add data by row")
                                 sess.rollback()
                                 models, activated_models = get_relevant_models(add_data, benchmarks=benchmarks)
-                                logger.info("loading add data ({} rows)".format(len(add_data.index)))
+                                logger.info("Loading add data ({} rows)".format(len(add_data.index)))
                                 load_duns_by_row(add_data, sess, models, activated_models, benchmarks=benchmarks)
                         if not update_delete_data.empty:
                             models, activated_models = get_relevant_models(update_delete_data, benchmarks=benchmarks)
-                            logger.info("loading update_delete data ({} rows)".format(len(update_delete_data.index)))
+                            logger.info("Loading update_delete data ({} rows)".format(len(update_delete_data.index)))
                             load_duns_by_row(update_delete_data, sess, models, activated_models, benchmarks=benchmarks)
                     sess.commit()
 
