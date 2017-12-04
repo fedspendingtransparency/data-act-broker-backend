@@ -320,7 +320,8 @@ class FileHandler:
             # Compare user ID with user who submitted job, if no match return 400
             job = sess.query(Job).filter_by(job_id=job_id).one()
             submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
-            if not current_user_can_on_submission('writer', submission):
+            if (submission.d2_submission and not current_user_can_on_submission('fabs', submission)) or \
+                    (not submission.d2_submission and not current_user_can_on_submission('writer', submission)):
                 # This user cannot finalize this job
                 raise ResponseException(
                     "Cannot finalize a job for a different agency",
