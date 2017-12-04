@@ -77,8 +77,7 @@ def update_tas_lookups(csv_path):
         sess.add(TASLookup(**row))
 
     sess.commit()
-    logger.info('%s records in CSV, %s existing',
-                len(data.index), sum(data['existing_id'].notnull()))
+    logger.info('%s records in CSV, %s existing', len(data.index), sum(data['existing_id'].notnull()))
 
 
 def load_tas(tas_file=None):

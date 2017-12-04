@@ -1,51 +1,58 @@
+import calendar
+import logging
 import os
+import re
+import requests
 import smart_open
+import sqlalchemy as sa
+import threading
+
 from collections import namedtuple
 from datetime import datetime
-import logging
 from dateutil.relativedelta import relativedelta
-from shutil import copyfile
-import threading
-import re
-
-import calendar
-
-import requests
 from flask import g, request
-import sqlalchemy as sa
+from shutil import copyfile
 from sqlalchemy import func, and_
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql.expression import case
 from werkzeug.utils import secure_filename
 
+from dataactbroker.handlers.fileGenerationHandler import generate_d_file, generate_e_file, generate_f_file
+from dataactbroker.handlers.submission_handler import create_submission, get_submission_status, get_submission_files
 from dataactbroker.permissions import current_user_can, current_user_can_on_submission
+
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
+
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import (
+    create_jobs, get_error_metrics_by_job_jd, get_error_type, get_fabs_meta, mark_job_status, run_job_checks,
+    get_last_validated_date, get_lastest_certified_date)
+
 from dataactcore.models.domainModels import (
     CGAC, FREC, CFDAProgram, SubTierAgency, Zips, States, CountyCode, CityCode, ZipCity, CountryCode)
 from dataactcore.models.errorModels import File
-from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
-                                              FPDSContractingOffice)
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
-from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
     JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID,
     FILE_TYPE_DICT_LETTER_NAME)
+from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
+                                              FPDSContractingOffice)
+from dataactcore.models.userModel import User
 from dataactcore.models.views import SubmissionUpdatedView
+
+from dataactcore.utils import fileD2
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.interfaces.function_bag import (
-    create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status, get_fabs_meta,
-    get_submission_files, mark_job_status, run_job_checks, get_last_validated_date, get_lastest_certified_date)
-from dataactbroker.handlers.fileGenerationHandler import generate_d_file, generate_e_file, generate_f_file
+
+from dataactvalidator.filestreaming.csv_selection import write_query_to_file
 
 logger = logging.getLogger(__name__)
 
@@ -396,12 +403,26 @@ class FileHandler:
 
         submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
 
-        # Generate and upload file to S3
-        job = self.add_generation_job_info(file_type_name=file_type_name, job=job)
-        upload_file_name, timestamped_name = job.filename, job.original_filename
+        # If this job has already generated a D file that is cached, don't request new job info
+        file_request = sess.query(FileRequest).filter_by(job_id=job.job_id).one_or_none()
+        log_data = {
+            'message_type': 'BrokerDebug',
+            'job_id': job.job_id,
+            'submission_id': job.submission_id,
+            'file_type': file_type
+        }
+        if file_request and file_request.is_cached_file:
+            log_data['message'] = 'D file generation running on job with cached file'
+            logger.debug(log_data)
+            mark_job_status(job.job_id, "running")
+        else:
+            log_data['message'] = 'Adding job info for job id of {}'.format(job.job_id)
+            logger.debug(log_data)
+            job = self.add_generation_job_info(file_type_name=file_type_name, job=job)
 
+        # Generate and upload file to S3
+        upload_file_name, timestamped_name = job.filename, job.original_filename
         if file_type in ['D1', 'D2']:
-            logger.debug('Adding job info for job id of %s', job.job_id)
             date_error = self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission.submission_id,
                                                       file_type, file_type_name, start, end, job)
             if date_error is not None:
@@ -409,7 +430,7 @@ class FileHandler:
 
             agency_code = submission.frec_code if submission.frec_code else submission.cgac_code
             t = threading.Thread(target=generate_d_file, args=(file_type, agency_code, start, end, job.job_id,
-                                                               timestamped_name, upload_file_name, self.isLocal))
+                                                               upload_file_name, self.isLocal, job.submission_id))
         else:
             t = threading.Thread(
                 target=generate_e_file if file_type == 'E' else generate_f_file,
@@ -486,8 +507,6 @@ class FileHandler:
 
     def generate_file(self, submission_id, file_type):
         """ Start a file generation job for the specified file type """
-        logger.debug('Starting %s file generation, submission_id:%s', file_type, submission_id)
-
         sess = GlobalDB.db().session
 
         # Check permission to submission
@@ -498,6 +517,16 @@ class FileHandler:
         job = sess.query(Job).filter(Job.submission_id == submission_id,
                                      Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
                                      Job.job_type_id == JOB_TYPE_DICT['file_upload']).one()
+
+        log_data = {
+            'message': 'Starting {} file generation within submission {}'.format(file_type, submission_id),
+            'message_type': 'BrokerInfo',
+            'submission_id': submission_id,
+            'job_id': job.job_id,
+            'file_type': file_type
+        }
+        logger.info(log_data)
+
         try:
             # Check prerequisites on upload job
             if not run_job_checks(job.job_id):
@@ -508,8 +537,9 @@ class FileHandler:
             return JsonResponse.error(exc, exc.status)
 
         success, error_response = self.start_generation_job(job)
+        log_data['message'] = 'Finished start_generation_job method for submission {}'.format(submission_id)
+        logger.debug(log_data)
 
-        logger.debug('Finished start_generation_job method')
         if not success:
             # If not successful, set job status as "failed"
             mark_job_status(job.job_id, "failed")
@@ -521,6 +551,7 @@ class FileHandler:
             if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
                 submission.publishable = False
                 submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
+                submission.updated_at = datetime.utcnow()
                 sess.commit()
 
             # Set cross-file validation status to waiting if it's not already
@@ -538,8 +569,6 @@ class FileHandler:
 
     def generate_detached_file(self, file_type, cgac_code, frec_code, start, end):
         """ Start a file generation job for the specified file type """
-        logger.debug('Starting detached %s file generation', file_type)
-
         # check if date format is MM/DD/YYYY
         if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
             raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
@@ -551,10 +580,20 @@ class FileHandler:
             dates={'start_date': start, 'end_date': end}
         )
 
-        # thread detached D file generation
         agency_code = frec_code if frec_code else cgac_code
+        logger.info({
+            'message': 'Starting detached {} file generation'.format(file_type),
+            'message_type': 'BrokerInfo',
+            'job_id': new_job.job_id,
+            'file_type': file_type,
+            'agency_code': agency_code,
+            'start_date': start,
+            'end_date': end
+        })
+
+        # thread detached D file generation
         t = threading.Thread(target=generate_d_file, args=(file_type, agency_code, start, end, new_job.job_id,
-                                                           new_job.original_filename, new_job.filename, self.isLocal))
+                                                           new_job.filename, self.isLocal))
         t.start()
 
         # Return same response as check generation route
@@ -573,12 +612,17 @@ class FileHandler:
         key_url is the S3 URL for uploading
         key_id is the job id to be passed to the finalize_submission route
         """
-        logger.debug("Starting detached D file upload")
         sess = GlobalDB.db().session
         try:
             response_dict = {}
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
+            logger.info({
+                'message': 'Starting detached D file upload',
+                'message_type': 'BrokerInfo',
+                'agency_code': request_params.get('agency_code'),
+                'file_name': request_params.get('detached_award')
+            })
 
             job_data = {}
             # Check for existing submission
@@ -602,7 +646,7 @@ class FileHandler:
                 frec_code = existing_submission_obj.frec_code
             else:
                 sub_tier_agency = sess.query(SubTierAgency).\
-                    filter_by(sub_tier_agency_code=request_params["agency_code"]).one()
+                    filter_by(sub_tier_agency_code=request_params['agency_code']).one()
                 cgac_code = None if sub_tier_agency.is_frec else sub_tier_agency.cgac.cgac_code
                 frec_code = sub_tier_agency.frec.frec_code if sub_tier_agency.is_frec else None
 
@@ -657,10 +701,8 @@ class FileHandler:
         """
         sess = GlobalDB.db().session
 
-        # TODO is this comment wrong or is the code wrong?
-        # We want to user first() here so we can see if the job is None so we can mark
-        # the status as invalid to indicate that a status request is invoked for a job that
-        # isn't created yet
+        # We want to use one_or_none() here so we can see if the job is None so we can mark the status as invalid to
+        # indicate that a status request is invoked for a job that isn't created yet
         upload_job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
         response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '', 'start': '',
                          'end': ''}
@@ -733,23 +775,28 @@ class FileHandler:
     @staticmethod
     def submit_detached_file(submission):
         """ Submits the FABS upload file associated with the submission ID """
-        # Check to make sure it's a d2 submission
+        # Check to make sure it's a valid d2 submission who hasn't already started a publish process
         if not submission.d2_submission:
             raise ResponseException("Submission is not a FABS submission", StatusCode.CLIENT_ERROR)
-
         if submission.publish_status_id == PUBLISH_STATUS_DICT['publishing']:
             raise ResponseException("Submission is already publishing", StatusCode.CLIENT_ERROR)
-
-        # Check to make sure it isn't already a published submission
         if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
             raise ResponseException("Submission has already been published", StatusCode.CLIENT_ERROR)
 
         # if it's an unpublished FABS submission, we can start the process
         sess = GlobalDB.db().session
         submission_id = submission.submission_id
+        log_data = {
+            'message': 'Starting FABS submission publishing',
+            'message_type': 'BrokerDebug',
+            'submission_id': submission_id
+        }
+        logger.info(log_data)
 
+        # set publish_status to "publishing"
         sess.query(Submission).filter_by(submission_id=submission_id).\
-            update({"publish_status_id": PUBLISH_STATUS_DICT['publishing']}, synchronize_session=False)
+            update({"publish_status_id": PUBLISH_STATUS_DICT['publishing'], "updated_at": datetime.utcnow()},
+                   synchronize_session=False)
         sess.commit()
 
         try:
@@ -776,12 +823,12 @@ class FileHandler:
                 filter_by(is_valid=True, submission_id=submission_id).all()
 
             agency_codes_list = []
+            row_count = 1
+            log_data['message'] = 'Starting derivations for FABS submission'
+            logger.info(log_data)
             for row in query:
                 # remove all keys in the row that are not in the intermediate table
                 temp_obj = row.__dict__
-                temp_obj.pop('detached_award_financial_assistance_id', None)
-                temp_obj.pop('submission_id', None)
-                temp_obj.pop('job_id', None)
                 temp_obj.pop('row_number', None)
                 temp_obj.pop('is_valid', None)
                 temp_obj.pop('created_at', None)
@@ -809,6 +856,11 @@ class FileHandler:
                 if temp_obj['awarding_agency_code'] not in agency_codes_list:
                     agency_codes_list.append(temp_obj['awarding_agency_code'])
 
+                if row_count % 1000 == 0:
+                    log_data['message'] = 'Completed derivations for {} rows'.format(row_count)
+                    logger.info(log_data)
+                row_count += 1
+
             # update all cached D2 FileRequest objects that could have been affected by the publish
             for agency_code in agency_codes_list:
                 cached = sess.query(FileRequest).filter(FileRequest.request_date == datetime.now().date(),
@@ -823,11 +875,17 @@ class FileHandler:
 
             sess.commit()
         except Exception as e:
+            log_data['message'] = 'An error occurred while publishing a FABS submission'
+            log_data['message_type'] = 'BrokerError'
+            log_data['error_message'] = str(e)
+            logger.error(log_data)
+
             # rollback the changes if there are any errors. We want to submit everything together
             sess.rollback()
 
             sess.query(Submission).filter_by(submission_id=submission_id). \
-                update({"publish_status_id": PUBLISH_STATUS_DICT['unpublished']}, synchronize_session=False)
+                update({"publish_status_id": PUBLISH_STATUS_DICT['unpublished'], "updated_at": datetime.utcnow()},
+                       synchronize_session=False)
             sess.commit()
 
             # we want to return response exceptions in such a way that we can see the message, not catching it
@@ -836,14 +894,27 @@ class FileHandler:
                 return JsonResponse.error(e, e.status)
 
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
+        log_data['message'] = 'Completed derivations for FABS submission'
+        logger.info(log_data)
 
         sess.query(Submission).filter_by(submission_id=submission_id).\
-            update({"publish_status_id": PUBLISH_STATUS_DICT['published'], "certifying_user_id": g.user.user_id},
-                   synchronize_session=False)
+            update({"publish_status_id": PUBLISH_STATUS_DICT['published'], "certifying_user_id": g.user.user_id,
+                    "updated_at": datetime.utcnow()}, synchronize_session=False)
+
+        # create the certify_history entry
         certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
                                          submission_id=submission_id)
         sess.add(certify_history)
         sess.commit()
+
+        # get the certify_history entry including the PK
+        certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission_id).\
+            order_by(CertifyHistory.created_at.desc()).first()
+
+        # generate the published rows file and move all files
+        # (locally we don't move but we still need to populate the certified_files_history table)
+        FileHandler.move_certified_files(FileHandler, submission, certify_history, g.is_local)
+
         response_dict = {"submission_id": submission_id}
         return JsonResponse.create(StatusCode.OK, response_dict)
 
@@ -963,22 +1034,47 @@ class FileHandler:
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
     def move_certified_files(self, submission, certify_history, is_local):
+        """Copy all files within the ceritified submission to the correct certified files bucket/directory. FABS
+        submissions also create a file containing all the published rows"""
+        try:
+            self.s3manager
+        except AttributeError:
+            self.s3manager = S3Handler()
+
         sess = GlobalDB.db().session
-        # Putting this here for now, get the uploads list
-        jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+        submission_id = submission.submission_id
+        log_data = {
+            'message': 'Starting move_certified_files',
+            'message_type': 'BrokerDebug',
+            'submission_id': submission_id,
+            'submission_type': 'FABS' if submission.d2_submission else 'DABS'
+        }
+        logger.debug(log_data)
+
+        # get the list of upload jobs
+        jobs = sess.query(Job).filter(Job.submission_id == submission_id,
                                       Job.job_type_id == JOB_TYPE_DICT['file_upload'],
                                       Job.filename.isnot(None)).all()
-        possible_warning_files = [FILE_TYPE_DICT["appropriations"], FILE_TYPE_DICT["program_activity"],
-                                  FILE_TYPE_DICT["award_financial"]]
         original_bucket = CONFIG_BROKER['aws_bucket']
         new_bucket = CONFIG_BROKER['certified_bucket']
+        agency_code = submission.cgac_code if submission.cgac_code else submission.frec_code
 
-        # route is used in multiple places, might as well just make it out here
-        identifying_code = submission.cgac_code if submission.cgac_code else submission.frec_code
-        new_route = '{}/{}/{}/{}/'.format(identifying_code, submission.reporting_fiscal_year,
-                                          submission.reporting_fiscal_period // 3,
-                                          certify_history.certify_history_id)
+        # warning file doesn't apply to FABS submissions
+        possible_warning_files = [FILE_TYPE_DICT["appropriations"], FILE_TYPE_DICT["program_activity"],
+                                  FILE_TYPE_DICT["award_financial"]]
+
+        # set the route within the bucket
+        if submission.d2_submission:
+            created_at_date = certify_history.created_at
+            route_vars = ["FABS", agency_code, created_at_date.year, '{:02d}'.format(created_at_date.month)]
+        else:
+            route_vars = [agency_code, submission.reporting_fiscal_year, submission.reporting_fiscal_period // 3,
+                          certify_history.certify_history_id]
+        new_route = '/'.join([str(var) for var in route_vars]) + '/'
+
         for job in jobs:
+            log_data['job_id'] = job.job_id
+
             # non-local instances create a new path, local instances just use the existing one
             if not is_local:
                 old_path_sections = job.filename.split("/")
@@ -991,60 +1087,69 @@ class FileHandler:
             if job.file_type_id in possible_warning_files:
                 # warning file is in the new path for non-local instances and just in its normal place for local ones
                 if not is_local:
-                    warning_file_name = report_file_name(submission.submission_id, True, job.file_type.name)
+                    # create names and move warning file
+                    warning_file_name = report_file_name(submission_id, True, job.file_type.name)
                     warning_file = new_route + warning_file_name
-
-                    # move warning file while we're here
                     self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
                                              original_path="errors/" + warning_file_name, new_path=warning_file)
                 else:
-                    warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission.submission_id,
-                                                                                           True, job.file_type.name)
+                    warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission_id, True,
+                                                                                           job.file_type.name)
 
-            # get the narrative relating to the file
-            narrative = sess.query(SubmissionNarrative).\
-                filter_by(submission_id=submission.submission_id, file_type_id=job.file_type_id).one_or_none()
-            if narrative:
-                narrative = narrative.narrative
+            narrative = None
+            if submission.d2_submission:
+                # FABS published submission, create the FABS published rows file
+                log_data['message'] = 'Generating published FABS file from publishable rows'
+                logger.info(log_data)
+                new_path = create_fabs_published_file(sess, submission_id, new_route)
+            else:
+                # DABS certified submission
+                # get the narrative relating to the file
+                narrative = sess.query(SubmissionNarrative).\
+                    filter_by(submission_id=submission_id, file_type_id=job.file_type_id).one_or_none()
+                if narrative:
+                    narrative = narrative.narrative
+
+                # only actually move the files if it's not a local submission
+                if not is_local:
+                    self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
+                                             original_path=job.filename, new_path=new_path)
 
             # create the certified_files_history for this file
-            certified_file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
-                                                           submission_id=submission.submission_id,
-                                                           filename=new_path,
-                                                           file_type_id=job.file_type_id, narrative=narrative,
-                                                           warning_filename=warning_file)
-            sess.add(certified_file_history)
+            file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
+                                                 submission_id=submission_id, file_type_id=job.file_type_id,
+                                                 filename=new_path, narrative=narrative,
+                                                 warning_filename=warning_file)
+            sess.add(file_history)
 
-            # only actually move the files if it's not a local submission
-            if not is_local:
-                self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
-                                         original_path=job.filename, new_path=new_path)
+        # FABS submissions don't have cross-file validations
+        if not submission.d2_submission:
+            cross_list = {"B": "A", "C": "B", "D1": "C", "D2": "C"}
+            for key, value in cross_list.items():
+                first_file = FILE_TYPE_DICT_LETTER_NAME[value]
+                second_file = FILE_TYPE_DICT_LETTER_NAME[key]
 
-        cross_list = {"B": "A", "C": "B", "D1": "C", "D2": "C"}
-        for key, value in cross_list.items():
-            first_file = FILE_TYPE_DICT_LETTER_NAME[value]
-            second_file = FILE_TYPE_DICT_LETTER_NAME[key]
+                # create warning file path
+                if not is_local:
+                    warning_file_name = report_file_name(submission_id, True, first_file, second_file)
+                    warning_file = new_route + warning_file_name
 
-            # create warning file path
-            if not is_local:
-                warning_file_name = report_file_name(submission.submission_id, True, first_file, second_file)
-                warning_file = new_route + warning_file_name
+                    # move the file if we aren't local
+                    self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
+                                             original_path="errors/" + warning_file_name, new_path=warning_file)
+                else:
+                    warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission_id, True,
+                                                                                           first_file, second_file)
 
-                # move the file if we aren't local
-                self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
-                                         original_path="errors/" + warning_file_name, new_path=warning_file)
-            else:
-                warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission.submission_id, True,
-                                                                                       first_file, second_file)
-
-            # add certified history
-            certified_file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
-                                                           submission_id=submission.submission_id,
-                                                           filename=None,
-                                                           file_type_id=None, narrative=None,
-                                                           warning_filename=warning_file)
-            sess.add(certified_file_history)
+                # add certified history
+                file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
+                                                     submission_id=submission_id, filename=None, file_type_id=None,
+                                                     narrative=None, warning_filename=warning_file)
+                sess.add(file_history)
         sess.commit()
+
+        log_data['message'] = 'Completed move_certified_files'
+        logger.debug(log_data)
 
 
 def narratives_for_submission(submission):
@@ -1060,9 +1165,8 @@ def narratives_for_submission(submission):
 
 
 def update_narratives(submission, narratives_json):
-    """Clear existing narratives and replace them with the provided set. We
-    assume narratives_json contains non-empty strings (i.e. that it's been
-    cleaned)"""
+    """Clear existing narratives and replace them with the provided set. We assume narratives_json contains non-empty
+    strings (i.e. that it's been cleaned)"""
     sess = GlobalDB.db().session
     sess.query(SubmissionNarrative).\
         filter_by(submission_id=submission.submission_id).\
@@ -1079,6 +1183,23 @@ def update_narratives(submission, narratives_json):
     sess.commit()
 
     return JsonResponse.create(StatusCode.OK, {})
+
+
+def create_fabs_published_file(sess, submission_id, new_route):
+    """Create a file containing all the published rows from this submission_id"""
+    # create timestamped name and paths
+    timestamped_name = S3Handler.get_timestamped_filename('submission_{}_published_fabs.csv'.format(submission_id))
+    local_filename = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
+    upload_name = "".join([new_route, timestamped_name])
+
+    # write file and stream to S3
+    write_query_to_file(local_filename, upload_name, [key for key in fileD2.mapping], "published FABS", g.is_local,
+                        published_fabs_query, {"sess": sess, "submission_id": submission_id}, is_certified=True)
+    return local_filename if g.is_local else upload_name
+
+
+def published_fabs_query(data_utils, page_start, page_end):
+    return fileD2.query_published_fabs_data(data_utils["sess"], data_utils["submission_id"], page_start, page_end).all()
 
 
 def _split_csv(string):
@@ -1177,7 +1298,7 @@ def submission_to_dict_for_status(submission):
     revalidation_threshold = sess.query(RevalidationThreshold).one_or_none()
     last_validated = get_last_validated_date(submission.submission_id)
 
-    fabs_meta = get_fabs_meta(submission.submission_id)
+    fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
 
     return {
         'cgac_code': submission.cgac_code,
@@ -1244,27 +1365,25 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     """ List submission based on current page and amount to display. If provided, filter based on
     certification status """
     sess = GlobalDB.db().session
-
     submission_updated_view = SubmissionUpdatedView()
-
     offset = limit * (page - 1)
-
     certifying_user = aliased(User)
 
     submission_columns = [Submission.submission_id, Submission.cgac_code, Submission.frec_code, Submission.user_id,
                           Submission.publish_status_id, Submission.d2_submission, Submission.number_of_warnings,
                           Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
                           Submission.reporting_end_date, Submission.certifying_user_id]
-
     cgac_columns = [CGAC.cgac_code, CGAC.agency_name.label('cgac_agency_name')]
     frec_columns = [FREC.frec_code, FREC.agency_name.label('frec_agency_name')]
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
                     certifying_user.name.label('certifying_user_name')]
+    view_columns = [submission_updated_view.submission_id, submission_updated_view.updated_at.label('updated_at')]
+    sub_query = sess.query(CertifyHistory.submission_id, func.max(CertifyHistory.created_at).label('certified_date')).\
+        group_by(CertifyHistory.submission_id).\
+        subquery()
 
-    view_columns = [submission_updated_view.submission_id,
-                    submission_updated_view.updated_at.label('updated_at')]
-
-    columns_to_query = submission_columns + cgac_columns + frec_columns + user_columns + view_columns
+    columns_to_query = (submission_columns + cgac_columns + frec_columns + user_columns + view_columns +
+                        [sub_query.c.certified_date])
 
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id).\
@@ -1272,13 +1391,16 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
+        outerjoin(sub_query, Submission.submission_id == sub_query.c.submission_id).\
         filter(Submission.d2_submission.is_(d2_submission))
+
     if not g.user.website_admin:
         cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
         frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec]
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
                                     Submission.frec_code.in_(frec_codes),
                                     Submission.user_id == g.user.user_id))
+
     if certified != 'mixed':
         if certified == 'true':
             query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
@@ -1289,7 +1411,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         'modified': {'model': submission_updated_view, 'col': 'updated_at'},
         'reporting': {'model': Submission, 'col': 'reporting_start_date'},
         'agency': {'model': CGAC, 'col': 'agency_name'},
-        'submitted_by': {'model': User, 'col': 'name'}
+        'submitted_by': {'model': User, 'col': 'name'},
+        'certified_date': {'model': sub_query.c, 'col': 'certified_date'}
     }
 
     if not options.get(sort):
@@ -1420,11 +1543,9 @@ def serialize_submission(submission):
         "agency": agency_name if agency_name else 'N/A',
         "files": files,
         # @todo why are these a different format?
-        "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date
-        else None,
+        "reporting_start_date": str(submission.reporting_start_date) if submission.reporting_start_date else None,
         "reporting_end_date": str(submission.reporting_end_date) if submission.reporting_end_date else None,
-        "user": {"user_id": submission.user_id,
-                 "name": submission.name if submission.name else "No User"},
+        "user": {"user_id": submission.user_id, "name": submission.name if submission.name else "No User"},
         "certifying_user": submission.certifying_user_name if submission.certifying_user_name else "",
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
         "certified_on": str(certified_on) if certified_on else ""
@@ -1464,8 +1585,7 @@ def submission_error(submission_id, file_type):
 
     submission = sess.query(Submission).filter_by(submission_id=submission_id).one_or_none()
     if submission is None:
-        # Submission does not exist, change to 400 in this case since
-        # route call specified a bad ID
+        # Submission does not exist, change to 400 in this case since route call specified a bad ID
         response_dict = {
             "message": "Submission does not exist",
             "file_type": file_type,
@@ -1495,7 +1615,10 @@ def submission_error(submission_id, file_type):
 def get_xml_response_content(api_url):
     """ Retrieve XML Response from the provided API url """
     result = requests.get(api_url, verify=False, timeout=120).text
-    logger.debug('Result for %s: %s', api_url, result)
+    logger.debug({
+        'message': 'Result for {}: {}'.format(api_url, result),
+        'function': 'get_xml_response_content'
+    })
     return result
 
 
@@ -1545,6 +1668,11 @@ def map_generate_status(upload_job, validation_job=None):
 
 
 def fabs_derivations(obj, sess):
+    # copy log data and remove keys in the row left for logging
+    job_id = obj['job_id']
+    detached_award_financial_assistance_id = obj['detached_award_financial_assistance_id']
+    obj.pop('detached_award_financial_assistance_id', None)
+    obj.pop('job_id', None)
 
     # initializing a few of the derivations so the keys exist
     obj['legal_entity_state_code'] = None
@@ -1560,7 +1688,12 @@ def fabs_derivations(obj, sess):
     if cfda_title:
         obj['cfda_title'] = cfda_title.program_title
     else:
-        logger.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
+        logger.error({
+            'message': 'CFDA title not found for CFDA number {}'.format(obj['cfda_number']),
+            'message_type': 'BrokerError',
+            'job_id': job_id,
+            'detached_award_financial_assistance_id': detached_award_financial_assistance_id
+        })
         obj['cfda_title'] = None
 
     if obj['awarding_sub_tier_agency_c']:
@@ -1760,64 +1893,6 @@ def fabs_derivations(obj, sess):
             obj['legal_entity_country_name'] = country_data.country_name
         else:
             obj['legal_entity_country_name'] = None
-
-    # deriving place_of_perform_country_n from place_of_perform_country_c
-    if obj['place_of_perform_country_c']:
-        country_data = sess.query(CountryCode). \
-            filter_by(country_code=obj['place_of_perform_country_c'].upper()).one_or_none()
-        if country_data:
-            obj['place_of_perform_country_n'] = country_data.country_name
-        else:
-            obj['place_of_perform_country_n'] = None
-
-    # deriving legal_entity_country_name from legal_entity_country_code
-    if obj['legal_entity_country_code']:
-        country_data = sess.query(CountryCode). \
-            filter_by(country_code=obj['legal_entity_country_code'].upper()).one_or_none()
-        if country_data:
-            obj['legal_entity_country_name'] = country_data.country_name
-        else:
-            obj['legal_entity_country_name'] = None
-
-    # deriving place_of_perform_county_co when record_type is 1
-    if obj['record_type'] == 1:
-        county_data = sess.query(CountyCode). \
-            filter_by(county_number=obj['place_of_performance_code'][-3:],
-                      state_code=obj['place_of_performance_code'][:2]).one_or_none()
-        if county_data:
-            obj['place_of_perform_county_co'] = county_data.county_number
-            obj['place_of_perform_county_na'] = county_data.county_name
-        else:
-            obj['place_of_perform_county_co'] = None
-            obj['place_of_perform_county_na'] = None
-
-    # deriving place_of_perform_county_co from primary_place_of_performance_zip4a
-    if obj['record_type'] == 2 and obj['place_of_performance_zip4a'] and\
-       obj['place_of_performance_zip4a'] != 'city-wide':
-        zip_five = obj['place_of_performance_zip4a'][:5]
-        zip_four = None
-
-        # if zip4 is 9 digits, set the zip_four value to the last 4 digits
-        if len(obj['place_of_performance_zip4a']) > 5:
-            zip_four = obj['place_of_performance_zip4a'][-4:]
-
-        zip_info = None
-        # if there's a 9-digit zip code, use both parts to get data, otherwise (or if that's invalid) just grab
-        # the first instance of the zip5 we find
-        if zip_four:
-            zip_info = sess.query(Zips). \
-                filter_by(zip5=zip_five, zip_last4=zip_four).first()
-        if not zip_info:
-            zip_info = sess.query(Zips). \
-                filter_by(zip5=zip_five).first()
-        obj['place_of_perform_county_co'] = zip_info.county_number
-        county_data = sess.query(CountyCode). \
-            filter_by(county_number=zip_info.county_number,
-                      state_code=zip_info.state_abbreviation).one_or_none()
-        if county_data:
-            obj['place_of_perform_county_na'] = county_data.county_name
-        else:
-            obj['place_of_perform_county_na'] = None
 
     if obj['correction_late_delete_ind'] and obj['correction_late_delete_ind'].upper() == 'D':
         obj['is_active'] = False

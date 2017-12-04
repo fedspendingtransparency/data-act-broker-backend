@@ -47,11 +47,11 @@ def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, us
     db.session.commit()
 
 
-def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1234",
-                        sub_fund_agency_code=None, ppop_code="NY00000", ppop_zip4a=None, ppop_cd=None, le_zip5=None,
-                        le_zip4=None, record_type=2, award_mod_amend=None, fain=None, uri=None, cldi=None,
-                        awarding_office='033103', funding_office='033103', legal_city="WASHINGTON", legal_state="DC",
-                        primary_place_country='USA', legal_country='USA'):
+def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1234", sub_fund_agency_code=None,
+                        ppop_code="NY00000", ppop_zip4a=None, ppop_cd=None, le_zip5=None, le_zip4=None, record_type=2,
+                        award_mod_amend=None, fain=None, uri=None, cldi=None, awarding_office='033103',
+                        funding_office='033103', legal_city="WASHINGTON", legal_state="DC", primary_place_country='USA',
+                        legal_country='USA', detached_award_financial_assistance_id=None, job_id=None):
     """ Initialize the values in the object being run through the fabs_derivations function """
     obj = {
         'federal_action_obligation': fao,
@@ -74,7 +74,9 @@ def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1
         'legal_entity_city_name': legal_city,
         'legal_entity_state_code': legal_state,
         'place_of_perform_country_c': primary_place_country,
-        'legal_entity_country_code': legal_country
+        'legal_entity_country_code': legal_country,
+        'detached_award_financial_assistance_id': detached_award_financial_assistance_id,
+        'job_id': job_id
     }
     return obj
 

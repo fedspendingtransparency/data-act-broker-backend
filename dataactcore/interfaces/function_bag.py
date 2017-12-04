@@ -1,16 +1,17 @@
-from datetime import datetime
 import logging
 from operator import attrgetter
 import time
 import uuid
 
-from sqlalchemy import func, or_
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
+from dataactcore.aws.s3Handler import S3Handler
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.errorModels import ErrorMetadata, File
-from dataactcore.models.jobModels import Job, Submission, JobDependency, CertifyHistory
-from dataactcore.models.stagingModels import AwardFinancial, DetachedAwardFinancialAssistance
+from dataactcore.models.jobModels import Job, Submission, JobDependency, CertifyHistory, CertifiedFilesHistory
+from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance
 from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
@@ -56,17 +57,6 @@ def get_password_hash(password, bcrypt):
     encoded_hash = bcrypt.generate_password_hash(password + salt, HASH_ROUNDS)
     password_hash = encoded_hash.decode("utf-8")
     return salt, password_hash
-
-
-def populate_submission_error_info(submission_id):
-    """Set number of errors and warnings for submission."""
-    sess = GlobalDB.db().session
-    submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
-    submission.number_of_errors = sum_number_of_errors_for_job_list(submission_id)
-    submission.number_of_warnings = sum_number_of_errors_for_job_list(submission_id, error_type='warning')
-    sess.commit()
-
-    return submission
 
 
 def populate_job_error_info(job):
@@ -134,7 +124,13 @@ def create_file(job_id, filename):
     try:
         int(job_id)
     except:
-        raise ValueError("".join(["Bad job_id: ", str(job_id)]))
+        logger.error({
+            'message': 'Bad job_id: {}'.format(job_id),
+            'message_type': 'CoreError',
+            'job_id': job_id,
+            'function': 'create_file'
+        })
+        raise ValueError('Bad job_id: {}'.format(job_id))
 
     file_rec = File(job_id=job_id, filename=filename, file_status_id=FILE_STATUS_DICT['incomplete'])
     sess.add(file_rec)
@@ -155,7 +151,13 @@ def write_file_error(job_id, filename, error_type, extra_info=None):
     try:
         int(job_id)
     except:
-        raise ValueError("".join(["Bad jobId: ", str(job_id)]))
+        logger.error({
+            'message': 'Bad job_id: {}'.format(job_id),
+            'message_type': 'CoreError',
+            'job_id': job_id,
+            'function': 'write_file_error'
+        })
+        raise ValueError('Bad job_id: {}'.format(job_id))
 
     # Get File object for this job ID or create it if it doesn't exist
     file_rec = create_file_if_needed(job_id, filename)
@@ -244,21 +246,6 @@ def check_correct_password(user, password, bcrypt):
     return bcrypt.check_password_hash(user.password_hash, password + user.salt)
 
 
-def get_submission_stats(submission_id):
-    """Get summarized dollar amounts by submission."""
-    sess = GlobalDB.db().session
-    base_query = sess.query(func.sum(AwardFinancial.transaction_obligated_amou)).\
-        filter(AwardFinancial.submission_id == submission_id)
-    procurement = base_query.filter(AwardFinancial.piid.isnot(None))
-    fin_assist = base_query.filter(or_(AwardFinancial.fain.isnot(None),
-                                       AwardFinancial.uri.isnot(None)))
-    return {
-        "total_obligations": float(base_query.scalar() or 0),
-        "total_procurement_obligations": float(procurement.scalar() or 0),
-        "total_assistance_obligations": float(fin_assist.scalar() or 0)
-    }
-
-
 def run_job_checks(job_id):
     """ Checks that specified job has no unsatisfied prerequisites
     Args:
@@ -309,10 +296,16 @@ def check_job_dependencies(job_id):
     and add them to the queue
     """
     sess = GlobalDB.db().session
+    log_data = {
+        'message_type': 'CoreError',
+        'job_id': job_id
+    }
 
     # raise exception if current job is not actually finished
     job = sess.query(Job).filter(Job.job_id == job_id).one()
     if job.job_status_id != JOB_STATUS_DICT['finished']:
+        log_data['message'] = 'Current job not finished, unable to check dependencies'
+        logger.error(log_data)
         raise ValueError('Current job not finished, unable to check dependencies')
 
     # get the jobs that are dependent on job_id being finished
@@ -320,8 +313,9 @@ def check_job_dependencies(job_id):
     for dependency in dependencies:
         dep_job_id = dependency.job_id
         if dependency.dependent_job.job_status_id != JOB_STATUS_DICT['waiting']:
-            logger.error("%s (dependency of %s) is not in a 'waiting' state",
-                         dep_job_id, job_id)
+            log_data['message_type'] = 'CoreError'
+            log_data['message'] = "{} (dependency of {}) is not in a 'waiting' state".format(dep_job_id, job_id)
+            logger.error(log_data)
         else:
             # find the number of this job's prerequisites that do
             # not have a status of 'finished'.
@@ -340,38 +334,13 @@ def check_job_dependencies(job_id):
                 # Only want to send validation jobs to the queue, other job types should be forwarded
                 if dependency.dependent_job.job_type_name in ['csv_record_validation', 'validation']:
                     # add dep_job_id to the SQS job queue
-                    logger.info('Sending job %s to job manager in sqs', dep_job_id)
+                    log_data['message_type'] = 'CoreInfo'
+                    log_data['message'] = 'Sending job {} to job manager in sqs'.format(dep_job_id)
+                    logger.info(log_data)
                     queue = sqs_queue()
                     response = queue.send_message(MessageBody=str(dep_job_id))
-                    logger.info('Send message response: %s', response)
-
-
-def create_submission(user_id, submission_values, existing_submission):
-    """ Create a new submission
-
-    Arguments:
-        user_id:  user to associate with this submission
-        submission_values: metadata about the submission
-        existing_submission: id of existing submission (blank for new submissions)
-
-    Returns:
-        submission object
-    """
-    if existing_submission is None:
-        submission = Submission(created_at=datetime.utcnow(), **submission_values)
-        submission.user_id = user_id
-        submission.publish_status_id = PUBLISH_STATUS_DICT['unpublished']
-    else:
-        submission = existing_submission
-        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
-            submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
-        # submission is being updated, so turn off publishable flag
-        submission.publishable = False
-        for key in submission_values:
-            # update existing submission with any values provided
-            setattr(submission, key, submission_values[key])
-
-    return submission
+                    log_data['message'] = 'Send message response: {}'.format(response)
+                    logger.info(log_data)
 
 
 def create_jobs(upload_files, submission, existing_submission=False):
@@ -533,6 +502,12 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
                        Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).\
                 one_or_none()
             if d1_val_job is None:
+                logger.error({
+                    'message': "Cannot create E job without a D1 job",
+                    'message_type': 'CoreError',
+                    'submission_id': submission_id,
+                    'file_type': 'E'
+                })
                 raise Exception("Cannot create E job without a D1 job")
             # Add dependency on D1 validation job
             d1_dependency = JobDependency(job_id=upload_job.job_id, prerequisite_id=d1_val_job.job_id)
@@ -546,6 +521,12 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
                        Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).\
                 one_or_none()
             if c_val_job is None:
+                logger.error({
+                    'message': "Cannot create F job without a C job",
+                    'message_type': 'CoreError',
+                    'submission_id': submission_id,
+                    'file_type': 'F'
+                })
                 raise Exception("Cannot create F job without a C job")
             # add dependency on C validation job
             c_dependency = JobDependency(job_id=upload_job.job_id, prerequisite_id=c_val_job.job_id)
@@ -572,63 +553,22 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
     return validation_job_id, upload_job.job_id
 
 
-def get_submission_files(jobs):
-    job_list = []
-    for job in jobs:
-        if job.filename not in job_list:
-            job_list.append(job.filename)
-    return job_list
-
-
-def get_submission_status(submission, jobs):
-    """Return the status of a submission."""
-
-    status_names = JOB_STATUS_DICT.keys()
-    statuses = {name: 0 for name in status_names}
-    skip_count = 0
-
-    for job in jobs:
-        if job.job_type.name not in ["external_validation", None]:
-            job_status = job.job_status.name
-            statuses[job_status] += 1
-        else:
-            skip_count += 1
-
-    status = "unknown"
-
-    if statuses["failed"] != 0:
-        status = "failed"
-    elif statuses["invalid"] != 0:
-        status = "file_errors"
-    elif statuses["running"] != 0:
-        status = "running"
-    elif statuses["waiting"] != 0:
-        status = "waiting"
-    elif statuses["ready"] != 0:
-        status = "ready"
-    elif statuses["finished"] == jobs.count() - skip_count:  # need to account for the jobs that were skipped above
-        status = "validation_successful"
-        if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
-            status = "validation_successful_warnings"
-        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
-            status = "certified"
-
-    # Check if submission has errors
-    if submission.number_of_errors is not None and submission.number_of_errors > 0:
-        status = "validation_errors"
-
-    return status
-
-
-def get_lastest_certified_date(submission):
-    if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
+def get_lastest_certified_date(submission, is_fabs=False):
+    if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'] and\
+       submission.publish_status_id != PUBLISH_STATUS_DICT['publishing']:
         sess = GlobalDB.db().session
-        last_certified = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id). \
+        last_certified = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
             order_by(CertifyHistory.created_at.desc()).first()
 
-        if last_certified:
-            return last_certified.created_at
+        certified_files = None
+        if is_fabs:
+            certified_files = sess.query(CertifiedFilesHistory).\
+                filter_by(certify_history_id=last_certified.certify_history_id).first()
 
+        if last_certified and certified_files:
+            return last_certified.created_at, certified_files.filename
+        elif last_certified:
+            return last_certified.created_at
     return None
 
 
@@ -656,22 +596,37 @@ def get_last_validated_date(submission_id):
 
 
 def get_fabs_meta(submission_id):
-
+    """Return the total rows, valid rows, publish date, and publish file for FABS submissions"""
     sess = GlobalDB.db().session
 
-    total_rows = sess.query(DetachedAwardFinancialAssistance).filter(
-                        DetachedAwardFinancialAssistance.submission_id == submission_id)
+    # get row counts from the DetachedAwardFinancialAssistance table
+    dafa = DetachedAwardFinancialAssistance
+    total_rows = sess.query(dafa).filter(dafa.submission_id == submission_id)
+    valid_rows = total_rows.filter(dafa.is_valid)
 
-    valid_rows = total_rows.filter(DetachedAwardFinancialAssistance.is_valid)
-
+    # retrieve the published data and file
     submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
+    publish_date, published_file = None, None
+    certify_data = get_lastest_certified_date(submission, is_fabs=True)
 
-    publish_date = get_lastest_certified_date(submission)
+    try:
+        iter(certify_data)
+    except TypeError:
+        publish_date = certify_data
+    else:
+        publish_date, file_path = certify_data
+        if CONFIG_BROKER["use_aws"] and file_path:
+            path, file_name = file_path.rsplit('/', 1)  # split by last instance of /
+            published_file = S3Handler().get_signed_url(path=path, file_name=file_name,
+                                                        bucket_route=CONFIG_BROKER['certified_bucket'], method="GET")
+        elif file_path:
+            published_file = file_path
 
     return {
         'valid_rows': len(valid_rows.all()),
         'total_rows': len(total_rows.all()),
-        'publish_date': publish_date.strftime('%-I:%M%p %m/%d/%Y') if publish_date else None
+        'publish_date': publish_date.strftime('%-I:%M%p %m/%d/%Y') if publish_date else None,
+        'published_file': published_file
     }
 
 

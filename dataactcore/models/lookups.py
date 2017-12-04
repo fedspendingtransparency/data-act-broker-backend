@@ -30,12 +30,12 @@ FILE_STATUS_DICT_ID = {item.id: item.name for item in FILE_STATUS}
 ERROR_TYPE = [
     LookupType(1, 'type_error', 'The value provided was of the wrong type. Note that all type errors in a line'
                                 ' must be fixed before the rest of the validation logic is applied to that line.'),
-    LookupType(2, 'required_error', 'This field is required for all submissions but was not provided in this row'),
-    LookupType(3, 'value_error', 'The value provided was invalid'),
-    LookupType(4, 'read_error', 'Could not parse this record correctly'),
-    LookupType(5, 'write_error', 'Could not write this record into the staging table'),
-    LookupType(6, 'rule_failed', 'A rule failed for this value'),
-    LookupType(7, 'length_error', 'Value was longer than allowed length')
+    LookupType(2, 'required_error', 'This field is required for all submissions but was not provided in this row.'),
+    LookupType(3, 'value_error', 'The value provided was invalid.'),
+    LookupType(4, 'read_error', 'Could not parse this record correctly.'),
+    LookupType(5, 'write_error', 'Could not write this record into the staging table.'),
+    LookupType(6, 'rule_failed', 'A rule failed for this value.'),
+    LookupType(7, 'length_error', 'Value was longer than allowed length.')
 ]
 ERROR_TYPE_DICT = {item.name: item.id for item in ERROR_TYPE}
 

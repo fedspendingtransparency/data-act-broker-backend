@@ -6,4 +6,6 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type = 1
-    AND (uri IS NULL or uri = '');
+    AND (uri IS NULL
+        OR uri = ''
+    );

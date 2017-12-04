@@ -7,34 +7,39 @@ from datetime import datetime
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 
+from dataactbroker.handlers.submission_handler import populate_submission_error_info
+
+from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
+
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import (
+    create_file_if_needed, write_file_error, mark_file_complete, run_job_checks, mark_job_status,
+    populate_job_error_info, get_action_dates
+)
+
 from dataactcore.models.domainModels import matching_cars_subquery
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, FlexField
-from dataactcore.interfaces.function_bag import (
-    create_file_if_needed, write_file_error, mark_file_complete, run_job_checks,
-    mark_job_status, populate_submission_error_info, populate_job_error_info,
-    get_action_dates
-)
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
+from dataactcore.models.validationModels import RuleSql
+
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.aws.s3Handler import S3Handler
+
 from dataactvalidator.filestreaming.csvReader import CsvReader
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
+from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
+
 from dataactvalidator.validation_handlers.errorInterface import ErrorInterface
 from dataactvalidator.validation_handlers.validator import Validator, cross_validate_sql, validate_file_by_sql
 from dataactvalidator.validation_handlers.validationError import ValidationError
-from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
-from dataactcore.models.validationModels import RuleSql
-
 
 logger = logging.getLogger(__name__)
 
@@ -146,27 +151,25 @@ class ValidationManager:
         """
 
         sess = GlobalDB.db().session
-        job_id = job.job_id
-
         error_list = ErrorInterface()
-
+        job_id = job.job_id
         submission_id = job.submission_id
 
         row_number = 1
         file_type = job.file_type.name
         validation_start = datetime.now()
 
-        logger.info(
-            {
-                'message': 'Beginning run_validation on submission_id: ' + str(submission_id) +
-                ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
-                'message_type': 'ValidatorInfo',
-                'submission_id': submission_id,
-                'job_id': job_id,
-                'file_type': file_type,
-                'action': 'run_validations',
-                'status': 'start',
-                'start_time': validation_start})
+        log_str = 'on submission_id: {}, job_id: {}, file_type: {}'.format(str(submission_id), str(job_id), file_type)
+        logger.info({
+            'message': 'Beginning run_validation {}'.format(log_str),
+            'message_type': 'ValidatorInfo',
+            'submission_id': submission_id,
+            'job_id': job_id,
+            'file_type': file_type,
+            'action': 'run_validations',
+            'status': 'start',
+            'start_time': validation_start
+        })
         # Get orm model for this file
         model = [ft.model for ft in FILE_TYPE if ft.name == file_type][0]
 
@@ -241,17 +244,16 @@ class ValidationManager:
             # the Validator
 
             loading_start = datetime.now()
-            logger.info(
-                {
-                    'message': 'Beginning data loading on submission_id: ' + str(submission_id) +
-                    ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
-                    'message_type': 'ValidatorInfo',
-                    'submission_id': submission_id,
-                    'job_id': job_id,
-                    'file_type': file_type,
-                    'action': 'data_loading',
-                    'status': 'start',
-                    'start_time': loading_start})
+            logger.info({
+                'message': 'Beginning data loading {}'.format(log_str),
+                'message_type': 'ValidatorInfo',
+                'submission_id': submission_id,
+                'job_id': job_id,
+                'file_type': file_type,
+                'action': 'data_loading',
+                'status': 'start',
+                'start_time': loading_start
+            })
 
             with open(error_file_path, 'w', newline='') as error_file,\
                     open(warning_file_path, 'w', newline='') as warning_file:
@@ -265,21 +267,19 @@ class ValidationManager:
                     row_number += 1
 
                     if row_number % 100 == 0:
-
                         elapsed_time = (datetime.now()-loading_start).total_seconds()
-                        logger.info(
-                            {
-                                'message': 'Loading row: ' + str(row_number) + ' on submission_id: ' +
-                                str(submission_id) + ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
-                                'message_type': 'ValidatorInfo',
-                                'submission_id': submission_id,
-                                'job_id': job_id,
-                                'file_type': file_type,
-                                'action': 'data_loading',
-                                'status': 'loading',
-                                'rows_loaded': row_number,
-                                'start_time': loading_start,
-                                'elapsed_time': elapsed_time})
+                        logger.info({
+                            'message': 'Loading row: {} {}'.format(str(row_number), log_str),
+                            'message_type': 'ValidatorInfo',
+                            'submission_id': submission_id,
+                            'job_id': job_id,
+                            'file_type': file_type,
+                            'action': 'data_loading',
+                            'status': 'loading',
+                            'rows_loaded': row_number,
+                            'start_time': loading_start,
+                            'elapsed_time': elapsed_time
+                        })
                     #
                     # first phase of validations: read record and record a
                     # formatting error if there's a problem
@@ -333,26 +333,24 @@ class ValidationManager:
 
                     if not passed_validations:
                         fatal = write_errors(failures, job, self.short_to_long_dict, error_csv, warning_csv, row_number,
-                                             error_list)
+                                             error_list, flex_cols)
                         if fatal:
                             error_rows.append(row_number)
 
                 loading_duration = (datetime.now()-loading_start).total_seconds()
-                logger.info(
-                    {
-                        'message': 'Completed data loading on submission_id: ' + str(submission_id) +
-                        ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
-                        'message_type': 'ValidatorInfo',
-                        'submission_id': submission_id,
-                        'job_id': job_id,
-                        'file_type': file_type,
-                        'action': 'data_loading',
-                        'status': 'finish',
-                        'start_time': loading_start,
-                        'end_time': datetime.now(),
-                        'duration': loading_duration,
-                        'total_rows': row_number
-                    })
+                logger.info({
+                    'message': 'Completed data loading {}'.format(log_str),
+                    'message_type': 'ValidatorInfo',
+                    'submission_id': submission_id,
+                    'job_id': job_id,
+                    'file_type': file_type,
+                    'action': 'data_loading',
+                    'status': 'finish',
+                    'start_time': loading_start,
+                    'end_time': datetime.now(),
+                    'duration': loading_duration,
+                    'total_rows': row_number
+                })
 
                 if file_type in ('appropriations', 'program_activity', 'award_financial'):
                     update_tas_ids(model, submission_id)
@@ -438,20 +436,18 @@ class ValidationManager:
             reader.close()
 
             validation_duration = (datetime.now()-validation_start).total_seconds()
-            logger.info(
-                {
-                    'message': 'Completed run_validation on submission_id: ' + str(submission_id) +
-                    ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
-                    'message_type': 'ValidatorInfo',
-                    'submission_id': submission_id,
-                    'job_id': job_id,
-                    'file_type': file_type,
-                    'action': 'run_validation',
-                    'status': 'finish',
-                    'start_time': validation_start,
-                    'end_time': datetime.now(),
-                    'duration': validation_duration
-                })
+            logger.info({
+                'message': 'Completed run_validation {}'.format(log_str),
+                'message_type': 'ValidatorInfo',
+                'submission_id': submission_id,
+                'job_id': job_id,
+                'file_type': file_type,
+                'action': 'run_validation',
+                'status': 'finish',
+                'start_time': validation_start,
+                'end_time': datetime.now(),
+                'duration': validation_duration
+            })
 
         return True
 
@@ -519,15 +515,15 @@ class ValidationManager:
 
         submission_id = job.submission_id
         job_start = datetime.now()
-        logger.info(
-            {
-                'message': 'Beginning cross-file validations on submission_id: ' + str(submission_id),
-                'message_type': 'ValidatorInfo',
-                'submission_id': submission_id,
-                'job_id': job.job_id,
-                'action': 'run_cross_validations',
-                'start': job_start,
-                'status': 'start'})
+        logger.info({
+            'message': 'Beginning cross-file validations on submission_id: ' + str(submission_id),
+            'message_type': 'ValidatorInfo',
+            'submission_id': submission_id,
+            'job_id': job.job_id,
+            'action': 'run_cross_validations',
+            'start': job_start,
+            'status': 'start'
+        })
         # Delete existing cross file errors for this submission
         sess.query(ErrorMetadata).filter(ErrorMetadata.job_id == job_id).delete()
         sess.commit()
@@ -604,16 +600,16 @@ class ValidationManager:
         # mark job status as "finished"
         mark_job_status(job_id, "finished")
         job_duration = (datetime.now()-job_start).total_seconds()
-        logger.info(
-            {
-                'message': 'Completed cross-file validations on submission_id: ' + str(submission_id),
-                'message_type': 'ValidatorInfo',
-                'submission_id': submission_id,
-                'job_id': job.job_id,
-                'action': 'run_cross_validations',
-                'status': 'finish',
-                'start': job_start,
-                'duration': job_duration})
+        logger.info({
+            'message': 'Completed cross-file validations on submission_id: ' + str(submission_id),
+            'message_type': 'ValidatorInfo',
+            'submission_id': submission_id,
+            'job_id': job.job_id,
+            'action': 'run_cross_validations',
+            'status': 'finish',
+            'start': job_start,
+            'duration': job_duration
+        })
         # set number of errors and warnings for submission.
         submission = populate_submission_error_info(submission_id)
         # TODO: Remove temporary step below
@@ -713,7 +709,7 @@ def insert_staging_model(model, job, writer, error_list):
     return True
 
 
-def write_errors(failures, job, short_colnames, writer, warning_writer, row_number, error_list):
+def write_errors(failures, job, short_colnames, writer, warning_writer, row_number, error_list, flex_cols):
     """ Write errors to error database
 
     Args:
@@ -724,10 +720,18 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
         warning_writer: CsvWriter object
         row_number: Current row number
         error_list: instance of ErrorInterface to keep track of errors
+        flex_cols: all flex columns for this row
     Returns:
         True if any fatal errors were found, False if only warnings are present
     """
     fatal_error_found = False
+    # prepare flex cols for all the errors for this row
+    flex_col_headers = []
+    flex_col_cells = []
+    if flex_cols:
+        for flex_col in flex_cols:
+            flex_col_headers.append(flex_col.header)
+            flex_col_cells.append(flex_col.header + ": " + flex_col.cell)
     # For each failure, record it in error report and metadata
     for failure in failures:
         # map short column names back to long names
@@ -744,12 +748,26 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
         except ValueError:
             # If not, treat it literally
             error_msg = failure.description
+        # get flex fields
+        field_names = [field_name]
+        flex_list = []
+        # only add the value if there's something to add, otherwise our join will look bad
+        if failure.value:
+            flex_list = [field_name + ": " + failure.value]
+
+        # append whatever list we made of flex columns to our existing field names and content list
+        field_names.extend(flex_col_headers)
+        flex_list.extend(flex_col_cells)
+
+        # join the field names and flex column values so we have a list instead of a single value
+        combined_field_names = ", ".join(field_names)
+        fail_value = ", ".join(flex_list)
         if failure.severity == 'fatal':
             fatal_error_found = True
-            writer.writerow([field_name, error_msg, str(row_number), failure.value, failure.label])
+            writer.writerow([combined_field_names, error_msg, str(row_number), fail_value, failure.label])
         elif failure.severity == 'warning':
             # write to warnings file
-            warning_writer.writerow([field_name, error_msg, str(row_number), failure.value, failure.label])
-        error_list.record_row_error(job.job_id, job.filename, field_name, failure.description, row_number,
+            warning_writer.writerow([combined_field_names, error_msg, str(row_number), fail_value, failure.label])
+        error_list.record_row_error(job.job_id, job.filename, combined_field_names, failure.description, row_number,
                                     failure.label, severity_id=severity_id)
     return fatal_error_found
