@@ -26,7 +26,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.models.domainModels import SubTierAgency
 from dataactcore.models.stagingModels import DetachedAwardProcurement
-from dataactcore.models.jobModels import FPDSUpdate, FileRequest
+from dataactcore.models.jobModels import FPDSUpdate
 
 from dataactcore.models.jobModels import Submission  # noqa
 from dataactcore.models.userModel import User  # noqa
@@ -2017,10 +2017,6 @@ def main():
         get_delete_data("IDV", now, sess, last_update)
         get_delete_data("award", now, sess, last_update)
         sess.query(FPDSUpdate).update({"update_date": now}, synchronize_session=False)
-
-        # We now un-cache D1 file generation files when the FPDS data load finishes
-        logger.info("Un-caching D1 file generations")
-        sess.query(FileRequest).filter_by(file_type="D1", is_cached_file=True).update({"is_cached_file": False})
 
         logger.info("Ending at: %s", str(datetime.datetime.now()))
         sess.commit()
