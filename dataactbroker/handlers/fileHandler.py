@@ -865,7 +865,7 @@ class FileHandler:
                            FileRequest.file_type == 'D2',
                            sa.or_(FileRequest.start_date <= submission.reporting_end_date,
                                   FileRequest.end_date >= submission.reporting_start_date)).\
-                    update({"is_cached_file": True}, synchronize_session=False)
+                    update({"is_cached_file": False}, synchronize_session=False)
             sess.commit()
         except Exception as e:
             log_data['message'] = 'An error occurred while publishing a FABS submission'
