@@ -123,6 +123,10 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
             log_data['file_name'] = file_name
             logger.info(log_data)
 
+            # mark this FileRequest as the cached version
+            file_request.is_cached_file = True
+            sess.commit()
+
             file_utils = fileD1 if file_type == 'D1' else fileD2
             local_filename = "".join([CONFIG_BROKER['d_file_storage_path'], file_name])
             headers = [key for key in file_utils.mapping]
@@ -131,10 +135,6 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
             query_utils = {"file_utils": file_utils, "agency_code": agency_code, "start": start, "end": end,
                            "sess": sess}
             write_query_to_file(local_filename, upload_name, headers, file_type, is_local, d_file_query, query_utils)
-
-            # mark this FileRequest as the cached version
-            file_request.is_cached_file = True
-            sess.commit()
 
             log_data['message'] = 'Finished writing to file: {}'.format(file_name)
             logger.info(log_data)
