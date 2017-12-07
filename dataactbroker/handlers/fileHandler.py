@@ -320,7 +320,8 @@ class FileHandler:
             # Compare user ID with user who submitted job, if no match return 400
             job = sess.query(Job).filter_by(job_id=job_id).one()
             submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
-            if not current_user_can_on_submission('writer', submission):
+            if (submission.d2_submission and not current_user_can_on_submission('fabs', submission)) or \
+                    (not submission.d2_submission and not current_user_can_on_submission('writer', submission)):
                 # This user cannot finalize this job
                 raise ResponseException(
                     "Cannot finalize a job for a different agency",
@@ -858,16 +859,13 @@ class FileHandler:
 
             # update all cached D2 FileRequest objects that could have been affected by the publish
             for agency_code in agency_codes_list:
-                cached = sess.query(FileRequest).filter(FileRequest.request_date == datetime.now().date(),
-                                                        FileRequest.agency_code == agency_code,
-                                                        FileRequest.is_cached_file.is_(True),
-                                                        FileRequest.file_type == 'D2',
-                                                        sa.or_(FileRequest.start_date <= submission.reporting_end_date,
-                                                               FileRequest.end_date >= submission.reporting_start_date))
-                # if there is a cached FileRequest, mark it as no longer cached
-                if cached.one_or_none():
-                    cached.is_cached_file = False
-
+                sess.query(FileRequest).\
+                    filter(FileRequest.agency_code == agency_code,
+                           FileRequest.is_cached_file.is_(True),
+                           FileRequest.file_type == 'D2',
+                           sa.or_(FileRequest.start_date <= submission.reporting_end_date,
+                                  FileRequest.end_date >= submission.reporting_start_date)).\
+                    update({"is_cached_file": False}, synchronize_session=False)
             sess.commit()
         except Exception as e:
             log_data['message'] = 'An error occurred while publishing a FABS submission'
