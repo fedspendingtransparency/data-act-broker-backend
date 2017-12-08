@@ -62,6 +62,10 @@ def extract_text(data_val):
 
 
 def get_county_by_zip(sess, zip_code):
+    # if there are any non-digit characters, toss the entire zip
+    if not zip_code.isdigit():
+        return None
+
     zip_data = None
     # if we have a 9 digit code, grab the first match for 9 digit zips
     if len(zip_code) == 9:
@@ -348,6 +352,8 @@ def place_of_performance_values(data, obj, atom_type):
 
     if atom_type == "award":
         value_map['countryCode'] = 'place_of_perform_country_c'
+    else:
+        obj['place_of_perform_country_c'] = None
 
     for key, value in value_map.items():
         try:
@@ -830,8 +836,9 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
         if state in county_by_name and county_name in county_by_name[state]:
             obj['place_of_perform_county_co'] = county_by_name[state][county_name]
 
-    # if accessing the county code by state code and county name didn't work, try by zip4a if we have it
-    if not obj['place_of_perform_county_co'] and obj['place_of_performance_zip4a']:
+    # if accessing the county code by state code and county name didn't work, try by zip4a if we have it, only for USA
+    if not obj['place_of_perform_county_co'] and obj['place_of_performance_zip4a']\
+            and obj['place_of_perform_country_c'] == 'USA':
         obj['place_of_perform_county_co'] = get_county_by_zip(sess, obj['place_of_performance_zip4a'])
 
     # calculates legal entity county code, but only if legal entity country code is USA
