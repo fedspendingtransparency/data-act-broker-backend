@@ -43,6 +43,8 @@ from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.4.5&q="
 delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&templateName=1.4.5&q="
+relevant_country_codes = ['USA', 'ASM', 'GUM', 'MNP', 'PRI', 'VIR', 'FSM', 'MHL', 'PLW', 'XBK', 'XHO', 'XJV', 'XJA',
+                          'XKR', 'XPL', 'XMW', 'XWK']
 
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -348,12 +350,8 @@ def place_of_performance_values(data, obj, atom_type):
 
     # within placeOfPerformance, the principalPlaceOfPerformance sub-level
     value_map = {'locationCode': 'place_of_performance_locat',
-                 'stateCode': 'place_of_performance_state'}
-
-    if atom_type == "award":
-        value_map['countryCode'] = 'place_of_perform_country_c'
-    else:
-        obj['place_of_perform_country_c'] = None
+                 'stateCode': 'place_of_performance_state',
+                 'countryCode': 'place_of_perform_country_c'}
 
     for key, value in value_map.items():
         try:
@@ -828,21 +826,21 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
             obj['funding_agency_code'] = '999'
             obj['funding_agency_name'] = None
 
-    # calculate place of performance county code
-    if obj['place_of_perform_county_na'] and obj['place_of_performance_state']:
-        state = obj['place_of_performance_state']
-        county_name = obj['place_of_perform_county_na']
-        # make sure they gave us a valid state and then check if it's in our lookup
-        if state in county_by_name and county_name in county_by_name[state]:
-            obj['place_of_perform_county_co'] = county_by_name[state][county_name]
+    # calculate place of performance county code (only for relevant countries)
+    if obj['place_of_perform_country_c'] in relevant_country_codes:
+        if obj['place_of_perform_county_na'] and obj['place_of_performance_state']:
+            state = obj['place_of_performance_state']
+            county_name = obj['place_of_perform_county_na']
+            # make sure they gave us a valid state and then check if it's in our lookup
+            if state in county_by_name and county_name in county_by_name[state]:
+                obj['place_of_perform_county_co'] = county_by_name[state][county_name]
 
-    # if accessing the county code by state code and county name didn't work, try by zip4a if we have it, only for USA
-    if not obj['place_of_perform_county_co'] and obj['place_of_performance_zip4a']\
-            and obj['place_of_perform_country_c'] == 'USA':
-        obj['place_of_perform_county_co'] = get_county_by_zip(sess, obj['place_of_performance_zip4a'])
+        # if accessing the county code by state code and county name didn't work, try by zip4a if we have it
+        if not obj['place_of_perform_county_co'] and obj['place_of_performance_zip4a']:
+            obj['place_of_perform_county_co'] = get_county_by_zip(sess, obj['place_of_performance_zip4a'])
 
-    # calculates legal entity county code, but only if legal entity country code is USA
-    if obj['legal_entity_zip4'] and obj['legal_entity_country_code'] == 'USA':
+    # calculates legal entity county code, but only if legal entity country code is in a US territory of any kind
+    if obj['legal_entity_zip4'] and obj['legal_entity_country_code'] in relevant_country_codes:
         obj['legal_entity_county_code'] = get_county_by_zip(sess, obj['legal_entity_zip4'])
 
         # if we have a county code and a state code, we can try to get the county name
@@ -936,6 +934,7 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
         obj['place_of_perform_county_na'] = None
         obj['place_of_performance_state'] = None
         obj['place_of_performance_zip4a'] = None
+        obj['place_of_perform_country_c'] = None
 
     # make sure key exists before passing it
     try:
