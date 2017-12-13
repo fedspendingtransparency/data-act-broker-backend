@@ -15,10 +15,8 @@ def update_funding(sess):
     invalid_count = len(invalid.fetchall())
     logger.info("{} invalid funding rows found".format(invalid_count))
     sess.execute(
-        "UPDATE detached_award_procurement " +
-        "set funding_agency_code = agency.agency_code, " +
-        "funding_agency_name = agency.agency_name " +
-        "from ( " +
+        "UPDATE detached_award_procurement set funding_agency_code = agency.agency_code, " +
+        "funding_agency_name = agency.agency_name from ( " +
         "SELECT sub.sub_tier_agency_code, sub.cgac_id, sub.frec_id, sub.is_frec, " +
         "CASE WHEN sub.is_frec " +
         "THEN (SELECT agency_name from frec WHERE frec.frec_id = sub.frec_id) " +
@@ -26,18 +24,16 @@ def update_funding(sess):
         "end agency_name, " +
         "CASE WHEN sub.is_frec " +
         "THEN (SELECT frec_code from frec WHERE frec.frec_id = sub.frec_id) " +
-        "ELSE (SELECT cgac_code from cgac where cgac.cgac_id = sub.cgac_id) " +
-        "end agency_code " +
+        "ELSE (SELECT cgac_code from cgac where cgac.cgac_id = sub.cgac_id) end agency_code " +
         "from sub_tier_agency sub " +
         "INNER JOIN cgac ON cgac.cgac_id = sub.cgac_id " +
-        "INNER JOIN frec ON frec.frec_id = sub.frec_id " +
-        ") agency " +
+        "INNER JOIN frec ON frec.frec_id = sub.frec_id ) agency " +
         "where detached_award_procurement.funding_agency_code = '999' " +
         "and detached_award_procurement.funding_sub_tier_agency_co = agency.sub_tier_agency_code "
     )
     sess.commit()
     invalid = sess.execute("select * from detached_award_procurement where funding_agency_code='999'")
-    printReport(invalid_count, len(invalid.fetchall()), 'funding')
+    print_report(invalid_count, len(invalid.fetchall()), 'funding')
 
 
 def update_awarding(sess):
@@ -46,10 +42,8 @@ def update_awarding(sess):
     invalid_count = len(invalid.fetchall())
     logger.info("{} invalid awarding rows found".format(invalid_count))
     sess.execute(
-        "UPDATE detached_award_procurement " +
-        "set awarding_agency_code = agency.agency_code, " +
-        "awarding_agency_name = agency.agency_name " +
-        "from ( " +
+        "UPDATE detached_award_procurement set awarding_agency_code = agency.agency_code, " +
+        "awarding_agency_name = agency.agency_name from ( " +
         "SELECT sub.sub_tier_agency_code, sub.cgac_id, sub.frec_id, sub.is_frec, " +
         "CASE WHEN sub.is_frec " +
         "THEN (SELECT agency_name from frec WHERE frec.frec_id = sub.frec_id) " +
@@ -57,21 +51,19 @@ def update_awarding(sess):
         "end agency_name, " +
         "CASE WHEN sub.is_frec " +
         "THEN (SELECT frec_code from frec WHERE frec.frec_id = sub.frec_id) " +
-        "ELSE (SELECT cgac_code from cgac where cgac.cgac_id = sub.cgac_id) " +
-        "end agency_code " +
+        "ELSE (SELECT cgac_code from cgac where cgac.cgac_id = sub.cgac_id) end agency_code " +
         "from sub_tier_agency sub " +
         "INNER JOIN cgac ON cgac.cgac_id = sub.cgac_id " +
-        "INNER JOIN frec ON frec.frec_id = sub.frec_id " +
-        ") agency " +
+        "INNER JOIN frec ON frec.frec_id = sub.frec_id ) agency " +
         "where detached_award_procurement.awarding_agency_code = '999' " +
         "and detached_award_procurement.awarding_sub_tier_agency_c = agency.sub_tier_agency_code "
     )
     sess.commit()
     invalid = sess.execute("select * from detached_award_procurement where awarding_agency_code='999'")
-    printReport(invalid_count, len(invalid.fetchall()), 'awarding')
+    print_report(invalid_count, len(invalid.fetchall()), 'awarding')
 
 
-def printReport(initial, final, type):
+def print_report(initial, final, type):
     logger.info("{} invalid {} rows removed".format(initial - final, type))
     logger.info("{} invalid {} rows remaining".format(final, type))
 
