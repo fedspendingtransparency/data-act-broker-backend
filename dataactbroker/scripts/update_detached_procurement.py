@@ -18,11 +18,9 @@ def update_table(sess, table_type):
     sess.execute(
         "UPDATE detached_award_procurement set " + table_type + "_agency_code = agency.agency_code, " +
         table_type + "_agency_name = agency.agency_name from ( " +
-        "SELECT sub.sub_tier_agency_code, sub.cgac_id, sub.frec_id, sub.is_frec, " +
-        "CASE WHEN sub.is_frec " +
+        "SELECT sub.sub_tier_agency_code, sub.cgac_id, sub.frec_id, sub.is_frec, CASE WHEN sub.is_frec " +
         "THEN (SELECT agency_name from frec WHERE frec.frec_id = sub.frec_id) " +
-        "ELSE (SELECT agency_name from cgac where cgac.cgac_id = sub.cgac_id) " +
-        "end agency_name, " +
+        "ELSE (SELECT agency_name from cgac where cgac.cgac_id = sub.cgac_id) end agency_name, " +
         "CASE WHEN sub.is_frec " +
         "THEN (SELECT frec_code from frec WHERE frec.frec_id = sub.frec_id) " +
         "ELSE (SELECT cgac_code from cgac where cgac.cgac_id = sub.cgac_id) end agency_code " +
