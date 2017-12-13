@@ -38,8 +38,7 @@ def update_funding(sess):
     sess.commit()
     invalid = sess.execute("select * from detached_award_procurement where funding_agency_code='999'")
     new_invalid_count = len(invalid.fetchall())
-    logger.info("{} invalid funding rows removed".format(invalid_count-new_invalid_count))
-    logger.info("{} invalid funding rows remaining".format(new_invalid_count))
+    printReport(invalid_count, new_invalid_count, 'funding')
 
 
 def update_awarding(sess):
@@ -71,8 +70,12 @@ def update_awarding(sess):
     sess.commit()
     invalid = sess.execute("select * from detached_award_procurement where awarding_agency_code='999'")
     new_invalid_count = len(invalid.fetchall())
-    logger.info("{} invalid awarding rows removed".format(invalid_count - new_invalid_count))
-    logger.info("{} invalid awarding rows remaining".format(new_invalid_count))
+    printReport(invalid_count, new_invalid_count, 'awarding')
+
+
+def printReport(initial, final, type):
+    logger.info("{} invalid {} rows removed".format(initial - final, type))
+    logger.info("{} invalid {} rows remaining".format(final, type))
 
 
 def main():
