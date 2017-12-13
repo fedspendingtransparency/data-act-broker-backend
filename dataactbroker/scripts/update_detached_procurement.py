@@ -1,32 +1,20 @@
-import os
-import re
 import logging
-import boto
-import urllib.request
-import zipfile
-import numpy as np
-import sys
-import pandas as pd
-from sqlalchemy import func
 
 from dataactcore.logging import configure_logging
-from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
-from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
-from dataactcore.models.domainModels import SubTierAgency, CountyCode, States, Zips, ZipCity, CityCode
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
+
 
 def update_funding(sess):
     logger.info('updating funding')
     invalid = sess.execute("select * from detached_award_procurement where funding_agency_code='999'")
     invalid_count = len(invalid.fetchall())
-    logger.info("{} invalid rows found")
-    res = sess.execute(
+    logger.info("{} invalid funding rows found".format(invalid_count))
+    sess.execute(
         "UPDATE detached_award_procurement " +
         "set funding_agency_code = agency.agency_code, " +
         "funding_agency_name = agency.agency_name " +
@@ -48,10 +36,18 @@ def update_funding(sess):
         "and detached_award_procurement.funding_sub_tier_agency_co = agency.sub_tier_agency_code "
     )
     sess.commit()
+    invalid = sess.execute("select * from detached_award_procurement where funding_agency_code='999'")
+    new_invalid_count = len(invalid.fetchall())
+    logger.info("{} invalid funding rows removed".format(invalid_count-new_invalid_count))
+    logger.info("{} invalid funding rows remaining".format(new_invalid_count))
+
 
 def update_awarding(sess):
     logger.info('updating awarding')
-    res = sess.execute(
+    invalid = sess.execute("select * from detached_award_procurement where awarding_agency_code='999'")
+    invalid_count = len(invalid.fetchall())
+    logger.info("{} invalid awarding rows found".format(invalid_count))
+    sess.execute(
         "UPDATE detached_award_procurement " +
         "set awarding_agency_code = agency.agency_code, " +
         "awarding_agency_name = agency.agency_name " +
@@ -73,6 +69,11 @@ def update_awarding(sess):
         "and detached_award_procurement.awarding_sub_tier_agency_c = agency.sub_tier_agency_code "
     )
     sess.commit()
+    invalid = sess.execute("select * from detached_award_procurement where awarding_agency_code='999'")
+    new_invalid_count = len(invalid.fetchall())
+    logger.info("{} invalid awarding rows removed".format(invalid_count - new_invalid_count))
+    logger.info("{} invalid awarding rows remaining".format(new_invalid_count))
+
 
 def main():
     sess = GlobalDB.db().session
