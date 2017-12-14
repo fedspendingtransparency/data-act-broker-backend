@@ -29,7 +29,7 @@ from sqlalchemy.exc import IntegrityError
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
-from dataactcore.models.domainModels import SubTierAgency, CountyCode, Zips
+from dataactcore.models.domainModels import SubTierAgency, CountryCode, States, CountyCode, Zips
 from dataactcore.models.stagingModels import DetachedAwardProcurement
 from dataactcore.models.jobModels import FPDSUpdate, FileRequest
 
@@ -43,8 +43,9 @@ from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.4.5&q="
 delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&templateName=1.4.5&q="
-relevant_country_codes = ['USA', 'ASM', 'GUM', 'MNP', 'PRI', 'VIR', 'FSM', 'MHL', 'PLW', 'XBK', 'XHO', 'XJV', 'XJA',
-                          'XKR', 'XPL', 'XMW', 'XWK']
+country_code_map = {'USA': 'US', 'ASM': 'AS', 'GUM': 'GU', 'MNP': 'MP', 'PRI': 'PR', 'VIR': 'VI', 'FSM': 'FM',
+                    'MHL': 'MH', 'PLW': 'PW', 'XBK': 'UM', 'XHO': 'UM', 'XJV': 'UM', 'XJA': 'UM', 'XKR': 'UM',
+                    'XPL': 'UM', 'XMW': 'UM', 'XWK': 'UM'}
 
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -63,9 +64,15 @@ def extract_text(data_val):
     return data_val
 
 
+def is_valid_zip(zip_code):
+    if re.match('^\d{5}(-?\d{4})?$', zip_code):
+        return True
+    return False
+
+
 def get_county_by_zip(sess, zip_code):
-    # if there are any non-digit characters, toss the entire zip
-    if not zip_code.isdigit():
+    # if the zip code is not a valid US zip, toss the entire zip
+    if not is_valid_zip(zip_code):
         return None
 
     zip_data = None
@@ -325,7 +332,7 @@ def legislative_mandates_values(data, obj):
     return obj
 
 
-def place_of_performance_values(data, obj, atom_type):
+def place_of_performance_values(data, obj):
     """ Get values from the placeOfPerformance level of the xml """
     value_map = {'placeOfPerformanceCongressionalDistrict': 'place_of_performance_congr',
                  'placeOfPerformanceZIPCode': 'place_of_performance_zip4a'}
@@ -685,7 +692,7 @@ def vendor_site_details_values(data, obj):
 
     # differentiating between US and foreign states
     key = 'legal_entity_state_code'
-    if obj['legal_entity_country_code'] != 'USA':
+    if obj['legal_entity_country_code'] not in country_code_map:
         key = 'legal_entity_state_descrip'
         # need to set this even if we're not going to be having a code because we need to access it later
         obj['legal_entity_state_code'] = None
@@ -782,7 +789,94 @@ def vendor_site_details_values(data, obj):
     return obj
 
 
-def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code):
+def calculate_ppop_fields(obj, sess, county_by_name, county_by_code, state_code_list, country_list):
+    """ calculate values that aren't in any feed (or haven't been provided properly) for place of performance """
+    # only do any of these calculation if the country code is in the list of US territories
+    if obj['place_of_perform_country_c'] in country_code_map:
+        # if it's in the list but not USA, find its state code in the list and put that in the state code spot, get
+        # the state name, then replace country code and country description with USA and UNITED STATES respectively
+        if obj['place_of_perform_country_c'] != 'USA':
+            obj['place_of_performance_state'] = country_code_map[obj['place_of_perform_country_c']]
+            if obj['place_of_performance_state'] in state_code_list:
+                obj['place_of_perfor_state_desc'] = state_code_list[obj['place_of_performance_state']]
+            obj['place_of_perform_country_c'] = 'USA'
+            obj['place_of_perf_country_desc'] = 'UNITED STATES'
+
+        # derive state name if we don't have it
+        if obj['place_of_performance_state'] and not obj['place_of_perfor_state_desc']\
+                and obj['place_of_performance_state'] in state_code_list:
+            obj['place_of_perfor_state_desc'] = state_code_list[obj['place_of_performance_state']]
+
+        # calculate place of performance county code
+        if obj['place_of_perform_county_na'] and obj['place_of_performance_state']:
+            state = obj['place_of_performance_state']
+            county_name = obj['place_of_perform_county_na']
+            # make sure they gave us a valid state and then check if it's in our lookup
+            if state in county_by_name and county_name in county_by_name[state]:
+                obj['place_of_perform_county_co'] = county_by_name[state][county_name]
+
+        # if accessing the county code by state code and county name didn't work, try by zip4a if we have it
+        if not obj['place_of_perform_county_co'] and obj['place_of_performance_zip4a']:
+            obj['place_of_perform_county_co'] = get_county_by_zip(sess, obj['place_of_performance_zip4a'])
+
+        # if we didn't have a county name but got the county code, we can grab the name
+        if not obj['place_of_perform_county_na'] and obj['place_of_performance_state'] in county_by_code\
+                and obj['place_of_perform_county_co'] in county_by_code[obj['place_of_performance_state']]:
+            obj['place_of_perform_county_na'] =\
+                county_by_code[obj['place_of_performance_state']][obj['place_of_perform_county_co']]
+
+        # if we have content in the zip code and it's in a valid US format, split it into 5 and 4 digit
+        if obj['place_of_performance_zip4a'] and is_valid_zip(obj['place_of_performance_zip4a']):
+            obj['place_of_performance_zip5'] = obj['place_of_performance_zip4a'][:5]
+            if len(obj['place_of_performance_zip4a']) > 5:
+                obj['place_of_perform_zip_last4'] = obj['place_of_performance_zip4a'][-4:]
+
+    # if there is any country code (checked outside function) but not a country name, try to get the country name
+    if not obj['place_of_perf_country_desc'] and obj['place_of_perform_country_c'] in country_list:
+        obj['place_of_perf_country_desc'] = country_list[obj['place_of_perform_country_c']]
+
+
+def calculate_legal_entity_fields(obj, sess, county_by_code, state_code_list, country_list):
+    """ calculate values that aren't in any feed (or haven't been provided properly) for legal entity """
+    # do legal entity derivations only if legal entity country code is in a US territory of any kind
+    if obj['legal_entity_country_code'] in country_code_map:
+        # if it's in the list but not USA, find its state code in the list and put that in the state code spot, get
+        # the state name, then replace country code and country description with USA and UNITED STATES respectively
+        if obj['legal_entity_country_code'] != 'USA':
+            obj['legal_entity_state_code'] = country_code_map[obj['legal_entity_country_code']]
+            if obj['legal_entity_state_code'] in state_code_list:
+                obj['legal_entity_state_descrip'] = state_code_list[obj['legal_entity_state_code']]
+            obj['legal_entity_country_code'] = 'USA'
+            obj['legal_entity_country_name'] = 'UNITED STATES'
+
+        # derive state name if we don't have it
+        if obj['legal_entity_state_code'] and not obj['legal_entity_state_descrip']\
+                and obj['legal_entity_state_code'] in state_code_list:
+            obj['legal_entity_state_descrip'] = state_code_list[obj['legal_entity_state_code']]
+
+        # calculate legal entity county code and split zip when possible
+        if obj['legal_entity_zip4'] and is_valid_zip(obj['legal_entity_zip4']):
+            obj['legal_entity_county_code'] = get_county_by_zip(sess, obj['legal_entity_zip4'])
+
+            # if we have a county code and a state code, we can try to get the county name
+            if obj['legal_entity_county_code'] and obj['legal_entity_state_code']:
+                county_code = obj['legal_entity_county_code']
+                state = obj['legal_entity_state_code']
+
+                # make sure they gave us a valid state and then check if it's in our lookup
+                if state in county_by_code and county_code in county_by_code[state]:
+                    obj['legal_entity_county_name'] = county_by_code[state][county_code]
+
+            obj['legal_entity_zip5'] = obj['legal_entity_zip4'][:5]
+            if len(obj['legal_entity_zip4']) > 5:
+                obj['legal_entity_zip_last4'] = obj['legal_entity_zip4'][-4:]
+
+    # if there is any country code (checked outside function) but not a country name, try to get the country name
+    if not obj['legal_entity_country_name'] and obj['legal_entity_country_code'] in country_list:
+        obj['legal_entity_country_name'] = country_list[obj['legal_entity_country_code']]
+
+
+def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list, country_list):
     """ calculate values that aren't in any feed but can be calculated """
     # we want to null out all the calculated columns in case this is an update to the records
     obj['awarding_agency_code'] = None
@@ -826,31 +920,13 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
             obj['funding_agency_code'] = '999'
             obj['funding_agency_name'] = None
 
-    # calculate place of performance county code (only for relevant countries)
-    if obj['place_of_perform_country_c'] in relevant_country_codes:
-        if obj['place_of_perform_county_na'] and obj['place_of_performance_state']:
-            state = obj['place_of_performance_state']
-            county_name = obj['place_of_perform_county_na']
-            # make sure they gave us a valid state and then check if it's in our lookup
-            if state in county_by_name and county_name in county_by_name[state]:
-                obj['place_of_perform_county_co'] = county_by_name[state][county_name]
+    # do place of performance calculations only if we have SOME country code
+    if obj['place_of_perform_country_c']:
+        calculate_ppop_fields(obj, sess, county_by_name, county_by_code, state_code_list, country_list)
 
-        # if accessing the county code by state code and county name didn't work, try by zip4a if we have it
-        if not obj['place_of_perform_county_co'] and obj['place_of_performance_zip4a']:
-            obj['place_of_perform_county_co'] = get_county_by_zip(sess, obj['place_of_performance_zip4a'])
-
-    # calculates legal entity county code, but only if legal entity country code is in a US territory of any kind
-    if obj['legal_entity_zip4'] and obj['legal_entity_country_code'] in relevant_country_codes:
-        obj['legal_entity_county_code'] = get_county_by_zip(sess, obj['legal_entity_zip4'])
-
-        # if we have a county code and a state code, we can try to get the county name
-        if obj['legal_entity_county_code'] and obj['legal_entity_state_code']:
-            county_code = obj['legal_entity_county_code']
-            state = obj['legal_entity_state_code']
-
-            # make sure they gave us a valid state and then check if it's in our lookup
-            if state in county_by_code and county_code in county_by_code[state]:
-                obj['legal_entity_county_name'] = county_by_code[state][county_code]
+    # do legal entity calculations only if we have SOME country code
+    if obj['legal_entity_country_code']:
+        calculate_legal_entity_fields(obj, sess, county_by_code, state_code_list, country_list)
 
     # calculate unique key
     key_list = ['agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id',
@@ -873,7 +949,7 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
     return obj
 
 
-def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by_code):
+def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by_code, state_code_list, country_list):
     """ process the data coming in """
     obj = {}
 
@@ -928,13 +1004,15 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
             data['placeOfPerformance']
         except KeyError:
             data['placeOfPerformance'] = {}
-        obj = place_of_performance_values(data['placeOfPerformance'], obj, atom_type)
+        obj = place_of_performance_values(data['placeOfPerformance'], obj)
     # these values need to be filled so the existence check when calculating county data doesn't freak out
     else:
         obj['place_of_perform_county_na'] = None
         obj['place_of_performance_state'] = None
+        obj['place_of_perfor_state_desc'] = None
         obj['place_of_performance_zip4a'] = None
         obj['place_of_perform_country_c'] = None
+        obj['place_of_perf_country_desc'] = None
 
     # make sure key exists before passing it
     try:
@@ -981,7 +1059,8 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
         data['vendor'] = {}
     obj = vendor_values(data['vendor'], obj)
 
-    obj = calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code)
+    obj = calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+                                     country_list)
 
     try:
         obj['last_modified'] = data['transactionInformation']['lastModifiedDate']
@@ -1094,12 +1173,14 @@ def process_delete_data(data, atom_type):
     return unique_string
 
 
-def create_processed_data_list(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code):
+def create_processed_data_list(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code,
+                               state_code_list, country_list):
     data_list = []
     for value in data:
         tmp_obj = process_data(value['content'][contract_type], sess, atom_type=contract_type,
                                sub_tier_list=sub_tier_list, county_by_name=county_by_name,
-                               county_by_code=county_by_code)
+                               county_by_code=county_by_code, state_code_list=state_code_list,
+                               country_list=country_list)
         data_list.append(tmp_obj)
     return data_list
 
@@ -1113,19 +1194,21 @@ def add_processed_data_list(data, sess):
         logger.error("Attempted to insert duplicate FPDS data. Inserting each row in batch individually.")
 
         for fpds_obj in data:
-            insert_statement = insert(DetachedAwardProcurement).values(**fpds_obj). \
+            insert_statement = insert(DetachedAwardProcurement).values(**fpds_obj).\
                 on_conflict_do_update(index_elements=['detached_award_proc_unique'], set_=fpds_obj)
             sess.execute(insert_statement)
         sess.commit()
 
 
-def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code, now, threaded=False):
+def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+                    country_list, now, threaded=False):
     """ start the processing for data and add it to the DB """
     if threaded:
         for value in data:
             tmp_obj = process_data(value['content'][contract_type], sess, atom_type=contract_type,
                                    sub_tier_list=sub_tier_list, county_by_name=county_by_name,
-                                   county_by_code=county_by_code)
+                                   county_by_code=county_by_code, state_code_list=state_code_list,
+                                   country_list=country_list)
             tmp_obj['updated_at'] = now
             insert_statement = insert(DetachedAwardProcurement).values(**tmp_obj).\
                 on_conflict_do_update(index_elements=['detached_award_proc_unique'], set_=tmp_obj)
@@ -1134,7 +1217,8 @@ def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, co
         for value in data:
             tmp_obj = process_data(value['content'][contract_type], sess, atom_type=contract_type,
                                    sub_tier_list=sub_tier_list, county_by_name=county_by_name,
-                                   county_by_code=county_by_code)
+                                   county_by_code=county_by_code, state_code_list=state_code_list,
+                                   country_list=country_list)
             try:
                 statement = insert(DetachedAwardProcurement).values(**tmp_obj)
                 sess.execute(statement)
@@ -1148,17 +1232,15 @@ def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, co
                 sess.commit()
 
 
-def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name, county_by_code, last_run=None,
-             threaded=False, start_date=None, end_date=None):
+def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+             country_list, last_run=None, threaded=False, start_date=None, end_date=None):
     """ get the data from the atom feed based on contract/award type and the last time the script was run """
     data = []
     yesterday = now - datetime.timedelta(days=1)
     utcnow = datetime.datetime.utcnow()
     # if a date that the script was last successfully run is not provided, get all data
     if not last_run:
-        # params = 'SIGNED_DATE:[2015/10/01,'+ yesterday.strftime('%Y/%m/%d') + '] '
         params = 'SIGNED_DATE:[2016/10/01,' + yesterday.strftime('%Y/%m/%d') + '] '
-        # params = 'SIGNED_DATE:[2017/07/01,' + yesterday.strftime('%Y/%m/%d') + '] '
     # if a date that the script was last successfully run is provided, get data since that date
     else:
         last_run_date = last_run.update_date - relativedelta(days=1)
@@ -1211,7 +1293,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                 i += 1
         else:
             data.extend(create_processed_data_list(listed_data, contract_type, sess, sub_tier_list, county_by_name,
-                                                   county_by_code))
+                                                   county_by_code, state_code_list, country_list))
             i += len(listed_data)
 
         # Log which one we're on so we can keep track of how far we are, insert into DB ever 1k lines
@@ -1219,8 +1301,8 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             logger.info("Retrieved %s lines of get %s: %s feed, writing next 1,000 to DB", i, contract_type, award_type)
             # if we're calling threads, we want process_and_add, otherwise we want add_processed_data_list
             if last_run:
-                process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code, utcnow,
-                                threaded)
+                process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code,
+                                state_code_list, country_list, utcnow, threaded)
             else:
                 add_processed_data_list(data, sess)
             data = []
@@ -1238,7 +1320,8 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
     logger.info("Processing remaining lines for %s: %s feed", contract_type, award_type)
     # if we're calling threads, we want process_and_add, otherwise we want add_processed_data_list
     if last_run:
-        process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code, utcnow, threaded)
+        process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+                        country_list, utcnow, threaded)
     else:
         add_processed_data_list(data, sess)
 
@@ -2112,24 +2195,36 @@ def main():
     award_types_award = ["BPA Call", "Definitive Contract", "Purchase Order", "Delivery Order"]
     award_types_idv = ["GWAC", "BOA", "BPA", "FSS", "IDC"]
 
+    # get and create list of sub tier agencies
     sub_tiers = sess.query(SubTierAgency).all()
     sub_tier_list = {}
 
     for sub_tier in sub_tiers:
         sub_tier_list[sub_tier.sub_tier_agency_code] = sub_tier
 
-    county_codes = sess.query(CountyCode.county_number, CountyCode.state_code,
-                              func.upper(CountyCode.county_name).label('county_name')).all()
+    # get and create list of country code -> country name mappings.
+    countries = sess.query(CountryCode).all()
+    country_list = {}
+
+    for country in countries:
+        country_list[country.country_code] = country.country_name
+
+    # get and create list of state code -> state name mappings. Prime the county lists with state codes
     county_by_name = {}
     county_by_code = {}
+    state_code_list = {}
+    state_codes = sess.query(States.state_code, func.upper(States.state_name).label('state_name')).all()
+
+    for state_code in state_codes:
+        county_by_name[state_code.state_code] = {}
+        county_by_code[state_code.state_code] = {}
+        state_code_list[state_code.state_code] = state_code.state_name
+
+    # Fill the county lists with data (code -> name mappings and name -> code mappings)
+    county_codes = sess.query(CountyCode.county_number, CountyCode.state_code,
+                              func.upper(CountyCode.county_name).label('county_name')).all()
 
     for county_code in county_codes:
-        # insert state codes to each list if they aren't already in there
-        if county_code.state_code not in county_by_name:
-            county_by_name[county_code.state_code] = {}
-        if county_code.state_code not in county_by_code:
-            county_by_code[county_code.state_code] = {}
-
         # we don't want any "(CA)" endings, so strip those
         county_name = county_code.county_name.replace(' (CA)', '').strip()
 
@@ -2151,13 +2246,16 @@ def main():
 
         if args.other:
             for award_type in award_types_idv:
-                get_data("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code)
+                get_data("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+                         country_list)
             for award_type in award_types_award:
                 if award_type != "Delivery Order":
-                    get_data("award", award_type, now, sess, sub_tier_list, county_by_name, county_by_code)
+                    get_data("award", award_type, now, sess, sub_tier_list, county_by_name, county_by_code,
+                             state_code_list, country_list)
 
         elif args.delivery:
-            get_data("award", "Delivery Order", now, sess, sub_tier_list, county_by_name, county_by_code)
+            get_data("award", "Delivery Order", now, sess, sub_tier_list, county_by_name, county_by_code,
+                     state_code_list, country_list)
 
         last_update = sess.query(FPDSUpdate).one_or_none()
 
@@ -2194,7 +2292,7 @@ def main():
             for award_type in award_types_idv:
                 t = threading.Thread(target=get_data,
                                      args=("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code,
-                                           last_update, True, start_date, end_date),
+                                           state_code_list, country_list, last_update, True, start_date, end_date),
                                      name=award_type)
                 thread_list.append(t)
                 t.start()
@@ -2208,7 +2306,8 @@ def main():
             for award_type in award_types_award:
                 t = threading.Thread(target=get_data,
                                      args=("award", award_type, now, sess, sub_tier_list, county_by_name,
-                                           county_by_code, last_update, True, start_date, end_date),
+                                           county_by_code, state_code_list, country_list, last_update, True, start_date,
+                                           end_date),
                                      name=award_type)
                 thread_list.append(t)
                 t.start()
@@ -2218,12 +2317,12 @@ def main():
             sess.commit()
         else:
             for award_type in award_types_idv:
-                get_data("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, last_update,
-                         start_date=start_date, end_date=end_date)
+                get_data("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+                         country_list, last_update, start_date=start_date, end_date=end_date)
 
             for award_type in award_types_award:
-                get_data("award", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, last_update,
-                         start_date=start_date, end_date=end_date)
+                get_data("award", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+                         country_list, last_update, start_date=start_date, end_date=end_date)
 
         # We also need to process the delete feed
         get_delete_data("IDV", now, sess, last_update, start_date, end_date)
