@@ -938,6 +938,7 @@ class PublishedAwardFinancialAssistance(Base):
     place_of_perform_country_c = Column(Text, index=True)
     place_of_perform_county_na = Column(Text)
     place_of_performance_forei = Column(Text)
+    place_of_perfor_state_code = Column(Text)
     place_of_perform_state_nam = Column(Text)
     place_of_performance_zip4a = Column(Text)
     place_of_performance_zip5 = Column(Text)
