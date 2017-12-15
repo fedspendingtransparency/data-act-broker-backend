@@ -77,11 +77,11 @@ def get_county_by_zip(sess, zip_code):
 
     zip_data = None
     # if we have a 9 digit code, grab the first match for 9 digit zips
-    if len(zip_code) == 9:
+    if len(zip_code) > 5:
         zip_data = sess.query(Zips).filter_by(zip5=zip_code[:5], zip_last4=zip_code[-4:]).first()
 
     # if it's not 9 digits or we found no results from the 9 digit we received
-    if not zip_data and (len(zip_code) == 5) or (len(zip_code) == 9):
+    if not zip_data:
         zip_data = sess.query(Zips).filter_by(zip5=zip_code[:5]).first()
 
     # if we found results at any point, return the county code from it
