@@ -16,7 +16,7 @@ from dataactvalidator.health_check import create_app
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
-QUERY_SIZE = 10
+QUERY_SIZE = 1000
 country_code_map = {'USA': 'US', 'ASM': 'AS', 'GUM': 'GU', 'MNP': 'MP', 'PRI': 'PR', 'VIR': 'VI', 'FSM': 'FM',
                     'MHL': 'MH', 'PLW': 'PW', 'XBK': 'UM', 'XHO': 'UM', 'XJV': 'UM', 'XJA': 'UM', 'XKR': 'UM',
                     'XPL': 'UM', 'XMW': 'UM', 'XWK': 'UM'}
@@ -30,8 +30,8 @@ def valid_zip(zip_code):
 
 def get_zip_data(sess, zip_code):
     """ Get the county code based on the zip passed """
-    # if it isn't a valid zip format, just toss back nothing
-    if not valid_zip(zip_code):
+    # if it isn't a valid zip format or someone passed None, just toss back nothing
+    if not zip_code or not valid_zip(zip_code):
         return None
 
     zip_data = None
@@ -53,12 +53,8 @@ def clean_stored_float(clean_string, fill_amount):
 
 def us_ppop(ppop, state_by_code, state_by_fips):
     """ Determines if the ppop is in a valid format to be in the US """
-    # return false if it's null
-    if not ppop:
-        return False
-
-    # all valid codes are 7 digits long
-    if len(ppop) != 7:
+    # return false if it's null or not 7 digits long
+    if not ppop or len(ppop) != 7:
         return False
 
     ppop = ppop.upper()
@@ -82,8 +78,8 @@ def split_zip(zip_code):
 def fix_fabs_le_country(row, country_list, state_by_code):
     """ Update legal entity country code/name """
     # replace legal entity country codes from US territories with USA, move them into the state slot
-    if row.legal_entity_country_code in country_code_map and row.legal_entity_country_code != 'USA':
-        row.legal_entity_state_code = country_code_map[row.legal_entity_country_code]
+    if row.legal_entity_country_code in country_code_map and row.legal_entity_country_code.upper() != 'USA':
+        row.legal_entity_state_code = country_code_map[row.legal_entity_country_code.upper()]
         # only add the description if it's in our list
         if row.legal_entity_state_code in state_by_code:
             row.legal_entity_state_name = state_by_code[row.legal_entity_state_code]
@@ -91,15 +87,16 @@ def fix_fabs_le_country(row, country_list, state_by_code):
         row.legal_entity_country_name = 'UNITED STATES'
 
     # grab the country name if we have access to it and it isn't already there
-    if not row.legal_entity_country_name and row.legal_entity_country_code in country_list:
+    if not row.legal_entity_country_name and row.legal_entity_country_code\
+            and row.legal_entity_country_code.upper() in country_list:
         row.legal_entity_country_name = country_list[row.legal_entity_country_code]
 
 
 def fix_fabs_ppop_country(row, country_list, state_by_code):
     """ Update ppop country code/name """
     # replace ppop country codes from US territories with USA, move them into the state slot
-    if row.place_of_perform_country_c in country_code_map and row.place_of_perform_country_c != 'USA':
-        row.place_of_perfor_state_code = country_code_map[row.place_of_perform_country_c]
+    if row.place_of_perform_country_c in country_code_map and row.place_of_perform_country_c.upper() != 'USA':
+        row.place_of_perfor_state_code = country_code_map[row.place_of_perform_country_c.upper()]
         # only add the description if it's in our list
         if row.place_of_perfor_state_code in state_by_code:
             row.place_of_perform_state_nam = state_by_code[row.place_of_perfor_state_code]
@@ -107,27 +104,46 @@ def fix_fabs_ppop_country(row, country_list, state_by_code):
         row.place_of_perform_country_n = 'UNITED STATES'
 
     # grab the country name if we have access to it and it isn't already there
-    if not row.place_of_perform_country_n and row.place_of_perform_country_c in country_list:
-        row.place_of_perform_country_n = country_list[row.place_of_perform_country_c]
+    if not row.place_of_perform_country_n and row.place_of_perform_country_c\
+            and row.place_of_perform_country_c.upper() in country_list:
+        row.place_of_perform_country_n = country_list[row.place_of_perform_country_c.upper()]
 
 
-def fix_fabs_le_state(row, state_by_code, state_by_name):
+def fix_fabs_le_state(sess, row, state_by_code, state_by_name):
     """ Update legal entity state info """
-    # TODO reconsider order of these derivations
-    # TODO add zip derivations
-    # derive state name if we have the code and no name
-    if not row.legal_entity_state_name and row.legal_entity_state_code and row.legal_entity_state_code in state_by_code:
-        row.legal_entity_state_name = state_by_code[row.legal_entity_state_code]
+    zip_data = None
+    zip_check = False
 
     # derive state code from name
-    if not row.legal_entity_state_code and row.legal_entity_state_name and\
-            row.legal_entity_state_name.upper() in state_by_name:
-        row.legal_entity_state_code = state_by_name[row.legal_entity_state_name.upper()]
+    if not row.legal_entity_state_code:
+        # if we have a valid state name, just use that
+        if row.legal_entity_state_name and row.legal_entity_state_name.upper() in state_by_name:
+            row.legal_entity_state_code = state_by_name[row.legal_entity_state_name.upper()]
+        # if we don't have a valid state name, we have to get more creative
+        elif row.legal_entity_zip5:
+            zip_code = row.legal_entity_zip5
+            # if we have a 4-digit zip to go with the 5-digit, combine them
+            if row.legal_entity_zip_last4:
+                zip_code += row.legal_entity_zip_last4
+            zip_data = get_zip_data(sess, zip_code)
+            zip_check = True
+            # if we have zip data, set the state code
+            if zip_data:
+                row.legal_entity_state_code = zip_data.state_abbreviation
+
+    # derive state name if we have the code and no name
+    if not row.legal_entity_state_name and row.legal_entity_state_code\
+            and row.legal_entity_state_code.upper() in state_by_code:
+        row.legal_entity_state_name = state_by_code[row.legal_entity_state_code.upper()]
+
+    return zip_data, zip_check
 
 
-def fix_fabs_ppop_state(sess, row, state_by_code, state_code_by_fips):
+def fix_fabs_ppop_state(sess, row, state_by_code, state_code_by_fips, state_by_name):
     """ Update ppop state info """
     zip_data = None
+    zip_check = False
+
     # derive state code (none of them have it, but we should still check in case this gets run after the new
     # derivations go in)
     if not row.place_of_perfor_state_code:
@@ -137,19 +153,23 @@ def fix_fabs_ppop_state(sess, row, state_by_code, state_code_by_fips):
                 row.place_of_perfor_state_code = state_code
             else:
                 row.place_of_perfor_state_code = state_code_by_fips[state_code]
+        elif row.place_of_perform_state_nam and row.place_of_perform_state_nam.upper() in state_by_name:
+                row.place_of_perfor_state_code = state_by_name[row.place_of_perform_state_nam.upper()]
         else:
             zip_data = get_zip_data(sess, row.place_of_performance_zip4a)
+            zip_check = True
             # if we got any data from this, get the state code based on it
             if zip_data:
                 row.place_of_perfor_state_code = zip_data.state_abbreviation
 
-    if not row.place_of_perform_state_nam and row.place_of_perfor_state_code:
-        row.place_of_perform_state_nam = state_by_code[row.place_of_perfor_state_code]
+    if not row.place_of_perform_state_nam and row.place_of_perfor_state_code\
+            and row.place_of_perfor_state_code.upper() in state_by_code:
+        row.place_of_perform_state_nam = state_by_code[row.place_of_perfor_state_code.upper()]
 
-    return zip_data
+    return zip_data, zip_check
 
 
-def fix_fabs_le_county(sess, row, zip_data, county_by_code):
+def fix_fabs_le_county(sess, row, zip_data, zip_check, county_by_code):
     """ Update legal entity county info """
     state = row.legal_entity_state_code
     # fill in legal entity county code where needed/possible
@@ -158,8 +178,8 @@ def fix_fabs_le_county(sess, row, zip_data, county_by_code):
                 re.match('^([A-Z]{2}|\d{2})\*\*\d{3}$', row.place_of_performance_code.upper()):
             row.legal_entity_county_code = row.place_of_performance_code[-3:]
         elif row.legal_entity_zip5:
-            # only grab new zip data if we don't have any to begin with for whatever reason
-            if not zip_data:
+            # only grab new zip data if we don't have any to begin with for whatever reason and haven't tried to get it
+            if not zip_data and not zip_check:
                 zip_code = row.legal_entity_zip5
                 # if we have a 4-digit zip to go with the 5-digit, combine them
                 if row.legal_entity_zip_last4:
@@ -170,17 +190,17 @@ def fix_fabs_le_county(sess, row, zip_data, county_by_code):
 
     # fill in legal entity county name where needed/possible
     if not row.legal_entity_county_name and row.legal_entity_county_code and state:
-        if state in county_by_code and row.legal_entity_county_code in county_by_code[state]:
-            row.legal_entity_county_name = county_by_code[state][row.legal_entity_county_code]
+        if state.upper() in county_by_code and row.legal_entity_county_code in county_by_code[state.upper()]:
+            row.legal_entity_county_name = county_by_code[state.upper()][row.legal_entity_county_code]
 
 
-def fix_fabs_ppop_county(sess, row, zip_data, county_by_code):
+def fix_fabs_ppop_county(sess, row, zip_data, zip_check, county_by_code):
     """ Update ppop county info """
     state = row.place_of_perfor_state_code
     # fill the place of performance county code where needed/possible
     if not row.place_of_perform_county_co:
-        # we only need to check place of performance code if it exists
-        if row.place_of_performance_code:
+        # we only need to check place of performance code if it exists and if we have a valid state
+        if row.place_of_performance_code and state:
             ppop_code = row.place_of_performance_code.upper()
             # if county style, get county code
             if re.match('^([A-Z]{2}|\d{2})\*\*\d{3}$', ppop_code):
@@ -193,8 +213,8 @@ def fix_fabs_ppop_county(sess, row, zip_data, county_by_code):
                     row.place_of_perform_county_co = city_info.county_number
         # check if we managed to fill it in and if we have a zip4
         if not row.place_of_perform_county_co and row.place_of_performance_zip4a:
-            # only look for zip data if we don't have any already
-            if not zip_data:
+            # only look for zip data if we don't have any already and haven't tried to get it
+            if not zip_data and not zip_check:
                 zip_code = row.place_of_performance_zip4a
                 zip_data = get_zip_data(sess, zip_code)
             if zip_data:
@@ -202,15 +222,13 @@ def fix_fabs_ppop_county(sess, row, zip_data, county_by_code):
 
     # fill in place of performance county name where needed/possible
     if not row.place_of_perform_county_na and row.place_of_perform_county_co and state:
-        if state in county_by_code and row.place_of_perform_county_co in county_by_code[state]:
-            row.place_of_perform_county_na = county_by_code[state][row.place_of_perform_county_co]
+        if state.upper() in county_by_code and row.place_of_perform_county_co in county_by_code[state.upper()]:
+            row.place_of_perform_county_na = county_by_code[state.upper()][row.place_of_perform_county_co]
 
 
 def process_fabs_derivations(sess, data, country_list, state_by_code, state_code_by_fips, state_by_name,
                              county_by_code):
     for row in data:
-        le_zip_data = None
-
         # only run country adjustments if we have a country code
         if row.legal_entity_country_code:
             fix_fabs_le_country(row, country_list, state_by_code)
@@ -228,12 +246,13 @@ def process_fabs_derivations(sess, data, country_list, state_by_code, state_code
             row.place_of_performance_congr = clean_stored_float(row.place_of_performance_congr, 2)
 
         # only do all of the following ppop derivations/checks if the country code is USA
-        if row.place_of_perform_country_c.upper() == 'USA':
+        if row.place_of_perform_country_c and row.place_of_perform_country_c.upper() == 'USA':
             # fix state data
-            ppop_zip_data = fix_fabs_ppop_state(sess, row, state_by_code, state_code_by_fips)
+            ppop_zip_data, ppop_zip_check = fix_fabs_ppop_state(sess, row, state_by_code, state_code_by_fips,
+                                                                state_by_name)
 
             # fix ppop county data
-            fix_fabs_ppop_county(sess, row, ppop_zip_data, county_by_code)
+            fix_fabs_ppop_county(sess, row, ppop_zip_data, ppop_zip_check, county_by_code)
 
             # if we have a zip code from the US, split the 9-digit into a 5 and 4 digit when possible
             # we only need to do this for ppop for FABS because legal entity comes in split
@@ -243,12 +262,12 @@ def process_fabs_derivations(sess, data, country_list, state_by_code, state_code
                 row.place_of_perform_zip_last4 = ppop_zip4
 
         # only do all of the following legal entity derivations/checks if the country code is USA
-        if row.legal_entity_country_code.upper() == 'USA':
+        if row.legal_entity_country_code and row.legal_entity_country_code.upper() == 'USA':
             # fix legal entity state data
-            fix_fabs_le_state(row, state_by_code, state_by_name)
+            le_zip_data, le_zip_check = fix_fabs_le_state(sess, row, state_by_code, state_by_name)
 
             # fix legal entity county data
-            fix_fabs_le_county(sess, row, le_zip_data, county_by_code)
+            fix_fabs_le_county(sess, row, le_zip_data, le_zip_check, county_by_code)
 
 
 def update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips, state_by_name, county_by_code, start,
@@ -256,7 +275,7 @@ def update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips
     """ Derive county codes """
     model = PublishedAwardFinancialAssistance
     start_slice = 0
-    print("first set")
+    logger.info("Starting fabs update for: %s to %s", start, end)
     while True:
         query_result = sess.query(model).\
             filter(model.is_active.is_(True)).\
@@ -268,22 +287,23 @@ def update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips
         if len(query_result) == 0:
             break
 
+        logger.info("Updating records: %s to %s", str(start_slice), str(start_slice + QUERY_SIZE))
         # process the derivations for historical data
         process_fabs_derivations(sess, query_result, country_list, state_by_code, state_code_by_fips, state_by_name,
                                  county_by_code)
         start_slice += QUERY_SIZE
-        print("next set")
     sess.commit()
+    logger.info("Finished fabs update for: %s to %s", start, end)
 
 
 def main():
     parser = argparse.ArgumentParser(description='Update county information for historical FABS and FPDS data')
     parser.add_argument('-t', '--type', help='Which data type, argument must be fpds or fabs', nargs=1, type=str,
                         required=True)
-    parser.add_argument('-s', '--start', help='Start date, must be in the format YYYY/MM/DD or YYYY-MM-DD', nargs=1,
-                        type=str, required=True)
-    parser.add_argument('-e', '--end', help='End date, must be in the format YYYY/MM/DD or YYYY-MM-DD', nargs=1,
-                        type=str, required=True)
+    parser.add_argument('-s', '--start', help='Start date (inclusive), must be in the format YYYY/MM/DD or YYYY-MM-DD',
+                        nargs=1, type=str, required=True)
+    parser.add_argument('-e', '--end', help='End date (inclusive), must be in the format YYYY/MM/DD or YYYY-MM-DD',
+                        nargs=1, type=str, required=True)
     args = parser.parse_args()
 
     sess = GlobalDB.db().session
