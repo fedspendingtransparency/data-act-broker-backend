@@ -9,15 +9,15 @@ from dataactvalidator.health_check import create_app
 logger = logging.getLogger(__name__)
 
 
-def update_table(sess, table_type):
-    logger.info('updating ' + table_type)
-    invalid = sess.execute("select * from detached_award_procurement where " + table_type + "_agency_code='999'")
+def update_table(sess, type):
+    logger.info('updating ' + type)
+    invalid = sess.execute("select * from detached_award_procurement where " + type + "_agency_code='999'")
     invalid_count = len(invalid.fetchall())
-    logger.info("{} invalid {} rows found".format(invalid_count, table_type))
-    suffix = 'o' if table_type == "funding" else ''
+    logger.info("{} invalid {} rows found".format(invalid_count, type))
+    suffix = 'o' if type == "funding" else ''
     sess.execute(
-        "UPDATE detached_award_procurement set " + table_type + "_agency_code = agency.agency_code, " +
-        table_type + "_agency_name = agency.agency_name from ( " +
+        "UPDATE detached_award_procurement set " + type + "_agency_code = agency.agency_code, " +
+        type + "_agency_name = agency.agency_name from ( " +
         "SELECT sub.sub_tier_agency_code, sub.cgac_id, sub.frec_id, sub.is_frec, CASE WHEN sub.is_frec " +
         "THEN (SELECT agency_name from frec WHERE frec.frec_id = sub.frec_id) " +
         "ELSE (SELECT agency_name from cgac where cgac.cgac_id = sub.cgac_id) end agency_name, " +
@@ -27,18 +27,18 @@ def update_table(sess, table_type):
         "from sub_tier_agency sub " +
         "INNER JOIN cgac ON cgac.cgac_id = sub.cgac_id " +
         "INNER JOIN frec ON frec.frec_id = sub.frec_id ) agency " +
-        "where detached_award_procurement." + table_type + "_agency_code = '999' " +
-        "and detached_award_procurement." + table_type + "_sub_tier_agency_c" + suffix +
+        "where detached_award_procurement." + type + "_agency_code = '999' " +
+        "and detached_award_procurement." + type + "_sub_tier_agency_c" + suffix +
         " = agency.sub_tier_agency_code "
     )
     sess.commit()
-    invalid = sess.execute("select * from detached_award_procurement where " + table_type + "_agency_code='999'")
-    print_report(invalid_count, len(invalid.fetchall()), table_type)
+    invalid = sess.execute("select * from detached_award_procurement where " + type + "_agency_code='999'")
+    print_report(invalid_count, len(invalid.fetchall()), type)
 
 
-def print_report(initial, final, table_type):
-    logger.info("{} invalid {} rows removed".format(initial - final, table_type))
-    logger.info("{} invalid {} rows remaining".format(final, table_type))
+def print_report(initial, final, type):
+    logger.info("{} invalid {} rows removed".format(initial - final, type))
+    logger.info("{} invalid {} rows remaining".format(final, type))
 
 
 def main():
