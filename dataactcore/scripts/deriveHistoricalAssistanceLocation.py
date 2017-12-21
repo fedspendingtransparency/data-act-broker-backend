@@ -229,6 +229,8 @@ def fix_fabs_ppop_county(sess, row, zip_data, zip_check, county_by_code):
 def process_fabs_derivations(sess, data, country_list, state_by_code, state_code_by_fips, state_by_name,
                              county_by_code):
     for row in data:
+        # Don't update the updated_at timestamp
+        row.ignore_updated_at = True
         # only run country adjustments if we have a country code
         if row.legal_entity_country_code:
             fix_fabs_le_country(row, country_list, state_by_code)
@@ -361,7 +363,6 @@ def main():
     if data_type == 'fpds':
         print("fpds derivations")
     elif data_type == 'fabs':
-        print("fabs derivations")
         update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips, state_by_name, county_by_code,
                                args.start[0], args.end[0])
     else:
