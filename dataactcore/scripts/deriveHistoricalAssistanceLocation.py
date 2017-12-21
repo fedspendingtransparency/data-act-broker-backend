@@ -78,7 +78,7 @@ def split_zip(zip_code):
 def fix_fabs_le_country(row, country_list, state_by_code):
     """ Update legal entity country code/name """
     # replace legal entity country codes from US territories with USA, move them into the state slot
-    if row.legal_entity_country_code in country_code_map and row.legal_entity_country_code.upper() != 'USA':
+    if row.legal_entity_country_code.upper() in country_code_map and row.legal_entity_country_code.upper() != 'USA':
         row.legal_entity_state_code = country_code_map[row.legal_entity_country_code.upper()]
         # only add the description if it's in our list
         if row.legal_entity_state_code in state_by_code:
@@ -95,7 +95,7 @@ def fix_fabs_le_country(row, country_list, state_by_code):
 def fix_fabs_ppop_country(row, country_list, state_by_code):
     """ Update ppop country code/name """
     # replace ppop country codes from US territories with USA, move them into the state slot
-    if row.place_of_perform_country_c in country_code_map and row.place_of_perform_country_c.upper() != 'USA':
+    if row.place_of_perform_country_c.upper() in country_code_map and row.place_of_perform_country_c.upper() != 'USA':
         row.place_of_perfor_state_code = country_code_map[row.place_of_perform_country_c.upper()]
         # only add the description if it's in our list
         if row.place_of_perfor_state_code in state_by_code:
@@ -228,9 +228,11 @@ def fix_fabs_ppop_county(sess, row, zip_data, zip_check, county_by_code):
 
 def process_fabs_derivations(sess, data, country_list, state_by_code, state_code_by_fips, state_by_name,
                              county_by_code):
+    """ Process derivations for FABS location data """
     for row in data:
         # Don't update the updated_at timestamp
         row.ignore_updated_at = True
+
         # only run country adjustments if we have a country code
         if row.legal_entity_country_code:
             fix_fabs_le_country(row, country_list, state_by_code)
@@ -274,7 +276,7 @@ def process_fabs_derivations(sess, data, country_list, state_by_code, state_code
 
 def update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips, state_by_name, county_by_code, start,
                            end):
-    """ Derive county codes """
+    """ Update historical FABS location data with new columns and missing data where possible """
     model = PublishedAwardFinancialAssistance
     start_slice = 0
     logger.info("Starting fabs update for: %s to %s", start, end)
