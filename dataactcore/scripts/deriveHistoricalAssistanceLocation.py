@@ -280,6 +280,11 @@ def update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips
     model = PublishedAwardFinancialAssistance
     start_slice = 0
     logger.info("Starting fabs update for: %s to %s", start, end)
+    record_count = sess.query(model).\
+        filter(model.is_active.is_(True)).\
+        filter(cast(model.action_date, Date) >= start).\
+        filter(cast(model.action_date, Date) <= end).count()
+    logger.info("Total records in this range: %s", record_count)
     while True:
         query_result = sess.query(model).\
             filter(model.is_active.is_(True)).\
@@ -287,15 +292,16 @@ def update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips
             filter(cast(model.action_date, Date) <= end).\
             slice(start_slice, start_slice + QUERY_SIZE).all()
 
-        # break the loop
-        if len(query_result) == 0:
-            break
-
-        logger.info("Updating records: %s to %s", str(start_slice), str(start_slice + QUERY_SIZE))
+        logger.info("Updating records: %s to %s", str(start_slice),
+                    str(start_slice + QUERY_SIZE if (start_slice + QUERY_SIZE < record_count) else record_count))
         # process the derivations for historical data
         process_fabs_derivations(sess, query_result, country_list, state_by_code, state_code_by_fips, state_by_name,
                                  county_by_code)
         start_slice += QUERY_SIZE
+
+        # break the loop if we've hit the last records
+        if start_slice >= record_count:
+            break
     sess.commit()
     logger.info("Finished fabs update for: %s to %s", start, end)
 
