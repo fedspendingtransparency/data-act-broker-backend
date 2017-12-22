@@ -6,7 +6,7 @@ from sqlalchemy import cast, Date
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import CountryCode, States, CountyCode, CityCode, Zips
-from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
+from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance, DetachedAwardProcurement
 
 from dataactcore.models.jobModels import Submission  # noqa
 from dataactcore.models.userModel import User  # noqa
@@ -172,6 +172,11 @@ def fix_fabs_ppop_state(sess, row, state_by_code, state_code_by_fips, state_by_n
 def fix_fabs_le_county(sess, row, zip_data, zip_check, county_by_code):
     """ Update legal entity county info """
     state = row.legal_entity_state_code
+
+    # remove . from county code, only legal entity has any of these
+    if row.legal_entity_county_code and '.' in row.legal_entity_county_code:
+        row.legal_entity_county_code = clean_stored_float(row.legal_entity_county_code, 3)
+
     # fill in legal entity county code where needed/possible
     if not row.legal_entity_county_code:
         if row.record_type == 1 and row.place_of_performance_code and \
@@ -306,6 +311,117 @@ def update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips
     logger.info("Finished fabs update for: %s to %s", start, end)
 
 
+def fix_fpds_le_country(row, country_list, state_by_code):
+    """ Update legal entity country code/name """
+    # replace legal entity country codes from US territories with USA, move them into the state slot
+    if row.legal_entity_country_code.upper() in country_code_map and row.legal_entity_country_code.upper() != 'USA':
+        row.legal_entity_state_code = country_code_map[row.legal_entity_country_code.upper()]
+        # only add the description if it's in our list
+        if row.legal_entity_state_code in state_by_code:
+            row.legal_entity_state_descrip = state_by_code[row.legal_entity_state_code]
+        row.legal_entity_country_code = 'USA'
+        row.legal_entity_country_name = 'UNITED STATES'
+
+    # grab the country name if we have access to it and it isn't already there
+    if not row.legal_entity_country_name and row.legal_entity_country_code\
+            and row.legal_entity_country_code.upper() in country_list:
+        row.legal_entity_country_name = country_list[row.legal_entity_country_code]
+
+
+def fix_fpds_ppop_country(row, country_list, state_by_code):
+    """ Update ppop country code/name """
+    # replace ppop country codes from US territories with USA, move them into the state slot
+    if row.place_of_perform_country_c.upper() in country_code_map and row.place_of_perform_country_c.upper() != 'USA':
+        row.place_of_performance_state = country_code_map[row.place_of_perform_country_c.upper()]
+        # only add the description if it's in our list
+        if row.place_of_performance_state in state_by_code:
+            row.place_of_perfor_state_desc = state_by_code[row.place_of_performance_state]
+        row.place_of_perform_country_c = 'USA'
+        row.place_of_perf_country_desc = 'UNITED STATES'
+
+    # grab the country name if we have access to it and it isn't already there
+    if not row.place_of_perf_country_desc and row.place_of_perform_country_c\
+            and row.place_of_perform_country_c.upper() in country_list:
+        row.place_of_perf_country_desc = country_list[row.place_of_perform_country_c.upper()]
+
+
+def fix_fpds_le_state(row, state_by_code):
+    """ Update legal entity state info """
+    # there are several instances where state code is 'nan' in le, which is simply poor storage, clear those out.
+    if row.legal_entity_state_code == 'nan':
+        row.legal_entity_state_code = None
+
+    if not row.legal_entity_state_descrip and row.legal_entity_state_code\
+            and row.legal_entity_state_code.upper() in state_by_code:
+        row.legal_entity_state_descrip = state_by_code[row.legal_entity_state_code.upper()]
+
+
+def fix_fpds_ppop_state(row, state_by_code, state_code_by_fips):
+    """ Update place of performance state info """
+    # fill in the state name where possible
+    if not row.place_of_perfor_state_desc and row.place_of_performance_state:
+        state_code = row.place_of_performance_state.upper()
+        # there are several cases in ppop where state codes are stored as FIPS codes
+        if state_code in state_code_by_fips:
+            state_code = state_code_by_fips[state_code]
+
+        # if the state code (the one given or the one derived above from FIPS) is in the state list, get the name
+        if state_code in state_by_code:
+            row.place_of_perfor_state_desc = state_by_code[state_code]
+
+
+def process_fpds_derivations(sess, country_list, state_by_code, state_code_by_fips, data):
+    """ Process derivations for FPDS location data """
+    for row in data:
+        # Don't update the updated_at timestamp
+        row.ignore_updated_at = True
+
+        # only run country adjustments if we have a country code
+        if row.legal_entity_country_code:
+            fix_fpds_le_country(row, country_list, state_by_code)
+
+        # only run country adjustments if we have a country code
+        if row.place_of_perform_country_c:
+            fix_fpds_ppop_country(row, country_list, state_by_code)
+
+        # only do all of the following ppop derivations/checks if the country code is USA
+        if row.place_of_perform_country_c and row.place_of_perform_country_c.upper() == 'USA':
+            # fix state data
+            fix_fpds_ppop_state(row, state_by_code, state_code_by_fips)
+
+        # only do all of the following legal entity derivations/checks if the country code is USA
+        if row.legal_entity_country_code and row.legal_entity_country_code.upper() == 'USA':
+            fix_fpds_le_state(row, state_by_code)
+
+
+def update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips, start, end):
+    """ Update historical FPDS location data with new columns and missing data where possible """
+    model = DetachedAwardProcurement
+    start_slice = 0
+    logger.info("Starting fpds update for: %s to %s", start, end)
+    record_count = sess.query(model). \
+        filter(cast(model.action_date, Date) >= start). \
+        filter(cast(model.action_date, Date) <= end).count()
+    logger.info("Total records in this range: %s", record_count)
+    while True:
+        query_result = sess.query(model). \
+            filter(cast(model.action_date, Date) >= start). \
+            filter(cast(model.action_date, Date) <= end). \
+            slice(start_slice, start_slice + QUERY_SIZE).all()
+
+        logger.info("Updating records: %s to %s", str(start_slice),
+                    str(start_slice + QUERY_SIZE if (start_slice + QUERY_SIZE < record_count) else record_count))
+        # process the derivations for historical data
+        process_fpds_derivations(sess, country_list, state_by_code, state_code_by_fips, query_result)
+        start_slice += QUERY_SIZE
+
+        # break the loop if we've hit the last records
+        if start_slice >= record_count:
+            break
+    sess.commit()
+    logger.info("Finished fpds update for: %s to %s", start, end)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Update county information for historical FABS and FPDS data')
     parser.add_argument('-t', '--type', help='Which data type, argument must be fpds or fabs', nargs=1, type=str,
@@ -369,7 +485,7 @@ def main():
             county_by_name[state_code][county_name] = county_num
 
     if data_type == 'fpds':
-        print("fpds derivations")
+        update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips, args.start[0], args.end[0])
     elif data_type == 'fabs':
         update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips, state_by_name, county_by_code,
                                args.start[0], args.end[0])
