@@ -49,7 +49,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                 Submission.reporting_start_date == formatted_start_date,
                 Submission.reporting_end_date == formatted_end_date,
                 Submission.is_quarter_format == request.json.get('is_quarter'),
-                Submission.d2_submission == False, # noqa
                 Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
 
             if 'existing_submission_id' in request.json:
