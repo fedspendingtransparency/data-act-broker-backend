@@ -370,6 +370,24 @@ def fix_fpds_ppop_state(row, state_by_code, state_code_by_fips):
             row.place_of_perfor_state_desc = state_by_code[state_code]
 
 
+def fix_fpds_le_cd(row):
+    # if the CD is a mashup of CD and state code, get just the last 2 characters (which are the CD)
+    if re.match('.+\d\d$', row.legal_entity_congressional):
+        row.legal_entity_congressional = row.legal_entity_congressional[-2:]
+    # if it's ZZ, just clear it out
+    elif row.legal_entity_congressional == 'ZZ':
+        row.legal_entity_congressional = None
+
+
+def fix_fpds_ppop_cd(row):
+    # if the CD is a mashup of CD and state code, get just the last 2 characters (which are the CD)
+    if re.match('.+\d\d$', row.place_of_performance_congr):
+        row.place_of_performance_congr = row.place_of_performance_congr[-2:]
+    # if it's ZZ, just clear it out
+    elif row.legal_entity_congressional == 'ZZ':
+        row.legal_entity_congressional = None
+
+
 def process_fpds_derivations(sess, country_list, state_by_code, state_code_by_fips, data):
     """ Process derivations for FPDS location data """
     for row in data:
@@ -389,9 +407,28 @@ def process_fpds_derivations(sess, country_list, state_by_code, state_code_by_fi
             # fix state data
             fix_fpds_ppop_state(row, state_by_code, state_code_by_fips)
 
+            # fix congressional district data (but only if we have the cd)
+            if row.place_of_performance_congr:
+                fix_fpds_ppop_cd(row)
+
+            if row.place_of_performance_zip4a:
+                ppop_zip5, ppop_zip4 = split_zip(row.place_of_performance_zip4a)
+                row.place_of_performance_zip5 = ppop_zip5
+                row.place_of_perform_zip_last4 = ppop_zip4
+
         # only do all of the following legal entity derivations/checks if the country code is USA
         if row.legal_entity_country_code and row.legal_entity_country_code.upper() == 'USA':
+            # fix state data
             fix_fpds_le_state(row, state_by_code)
+
+            # fix congressional district data (but only if we have the cd)
+            if row.legal_entity_congressional:
+                fix_fpds_le_cd(row)
+
+            if row.legal_entity_zip4:
+                le_zip5, le_zip4 = split_zip(row.legal_entity_zip4)
+                row.legal_entity_zip5 = le_zip5
+                row.legal_entity_zip_last4 = le_zip4
 
 
 def update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips, start, end):
