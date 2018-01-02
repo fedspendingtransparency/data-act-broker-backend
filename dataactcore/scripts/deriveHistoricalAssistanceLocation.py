@@ -388,7 +388,54 @@ def fix_fpds_ppop_cd(row):
         row.place_of_performance_congr = None
 
 
-def process_fpds_derivations(sess, country_list, state_by_code, state_code_by_fips, data):
+def fix_fpds_le_county(sess, row, county_by_code):
+    """ These are both new columns, so as long as we have the data, we want to try to derive them """
+    # we only want to do the below if we're missing either the county code or name, don't access the zip DB if we don't
+    # have to
+    if not row.legal_entity_county_code or not row.legal_entity_county_name:
+
+        zip_data = get_zip_data(sess, row.legal_entity_zip4)
+        if zip_data:
+            if not row.legal_entity_county_code:
+                row.legal_entity_county_code = zip_data.county_number
+
+            # if we got the zip data and have a state code to work with, if it's valid then grab the county name
+            if not row.legal_entity_county_name and row.legal_entity_state_code:
+                state = row.legal_entity_state_code.upper()
+                county_code = row.legal_entity_county_code
+
+                if state in county_by_code and county_code in county_by_code[state]:
+                    row.legal_entity_county_name = county_by_code[state][county_code]
+
+
+def fix_fpds_ppop_county(sess, row, county_by_code, county_by_name):
+    """ Derive ppop county code and name (where possible/missing) """
+    state = row.place_of_performance_state
+    if state:
+        state = state.upper()
+    # if we have the county name and state code, derive the name based on those
+    if not row.place_of_perform_county_co:
+        if row.place_of_perform_county_na and state:
+            county_name = row.place_of_perform_county_na.upper()
+
+            if state in county_by_name and county_name in county_by_name[state]:
+                row.place_of_perform_county_co = county_by_name[state][county_name]
+
+        # if we still don't have a county code, try the zip
+        if not row.place_of_perform_county_co and row.place_of_performance_zip4a:
+            zip_data = get_zip_data(sess, row.place_of_performance_zip4a)
+
+            if zip_data:
+                row.place_of_perform_county_co = zip_data.county_number
+
+    # if we don't have the county name but have the county code, derive the name
+    if not row.place_of_perform_county_na and state in county_by_code\
+            and row.place_of_perform_county_co in county_by_code[state]:
+        row.place_of_perform_county_na = county_by_code[state][row.place_of_perform_county_co]
+
+
+def process_fpds_derivations(sess, country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
+                             data):
     """ Process derivations for FPDS location data """
     for row in data:
         # Don't update the updated_at timestamp
@@ -411,6 +458,9 @@ def process_fpds_derivations(sess, country_list, state_by_code, state_code_by_fi
             if row.place_of_performance_congr:
                 fix_fpds_ppop_cd(row)
 
+            # fix county data
+            fix_fpds_ppop_county(sess, row, county_by_code, county_by_name)
+
             if row.place_of_performance_zip4a:
                 ppop_zip5, ppop_zip4 = split_zip(row.place_of_performance_zip4a)
                 row.place_of_performance_zip5 = ppop_zip5
@@ -426,12 +476,16 @@ def process_fpds_derivations(sess, country_list, state_by_code, state_code_by_fi
                 fix_fpds_le_cd(row)
 
             if row.legal_entity_zip4:
+                # we only need to try to derive legal entity county code if we were given a zip to work with
+                fix_fpds_le_county(sess, row, county_by_code)
+
                 le_zip5, le_zip4 = split_zip(row.legal_entity_zip4)
                 row.legal_entity_zip5 = le_zip5
                 row.legal_entity_zip_last4 = le_zip4
 
 
-def update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips, start, end):
+def update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name, start,
+                           end):
     """ Update historical FPDS location data with new columns and missing data where possible """
     model = DetachedAwardProcurement
     start_slice = 0
@@ -449,7 +503,8 @@ def update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips
         logger.info("Updating records: %s to %s", str(start_slice),
                     str(start_slice + QUERY_SIZE if (start_slice + QUERY_SIZE < record_count) else record_count))
         # process the derivations for historical data
-        process_fpds_derivations(sess, country_list, state_by_code, state_code_by_fips, query_result)
+        process_fpds_derivations(sess, country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
+                                 query_result)
         start_slice += QUERY_SIZE
 
         # break the loop if we've hit the last records
@@ -522,7 +577,8 @@ def main():
             county_by_name[state_code][county_name] = county_num
 
     if data_type == 'fpds':
-        update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips, args.start[0], args.end[0])
+        update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
+                               args.start[0], args.end[0])
     elif data_type == 'fabs':
         update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips, state_by_name, county_by_code,
                                args.start[0], args.end[0])
