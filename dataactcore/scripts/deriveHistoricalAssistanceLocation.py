@@ -384,8 +384,8 @@ def fix_fpds_ppop_cd(row):
     if re.match('.+\d\d$', row.place_of_performance_congr):
         row.place_of_performance_congr = row.place_of_performance_congr[-2:]
     # if it's ZZ, just clear it out
-    elif row.legal_entity_congressional == 'ZZ':
-        row.legal_entity_congressional = None
+    elif row.place_of_performance_congr == 'ZZ':
+        row.place_of_performance_congr = None
 
 
 def process_fpds_derivations(sess, country_list, state_by_code, state_code_by_fips, data):
