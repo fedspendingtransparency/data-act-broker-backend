@@ -1731,6 +1731,7 @@ def fabs_derivations(obj, sess):
         ppop_state = States(state_code=None, state_name=None)
     else:
         ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one()
+    obj['place_of_perfor_state_code'] = ppop_state.state_code
     obj['place_of_perform_state_nam'] = ppop_state.state_name
 
     # deriving place of performance values from zip4
@@ -1891,6 +1892,15 @@ def fabs_derivations(obj, sess):
             obj['legal_entity_country_name'] = country_data.country_name
         else:
             obj['legal_entity_country_name'] = None
+
+    # splitting ppop zip code into 5 and 4 digit codes for ease of website access
+    if obj['place_of_performance_zip4a']:
+        if len(obj['place_of_performance_zip4a']) == 5:
+            obj['place_of_performance_zip5'] = obj['place_of_performance_zip4a'][:5]
+            obj['place_of_perform_zip_last4'] = None
+        else:
+            obj['place_of_performance_zip5'] = obj['place_of_performance_zip4a'][:5]
+            obj['place_of_perform_zip_last4'] = obj['place_of_performance_zip4a'][-4:]
 
     if obj['correction_late_delete_ind'] and obj['correction_late_delete_ind'].upper() == 'D':
         obj['is_active'] = False

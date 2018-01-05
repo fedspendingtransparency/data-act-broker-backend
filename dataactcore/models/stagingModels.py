@@ -803,6 +803,7 @@ class DetachedAwardProcurement(Base):
     award_or_idv_flag = Column(Text)
     place_of_perform_country_n = Column(Text)
     place_of_perform_state_nam = Column(Text)
+    ignore_updated_at = False
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -951,6 +952,7 @@ class PublishedAwardFinancialAssistance(Base):
     place_of_perform_country_n = Column(Text)
     legal_entity_country_name = Column(Text)
     submission_id = Column(Numeric, index=True)
+    ignore_updated_at = False
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
