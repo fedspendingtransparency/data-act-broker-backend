@@ -1,4 +1,5 @@
 import logging
+import datetime
 
 from dataactcore.logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
@@ -16,9 +17,12 @@ def update_table(sess, type):
     logger.info("{} invalid {} rows found".format(invalid_count, type))
     # The name of the column depends on the type because of limited string length
     suffix = 'o' if type == "funding" else ''
+
+    updated_at = datetime.datetime.utcnow().strftime('%Y-%m-%d %I:%M:%S.%f')
     # updates table based off the parent of the sub_tier_agency code
     sess.execute(
-        "UPDATE detached_award_procurement set " + type + "_agency_code = agency.agency_code, " +
+        "UPDATE detached_award_procurement set updated_at = '" + updated_at + "', "
+        + type + "_agency_code = agency.agency_code, " +
         type + "_agency_name = agency.agency_name from ( " +
         "SELECT sub.sub_tier_agency_code, sub.cgac_id, sub.frec_id, sub.is_frec, CASE WHEN sub.is_frec " +
         "THEN (SELECT agency_name from frec WHERE frec.frec_id = sub.frec_id) " +
@@ -40,7 +44,7 @@ def update_table(sess, type):
 
 # data logging
 def print_report(initial, final, type):
-    logger.info("{} invalid {} rows removed".format(initial - final, type))
+    logger.info("{} invalid {} rows updated".format(initial - final, type))
     logger.info("{} invalid {} rows remaining".format(final, type))
 
 
