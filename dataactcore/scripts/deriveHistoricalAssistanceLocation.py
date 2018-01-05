@@ -171,7 +171,9 @@ def fix_fabs_ppop_state(sess, row, state_by_code, state_code_by_fips, state_by_n
 
 def fix_fabs_le_county(sess, row, zip_data, zip_check, county_by_code):
     """ Update legal entity county info """
-    state = row.legal_entity_state_code
+    state_code = row.legal_entity_state_code
+    if state_code:
+        state_code = state_code.upper()
 
     # remove . from county code, only legal entity has any of these
     if row.legal_entity_county_code and '.' in row.legal_entity_county_code:
@@ -194,25 +196,27 @@ def fix_fabs_le_county(sess, row, zip_data, zip_check, county_by_code):
                 row.legal_entity_county_code = zip_data.county_number
 
     # fill in legal entity county name where needed/possible
-    if not row.legal_entity_county_name and row.legal_entity_county_code and state:
-        if state.upper() in county_by_code and row.legal_entity_county_code in county_by_code[state.upper()]:
-            row.legal_entity_county_name = county_by_code[state.upper()][row.legal_entity_county_code]
+    if not row.legal_entity_county_name and row.legal_entity_county_code and state_code:
+        if state_code in county_by_code and row.legal_entity_county_code in county_by_code[state_code]:
+            row.legal_entity_county_name = county_by_code[state_code.upper()][row.legal_entity_county_code]
 
 
 def fix_fabs_ppop_county(sess, row, zip_data, zip_check, county_by_code):
     """ Update ppop county info """
-    state = row.place_of_perfor_state_code
+    state_code = row.place_of_perfor_state_code
+    if state_code:
+        state_code = state_code.upper()
     # fill the place of performance county code where needed/possible
     if not row.place_of_perform_county_co:
         # we only need to check place of performance code if it exists and if we have a valid state
-        if row.place_of_performance_code and state:
+        if row.place_of_performance_code and state_code:
             ppop_code = row.place_of_performance_code.upper()
             # if county style, get county code
             if re.match('^([A-Z]{2}|\d{2})\*\*\d{3}$', ppop_code):
                 row.place_of_perform_county_co = ppop_code[-3:]
             # if city style, check city code table
             elif re.match('^([A-Z]{2}|\d{2})\d{5}$', ppop_code):
-                city_info = sess.query(CityCode).filter_by(city_code=ppop_code[-5:], state_code=state).first()
+                city_info = sess.query(CityCode).filter_by(city_code=ppop_code[-5:], state_code=state_code).first()
                 # only set it if we got one
                 if city_info:
                     row.place_of_perform_county_co = city_info.county_number
@@ -226,9 +230,9 @@ def fix_fabs_ppop_county(sess, row, zip_data, zip_check, county_by_code):
                 row.place_of_perform_county_co = zip_data.county_number
 
     # fill in place of performance county name where needed/possible
-    if not row.place_of_perform_county_na and row.place_of_perform_county_co and state:
-        if state.upper() in county_by_code and row.place_of_perform_county_co in county_by_code[state.upper()]:
-            row.place_of_perform_county_na = county_by_code[state.upper()][row.place_of_perform_county_co]
+    if not row.place_of_perform_county_na and row.place_of_perform_county_co and state_code:
+        if state_code in county_by_code and row.place_of_perform_county_co in county_by_code[state_code]:
+            row.place_of_perform_county_na = county_by_code[state_code][row.place_of_perform_county_co]
 
 
 def process_fabs_derivations(sess, data, country_list, state_by_code, state_code_by_fips, state_by_name,
@@ -401,25 +405,25 @@ def fix_fpds_le_county(sess, row, county_by_code):
 
             # if we got the zip data and have a state code to work with, if it's valid then grab the county name
             if not row.legal_entity_county_name and row.legal_entity_state_code:
-                state = row.legal_entity_state_code.upper()
+                state_code = row.legal_entity_state_code.upper()
                 county_code = row.legal_entity_county_code
 
-                if state in county_by_code and county_code in county_by_code[state]:
-                    row.legal_entity_county_name = county_by_code[state][county_code]
+                if state_code in county_by_code and county_code in county_by_code[state_code]:
+                    row.legal_entity_county_name = county_by_code[state_code][county_code]
 
 
 def fix_fpds_ppop_county(sess, row, county_by_code, county_by_name):
     """ Derive ppop county code and name (where possible/missing) """
-    state = row.place_of_performance_state
-    if state:
-        state = state.upper()
+    state_code = row.place_of_performance_state
+    if state_code:
+        state_code = state_code.upper()
     # if we have the county name and state code, derive the name based on those
     if not row.place_of_perform_county_co:
-        if row.place_of_perform_county_na and state:
+        if row.place_of_perform_county_na and state_code:
             county_name = row.place_of_perform_county_na.upper()
 
-            if state in county_by_name and county_name in county_by_name[state]:
-                row.place_of_perform_county_co = county_by_name[state][county_name]
+            if state_code in county_by_name and county_name in county_by_name[state_code]:
+                row.place_of_perform_county_co = county_by_name[state_code][county_name]
 
         # if we still don't have a county code, try the zip
         if not row.place_of_perform_county_co and row.place_of_performance_zip4a:
@@ -429,9 +433,9 @@ def fix_fpds_ppop_county(sess, row, county_by_code, county_by_name):
                 row.place_of_perform_county_co = zip_data.county_number
 
     # if we don't have the county name but have the county code, derive the name
-    if not row.place_of_perform_county_na and state in county_by_code\
-            and row.place_of_perform_county_co in county_by_code[state]:
-        row.place_of_perform_county_na = county_by_code[state][row.place_of_perform_county_co]
+    if not row.place_of_perform_county_na and state_code in county_by_code\
+            and row.place_of_perform_county_co in county_by_code[state_code]:
+        row.place_of_perform_county_na = county_by_code[state_code][row.place_of_perform_county_co]
 
 
 def process_fpds_derivations(sess, country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
