@@ -2,19 +2,21 @@ import logging
 
 from dataactcore.logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.jobModels import Submission # noqa
-from dataactcore.models.userModel import User # noqa
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
 
 
+# sess: Passing session into the function for modifying db
+# type: will be either 'awarding' or 'funding' to determine which agency type we are checking
 def update_table(sess, type):
     logger.info('updating ' + type)
-    invalid = sess.execute("select * from detached_award_procurement where " + type + "_agency_code='999'")
-    invalid_count = len(invalid.fetchall())
+    invalid = sess.execute("select count(*) from detached_award_procurement where " + type + "_agency_code='999'")
+    invalid_count = invalid.fetchone()[0]
     logger.info("{} invalid {} rows found".format(invalid_count, type))
+    # The name of the column depends on the type because of limited string length
     suffix = 'o' if type == "funding" else ''
+    # updates table based off the parent of the sub_tier_agency code
     sess.execute(
         "UPDATE detached_award_procurement set " + type + "_agency_code = agency.agency_code, " +
         type + "_agency_name = agency.agency_name from ( " +
@@ -32,10 +34,11 @@ def update_table(sess, type):
         " = agency.sub_tier_agency_code "
     )
     sess.commit()
-    invalid = sess.execute("select * from detached_award_procurement where " + type + "_agency_code='999'")
-    print_report(invalid_count, len(invalid.fetchall()), type)
+    invalid = sess.execute("select count(*) from detached_award_procurement where " + type + "_agency_code='999'")
+    print_report(invalid_count, invalid.fetchone()[0], type)
 
 
+# data logging
 def print_report(initial, final, type):
     logger.info("{} invalid {} rows removed".format(initial - final, type))
     logger.info("{} invalid {} rows remaining".format(final, type))
