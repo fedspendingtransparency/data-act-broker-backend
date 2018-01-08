@@ -36,10 +36,10 @@ WHERE op.program_activity_code <> '0000'
                 AND op.main_account_code = pa.account_number
                 AND UPPER(COALESCE(op.program_activity_name, '')) = UPPER(pa.program_activity_name)
                 AND COALESCE(op.program_activity_code, '') = pa.program_activity_code
-                AND CAST(pa.budget_year AS INTEGER) IN (2016, (SELECT reporting_fiscal_year
-                                                               FROM submission
-                                                               WHERE submission_id = {0})
-                                                       )
+                AND CAST(pa.budget_year AS INTEGER) IN (2016, 2017, 2018)  -- temporarily hardcoded to 2016-2018
+                                                       -- (SELECT reporting_fiscal_year
+                                                       --  FROM submission
+                                                       --  WHERE submission_id = {0})
     )
     -- when there's no program activity name, return sum of true/false statements of whether all numerical values
     -- are zero or not (1 = not zero) (see if there are any non-zero values basically)
