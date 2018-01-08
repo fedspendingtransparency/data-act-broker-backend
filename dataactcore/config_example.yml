@@ -65,6 +65,9 @@ broker:
     static_files_bucket: sample-static-files-bucket
     help_files_path: sample-help-files-folder
 
+    # Location that deleted records from the FPDS atom feed are stored
+    fpds_delete_bucket: fpds-deleted-records
+
     # MAX login
     cas_service_url: https://cas.service.url/cas/serviceValidate?ticket={}&service={}
     parent_group: sample

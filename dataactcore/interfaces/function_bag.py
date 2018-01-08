@@ -1,10 +1,9 @@
-from datetime import datetime
 import logging
 from operator import attrgetter
 import time
 import uuid
 
-from sqlalchemy import func, or_
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -12,7 +11,7 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import Job, Submission, JobDependency, CertifyHistory, CertifiedFilesHistory
-from dataactcore.models.stagingModels import AwardFinancial, DetachedAwardFinancialAssistance
+from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance
 from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
@@ -58,17 +57,6 @@ def get_password_hash(password, bcrypt):
     encoded_hash = bcrypt.generate_password_hash(password + salt, HASH_ROUNDS)
     password_hash = encoded_hash.decode("utf-8")
     return salt, password_hash
-
-
-def populate_submission_error_info(submission_id):
-    """Set number of errors and warnings for submission."""
-    sess = GlobalDB.db().session
-    submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
-    submission.number_of_errors = sum_number_of_errors_for_job_list(submission_id)
-    submission.number_of_warnings = sum_number_of_errors_for_job_list(submission_id, error_type='warning')
-    sess.commit()
-
-    return submission
 
 
 def populate_job_error_info(job):
@@ -258,21 +246,6 @@ def check_correct_password(user, password, bcrypt):
     return bcrypt.check_password_hash(user.password_hash, password + user.salt)
 
 
-def get_submission_stats(submission_id):
-    """Get summarized dollar amounts by submission."""
-    sess = GlobalDB.db().session
-    base_query = sess.query(func.sum(AwardFinancial.transaction_obligated_amou)).\
-        filter(AwardFinancial.submission_id == submission_id)
-    procurement = base_query.filter(AwardFinancial.piid.isnot(None))
-    fin_assist = base_query.filter(or_(AwardFinancial.fain.isnot(None),
-                                       AwardFinancial.uri.isnot(None)))
-    return {
-        "total_obligations": float(base_query.scalar() or 0),
-        "total_procurement_obligations": float(procurement.scalar() or 0),
-        "total_assistance_obligations": float(fin_assist.scalar() or 0)
-    }
-
-
 def run_job_checks(job_id):
     """ Checks that specified job has no unsatisfied prerequisites
     Args:
@@ -368,34 +341,6 @@ def check_job_dependencies(job_id):
                     response = queue.send_message(MessageBody=str(dep_job_id))
                     log_data['message'] = 'Send message response: {}'.format(response)
                     logger.info(log_data)
-
-
-def create_submission(user_id, submission_values, existing_submission):
-    """ Create a new submission
-
-    Arguments:
-        user_id:  user to associate with this submission
-        submission_values: metadata about the submission
-        existing_submission: id of existing submission (blank for new submissions)
-
-    Returns:
-        submission object
-    """
-    if existing_submission is None:
-        submission = Submission(created_at=datetime.utcnow(), **submission_values)
-        submission.user_id = user_id
-        submission.publish_status_id = PUBLISH_STATUS_DICT['unpublished']
-    else:
-        submission = existing_submission
-        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
-            submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
-        # submission is being updated, so turn off publishable flag
-        submission.publishable = False
-        for key in submission_values:
-            # update existing submission with any values provided
-            setattr(submission, key, submission_values[key])
-
-    return submission
 
 
 def create_jobs(upload_files, submission, existing_submission=False):
@@ -606,54 +551,6 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
     sess.commit()
 
     return validation_job_id, upload_job.job_id
-
-
-def get_submission_files(jobs):
-    job_list = []
-    for job in jobs:
-        if job.filename not in job_list:
-            job_list.append(job.filename)
-    return job_list
-
-
-def get_submission_status(submission, jobs):
-    """Return the status of a submission."""
-
-    status_names = JOB_STATUS_DICT.keys()
-    statuses = {name: 0 for name in status_names}
-    skip_count = 0
-
-    for job in jobs:
-        if job.job_type.name not in ["external_validation", None]:
-            job_status = job.job_status.name
-            statuses[job_status] += 1
-        else:
-            skip_count += 1
-
-    status = "unknown"
-
-    if statuses["failed"] != 0:
-        status = "failed"
-    elif statuses["invalid"] != 0:
-        status = "file_errors"
-    elif statuses["running"] != 0:
-        status = "running"
-    elif statuses["waiting"] != 0:
-        status = "waiting"
-    elif statuses["ready"] != 0:
-        status = "ready"
-    elif statuses["finished"] == jobs.count() - skip_count:  # need to account for the jobs that were skipped above
-        status = "validation_successful"
-        if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
-            status = "validation_successful_warnings"
-        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
-            status = "certified"
-
-    # Check if submission has errors
-    if submission.number_of_errors is not None and submission.number_of_errors > 0:
-        status = "validation_errors"
-
-    return status
 
 
 def get_lastest_certified_date(submission, is_fabs=False):

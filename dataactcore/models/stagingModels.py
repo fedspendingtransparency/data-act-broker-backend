@@ -541,14 +541,21 @@ class DetachedAwardProcurement(Base):
     ultimate_parent_unique_ide = Column(Text)
     award_description = Column(Text)
     place_of_performance_zip4a = Column(Text)
+    place_of_performance_zip5 = Column(Text)
+    place_of_perform_zip_last4 = Column(Text)
     place_of_perform_city_name = Column(Text)
+    place_of_perform_county_co = Column(Text)
     place_of_perform_county_na = Column(Text)
     place_of_performance_congr = Column(Text)
     awardee_or_recipient_legal = Column(Text)
     legal_entity_city_name = Column(Text)
+    legal_entity_county_code = Column(Text)
+    legal_entity_county_name = Column(Text)
     legal_entity_state_code = Column(Text)
     legal_entity_state_descrip = Column(Text)
     legal_entity_zip4 = Column(Text)
+    legal_entity_zip5 = Column(Text)
+    legal_entity_zip_last4 = Column(Text)
     legal_entity_congressional = Column(Text)
     legal_entity_address_line1 = Column(Text)
     legal_entity_address_line2 = Column(Text)
@@ -791,12 +798,12 @@ class DetachedAwardProcurement(Base):
     pulled_from = Column(Text)
     last_modified = Column(Text)
     initial_report_date = Column(Text)
-    referenced_idv_type = Column(Text)
     referenced_idv_agency_name = Column(Text)
     referenced_multi_or_single = Column(Text)
     award_or_idv_flag = Column(Text)
     place_of_perform_country_n = Column(Text)
     place_of_perform_state_nam = Column(Text)
+    ignore_updated_at = False
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -932,8 +939,11 @@ class PublishedAwardFinancialAssistance(Base):
     place_of_perform_country_c = Column(Text, index=True)
     place_of_perform_county_na = Column(Text)
     place_of_performance_forei = Column(Text)
+    place_of_perfor_state_code = Column(Text)
     place_of_perform_state_nam = Column(Text)
     place_of_performance_zip4a = Column(Text)
+    place_of_performance_zip5 = Column(Text)
+    place_of_perform_zip_last4 = Column(Text)
     record_type = Column(Integer, index=True)
     sai_number = Column(Text)
     total_funding_amount = Column(Text)
@@ -942,6 +952,7 @@ class PublishedAwardFinancialAssistance(Base):
     place_of_perform_country_n = Column(Text)
     legal_entity_country_name = Column(Text)
     submission_id = Column(Numeric, index=True)
+    ignore_updated_at = False
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
