@@ -79,9 +79,12 @@ def test_failure_fiscal_year(database):
     pa_3 = ProgramActivityFactory(budget_year=2018, agency_id='test3', allocation_transfer_id='test3',
                                   account_number='test3', program_activity_name='test3', program_activity_code='test3')
 
+    pa_4 = ProgramActivityFactory(budget_year=2019, agency_id='test4', allocation_transfer_id='test4',
+                                  account_number='test4', program_activity_name='test4', program_activity_code='test4')
+
     submission = SubmissionFactory(submission_id='1', reporting_fiscal_year='2017')
 
-    assert number_of_errors(_FILE, database, models=[af, pa_1, pa_2, pa_3], submission=submission) == 1
+    assert number_of_errors(_FILE, database, models=[af, pa_1, pa_2, pa_3, pa_4], submission=submission) == 1
 
 
 def test_success_ignore_case(database):
