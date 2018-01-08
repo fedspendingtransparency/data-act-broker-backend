@@ -26,8 +26,8 @@ WHERE af.program_activity_code <> '0000'
             AND af.main_account_code = pa.account_number
             AND UPPER(COALESCE(af.program_activity_name, '')) = UPPER(pa.program_activity_name)
             AND COALESCE(af.program_activity_code, '') = pa.program_activity_code
-            AND CAST(pa.budget_year AS INTEGER) IN (2016, (SELECT reporting_fiscal_year
-                                                           FROM submission
-                                                           WHERE submission_id = {0})
-                                                   )
+            AND CAST(pa.budget_year AS INTEGER) IN (2016, 2017, 2018)  -- temporarily hardcoded to 2016-2018
+                                                   -- (SELECT reporting_fiscal_year
+                                                   --  FROM submission
+                                                   --  WHERE submission_id = {0})
     );

@@ -1,41 +1,49 @@
+import calendar
+import logging
 import os
+import re
+import requests
 import smart_open
+import sqlalchemy as sa
+import threading
+
 from collections import namedtuple
 from datetime import datetime
-import logging
 from dateutil.relativedelta import relativedelta
-from shutil import copyfile
-import threading
-import re
-
-import calendar
-
-import requests
 from flask import g, request
-import sqlalchemy as sa
+from shutil import copyfile
 from sqlalchemy import func, and_
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql.expression import case
 from werkzeug.utils import secure_filename
 
+from dataactbroker.handlers.fileGenerationHandler import generate_d_file, generate_e_file, generate_f_file
+from dataactbroker.handlers.submission_handler import create_submission, get_submission_status, get_submission_files
 from dataactbroker.permissions import current_user_can, current_user_can_on_submission
+
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
+
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import (
+    create_jobs, get_error_metrics_by_job_jd, get_error_type, get_fabs_meta, mark_job_status, run_job_checks,
+    get_last_validated_date, get_lastest_certified_date)
+
 from dataactcore.models.domainModels import (
     CGAC, FREC, CFDAProgram, SubTierAgency, Zips, States, CountyCode, CityCode, ZipCity, CountryCode)
 from dataactcore.models.errorModels import File
-from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
-                                              FPDSContractingOffice)
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
-from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
     JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID,
     FILE_TYPE_DICT_LETTER_NAME)
+from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
+                                              FPDSContractingOffice)
+from dataactcore.models.userModel import User
 from dataactcore.models.views import SubmissionUpdatedView
+
 from dataactcore.utils import fileD2
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
@@ -43,10 +51,7 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.interfaces.function_bag import (
-    create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status, get_fabs_meta,
-    get_submission_files, mark_job_status, run_job_checks, get_last_validated_date, get_lastest_certified_date)
-from dataactbroker.handlers.fileGenerationHandler import generate_d_file, generate_e_file, generate_f_file
+
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
 
 logger = logging.getLogger(__name__)
@@ -1726,6 +1731,7 @@ def fabs_derivations(obj, sess):
         ppop_state = States(state_code=None, state_name=None)
     else:
         ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one()
+    obj['place_of_perfor_state_code'] = ppop_state.state_code
     obj['place_of_perform_state_nam'] = ppop_state.state_name
 
     # deriving place of performance values from zip4
@@ -1886,6 +1892,15 @@ def fabs_derivations(obj, sess):
             obj['legal_entity_country_name'] = country_data.country_name
         else:
             obj['legal_entity_country_name'] = None
+
+    # splitting ppop zip code into 5 and 4 digit codes for ease of website access
+    if obj['place_of_performance_zip4a']:
+        if len(obj['place_of_performance_zip4a']) == 5:
+            obj['place_of_performance_zip5'] = obj['place_of_performance_zip4a'][:5]
+            obj['place_of_perform_zip_last4'] = None
+        else:
+            obj['place_of_performance_zip5'] = obj['place_of_performance_zip4a'][:5]
+            obj['place_of_perform_zip_last4'] = obj['place_of_performance_zip4a'][-4:]
 
     if obj['correction_late_delete_ind'] and obj['correction_late_delete_ind'].upper() == 'D':
         obj['is_active'] = False

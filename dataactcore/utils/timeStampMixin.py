@@ -10,7 +10,8 @@ class TimeStampMixin(object):
 
     @staticmethod
     def _updated_at(mapper, connection, target):
-        target.updated_at = datetime.utcnow()
+        if not getattr(target, "ignore_updated_at", None):
+            target.updated_at = datetime.utcnow()
 
     @classmethod
     def __declare_last__(cls):
