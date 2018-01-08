@@ -66,9 +66,9 @@ def test_success_fiscal_year(database):
 def test_failure_fiscal_year(database):
     """ Testing invalid name for FY, not matches with budget_year"""
 
-    af = AwardFinancialFactory(row_number=1, submission_id='1', agency_identifier='test3',
-                               main_account_code='test3', program_activity_name='test3',
-                               program_activity_code='test3')
+    af = AwardFinancialFactory(row_number=1, submission_id='1', agency_identifier='test4',
+                               main_account_code='test4', program_activity_name='test4',
+                               program_activity_code='test4')
 
     pa_1 = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
                                   account_number='test', program_activity_name='test', program_activity_code='test')
