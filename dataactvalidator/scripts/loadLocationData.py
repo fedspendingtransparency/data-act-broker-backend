@@ -136,7 +136,7 @@ def parse_zip_city_file(f, sess):
             curr_row = curr_chunk[:line_size]
             if curr_row[0] == "D":
                 zip_code = curr_row[1:6]
-                city_name = curr_row[62:90]
+                city_name = curr_row[62:90].strip()
                 data_array[zip_code] = {"zip_code": zip_code, "city_name": city_name}
 
             # cut the current line out of the chunk we're processing
