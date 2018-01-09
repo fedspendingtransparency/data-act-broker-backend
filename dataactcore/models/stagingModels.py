@@ -963,7 +963,7 @@ class PublishedAwardFinancialAssistance(Base):
 Index(
     'ix_published_award_financial_assistance_is_active',
     PublishedAwardFinancialAssistance.is_active,
-    postgresql_where=(PublishedAwardFinancialAssistance.is_active)
+    postgresql_where=(PublishedAwardFinancialAssistance.is_active.is_(True))
     )
 
 
