@@ -960,8 +960,10 @@ class PublishedAwardFinancialAssistance(Base):
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(PublishedAwardFinancialAssistance, self).__init__(**clean_kwargs)
 
-Index('ix_published_award_financial_assistance_is_active', PublishedAwardFinancialAssistance.is_active,
-    postgresql_where=(PublishedAwardFinancialAssistance.is_active == True)
+Index(
+    'ix_published_award_financial_assistance_is_active',
+    PublishedAwardFinancialAssistance.is_active,
+    postgresql_where=(PublishedAwardFinancialAssistance.is_active)
     )
 
 
