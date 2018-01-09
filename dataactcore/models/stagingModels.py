@@ -909,7 +909,7 @@ class PublishedAwardFinancialAssistance(Base):
     funding_office_name = Column(Text)
     funding_sub_tier_agency_co = Column(Text, index=True)
     funding_sub_tier_agency_na = Column(Text)
-    is_active = Column(Boolean, default=False, nullable=False, server_default="False")
+    is_active = Column(Boolean, default=False, nullable=False, server_default="False", index=True)
     is_historical = Column(Boolean)
     legal_entity_address_line1 = Column(Text)
     legal_entity_address_line2 = Column(Text)
@@ -959,6 +959,10 @@ class PublishedAwardFinancialAssistance(Base):
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(PublishedAwardFinancialAssistance, self).__init__(**clean_kwargs)
+
+Index('ix_published_award_financial_assistance_is_active', PublishedAwardFinancialAssistance.is_active,
+    postgresql_where=(PublishedAwardFinancialAssistance.is_active == True)
+    )
 
 
 class FPDSContractingOffice(Base):
