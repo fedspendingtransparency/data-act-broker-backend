@@ -1,24 +1,27 @@
+import calendar
+import boto
 import os
+
+from boto.s3.key import Key
 from datetime import datetime
 from shutil import copy
 
-import calendar
+from dataactbroker.handlers.submission_handler import populate_submission_error_info
 
-import boto
-from boto.s3.key import Key
-
-from tests.unit.dataactcore.factories.job import SubmissionFactory
-from tests.integration.baseTestAPI import BaseTestAPI
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import populate_submission_error_info
+
 from dataactcore.models.jobModels import Submission, Job, JobDependency, CertifyHistory, CertifiedFilesHistory
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, ERROR_TYPE_DICT, RULE_SEVERITY_DICT,
                                         FILE_STATUS_DICT, FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT)
-from dataactcore.config import CONFIG_BROKER
+
 from dataactvalidator.health_check import create_app
+
 from sqlalchemy import or_
+from tests.unit.dataactcore.factories.job import SubmissionFactory
+from tests.integration.baseTestAPI import BaseTestAPI
 
 
 class FileTests(BaseTestAPI):

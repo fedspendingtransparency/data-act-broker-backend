@@ -1,6 +1,7 @@
+from dataactbroker.handlers.submission_handler import get_submission_stats
+
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.unit.dataactcore.factories.staging import AwardFinancialFactory
-from dataactcore.interfaces.function_bag import get_submission_stats
 
 
 def test_obligation_stats_for_submission_nonzero(database):

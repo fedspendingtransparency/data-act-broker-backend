@@ -254,7 +254,8 @@ class FileRequest(Base):
 
     file_request_id = Column(Integer, primary_key=True)
     request_date = Column(Date, nullable=False, index=True)
-    job_id = Column(Integer, ForeignKey("job.job_id", name="fk_file_request_job_id"), nullable=False)
+    job_id = Column(Integer, ForeignKey("job.job_id", ondelete="CASCADE", name="fk_file_request_job_id"),
+                    nullable=False)
     job = relationship("Job", uselist=False)
     parent_job_id = Column(Integer, nullable=True, index=True)
     start_date = Column(Date, nullable=False, index=True)
