@@ -42,13 +42,13 @@ def update_cfda(sess):
             update({"cfda_title": cfda_list[row.cfda_number]},
                    synchronize_session=False)
 
-
         logger.info('%s entries with CFDA number %s have been updated with title "%s"',
                     cfda_query, row.cfda_number, cfda_list[row.cfda_number])
         count = count - cfda_query
         complete = complete + cfda_query
         end_time = datetime.datetime.now()
-        logger.info('%s entries updated, %s entries remaining, %s percent complete', complete, count, (complete/total)*100)
+        logger.info('%s entries updated, %s entries remaining, %s percent complete',
+                    complete, count, (complete/total)*100)
         logger.info('CFDA %s took %s to complete', row.cfda_number, end_time - start_time)
         cfda_count += 1
     logger.info('%s PublishedAwardFinancialAssistance records updated', cfda_count)
