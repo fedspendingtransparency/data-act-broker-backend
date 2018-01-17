@@ -29,7 +29,7 @@ def valid_zip(zip_code):
     return True
 
 
-def get_zip_data(zip_list, zip_code):
+def get_zip_data(zip_code):
     """ Get the county code based on the zip passed """
     # if it isn't a valid zip format or someone passed None, just toss back nothing
     if not zip_code or not valid_zip(zip_code):
@@ -37,15 +37,15 @@ def get_zip_data(zip_list, zip_code):
 
     zip_data = None
     # if the 5-digit zip is in our list at all, then check details
-    if zip_code[:5] in zip_list:
+    if zip_code[:5] in g_zip_list:
         zip5 = zip_code[:5]
         # if it's a 9 digit zip, try with both halves first
         if len(zip_code) > 5:
-            if zip_code[-4:] in zip_list[zip5]:
-                zip_data = zip_list[zip5][zip_code[-4:]]
+            if zip_code[-4:] in g_zip_list[zip5]:
+                zip_data = g_zip_list[zip5][zip_code[-4:]]
         # if we didn't go into the last if statement or returned nothing from our previous search, try just 5 digit
         if not zip_data:
-            zip_data = zip_list[zip5]['default']
+            zip_data = g_zip_list[zip5]['default']
 
     return zip_data
 
@@ -114,7 +114,7 @@ def fix_fabs_ppop_country(row, country_list, state_by_code):
         row.place_of_perform_country_n = country_list[row.place_of_perform_country_c.upper()]
 
 
-def fix_fabs_le_state(row, state_by_code, state_by_name, zip_list):
+def fix_fabs_le_state(row, state_by_code, state_by_name):
     """ Update legal entity state info """
     zip_data = None
     zip_check = False
@@ -130,7 +130,7 @@ def fix_fabs_le_state(row, state_by_code, state_by_name, zip_list):
             # if we have a 4-digit zip to go with the 5-digit, combine them
             if row.legal_entity_zip_last4:
                 zip_code += row.legal_entity_zip_last4
-            zip_data = get_zip_data(zip_list, zip_code)
+            zip_data = get_zip_data(zip_code)
             zip_check = True
             # if we have zip data, set the state code
             if zip_data:
@@ -144,7 +144,7 @@ def fix_fabs_le_state(row, state_by_code, state_by_name, zip_list):
     return zip_data, zip_check
 
 
-def fix_fabs_ppop_state(row, state_by_code, state_code_by_fips, state_by_name, zip_list):
+def fix_fabs_ppop_state(row, state_by_code, state_code_by_fips, state_by_name):
     """ Update ppop state info """
     zip_data = None
     zip_check = False
@@ -161,7 +161,7 @@ def fix_fabs_ppop_state(row, state_by_code, state_code_by_fips, state_by_name, z
         elif row.place_of_perform_state_nam and row.place_of_perform_state_nam.upper() in state_by_name:
                 row.place_of_perfor_state_code = state_by_name[row.place_of_perform_state_nam.upper()]
         else:
-            zip_data = get_zip_data(zip_list, row.place_of_performance_zip4a)
+            zip_data = get_zip_data(row.place_of_performance_zip4a)
             zip_check = True
             # if we got any data from this, get the state code based on it
             if zip_data:
@@ -174,7 +174,7 @@ def fix_fabs_ppop_state(row, state_by_code, state_code_by_fips, state_by_name, z
     return zip_data, zip_check
 
 
-def fix_fabs_le_county(row, zip_data, zip_check, county_by_code, zip_list):
+def fix_fabs_le_county(row, zip_data, zip_check, county_by_code):
     """ Update legal entity county info """
     state_code = row.legal_entity_state_code
     if state_code:
@@ -196,7 +196,7 @@ def fix_fabs_le_county(row, zip_data, zip_check, county_by_code, zip_list):
                 # if we have a 4-digit zip to go with the 5-digit, combine them
                 if row.legal_entity_zip_last4:
                     zip_code += row.legal_entity_zip_last4
-                zip_data = get_zip_data(zip_list, zip_code)
+                zip_data = get_zip_data(zip_code)
             if zip_data:
                 row.legal_entity_county_code = zip_data.county_number
 
@@ -206,7 +206,7 @@ def fix_fabs_le_county(row, zip_data, zip_check, county_by_code, zip_list):
             row.legal_entity_county_name = county_by_code[state_code.upper()][row.legal_entity_county_code]
 
 
-def fix_fabs_ppop_county(sess, row, zip_data, zip_check, county_by_code, zip_list):
+def fix_fabs_ppop_county(sess, row, zip_data, zip_check, county_by_code):
     """ Update ppop county info """
     state_code = row.place_of_perfor_state_code
     if state_code:
@@ -230,7 +230,7 @@ def fix_fabs_ppop_county(sess, row, zip_data, zip_check, county_by_code, zip_lis
             # only look for zip data if we don't have any already and haven't tried to get it
             if not zip_data and not zip_check:
                 zip_code = row.place_of_performance_zip4a
-                zip_data = get_zip_data(zip_list, zip_code)
+                zip_data = get_zip_data(zip_code)
             if zip_data:
                 row.place_of_perform_county_co = zip_data.county_number
 
@@ -241,7 +241,7 @@ def fix_fabs_ppop_county(sess, row, zip_data, zip_check, county_by_code, zip_lis
 
 
 def process_fabs_derivations(sess, data, country_list, state_by_code, state_code_by_fips, state_by_name,
-                             county_by_code, zip_list):
+                             county_by_code):
     """ Process derivations for FABS location data """
     for row in data:
         # Don't update the updated_at timestamp
@@ -266,11 +266,10 @@ def process_fabs_derivations(sess, data, country_list, state_by_code, state_code
         # only do all of the following ppop derivations/checks if the country code is USA
         if row.place_of_perform_country_c and row.place_of_perform_country_c.upper() == 'USA':
             # fix state data
-            ppop_zip_data, ppop_zip_check = fix_fabs_ppop_state(row, state_by_code, state_code_by_fips, state_by_name,
-                                                                zip_list)
+            ppop_zip_data, ppop_zip_check = fix_fabs_ppop_state(row, state_by_code, state_code_by_fips, state_by_name)
 
             # fix ppop county data
-            fix_fabs_ppop_county(sess, row, ppop_zip_data, ppop_zip_check, county_by_code, zip_list)
+            fix_fabs_ppop_county(sess, row, ppop_zip_data, ppop_zip_check, county_by_code)
 
             # if we have a zip code from the US, split the 9-digit into a 5 and 4 digit when possible
             # we only need to do this for ppop for FABS because legal entity comes in split
@@ -282,14 +281,14 @@ def process_fabs_derivations(sess, data, country_list, state_by_code, state_code
         # only do all of the following legal entity derivations/checks if the country code is USA
         if row.legal_entity_country_code and row.legal_entity_country_code.upper() == 'USA':
             # fix legal entity state data
-            le_zip_data, le_zip_check = fix_fabs_le_state(row, state_by_code, state_by_name, zip_list)
+            le_zip_data, le_zip_check = fix_fabs_le_state(row, state_by_code, state_by_name)
 
             # fix legal entity county data
-            fix_fabs_le_county(row, le_zip_data, le_zip_check, county_by_code, zip_list)
+            fix_fabs_le_county(row, le_zip_data, le_zip_check, county_by_code)
 
 
-def update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips, state_by_name, county_by_code,
-                           zip_list, start, end):
+def update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips, state_by_name, county_by_code, start,
+                           end):
     """ Update historical FABS location data with new columns and missing data where possible """
     model = PublishedAwardFinancialAssistance
     start_slice = 0
@@ -311,11 +310,11 @@ def update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips
                     str(end_slice if (end_slice < record_count) else record_count))
         # process the derivations for historical data
         process_fabs_derivations(sess, query_result, country_list, state_by_code, state_code_by_fips, state_by_name,
-                                 county_by_code, zip_list)
+                                 county_by_code)
         if end_slice % 25000 == 0:
             logger.info("Pushing records %s to %s to the DB", str(end_slice-25000), str(end_slice))
             sess.commit()
-        start_slice  = end_slice
+        start_slice = end_slice
 
         # break the loop if we've hit the last records
         if start_slice >= record_count:
@@ -401,13 +400,13 @@ def fix_fpds_ppop_cd(row):
         row.place_of_performance_congr = None
 
 
-def fix_fpds_le_county(row, county_by_code, zip_list):
+def fix_fpds_le_county(row, county_by_code):
     """ These are both new columns, so as long as we have the data, we want to try to derive them """
     # we only want to do the below if we're missing either the county code or name, don't access the zip DB if we don't
     # have to
     if not row.legal_entity_county_code or not row.legal_entity_county_name:
 
-        zip_data = get_zip_data(zip_list, row.legal_entity_zip4)
+        zip_data = get_zip_data(row.legal_entity_zip4)
         if zip_data:
             if not row.legal_entity_county_code:
                 row.legal_entity_county_code = zip_data.county_number
@@ -421,7 +420,7 @@ def fix_fpds_le_county(row, county_by_code, zip_list):
                     row.legal_entity_county_name = county_by_code[state_code][county_code]
 
 
-def fix_fpds_ppop_county(row, county_by_code, county_by_name, zip_list):
+def fix_fpds_ppop_county(row, county_by_code, county_by_name):
     """ Derive ppop county code and name (where possible/missing) """
     state_code = row.place_of_performance_state
     if state_code:
@@ -436,7 +435,7 @@ def fix_fpds_ppop_county(row, county_by_code, county_by_name, zip_list):
 
         # if we still don't have a county code, try the zip
         if not row.place_of_perform_county_co and row.place_of_performance_zip4a:
-            zip_data = get_zip_data(zip_list, row.place_of_performance_zip4a)
+            zip_data = get_zip_data(row.place_of_performance_zip4a)
 
             if zip_data:
                 row.place_of_perform_county_co = zip_data.county_number
@@ -447,8 +446,7 @@ def fix_fpds_ppop_county(row, county_by_code, county_by_name, zip_list):
         row.place_of_perform_county_na = county_by_code[state_code][row.place_of_perform_county_co]
 
 
-def process_fpds_derivations(country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name, zip_list,
-                             data):
+def process_fpds_derivations(country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name, data):
     """ Process derivations for FPDS location data """
     for row in data:
         # Don't update the updated_at timestamp
@@ -472,7 +470,7 @@ def process_fpds_derivations(country_list, state_by_code, state_code_by_fips, co
                 fix_fpds_ppop_cd(row)
 
             # fix county data
-            fix_fpds_ppop_county(row, county_by_code, county_by_name, zip_list)
+            fix_fpds_ppop_county(row, county_by_code, county_by_name)
 
             if row.place_of_performance_zip4a:
                 ppop_zip5, ppop_zip4 = split_zip(row.place_of_performance_zip4a)
@@ -490,7 +488,7 @@ def process_fpds_derivations(country_list, state_by_code, state_code_by_fips, co
 
             if row.legal_entity_zip4:
                 # we only need to try to derive legal entity county code if we were given a zip to work with
-                fix_fpds_le_county(row, county_by_code, zip_list)
+                fix_fpds_le_county(row, county_by_code)
 
                 le_zip5, le_zip4 = split_zip(row.legal_entity_zip4)
                 row.legal_entity_zip5 = le_zip5
@@ -498,7 +496,7 @@ def process_fpds_derivations(country_list, state_by_code, state_code_by_fips, co
 
 
 def update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
-                           zip_list, start, end):
+                           start, end):
     """ Update historical FPDS location data with new columns and missing data where possible """
     model = DetachedAwardProcurement
     start_slice = 0
@@ -517,13 +515,13 @@ def update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips
         logger.info("Updating records: %s to %s", str(start_slice),
                     str(end_slice if (end_slice < record_count) else record_count))
         # process the derivations for historical data
-        process_fpds_derivations(sess, country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
-                                 zip_list, query_result)
+        process_fpds_derivations(country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
+                                 query_result)
         if end_slice % 25000 == 0:
             logger.info("Pushing records %s to %s to the DB", str(end_slice-25000), str(end_slice))
             sess.commit()
 
-        start_slice  = end_slice
+        start_slice = end_slice
 
         # break the loop if we've hit the last records
         if start_slice >= record_count:
@@ -533,6 +531,7 @@ def update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips
 
 
 def main():
+    logger.info("Starting location derivations")
     parser = argparse.ArgumentParser(description='Update county information for historical FABS and FPDS data')
     parser.add_argument('-t', '--type', help='Which data type, argument must be fpds or fabs', nargs=1, type=str,
                         required=True)
@@ -602,16 +601,18 @@ def main():
             zip_list[zip_data.zip5] = {}
             zip_list[zip_data.zip5]['default'] = zip_data
         zip_list[zip_data.zip5][zip_data.zip_last4] = zip_data
+    global g_zip_list
     g_zip_list = zip_list
 
     if data_type == 'fpds':
         update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
-                               zip_list, args.start[0], args.end[0])
+                               args.start[0], args.end[0])
     elif data_type == 'fabs':
         update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips, state_by_name, county_by_code,
-                               zip_list, args.start[0], args.end[0])
+                               args.start[0], args.end[0])
     else:
         logger.error("Type must be fpds or fabs.")
+    logger.info("Completed location derivations")
 
 
 if __name__ == '__main__':
