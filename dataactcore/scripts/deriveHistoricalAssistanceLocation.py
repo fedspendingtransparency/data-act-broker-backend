@@ -20,6 +20,7 @@ QUERY_SIZE = 1000
 country_code_map = {'USA': 'US', 'ASM': 'AS', 'GUM': 'GU', 'MNP': 'MP', 'PRI': 'PR', 'VIR': 'VI', 'FSM': 'FM',
                     'MHL': 'MH', 'PLW': 'PW', 'XBK': 'UM', 'XHO': 'UM', 'XJV': 'UM', 'XJA': 'UM', 'XKR': 'UM',
                     'XPL': 'UM', 'XMW': 'UM', 'XWK': 'UM'}
+g_zip_list = {}
 
 
 def valid_zip(zip_code):
@@ -299,18 +300,22 @@ def update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips
         filter(cast(model.action_date, Date) <= end).count()
     logger.info("Total records in this range: %s", record_count)
     while True:
+        end_slice = start_slice + QUERY_SIZE
         query_result = sess.query(model).\
             filter(model.is_active.is_(True)).\
             filter(cast(model.action_date, Date) >= start).\
             filter(cast(model.action_date, Date) <= end).\
-            slice(start_slice, start_slice + QUERY_SIZE).all()
+            slice(start_slice, end_slice).all()
 
         logger.info("Updating records: %s to %s", str(start_slice),
-                    str(start_slice + QUERY_SIZE if (start_slice + QUERY_SIZE < record_count) else record_count))
+                    str(end_slice if (end_slice < record_count) else record_count))
         # process the derivations for historical data
         process_fabs_derivations(sess, query_result, country_list, state_by_code, state_code_by_fips, state_by_name,
                                  county_by_code, zip_list)
-        start_slice += QUERY_SIZE
+        if end_slice % 25000 == 0:
+            logger.info("Pushing records %s to %s to the DB", str(end_slice-25000), str(end_slice))
+            sess.commit()
+        start_slice  = end_slice
 
         # break the loop if we've hit the last records
         if start_slice >= record_count:
@@ -503,17 +508,22 @@ def update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips
         filter(cast(model.action_date, Date) <= end).count()
     logger.info("Total records in this range: %s", record_count)
     while True:
+        end_slice = start_slice + QUERY_SIZE
         query_result = sess.query(model). \
             filter(cast(model.action_date, Date) >= start). \
             filter(cast(model.action_date, Date) <= end). \
-            slice(start_slice, start_slice + QUERY_SIZE).all()
+            slice(start_slice, end_slice).all()
 
         logger.info("Updating records: %s to %s", str(start_slice),
-                    str(start_slice + QUERY_SIZE if (start_slice + QUERY_SIZE < record_count) else record_count))
+                    str(end_slice if (end_slice < record_count) else record_count))
         # process the derivations for historical data
-        process_fpds_derivations(country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
+        process_fpds_derivations(sess, country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
                                  zip_list, query_result)
-        start_slice += QUERY_SIZE
+        if end_slice % 25000 == 0:
+            logger.info("Pushing records %s to %s to the DB", str(end_slice-25000), str(end_slice))
+            sess.commit()
+
+        start_slice  = end_slice
 
         # break the loop if we've hit the last records
         if start_slice >= record_count:
@@ -592,6 +602,7 @@ def main():
             zip_list[zip_data.zip5] = {}
             zip_list[zip_data.zip5]['default'] = zip_data
         zip_list[zip_data.zip5][zip_data.zip_last4] = zip_data
+    g_zip_list = zip_list
 
     if data_type == 'fpds':
         update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
