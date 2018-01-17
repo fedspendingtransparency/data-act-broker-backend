@@ -558,6 +558,7 @@ def main():
     state_by_code = {}
     state_by_name = {}
     state_code_by_fips = {}
+
     states = sess.query(States).all()
 
     for state in states:
@@ -594,15 +595,25 @@ def main():
             county_by_name[state_code][county_name] = county_num
 
     # pull in all the zip codes
-    zip_list = {}
-    zip_codes = sess.query(Zips).all()
-    for zip_data in zip_codes:
-        if zip_data.zip5 not in zip_list:
-            zip_list[zip_data.zip5] = {}
-            zip_list[zip_data.zip5]['default'] = zip_data
-        zip_list[zip_data.zip5][zip_data.zip_last4] = zip_data
     global g_zip_list
-    g_zip_list = zip_list
+    zip_codes = sess.query(Zips).all()
+
+    zip_count = 0
+    for zip_data in zip_codes:
+        if zip_data.zip5 not in g_zip_list:
+            g_zip_list[zip_data.zip5] = {}
+            g_zip_list[zip_data.zip5]['default'] = zip_data
+        g_zip_list[zip_data.zip5][zip_data.zip_last4] = zip_data
+        zip_count += 1
+        if zip_count % 1000000 == 0:
+            print("Added %s rows to zip dict", str(zip_count))
+
+    # clear out variables that we aren't using anymore to save some space later
+    del countries
+    del states
+    del county_codes
+    del zip_codes
+    del zip_count
 
     if data_type == 'fpds':
         update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
@@ -612,6 +623,7 @@ def main():
                                args.start[0], args.end[0])
     else:
         logger.error("Type must be fpds or fabs.")
+
     logger.info("Completed location derivations")
 
 
