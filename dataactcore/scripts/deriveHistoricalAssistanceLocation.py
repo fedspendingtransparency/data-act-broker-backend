@@ -722,14 +722,22 @@ def main():
     global fix_fpds_ppop_county_count
     global fix_fpds_ppop_county_length
 
-    logger.info("Avg duration of fix_fpds_le_country: {}".format(str(fix_fpds_le_country_length/fix_fpds_le_country_count)))
-    logger.info("Avg duration of fix_fpds_ppop_country: {}".format(str(fix_fpds_ppop_country_length/fix_fpds_ppop_country_count)))
-    logger.info("Avg duration of fix_fpds_le_state: {}".format(str(fix_fpds_le_state_length/fix_fpds_le_state_count)))
-    logger.info("Avg duration of fix_fpds_ppop_state: {}".format(str(fix_fpds_ppop_state_length/fix_fpds_ppop_state_count)))
-    logger.info("Avg duration of fix_fpds_le_cd: {}".format(str(fix_fpds_le_cd_length/fix_fpds_le_cd_count)))
-    logger.info("Avg duration of fix_fpds_ppop_cd: {}".format(str(fix_fpds_ppop_cd_length/fix_fpds_ppop_cd_count)))
-    logger.info("Avg duration of fix_fpds_le_county: {}".format(str(fix_fpds_le_county_length/fix_fpds_le_county_count)))
-    logger.info("Avg duration of fix_fpds_ppop_county: {}".format(str(fix_fpds_ppop_county_length/fix_fpds_ppop_county_count)))
+    if fix_fpds_le_country_count > 0:
+        logger.info("Avg duration of fix_fpds_le_country: {}".format(str(fix_fpds_le_country_length/fix_fpds_le_country_count)))
+    if fix_fpds_ppop_country_count > 0:
+        logger.info("Avg duration of fix_fpds_ppop_country: {}".format(str(fix_fpds_ppop_country_length/fix_fpds_ppop_country_count)))
+    if fix_fpds_le_state_count > 0:
+        logger.info("Avg duration of fix_fpds_le_state: {}".format(str(fix_fpds_le_state_length/fix_fpds_le_state_count)))
+    if fix_fpds_ppop_state_count > 0:
+        logger.info("Avg duration of fix_fpds_ppop_state: {}".format(str(fix_fpds_ppop_state_length/fix_fpds_ppop_state_count)))
+    if fix_fpds_le_cd_count > 0:
+        logger.info("Avg duration of fix_fpds_le_cd: {}".format(str(fix_fpds_le_cd_length/fix_fpds_le_cd_count)))
+    if fix_fpds_ppop_cd_count > 0:
+        logger.info("Avg duration of fix_fpds_ppop_cd: {}".format(str(fix_fpds_ppop_cd_length/fix_fpds_ppop_cd_count)))
+    if fix_fpds_le_county_count > 0:
+        logger.info("Avg duration of fix_fpds_le_county: {}".format(str(fix_fpds_le_county_length/fix_fpds_le_county_count)))
+    if fix_fpds_ppop_county_count > 0:
+        logger.info("Avg duration of fix_fpds_ppop_county: {}".format(str(fix_fpds_ppop_county_length/fix_fpds_ppop_county_count)))
 
     logger.info("Completed location derivations")
 
