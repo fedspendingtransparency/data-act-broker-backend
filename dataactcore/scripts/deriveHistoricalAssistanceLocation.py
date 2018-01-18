@@ -370,7 +370,7 @@ def fix_fpds_le_country(row, country_list, state_by_code):
         row.legal_entity_country_name = country_list[row.legal_entity_country_code]
 
     global fix_fpds_le_country_length
-    fix_fpds_le_country_length += datetime.datetime.now().total_seconds() - start_time.total_seconds()
+    fix_fpds_le_country_length += (datetime.datetime.now() - start_time).total_seconds()
 
 
 def fix_fpds_ppop_country(row, country_list, state_by_code):
@@ -393,7 +393,7 @@ def fix_fpds_ppop_country(row, country_list, state_by_code):
         row.place_of_perf_country_desc = country_list[row.place_of_perform_country_c.upper()]
 
     global fix_fpds_ppop_country_length
-    fix_fpds_ppop_country_length += datetime.datetime.now().total_seconds() - start_time.total_seconds()
+    fix_fpds_ppop_country_length += (datetime.datetime.now() - start_time).total_seconds()
 
 
 def fix_fpds_le_state(row, state_by_code):
@@ -410,7 +410,7 @@ def fix_fpds_le_state(row, state_by_code):
         row.legal_entity_state_descrip = state_by_code[row.legal_entity_state_code.upper()]
 
     global fix_fpds_le_state_length
-    fix_fpds_le_state_length += datetime.datetime.now().total_seconds() - start_time.total_seconds()
+    fix_fpds_le_state_length += (datetime.datetime.now() - start_time).total_seconds()
 
 
 def fix_fpds_ppop_state(row, state_by_code, state_code_by_fips):
@@ -430,7 +430,7 @@ def fix_fpds_ppop_state(row, state_by_code, state_code_by_fips):
             row.place_of_perfor_state_desc = state_by_code[state_code]
 
     global fix_fpds_ppop_state_length
-    fix_fpds_ppop_state_length += datetime.datetime.now().total_seconds() - start_time.total_seconds()
+    fix_fpds_ppop_state_length += (datetime.datetime.now() - start_time).total_seconds()
 
 
 def fix_fpds_le_cd(row):
@@ -445,7 +445,7 @@ def fix_fpds_le_cd(row):
         row.legal_entity_congressional = None
 
     global fix_fpds_le_cd_length
-    fix_fpds_le_cd_length += datetime.datetime.now().total_seconds() - start_time.total_seconds()
+    fix_fpds_le_cd_length += (datetime.datetime.now() - start_time).total_seconds()
 
 
 def fix_fpds_ppop_cd(row):
@@ -460,7 +460,7 @@ def fix_fpds_ppop_cd(row):
         row.place_of_performance_congr = None
 
     global fix_fpds_ppop_cd_length
-    fix_fpds_ppop_cd_length += datetime.datetime.now().total_seconds() - start_time.total_seconds()
+    fix_fpds_ppop_cd_length += (datetime.datetime.now() - start_time).total_seconds()
 
 
 def fix_fpds_le_county(row, county_by_code):
@@ -486,7 +486,7 @@ def fix_fpds_le_county(row, county_by_code):
                     row.legal_entity_county_name = county_by_code[state_code][county_code]
 
     global fix_fpds_le_county_length
-    fix_fpds_le_county_length += datetime.datetime.now().total_seconds() - start_time.total_seconds()
+    fix_fpds_le_county_length += (datetime.datetime.now() - start_time).total_seconds()
 
 
 def fix_fpds_ppop_county(row, county_by_code, county_by_name):
@@ -518,7 +518,7 @@ def fix_fpds_ppop_county(row, county_by_code, county_by_name):
         row.place_of_perform_county_na = county_by_code[state_code][row.place_of_perform_county_co]
 
     global fix_fpds_ppop_county_length
-    fix_fpds_ppop_county_length += datetime.datetime.now().total_seconds() - start_time.total_seconds()
+    fix_fpds_ppop_county_length += (datetime.datetime.now() - start_time).total_seconds()
 
 
 def process_fpds_derivations(country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name, data):
