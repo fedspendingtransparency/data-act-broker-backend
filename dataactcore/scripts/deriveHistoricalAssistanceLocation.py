@@ -2,6 +2,7 @@ import argparse
 import logging
 import re
 import datetime
+import threading
 from sqlalchemy import cast, Date, func
 
 from dataactcore.interfaces.db import GlobalDB
@@ -32,7 +33,7 @@ g_county_by_name = {}
 
 
 def date_to_string(date):
-    return date.strftime("%Y-%m-%d")
+    return date.strftime("%Y/%m/%d")
 
 
 def valid_zip(zip_code):
@@ -297,38 +298,43 @@ def process_fabs_derivations(data):
             fix_fabs_le_county(row, le_zip_data, le_zip_check)
 
 
-def update_historical_fabs(sess, start, end):
+def update_historical_fabs(start, end):
     """ Update historical FABS location data with new columns and missing data where possible """
-    model = PublishedAwardFinancialAssistance
-    start_slice = 0
-    logger.info("Starting fabs update for: %s to %s", start, end)
-    record_count = sess.query(model).\
-        filter(model.is_active.is_(True)).\
-        filter(cast(model.action_date, Date) >= start).\
-        filter(cast(model.action_date, Date) <= end).count()
-    logger.info("Total records in this range: %s", record_count)
-    while True:
-        end_slice = start_slice + QUERY_SIZE
-        query_result = sess.query(model).\
+    with create_app().app_context():
+        configure_logging()
+        sess = GlobalDB.db().session
+        model = PublishedAwardFinancialAssistance
+        start_slice = 0
+        thread_name = threading.current_thread().name
+        logger.info("Starting fabs update for: %s to %s in %s", start, end, thread_name)
+        record_count = sess.query(model).\
             filter(model.is_active.is_(True)).\
             filter(cast(model.action_date, Date) >= start).\
-            filter(cast(model.action_date, Date) <= end).\
-            slice(start_slice, end_slice).all()
+            filter(cast(model.action_date, Date) <= end).count()
+        logger.info("Total records in this range: %s in %s", record_count, thread_name)
+        while True:
+            end_slice = start_slice + QUERY_SIZE
+            query_result = sess.query(model).\
+                filter(model.is_active.is_(True)).\
+                filter(cast(model.action_date, Date) >= start).\
+                filter(cast(model.action_date, Date) <= end).\
+                slice(start_slice, end_slice).all()
 
-        logger.info("Updating records: %s to %s", str(start_slice),
-                    str(end_slice if (end_slice < record_count) else record_count))
-        # process the derivations for historical data
-        process_fabs_derivations(query_result)
-        if end_slice % 25000 == 0:
-            logger.info("Pushing records %s to %s to the DB", str(end_slice-25000), str(end_slice))
-            sess.commit()
-        start_slice = end_slice
+            logger.info("Updating records: %s to %s in %s", str(start_slice),
+                        str(end_slice if (end_slice < record_count) else record_count), thread_name)
+            # process the derivations for historical data
+            process_fabs_derivations(query_result)
+            if end_slice % 25000 == 0:
+                logger.info("Pushing records %s to %s to the DB in %s", str(end_slice-25000), str(end_slice),
+                            thread_name)
+                sess.commit()
+            start_slice = end_slice
 
-        # break the loop if we've hit the last records
-        if start_slice >= record_count:
-            break
-    sess.commit()
-    logger.info("Finished fabs update for: %s to %s", start, end)
+            # break the loop if we've hit the last records
+            if start_slice >= record_count:
+                break
+        sess.commit()
+        logger.info("Finished fabs update for: %s to %s in %s", start, end, thread_name)
 
 
 def fix_fpds_le_country(row):
@@ -537,13 +543,12 @@ def update_historical_fpds(sess, start, end):
 
 
 def main():
-    logger.info("Starting location derivations")
     parser = argparse.ArgumentParser(description='Update county information for historical FABS and FPDS data')
     parser.add_argument('-t', '--type', help='Which data type, argument must be fpds or fabs', nargs=1, type=str,
                         required=True)
-    parser.add_argument('-s', '--start', help='Start date (inclusive), must be in the format YYYY/MM/DD or YYYY-MM-DD',
+    parser.add_argument('-s', '--start', help='Start date (inclusive), must be in the format YYYY/MM/DD',
                         nargs=1, type=str, required=True)
-    parser.add_argument('-e', '--end', help='End date (inclusive), must be in the format YYYY/MM/DD or YYYY-MM-DD',
+    parser.add_argument('-e', '--end', help='End date (inclusive), must be in the format YYYY/MM/DD',
                         nargs=1, type=str, required=True)
     args = parser.parse_args()
 
@@ -559,6 +564,8 @@ def main():
     global g_county_by_city
     global g_county_by_code
     global g_county_by_name
+
+    logger.info("Starting location dictionary compilation")
 
     # get and create list of country code -> name mappings
     countries = sess.query(CountryCode).all()
@@ -626,7 +633,7 @@ def main():
                                                         "county_number": zip_data.county_number}
             g_zip_list[zip_data.zip5][zip_data.zip_last4] = {"state_abbreviation": zip_data.state_abbreviation,
                                                              "county_number": zip_data.county_number}
-        
+
         logger.info("Added %s rows to zip dict", str(end_slice))
 
         start_slice = end_slice
@@ -634,13 +641,30 @@ def main():
         # break the loop if we've hit the last records
         if len(zip_codes) < 1000000:
             break
-
     del zip_codes
+
+    start_date = datetime.datetime.strptime(args.start[0], '%Y/%m/%d')
+    end_date = datetime.datetime.strptime(args.end[0], '%Y/%m/%d')
+    current_date = start_date
 
     if data_type == 'fpds':
         update_historical_fpds(sess, args.start[0], args.end[0])
     elif data_type == 'fabs':
-        update_historical_fabs(sess, args.start[0], args.end[0])
+        while current_date <= end_date:
+            logger.info("Starting next batch of threads")
+            thread_list = []
+
+            for x in range(0, 5):
+                t = threading.Thread(target=update_historical_fabs,
+                                     args=(date_to_string(current_date),
+                                           date_to_string(current_date + datetime.timedelta(days=30))),
+                                     name="thread " + str(x))
+                current_date += datetime.timedelta(days=31)
+                thread_list.append(t)
+                t.start()
+
+            for t in thread_list:
+                t.join()
     else:
         logger.error("Type must be fpds or fabs.")
 
