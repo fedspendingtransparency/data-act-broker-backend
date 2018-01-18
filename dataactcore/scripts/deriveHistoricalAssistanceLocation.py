@@ -304,15 +304,15 @@ def update_historical_fabs(sess, start, end):
     logger.info("Starting fabs update for: %s to %s", start, end)
     record_count = sess.query(model).\
         filter(model.is_active.is_(True)).\
-        filter(cast(model.action_date, Date) >= start).\
-        filter(cast(model.action_date, Date) <= end).count()
+        filter(func.cast_as_date(model.action_date) >= start).\
+        filter(func.cast_as_date(model.action_date) <= end).count()
     logger.info("Total records in this range: %s", record_count)
     while True:
         end_slice = start_slice + QUERY_SIZE
         query_result = sess.query(model).\
             filter(model.is_active.is_(True)).\
-            filter(cast(model.action_date, Date) >= start).\
-            filter(cast(model.action_date, Date) <= end).\
+            filter(func.cast_as_date(model.action_date) >= start).\
+            filter(func.cast_as_date(model.action_date) <= end).\
             slice(start_slice, end_slice).all()
 
         logger.info("Updating records: %s to %s", str(start_slice),
@@ -509,14 +509,14 @@ def update_historical_fpds(sess, start, end):
     start_slice = 0
     logger.info("Starting fpds update for: %s to %s", start, end)
     record_count = sess.query(model). \
-        filter(func.my_date_cast(model.action_date) >= start). \
-        filter(func.my_date_cast(model.action_date) <= end).count()
+        filter(func.cast_as_date(model.action_date) >= start). \
+        filter(func.cast_as_date(model.action_date) <= end).count()
     logger.info("Total records in this range: %s", record_count)
     while True:
         end_slice = start_slice + QUERY_SIZE
         query_result = sess.query(model). \
-            filter(func.my_date_cast(model.action_date) >= start). \
-            filter(func.my_date_cast(model.action_date) <= end). \
+            filter(func.cast_as_date(model.action_date) >= start). \
+            filter(func.cast_as_date(model.action_date) <= end). \
             slice(start_slice, end_slice).all()
 
         logger.info("Updating records: %s to %s", str(start_slice),
