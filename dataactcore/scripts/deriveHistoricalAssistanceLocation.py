@@ -1,6 +1,8 @@
+import time
 import argparse
 import logging
 import re
+import datetime
 from sqlalchemy import cast, Date
 
 from dataactcore.interfaces.db import GlobalDB
@@ -21,6 +23,31 @@ country_code_map = {'USA': 'US', 'ASM': 'AS', 'GUM': 'GU', 'MNP': 'MP', 'PRI': '
                     'MHL': 'MH', 'PLW': 'PW', 'XBK': 'UM', 'XHO': 'UM', 'XJV': 'UM', 'XJA': 'UM', 'XKR': 'UM',
                     'XPL': 'UM', 'XMW': 'UM', 'XWK': 'UM'}
 g_zip_list = {}
+
+fix_fpds_le_country_count = 0
+fix_fpds_le_country_length = 0
+
+fix_fpds_ppop_country_count = 0
+fix_fpds_ppop_country_length = 0
+
+fix_fpds_le_state_count = 0
+fix_fpds_le_state_length = 0
+
+fix_fpds_ppop_state_count = 0
+fix_fpds_ppop_state_length = 0
+
+fix_fpds_le_cd_count = 0
+fix_fpds_le_cd_length = 0
+
+fix_fpds_ppop_cd_count = 0
+fix_fpds_ppop_cd_length = 0
+
+fix_fpds_le_county_count = 0
+fix_fpds_le_county_length = 0
+
+fix_fpds_ppop_county_count = 0
+fix_fpds_ppop_county_length = 0
+
 
 
 def valid_zip(zip_code):
@@ -324,6 +351,9 @@ def update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips
 
 
 def fix_fpds_le_country(row, country_list, state_by_code):
+    global fix_fpds_le_country_count
+    fix_fpds_le_country_count += 1
+    start_time = datetime.datetime.now()
     """ Update legal entity country code/name """
     # replace legal entity country codes from US territories with USA, move them into the state slot
     if row.legal_entity_country_code.upper() in country_code_map and row.legal_entity_country_code.upper() != 'USA':
@@ -339,8 +369,14 @@ def fix_fpds_le_country(row, country_list, state_by_code):
             and row.legal_entity_country_code.upper() in country_list:
         row.legal_entity_country_name = country_list[row.legal_entity_country_code]
 
+    global fix_fpds_le_country_length
+    fix_fpds_le_country_length += datetime.datetime.now() - start_time
+
 
 def fix_fpds_ppop_country(row, country_list, state_by_code):
+    global fix_fpds_ppop_country_count
+    fix_fpds_ppop_country_count += 1
+    start_time = datetime.datetime.now()
     """ Update ppop country code/name """
     # replace ppop country codes from US territories with USA, move them into the state slot
     if row.place_of_perform_country_c.upper() in country_code_map and row.place_of_perform_country_c.upper() != 'USA':
@@ -356,8 +392,14 @@ def fix_fpds_ppop_country(row, country_list, state_by_code):
             and row.place_of_perform_country_c.upper() in country_list:
         row.place_of_perf_country_desc = country_list[row.place_of_perform_country_c.upper()]
 
+    global fix_fpds_ppop_country_length
+    fix_fpds_ppop_country_length += datetime.datetime.now() - start_time
+
 
 def fix_fpds_le_state(row, state_by_code):
+    global fix_fpds_le_state_count
+    fix_fpds_le_state_count += 1
+    start_time = datetime.datetime.now()
     """ Update legal entity state info """
     # there are several instances where state code is 'nan' in le, which is simply poor storage, clear those out.
     if row.legal_entity_state_code == 'nan':
@@ -367,8 +409,14 @@ def fix_fpds_le_state(row, state_by_code):
             and row.legal_entity_state_code.upper() in state_by_code:
         row.legal_entity_state_descrip = state_by_code[row.legal_entity_state_code.upper()]
 
+    global fix_fpds_le_state_length
+    fix_fpds_le_state_length += datetime.datetime.now() - start_time
+
 
 def fix_fpds_ppop_state(row, state_by_code, state_code_by_fips):
+    global fix_fpds_ppop_state_count
+    fix_fpds_ppop_state_count += 1
+    start_time = datetime.datetime.now()
     """ Update place of performance state info """
     # fill in the state name where possible
     if not row.place_of_perfor_state_desc and row.place_of_performance_state:
@@ -381,8 +429,14 @@ def fix_fpds_ppop_state(row, state_by_code, state_code_by_fips):
         if state_code in state_by_code:
             row.place_of_perfor_state_desc = state_by_code[state_code]
 
+    global fix_fpds_ppop_state_length
+    fix_fpds_ppop_state_length += datetime.datetime.now() - start_time
+
 
 def fix_fpds_le_cd(row):
+    global fix_fpds_le_cd_count
+    fix_fpds_le_cd_count += 1
+    start_time = datetime.datetime.now()
     # if the CD is a mashup of CD and state code, get just the last 2 characters (which are the CD)
     if re.match('.+\d\d$', row.legal_entity_congressional):
         row.legal_entity_congressional = row.legal_entity_congressional[-2:]
@@ -390,8 +444,14 @@ def fix_fpds_le_cd(row):
     elif row.legal_entity_congressional == 'ZZ':
         row.legal_entity_congressional = None
 
+    global fix_fpds_le_cd_length
+    fix_fpds_le_cd_length += datetime.datetime.now() - start_time
+
 
 def fix_fpds_ppop_cd(row):
+    global fix_fpds_ppop_cd_count
+    fix_fpds_ppop_cd_count += 1
+    start_time = datetime.datetime.now()
     # if the CD is a mashup of CD and state code, get just the last 2 characters (which are the CD)
     if re.match('.+\d\d$', row.place_of_performance_congr):
         row.place_of_performance_congr = row.place_of_performance_congr[-2:]
@@ -399,8 +459,14 @@ def fix_fpds_ppop_cd(row):
     elif row.place_of_performance_congr == 'ZZ':
         row.place_of_performance_congr = None
 
+    global fix_fpds_ppop_cd_length
+    fix_fpds_ppop_cd_length += datetime.datetime.now() - start_time
+
 
 def fix_fpds_le_county(row, county_by_code):
+    global fix_fpds_le_county_count
+    fix_fpds_le_county_count += 1
+    start_time = datetime.datetime.now()
     """ These are both new columns, so as long as we have the data, we want to try to derive them """
     # we only want to do the below if we're missing either the county code or name, don't access the zip DB if we don't
     # have to
@@ -419,8 +485,14 @@ def fix_fpds_le_county(row, county_by_code):
                 if state_code in county_by_code and county_code in county_by_code[state_code]:
                     row.legal_entity_county_name = county_by_code[state_code][county_code]
 
+    global fix_fpds_le_county_length
+    fix_fpds_le_county_length += datetime.datetime.now() - start_time
+
 
 def fix_fpds_ppop_county(row, county_by_code, county_by_name):
+    global fix_fpds_ppop_county_count
+    fix_fpds_ppop_county_count += 1
+    start_time = datetime.datetime.now()
     """ Derive ppop county code and name (where possible/missing) """
     state_code = row.place_of_performance_state
     if state_code:
@@ -444,6 +516,9 @@ def fix_fpds_ppop_county(row, county_by_code, county_by_name):
     if not row.place_of_perform_county_na and state_code in county_by_code\
             and row.place_of_perform_county_co in county_by_code[state_code]:
         row.place_of_perform_county_na = county_by_code[state_code][row.place_of_perform_county_co]
+
+    global fix_fpds_ppop_county_length
+    fix_fpds_ppop_county_length += datetime.datetime.now() - start_time
 
 
 def process_fpds_derivations(country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name, data):
@@ -551,6 +626,7 @@ def main():
 
     for country in countries:
         country_list[country.country_code] = country.country_name
+    del countries
 
     # get and create list of state code -> state name mappings. Prime the county lists with state codes
     county_by_name = {}
@@ -573,6 +649,7 @@ def main():
         state_by_code[state_code] = state_name
         state_code_by_fips[state.fips_code] = state_code
         state_by_name[state_name.upper()] = state_code
+    del states
 
     # Fill the county lists with data (code -> name mappings and name -> code mappings)
     county_codes = sess.query(CountyCode.county_number, CountyCode.state_code, CountyCode.county_name).all()
@@ -593,36 +670,66 @@ def main():
         # potential to be different from the FPDS feed (and won't be used in FABS)
         if re.match('^[A-Z\s]+$', county_name):
             county_by_name[state_code][county_name] = county_num
+    del county_codes
 
     # pull in all the zip codes
     global g_zip_list
-    zip_codes = sess.query(Zips).all()
+    start_slice = 0
+    while True:
+        end_slice = start_slice + 1000000
+        zip_codes = sess.query(Zips).slice(start_slice, end_slice).all()
 
-    zip_count = 0
-    for zip_data in zip_codes:
-        if zip_data.zip5 not in g_zip_list:
-            g_zip_list[zip_data.zip5] = {}
-            g_zip_list[zip_data.zip5]['default'] = zip_data
-        g_zip_list[zip_data.zip5][zip_data.zip_last4] = zip_data
-        zip_count += 1
-        if zip_count % 1000000 == 0:
-            print("Added %s rows to zip dict", str(zip_count))
+        for zip_data in zip_codes:
+            if zip_data.zip5 not in g_zip_list:
+                g_zip_list[zip_data.zip5] = {}
+                g_zip_list[zip_data.zip5]['default'] = zip_data
+            g_zip_list[zip_data.zip5][zip_data.zip_last4] = zip_data
+        
+        logger.info("Added %s rows to zip dict", str(end_slice))
 
-    # clear out variables that we aren't using anymore to save some space later
-    del countries
-    del states
-    del county_codes
+        start_slice = end_slice
+
+        # break the loop if we've hit the last records
+        if end_slice < 1000000:
+            break
+
     del zip_codes
-    del zip_count
 
     if data_type == 'fpds':
-        update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
-                               args.start[0], args.end[0])
+        logger.info("nothing")
+        # update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
+        #                        args.start[0], args.end[0])
     elif data_type == 'fabs':
         update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips, state_by_name, county_by_code,
                                args.start[0], args.end[0])
     else:
         logger.error("Type must be fpds or fabs.")
+
+    global fix_fpds_le_country_count
+    global fix_fpds_le_country_length
+    global fix_fpds_ppop_country_count
+    global fix_fpds_ppop_country_length
+    global fix_fpds_le_state_count
+    global fix_fpds_le_state_length
+    global fix_fpds_ppop_state_count
+    global fix_fpds_ppop_state_length
+    global fix_fpds_le_cd_count
+    global fix_fpds_le_cd_length
+    global fix_fpds_ppop_cd_count
+    global fix_fpds_ppop_cd_length
+    global fix_fpds_le_county_count
+    global fix_fpds_le_county_length
+    global fix_fpds_ppop_county_count
+    global fix_fpds_ppop_county_length
+
+    logger.info("Avg duration of fix_fpds_le_country: {}".format(str(fix_fpds_le_country_length.total_seconds()/fix_fpds_le_country_count)))
+    logger.info("Avg duration of fix_fpds_ppop_country: {}".format(str(fix_fpds_ppop_country_length.total_seconds()/fix_fpds_ppop_country_count)))
+    logger.info("Avg duration of fix_fpds_le_state: {}".format(str(fix_fpds_le_state_length.total_seconds()/fix_fpds_le_state_count)))
+    logger.info("Avg duration of fix_fpds_ppop_state: {}".format(str(fix_fpds_ppop_state_length.total_seconds()/fix_fpds_ppop_state_count)))
+    logger.info("Avg duration of fix_fpds_le_cd: {}".format(str(fix_fpds_le_cd_length.total_seconds()/fix_fpds_le_cd_count)))
+    logger.info("Avg duration of fix_fpds_ppop_cd: {}".format(str(fix_fpds_ppop_cd_length.total_seconds()/fix_fpds_ppop_cd_count)))
+    logger.info("Avg duration of fix_fpds_le_county: {}".format(str(fix_fpds_le_county_length.total_seconds()/fix_fpds_le_county_count)))
+    logger.info("Avg duration of fix_fpds_ppop_county: {}".format(str(fix_fpds_ppop_county_length.total_seconds()/fix_fpds_ppop_county_count)))
 
     logger.info("Completed location derivations")
 
@@ -630,4 +737,8 @@ def main():
 if __name__ == '__main__':
     with create_app().app_context():
         configure_logging()
-        main()
+        prevtime = datetime.datetime.now()
+        time.sleep(10)
+        nowtime = datetime.datetime.now() - prevtime
+        logger.info(nowtime.total_seconds())
+        # main()
