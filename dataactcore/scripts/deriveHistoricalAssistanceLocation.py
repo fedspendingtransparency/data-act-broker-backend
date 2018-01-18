@@ -3,7 +3,7 @@ import argparse
 import logging
 import re
 import datetime
-from sqlalchemy import cast, Date
+from sqlalchemy import cast, Date, func
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
@@ -577,14 +577,14 @@ def update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips
     start_slice = 0
     logger.info("Starting fpds update for: %s to %s", start, end)
     record_count = sess.query(model). \
-        filter(cast(model.action_date, Date) >= start). \
-        filter(cast(model.action_date, Date) <= end).count()
+        filter(func.my_date_cast(model.action_date) >= start). \
+        filter(func.my_date_cast(model.action_date) <= end).count()
     logger.info("Total records in this range: %s", record_count)
     while True:
         end_slice = start_slice + QUERY_SIZE
         query_result = sess.query(model). \
-            filter(cast(model.action_date, Date) >= start). \
-            filter(cast(model.action_date, Date) <= end). \
+            filter(func.my_date_cast(model.action_date) >= start). \
+            filter(func.my_date_cast(model.action_date) <= end). \
             slice(start_slice, end_slice).all()
 
         logger.info("Updating records: %s to %s", str(start_slice),
