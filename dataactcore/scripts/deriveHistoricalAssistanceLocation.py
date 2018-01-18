@@ -2,7 +2,6 @@ import argparse
 import logging
 import re
 import datetime
-import threading
 from sqlalchemy import cast, Date, func
 
 from dataactcore.interfaces.db import GlobalDB
@@ -298,43 +297,38 @@ def process_fabs_derivations(data):
             fix_fabs_le_county(row, le_zip_data, le_zip_check)
 
 
-def update_historical_fabs(start, end):
+def update_historical_fabs(sess, start, end):
     """ Update historical FABS location data with new columns and missing data where possible """
-    with create_app().app_context():
-        configure_logging()
-        sess = GlobalDB.db().session
-        model = PublishedAwardFinancialAssistance
-        start_slice = 0
-        thread_name = threading.current_thread().name
-        logger.info("Starting fabs update for: %s to %s in %s", start, end, thread_name)
-        record_count = sess.query(model).\
+    model = PublishedAwardFinancialAssistance
+    start_slice = 0
+    logger.info("Starting fabs update for: %s to %s", start, end)
+    record_count = sess.query(model).\
+        filter(model.is_active.is_(True)).\
+        filter(cast(model.action_date, Date) >= start).\
+        filter(cast(model.action_date, Date) <= end).count()
+    logger.info("Total records in this range: %s", record_count)
+    while True:
+        end_slice = start_slice + QUERY_SIZE
+        query_result = sess.query(model).\
             filter(model.is_active.is_(True)).\
             filter(cast(model.action_date, Date) >= start).\
-            filter(cast(model.action_date, Date) <= end).count()
-        logger.info("Total records in this range: %s in %s", record_count, thread_name)
-        while True:
-            end_slice = start_slice + QUERY_SIZE
-            query_result = sess.query(model).\
-                filter(model.is_active.is_(True)).\
-                filter(cast(model.action_date, Date) >= start).\
-                filter(cast(model.action_date, Date) <= end).\
-                slice(start_slice, end_slice).all()
+            filter(cast(model.action_date, Date) <= end).\
+            slice(start_slice, end_slice).all()
 
-            logger.info("Updating records: %s to %s in %s", str(start_slice),
-                        str(end_slice if (end_slice < record_count) else record_count), thread_name)
-            # process the derivations for historical data
-            process_fabs_derivations(query_result)
-            if end_slice % 25000 == 0:
-                logger.info("Pushing records %s to %s to the DB in %s", str(end_slice-25000), str(end_slice),
-                            thread_name)
-                sess.commit()
-            start_slice = end_slice
+        logger.info("Updating records: %s to %s", str(start_slice),
+                    str(end_slice if (end_slice < record_count) else record_count))
+        # process the derivations for historical data
+        process_fabs_derivations(query_result)
+        if end_slice % 25000 == 0:
+            logger.info("Pushing records %s to %s to the DB", str(end_slice-25000), str(end_slice))
+            sess.commit()
+        start_slice = end_slice
 
-            # break the loop if we've hit the last records
-            if start_slice >= record_count:
-                break
-        sess.commit()
-        logger.info("Finished fabs update for: %s to %s in %s", start, end, thread_name)
+        # break the loop if we've hit the last records
+        if start_slice >= record_count:
+            break
+    sess.commit()
+    logger.info("Finished fabs update for: %s to %s", start, end)
 
 
 def fix_fpds_le_country(row):
@@ -509,42 +503,37 @@ def process_fpds_derivations(data):
                 row.legal_entity_zip_last4 = le_zip4
 
 
-def update_historical_fpds(start, end):
+def update_historical_fpds(sess, start, end):
     """ Update historical FPDS location data with new columns and missing data where possible """
-    with create_app().app_context():
-        configure_logging()
-        sess = GlobalDB.db().session
-        model = DetachedAwardProcurement
-        thread_name = threading.current_thread().name
-        start_slice = 0
-        logger.info("Starting fpds update for: %s to %s in %s", start, end, thread_name)
-        record_count = sess.query(model). \
+    model = DetachedAwardProcurement
+    start_slice = 0
+    logger.info("Starting fpds update for: %s to %s", start, end)
+    record_count = sess.query(model). \
+        filter(func.my_date_cast(model.action_date) >= start). \
+        filter(func.my_date_cast(model.action_date) <= end).count()
+    logger.info("Total records in this range: %s", record_count)
+    while True:
+        end_slice = start_slice + QUERY_SIZE
+        query_result = sess.query(model). \
             filter(func.my_date_cast(model.action_date) >= start). \
-            filter(func.my_date_cast(model.action_date) <= end).count()
-        logger.info("Total records in this range: %s in %s", record_count, thread_name)
-        while True:
-            end_slice = start_slice + QUERY_SIZE
-            query_result = sess.query(model). \
-                filter(func.my_date_cast(model.action_date) >= start). \
-                filter(func.my_date_cast(model.action_date) <= end). \
-                slice(start_slice, end_slice).all()
+            filter(func.my_date_cast(model.action_date) <= end). \
+            slice(start_slice, end_slice).all()
 
-            logger.info("Updating records: %s to %s in %s", str(start_slice),
-                        str(end_slice if (end_slice < record_count) else record_count), thread_name)
-            # process the derivations for historical data
-            process_fpds_derivations(query_result)
-            if end_slice % 25000 == 0:
-                logger.info("Pushing records %s to %s to the DB in %s", str(end_slice-25000), str(end_slice),
-                            thread_name)
-                sess.commit()
+        logger.info("Updating records: %s to %s", str(start_slice),
+                    str(end_slice if (end_slice < record_count) else record_count))
+        # process the derivations for historical data
+        process_fpds_derivations(query_result)
+        if end_slice % 25000 == 0:
+            logger.info("Pushing records %s to %s to the DB", str(end_slice-25000), str(end_slice))
+            sess.commit()
 
-            start_slice = end_slice
+        start_slice = end_slice
 
-            # break the loop if we've hit the last records
-            if start_slice >= record_count:
-                break
-        sess.commit()
-        logger.info("Finished fpds update for: %s to %s in %s", start, end, thread_name)
+        # break the loop if we've hit the last records
+        if start_slice >= record_count:
+            break
+    sess.commit()
+    logger.info("Finished fpds update for: %s to %s", start, end)
 
 
 def main():
@@ -654,36 +643,14 @@ def main():
 
     if data_type == 'fpds':
         while current_date <= end_date:
-            logger.info("Starting next batch of threads")
-            thread_list = []
-
-            for x in range(0, 5):
-                t = threading.Thread(target=update_historical_fpds,
-                                     args=(date_to_string(current_date),
-                                           date_to_string(current_date + datetime.timedelta(days=30))),
-                                     name="thread " + str(x))
-                current_date += datetime.timedelta(days=31)
-                thread_list.append(t)
-                t.start()
-
-            for t in thread_list:
-                t.join()
+            update_historical_fpds(sess, date_to_string(current_date),
+                                   date_to_string(current_date + datetime.timedelta(days=30)))
+            current_date += datetime.timedelta(days=31)
     elif data_type == 'fabs':
         while current_date <= end_date:
-            logger.info("Starting next batch of threads")
-            thread_list = []
-
-            for x in range(0, 5):
-                t = threading.Thread(target=update_historical_fabs,
-                                     args=(date_to_string(current_date),
-                                           date_to_string(current_date + datetime.timedelta(days=30))),
-                                     name="thread " + str(x))
-                current_date += datetime.timedelta(days=31)
-                thread_list.append(t)
-                t.start()
-
-            for t in thread_list:
-                t.join()
+            update_historical_fabs(sess, date_to_string(current_date),
+                                   date_to_string(current_date + datetime.timedelta(days=30)))
+            current_date += datetime.timedelta(days=31)
     else:
         logger.error("Type must be fpds or fabs.")
 
