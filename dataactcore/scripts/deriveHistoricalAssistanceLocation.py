@@ -599,7 +599,7 @@ def update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips
         start_slice = end_slice
 
         # break the loop if we've hit the last records
-        if start_slice >= record_count or end_slice >= 100000:
+        if start_slice >= record_count:
             break
     sess.commit()
     logger.info("Finished fpds update for: %s to %s", start, end)
