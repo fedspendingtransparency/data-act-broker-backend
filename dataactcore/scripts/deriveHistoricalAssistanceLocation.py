@@ -690,7 +690,7 @@ def main():
         start_slice = end_slice
 
         # break the loop if we've hit the last records
-        if end_slice < 1000000:
+        if len(zip_codes) < 1000000:
             break
 
     del zip_codes
