@@ -696,9 +696,8 @@ def main():
     del zip_codes
 
     if data_type == 'fpds':
-        logger.info("nothing")
-        # update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
-        #                        args.start[0], args.end[0])
+        update_historical_fpds(sess, country_list, state_by_code, state_code_by_fips, county_by_code, county_by_name,
+                               args.start[0], args.end[0])
     elif data_type == 'fabs':
         update_historical_fabs(sess, country_list, state_by_code, state_code_by_fips, state_by_name, county_by_code,
                                args.start[0], args.end[0])
