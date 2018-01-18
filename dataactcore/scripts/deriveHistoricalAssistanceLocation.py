@@ -737,8 +737,4 @@ def main():
 if __name__ == '__main__':
     with create_app().app_context():
         configure_logging()
-        prevtime = datetime.datetime.now()
-        time.sleep(10)
-        nowtime = datetime.datetime.now() - prevtime
-        logger.info(nowtime.total_seconds())
-        # main()
+        main()
