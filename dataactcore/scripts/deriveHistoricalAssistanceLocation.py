@@ -161,7 +161,7 @@ def fix_fabs_le_state(row, state_by_code, state_by_name):
             zip_check = True
             # if we have zip data, set the state code
             if zip_data:
-                row.legal_entity_state_code = zip_data.state_abbreviation
+                row.legal_entity_state_code = zip_data['state_abbreviation']
 
     # derive state name if we have the code and no name
     if not row.legal_entity_state_name and row.legal_entity_state_code\
@@ -192,7 +192,7 @@ def fix_fabs_ppop_state(row, state_by_code, state_code_by_fips, state_by_name):
             zip_check = True
             # if we got any data from this, get the state code based on it
             if zip_data:
-                row.place_of_perfor_state_code = zip_data.state_abbreviation
+                row.place_of_perfor_state_code = zip_data['state_abbreviation']
 
     if not row.place_of_perform_state_nam and row.place_of_perfor_state_code\
             and row.place_of_perfor_state_code.upper() in state_by_code:
@@ -225,7 +225,7 @@ def fix_fabs_le_county(row, zip_data, zip_check, county_by_code):
                     zip_code += row.legal_entity_zip_last4
                 zip_data = get_zip_data(zip_code)
             if zip_data:
-                row.legal_entity_county_code = zip_data.county_number
+                row.legal_entity_county_code = zip_data['county_number']
 
     # fill in legal entity county name where needed/possible
     if not row.legal_entity_county_name and row.legal_entity_county_code and state_code:
@@ -259,7 +259,7 @@ def fix_fabs_ppop_county(sess, row, zip_data, zip_check, county_by_code):
                 zip_code = row.place_of_performance_zip4a
                 zip_data = get_zip_data(zip_code)
             if zip_data:
-                row.place_of_perform_county_co = zip_data.county_number
+                row.place_of_perform_county_co = zip_data['county_number']
 
     # fill in place of performance county name where needed/possible
     if not row.place_of_perform_county_na and row.place_of_perform_county_co and state_code:
@@ -475,7 +475,7 @@ def fix_fpds_le_county(row, county_by_code):
         zip_data = get_zip_data(row.legal_entity_zip4)
         if zip_data:
             if not row.legal_entity_county_code:
-                row.legal_entity_county_code = zip_data.county_number
+                row.legal_entity_county_code = zip_data['county_number']
 
             # if we got the zip data and have a state code to work with, if it's valid then grab the county name
             if not row.legal_entity_county_name and row.legal_entity_state_code:
@@ -510,7 +510,7 @@ def fix_fpds_ppop_county(row, county_by_code, county_by_name):
             zip_data = get_zip_data(row.place_of_performance_zip4a)
 
             if zip_data:
-                row.place_of_perform_county_co = zip_data.county_number
+                row.place_of_perform_county_co = zip_data['county_number']
 
     # if we don't have the county name but have the county code, derive the name
     if not row.place_of_perform_county_na and state_code in county_by_code\
@@ -677,13 +677,16 @@ def main():
     start_slice = 0
     while True:
         end_slice = start_slice + 1000000
-        zip_codes = sess.query(Zips).slice(start_slice, end_slice).all()
+        zip_codes = sess.query(Zips.zip5, Zips.zip_last4, Zips.state_abbreviation, Zips.county_number).\
+            slice(start_slice, end_slice).all()
 
         for zip_data in zip_codes:
             if zip_data.zip5 not in g_zip_list:
                 g_zip_list[zip_data.zip5] = {}
-                g_zip_list[zip_data.zip5]['default'] = zip_data
-            g_zip_list[zip_data.zip5][zip_data.zip_last4] = zip_data
+                g_zip_list[zip_data.zip5]['default'] = {"state_abbreviation": zip_data.state_abbreviation,
+                                                        "county_number": zip_data.county_number}
+            g_zip_list[zip_data.zip5][zip_data.zip_last4] = {"state_abbreviation": zip_data.state_abbreviation,
+                                                             "county_number": zip_data.county_number}
         
         logger.info("Added %s rows to zip dict", str(end_slice))
 
