@@ -643,13 +643,17 @@ def main():
 
     if data_type == 'fpds':
         while current_date <= end_date:
-            update_historical_fpds(sess, date_to_string(current_date),
-                                   date_to_string(current_date + datetime.timedelta(days=30)))
+            stop_date = current_date + datetime.timedelta(days=30)
+            if stop_date > end_date:
+                stop_date = end_date
+            update_historical_fpds(sess, date_to_string(current_date), date_to_string(stop_date))
             current_date += datetime.timedelta(days=31)
     elif data_type == 'fabs':
         while current_date <= end_date:
-            update_historical_fabs(sess, date_to_string(current_date),
-                                   date_to_string(current_date + datetime.timedelta(days=30)))
+            stop_date = current_date + datetime.timedelta(days=30)
+            if stop_date > end_date:
+                stop_date = end_date
+            update_historical_fabs(sess, date_to_string(current_date), date_to_string(stop_date))
             current_date += datetime.timedelta(days=31)
     else:
         logger.error("Type must be fpds or fabs.")
