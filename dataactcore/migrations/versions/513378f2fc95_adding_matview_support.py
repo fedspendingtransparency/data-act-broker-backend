@@ -8,7 +8,7 @@ Create Date: 2018-01-17 18:39:13.608704
 
 # revision identifiers, used by Alembic.
 revision = '513378f2fc95'
-down_revision = '5dbc09749ce0'
+down_revision = 'b168f0cdc5a8'
 branch_labels = None
 depends_on = None
 
@@ -417,11 +417,7 @@ def upgrade_data_broker():
 
 def downgrade_data_broker():
     op.execute("""
-        drop function if exists compile_fpds_business_categories;
-        drop function if exists compile_fabs_business_categories;
-    """)
-
-    op.execute("""
+        drop function if exists compile_fpds_business_categories(text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text);
+        drop function if exists compile_fabs_business_categories(text);
         drop materialized view if exists exec_comp_lookup;
     """)
-
