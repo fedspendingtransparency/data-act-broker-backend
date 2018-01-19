@@ -30,7 +30,7 @@ def update_cfda(sess):
 
     update_list = update_list.group_by(PublishedAwardFinancialAssistance.cfda_number)
 
-    logger.info('%s null CFDA titles found', count)
+    logger.info('%s null CFDA titles found %s', count, [row[0] for row in update_list.all()])
 
     cfda_count = 0
     for row in update_list:
@@ -38,9 +38,16 @@ def update_cfda(sess):
         cfda_query = sess.query(PublishedAwardFinancialAssistance).\
             filter(
                     PublishedAwardFinancialAssistance.cfda_title.is_(None),
-                    PublishedAwardFinancialAssistance.cfda_number == row.cfda_number).\
-            update({"cfda_title": cfda_list[row.cfda_number]},
-                   synchronize_session=False)
+                    PublishedAwardFinancialAssistance.cfda_number == row.cfda_number)
+        if row.cfda_number not in cfda_list:
+            logger.info('CFDA_number %s is not a valid CFDA_number', row.cfda_number)
+            invalid_count = cfda_query.count()
+            count = count - invalid_count
+            complete = complete + invalid_count
+            logger.info('%s entries are invalid', invalid_count)
+            continue
+        cfda_query = cfda_query.update({"cfda_title": cfda_list[row.cfda_number]},
+                                       synchronize_session=False)
 
         logger.info('%s entries with CFDA number %s have been updated with title "%s"',
                     cfda_query, row.cfda_number, cfda_list[row.cfda_number])
