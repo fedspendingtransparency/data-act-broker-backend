@@ -49,7 +49,7 @@ def update_cfda(sess):
             continue
         # auto pad to get to length 6 because of how we are holding the cfda numbers
         while len(current_cfda.split('.')[1]) < 3:
-            current_cfda = "%s%s" % (current_cfda , '0')
+            current_cfda = "%s%s" % (current_cfda, '0')
         if current_cfda not in cfda_list:
             logger.info('CFDA_number %s is not a valid CFDA_number', current_cfda)
             invalid_count = cfda_query.count()
