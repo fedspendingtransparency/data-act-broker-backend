@@ -52,9 +52,6 @@ def test_generate_d1_file_query(monkeypatch, mock_broker_config_paths, database,
     expected1, expected2 = [], []
     for value in fileGenerationHandler.fileD1.db_columns:
         # loop through all values and format date columns
-        if value == 'action_date':
-            print(dap_one.__dict__[value])
-            print(dap_two.__dict__[value])
         if value in ['period_of_performance_star', 'period_of_performance_curr', 'period_of_perf_potential_e',
                      'ordering_period_end_date', 'action_date', 'last_modified']:
             expected1.append(re.sub(r"[-]", r"", str(dap_one.__dict__[value]))[0:8])
