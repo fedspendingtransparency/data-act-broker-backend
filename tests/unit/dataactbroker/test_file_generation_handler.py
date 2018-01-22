@@ -47,11 +47,14 @@ def test_generate_d1_file_query(monkeypatch, mock_broker_config_paths, database,
     assert file_rows[0] == [key for key in fileGenerationHandler.fileD1.mapping]
 
     # check body
-    dap_one = database.session.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique2').first()
-    dap_two = database.session.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique1').first()
+    dap_one = database.session.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique1').first()
+    dap_two = database.session.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique2').first()
     expected1, expected2 = [], []
     for value in fileGenerationHandler.fileD1.db_columns:
         # loop through all values and format date columns
+        if value == 'action_date':
+            print(dap_one.__dict__[value])
+            print(dap_two.__dict__[value])
         if value in ['period_of_performance_star', 'period_of_performance_curr', 'period_of_perf_potential_e',
                      'ordering_period_end_date', 'action_date', 'last_modified']:
             expected1.append(re.sub(r"[-]", r"", str(dap_one.__dict__[value]))[0:8])
@@ -91,8 +94,8 @@ def test_generate_d2_file_query(monkeypatch, mock_broker_config_paths, database,
     assert file_rows[0] == [key for key in fileGenerationHandler.fileD2.mapping]
 
     # check body
-    pafa1 = database.session.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique2').first()
-    pafa2 = database.session.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique1').first()
+    pafa1 = database.session.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique1').first()
+    pafa2 = database.session.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique2').first()
     expected1, expected2 = [], []
     for value in fileGenerationHandler.fileD2.db_columns:
         # loop through all values and format date columns
