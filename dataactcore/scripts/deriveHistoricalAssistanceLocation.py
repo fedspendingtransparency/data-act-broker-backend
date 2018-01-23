@@ -17,7 +17,7 @@ from dataactvalidator.health_check import create_app
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
-QUERY_SIZE = 1000
+QUERY_SIZE = 2500
 country_code_map = {'USA': 'US', 'ASM': 'AS', 'GUM': 'GU', 'MNP': 'MP', 'PRI': 'PR', 'VIR': 'VI', 'FSM': 'FM',
                     'MHL': 'MH', 'PLW': 'PW', 'XBK': 'UM', 'XHO': 'UM', 'XJV': 'UM', 'XJA': 'UM', 'XKR': 'UM',
                     'XPL': 'UM', 'XMW': 'UM', 'XWK': 'UM'}
@@ -302,11 +302,6 @@ def update_historical_fabs(sess, start, end):
     model = PublishedAwardFinancialAssistance
     start_slice = 0
     logger.info("Starting fabs update for: %s to %s", start, end)
-    record_count = sess.query(model).\
-        filter(model.is_active.is_(True)).\
-        filter(func.cast_as_date(model.action_date) >= start).\
-        filter(func.cast_as_date(model.action_date) <= end).count()
-    logger.info("Total records in this range: %s", record_count)
     while True:
         end_slice = start_slice + QUERY_SIZE
         query_result = sess.query(model).\
@@ -314,19 +309,23 @@ def update_historical_fabs(sess, start, end):
             filter(func.cast_as_date(model.action_date) >= start).\
             filter(func.cast_as_date(model.action_date) <= end).\
             slice(start_slice, end_slice).all()
+        query_len = len(query_result)
 
         logger.info("Updating records: %s to %s", str(start_slice),
-                    str(end_slice if (end_slice < record_count) else record_count))
+                    str(end_slice if (end_slice < (start_slice + query_len)) else (start_slice + query_len)))
         # process the derivations for historical data
         process_fabs_derivations(query_result)
         if end_slice % 25000 == 0:
             logger.info("Pushing records %s to %s to the DB", str(end_slice-25000), str(end_slice))
             sess.commit()
-        start_slice = end_slice
 
         # break the loop if we've hit the last records
-        if start_slice >= record_count:
+        if query_len < QUERY_SIZE:
+            logger.info("Pushing remaining %s records to the DB", str((start_slice + query_len) % 25000))
             break
+
+        start_slice = end_slice
+
     sess.commit()
     logger.info("Finished fabs update for: %s to %s", start, end)
 
@@ -508,30 +507,29 @@ def update_historical_fpds(sess, start, end):
     model = DetachedAwardProcurement
     start_slice = 0
     logger.info("Starting fpds update for: %s to %s", start, end)
-    record_count = sess.query(model). \
-        filter(func.cast_as_date(model.action_date) >= start). \
-        filter(func.cast_as_date(model.action_date) <= end).count()
-    logger.info("Total records in this range: %s", record_count)
     while True:
         end_slice = start_slice + QUERY_SIZE
         query_result = sess.query(model). \
             filter(func.cast_as_date(model.action_date) >= start). \
             filter(func.cast_as_date(model.action_date) <= end). \
             slice(start_slice, end_slice).all()
+        query_len = len(query_result)
 
         logger.info("Updating records: %s to %s", str(start_slice),
-                    str(end_slice if (end_slice < record_count) else record_count))
+                    str(end_slice if (end_slice < (start_slice + query_len)) else (start_slice + query_len)))
         # process the derivations for historical data
         process_fpds_derivations(query_result)
         if end_slice % 25000 == 0:
             logger.info("Pushing records %s to %s to the DB", str(end_slice-25000), str(end_slice))
             sess.commit()
 
+        # break the loop if we've hit the last records
+        if query_len < QUERY_SIZE:
+            logger.info("Pushing remaining %s records to the DB", str((start_slice + query_len) % 25000))
+            break
+
         start_slice = end_slice
 
-        # break the loop if we've hit the last records
-        if start_slice >= record_count:
-            break
     sess.commit()
     logger.info("Finished fpds update for: %s to %s", start, end)
 
@@ -643,18 +641,18 @@ def main():
 
     if data_type == 'fpds':
         while current_date <= end_date:
-            stop_date = current_date + datetime.timedelta(days=30)
+            stop_date = current_date + datetime.timedelta(days=15)
             if stop_date > end_date:
                 stop_date = end_date
             update_historical_fpds(sess, date_to_string(current_date), date_to_string(stop_date))
-            current_date += datetime.timedelta(days=31)
+            current_date += datetime.timedelta(days=16)
     elif data_type == 'fabs':
         while current_date <= end_date:
-            stop_date = current_date + datetime.timedelta(days=30)
+            stop_date = current_date + datetime.timedelta(days=15)
             if stop_date > end_date:
                 stop_date = end_date
             update_historical_fabs(sess, date_to_string(current_date), date_to_string(stop_date))
-            current_date += datetime.timedelta(days=31)
+            current_date += datetime.timedelta(days=16)
     else:
         logger.error("Type must be fpds or fabs.")
 
