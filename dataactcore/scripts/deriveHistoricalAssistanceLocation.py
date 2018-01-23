@@ -17,7 +17,10 @@ from dataactvalidator.health_check import create_app
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
-QUERY_SIZE = 1000
+QUERY_SIZE = 2500
+COMMIT_SIZE = 25000
+ZIP_SLICE = 1000000
+DAYS = 30
 country_code_map = {'USA': 'US', 'ASM': 'AS', 'GUM': 'GU', 'MNP': 'MP', 'PRI': 'PR', 'VIR': 'VI', 'FSM': 'FM',
                     'MHL': 'MH', 'PLW': 'PW', 'XBK': 'UM', 'XHO': 'UM', 'XJV': 'UM', 'XJA': 'UM', 'XKR': 'UM',
                     'XPL': 'UM', 'XMW': 'UM', 'XWK': 'UM'}
@@ -315,13 +318,13 @@ def update_historical_fabs(sess, start, end):
                     str(end_slice if (end_slice < (start_slice + query_len)) else (start_slice + query_len)))
         # process the derivations for historical data
         process_fabs_derivations(query_result)
-        if end_slice % 25000 == 0:
-            logger.info("Pushing records %s to %s to the DB", str(end_slice-25000), str(end_slice))
+        if end_slice % COMMIT_SIZE == 0:
+            logger.info("Pushing records %s to %s to the DB", str(end_slice-COMMIT_SIZE), str(end_slice))
             sess.commit()
 
         # break the loop if we've hit the last records
         if query_len < QUERY_SIZE:
-            logger.info("Pushing remaining %s records to the DB", str((start_slice + query_len) % 25000))
+            logger.info("Pushing remaining %s records to the DB", str((start_slice + query_len) % COMMIT_SIZE))
             break
 
         start_slice = end_slice
@@ -519,13 +522,13 @@ def update_historical_fpds(sess, start, end):
                     str(end_slice if (end_slice < (start_slice + query_len)) else (start_slice + query_len)))
         # process the derivations for historical data
         process_fpds_derivations(query_result)
-        if end_slice % 25000 == 0:
-            logger.info("Pushing records %s to %s to the DB", str(end_slice-25000), str(end_slice))
+        if end_slice % COMMIT_SIZE == 0:
+            logger.info("Pushing records %s to %s to the DB", str(end_slice-COMMIT_SIZE), str(end_slice))
             sess.commit()
 
         # break the loop if we've hit the last records
         if query_len < QUERY_SIZE:
-            logger.info("Pushing remaining %s records to the DB", str((start_slice + query_len) % 25000))
+            logger.info("Pushing remaining %s records to the DB", str((start_slice + query_len) % COMMIT_SIZE))
             break
 
         start_slice = end_slice
@@ -614,7 +617,7 @@ def main():
     # pull in all the zip codes
     start_slice = 0
     while True:
-        end_slice = start_slice + 1000000
+        end_slice = start_slice + ZIP_SLICE
         zip_codes = sess.query(Zips.zip5, Zips.zip_last4, Zips.state_abbreviation, Zips.county_number).\
             slice(start_slice, end_slice).all()
 
@@ -631,7 +634,7 @@ def main():
         start_slice = end_slice
 
         # break the loop if we've hit the last records
-        if len(zip_codes) < 1000000:
+        if len(zip_codes) < ZIP_SLICE:
             break
     del zip_codes
 
@@ -641,18 +644,18 @@ def main():
 
     if data_type == 'fpds':
         while current_date <= end_date:
-            stop_date = current_date + datetime.timedelta(days=15)
+            stop_date = current_date + datetime.timedelta(days=DAYS)
             if stop_date > end_date:
                 stop_date = end_date
             update_historical_fpds(sess, date_to_string(current_date), date_to_string(stop_date))
-            current_date += datetime.timedelta(days=16)
+            current_date += datetime.timedelta(days=DAYS+1)
     elif data_type == 'fabs':
         while current_date <= end_date:
-            stop_date = current_date + datetime.timedelta(days=15)
+            stop_date = current_date + datetime.timedelta(days=DAYS)
             if stop_date > end_date:
                 stop_date = end_date
             update_historical_fabs(sess, date_to_string(current_date), date_to_string(stop_date))
-            current_date += datetime.timedelta(days=16)
+            current_date += datetime.timedelta(days=DAYS+1)
     else:
         logger.error("Type must be fpds or fabs.")
 
