@@ -17,7 +17,7 @@ from dataactvalidator.health_check import create_app
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
-QUERY_SIZE = 2500
+QUERY_SIZE = 1000
 country_code_map = {'USA': 'US', 'ASM': 'AS', 'GUM': 'GU', 'MNP': 'MP', 'PRI': 'PR', 'VIR': 'VI', 'FSM': 'FM',
                     'MHL': 'MH', 'PLW': 'PW', 'XBK': 'UM', 'XHO': 'UM', 'XJV': 'UM', 'XJA': 'UM', 'XKR': 'UM',
                     'XPL': 'UM', 'XMW': 'UM', 'XWK': 'UM'}
