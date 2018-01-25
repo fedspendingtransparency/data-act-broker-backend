@@ -226,7 +226,17 @@ def query_data(session, agency_code, start, end, page_start, page_stop):
             page_start - Beginning of pagination
             page_stop - End of pagination
     """
-    rows = session.query(
+    rows = initial_query(session).\
+        filter(file_model.awarding_agency_code == agency_code).\
+        filter(func.cast_as_date(file_model.action_date) >= start).\
+        filter(func.cast_as_date(file_model.action_date) <= end).\
+        slice(page_start, page_stop)
+
+    return rows
+
+
+def initial_query(session):
+    return session.query(
         file_model.piid,
         file_model.awarding_sub_tier_agency_c,
         file_model.awarding_sub_tier_agency_n,
@@ -430,9 +440,4 @@ def query_data(session, agency_code, start, end, page_start, page_stop):
         file_model.place_of_perfor_state_desc,
         file_model.place_of_perform_county_na,
         file_model.referenced_idv_type,
-        file_model.place_of_perform_city_name).\
-        filter(file_model.awarding_agency_code == agency_code).\
-        filter(cast(file_model.action_date, Date) >= start).\
-        filter(cast(file_model.action_date, Date) <= end).\
-        slice(page_start, page_stop)
-    return rows
+        file_model.place_of_perform_city_name)
