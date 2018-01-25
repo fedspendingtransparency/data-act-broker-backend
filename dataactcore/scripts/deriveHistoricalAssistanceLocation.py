@@ -109,7 +109,7 @@ def fix_fabs_le_country(row):
     # grab the country name if we have access to it and it isn't already there
     if not row.legal_entity_country_name and row.legal_entity_country_code\
             and row.legal_entity_country_code.upper() in g_country_list:
-        row.legal_entity_country_name = g_country_list[row.legal_entity_country_code]
+        row.legal_entity_country_name = g_country_list[row.legal_entity_country_code.upper()]
 
 
 def fix_fabs_ppop_country(row):
@@ -218,7 +218,7 @@ def fix_fabs_le_county(row, zip_data, zip_check):
     # fill in legal entity county name where needed/possible
     if not row.legal_entity_county_name and row.legal_entity_county_code and state_code:
         if state_code in g_county_by_code and row.legal_entity_county_code in g_county_by_code[state_code]:
-            row.legal_entity_county_name = g_county_by_code[state_code.upper()][row.legal_entity_county_code]
+            row.legal_entity_county_name = g_county_by_code[state_code][row.legal_entity_county_code]
 
 
 def fix_fabs_ppop_county(row, zip_data, zip_check):
@@ -347,7 +347,7 @@ def fix_fpds_le_country(row):
     # grab the country name if we have access to it and it isn't already there
     if not row.legal_entity_country_name and row.legal_entity_country_code\
             and row.legal_entity_country_code.upper() in g_country_list:
-        row.legal_entity_country_name = g_country_list[row.legal_entity_country_code]
+        row.legal_entity_country_name = g_country_list[row.legal_entity_country_code.upper()]
 
 
 def fix_fpds_ppop_country(row):
