@@ -1,8 +1,6 @@
 import argparse
 import logging
 import re
-import datetime
-from sqlalchemy import func
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
