@@ -731,7 +731,8 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
     if flex_cols:
         for flex_col in flex_cols:
             flex_col_headers.append(flex_col.header)
-            flex_col_cells.append(flex_col.header + ": " + flex_col.cell)
+            flex_val = flex_col.cell if flex_col.cell else ""
+            flex_col_cells.append(flex_col.header + ": " + flex_val)
     # For each failure, record it in error report and metadata
     for failure in failures:
         # map short column names back to long names
