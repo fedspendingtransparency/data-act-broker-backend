@@ -52,11 +52,8 @@ def add_to_table(data, sess):
         # loop through all the items in the current array
         for _, new_zip in data.items():
             # create an insert statement that overrides old values if there's a conflict
-            insert_statement = insert(Zips).values(**new_zip). \
-                on_conflict_do_update(index_elements=[Zips.zip5, Zips.zip_last4],
-                                      set_=dict(state_abbreviation=new_zip["state_abbreviation"],
-                                                county_number=new_zip["county_number"],
-                                                congressional_district_no=new_zip["congressional_district_no"]))
+            insert_statement = insert(Zips).values(**new_zip).\
+                on_conflict_do_nothing(index_elements=[Zips.zip5, Zips.zip_last4])
             sess.execute(insert_statement)
 
             if i % 10000 == 0:
@@ -71,6 +68,7 @@ def parse_zip4_file(f, sess):
     f.read(zip4_line_size)
 
     data_array = {}
+    current_zip = ""
     curr_chunk = ""
     while True:
         # grab the next chunk
@@ -94,7 +92,16 @@ def parse_zip4_file(f, sess):
 
             # ignore state codes AA, AE, and AP because they're just for military routing
             if state not in ['AA', 'AE', 'AP']:
+                # files are ordered by zip5: when it changes, that's the last record with that zip5
+                # insert batches by zip5 to avoid conflicts
                 zip5 = curr_row[1:6]
+                if current_zip != zip5:
+                    if len(data_array) > 0:
+                        logger.info("Inserting {} records for {}".format(len(data_array), current_zip))
+                        add_to_table(data_array, sess)
+                        data_array.clear()
+                    current_zip = zip5
+
                 # zip of 96898 is a special case
                 if zip5 == "96898":
                     congressional_district = "99"
@@ -138,16 +145,9 @@ def parse_zip4_file(f, sess):
             # cut the current line out of the chunk we're processing
             curr_chunk = curr_chunk[zip4_line_size:]
 
-        # we want to do DB adding in large chunks so we can hopefully remove duplicates that are near each other
-        # in the file just by them having the same key in the dict
-        if len(data_array) > 50000:
-            logger.info("Inserting next 50k+ records")
-            add_to_table(data_array, sess)
-            data_array.clear()
-
     # add the final chunk of data to the DB
     if len(data_array) > 0:
-        logger.info("Adding last set of records for current file")
+        logger.info("Adding last {} records for current file".format(len(data_array)))
         add_to_table(data_array, sess)
         data_array.clear()
 
