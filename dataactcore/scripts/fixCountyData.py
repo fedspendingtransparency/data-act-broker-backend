@@ -65,7 +65,7 @@ def main():
     sess.execute(
         """UPDATE detached_award_procurement AS dap
             SET legal_entity_county_code = zc.county_number,
-                legal_entity_county_name = CASE WHEN dap.legal_entity_county_name IS NOT NULL 
+                legal_entity_county_name = CASE WHEN dap.legal_entity_county_name IS NOT NULL
                                                 THEN dap.legal_entity_county_name
                                                 ELSE UPPER(zc.county_name) END
             FROM zip_county AS zc
@@ -82,7 +82,7 @@ def main():
     sess.execute(
         """UPDATE detached_award_procurement AS dap
             SET legal_entity_county_code = zc.county_number,
-                legal_entity_county_name = CASE WHEN dap.legal_entity_county_name IS NOT NULL 
+                legal_entity_county_name = CASE WHEN dap.legal_entity_county_name IS NOT NULL
                                                 THEN dap.legal_entity_county_name
                                                 ELSE UPPER(zc.county_name) END
             FROM zip_county AS zc
@@ -98,7 +98,7 @@ def main():
     sess.execute(
         """UPDATE detached_award_procurement AS dap
             SET legal_entity_county_code = sc.county_number,
-                legal_entity_county_name = CASE WHEN dap.legal_entity_county_name IS NOT NULL 
+                legal_entity_county_name = CASE WHEN dap.legal_entity_county_name IS NOT NULL
                                                 THEN dap.legal_entity_county_name
                                                 ELSE UPPER(sc.county_name) END
             FROM single_county AS sc
@@ -115,7 +115,7 @@ def main():
     sess.execute(
         """UPDATE detached_award_procurement AS dap
             SET place_of_perform_county_co = zc.county_number,
-                place_of_perform_county_na = CASE WHEN dap.place_of_perform_county_na IS NOT NULL 
+                place_of_perform_county_na = CASE WHEN dap.place_of_perform_county_na IS NOT NULL
                                                   THEN dap.place_of_perform_county_na
                                                   ELSE UPPER(zc.county_name) END
             FROM zip_county AS zc
@@ -131,7 +131,7 @@ def main():
     sess.execute(
         """UPDATE detached_award_procurement AS dap
             SET place_of_perform_county_co = zc.county_number,
-                place_of_perform_county_na = CASE WHEN dap.place_of_perform_county_na IS NOT NULL 
+                place_of_perform_county_na = CASE WHEN dap.place_of_perform_county_na IS NOT NULL
                                                   THEN dap.place_of_perform_county_na
                                                   ELSE UPPER(zc.county_name) END
             FROM zip_county AS zc
@@ -147,7 +147,7 @@ def main():
     sess.execute(
         """UPDATE detached_award_procurement AS dap
             SET place_of_perform_county_co = sc.county_number,
-                place_of_perform_county_na = CASE WHEN dap.place_of_perform_county_na IS NOT NULL 
+                place_of_perform_county_na = CASE WHEN dap.place_of_perform_county_na IS NOT NULL
                                                   THEN dap.place_of_perform_county_na
                                                   ELSE UPPER(sc.county_name) END
             FROM single_county AS sc
@@ -164,7 +164,7 @@ def main():
     sess.execute(
         """UPDATE published_award_financial_assistance AS pafa
             SET legal_entity_county_code = zc.county_number,
-                legal_entity_county_name = CASE WHEN pafa.legal_entity_county_name IS NOT NULL 
+                legal_entity_county_name = CASE WHEN pafa.legal_entity_county_name IS NOT NULL
                                                   THEN pafa.legal_entity_county_name
                                                   ELSE zc.county_name END
             FROM zip_county AS zc
@@ -178,11 +178,11 @@ def main():
 
     logger.info("Finished FABS legal entity 9-digit zips, starting FABS legal entity 5-digit zips")
 
-    #FABS LE 5-digit
+    # FABS LE 5-digit
     sess.execute(
         """UPDATE published_award_financial_assistance AS pafa
             SET legal_entity_county_code = sc.county_number,
-                legal_entity_county_name = CASE WHEN pafa.legal_entity_county_name IS NOT NULL 
+                legal_entity_county_name = CASE WHEN pafa.legal_entity_county_name IS NOT NULL
                                                   THEN pafa.legal_entity_county_name
                                                   ELSE sc.county_name END
             FROM single_county AS sc
@@ -199,7 +199,7 @@ def main():
     sess.execute(
         """UPDATE published_award_financial_assistance AS pafa
             SET place_of_perform_county_co = zc.county_number,
-                place_of_perform_county_na = CASE WHEN pafa.place_of_perform_county_na IS NOT NULL 
+                place_of_perform_county_na = CASE WHEN pafa.place_of_perform_county_na IS NOT NULL
                                                   THEN pafa.place_of_perform_county_na
                                                   ELSE zc.county_name END
             FROM zip_county AS zc
@@ -216,7 +216,7 @@ def main():
     sess.execute(
         """UPDATE published_award_financial_assistance AS pafa
             SET place_of_perform_county_co = zc.county_number,
-                place_of_perform_county_na = CASE WHEN pafa.place_of_perform_county_na IS NOT NULL 
+                place_of_perform_county_na = CASE WHEN pafa.place_of_perform_county_na IS NOT NULL
                                                   THEN pafa.place_of_perform_county_na
                                                   ELSE zc.county_name END
             FROM zip_county AS zc
@@ -233,7 +233,7 @@ def main():
     sess.execute(
         """UPDATE published_award_financial_assistance AS pafa
             SET place_of_perform_county_co = sc.county_number,
-                place_of_perform_county_na = CASE WHEN pafa.place_of_perform_county_na IS NOT NULL 
+                place_of_perform_county_na = CASE WHEN pafa.place_of_perform_county_na IS NOT NULL
                                                   THEN pafa.place_of_perform_county_na
                                                   ELSE sc.county_name END
             FROM single_county AS sc
