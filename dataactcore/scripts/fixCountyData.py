@@ -1,4 +1,5 @@
 import logging
+import argparse
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
@@ -7,10 +8,8 @@ from dataactvalidator.health_check import create_app
 logger = logging.getLogger(__name__)
 
 
-def main():
-    sess = GlobalDB.db().session
-
-    logger.info("Starting county code fixes, creating zip_county temporary view")
+def create_matviews(sess):
+    logger.info("Creating zip_county temporary view")
 
     # zip_county view creation
     sess.execute(
@@ -29,11 +28,16 @@ def main():
     )
     sess.commit()
 
-    logger.info("Created zip_county temporary view, creating zip_county indexes")
-
+    logger.info("Created zip_county temporary view, creating zip_county index on zip5")
     sess.execute("CREATE INDEX ix_zip5_zip_county ON zip_county (zip5)")
+
+    logger.info("Created zip_county index on zip5, creating zip_county index on zip_last4")
     sess.execute("CREATE INDEX ix_zip_last4_zip_county ON zip_county (zip_last4)")
+
+    logger.info("Created zip_county index on zip_last4, creating zip_county index on combined_zip")
     sess.execute("CREATE INDEX ix_combined_zip_zip_county ON zip_county (combined_zip)")
+
+    logger.info("Created zip_county index on combined_zip, creating zip_county index on dashed_zip")
     sess.execute("CREATE INDEX ix_dashed_zip_zip_county ON zip_county (dashed_zip)")
     sess.commit()
 
@@ -54,13 +58,26 @@ def main():
     )
     sess.commit()
 
-    logger.info("Created single_county temporary view, creating single_county index")
+    logger.info("Created single_county temporary view, creating single_county index on zip5")
 
     sess.execute("CREATE INDEX ix_zip5_single_county ON single_county (zip5)")
     sess.commit()
 
-    logger.info("Created single_county index, starting FPDS legal entity 9-digit zips without dashes")
+    logger.info("Created single_county index, matview creation complete.")
 
+
+def delete_matviews(sess):
+    logger.info("Deleting matviews")
+    # zip_county view deletion
+    sess.execute("DROP MATERIALIZED VIEW IF EXISTS single_county")
+    sess.execute("DROP MATERIALIZED VIEW IF EXISTS zip_county")
+    sess.commit()
+
+    logger.info("Finished delete of matviews.")
+
+
+def update_fpds_le(sess):
+    logger.info("Starting FPDS legal entity derivations, starting legal entity 9-digit zips without dashes")
     # FPDS LE 9-digit no dash
     sess.execute(
         """UPDATE detached_award_procurement AS dap
@@ -108,8 +125,11 @@ def main():
                 AND UPPER(dap.legal_entity_country_code) = 'USA'"""
     )
     sess.commit()
+    logger.info("Finished FPDS legal entity 5-digit zips, FPDS legal entity updates complete.")
 
-    logger.info("Finished FPDS legal entity 5-digit zips, starting FPDS PPOP 9-digit zips without dashes")
+
+def update_fpds_ppop(sess):
+    logger.info("Starting FPDS PPOP derivations, starting FPDS PPOP 9-digit zips without dashes")
 
     # FPDS PPOP 9-digit no dash
     sess.execute(
@@ -157,8 +177,11 @@ def main():
                 AND UPPER(dap.place_of_perform_country_c) = 'USA'"""
     )
     sess.commit()
+    logger.info("Finished FPDS PPOP 5-digit zips, FPDS PPOP updates complete")
 
-    logger.info("Finished FPDS PPOP 5-digit zips, starting FABS legal entity 9-digit zips")
+
+def update_fabs_le(sess):
+    logger.info("Starting FABS legal entity derivations, starting FABS legal entity 9-digit zips")
 
     # FABS LE 9-digit
     sess.execute(
@@ -193,7 +216,11 @@ def main():
     )
     sess.commit()
 
-    logger.info("Finished FABS legal entity 5-digit zips, starting FABS PPOP 9-digit zips without dashes")
+    logger.info("Finished FABS legal 5-digit zips, FABS legal entity updates complete")
+
+
+def update_fabs_ppop(sess):
+    logger.info("Starting FABS PPOP derivations, starting FABS PPOP 9-digit zips without dashes")
 
     # FABS PPOP 9-digit no dash
     sess.execute(
@@ -210,7 +237,7 @@ def main():
     )
     sess.commit()
 
-    logger.info("Finished FPDS PPOP 9-digit zips without dashes, starting FABS PPOP 9-digit zips with dashes")
+    logger.info("Finished FABS PPOP 9-digit zips without dashes, starting FABS PPOP 9-digit zips with dashes")
 
     # FABS PPOP 9-digit dash
     sess.execute(
@@ -227,7 +254,7 @@ def main():
     )
     sess.commit()
 
-    logger.info("Finished FPDS PPOP 9-digit zips with dashes, starting FABS PPOP 5-digit zips")
+    logger.info("Finished FABS PPOP 9-digit zips with dashes, starting FABS PPOP 5-digit zips")
 
     # FABS PPOP 5-digit
     sess.execute(
@@ -245,14 +272,52 @@ def main():
     )
     sess.commit()
 
-    logger.info("Finished FPDS PPOP 5-digit zips, starting delete of temporary views")
+    logger.info("Finished FABS PPOP 5-digit zips, FABS PPOP updates complete.")
 
-    # zip_county view deletion
-    sess.execute("DROP MATERIALIZED VIEW IF EXISTS single_county")
-    sess.execute("DROP MATERIALIZED VIEW IF EXISTS zip_county")
-    sess.commit()
 
-    logger.info("Finished delete of temporary views, county code/name fix script complete")
+def main():
+    sess = GlobalDB.db().session
+
+    parser = argparse.ArgumentParser(description='Pull data from the FPDS Atom Feed.')
+    parser.add_argument('-mv', '--matview', help='Create the matviews, make sure they do not already exist',
+                        action='store_true')
+    parser.add_argument('-dmv', '--delete_matview', help='Delete the matviews', action='store_true')
+    parser.add_argument('-fpdsle', '--fpds_le', help='Run FPDS Legal Entity updates', action='store_true')
+    parser.add_argument('-fpdsppop', '--fpds_ppop', help='Run FPDS PPOP updates', action='store_true')
+    parser.add_argument('-fabsle', '--fabs_le', help='Run FABS Legal Entity updates', action='store_true')
+    parser.add_argument('-fabsppop', '--fabs_ppop', help='Run FABS PPOP updates', action='store_true')
+    parser.add_argument('-a', '--all', help='Run all updates without creating or deleting matviews',
+                        action='store_true')
+    parser.add_argument('-am', '--all_matview', help='Run all updates and create and delete matviews',
+                        action='store_true')
+    args = parser.parse_args()
+
+    logger.info("Starting county code fixes")
+
+    if args.all_matview or args.all:
+        if args.all_matview:
+            create_matviews(sess)
+
+        update_fpds_le(sess)
+        update_fpds_ppop(sess)
+        update_fabs_le(sess)
+        update_fabs_ppop(sess)
+
+        if args.all_matview:
+            delete_matviews(sess)
+    else:
+        if args.matview:
+            create_matviews(sess)
+        if args.fpds_le:
+            update_fpds_le(sess)
+        if args.fpds_ppop:
+            update_fpds_ppop(sess)
+        if args.fabs_le:
+            update_fabs_le(sess)
+        if args.fabs_ppop:
+            update_fabs_ppop(sess)
+        if args.delete_matview:
+            delete_matviews(sess)
 
 
 if __name__ == '__main__':
