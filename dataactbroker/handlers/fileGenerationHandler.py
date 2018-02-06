@@ -29,12 +29,14 @@ def job_context(job_id, is_local=True):
         sess = GlobalDB.db().session
         try:
             yield sess
-            logger.info({
-                'message': 'Marking job {} as finished'.format(job_id),
-                'message_type': 'BrokerInfo',
-                'job_id': job_id
-            })
-            mark_job_status(job_id, "finished")
+            if not sess.query(Job).filter(Job.job_id == job_id, Job.from_cached.is_(True)).one_or_none():
+                # only mark completed jobs as done
+                logger.info({
+                    'message': 'Marking job {} as finished'.format(job_id),
+                    'message_type': 'BrokerInfo',
+                    'job_id': job_id
+                })
+                mark_job_status(job_id, "finished")
         except Exception as e:
             # logger.exception() automatically adds traceback info
             logger.exception({
@@ -275,11 +277,9 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
     filename = '{}/{}'.format(child_job.filename.rsplit('/', 1)[0], parent_job.original_filename)
 
     # copy parent job's data
-    child_job.is_cached = True
+    child_job.from_cached = True
     child_job.filename = filename
     child_job.original_filename = parent_job.original_filename
-    child_job.number_of_rows = parent_job.number_of_rows
-    child_job.number_of_rows_valid = parent_job.number_of_rows_valid
     child_job.number_of_errors = parent_job.number_of_errors
     child_job.number_of_warnings = parent_job.number_of_warnings
     child_job.error_message = parent_job.error_message
