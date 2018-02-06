@@ -762,7 +762,8 @@ def vendor_site_details_values(data, obj):
                  'isTriballyOwnedFirm': 'tribally_owned_business',
                  'isVerySmallBusiness': 'emerging_small_business',
                  'isVeteranOwned': 'veteran_owned_business',
-                 'isWomenOwned': 'woman_owned_business'}
+                 'isWomenOwned': 'woman_owned_business',
+                 'isWomenOwnedSmallBusiness': 'women_owned_small_business'}
 
     for key, value in value_map.items():
         try:
@@ -777,8 +778,7 @@ def vendor_site_details_values(data, obj):
                  'isMinorityOwned': 'minority_owned_business',
                  'isNativeAmericanOwnedBusiness': 'native_american_owned_busi',
                  'isOtherMinorityOwned': 'other_minority_owned_busin',
-                 'isSubContinentAsianAmericanOwnedBusiness': 'subcontinent_asian_asian_i',
-                 'isWomenOwnedSmallBusiness': 'women_owned_small_business'}
+                 'isSubContinentAsianAmericanOwnedBusiness': 'subcontinent_asian_asian_i'}
 
     for key, value in value_map.items():
         try:
