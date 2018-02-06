@@ -2,6 +2,7 @@ import logging
 import boto
 import os
 import pandas as pd
+import argparse
 from datetime import datetime
 
 from dataactcore.models.domainModels import DUNS
@@ -46,7 +47,7 @@ def clean_duns_csv_data(data):
     }, {})
 
 
-def run_duns_batches(file, sess, block_size=10000):
+def run_duns_batches(file, sess, block_size=10000, batch=0):
     """Updates DUNS table in batches from csv file"""
     logger.info("Retrieving total rows from duns file")
     start = datetime.now()
@@ -54,7 +55,6 @@ def run_duns_batches(file, sess, block_size=10000):
     logger.info("Retrieved row count of {} in {} s".format(row_count, (datetime.now()-start).total_seconds()))
 
     batches = row_count // block_size
-    batch = 0
 
     while batch <= batches:
         logger.info("Begin updating duns batch {} ".format(batch+1))
@@ -91,6 +91,13 @@ def run_duns_batches(file, sess, block_size=10000):
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Adding historical DUNS to Broker.')
+    parser.add_argument('-size', '--block_size', help='Number of rows to batch load', type=int,
+                        default=10000)
+    parser.add_argument('-batch', '--batch', help='Batch no to start loading on in case previous load is incomplete',
+                        type=int, default=0)
+    args = parser.parse_args()
+
     sess = GlobalDB.db().session
 
     logger.info('Retrieving historical DUNS file')
@@ -109,7 +116,7 @@ def main():
 
     logger.info("Retrieved historical DUNS file in {} s".format((datetime.now()-start).total_seconds()))
 
-    run_duns_batches(duns_file, sess)
+    run_duns_batches(duns_file, sess, args.block_size, args.batch)
 
     logger.info("Updating historical DUNS complete")
     sess.close()
