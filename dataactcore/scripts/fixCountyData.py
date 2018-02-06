@@ -76,11 +76,11 @@ def delete_matviews(sess):
     logger.info("Finished delete of matviews.")
 
 
-def update_fpds_le(sess):
+def update_fpds_le(sess, table_name):
     logger.info("Starting FPDS legal entity derivations, starting legal entity 9-digit zips without dashes")
     # FPDS LE 9-digit no dash
     sess.execute(
-        """UPDATE detached_award_procurement AS dap
+        "UPDATE " + table_name + """ AS dap
             SET legal_entity_county_code = zc.county_number,
                 legal_entity_county_name = CASE WHEN dap.legal_entity_county_name IS NOT NULL
                                                 THEN dap.legal_entity_county_name
@@ -97,7 +97,7 @@ def update_fpds_le(sess):
 
     # FPDS LE 9-digit dash
     sess.execute(
-        """UPDATE detached_award_procurement AS dap
+        "UPDATE " + table_name + """ AS dap
             SET legal_entity_county_code = zc.county_number,
                 legal_entity_county_name = CASE WHEN dap.legal_entity_county_name IS NOT NULL
                                                 THEN dap.legal_entity_county_name
@@ -113,7 +113,7 @@ def update_fpds_le(sess):
 
     # FPDS LE 5-digit
     sess.execute(
-        """UPDATE detached_award_procurement AS dap
+        "UPDATE " + table_name + """ AS dap
             SET legal_entity_county_code = sc.county_number,
                 legal_entity_county_name = CASE WHEN dap.legal_entity_county_name IS NOT NULL
                                                 THEN dap.legal_entity_county_name
@@ -128,12 +128,12 @@ def update_fpds_le(sess):
     logger.info("Finished FPDS legal entity 5-digit zips, FPDS legal entity updates complete.")
 
 
-def update_fpds_ppop(sess):
+def update_fpds_ppop(sess, table_name):
     logger.info("Starting FPDS PPOP derivations, starting FPDS PPOP 9-digit zips without dashes")
 
     # FPDS PPOP 9-digit no dash
     sess.execute(
-        """UPDATE detached_award_procurement AS dap
+        "UPDATE " + table_name + """ AS dap
             SET place_of_perform_county_co = zc.county_number,
                 place_of_perform_county_na = CASE WHEN dap.place_of_perform_county_na IS NOT NULL
                                                   THEN dap.place_of_perform_county_na
@@ -149,7 +149,7 @@ def update_fpds_ppop(sess):
 
     # FPDS PPOP 9-digit dash
     sess.execute(
-        """UPDATE detached_award_procurement AS dap
+        "UPDATE " + table_name + """ AS dap
             SET place_of_perform_county_co = zc.county_number,
                 place_of_perform_county_na = CASE WHEN dap.place_of_perform_county_na IS NOT NULL
                                                   THEN dap.place_of_perform_county_na
@@ -165,7 +165,7 @@ def update_fpds_ppop(sess):
 
     # FPDS PPOP 5-digit
     sess.execute(
-        """UPDATE detached_award_procurement AS dap
+        "UPDATE " + table_name + """ AS dap
             SET place_of_perform_county_co = sc.county_number,
                 place_of_perform_county_na = CASE WHEN dap.place_of_perform_county_na IS NOT NULL
                                                   THEN dap.place_of_perform_county_na
@@ -180,12 +180,12 @@ def update_fpds_ppop(sess):
     logger.info("Finished FPDS PPOP 5-digit zips, FPDS PPOP updates complete")
 
 
-def update_fabs_le(sess):
+def update_fabs_le(sess, table_name):
     logger.info("Starting FABS legal entity derivations, starting FABS legal entity 9-digit zips")
 
     # FABS LE 9-digit
     sess.execute(
-        """UPDATE published_award_financial_assistance AS pafa
+        "UPDATE " + table_name + """ AS pafa
             SET legal_entity_county_code = zc.county_number,
                 legal_entity_county_name = CASE WHEN pafa.legal_entity_county_name IS NOT NULL
                                                   THEN pafa.legal_entity_county_name
@@ -203,7 +203,7 @@ def update_fabs_le(sess):
 
     # FABS LE 5-digit
     sess.execute(
-        """UPDATE published_award_financial_assistance AS pafa
+        "UPDATE " + table_name + """ AS pafa
             SET legal_entity_county_code = sc.county_number,
                 legal_entity_county_name = CASE WHEN pafa.legal_entity_county_name IS NOT NULL
                                                   THEN pafa.legal_entity_county_name
@@ -219,12 +219,12 @@ def update_fabs_le(sess):
     logger.info("Finished FABS legal 5-digit zips, FABS legal entity updates complete")
 
 
-def update_fabs_ppop(sess):
+def update_fabs_ppop(sess, table_name):
     logger.info("Starting FABS PPOP derivations, starting FABS PPOP 9-digit zips without dashes")
 
     # FABS PPOP 9-digit no dash
     sess.execute(
-        """UPDATE published_award_financial_assistance AS pafa
+        "UPDATE " + table_name + """ AS pafa
             SET place_of_perform_county_co = zc.county_number,
                 place_of_perform_county_na = CASE WHEN pafa.place_of_perform_county_na IS NOT NULL
                                                   THEN pafa.place_of_perform_county_na
@@ -241,7 +241,7 @@ def update_fabs_ppop(sess):
 
     # FABS PPOP 9-digit dash
     sess.execute(
-        """UPDATE published_award_financial_assistance AS pafa
+        "UPDATE " + table_name + """ AS pafa
             SET place_of_perform_county_co = zc.county_number,
                 place_of_perform_county_na = CASE WHEN pafa.place_of_perform_county_na IS NOT NULL
                                                   THEN pafa.place_of_perform_county_na
@@ -258,7 +258,7 @@ def update_fabs_ppop(sess):
 
     # FABS PPOP 5-digit
     sess.execute(
-        """UPDATE published_award_financial_assistance AS pafa
+        "UPDATE " + table_name + """ AS pafa
             SET place_of_perform_county_co = sc.county_number,
                 place_of_perform_county_na = CASE WHEN pafa.place_of_perform_county_na IS NOT NULL
                                                   THEN pafa.place_of_perform_county_na
@@ -279,6 +279,8 @@ def main():
     sess = GlobalDB.db().session
 
     parser = argparse.ArgumentParser(description='Pull data from the FPDS Atom Feed.')
+    parser.add_argument('-t', '--type', help='Broker or website fixes to determine table names. Accepted arguments are '
+                                             'broker and website', nargs=1, type=str, required=True)
     parser.add_argument('-mv', '--matview', help='Create the matviews, make sure they do not already exist',
                         action='store_true')
     parser.add_argument('-dmv', '--delete_matview', help='Delete the matviews', action='store_true')
@@ -292,16 +294,25 @@ def main():
                         action='store_true')
     args = parser.parse_args()
 
+    if args.type[0] == 'broker':
+        fpds_table = 'detached_award_procurement'
+        fabs_table = 'published_award_financial_assistance'
+    elif args.type[0] == 'website':
+        fpds_table = 'transaction_fpds'
+        fabs_table = 'transaction_fabs'
+    else:
+        raise ValueError("Argument type must be broker or website")
+
     logger.info("Starting county code fixes")
 
     if args.all_matview or args.all:
         if args.all_matview:
             create_matviews(sess)
 
-        update_fpds_le(sess)
-        update_fpds_ppop(sess)
-        update_fabs_le(sess)
-        update_fabs_ppop(sess)
+        update_fpds_le(sess, fpds_table)
+        update_fpds_ppop(sess, fpds_table)
+        update_fabs_le(sess, fabs_table)
+        update_fabs_ppop(sess, fabs_table)
 
         if args.all_matview:
             delete_matviews(sess)
@@ -309,15 +320,17 @@ def main():
         if args.matview:
             create_matviews(sess)
         if args.fpds_le:
-            update_fpds_le(sess)
+            update_fpds_le(sess, fpds_table)
         if args.fpds_ppop:
-            update_fpds_ppop(sess)
+            update_fpds_ppop(sess, fpds_table)
         if args.fabs_le:
-            update_fabs_le(sess)
+            update_fabs_le(sess, fabs_table)
         if args.fabs_ppop:
-            update_fabs_ppop(sess)
+            update_fabs_ppop(sess, fabs_table)
         if args.delete_matview:
             delete_matviews(sess)
+
+    logger.info("Completed county code fixes")
 
 
 if __name__ == '__main__':
