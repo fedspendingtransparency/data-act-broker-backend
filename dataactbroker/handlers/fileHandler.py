@@ -412,14 +412,14 @@ class FileHandler:
             'submission_id': job.submission_id,
             'file_type': file_type
         }
+        old_filename = None
         if file_request and file_request.is_cached_file:
             log_data['message'] = 'D file generation running on job with cached file'
-            logger.debug(log_data)
-            mark_job_status(job.job_id, "running")
+            old_filename = job.original_filename
         else:
             log_data['message'] = 'Adding job info for job id of {}'.format(job.job_id)
-            logger.debug(log_data)
-            job = self.add_generation_job_info(file_type_name=file_type_name, job=job)
+        logger.debug(log_data)
+        job = self.add_generation_job_info(file_type_name=file_type_name, job=job)
 
         # Generate and upload file to S3
         upload_file_name, timestamped_name = job.filename, job.original_filename
@@ -431,7 +431,8 @@ class FileHandler:
 
             agency_code = submission.frec_code if submission.frec_code else submission.cgac_code
             t = threading.Thread(target=generate_d_file, args=(file_type, agency_code, start, end, job.job_id,
-                                                               upload_file_name, self.isLocal, job.submission_id))
+                                                               upload_file_name, self.isLocal, job.submission_id,
+                                                               old_filename))
         else:
             t = threading.Thread(
                 target=generate_e_file if file_type == 'E' else generate_f_file,
