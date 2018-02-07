@@ -25,9 +25,11 @@ column_headers = [
     "legal_business_name"  # Legal_Business_Name
 ]
 
+column_mappings = {x: x for x in column_headers}
+
 
 def remove_existing_duns(data, sess):
-    """Remove rows frome file that alread have a entry in broker database. We should only update missing DUNS"""
+    """Remove rows from file that already have a entry in broker database. We should only update missing DUNS"""
 
     duns_in_file = ",".join(list(data['awardee_or_recipient_uniqu'].unique()))
     sql_query = "SELECT awardee_or_recipient_uniqu " +\
@@ -42,35 +44,29 @@ def remove_existing_duns(data, sess):
 
 
 def clean_duns_csv_data(data):
-    return clean_data(data, DUNS, {
-        x: x for x in column_headers
-    }, {})
+    return clean_data(data, DUNS, column_mappings, {})
 
 
 def run_duns_batches(file, sess, block_size=10000, batch=0):
     """Updates DUNS table in batches from csv file"""
     logger.info("Retrieving total rows from duns file")
     start = datetime.now()
-    row_count = len(pd.read_csv(file, sep='",\s"', engine='python'))
+    row_count = len(pd.read_csv(file, skipinitialspace=True, header=None, encoding='latin1', quotechar='"',
+                                dtype=str, names=column_headers, skiprows=1))
     logger.info("Retrieved row count of {} in {} s".format(row_count, (datetime.now()-start).total_seconds()))
 
     batches = row_count // block_size
 
     while batch <= batches:
-        logger.info("Begin updating duns batch {} ".format(batch+1))
+        logger.info("Begin updating duns batch {} ".format(batch))
         start = datetime.now()
         skip_rows = 1 if batch == 0 else (batch*block_size)
 
-        duns_df = pd.read_csv(file, sep='\",\s*\"', skipinitialspace=True, header=None, engine='python',
-                              nrows=block_size, skiprows=skip_rows, names=column_headers,
-                              converters={col: str for col in column_headers}
-                              )
+        duns_df = pd.read_csv(file, skipinitialspace=True, header=None,  encoding='latin1', quotechar='"',
+                              dtype=str, names=column_headers, nrows=block_size, skiprows=skip_rows)
 
-        # Remove intial quotation in duns field, add 0 padding if needed
-        duns_df["awardee_or_recipient_uniqu"] = duns_df["awardee_or_recipient_uniqu"].apply(
-            lambda x: str(x).replace('"', '').zfill(9))
-        # Remove trailing quotation in final row
-        duns_df["legal_business_name"] = duns_df["legal_business_name"].apply(lambda x: str(x).replace('"', ''))
+        # Remove rows where awardee_or_recipient_uniqu is null
+        duns_df = duns_df[duns_df['awardee_or_recipient_uniqu'].notnull()]
 
         duns_to_load = remove_existing_duns(duns_df, sess)
         duns_count = 0
