@@ -12,8 +12,8 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.models.jobModels import Job, FileRequest, FPDSUpdate
-from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_STATUS_DICT_ID, JOB_TYPE_DICT, FILE_TYPE_DICT_LETTER_ID,
-                                        FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_NAME)
+from dataactcore.models.lookups import (FILE_TYPE_DICT_LETTER_ID, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_NAME,
+                                        JOB_STATUS_DICT_ID, JOB_TYPE_DICT)
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
 from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file, stream_file_to_s3
@@ -29,12 +29,14 @@ def job_context(job_id, is_local=True):
         sess = GlobalDB.db().session
         try:
             yield sess
-            logger.info({
-                'message': 'Marking job {} as finished'.format(job_id),
-                'message_type': 'BrokerInfo',
-                'job_id': job_id
-            })
-            mark_job_status(job_id, "finished")
+            if not sess.query(Job).filter(Job.job_id == job_id, Job.from_cached.is_(True)).one_or_none():
+                # only mark completed jobs as done
+                logger.info({
+                    'message': 'Marking job {} as finished'.format(job_id),
+                    'message_type': 'BrokerInfo',
+                    'job_id': job_id
+                })
+                mark_job_status(job_id, "finished")
         except Exception as e:
             # logger.exception() automatically adds traceback info
             logger.exception({
@@ -60,14 +62,20 @@ def job_context(job_id, is_local=True):
             if file_request and file_request.is_cached_file:
                 # copy job data to all child FileRequests
                 child_requests = sess.query(FileRequest).filter_by(parent_job_id=job_id).all()
-                file_type = FILE_TYPE_DICT_LETTER[file_request.job.file_type_id]
-                for child in child_requests:
-                    copy_parent_file_request_data(sess, child.job, file_request.job, file_type, is_local)
-
+                if len(child_requests) > 0:
+                    logger.info({
+                        'message': 'Copying file data from job {} to its children'.format(job_id),
+                        'message_type': 'BrokerInfo',
+                        'job_id': job_id
+                    })
+                    file_type = FILE_TYPE_DICT_LETTER[file_request.job.file_type_id]
+                    for child in child_requests:
+                        copy_parent_file_request_data(sess, child.job, file_request.job, file_type, is_local)
             GlobalDB.close()
 
 
-def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_local, submission_id=None):
+def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_local, submission_id=None,
+                    old_filename=None):
     """Write file D1 or D2 to an appropriate CSV.
 
         Args:
@@ -91,7 +99,10 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
         log_data['submission_id'] = submission_id
 
     with job_context(job_id, is_local) as sess:
+        # find current date and date of last FPDS pull
         current_date = datetime.now().date()
+        last_update = sess.query(FPDSUpdate).one_or_none()
+        fpds_date = last_update.update_date if last_update else current_date
 
         # check if FileRequest already exists with this job_id, if not, create one
         file_request = sess.query(FileRequest).filter(FileRequest.job_id == job_id).one_or_none()
@@ -100,54 +111,69 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
                                        agency_code=agency_code, file_type=file_type, is_cached_file=False)
             sess.add(file_request)
 
-        # search for potential parent FileRequests
-        parent_file_request = None
-        if not file_request.is_cached_file:
-            parent_request_query = sess.query(FileRequest).\
-                filter(FileRequest.file_type == file_type, FileRequest.start_date == start, FileRequest.end_date == end,
-                       FileRequest.agency_code == agency_code, FileRequest.is_cached_file.is_(True))
-
-            # filter D1 FileRequests by the date of the last FPDS pull
-            if file_type == 'D1':
-                last_update = sess.query(FPDSUpdate).one_or_none()
-                fpds_date = last_update.update_date if last_update else current_date
-                parent_request_query = parent_request_query.filter(FileRequest.request_date >= fpds_date)
-
-            # mark FileRequest with parent job_id
-            parent_file_request = parent_request_query.one_or_none()
-            file_request.parent_job_id = parent_file_request.job_id if parent_file_request else None
-        sess.commit()
-
-        if file_request.is_cached_file:
-            # this is the cached file, no need to do anything
+        # determine if anything needs to be done at all
+        exists = file_request.is_cached_file
+        if exists and not (file_type == 'D1' and file_request.request_date < fpds_date):
+            # this is the up-to-date cached version of the generated file
+            # reset the file names on the upload Job
             log_data['message'] = '{} file has already been generated by this job'.format(file_type)
             logger.info(log_data)
-        elif parent_file_request:
-            # copy parent data to this job if parent is not still running
-            if parent_file_request.job.job_status_id != JOB_STATUS_DICT['running']:
-                copy_parent_file_request_data(sess, file_request.job, parent_file_request.job, file_type, is_local)
-        else:
-            # no cached file
-            file_name = upload_name.split('/')[-1]
-            log_data['message'] = 'Starting file {} generation'.format(file_type)
-            log_data['file_name'] = file_name
-            logger.info(log_data)
+            job = sess.query(Job).filter(Job.job_id == job_id).first()
+            filepath = CONFIG_BROKER['broker_files'] if is_local else "".join([str(job.submission_id), "/"])
+            job.filename = "".join([filepath, old_filename])
+            job.original_filename = old_filename
 
-            # mark this FileRequest as the cached version
-            file_request.is_cached_file = True
+            # reset the file names on the validation job
+            val_job = sess.query(Job).filter(Job.submission_id == submission_id,
+                                             Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
+                                             Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one()
+            val_job.filename = "".join([filepath, old_filename])
+            val_job.original_filename = old_filename
+            sess.commit()
+        else:
+            # search for potential parent FileRequests
+            parent_file_request = None
+            if not exists:
+                # attempt to retrieve a parent request
+                parent_query = sess.query(FileRequest).\
+                    filter(FileRequest.file_type == file_type, FileRequest.start_date == start,
+                           FileRequest.end_date == end, FileRequest.agency_code == agency_code,
+                           FileRequest.is_cached_file.is_(True))
+
+                # filter D1 FileRequests by the date of the last FPDS pull
+                if file_type == 'D1':
+                    parent_query.filter(FileRequest.request_date >= fpds_date)
+
+                # mark FileRequest with parent job_id
+                parent_file_request = parent_query.one_or_none()
+                file_request.parent_job_id = parent_file_request.job_id if parent_file_request else None
             sess.commit()
 
-            file_utils = fileD1 if file_type == 'D1' else fileD2
-            local_filename = "".join([CONFIG_BROKER['d_file_storage_path'], file_name])
-            headers = [key for key in file_utils.mapping]
+            if parent_file_request:
+                # parent exists; copy parent data to this job
+                copy_parent_file_request_data(sess, file_request.job, parent_file_request.job, file_type, is_local)
+            else:
+                # no cached file, or cached file is out-of-date
+                file_name = upload_name.split('/')[-1]
+                log_data['message'] = 'Starting file {} {}generation'.format(file_type, 're' if exists else '')
+                log_data['file_name'] = file_name
+                logger.info(log_data)
 
-            # actually generate the file
-            query_utils = {"file_utils": file_utils, "agency_code": agency_code, "start": start, "end": end,
-                           "sess": sess}
-            write_query_to_file(local_filename, upload_name, headers, file_type, is_local, d_file_query, query_utils)
+                # mark this FileRequest as the cached version, requested today
+                file_request.is_cached_file = True
+                file_request.request_date = current_date
+                sess.commit()
 
-            log_data['message'] = 'Finished writing to file: {}'.format(file_name)
-            logger.info(log_data)
+                # actually generate the file
+                file_utils = fileD1 if file_type == 'D1' else fileD2
+                local_file = "".join([CONFIG_BROKER['d_file_storage_path'], file_name])
+                headers = [key for key in file_utils.mapping]
+                query_utils = {"file_utils": file_utils, "agency_code": agency_code, "start": start, "end": end,
+                               "sess": sess}
+                write_query_to_file(local_file, upload_name, headers, file_type, is_local, d_file_query, query_utils)
+                log_data['message'] = 'Finished writing to file: {}'.format(file_name)
+                logger.info(log_data)
+
     log_data['message'] = 'Finished file {} generation'.format(file_type)
     logger.info(log_data)
 
@@ -275,11 +301,9 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
     filename = '{}/{}'.format(child_job.filename.rsplit('/', 1)[0], parent_job.original_filename)
 
     # copy parent job's data
-    child_job.is_cached = True
+    child_job.from_cached = True
     child_job.filename = filename
     child_job.original_filename = parent_job.original_filename
-    child_job.number_of_rows = parent_job.number_of_rows
-    child_job.number_of_rows_valid = parent_job.number_of_rows_valid
     child_job.number_of_errors = parent_job.number_of_errors
     child_job.number_of_warnings = parent_job.number_of_warnings
     child_job.error_message = parent_job.error_message
