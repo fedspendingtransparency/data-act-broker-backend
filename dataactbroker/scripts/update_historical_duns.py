@@ -100,7 +100,7 @@ def main():
     start = datetime.now()
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-        s3bucket = s3connection.lookup(CONFIG_BROKER["data_archive_bucket"])
+        s3bucket = s3connection.lookup(CONFIG_BROKER["archive_bucket"])
         duns_file = s3bucket.get_key("DUNS_export.csv").generate_url(expires_in=10000)
     else:
         duns_file = os.path.join(
