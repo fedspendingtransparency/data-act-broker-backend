@@ -316,8 +316,8 @@ def main():
             update_fabs_le(sess)
         if args.fabs_ppop:
             update_fabs_ppop(sess)
-        if args.delete_matview:
-            delete_matviews(sess)
+    if args.delete_matview:
+        delete_matviews(sess)
 
     logger.info("Completed county code fixes")
 
