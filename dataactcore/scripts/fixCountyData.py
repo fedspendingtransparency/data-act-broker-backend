@@ -19,10 +19,10 @@ def create_matviews(sess):
                 concat(zip5, '-', zip_last4) AS dashed_zip,
                 zip5,
                 zip_last4,
-                cc.county_number,
+                zips.county_number,
                 county_name
             FROM zips
-            JOIN county_code AS cc
+            LEFT OUTER JOIN county_code AS cc
                 ON cc.state_code = zips.state_abbreviation
                 AND cc.county_number = zips.county_number)"""
     )
