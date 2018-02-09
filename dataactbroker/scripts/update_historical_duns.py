@@ -47,24 +47,19 @@ def clean_duns_csv_data(data):
     return clean_data(data, DUNS, column_mappings, {})
 
 
-def run_duns_batches(file, sess, block_size=10000, batch=0):
-    """Updates DUNS table in batches from csv file"""
+def run_duns_batches(file, sess, block_size=10000):
+    """Updates DUNS table in chunks from csv file"""
     logger.info("Retrieving total rows from duns file")
     start = datetime.now()
     row_count = len(pd.read_csv(file, skipinitialspace=True, header=None, encoding='latin1', quotechar='"',
                                 dtype=str, names=column_headers, skiprows=1))
     logger.info("Retrieved row count of {} in {} s".format(row_count, (datetime.now()-start).total_seconds()))
 
-    batches = row_count // block_size
+    duns_reader_obj = pd.read_csv(file, skipinitialspace=True, header=None,  encoding='latin1', quotechar='"',
+                                  dtype=str, names=column_headers, iterator=True, chunksize=block_size, skiprows=1)
 
-    while batch <= batches:
-        logger.info("Begin updating duns batch {} ".format(batch))
+    for duns_df in duns_reader_obj:
         start = datetime.now()
-        skip_rows = 1 if batch == 0 else (batch*block_size)
-
-        duns_df = pd.read_csv(file, skipinitialspace=True, header=None,  encoding='latin1', quotechar='"',
-                              dtype=str, names=column_headers, nrows=block_size, skiprows=skip_rows)
-
         # Remove rows where awardee_or_recipient_uniqu is null
         duns_df = duns_df[duns_df['awardee_or_recipient_uniqu'].notnull()]
 
@@ -83,15 +78,11 @@ def run_duns_batches(file, sess, block_size=10000, batch=0):
         logger.info("Finished updating {} DUNS rows in {} s".format(duns_count,
                                                                     (datetime.now()-start).total_seconds()))
 
-        batch += 1
-
 
 def main():
     parser = argparse.ArgumentParser(description='Adding historical DUNS to Broker.')
     parser.add_argument('-size', '--block_size', help='Number of rows to batch load', type=int,
                         default=10000)
-    parser.add_argument('-batch', '--batch', help='Batch no to start loading on in case previous load is incomplete',
-                        type=int, default=0)
     args = parser.parse_args()
 
     sess = GlobalDB.db().session
@@ -100,7 +91,7 @@ def main():
     start = datetime.now()
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-        s3bucket = s3connection.lookup(CONFIG_BROKER["data_archive_bucket"])
+        s3bucket = s3connection.lookup(CONFIG_BROKER["archive_bucket"])
         duns_file = s3bucket.get_key("DUNS_export.csv").generate_url(expires_in=10000)
     else:
         duns_file = os.path.join(
@@ -112,7 +103,7 @@ def main():
 
     logger.info("Retrieved historical DUNS file in {} s".format((datetime.now()-start).total_seconds()))
 
-    run_duns_batches(duns_file, sess, args.block_size, args.batch)
+    run_duns_batches(duns_file, sess, args.block_size)
 
     logger.info("Updating historical DUNS complete")
     sess.close()
