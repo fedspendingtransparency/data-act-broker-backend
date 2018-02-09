@@ -56,7 +56,7 @@ def run_duns_batches(file, sess, block_size=10000):
     logger.info("Retrieved row count of {} in {} s".format(row_count, (datetime.now()-start).total_seconds()))
 
     duns_reader_obj = pd.read_csv(file, skipinitialspace=True, header=None,  encoding='latin1', quotechar='"',
-                          dtype=str, names=column_headers, iterator=True, chunksize=block_size, skiprows=1)
+                                  dtype=str, names=column_headers, iterator=True, chunksize=block_size, skiprows=1)
 
     for duns_df in duns_reader_obj:
         start = datetime.now()
