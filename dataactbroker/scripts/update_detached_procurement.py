@@ -11,12 +11,12 @@ logger = logging.getLogger(__name__)
 # sess: Passing session into the function for modifying db
 # type: will be either 'awarding' or 'funding' to determine which agency type we are checking
 def update_table(sess, agency_type, args):
-    logger.info('updating ' + agency_type)
+    logger.info('Updating ' + agency_type + ' agency')
 
     # The name of the column depends on the type because of limited string length
     suffix = 'o' if agency_type == "funding" else ''
 
-    invalid_count, condition_sql = set_update_condition(agency_type, suffix, sess, args.subtier_code)
+    row_count, condition_sql = set_update_condition(agency_type, suffix, sess, args.subtier_code)
 
     # updates table based off the parent of the sub_tier_agency code
     sess.execute(
@@ -38,10 +38,9 @@ def update_table(sess, agency_type, args):
         """.format(agency_type=agency_type, condition_sql=condition_sql, suffix=suffix)
     )
     sess.commit()
-    if args.missing_agency:
-        final_invalid_count = get_invalid_count(condition_sql, sess)
-        print(final_invalid_count)
-        print_report(invalid_count, final_invalid_count, agency_type)
+
+    final_row_count = 0 if args.subtier_code else get_row_count(condition_sql, sess)
+    print_report(row_count, final_row_count, agency_type, args.subtier_code, True)
 
 
 def set_update_condition(agency_type, suffix, sess, subtier_code=None):
@@ -52,23 +51,29 @@ def set_update_condition(agency_type, suffix, sess, subtier_code=None):
     else:
         sql_statement = "detached_award_procurement." + agency_type + "_agency_code = '999' "
 
-    invalid_count = get_invalid_count(sql_statement, sess)
-    logger.info("{} invalid {} rows found".format(invalid_count, agency_type))
+    row_count = get_row_count(sql_statement, sess)
+    print_report(row_count, 0, agency_type, subtier_code)
 
-    return invalid_count, sql_statement
+    return row_count, sql_statement
 
 
-def get_invalid_count(sql_statement, sess):
-    invalid = sess.execute("select count(*) from detached_award_procurement where " + sql_statement + ";")
-    invalid_count = invalid.fetchone()[0]
+def get_row_count(sql_statement, sess):
+    rows = sess.execute("select count(*) from detached_award_procurement where " + sql_statement + ";")
+    row_count = rows.fetchone()[0]
 
-    return invalid_count
+    return row_count
 
 
 # data logging
-def print_report(initial, final, type):
-    logger.info("{} invalid {} rows updated".format(initial - final, type))
-    logger.info("{} invalid {} rows remaining".format(final, type))
+def print_report(initial, final, agency_type, subtier_code, is_updated=False):
+    agency_code_type, update_type = ('subtier', subtier_code) if subtier_code else ('cgac', '999')
+
+    logger.info("{} {} {} code {} rows {}".format(initial - final, agency_type,
+                                                  agency_code_type, update_type,
+                                                  'updated' if is_updated else 'to update'
+                                                  ))
+    if is_updated and update_type == '999':
+        logger.info("{} {} code {} rows remaining".format(final, agency_type, update_type))
 
 
 def main():
