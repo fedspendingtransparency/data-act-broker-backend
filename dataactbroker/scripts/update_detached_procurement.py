@@ -11,7 +11,13 @@ logger = logging.getLogger(__name__)
 # sess: Passing session into the function for modifying db
 # type: will be either 'awarding' or 'funding' to determine which agency type we are checking
 def update_table(sess, agency_type, args):
-    logger.info('Updating ' + agency_type + ' agency')
+    # Setting the type of update we are running on the procurement table for logging purposes
+    update_type = {'level': 'cgac', 'code': '999'} if args.missing_agency \
+        else {'level': 'subtier', 'code': args.subtier_code}
+
+    logger.info('Updating ' + agency_type + ' ' +
+                update_type['level'] +
+                ' agency code ' + update_type['code'])
 
     # The name of the column depends on the type because of limited string length
     suffix = 'o' if agency_type == "funding" else ''
@@ -40,11 +46,14 @@ def update_table(sess, agency_type, args):
     sess.commit()
 
     final_row_count = 0 if args.subtier_code else get_row_count(condition_sql, sess)
-    print_report(row_count, final_row_count, agency_type, args.subtier_code, True)
+    print_report(row_count, final_row_count, agency_type, True)
+
+    if args.missing_agency:
+        logger.info("{} agency code 999 remaining: {} rows ".format(agency_type.title(), final_row_count))
 
 
 def set_update_condition(agency_type, suffix, sess, subtier_code=None):
-
+    """Changes the condition on which to update based on the type of update (999 vs subtier code)"""
     if subtier_code:
         sql_statement = "detached_award_procurement.{}_sub_tier_agency_c{} = '{}' ".format(agency_type,
                                                                                            suffix, subtier_code)
@@ -52,29 +61,27 @@ def set_update_condition(agency_type, suffix, sess, subtier_code=None):
         sql_statement = "detached_award_procurement." + agency_type + "_agency_code = '999' "
 
     row_count = get_row_count(sql_statement, sess)
-    print_report(row_count, 0, agency_type, subtier_code)
+    print_report(row_count, 0, agency_type)
 
     return row_count, sql_statement
 
 
 def get_row_count(sql_statement, sess):
+    """
+    Runs a SQL query to get the count of transaction rows based on the type of update.
+    SQL Statement will either be agency_code = '999' or sub_tier_agency_code = 'XXXX' for awarding and funding
+    """
     rows = sess.execute("select count(*) from detached_award_procurement where " + sql_statement + ";")
     row_count = rows.fetchone()[0]
 
     return row_count
 
 
-# data logging
-def print_report(initial, final, agency_type, subtier_code, is_updated=False):
-    agency_code_type, update_type = ('subtier', subtier_code) if subtier_code else ('cgac', '999')
-
-    logger.info("{} {} code {} {}: {} rows".format(agency_type,
-                                                   agency_code_type, update_type,
-                                                   'updated' if is_updated else 'to update',
-                                                   initial - final
-                                                   ))
-    if is_updated and update_type == '999':
-        logger.info("{} {} code remaining: {} rows ".format(agency_type, update_type, final))
+def print_report(initial, final, agency_type, is_updated=False):
+    """Logs row count before and after and update"""
+    logger.info("{} codes {}: {} rows".format(agency_type.title(), 'updated' if is_updated else 'to update',
+                                              initial - final
+                                              ))
 
 
 def main():
