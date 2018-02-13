@@ -68,12 +68,13 @@ def get_row_count(sql_statement, sess):
 def print_report(initial, final, agency_type, subtier_code, is_updated=False):
     agency_code_type, update_type = ('subtier', subtier_code) if subtier_code else ('cgac', '999')
 
-    logger.info("{} {} {} code {} rows {}".format(initial - final, agency_type,
-                                                  agency_code_type, update_type,
-                                                  'updated' if is_updated else 'to update'
-                                                  ))
+    logger.info("{} {} code {} {}: {} rows".format(agency_type,
+                                                   agency_code_type, update_type,
+                                                   'updated' if is_updated else 'to update',
+                                                   initial - final
+                                                   ))
     if is_updated and update_type == '999':
-        logger.info("{} {} code {} rows remaining".format(final, agency_type, update_type))
+        logger.info("{} {} code remaining: {} rows ".format(agency_type, update_type, final))
 
 
 def main():
