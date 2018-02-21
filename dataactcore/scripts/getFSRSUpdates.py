@@ -58,7 +58,7 @@ def main():
         JOIN base_transaction AS bt
             ON bt.fain = pafa.fain
             AND bt.max_mod = pafa.modified_at)
-    
+
     SELECT
         ob.fain AS federal_award_id,
         CASE WHEN currently_active
