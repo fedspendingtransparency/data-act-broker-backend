@@ -31,24 +31,24 @@ def test_generate_d1_file_query(monkeypatch, mock_broker_config_paths, database,
     dap_5 = dap_model(awarding_agency_code='234', action_date='20170115', detached_award_proc_unique='unique5')
     database.session.add_all([dap_1, dap_2, dap_3, dap_4, dap_5])
 
-    jf = JobFactory(
+    job = JobFactory(
         job_status=database.session.query(JobStatus).filter_by(name='running').one(),
         job_type=database.session.query(JobType).filter_by(name='file_upload').one(),
         file_type=database.session.query(FileType).filter_by(name='award_procurement').one(),
     )
-    database.session.add(jf)
+    database.session.add(job)
     database.session.commit()
 
     file_path = str(mock_broker_config_paths['d_file_storage_path'].join('d1'))
-    fileGenerationHandler.generate_d_file('D1', '123', '01/01/2017', '01/31/2017', jf.job_id, 'd1', 'd1', is_local=True)
+    fileGenerationHandler.generate_d_file('D1', '123', '01/01/2017', '01/31/2017', job.job_id, 'd1', is_local=True)
 
     # check headers
     file_rows = read_file_rows(file_path)
     assert file_rows[0] == [key for key in fileGenerationHandler.fileD1.mapping]
 
     # check body
-    dap_one = database.session.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique2').first()
-    dap_two = database.session.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique1').first()
+    dap_one = database.session.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique1').first()
+    dap_two = database.session.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique2').first()
     expected1, expected2 = [], []
     for value in fileGenerationHandler.fileD1.db_columns:
         # loop through all values and format date columns
@@ -75,24 +75,24 @@ def test_generate_d2_file_query(monkeypatch, mock_broker_config_paths, database,
     pafa_6 = pafa(awarding_agency_code='234', action_date='20170115', afa_generated_unique='unique6', is_active=True)
     database.session.add_all([pafa_1, pafa_2, pafa_3, pafa_4, pafa_5, pafa_6])
 
-    jf = JobFactory(
+    job = JobFactory(
         job_status=database.session.query(JobStatus).filter_by(name='running').one(),
         job_type=database.session.query(JobType).filter_by(name='file_upload').one(),
         file_type=database.session.query(FileType).filter_by(name='award').one(),
     )
-    database.session.add(jf)
+    database.session.add(job)
     database.session.commit()
 
     file_path = str(mock_broker_config_paths['d_file_storage_path'].join('d2'))
-    fileGenerationHandler.generate_d_file('D2', '123', '01/01/2017', '01/31/2017', jf.job_id, 'd2', 'd2', is_local=True)
+    fileGenerationHandler.generate_d_file('D2', '123', '01/01/2017', '01/31/2017', job.job_id, 'd2', is_local=True)
 
     # check headers
     file_rows = read_file_rows(file_path)
     assert file_rows[0] == [key for key in fileGenerationHandler.fileD2.mapping]
 
     # check body
-    pafa1 = database.session.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique2').first()
-    pafa2 = database.session.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique1').first()
+    pafa1 = database.session.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique1').first()
+    pafa2 = database.session.query(PublishedAwardFinancialAssistance).filter_by(afa_generated_unique='unique2').first()
     expected1, expected2 = [], []
     for value in fileGenerationHandler.fileD2.db_columns:
         # loop through all values and format date columns

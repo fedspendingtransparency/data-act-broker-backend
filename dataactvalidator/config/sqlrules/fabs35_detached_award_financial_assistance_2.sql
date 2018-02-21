@@ -2,11 +2,11 @@
 SELECT
     dafa.row_number,
     dafa.legal_entity_zip5
-FROM detached_award_financial_assistance as dafa
+FROM detached_award_financial_assistance AS dafa
 WHERE dafa.submission_id = {0}
-    AND COALESCE(dafa.legal_entity_zip5, '') != ''
+    AND COALESCE(dafa.legal_entity_zip5, '') <> ''
     AND NOT EXISTS (
-		SELECT *
-		FROM zips as z
-		WHERE z.zip5 = dafa.legal_entity_zip5
-	)
+        SELECT 1
+        FROM zips AS z
+        WHERE z.zip5 = dafa.legal_entity_zip5
+    );

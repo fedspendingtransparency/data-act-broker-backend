@@ -6,4 +6,6 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type = 2
-    AND (fain = '' OR fain IS NULL)
+    AND (fain = ''
+        OR fain IS NULL
+    );

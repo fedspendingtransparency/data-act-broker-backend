@@ -103,8 +103,8 @@ def test_insert_staging_model_failure():
     model = AppropriationFactory(row_number=1234, adjustments_to_unobligated_cpe='shoulda-been-a-number')
     job = JobFactory()
     assert not validationManager.insert_staging_model(model, job, writer, error_list)
-    assert writer.write.call_args[0] == (
-        ['Formatting Error', 'Could not write this record into the staging table', 1234, ''],
+    assert writer.writerow.call_args[0] == (
+        ['Formatting Error', 'Could not write this record into the staging table.', 1234, ''],
     )
     assert len(error_list.rowErrors) == 1
     error = list(error_list.rowErrors.values())[0]

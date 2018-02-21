@@ -5,7 +5,7 @@ SELECT
     original_loan_subsidy_cost
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND assistance_type != '07'
-    AND assistance_type != '08'
+    AND assistance_type <> '07'
+    AND assistance_type <> '08'
     AND original_loan_subsidy_cost IS NOT NULL
-    AND original_loan_subsidy_cost != 0
+    AND original_loan_subsidy_cost <> 0;

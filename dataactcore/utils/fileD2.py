@@ -86,7 +86,29 @@ def query_data(session, agency_code, start, end, page_start, page_stop):
             page_start - Beginning of pagination
             page_stop - End of pagination
     """
-    rows = session.query(
+    rows = initial_query(session).\
+        filter(file_model.is_active.is_(True)).\
+        filter(file_model.awarding_agency_code == agency_code).\
+        filter(func.cast_as_date(file_model.action_date) >= start).\
+        filter(func.cast_as_date(file_model.action_date) <= end).\
+        slice(page_start, page_stop)
+    return rows
+
+
+def query_published_fabs_data(session, submission_id, page_start, page_stop):
+    """ Request published FABS file data
+
+        Args:
+            session - DB session
+            submission_id - Submission ID for generation
+            page_start - Beginning of pagination
+            page_stop - End of pagination
+    """
+    return initial_query(session).filter(file_model.submission_id == submission_id).slice(page_start, page_stop)
+
+
+def initial_query(session):
+    return session.query(
         file_model.action_type,
         func.to_char(cast(file_model.action_date, Date), 'YYYYMMDD'),
         file_model.assistance_type,
@@ -150,10 +172,4 @@ def query_data(session, agency_code, start, end, page_start, page_stop):
         file_model.original_loan_subsidy_cost,
         file_model.business_funds_indicator,
         file_model.funding_office_name,
-        func.to_char(cast(file_model.modified_at, Date), 'YYYYMMDD')).\
-        filter(file_model.is_active.is_(True)).\
-        filter(file_model.awarding_agency_code == agency_code).\
-        filter(cast(file_model.action_date, Date) >= start).\
-        filter(cast(file_model.action_date, Date) <= end).\
-        slice(page_start, page_stop)
-    return rows
+        func.to_char(cast(file_model.modified_at, Date), 'YYYYMMDD'))

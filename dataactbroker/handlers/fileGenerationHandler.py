@@ -1,7 +1,5 @@
 import boto3
-import csv
 import logging
-import os
 import smart_open
 
 from datetime import datetime
@@ -13,18 +11,14 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.domainModels import ExecutiveCompensation
-from dataactcore.models.jobModels import Job, FileRequest
-from dataactcore.models.lookups import (JOB_STATUS_DICT, JOB_STATUS_DICT_ID, JOB_TYPE_DICT, FILE_TYPE_DICT_LETTER_ID,
-                                        FILE_TYPE_DICT_LETTER)
+from dataactcore.models.jobModels import Job, FileRequest, FPDSUpdate
+from dataactcore.models.lookups import (FILE_TYPE_DICT_LETTER_ID, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_NAME,
+                                        JOB_STATUS_DICT_ID, JOB_TYPE_DICT)
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
-from dataactvalidator.filestreaming.csv_selection import write_csv
-
+from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file, stream_file_to_s3
 
 logger = logging.getLogger(__name__)
-
-CHUNK_SIZE = 1024
-QUERY_SIZE = 10000
 
 
 @contextmanager
@@ -35,11 +29,22 @@ def job_context(job_id, is_local=True):
         sess = GlobalDB.db().session
         try:
             yield sess
-            logger.debug('Marking job as finished')
-            mark_job_status(job_id, "finished")
+            if not sess.query(Job).filter(Job.job_id == job_id, Job.from_cached.is_(True)).one_or_none():
+                # only mark completed jobs as done
+                logger.info({
+                    'message': 'Marking job {} as finished'.format(job_id),
+                    'message_type': 'BrokerInfo',
+                    'job_id': job_id
+                })
+                mark_job_status(job_id, "finished")
         except Exception as e:
             # logger.exception() automatically adds traceback info
-            logger.exception('Job %s failed', job_id)
+            logger.exception({
+                'message': 'Marking job {} as failed'.format(job_id),
+                'message_type': 'BrokerException',
+                'job_id': job_id,
+                'exception': str(e)
+            })
             job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
             if job:
                 # mark job as failed
@@ -57,15 +62,21 @@ def job_context(job_id, is_local=True):
             if file_request and file_request.is_cached_file:
                 # copy job data to all child FileRequests
                 child_requests = sess.query(FileRequest).filter_by(parent_job_id=job_id).all()
-                file_type = FILE_TYPE_DICT_LETTER[file_request.job.file_type_id]
-                for child in child_requests:
-                    copy_parent_file_request_data(sess, child.job, file_request.job, file_type, is_local)
-
+                if len(child_requests) > 0:
+                    logger.info({
+                        'message': 'Copying file data from job {} to its children'.format(job_id),
+                        'message_type': 'BrokerInfo',
+                        'job_id': job_id
+                    })
+                    file_type = FILE_TYPE_DICT_LETTER[file_request.job.file_type_id]
+                    for child in child_requests:
+                        copy_parent_file_request_data(sess, child.job, file_request.job, file_type, is_local)
             GlobalDB.close()
 
 
-def generate_d_file(file_type, agency_code, start, end, job_id, file_name, upload_name, is_local):
-    """ Write file D1 or D2 to an appropriate CSV.
+def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_local, submission_id=None,
+                    old_filename=None):
+    """Write file D1 or D2 to an appropriate CSV.
 
         Args:
             file_type - File type as either "D1" or "D2"
@@ -73,99 +84,102 @@ def generate_d_file(file_type, agency_code, start, end, job_id, file_name, uploa
             start - Beginning of period for D file
             end - End of period for D file
             job_id - Job ID for upload job
-            file_name - Version of filename without user ID
-            upload_name - Filename to use on S3
+            upload_name - File key to use on S3
             is_local - True if in local development, False otherwise
     """
+    log_data = {
+        'message_type': 'BrokerInfo',
+        'job_id': job_id,
+        'file_type': FILE_TYPE_DICT_LETTER_NAME[file_type],
+        'agency_code': agency_code,
+        'start_date': start,
+        'end_date': end
+    }
+    if submission_id:
+        log_data['submission_id'] = submission_id
+
     with job_context(job_id, is_local) as sess:
-        # check if FileRequest already exists with this job_id
+        # find current date and date of last FPDS pull
         current_date = datetime.now().date()
-        file_request = sess.query(FileRequest).filter_by(job_id=job_id).one_or_none()
+        last_update = sess.query(FPDSUpdate).one_or_none()
+        fpds_date = last_update.update_date if last_update else current_date
+
+        # check if FileRequest already exists with this job_id, if not, create one
+        file_request = sess.query(FileRequest).filter(FileRequest.job_id == job_id).one_or_none()
         if not file_request:
             file_request = FileRequest(request_date=current_date, job_id=job_id, start_date=start, end_date=end,
                                        agency_code=agency_code, file_type=file_type, is_cached_file=False)
             sess.add(file_request)
-        elif file_request.request_date != current_date:
-            # current file is cached, but not from today
-            # un-cache it and update its date
-            file_request.request_date = current_date
-            file_request.is_cached_file = False
 
-        # search for separate FileRequest to mark as parent
-        parent_req = None
-        if not file_request.is_cached_file:
-            parent_req = sess.query(FileRequest).\
-                filter_by(request_date=current_date, file_type=file_type, start_date=start, end_date=end,
-                          agency_code=agency_code, is_cached_file=True).one_or_none()
-            file_request.parent_job_id = parent_req.job_id if parent_req else None
-        sess.commit()
+        # determine if anything needs to be done at all
+        exists = file_request.is_cached_file
+        if exists and not (file_type == 'D1' and file_request.request_date < fpds_date):
+            # this is the up-to-date cached version of the generated file
+            # reset the file names on the upload Job
+            log_data['message'] = '{} file has already been generated by this job'.format(file_type)
+            logger.info(log_data)
+            job = sess.query(Job).filter(Job.job_id == job_id).first()
+            filepath = CONFIG_BROKER['broker_files'] if is_local else "".join([str(job.submission_id), "/"])
+            job.filename = "".join([filepath, old_filename])
+            job.original_filename = old_filename
 
-        if file_request.is_cached_file:
-            # this is the cached file, no need to do anything
-            logger.debug('{} file has already been generated by this job'.format(file_type))
-        elif parent_req:
-            # copy parent data to this job if parent is not still running
-            if parent_req.job.job_status_id != JOB_STATUS_DICT['running']:
-                copy_parent_file_request_data(sess, file_request.job, parent_req.job, file_type, is_local)
+            # reset the file names on the validation job
+            val_job = sess.query(Job).filter(Job.submission_id == submission_id,
+                                             Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
+                                             Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one()
+            val_job.filename = "".join([filepath, old_filename])
+            val_job.original_filename = old_filename
+            sess.commit()
         else:
-            # no cached file
-            # start D file generation
-            logger.debug('Starting file {} generation'.format(file_type))
-            file_utils = fileD1 if file_type == 'D1' else fileD2
-            full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], file_name])
-            page_idx = 0
+            # search for potential parent FileRequests
+            parent_file_request = None
+            if not exists:
+                # attempt to retrieve a parent request
+                parent_query = sess.query(FileRequest).\
+                    filter(FileRequest.file_type == file_type, FileRequest.start_date == start,
+                           FileRequest.end_date == end, FileRequest.agency_code == agency_code,
+                           FileRequest.is_cached_file.is_(True))
 
-            # create file locally
-            with open(full_file_path, 'w', newline='') as csv_file:
-                out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+                # filter D1 FileRequests by the date of the last FPDS pull
+                if file_type == 'D1':
+                    parent_query.filter(FileRequest.request_date >= fpds_date)
 
-                # write headers to file
-                headers = [key for key in file_utils.mapping]
-                out_csv.writerow(headers)
-
-                while True:
-                    # query QUERY_SIZE number of rows
-                    page_start = QUERY_SIZE * page_idx
-                    rows = file_utils.\
-                        query_data(sess, agency_code, start, end, page_start, (QUERY_SIZE * (page_idx + 1))).all()
-
-                    if rows is None:
-                        break
-
-                    # write records to file
-                    logger.debug('Writing rows {}-{} to {} CSV'.format(page_start, page_start + len(rows), file_type))
-                    out_csv.writerows(rows)
-                    if len(rows) < QUERY_SIZE:
-                        break
-                    page_idx += 1
-
-            # close file
-            csv_file.close()
-
-            if not is_local:
-                # stream file to S3
-                with open(full_file_path, 'rb') as csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(upload_name), 'w') as writer:
-                        while True:
-                            chunk = csv_file.read(CHUNK_SIZE)
-                            if chunk:
-                                writer.write(chunk)
-                            else:
-                                break
-                # close and delete local copy
-                csv_file.close()
-                os.remove(full_file_path)
-
-            # mark this FileRequest as the cached version
-            file_request.is_cached_file = True
+                # mark FileRequest with parent job_id
+                parent_file_request = parent_query.one_or_none()
+                file_request.parent_job_id = parent_file_request.job_id if parent_file_request else None
             sess.commit()
 
-            logger.debug('Finished writing to file: {}'.format(file_name))
-    logger.debug('Finished file {} generation'.format(file_type))
+            if parent_file_request:
+                # parent exists; copy parent data to this job
+                copy_parent_file_request_data(sess, file_request.job, parent_file_request.job, file_type, is_local)
+            else:
+                # no cached file, or cached file is out-of-date
+                file_name = upload_name.split('/')[-1]
+                log_data['message'] = 'Starting file {} {}generation'.format(file_type, 're' if exists else '')
+                log_data['file_name'] = file_name
+                logger.info(log_data)
+
+                # mark this FileRequest as the cached version, requested today
+                file_request.is_cached_file = True
+                file_request.request_date = current_date
+                sess.commit()
+
+                # actually generate the file
+                file_utils = fileD1 if file_type == 'D1' else fileD2
+                local_file = "".join([CONFIG_BROKER['d_file_storage_path'], file_name])
+                headers = [key for key in file_utils.mapping]
+                query_utils = {"file_utils": file_utils, "agency_code": agency_code, "start": start, "end": end,
+                               "sess": sess}
+                write_query_to_file(local_file, upload_name, headers, file_type, is_local, d_file_query, query_utils)
+                log_data['message'] = 'Finished writing to file: {}'.format(file_name)
+                logger.info(log_data)
+
+    log_data['message'] = 'Finished file {} generation'.format(file_type)
+    logger.info(log_data)
 
 
 def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, is_local):
-    """ Write rows from fileF.generate_f_rows to an appropriate CSV.
+    """Write rows from fileF.generate_f_rows to an appropriate CSV.
 
         Args:
             submission_id - Submission ID for generation
@@ -174,24 +188,32 @@ def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, i
             upload_file_name - Filename to use on S3
             is_local - True if in local development, False otherwise
     """
-    logger.debug('Starting file F generation')
+    log_data = {
+        'message': 'Starting file F generation',
+        'message_type': 'BrokerInfo',
+        'submission_id': submission_id,
+        'job_id': job_id,
+        'file_type': 'sub_award'
+    }
+    logger.info(log_data)
 
     with job_context(job_id):
-        logger.debug('Calling generate_f_rows')
         rows_of_dicts = fileF.generate_f_rows(submission_id)
         header = [key for key in fileF.mappings]    # keep order
         body = []
         for row in rows_of_dicts:
             body.append([row[key] for key in header])
 
-        logger.debug('Writing file F CSV')
+        log_data['message'] = 'Writing file F CSV'
+        logger.info(log_data)
         write_csv(timestamped_name, upload_file_name, is_local, header, body)
 
-    logger.debug('Finished file F generation')
+    log_data['message'] = 'Finished file F generation'
+    logger.info(log_data)
 
 
 def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, is_local):
-    """ Write file E to an appropriate CSV.
+    """Write file E to an appropriate CSV.
 
         Args:
             submission_id - Submission ID for generation
@@ -200,7 +222,14 @@ def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, i
             upload_file_name - Filename to use on S3
             is_local - True if in local development, False otherwise
     """
-    logger.debug('Starting file E generation')
+    log_data = {
+        'message': 'Starting file E generation',
+        'message_type': 'BrokerInfo',
+        'submission_id': submission_id,
+        'job_id': job_id,
+        'file_type': 'executive_compensation'
+    }
+    logger.info(log_data)
 
     with job_context(job_id) as session:
         d1 = session.query(AwardProcurement.awardee_or_recipient_uniqu).\
@@ -222,14 +251,37 @@ def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, i
             session.merge(ExecutiveCompensation(**fileE.row_to_dict(row)))
         session.commit()
 
-        logger.debug('Writing file E CSV')
+        log_data['message'] = 'Writing file E CSV'
+        logger.info(log_data)
         write_csv(timestamped_name, upload_file_name, is_local, fileE.Row._fields, rows)
 
-    logger.debug('Finished file E generation')
+    log_data['message'] = 'Finished file E generation'
+    logger.info(log_data)
+
+
+def d_file_query(query_utils, page_start, page_end):
+    """Retrieve D1 or D2 data.
+
+        Args:
+            query_utils - object containing:
+                file_utils - fileD1 or fileD2 utils
+                sess - DB session
+                agency_code - FREC or CGAC code for generation
+                start - Beginning of period for D file
+                end - End of period for D file
+            page_start - Beginning of pagination
+            page_stop - End of pagination
+
+        Return:
+            paginated D1 or D2 query results
+    """
+    rows = query_utils["file_utils"].query_data(query_utils["sess"], query_utils["agency_code"], query_utils["start"],
+                                                query_utils["end"], page_start, page_end)
+    return rows.all()
 
 
 def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_local):
-    """ parent FileRequest job data to the child FileRequest job data
+    """Parent FileRequest job data to the child FileRequest job data.
 
         Args:
             sess - current DB session
@@ -238,15 +290,20 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
             file_type - File type as either "D1" or "D2"
             is_local - True if in local development, False otherwise
     """
+    log_data = {
+        'message': 'Copying data from parent job with job_id:{}'.format(parent_job.job_id),
+        'message_type': 'BrokerInfo',
+        'job_id': child_job.job_id,
+        'file_type': FILE_TYPE_DICT_LETTER_NAME[file_type]
+    }
+
     # keep path but update file name
     filename = '{}/{}'.format(child_job.filename.rsplit('/', 1)[0], parent_job.original_filename)
 
     # copy parent job's data
-    child_job.is_cached = True
+    child_job.from_cached = True
     child_job.filename = filename
     child_job.original_filename = parent_job.original_filename
-    child_job.number_of_rows = parent_job.number_of_rows
-    child_job.number_of_rows_valid = parent_job.number_of_rows_valid
     child_job.number_of_errors = parent_job.number_of_errors
     child_job.number_of_warnings = parent_job.number_of_warnings
     child_job.error_message = parent_job.error_message
@@ -267,19 +324,15 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
         for obj in response.get('Contents', []):
             if obj['Key'] == child_job.filename:
                 # the file already exists in this location
-                logger.debug('Cached {} file CSV already exists in this location'.format(file_type))
+                log_data['message'] = 'Cached {} file CSV already exists in this location'.format(file_type)
+                logger.info(log_data)
                 return
 
         # copy the parent file into the child's S3 location
-        logger.debug('Copying {} file from job {} to job {}'.format(file_type, parent_job.job_id, child_job.job_id))
+        log_data['message'] = 'Copying the cached {} file from job {}'.format(file_type, parent_job.job_id)
+        logger.info(log_data)
         with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
-            with smart_open.smart_open(S3Handler.create_file_path(child_job.filename), 'w') as writer:
-                while True:
-                    chunk = reader.read(CHUNK_SIZE)
-                    if chunk:
-                        writer.write(chunk)
-                    else:
-                        break
+            stream_file_to_s3(child_job.filename, reader)
 
     # mark job status last so the validation job doesn't start until everything is done
     mark_job_status(child_job.job_id, JOB_STATUS_DICT_ID[parent_job.job_status_id])

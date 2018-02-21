@@ -47,11 +47,11 @@ def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, us
     db.session.commit()
 
 
-def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1234",
-                        sub_fund_agency_code=None, ppop_code="NY00000", ppop_zip4a=None, ppop_cd=None, le_zip5=None,
-                        le_zip4=None, record_type=2, award_mod_amend=None, fain=None, uri=None, cldi=None,
-                        awarding_office='033103', funding_office='033103', legal_city="WASHINGTON", legal_state="DC",
-                        primary_place_country='USA', legal_country='USA'):
+def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1234", sub_fund_agency_code=None,
+                        ppop_code="NY00000", ppop_zip4a=None, ppop_cd=None, le_zip5=None, le_zip4=None, record_type=2,
+                        award_mod_amend=None, fain=None, uri=None, cldi=None, awarding_office='033103',
+                        funding_office='033103', legal_city="WASHINGTON", legal_state="DC", primary_place_country='USA',
+                        legal_country='USA', detached_award_financial_assistance_id=None, job_id=None):
     """ Initialize the values in the object being run through the fabs_derivations function """
     obj = {
         'federal_action_obligation': fao,
@@ -74,7 +74,9 @@ def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1
         'legal_entity_city_name': legal_city,
         'legal_entity_state_code': legal_state,
         'place_of_perform_country_c': primary_place_country,
-        'legal_entity_country_code': legal_country
+        'legal_entity_country_code': legal_country,
+        'detached_award_financial_assistance_id': detached_award_financial_assistance_id,
+        'job_id': job_id
     }
     return obj
 
@@ -150,15 +152,17 @@ def test_funding_sub_tier_agency_na(database):
     assert obj['funding_agency_name'] == 'Test CGAC Agency'
 
 
-def test_ppop_state_name(database):
+def test_ppop_state(database):
     initialize_db_values(database)
 
     obj = initialize_test_obj()
     obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_perfor_state_code'] == 'NY'
     assert obj['place_of_perform_state_nam'] == "New York"
 
     obj = initialize_test_obj(ppop_code="00*****")
     obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_perfor_state_code'] is None
     assert obj['place_of_perform_state_nam'] == "Multi-state"
 
 
@@ -305,6 +309,34 @@ def test_legal_country(database):
     obj = initialize_test_obj(legal_country='NK')
     obj = fabs_derivations(obj, database.session)
     assert obj['legal_entity_country_name'] is None
+
+
+def test_split_zip(database):
+    initialize_db_values(database)
+
+    # testing with 5-digit
+    obj = initialize_test_obj(ppop_zip4a='12345')
+    obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_performance_zip5'] == '12345'
+    assert obj['place_of_perform_zip_last4'] is None
+
+    # testing with 9-digit
+    obj = initialize_test_obj(ppop_zip4a='123456789')
+    obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_performance_zip5'] == '12345'
+    assert obj['place_of_perform_zip_last4'] == '6789'
+
+    # testing with 9-digit and dash
+    obj = initialize_test_obj(ppop_zip4a='12345-6789')
+    obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_performance_zip5'] == '12345'
+    assert obj['place_of_perform_zip_last4'] == '6789'
+
+    # testing with city-wide
+    obj = initialize_test_obj(ppop_zip4a='city-wide')
+    obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_performance_zip5'] is None
+    assert obj['place_of_perform_zip_last4'] is None
 
 
 def test_is_active(database):

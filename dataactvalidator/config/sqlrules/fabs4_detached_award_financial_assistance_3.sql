@@ -13,15 +13,9 @@ SELECT
     action_date
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND
-    (CASE
-        WHEN pg_temp.is_date(COALESCE(action_date, '0'))
-        THEN
-            CAST(action_date as DATE)
-    END) > CURRENT_DATE
-    AND
-    (CASE
-        WHEN pg_temp.is_date(COALESCE(action_date, '0'))
-        THEN
-            EXTRACT(YEAR FROM CAST(action_date as DATE) + INTERVAL '3 month')
-    END) != EXTRACT(YEAR FROM (CURRENT_DATE + INTERVAL '3 month'));
+    AND (CASE WHEN pg_temp.is_date(COALESCE(action_date, '0'))
+            THEN CAST(action_date AS DATE)
+        END) > CURRENT_DATE
+    AND (CASE WHEN pg_temp.is_date(COALESCE(action_date, '0'))
+            THEN EXTRACT(YEAR FROM CAST(action_date AS DATE) + INTERVAL '3 month')
+        END) <> EXTRACT(YEAR FROM (CURRENT_DATE + INTERVAL '3 month'));

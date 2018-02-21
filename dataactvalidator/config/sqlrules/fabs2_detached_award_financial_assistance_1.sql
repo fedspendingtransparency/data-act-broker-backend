@@ -18,7 +18,7 @@ FROM (
             dafa.uri,
             dafa.awarding_sub_tier_agency_c
         ) AS row
-    FROM detached_award_financial_assistance as dafa
+    FROM detached_award_financial_assistance AS dafa
     WHERE dafa.submission_id = {0}
     ORDER BY dafa.row_number
     ) duplicates

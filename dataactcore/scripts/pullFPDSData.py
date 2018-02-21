@@ -9,11 +9,16 @@ import xmltodict
 import numpy as np
 import pandas as pd
 import csv
+import io
 
 import datetime
 import time
 import re
 import threading
+
+from sqlalchemy import func
+
+from dateutil.relativedelta import relativedelta
 
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
@@ -24,7 +29,7 @@ from sqlalchemy.exc import IntegrityError
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
-from dataactcore.models.domainModels import SubTierAgency
+from dataactcore.models.domainModels import SubTierAgency, CountryCode, States, CountyCode, Zips
 from dataactcore.models.stagingModels import DetachedAwardProcurement
 from dataactcore.models.jobModels import FPDSUpdate
 
@@ -33,9 +38,14 @@ from dataactcore.models.userModel import User  # noqa
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
+from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
+from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.4.5&q="
 delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&templateName=1.4.5&q="
+country_code_map = {'USA': 'US', 'ASM': 'AS', 'GUM': 'GU', 'MNP': 'MP', 'PRI': 'PR', 'VIR': 'VI', 'FSM': 'FM',
+                    'MHL': 'MH', 'PLW': 'PW', 'XBK': 'UM', 'XHO': 'UM', 'XJV': 'UM', 'XJA': 'UM', 'XKR': 'UM',
+                    'XPL': 'UM', 'XMW': 'UM', 'XWK': 'UM'}
 
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -52,6 +62,33 @@ def extract_text(data_val):
     if type(data_val) is not str:
         data_val = data_val['#text']
     return data_val
+
+
+def is_valid_zip(zip_code):
+    if re.match('^\d{5}(-?\d{4})?$', zip_code):
+        return True
+    return False
+
+
+def get_county_by_zip(sess, zip_code):
+    # if the zip code is not a valid US zip, toss the entire zip
+    if not is_valid_zip(zip_code):
+        return None
+
+    zip_data = None
+    # if we have a 9 digit code, grab the first match for 9 digit zips
+    if len(zip_code) > 5:
+        zip_data = sess.query(Zips).filter_by(zip5=zip_code[:5], zip_last4=zip_code[-4:]).first()
+
+    # if it's not 9 digits or we found no results from the 9 digit we received
+    if not zip_data:
+        zip_data = sess.query(Zips).filter_by(zip5=zip_code[:5]).first()
+
+    # if we found results at any point, return the county code from it
+    if zip_data:
+        return zip_data.county_number
+
+    return None
 
 
 def award_id_values(data, obj):
@@ -295,7 +332,7 @@ def legislative_mandates_values(data, obj):
     return obj
 
 
-def place_of_performance_values(data, obj, atom_type):
+def place_of_performance_values(data, obj):
     """ Get values from the placeOfPerformance level of the xml """
     value_map = {'placeOfPerformanceCongressionalDistrict': 'place_of_performance_congr',
                  'placeOfPerformanceZIPCode': 'place_of_performance_zip4a'}
@@ -320,10 +357,8 @@ def place_of_performance_values(data, obj, atom_type):
 
     # within placeOfPerformance, the principalPlaceOfPerformance sub-level
     value_map = {'locationCode': 'place_of_performance_locat',
-                 'stateCode': 'place_of_performance_state'}
-
-    if atom_type == "award":
-        value_map['countryCode'] = 'place_of_perform_country_c'
+                 'stateCode': 'place_of_performance_state',
+                 'countryCode': 'place_of_perform_country_c'}
 
     for key, value in value_map.items():
         try:
@@ -657,8 +692,10 @@ def vendor_site_details_values(data, obj):
 
     # differentiating between US and foreign states
     key = 'legal_entity_state_code'
-    if obj['legal_entity_country_code'] != 'USA':
+    if obj['legal_entity_country_code'] not in country_code_map:
         key = 'legal_entity_state_descrip'
+        # need to set this even if we're not going to be having a code because we need to access it later
+        obj['legal_entity_state_code'] = None
     # if it is in the USA, grab the description for the state
     else:
         try:
@@ -725,7 +762,8 @@ def vendor_site_details_values(data, obj):
                  'isTriballyOwnedFirm': 'tribally_owned_business',
                  'isVerySmallBusiness': 'emerging_small_business',
                  'isVeteranOwned': 'veteran_owned_business',
-                 'isWomenOwned': 'woman_owned_business'}
+                 'isWomenOwned': 'woman_owned_business',
+                 'isWomenOwnedSmallBusiness': 'women_owned_small_business'}
 
     for key, value in value_map.items():
         try:
@@ -740,8 +778,7 @@ def vendor_site_details_values(data, obj):
                  'isMinorityOwned': 'minority_owned_business',
                  'isNativeAmericanOwnedBusiness': 'native_american_owned_busi',
                  'isOtherMinorityOwned': 'other_minority_owned_busin',
-                 'isSubContinentAsianAmericanOwnedBusiness': 'subcontinent_asian_asian_i',
-                 'isWomenOwnedSmallBusiness': 'women_owned_small_business'}
+                 'isSubContinentAsianAmericanOwnedBusiness': 'subcontinent_asian_asian_i'}
 
     for key, value in value_map.items():
         try:
@@ -752,8 +789,106 @@ def vendor_site_details_values(data, obj):
     return obj
 
 
-def calculate_remaining_fields(obj, sub_tier_list):
+def calculate_ppop_fields(obj, sess, county_by_name, county_by_code, state_code_list, country_list):
+    """ calculate values that aren't in any feed (or haven't been provided properly) for place of performance """
+    # only do any of these calculation if the country code is in the list of US territories
+    if obj['place_of_perform_country_c'] in country_code_map:
+        # if it's in the list but not USA, find its state code in the list and put that in the state code spot, get
+        # the state name, then replace country code and country description with USA and UNITED STATES respectively
+        if obj['place_of_perform_country_c'] != 'USA':
+            obj['place_of_performance_state'] = country_code_map[obj['place_of_perform_country_c']]
+            if obj['place_of_performance_state'] in state_code_list:
+                obj['place_of_perfor_state_desc'] = state_code_list[obj['place_of_performance_state']]
+            obj['place_of_perform_country_c'] = 'USA'
+            obj['place_of_perf_country_desc'] = 'UNITED STATES'
+
+        # derive state name if we don't have it
+        if obj['place_of_performance_state'] and not obj['place_of_perfor_state_desc']\
+                and obj['place_of_performance_state'] in state_code_list:
+            obj['place_of_perfor_state_desc'] = state_code_list[obj['place_of_performance_state']]
+
+        # calculate place of performance county code
+        if obj['place_of_perform_county_na'] and obj['place_of_performance_state']:
+            state = obj['place_of_performance_state']
+            county_name = obj['place_of_perform_county_na']
+            # make sure they gave us a valid state and then check if it's in our lookup
+            if state in county_by_name and county_name in county_by_name[state]:
+                obj['place_of_perform_county_co'] = county_by_name[state][county_name]
+
+        # if accessing the county code by state code and county name didn't work, try by zip4a if we have it
+        if not obj['place_of_perform_county_co'] and obj['place_of_performance_zip4a']:
+            obj['place_of_perform_county_co'] = get_county_by_zip(sess, obj['place_of_performance_zip4a'])
+
+        # if we didn't have a county name but got the county code, we can grab the name
+        if not obj['place_of_perform_county_na'] and obj['place_of_performance_state'] in county_by_code\
+                and obj['place_of_perform_county_co'] in county_by_code[obj['place_of_performance_state']]:
+            obj['place_of_perform_county_na'] =\
+                county_by_code[obj['place_of_performance_state']][obj['place_of_perform_county_co']]
+
+        # if we have content in the zip code and it's in a valid US format, split it into 5 and 4 digit
+        if obj['place_of_performance_zip4a'] and is_valid_zip(obj['place_of_performance_zip4a']):
+            obj['place_of_performance_zip5'] = obj['place_of_performance_zip4a'][:5]
+            if len(obj['place_of_performance_zip4a']) > 5:
+                obj['place_of_perform_zip_last4'] = obj['place_of_performance_zip4a'][-4:]
+
+    # if there is any country code (checked outside function) but not a country name, try to get the country name
+    if not obj['place_of_perf_country_desc'] and obj['place_of_perform_country_c'] in country_list:
+        obj['place_of_perf_country_desc'] = country_list[obj['place_of_perform_country_c']]
+
+
+def calculate_legal_entity_fields(obj, sess, county_by_code, state_code_list, country_list):
+    """ calculate values that aren't in any feed (or haven't been provided properly) for legal entity """
+    # do legal entity derivations only if legal entity country code is in a US territory of any kind
+    if obj['legal_entity_country_code'] in country_code_map:
+        # if it's in the list but not USA, find its state code in the list and put that in the state code spot, get
+        # the state name, then replace country code and country description with USA and UNITED STATES respectively
+        if obj['legal_entity_country_code'] != 'USA':
+            obj['legal_entity_state_code'] = country_code_map[obj['legal_entity_country_code']]
+            if obj['legal_entity_state_code'] in state_code_list:
+                obj['legal_entity_state_descrip'] = state_code_list[obj['legal_entity_state_code']]
+            obj['legal_entity_country_code'] = 'USA'
+            obj['legal_entity_country_name'] = 'UNITED STATES'
+
+        # derive state name if we don't have it
+        if obj['legal_entity_state_code'] and not obj['legal_entity_state_descrip']\
+                and obj['legal_entity_state_code'] in state_code_list:
+            obj['legal_entity_state_descrip'] = state_code_list[obj['legal_entity_state_code']]
+
+        # calculate legal entity county code and split zip when possible
+        if obj['legal_entity_zip4'] and is_valid_zip(obj['legal_entity_zip4']):
+            obj['legal_entity_county_code'] = get_county_by_zip(sess, obj['legal_entity_zip4'])
+
+            # if we have a county code and a state code, we can try to get the county name
+            if obj['legal_entity_county_code'] and obj['legal_entity_state_code']:
+                county_code = obj['legal_entity_county_code']
+                state = obj['legal_entity_state_code']
+
+                # make sure they gave us a valid state and then check if it's in our lookup
+                if state in county_by_code and county_code in county_by_code[state]:
+                    obj['legal_entity_county_name'] = county_by_code[state][county_code]
+
+            obj['legal_entity_zip5'] = obj['legal_entity_zip4'][:5]
+            if len(obj['legal_entity_zip4']) > 5:
+                obj['legal_entity_zip_last4'] = obj['legal_entity_zip4'][-4:]
+
+    # if there is any country code (checked outside function) but not a country name, try to get the country name
+    if not obj['legal_entity_country_name'] and obj['legal_entity_country_code'] in country_list:
+        obj['legal_entity_country_name'] = country_list[obj['legal_entity_country_code']]
+
+
+def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list, country_list):
     """ calculate values that aren't in any feed but can be calculated """
+    # we want to null out all the calculated columns in case this is an update to the records
+    obj['awarding_agency_code'] = None
+    obj['awarding_agency_name'] = None
+    obj['funding_agency_code'] = None
+    obj['funding_agency_name'] = None
+    obj['place_of_perform_county_co'] = None
+    obj['legal_entity_county_code'] = None
+    obj['legal_entity_county_name'] = None
+    obj['detached_award_proc_unique'] = None
+
+    # calculate awarding agency codes/names based on awarding sub tier agency codes
     if obj['awarding_sub_tier_agency_c']:
         try:
             sub_tier_agency = sub_tier_list[obj['awarding_sub_tier_agency_c']]
@@ -769,6 +904,7 @@ def calculate_remaining_fields(obj, sub_tier_list):
             obj['awarding_agency_code'] = '999'
             obj['awarding_agency_name'] = None
 
+    # calculate funding agency codes/names based on funding sub tier agency codes
     if obj['funding_sub_tier_agency_co']:
         try:
             sub_tier_agency = sub_tier_list[obj['funding_sub_tier_agency_co']]
@@ -784,10 +920,21 @@ def calculate_remaining_fields(obj, sub_tier_list):
             obj['funding_agency_code'] = '999'
             obj['funding_agency_name'] = None
 
+    # do place of performance calculations only if we have SOME country code
+    if obj['place_of_perform_country_c']:
+        calculate_ppop_fields(obj, sess, county_by_name, county_by_code, state_code_list, country_list)
+
+    # do legal entity calculations only if we have SOME country code
+    if obj['legal_entity_country_code']:
+        calculate_legal_entity_fields(obj, sess, county_by_code, state_code_list, country_list)
+
+    # calculate unique key
     key_list = ['agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id',
                 'transaction_number']
     unique_string = ""
     for item in key_list:
+        if len(unique_string) > 0:
+            unique_string += "_"
         try:
             if obj[item]:
                 unique_string += obj[item]
@@ -802,7 +949,7 @@ def calculate_remaining_fields(obj, sub_tier_list):
     return obj
 
 
-def process_data(data, atom_type, sub_tier_list):
+def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by_code, state_code_list, country_list):
     """ process the data coming in """
     obj = {}
 
@@ -857,7 +1004,15 @@ def process_data(data, atom_type, sub_tier_list):
             data['placeOfPerformance']
         except KeyError:
             data['placeOfPerformance'] = {}
-        obj = place_of_performance_values(data['placeOfPerformance'], obj, atom_type)
+        obj = place_of_performance_values(data['placeOfPerformance'], obj)
+    # these values need to be filled so the existence check when calculating county data doesn't freak out
+    else:
+        obj['place_of_perform_county_na'] = None
+        obj['place_of_performance_state'] = None
+        obj['place_of_perfor_state_desc'] = None
+        obj['place_of_performance_zip4a'] = None
+        obj['place_of_perform_country_c'] = None
+        obj['place_of_perf_country_desc'] = None
 
     # make sure key exists before passing it
     try:
@@ -904,7 +1059,8 @@ def process_data(data, atom_type, sub_tier_list):
         data['vendor'] = {}
     obj = vendor_values(data['vendor'], obj)
 
-    obj = calculate_remaining_fields(obj, sub_tier_list)
+    obj = calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+                                     country_list)
 
     try:
         obj['last_modified'] = data['transactionInformation']['lastModifiedDate']
@@ -943,25 +1099,35 @@ def process_delete_data(data, atom_type):
         except (KeyError, TypeError):
             unique_string += "-none-"
 
+        unique_string += "_"
+
         try:
             unique_string += extract_text(data['awardID']['referencedIDVID']['agencyID'])
         except (KeyError, TypeError):
             unique_string += "-none-"
+
+        unique_string += "_"
 
         try:
             unique_string += extract_text(data['awardID']['awardContractID']['PIID'])
         except (KeyError, TypeError):
             unique_string += "-none-"
 
+        unique_string += "_"
+
         try:
             unique_string += extract_text(data['awardID']['awardContractID']['modNumber'])
         except (KeyError, TypeError):
             unique_string += "-none-"
 
+        unique_string += "_"
+
         try:
             unique_string += extract_text(data['awardID']['referencedIDVID']['PIID'])
         except (KeyError, TypeError):
             unique_string += "-none-"
+
+        unique_string += "_"
 
         try:
             unique_string += extract_text(data['awardID']['awardContractID']['transactionNumber'])
@@ -973,20 +1139,28 @@ def process_delete_data(data, atom_type):
         except (KeyError, TypeError):
             unique_string += "-none-"
 
+        unique_string += "_"
+
         try:
             unique_string += extract_text(data['contractID']['referencedIDVID']['agencyID'])
         except (KeyError, TypeError):
             unique_string += "-none-"
+
+        unique_string += "_"
 
         try:
             unique_string += extract_text(data['contractID']['IDVID']['PIID'])
         except (KeyError, TypeError):
             unique_string += "-none-"
 
+        unique_string += "_"
+
         try:
             unique_string += extract_text(data['contractID']['IDVID']['modNumber'])
         except (KeyError, TypeError):
             unique_string += "-none-"
+
+        unique_string += "_"
 
         try:
             unique_string += extract_text(data['contractID']['referencedIDVID']['PIID'])
@@ -994,15 +1168,19 @@ def process_delete_data(data, atom_type):
             unique_string += "-none-"
 
         # transaction_number not in IDV feed, just set it to "-none-"
-        unique_string += "-none-"
+        unique_string += "_-none-"
 
     return unique_string
 
 
-def create_processed_data_list(data, contract_type, sub_tier_list):
+def create_processed_data_list(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code,
+                               state_code_list, country_list):
     data_list = []
     for value in data:
-        tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sub_tier_list=sub_tier_list)
+        tmp_obj = process_data(value['content'][contract_type], sess, atom_type=contract_type,
+                               sub_tier_list=sub_tier_list, county_by_name=county_by_name,
+                               county_by_code=county_by_code, state_code_list=state_code_list,
+                               country_list=country_list)
         data_list.append(tmp_obj)
     return data_list
 
@@ -1016,34 +1194,59 @@ def add_processed_data_list(data, sess):
         logger.error("Attempted to insert duplicate FPDS data. Inserting each row in batch individually.")
 
         for fpds_obj in data:
-            insert_statement = insert(DetachedAwardProcurement).values(**fpds_obj). \
+            insert_statement = insert(DetachedAwardProcurement).values(**fpds_obj).\
                 on_conflict_do_update(index_elements=['detached_award_proc_unique'], set_=fpds_obj)
             sess.execute(insert_statement)
         sess.commit()
 
 
-def process_and_add(data, contract_type, sess, sub_tier_list):
+def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+                    country_list, now, threaded=False):
     """ start the processing for data and add it to the DB """
-    for value in data:
-        tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sub_tier_list=sub_tier_list)
-        insert_statement = insert(DetachedAwardProcurement).values(**tmp_obj).\
-            on_conflict_do_update(index_elements=['detached_award_proc_unique'], set_=tmp_obj)
-        sess.execute(insert_statement)
+    if threaded:
+        for value in data:
+            tmp_obj = process_data(value['content'][contract_type], sess, atom_type=contract_type,
+                                   sub_tier_list=sub_tier_list, county_by_name=county_by_name,
+                                   county_by_code=county_by_code, state_code_list=state_code_list,
+                                   country_list=country_list)
+            tmp_obj['updated_at'] = now
+            insert_statement = insert(DetachedAwardProcurement).values(**tmp_obj).\
+                on_conflict_do_update(index_elements=['detached_award_proc_unique'], set_=tmp_obj)
+            sess.execute(insert_statement)
+    else:
+        for value in data:
+            tmp_obj = process_data(value['content'][contract_type], sess, atom_type=contract_type,
+                                   sub_tier_list=sub_tier_list, county_by_name=county_by_name,
+                                   county_by_code=county_by_code, state_code_list=state_code_list,
+                                   country_list=country_list)
+            try:
+                statement = insert(DetachedAwardProcurement).values(**tmp_obj)
+                sess.execute(statement)
+                sess.commit()
+            except IntegrityError:
+                sess.rollback()
+                tmp_obj['updated_at'] = now
+                sess.query(DetachedAwardProcurement).\
+                    filter_by(detached_award_proc_unique=tmp_obj['detached_award_proc_unique']).\
+                    update(tmp_obj, synchronize_session=False)
+                sess.commit()
 
 
-def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None):
+def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+             country_list, last_run=None, threaded=False, start_date=None, end_date=None):
     """ get the data from the atom feed based on contract/award type and the last time the script was run """
     data = []
     yesterday = now - datetime.timedelta(days=1)
+    utcnow = datetime.datetime.utcnow()
     # if a date that the script was last successfully run is not provided, get all data
     if not last_run:
-        # params = 'SIGNED_DATE:[2015/10/01,'+ yesterday.strftime('%Y/%m/%d') + '] '
         params = 'SIGNED_DATE:[2016/10/01,' + yesterday.strftime('%Y/%m/%d') + '] '
-        # params = 'SIGNED_DATE:[2017/07/01,' + yesterday.strftime('%Y/%m/%d') + '] '
     # if a date that the script was last successfully run is provided, get data since that date
     else:
-        last_run_date = last_run.update_date
+        last_run_date = last_run.update_date - relativedelta(days=1)
         params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
+        if start_date and end_date:
+            params = 'LAST_MOD_DATE:[' + start_date + ',' + end_date + '] '
 
     # TODO remove this later, this is just for testing
     # params += 'CONTRACTING_AGENCY_ID:1542 '
@@ -1052,12 +1255,12 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None)
 
     i = 0
     loops = 0
-    logger.info('Starting get feed: ' + feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() +
-                '" AWARD_TYPE:"' + award_type + '"')
+    logger.info('Starting get feed: %s%sCONTRACT_TYPE:"%s" AWARD_TYPE:"%s"', feed_url, params, contract_type.upper(),
+                award_type)
     while True:
         loops += 1
         exception_retries = -1
-        retry_sleep_times = [5, 30, 60]
+        retry_sleep_times = [5, 30, 60, 180, 300]
         # looping in case feed breaks
         while True:
             try:
@@ -1070,7 +1273,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None)
             except ConnectionResetError:
                 exception_retries += 1
                 # retry up to 3 times before raising an error
-                if exception_retries < 3:
+                if exception_retries < len(retry_sleep_times):
                     time.sleep(retry_sleep_times[exception_retries])
                 else:
                     raise ResponseException(
@@ -1089,7 +1292,8 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None)
                 data.append(ld)
                 i += 1
         else:
-            data.extend(create_processed_data_list(listed_data, contract_type, sub_tier_list))
+            data.extend(create_processed_data_list(listed_data, contract_type, sess, sub_tier_list, county_by_name,
+                                                   county_by_code, state_code_list, country_list))
             i += len(listed_data)
 
         # Log which one we're on so we can keep track of how far we are, insert into DB ever 1k lines
@@ -1097,7 +1301,8 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None)
             logger.info("Retrieved %s lines of get %s: %s feed, writing next 1,000 to DB", i, contract_type, award_type)
             # if we're calling threads, we want process_and_add, otherwise we want add_processed_data_list
             if last_run:
-                process_and_add(data, contract_type, sess, sub_tier_list)
+                process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code,
+                                state_code_list, country_list, utcnow, threaded)
             else:
                 add_processed_data_list(data, sess)
             data = []
@@ -1109,34 +1314,38 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, last_run=None)
         if len(listed_data) < 10:
             break
 
-    logger.info("Total entries in %s: %s feed: " + str(i), contract_type, award_type)
+    logger.info("Total entries in %s: %s feed: %s", contract_type, award_type, str(i))
 
     # insert whatever is left
     logger.info("Processing remaining lines for %s: %s feed", contract_type, award_type)
     # if we're calling threads, we want process_and_add, otherwise we want add_processed_data_list
     if last_run:
-        process_and_add(data, contract_type, sess, sub_tier_list)
+        process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+                        country_list, utcnow, threaded)
     else:
         add_processed_data_list(data, sess)
 
-    logger.info("processed " + contract_type + ": " + award_type + " data")
+    logger.info("Processed %s: %s data", contract_type, award_type)
 
 
-def get_delete_data(contract_type, now, sess, last_run):
+def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_date=None):
     """ Get data from the delete feed """
     data = []
     yesterday = now - datetime.timedelta(days=1)
     last_run_date = last_run.update_date
     params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
+    if start_date and end_date:
+        params = 'LAST_MOD_DATE:[' + start_date + ',' + end_date + '] '
 
     i = 0
-    logger.info('Starting delete feed: ' + delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"')
+    logger.info('Starting delete feed: %sCONTRACT_TYPE:"%s"', delete_url + params, contract_type.upper())
     while True:
         resp = requests.get(delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"&start=' + str(i),
                             timeout=60)
         resp_data = xmltodict.parse(resp.text, process_namespaces=True,
                                     namespaces={'http://www.fpdsng.com/FPDS': None,
-                                                'http://www.w3.org/2005/Atom': None})
+                                                'http://www.w3.org/2005/Atom': None,
+                                                'https://www.fpds.gov/FPDS': None})
         # only list the data if there's data to list
         try:
             listed_data = list_data(resp_data['feed']['entry'])
@@ -1149,15 +1358,16 @@ def get_delete_data(contract_type, now, sess, last_run):
 
         # Every 100 lines, log which one we're on so we can keep track of how far we are
         if i % 100 == 0:
-            logger.info("On line " + str(i) + " of %s delete feed", contract_type)
+            logger.info("On line %s of %s delete feed", str(i), contract_type)
 
         # if we got less than 10 records, we can stop calling the feed
         if len(listed_data) < 10:
             break
 
-    logger.info("Total entries in %s delete feed: " + str(i), contract_type)
+    logger.info("Total entries in %s delete feed: %s", contract_type, str(i))
 
     delete_list = []
+    delete_dict = {}
     for value in data:
         # get last modified date
         last_modified = value['content'][contract_type]['transactionInformation']['lastModifiedDate']
@@ -1170,6 +1380,10 @@ def get_delete_data(contract_type, now, sess, last_run):
             # only add to delete list if the last modified date is later than the existing entry's last modified date
             if last_modified > existing_item.last_modified:
                 delete_list.append(existing_item.detached_award_procurement_id)
+                delete_dict[existing_item.detached_award_procurement_id] = existing_item.detached_award_proc_unique
+        # TODO remove this after the first run
+        # else:
+        #     delete_dict[unique_string] = unique_string
 
     # only need to delete values if there's something to delete
     if delete_list:
@@ -1177,16 +1391,36 @@ def get_delete_data(contract_type, now, sess, last_run):
             filter(DetachedAwardProcurement.detached_award_procurement_id.in_(delete_list)).\
             delete(synchronize_session=False)
 
+    # writing the file
+    seconds = int((datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)).total_seconds())
+    file_name = now.strftime('%m-%d-%Y') + "_delete_records_" + contract_type + "_" + str(seconds) + ".csv"
+    headers = ["detached_award_procurement_id", "detached_award_proc_unique"]
+    if CONFIG_BROKER["use_aws"]:
+        with CsvS3Writer(CONFIG_BROKER['aws_region'], CONFIG_BROKER['fpds_delete_bucket'], file_name,
+                         headers) as writer:
+            for key, value in delete_dict.items():
+                writer.write([key, value])
+            writer.finish_batch()
+    else:
+        with CsvLocalWriter(file_name, headers) as writer:
+            for key, value in delete_dict.items():
+                writer.write([key, value])
+            writer.finish_batch()
 
-def parse_fpds_file(f, sess, sub_tier_list, naics_dict):
-    logger.info("Starting file " + str(f.name))
 
-    csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(f.name))[0]
+def parse_fpds_file(f, sess, sub_tier_list, naics_dict, filename=None):
+    if not filename:
+        logger.info("Starting file " + str(f))
+        csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(f))[0]
+    else:
+        logger.info("Starting file " + str(filename))
+        csv_file = 'datafeeds\\' + os.path.splitext(os.path.basename(filename))[0]
 
     nrows = 0
-    with zipfile.ZipFile(f.name) as zfile:
+    with zipfile.ZipFile(f) as zfile:
         with zfile.open(csv_file) as dat_file:
             nrows = len(dat_file.readlines())
+            logger.info("File contains %s rows", nrows)
 
     block_size = 10000
     batches = nrows // block_size
@@ -1254,21 +1488,34 @@ def parse_fpds_file(f, sess, sub_tier_list, naics_dict):
     while batch <= batches:
         skiprows = 1 if batch == 0 else (batch * block_size)
         nrows = (((batch + 1) * block_size) - skiprows) if (batch < batches) else last_block_size
-        logger.info('loading rows %s to %s', skiprows + 1, nrows + skiprows)
+        logger.info('Starting load for rows %s to %s', skiprows + 1, nrows + skiprows)
 
-        with zipfile.ZipFile(f.name) as zfile:
+        with zipfile.ZipFile(f) as zfile:
             with zfile.open(csv_file) as dat_file:
                 data = pd.read_csv(dat_file, dtype=str, header=None, skiprows=skiprows, nrows=nrows, names=all_cols)
 
                 cdata = format_fpds_data(data, sub_tier_list, naics_dict)
                 if cdata is not None:
-                    logger.info("loading {} rows".format(len(cdata.index)))
+                    logger.info("Loading {} rows into database".format(len(cdata.index)))
 
-                    insert_dataframe(cdata, DetachedAwardProcurement.__table__.name, sess.connection())
+                    try:
+                        insert_dataframe(cdata, DetachedAwardProcurement.__table__.name, sess.connection())
+                        sess.commit()
+                    except IntegrityError:
+                        sess.rollback()
+                        logger.info("Bulk load failed, individually loading %s rows into database", len(cdata.index))
+                        for index, row in cdata.iterrows():
+                            try:
+                                statement = insert(DetachedAwardProcurement).values(**row)
+                                sess.execute(statement)
+                                sess.commit()
+                            except IntegrityError:
+                                sess.rollback()
+                                logger.info("Found duplicate: %s, row not inserted", row['detached_award_proc_unique'])
 
         added_rows += nrows
         batch += 1
-    sess.commit()
+    logger.info("Finished loading file")
 
 
 def format_fpds_data(data, sub_tier_list, naics_data):
@@ -1913,6 +2160,8 @@ def create_unique_key(row):
     key_list = ['agencyid', 'idvagencyid', 'piid', 'modnumber', 'idvpiid', 'transactionnumber']
     unique_string = ""
     for item in key_list:
+        if len(unique_string) > 0:
+            unique_string += "_"
         if row[item] and str(row[item]) != 'nan':
             unique_string += str(row[item])
         else:
@@ -1937,16 +2186,55 @@ def main():
     parser.add_argument('-sf', '--subfolder',
                         help='Used in conjunction with -f to indicate which Subfolder to load files from',
                         nargs="+", type=str)
+    parser.add_argument('-t', '--threaded', help='Multithread nightly load', action='store_true')
+    parser.add_argument('-da', '--dates', help='Used in conjunction with -l to specify dates to gather updates from.'
+                                               'Should have 2 arguments, first and last day, formatted YYYY/mm/dd',
+                        nargs=2, type=str)
     args = parser.parse_args()
 
     award_types_award = ["BPA Call", "Definitive Contract", "Purchase Order", "Delivery Order"]
     award_types_idv = ["GWAC", "BOA", "BPA", "FSS", "IDC"]
 
+    # get and create list of sub tier agencies
     sub_tiers = sess.query(SubTierAgency).all()
     sub_tier_list = {}
 
     for sub_tier in sub_tiers:
         sub_tier_list[sub_tier.sub_tier_agency_code] = sub_tier
+
+    # get and create list of country code -> country name mappings.
+    countries = sess.query(CountryCode).all()
+    country_list = {}
+
+    for country in countries:
+        country_list[country.country_code] = country.country_name
+
+    # get and create list of state code -> state name mappings. Prime the county lists with state codes
+    county_by_name = {}
+    county_by_code = {}
+    state_code_list = {}
+    state_codes = sess.query(States.state_code, func.upper(States.state_name).label('state_name')).all()
+
+    for state_code in state_codes:
+        county_by_name[state_code.state_code] = {}
+        county_by_code[state_code.state_code] = {}
+        state_code_list[state_code.state_code] = state_code.state_name
+
+    # Fill the county lists with data (code -> name mappings and name -> code mappings)
+    county_codes = sess.query(CountyCode.county_number, CountyCode.state_code,
+                              func.upper(CountyCode.county_name).label('county_name')).all()
+
+    for county_code in county_codes:
+        # we don't want any "(CA)" endings, so strip those
+        county_name = county_code.county_name.replace(' (CA)', '').strip()
+
+        # we want all the counties in our by-code lookup because we'd be using this table anyway for derivations
+        county_by_code[county_code.state_code][county_code.county_number] = county_name
+
+        # if the county name has only letters/spaces then we want it in our by-name lookup, the rest have the potential
+        # to be different from the FPDS feed
+        if re.match('^[A-Z\s]+$', county_code.county_name):
+            county_by_name[county_code.state_code][county_name] = county_code.county_number
 
     if args.all:
         if (not args.delivery and not args.other) or (args.delivery and args.other):
@@ -1954,17 +2242,20 @@ def main():
                          "(but not both) to indicate which feeds to read in")
             raise ValueError("When using the -a flag, please include either -d or -o "
                              "(but not both) to indicate which feeds to read in")
-        logger.info("Starting at: " + str(datetime.datetime.now()))
+        logger.info("Starting at: %s", str(datetime.datetime.now()))
 
         if args.other:
             for award_type in award_types_idv:
-                get_data("IDV", award_type, now, sess, sub_tier_list)
+                get_data("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+                         country_list)
             for award_type in award_types_award:
                 if award_type != "Delivery Order":
-                    get_data("award", award_type, now, sess, sub_tier_list)
+                    get_data("award", award_type, now, sess, sub_tier_list, county_by_name, county_by_code,
+                             state_code_list, country_list)
 
         elif args.delivery:
-            get_data("award", "Delivery Order", now, sess, sub_tier_list)
+            get_data("award", "Delivery Order", now, sess, sub_tier_list, county_by_name, county_by_code,
+                     state_code_list, country_list)
 
         last_update = sess.query(FPDSUpdate).one_or_none()
 
@@ -1973,11 +2264,11 @@ def main():
         else:
             sess.add(FPDSUpdate(update_date=now))
 
-        logger.info("Ending at: " + str(datetime.datetime.now()))
+        logger.info("Ending at: %s", str(datetime.datetime.now()))
 
         sess.commit()
     elif args.latest:
-        logger.info("Starting at: " + str(datetime.datetime.now()))
+        logger.info("Starting at: %s", str(datetime.datetime.now()))
 
         last_update = sess.query(FPDSUpdate).one_or_none()
 
@@ -1988,40 +2279,61 @@ def main():
                 "No last_update date present, please run the script with the -a flag to generate an initial dataset")
             raise ValueError(
                 "No last_update date present, please run the script with the -a flag to generate an initial dataset")
+        start_date = None
+        end_date = None
+        if args.dates:
+            start_date = args.dates[0]
+            end_date = args.dates[1]
+        # determining if we're doing a threaded call or not
+        if args.threaded:
+            thread_list = []
+            # loop through and check all award types, check IDV stuff first because it generally has less content
+            # so the threads will actually leave earlier and can be terminated in the loop
+            for award_type in award_types_idv:
+                t = threading.Thread(target=get_data,
+                                     args=("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code,
+                                           state_code_list, country_list, last_update, True, start_date, end_date),
+                                     name=award_type)
+                thread_list.append(t)
+                t.start()
 
-        thread_list = []
-        # loop through and check all award types, check IDV stuff first because it generally has less content
-        # so the threads will actually leave earlier and can be terminated in the loop
-        for award_type in award_types_idv:
-            t = threading.Thread(target=get_data, args=("IDV", award_type, now, sess, sub_tier_list, last_update),
-                                 name=award_type)
-            thread_list.append(t)
-            t.start()
+            # join the threads between types and then start with a fresh set of threads. We don't want to overtax
+            # the CPU
+            for t in thread_list:
+                t.join()
 
-        # join the threads between types and then start with a fresh set of threads. We don't want to overtax
-        # the CPU
-        for t in thread_list:
-            t.join()
+            thread_list = []
+            for award_type in award_types_award:
+                t = threading.Thread(target=get_data,
+                                     args=("award", award_type, now, sess, sub_tier_list, county_by_name,
+                                           county_by_code, state_code_list, country_list, last_update, True, start_date,
+                                           end_date),
+                                     name=award_type)
+                thread_list.append(t)
+                t.start()
 
-        thread_list = []
-        for award_type in award_types_award:
-            t = threading.Thread(target=get_data, args=("award", award_type, now, sess, sub_tier_list, last_update),
-                                 name=award_type)
-            thread_list.append(t)
-            t.start()
+            for t in thread_list:
+                t.join()
+            sess.commit()
+        else:
+            for award_type in award_types_idv:
+                get_data("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+                         country_list, last_update, start_date=start_date, end_date=end_date)
 
-        for t in thread_list:
-            t.join()
+            for award_type in award_types_award:
+                get_data("award", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+                         country_list, last_update, start_date=start_date, end_date=end_date)
 
         # We also need to process the delete feed
-        get_delete_data("IDV", now, sess, last_update)
-        get_delete_data("award", now, sess, last_update)
-        sess.query(FPDSUpdate).update({"update_date": now}, synchronize_session=False)
+        get_delete_data("IDV", now, sess, last_update, start_date, end_date)
+        get_delete_data("award", now, sess, last_update, start_date, end_date)
+        if not start_date and not end_date:
+            sess.query(FPDSUpdate).update({"update_date": now}, synchronize_session=False)
 
-        logger.info("Ending at: " + str(datetime.datetime.now()))
+        logger.info("Ending at: %s", str(datetime.datetime.now()))
         sess.commit()
     elif args.files:
-        logger.info("Starting file loads at: " + str(datetime.datetime.now()))
+        logger.info("Starting file loads at: %s", str(datetime.datetime.now()))
         max_year = 2015
         subfolder = None
         if args.subfolder:
@@ -2041,14 +2353,22 @@ def main():
 
             # parse contracts files
             s3bucket = s3connection.lookup(CONFIG_BROKER['archive_bucket'])
-            for key in s3bucket.list():
+            if subfolder:
+                subfolder = subfolder + "/"
+            for key in s3bucket.list(prefix=subfolder):
+                match_string = '^\d{4}_All_Contracts_Full_\d{8}.csv.zip'
                 if subfolder:
-                    key = subfolder + "/" + key
-                if re.match('^\d{4}_All_Contracts_Full_\d{8}.csv.zip', key.name):
-                    # we only want up through 2015 for this data
-                    if int(key.name[:4]) <= max_year:
-                        file_path = key.generate_url(expires_in=600)
-                        parse_fpds_file(urllib.request.urlopen(file_path), sess, sub_tier_list, naics_dict)
+                    match_string = "^" + subfolder + "\d{4}_All_Contracts_Full_\d{8}.csv.zip"
+                if re.match(match_string, key.name):
+                    # we only want up through 2015 for this data unless it’s a subfolder, then do all of them
+                    if subfolder or int(key.name[:4]) <= max_year:
+                        # Create an in-memory bytes IO buffer
+                        with io.BytesIO() as b:
+                            # Read the file into it
+                            key.get_file(b)
+
+                            # Reset the file pointer to the beginning
+                            parse_fpds_file(b, sess, sub_tier_list, naics_dict, filename=key.name)
         else:
             # get naics dictionary
             naics_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
@@ -2065,9 +2385,9 @@ def main():
                 if re.match('^\d{4}_All_Contracts_Full_\d{8}.csv.zip', file):
                     # we only want up through 2015 for this data
                     if int(file[:4]) <= max_year:
-                        parse_fpds_file(open(os.path.join(base_path, file)), sess, sub_tier_list, naics_dict)
+                        parse_fpds_file(open(os.path.join(base_path, file)).name, sess, sub_tier_list, naics_dict)
 
-        logger.info("Ending at: " + str(datetime.datetime.now()))
+        logger.info("Ending at: %s", str(datetime.datetime.now()))
         sess.commit()
     # TODO add a correct start date for "all" so we don't get ALL the data or too little of the data
     # TODO fine-tune indexing
