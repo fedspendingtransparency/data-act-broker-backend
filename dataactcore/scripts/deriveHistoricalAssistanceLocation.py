@@ -1,8 +1,6 @@
 import argparse
 import logging
 import re
-import datetime
-from sqlalchemy import func
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
@@ -17,7 +15,9 @@ from dataactvalidator.health_check import create_app
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
-QUERY_SIZE = 1000
+QUERY_SIZE = 3000
+COMMIT_SIZE = 25000
+ZIP_SLICE = 1000000
 country_code_map = {'USA': 'US', 'ASM': 'AS', 'GUM': 'GU', 'MNP': 'MP', 'PRI': 'PR', 'VIR': 'VI', 'FSM': 'FM',
                     'MHL': 'MH', 'PLW': 'PW', 'XBK': 'UM', 'XHO': 'UM', 'XJV': 'UM', 'XJA': 'UM', 'XKR': 'UM',
                     'XPL': 'UM', 'XMW': 'UM', 'XWK': 'UM'}
@@ -106,7 +106,7 @@ def fix_fabs_le_country(row):
     # grab the country name if we have access to it and it isn't already there
     if not row.legal_entity_country_name and row.legal_entity_country_code\
             and row.legal_entity_country_code.upper() in g_country_list:
-        row.legal_entity_country_name = g_country_list[row.legal_entity_country_code]
+        row.legal_entity_country_name = g_country_list[row.legal_entity_country_code.upper()]
 
 
 def fix_fabs_ppop_country(row):
@@ -215,7 +215,7 @@ def fix_fabs_le_county(row, zip_data, zip_check):
     # fill in legal entity county name where needed/possible
     if not row.legal_entity_county_name and row.legal_entity_county_code and state_code:
         if state_code in g_county_by_code and row.legal_entity_county_code in g_county_by_code[state_code]:
-            row.legal_entity_county_name = g_county_by_code[state_code.upper()][row.legal_entity_county_code]
+            row.legal_entity_county_name = g_county_by_code[state_code][row.legal_entity_county_code]
 
 
 def fix_fabs_ppop_county(row, zip_data, zip_check):
@@ -300,35 +300,34 @@ def process_fabs_derivations(data):
 def update_historical_fabs(sess, start, end):
     """ Update historical FABS location data with new columns and missing data where possible """
     model = PublishedAwardFinancialAssistance
-    start_slice = 0
-    logger.info("Starting fabs update for: %s to %s", start, end)
-    record_count = sess.query(model).\
-        filter(model.is_active.is_(True)).\
-        filter(func.cast_as_date(model.action_date) >= start).\
-        filter(func.cast_as_date(model.action_date) <= end).count()
-    logger.info("Total records in this range: %s", record_count)
+    start_slice = start
+    found_records = 0
+    logger.info("Starting fabs update for ids: %s to %s", start, end)
     while True:
-        end_slice = start_slice + QUERY_SIZE
+        end_slice = start_slice + QUERY_SIZE if start_slice + QUERY_SIZE < end else end
         query_result = sess.query(model).\
             filter(model.is_active.is_(True)).\
-            filter(func.cast_as_date(model.action_date) >= start).\
-            filter(func.cast_as_date(model.action_date) <= end).\
-            slice(start_slice, end_slice).all()
+            filter(model.published_award_financial_assistance_id >= start_slice).\
+            filter(model.published_award_financial_assistance_id <= end_slice).all()
+        found_records += len(query_result)
 
-        logger.info("Updating records: %s to %s", str(start_slice),
-                    str(end_slice if (end_slice < record_count) else record_count))
+        logger.info("Updating records: %s to %s", str(start_slice), str(end_slice))
         # process the derivations for historical data
         process_fabs_derivations(query_result)
-        if end_slice % 25000 == 0:
-            logger.info("Pushing records %s to %s to the DB", str(end_slice-25000), str(end_slice))
+        if found_records >= COMMIT_SIZE:
+            logger.info("Pushing %s records to the DB", str(found_records))
+            found_records = 0
             sess.commit()
-        start_slice = end_slice
 
         # break the loop if we've hit the last records
-        if start_slice >= record_count:
+        if end_slice == end:
+            logger.info("Pushing remaining %s records to the DB", str(found_records))
             break
+
+        start_slice = end_slice + 1
+
     sess.commit()
-    logger.info("Finished fabs update for: %s to %s", start, end)
+    logger.info("Finished fabs update for ids: %s to %s", start, end)
 
 
 def fix_fpds_le_country(row):
@@ -345,7 +344,7 @@ def fix_fpds_le_country(row):
     # grab the country name if we have access to it and it isn't already there
     if not row.legal_entity_country_name and row.legal_entity_country_code\
             and row.legal_entity_country_code.upper() in g_country_list:
-        row.legal_entity_country_name = g_country_list[row.legal_entity_country_code]
+        row.legal_entity_country_name = g_country_list[row.legal_entity_country_code.upper()]
 
 
 def fix_fpds_ppop_country(row):
@@ -506,44 +505,41 @@ def process_fpds_derivations(data):
 def update_historical_fpds(sess, start, end):
     """ Update historical FPDS location data with new columns and missing data where possible """
     model = DetachedAwardProcurement
-    start_slice = 0
-    logger.info("Starting fpds update for: %s to %s", start, end)
-    record_count = sess.query(model). \
-        filter(func.cast_as_date(model.action_date) >= start). \
-        filter(func.cast_as_date(model.action_date) <= end).count()
-    logger.info("Total records in this range: %s", record_count)
+    start_slice = start
+    found_records = 0
+    logger.info("Starting fpds update for ids: %s to %s", start, end)
     while True:
-        end_slice = start_slice + QUERY_SIZE
+        end_slice = start_slice + QUERY_SIZE if start_slice + QUERY_SIZE < end else end
         query_result = sess.query(model). \
-            filter(func.cast_as_date(model.action_date) >= start). \
-            filter(func.cast_as_date(model.action_date) <= end). \
-            slice(start_slice, end_slice).all()
+            filter(model.detached_award_procurement_id >= start_slice). \
+            filter(model.detached_award_procurement_id <= end_slice).all()
+        found_records += len(query_result)
 
-        logger.info("Updating records: %s to %s", str(start_slice),
-                    str(end_slice if (end_slice < record_count) else record_count))
+        logger.info("Updating records: %s to %s", str(start_slice), str(end_slice))
         # process the derivations for historical data
         process_fpds_derivations(query_result)
-        if end_slice % 25000 == 0:
-            logger.info("Pushing records %s to %s to the DB", str(end_slice-25000), str(end_slice))
+        if found_records >= COMMIT_SIZE:
+            logger.info("Pushing %s records to the DB", str(found_records))
+            found_records = 0
             sess.commit()
 
-        start_slice = end_slice
-
         # break the loop if we've hit the last records
-        if start_slice >= record_count:
+        if end_slice == end:
+            logger.info("Pushing remaining %s records to the DB", str(found_records))
             break
+
+        start_slice = end_slice + 1
+
     sess.commit()
-    logger.info("Finished fpds update for: %s to %s", start, end)
+    logger.info("Finished fpds update for ids: %s to %s", start, end)
 
 
 def main():
     parser = argparse.ArgumentParser(description='Update county information for historical FABS and FPDS data')
     parser.add_argument('-t', '--type', help='Which data type, argument must be fpds or fabs', nargs=1, type=str,
                         required=True)
-    parser.add_argument('-s', '--start', help='Start date (inclusive), must be in the format YYYY/MM/DD',
-                        nargs=1, type=str, required=True)
-    parser.add_argument('-e', '--end', help='End date (inclusive), must be in the format YYYY/MM/DD',
-                        nargs=1, type=str, required=True)
+    parser.add_argument('-s', '--start', help='Start id, must be number', nargs=1, type=int, required=True)
+    parser.add_argument('-e', '--end', help='End id, must be number', nargs=1, type=int, required=True)
     args = parser.parse_args()
 
     sess = GlobalDB.db().session
@@ -616,7 +612,7 @@ def main():
     # pull in all the zip codes
     start_slice = 0
     while True:
-        end_slice = start_slice + 1000000
+        end_slice = start_slice + ZIP_SLICE
         zip_codes = sess.query(Zips.zip5, Zips.zip_last4, Zips.state_abbreviation, Zips.county_number).\
             slice(start_slice, end_slice).all()
 
@@ -633,28 +629,14 @@ def main():
         start_slice = end_slice
 
         # break the loop if we've hit the last records
-        if len(zip_codes) < 1000000:
+        if len(zip_codes) < ZIP_SLICE:
             break
     del zip_codes
 
-    start_date = datetime.datetime.strptime(args.start[0], '%Y/%m/%d')
-    end_date = datetime.datetime.strptime(args.end[0], '%Y/%m/%d')
-    current_date = start_date
-
     if data_type == 'fpds':
-        while current_date <= end_date:
-            stop_date = current_date + datetime.timedelta(days=30)
-            if stop_date > end_date:
-                stop_date = end_date
-            update_historical_fpds(sess, date_to_string(current_date), date_to_string(stop_date))
-            current_date += datetime.timedelta(days=31)
+        update_historical_fpds(sess, args.start[0], args.end[0])
     elif data_type == 'fabs':
-        while current_date <= end_date:
-            stop_date = current_date + datetime.timedelta(days=30)
-            if stop_date > end_date:
-                stop_date = end_date
-            update_historical_fabs(sess, date_to_string(current_date), date_to_string(stop_date))
-            current_date += datetime.timedelta(days=31)
+        update_historical_fabs(sess, args.start[0], args.end[0])
     else:
         logger.error("Type must be fpds or fabs.")
 
