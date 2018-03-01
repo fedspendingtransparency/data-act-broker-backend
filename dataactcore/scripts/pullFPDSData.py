@@ -793,7 +793,7 @@ def calculate_ppop_fields(obj, sess, county_by_name, county_by_code, state_code_
     """ calculate values that aren't in any feed (or haven't been provided properly) for place of performance """
     # only do any of these calculation if the country code is in the list of US territories
     if obj['place_of_perform_country_c'] in country_code_map:
-        # if it's in the list but not USA, find its state code in the list and put that in the state code spot, get
+        # If it's in the list but not USA, find its state code in the list and put that in the state code spot, get
         # the state name, then replace country code and country description with USA and UNITED STATES respectively
         if obj['place_of_perform_country_c'] != 'USA':
             obj['place_of_performance_state'] = country_code_map[obj['place_of_perform_country_c']]
