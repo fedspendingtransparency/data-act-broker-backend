@@ -1332,7 +1332,7 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
     """ Get data from the delete feed """
     data = []
     yesterday = now - datetime.timedelta(days=1)
-    last_run_date = last_run.update_date
+    last_run_date = last_run.update_date - relativedelta(days=1)
     params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
     if start_date and end_date:
         params = 'LAST_MOD_DATE:[' + start_date + ',' + end_date + '] '
