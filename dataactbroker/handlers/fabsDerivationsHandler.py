@@ -15,8 +15,6 @@ logger = logging.getLogger(__name__)
 # CountryCode (264 entries), SubTierAgency (1,476 entries), CFDAProgram (2,971 entries), CountyCode (3,295 entries),
 # FPDSContractingOffice (6,566 entries)
 
-# TODO: Split zip data gathering into its own function
-
 def get_zip_data(sess, zip_five, zip_four):
     """ Get zip data based on 5-digit or 9-digit zips and the counts of congressional districts associated with them """
     zip_info = None
