@@ -1,4 +1,4 @@
-from dataactbroker.handlers.fileHandler import fabs_derivations
+from dataactbroker.handlers.fabsDerivationsHandler import fabs_derivations
 
 from tests.unit.dataactcore.factories.domain import (
     CGACFactory, FRECFactory, SubTierAgencyFactory, StatesFactory, CountyCodeFactory, CFDAProgramFactory,
