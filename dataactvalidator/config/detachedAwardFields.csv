@@ -2,7 +2,7 @@ fieldname,fieldname_short,required,data_type,field_length,rule_labels,padded_fla
 actiondate,action_date,TRUE,str,8,"D3, D4",
 actiontype,action_type,FALSE,str,1,"D1, D2",
 assistancetype,assistance_type,TRUE,str,2,D1,TRUE
-awarddescription,award_description,FALSE,str,4000,D2,
+awarddescription,award_description,TRUE,str,18000,D2,
 awardeeorrecipientlegalentityname,awardee_or_recipient_legal,TRUE,str,120,D22,
 awardeeorrecipientuniqueidentifier,awardee_or_recipient_uniqu,FALSE,str,9,"D2, D10",
 awardingofficecode,awarding_office_code,FALSE,str,6,,
