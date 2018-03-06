@@ -142,7 +142,7 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
 
                 # filter D1 FileRequests by the date of the last FPDS pull
                 if file_type == 'D1':
-                    parent_query.filter(FileRequest.request_date >= fpds_date)
+                    parent_query = parent_query.filter(FileRequest.request_date >= fpds_date)
 
                 # mark FileRequest with parent job_id
                 parent_file_request = parent_query.one_or_none()
