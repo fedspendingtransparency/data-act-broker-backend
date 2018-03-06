@@ -17,6 +17,24 @@ logger = logging.getLogger(__name__)
 
 # TODO: Split zip data gathering into its own function
 
+def get_zip_data(sess, zip_five, zip_four):
+    """ Get zip data based on 5-digit or 9-digit zips and the counts of congressional districts associated with them """
+    zip_info = None
+    cd_count = 1
+
+    # if we have a 4-digit zip to work with, try using both
+    if zip_four:
+        zip_info = sess.query(Zips).filter_by(zip5=zip_five, zip_last4=zip_four).first()
+    # if we didn't manage to find anything using 9 digits or we don't have 9 digits, try to find one using just 5 digits
+    if not zip_info:
+        zip_info = sess.query(Zips).filter_by(zip5=zip_five).first()
+        # if this is a 5-digit zip, there may be more than one congressional district associated with it
+        cd_count = sess.query(Zips.congressional_district_no.label('cd_count')). \
+            filter_by(zip5=zip_five).distinct().count()
+
+    return zip_info, cd_count
+
+
 def derive_cfda(obj, sess, job_id, detached_award_financial_assistance_id):
     """ Deriving cfda title from cfda number using cfda program table """
     cfda_title = sess.query(CFDAProgram).filter_by(program_number=obj['cfda_number']).one_or_none()
@@ -90,19 +108,7 @@ def derive_ppop_location_data(obj, sess, ppop_code, ppop_state):
         if len(obj['place_of_performance_zip4a']) > 5:
             zip_four = obj['place_of_performance_zip4a'][-4:]
 
-        zip_info = None
-        cd_count = 1
-        # if there's a 9-digit zip code, use both parts to get data, otherwise (or if that's invalid) just grab
-        # the first instance of the zip5 we find
-        if zip_four:
-            zip_info = sess.query(Zips). \
-                filter_by(zip5=zip_five, zip_last4=zip_four).first()
-        if not zip_info:
-            zip_info = sess.query(Zips). \
-                filter_by(zip5=zip_five).first()
-            # if this is a 5-digit zip, there may be more than one congressional district associated with it
-            cd_count = sess.query(Zips.congressional_district_no.label('cd_count')). \
-                filter_by(zip5=zip_five).distinct().count()
+        zip_info, cd_count = get_zip_data(sess, zip_five, zip_four)
 
         # deriving ppop congressional district
         if not obj['place_of_performance_congr']:
@@ -152,19 +158,14 @@ def derive_le_location_data(obj, sess, ppop_code, ppop_state):
         city_info = sess.query(ZipCity).filter_by(zip_code=obj['legal_entity_zip5']).one()
         obj['legal_entity_city_name'] = city_info.city_name
 
-        zip_data = None
-        # if we have a legal entity zip+4 provided
-        if obj['legal_entity_zip_last4']:
-            zip_data = sess.query(Zips). \
-                filter_by(zip5=obj['legal_entity_zip5'], zip_last4=obj['legal_entity_zip_last4']).first()
+        zip_data, cd_count = get_zip_data(sess, obj['legal_entity_zip5'], obj['legal_entity_zip_last4'])
 
-        # if legal_entity_zip_last4 returned no results (invalid combination), grab the first entry for this zip5
-        # for derivation purposes. This will exist because we wouldn't have gotten this far if it didn't,
-        # invalid legal_entity_zip5 when present is an error
-        if not zip_data:
-            zip_data = sess.query(Zips).filter_by(zip5=obj['legal_entity_zip5']).first()
-
-        obj['legal_entity_congressional'] = zip_data.congressional_district_no
+        # deriving legal entity congressional district
+        if not obj['legal_entity_congressional']:
+            if zip_data.congressional_district_no and cd_count == 1:
+                obj['legal_entity_congressional'] = zip_data.congressional_district_no
+            else:
+                obj['legal_entity_congressional'] = '90'
 
         # legal entity city data
         county_info = sess.query(CountyCode). \
@@ -195,7 +196,8 @@ def derive_le_location_data(obj, sess, ppop_code, ppop_state):
         obj['legal_entity_state_name'] = ppop_state.state_name
 
         # legal entity cd data
-        obj['legal_entity_congressional'] = obj['place_of_performance_congr']
+        if not obj['legal_entity_congressional']:
+            obj['legal_entity_congressional'] = obj['place_of_performance_congr']
 
 
 def derive_awarding_office_name(obj, sess):

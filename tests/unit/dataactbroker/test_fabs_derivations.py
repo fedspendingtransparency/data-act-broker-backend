@@ -50,8 +50,9 @@ def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, us
 def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1234", sub_fund_agency_code=None,
                         ppop_code="NY00000", ppop_zip4a=None, ppop_cd=None, le_zip5=None, le_zip4=None, record_type=2,
                         award_mod_amend=None, fain=None, uri=None, cldi=None, awarding_office='033103',
-                        funding_office='033103', legal_city="WASHINGTON", legal_state="DC", primary_place_country='USA',
-                        legal_country='USA', detached_award_financial_assistance_id=None, job_id=None):
+                        funding_office='033103', legal_congr=None, legal_city="WASHINGTON", legal_state="DC",
+                        primary_place_country='USA', legal_country='USA', detached_award_financial_assistance_id=None,
+                        job_id=None):
     """ Initialize the values in the object being run through the fabs_derivations function """
     obj = {
         'federal_action_obligation': fao,
@@ -71,6 +72,7 @@ def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1
         'correction_late_delete_ind': cldi,
         'awarding_office_code': awarding_office,
         'funding_office_code': funding_office,
+        'legal_entity_congressional': legal_congr,
         'legal_entity_city_name': legal_city,
         'legal_entity_state_code': legal_state,
         'place_of_perform_country_c': primary_place_country,
@@ -239,14 +241,20 @@ def test_legal_entity_derivations(database):
     assert obj['legal_entity_state_name'] == "New York"
 
     # when we have legal_entity_zip5 but no zip4
-    obj = initialize_test_obj(le_zip5="12345", le_zip4="6789")
+    obj = initialize_test_obj(le_zip5="12345")
     obj = fabs_derivations(obj, database.session)
     assert obj['legal_entity_city_name'] == "Test Zip City"
-    assert obj['legal_entity_congressional'] == "01" or "02"
+    # there are multiple options so this should be 90
+    assert obj['legal_entity_congressional'] == "90"
     assert obj['legal_entity_county_code'] == "001"
     assert obj['legal_entity_county_name'] == "Test County"
     assert obj['legal_entity_state_code'] == "NY"
     assert obj['legal_entity_state_name'] == "New York"
+
+    # when we have legal_entity_zip5 and congressional but no zip4
+    obj = initialize_test_obj(le_zip5="12345", legal_congr="95")
+    obj = fabs_derivations(obj, database.session)
+    assert obj['legal_entity_congressional'] == "95"
 
     # if there is no legal_entity_zip5, record_type is always 1 and ppop_code is always in format XX**###
     obj = initialize_test_obj(record_type=1, ppop_cd="03", ppop_code="NY**001")
