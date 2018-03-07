@@ -32,7 +32,7 @@ nonfederalfundingamount,non_federal_funding_amount,FALSE,float,20,,
 originalloansubsidycost,original_loan_subsidy_cost,FALSE,float,20,D21,
 periodofperformancecurrentenddate,period_of_performance_curr,FALSE,str,8,"D3, D4, D19",
 periodofperformancestartdate,period_of_performance_star,FALSE,str,8,"D3, D18",
-primaryplaceofperformancecode,place_of_performance_code,TRUE,str,7,"D1, D14, D15",
+primaryplaceofperformancecode,place_of_performance_code,FALSE,str,7,"D1, D14, D15",
 primaryplaceofperformancecongressionaldistrict,place_of_performance_congr,FALSE,str,2,,TRUE
 primaryplaceofperformancecountrycode,place_of_perform_country_c,FALSE,str,3,D1,
 primaryplaceofperformanceforeignlocationdescription,place_of_performance_forei,FALSE,str,100,D17,

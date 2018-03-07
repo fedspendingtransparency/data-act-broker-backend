@@ -167,6 +167,11 @@ def test_ppop_state(database):
     assert obj['place_of_perfor_state_code'] is None
     assert obj['place_of_perform_state_nam'] == "Multi-state"
 
+    obj = initialize_test_obj(ppop_code="", record_type=3)
+    obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_perfor_state_code'] is None
+    assert obj['place_of_perform_state_nam'] is None
+
 
 def test_ppop_derivations(database):
     initialize_db_values(database)
@@ -225,6 +230,14 @@ def test_ppop_derivations(database):
     assert obj['place_of_performance_city'] == "Test City"
     assert obj['place_of_performance_congr'] is None
 
+    # when we don't have a ppop_code at all
+    obj = initialize_test_obj(ppop_code="", record_type=3)
+    obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_perform_county_co'] is None
+    assert obj['place_of_perform_county_na'] is None
+    assert obj['place_of_performance_city'] is None
+    assert obj['place_of_performance_congr'] is None
+
 
 def test_legal_entity_derivations(database):
     initialize_db_values(database)
@@ -256,7 +269,7 @@ def test_legal_entity_derivations(database):
     obj = fabs_derivations(obj, database.session)
     assert obj['legal_entity_congressional'] == "95"
 
-    # if there is no legal_entity_zip5, record_type is always 1 and ppop_code is always in format XX**###
+    # if there is no legal_entity_zip5 and record_type is 1, ppop_code is always in format XX**###
     obj = initialize_test_obj(record_type=1, ppop_cd="03", ppop_code="NY**001")
     obj = fabs_derivations(obj, database.session)
     assert obj['legal_entity_city_name'] is None
@@ -265,6 +278,16 @@ def test_legal_entity_derivations(database):
     assert obj['legal_entity_county_name'] == "Test County"
     assert obj['legal_entity_state_code'] == "NY"
     assert obj['legal_entity_state_name'] == "New York"
+
+    # if there is no legal_entity_zip5, and no ppop_code (record_type is 3)
+    obj = initialize_test_obj(ppop_code="", record_type=3)
+    obj = fabs_derivations(obj, database.session)
+    assert obj['legal_entity_city_name'] is None
+    assert obj['legal_entity_congressional'] is None
+    assert obj['legal_entity_county_code'] is None
+    assert obj['legal_entity_county_name'] is None
+    assert obj['legal_entity_state_code'] is None
+    assert obj['legal_entity_state_name'] is None
 
 
 def test_primary_place_country(database):
