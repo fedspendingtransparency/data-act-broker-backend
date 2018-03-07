@@ -34,7 +34,7 @@ PeriodOfPerformanceCurrentEndDate,period_of_performance_curr,ASP: Optional,strin
 PeriodOfPerformanceStartDate,period_of_performance_star,ASP: Optional,string,8,"D3, D18"
 PrimaryPlaceOfPerformanceCode,place_of_performance_code,ASP: Required,string,7,"D1, D14, D15"
 PrimaryPlaceOfPerformanceCongressionalDistrict,place_of_performance_congr,ASP: Conditional per Validation Rule,string,2,
-PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Required,string,3,D1
+PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Conditional per Validation Rule,string,3,D1
 PrimaryPlaceOfPerformanceForeignLocationDescription,place_of_performance_forei,ASP: Conditional per Validation Rule,string,100,D17
 PrimaryPlaceOfPerformanceZIP+4,place_of_performance_zip4a,ASP: Conditional per Validation Rule,string,10,"D2, D16"
 RecordType,record_type,ASP: Required,integer,1,D1
