@@ -21,6 +21,7 @@ FundingSubTierAgencyCode,funding_sub_tier_agency_co,ASP: Optional,string,4,D1
 LegalEntityAddressLine1,legal_entity_address_line1,ASP: Conditional per Validation Rule,string,150,D2
 LegalEntityAddressLine2,legal_entity_address_line2,ASP: Optional,string,150,
 LegalEntityAddressLine3,legal_entity_address_line3,ASP: Optional,string,55,
+LegalEntityCongressionalDistrict,legal_entity_congressional,ASP: Conditional per Validation Rule,string,2,
 LegalEntityCountryCode,legal_entity_country_code,ASP: Required,string,3,"D1, D2, D12"
 LegalEntityForeignCityName,legal_entity_foreign_city,ASP: Conditional per Validation Rule,string,40,D9
 LegalEntityForeignPostalCode,legal_entity_foreign_posta,ASP: Optional,string,50,
