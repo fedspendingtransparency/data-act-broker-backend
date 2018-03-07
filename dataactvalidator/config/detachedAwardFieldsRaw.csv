@@ -2,7 +2,7 @@ fieldname,fieldname_short,required,data_type,field_length,rule_labels
 ActionDate,action_date,ASP: Required,string,8,"D3, D4"
 ActionType,action_type,ASP: Conditional per Validation Rule,string,1,"D1, D2"
 AssistanceType,assistance_type,ASP: Required,string,2,D1
-AwardDescription,award_description,ASP: Conditional per Validation Rule,string,18000,D2
+AwardDescription,award_description,ASP: Required,string,18000,D2
 AwardeeOrRecipientLegalEntityName,awardee_or_recipient_legal,ASP: Required,string,120,D22
 AwardeeOrRecipientUniqueIdentifier,awardee_or_recipient_uniqu,ASP: Conditional per Validation Rule,string,9,"D2, D10"
 AwardingOfficeCode,awarding_office_code,ASP: Optional,string,6,
