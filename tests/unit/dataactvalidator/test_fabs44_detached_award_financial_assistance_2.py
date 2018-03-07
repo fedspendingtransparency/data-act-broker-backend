@@ -27,8 +27,8 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test failure if LegalEntityZIPLast4 is not provided and LegalEntityZIP5 is, LegalEntityCongressionalDistrict
-        must be provided. """
+    """ Test failure If LegalEntityCongressionalDistrict is provided, it must be valid in the 5-digit zip code indicated
+        by LegalEntityZIP5. """
     zip1 = ZipsFactory(zip5="12345", congressional_district_no="01")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5="12345", legal_entity_congressional="02")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5="12346", legal_entity_congressional="01")
