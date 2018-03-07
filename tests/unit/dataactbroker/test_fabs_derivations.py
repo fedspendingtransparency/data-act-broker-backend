@@ -369,6 +369,12 @@ def test_split_zip(database):
     assert obj['place_of_performance_zip5'] is None
     assert obj['place_of_perform_zip_last4'] is None
 
+    # testing without ppop_zip4
+    obj = initialize_test_obj(ppop_zip4a='')
+    obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_performance_zip5'] is None
+    assert obj['place_of_perform_zip_last4'] is None
+
 
 def test_is_active(database):
     initialize_db_values(database)
