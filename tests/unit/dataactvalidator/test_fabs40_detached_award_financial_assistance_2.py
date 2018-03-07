@@ -24,6 +24,7 @@ def test_success(database):
                                                        det_award_5, det_award_6])
     assert errors == 0
 
+
 def test_failure(database):
     """ Test failure for PrimaryPlaceOfPerformanceCode for aggregate records (i.e., when RecordType = 1)
         must be in countywide (XX**###), statewide (XX*****), or foreign (00FORGN) formats. """
