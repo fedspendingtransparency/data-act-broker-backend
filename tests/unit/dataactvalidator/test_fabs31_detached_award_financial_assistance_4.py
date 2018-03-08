@@ -36,7 +36,7 @@ def test_pubished_date_success(database):
                                                           record_type=1, business_types="A")
     det_award_5 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111112",
                                                           assistance_type="03", action_date="10/02/2010",
-                                                          record_type=1, business_types="A")
+                                                          record_type=3, business_types="A")
     det_award_6 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111112",
                                                           assistance_type="04", action_date="10/02/2010",
                                                           record_type=2, business_types="P")
