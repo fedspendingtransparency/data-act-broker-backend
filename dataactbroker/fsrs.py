@@ -130,7 +130,7 @@ _grantAddrs = ('principle_place', 'awardee_address')
 def flatten_soap_dict(simple_fields, address_fields, comma_field, soap_dict):
     """For all four FSRS models, we need to copy over values, flatten address
     data, flatten topPaid, convert comma fields"""
-    logger.debug(soap_dict['id'])
+    logger.debug(soap_dict)
     model_attrs = {}
     for field in simple_fields:
         model_attrs[field] = soap_dict.get(field)
@@ -173,6 +173,9 @@ def retrieve_batch(service_type, min_id, return_single_id):
     """The FSRS web service returns records in batches (500 at a time).
     Retrieve one such batch, converting each result (and sub-results) into
     dicts"""
+
+    # Subtracting 1 from min_id since FSRS API starts one after value
+    # If the last id is 50 for example the min_id is 51, the API will retrieve 52 and greater
     for report in new_client(service_type).service.getData(id=min_id-1)['reports']:
         if (report['id'] == min_id and return_single_id) or not return_single_id:
             as_dict = soap_to_dict(report)
