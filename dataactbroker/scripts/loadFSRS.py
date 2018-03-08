@@ -19,7 +19,7 @@ def log_fsrs_counts(total_awards):
 if __name__ == '__main__':
     configure_logging()
     parser = argparse.ArgumentParser(description='Pull data from FSRS Feed')
-    parser.add_argument('-p', '--procurement',action='store_true', help="Load just procurement awards")
+    parser.add_argument('-p', '--procurement', action='store_true', help="Load just procurement awards")
     parser.add_argument('-g', '--grants', action='store_true', help="Load just grant awards")
     parser.add_argument('-i', '--ids', type=int, nargs='+',
                         help="Single or list of FSRS ids to pull from the FSRS API ")
@@ -59,4 +59,3 @@ if __name__ == '__main__':
                     logger.error('Missing --ids argument when loading just procurment or grants awards')
                 else:
                     logger.error('Missing --procurement or --grants argument when loading specific award ids')
-

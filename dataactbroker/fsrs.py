@@ -187,7 +187,6 @@ def retrieve_batch(service_type, min_id, return_single_id):
             pass
 
 
-
 def fetch_and_replace_batch(sess, service_type, min_id=None):
     """Hit one of the FSRS APIs and replace any local records that match.
     Returns the award models"""
