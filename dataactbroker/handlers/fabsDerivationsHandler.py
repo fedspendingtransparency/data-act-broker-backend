@@ -279,7 +279,7 @@ def split_ppop_zip(obj):
 
 def set_active(obj):
     """ Setting active  """
-    if obj['correction_late_delete_ind'] and obj['correction_late_delete_ind'].upper() == 'D':
+    if obj['correction_delete_indicatr'] and obj['correction_delete_indicatr'].upper() == 'D':
         obj['is_active'] = False
     else:
         obj['is_active'] = True

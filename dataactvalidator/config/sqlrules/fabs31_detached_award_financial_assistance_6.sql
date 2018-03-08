@@ -1,7 +1,7 @@
 -- For AssistanceType of 02, 03, 04, or 05 whose ActionDate is after October 1, 2010 and ActionType = A,
 -- AwardeeOrRecipientUniqueIdentifier should be active as of the ActionDate, unless the record is an aggregate
 -- or PII-redacted non-aggregate record (RecordType=1 or 3) or individual recipient (BusinessTypes includes 'P').
--- This is a warning because CorrectionLateDeleteIndicator is C and the action date is before January 1, 2017.
+-- This is a warning because CorrectionDeleteIndicator is C and the action date is before January 1, 2017.
 CREATE OR REPLACE function pg_temp.is_date(str text) returns boolean AS $$
 BEGIN
     perform CAST(str AS DATE);
@@ -19,7 +19,7 @@ WITH detached_award_financial_assistance_fabs31_6_{0} AS
         awardee_or_recipient_uniqu,
         business_types,
         record_type,
-        correction_late_delete_ind,
+        correction_delete_indicatr,
         submission_id
     FROM detached_award_financial_assistance
     WHERE submission_id = {0}),
@@ -37,7 +37,7 @@ SELECT
     dafa.action_type,
     dafa.awardee_or_recipient_uniqu,
     dafa.business_types,
-    dafa.correction_late_delete_ind,
+    dafa.correction_delete_indicatr,
     dafa.record_type
 FROM detached_award_financial_assistance_fabs31_6_{0} AS dafa
 WHERE NOT (dafa.record_type IN (1, 3)
@@ -45,7 +45,7 @@ WHERE NOT (dafa.record_type IN (1, 3)
     )
     AND COALESCE(dafa.assistance_type, '') IN ('02', '03', '04', '05')
     AND dafa.action_type = 'A'
-    AND COALESCE(dafa.correction_late_delete_ind, '') = 'C'
+    AND COALESCE(dafa.correction_delete_indicatr, '') = 'C'
     AND dafa.awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
     AND (CASE WHEN pg_temp.is_date(COALESCE(dafa.action_date, '0'))
             THEN CAST(dafa.action_date AS DATE)
