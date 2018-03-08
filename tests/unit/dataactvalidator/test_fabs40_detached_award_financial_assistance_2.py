@@ -29,8 +29,8 @@ def test_failure(database):
     """ Test failure for PrimaryPlaceOfPerformanceCode for aggregate records (i.e., when RecordType = 1)
         must be in countywide (XX**###), statewide (XX*****), or foreign (00FORGN) formats. """
 
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00**333", record_type="1")
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="AB**33", record_type="1")
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00*****", record_type="1")
+    det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00**333", record_type=1)
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="AB**33", record_type=1)
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00*****", record_type=1)
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
     assert errors == 3

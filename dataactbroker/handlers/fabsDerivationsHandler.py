@@ -82,16 +82,23 @@ def derive_funding_agency_data(obj, sess):
 
 
 def derive_ppop_state(obj, sess):
-    # deriving ppop state name (ppop code is required so we don't have to check that it exists, just upper it)
-    ppop_code = obj['place_of_performance_code'].upper()
-    if ppop_code == '00*****':
-        ppop_state = States(state_code=None, state_name='Multi-state')
-    elif ppop_code == '00FORGN':
-        ppop_state = States(state_code=None, state_name=None)
+    """ Deriving ppop code and ppop state name """
+    # deriving ppop state name
+    ppop_code = None
+    ppop_state = None
+    if obj['place_of_performance_code']:
+        ppop_code = obj['place_of_performance_code'].upper()
+        if ppop_code == '00*****':
+            ppop_state = States(state_code=None, state_name='Multi-state')
+        elif ppop_code == '00FORGN':
+            ppop_state = States(state_code=None, state_name=None)
+        else:
+            ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one()
+        obj['place_of_perfor_state_code'] = ppop_state.state_code
+        obj['place_of_perform_state_nam'] = ppop_state.state_name
     else:
-        ppop_state = sess.query(States).filter_by(state_code=ppop_code[:2]).one()
-    obj['place_of_perfor_state_code'] = ppop_state.state_code
-    obj['place_of_perform_state_nam'] = ppop_state.state_name
+        obj['place_of_perfor_state_code'] = None
+        obj['place_of_perform_state_nam'] = None
 
     return ppop_code, ppop_state
 
@@ -128,7 +135,7 @@ def derive_ppop_location_data(obj, sess, ppop_code, ppop_state):
         city_info = sess.query(ZipCity).filter_by(zip_code=zip_five).one()
         obj['place_of_performance_city'] = city_info.city_name
     # if there is no ppop zip4, we need to try to derive county/city info from the ppop code
-    else:
+    elif ppop_code:
         # if ppop_code is in county format,
         if re.match('^[A-Z]{2}\*\*\d{3}$', ppop_code):
             # getting county name
@@ -146,11 +153,16 @@ def derive_ppop_location_data(obj, sess, ppop_code, ppop_state):
             obj['place_of_performance_city'] = city_info.feature_name
             obj['place_of_perform_county_co'] = city_info.county_number
             obj['place_of_perform_county_na'] = city_info.county_name
+    # if there's no ppop code, just set them all to None
+    else:
+        obj['place_of_perform_county_co'] = None
+        obj['place_of_perform_county_na'] = None
+        obj['place_of_performance_city'] = None
 
 
 def derive_le_location_data(obj, sess, ppop_code, ppop_state):
     """ Deriving place of performance location values """
-    # Deriving from zip code (record type is 2 in this case)
+    # Deriving from zip code (record type is 2 or 3 in this case)
     if obj['legal_entity_zip5']:
         # legal entity city data
         city_info = sess.query(ZipCity).filter_by(zip_code=obj['legal_entity_zip5']).one()
@@ -280,7 +292,7 @@ def split_ppop_zip(obj):
 
 def set_active(obj):
     """ Setting active  """
-    if obj['correction_late_delete_ind'] and obj['correction_late_delete_ind'].upper() == 'D':
+    if obj['correction_delete_indicatr'] and obj['correction_delete_indicatr'].upper() == 'D':
         obj['is_active'] = False
     else:
         obj['is_active'] = True

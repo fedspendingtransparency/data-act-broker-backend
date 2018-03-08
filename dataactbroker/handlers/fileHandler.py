@@ -801,14 +801,14 @@ class FileHandler:
 
         try:
             # check to make sure no new entries have been published that collide with the new rows
-            # (correction_late_delete_ind is not C or D)
+            # (correction_delete_indicatr is not C or D)
             # need to set the models to something because the names are too long and flake gets mad
             dafa = DetachedAwardFinancialAssistance
             pafa = PublishedAwardFinancialAssistance
             colliding_rows = sess.query(dafa.afa_generated_unique). \
                 filter(dafa.is_valid.is_(True),
                        dafa.submission_id == submission_id,
-                       func.coalesce(func.upper(dafa.correction_late_delete_ind), '').notin_(['C', 'D'])).\
+                       func.coalesce(func.upper(dafa.correction_delete_indicatr), '').notin_(['C', 'D'])).\
                 join(pafa, and_(dafa.afa_generated_unique == pafa.afa_generated_unique, pafa.is_active.is_(True))).\
                 count()
             if colliding_rows > 0:
@@ -838,7 +838,7 @@ class FileHandler:
                 temp_obj = fabs_derivations(temp_obj, sess)
 
                 # if it's a correction or deletion row and an old row is active, update the old row to be inactive
-                if row.correction_late_delete_ind is not None and row.correction_late_delete_ind.upper() in ['C', 'D']:
+                if row.correction_delete_indicatr is not None:
                     check_row = sess.query(PublishedAwardFinancialAssistance).\
                         filter_by(afa_generated_unique=row.afa_generated_unique, is_active=True).one_or_none()
                     if check_row:

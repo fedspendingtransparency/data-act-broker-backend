@@ -11,16 +11,17 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Tests success for when Record type is required and cannot be blank. It must be 1 or 2 """
+    """ Tests success for when Record type is required and cannot be blank. It must be 1, 2, or 3 """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(record_type=1)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(record_type=2)
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(record_type=3)
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2])
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
     assert errors == 0
 
 
 def test_failure(database):
-    """ Tests failure for when Record type is required and cannot be blank. It must be 1 or 2 """
+    """ Tests failure for when Record type is required and cannot be blank. It must be 1, 2, or 3 """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(record_type=0)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(record_type=None)
 

@@ -11,7 +11,7 @@ AwardModificationAmendmentNumber,award_modification_amendme,ASP: Optional,string
 BusinessFundsIndicator,business_funds_indicator,ASP: Required,string,3,D1
 BusinessTypes,business_types,ASP: Required,string,3,D1
 CFDA_Number,cfda_number,ASP: Required,string,7,D13
-CorrectionLateDeleteIndicator,correction_late_delete_ind,ASP: Optional,string,1,D1
+CorrectionDeleteIndicator,correction_delete_indicatr,ASP: Optional,string,1,D1
 FaceValueOfDirectLoanOrLoanGuarantee,face_value_loan_guarantee,ASP: Conditional per Validation Rule,numeric,20,D21
 FAIN,fain,ASP: Conditional per Validation Rule,string,30,"C9, D2, D5, D6"
 FederalActionObligation,federal_action_obligation,ASP: Conditional per Validation Rule,numeric,20,"C12, D20"
@@ -32,9 +32,9 @@ NonFederalFundingAmount,non_federal_funding_amount,ASP: Optional,numeric,20,
 OriginalLoanSubsidyCost,original_loan_subsidy_cost,ASP: Conditional per Validation Rule,numeric,20,D21
 PeriodOfPerformanceCurrentEndDate,period_of_performance_curr,ASP: Optional,string,8,"D3, D4, D19"
 PeriodOfPerformanceStartDate,period_of_performance_star,ASP: Optional,string,8,"D3, D18"
-PrimaryPlaceOfPerformanceCode,place_of_performance_code,ASP: Required,string,7,"D1, D14, D15"
+PrimaryPlaceOfPerformanceCode,place_of_performance_code,ASP: Conditional per Validation Rule,string,7,"D1, D14, D15"
 PrimaryPlaceOfPerformanceCongressionalDistrict,place_of_performance_congr,ASP: Conditional per Validation Rule,string,2,
-PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Required,string,3,D1
+PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Conditional per Validation Rule,string,3,D1
 PrimaryPlaceOfPerformanceForeignLocationDescription,place_of_performance_forei,ASP: Conditional per Validation Rule,string,100,D17
 PrimaryPlaceOfPerformanceZIP+4,place_of_performance_zip4a,ASP: Conditional per Validation Rule,string,10,"D2, D16"
 RecordType,record_type,ASP: Required,integer,1,D1

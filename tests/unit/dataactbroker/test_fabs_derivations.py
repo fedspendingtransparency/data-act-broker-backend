@@ -69,7 +69,7 @@ def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1
         'award_modification_amendme': award_mod_amend,
         'fain': fain,
         'uri': uri,
-        'correction_late_delete_ind': cldi,
+        'correction_delete_indicatr': cldi,
         'awarding_office_code': awarding_office,
         'funding_office_code': funding_office,
         'legal_entity_congressional': legal_congr,
@@ -167,6 +167,11 @@ def test_ppop_state(database):
     assert obj['place_of_perfor_state_code'] is None
     assert obj['place_of_perform_state_nam'] == "Multi-state"
 
+    obj = initialize_test_obj(ppop_code="", record_type=3)
+    obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_perfor_state_code'] is None
+    assert obj['place_of_perform_state_nam'] is None
+
 
 def test_ppop_derivations(database):
     initialize_db_values(database)
@@ -225,11 +230,19 @@ def test_ppop_derivations(database):
     assert obj['place_of_performance_city'] == "Test City"
     assert obj['place_of_performance_congr'] is None
 
+    # when we don't have a ppop_code at all
+    obj = initialize_test_obj(ppop_code="", record_type=3)
+    obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_perform_county_co'] is None
+    assert obj['place_of_perform_county_na'] is None
+    assert obj['place_of_performance_city'] is None
+    assert obj['place_of_performance_congr'] is None
+
 
 def test_legal_entity_derivations(database):
     initialize_db_values(database)
 
-    # if there is a legal_entity_zip5, record_type is always 2
+    # if there is a legal_entity_zip5, record_type is always 2 or 3
     # when we have legal_entity_zip5 and zip4
     obj = initialize_test_obj(le_zip5="12345", le_zip4="6789")
     obj = fabs_derivations(obj, database.session)
@@ -256,7 +269,7 @@ def test_legal_entity_derivations(database):
     obj = fabs_derivations(obj, database.session)
     assert obj['legal_entity_congressional'] == "95"
 
-    # if there is no legal_entity_zip5, record_type is always 1 and ppop_code can be format XX**###
+    # if there is no legal_entity_zip5 and record_type is 1, ppop_code is always in format XX**###
     obj = initialize_test_obj(record_type=1, ppop_cd="03", ppop_code="NY**001")
     obj = fabs_derivations(obj, database.session)
     assert obj['legal_entity_city_name'] is None
@@ -362,6 +375,12 @@ def test_split_zip(database):
 
     # testing with city-wide
     obj = initialize_test_obj(ppop_zip4a='city-wide')
+    obj = fabs_derivations(obj, database.session)
+    assert obj['place_of_performance_zip5'] is None
+    assert obj['place_of_perform_zip_last4'] is None
+
+    # testing without ppop_zip4
+    obj = initialize_test_obj(ppop_zip4a='')
     obj = fabs_derivations(obj, database.session)
     assert obj['place_of_performance_zip5'] is None
     assert obj['place_of_perform_zip_last4'] is None

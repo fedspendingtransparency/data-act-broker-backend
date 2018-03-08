@@ -12,25 +12,33 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Test LegalEntityZIP5 is required for domestic recipients (i.e., when LegalEntityCountryCode = USA)
-        for non-aggregate records (i.e., when RecordType = 2) record type 1 and non-USA don't affect success """
+        for non-aggregate and PII-redacted non-aggregate records (i.e., when RecordType = 2 or 3) record type 1 and
+        non-USA don't affect success """
     det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA", record_type=2,
                                                         legal_entity_zip5="12345")
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA", record_type=1,
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA", record_type=3,
+                                                          legal_entity_zip5="12345")
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA", record_type=1,
                                                           legal_entity_zip5=None)
-    det_award_null = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="UK", record_type=1,
-                                                             legal_entity_zip5='')
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="UK", record_type=1,
+                                                          legal_entity_zip5='')
 
-    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_null])
+    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3, det_award_4])
     assert errors == 0
 
 
 def test_failure(database):
-    """ Test failure when LegalEntityZIP5 is blank for domestic recipients for non-aggregate records"""
+    """ Test failure when LegalEntityZIP5 is blank for domestic recipients for non-aggregate and PII-redacted
+        non-aggregate records"""
 
     det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA", record_type=2,
                                                         legal_entity_zip5=None)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA", record_type=2,
                                                           legal_entity_zip5='')
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA", record_type=3,
+                                                          legal_entity_zip5=None)
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA", record_type=3,
+                                                          legal_entity_zip5='')
 
-    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2])
-    assert errors == 2
+    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3, det_award_4])
+    assert errors == 4
