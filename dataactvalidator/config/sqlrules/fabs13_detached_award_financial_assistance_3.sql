@@ -1,5 +1,5 @@
 -- LegalEntityZIP5 is required for domestic recipients (i.e., when LegalEntityCountryCode = USA)
--- for non-aggregate records (i.e., when RecordType = 2)
+-- for non-aggregate and PII-redacted non-aggregate records (i.e., when RecordType = 2 or 3)
 SELECT
     row_number,
     legal_entity_country_code,
@@ -8,7 +8,5 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND UPPER(legal_entity_country_code) = 'USA'
-    AND record_type = 2
-    AND (legal_entity_zip5 = ''
-        OR legal_entity_zip5 IS NULL
-    );
+    AND record_type IN (2, 3)
+    AND COALESCE(legal_entity_zip5, '') = '';

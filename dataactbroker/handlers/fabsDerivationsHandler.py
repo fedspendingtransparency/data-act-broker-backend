@@ -162,7 +162,7 @@ def derive_ppop_location_data(obj, sess, ppop_code, ppop_state):
 
 def derive_le_location_data(obj, sess, ppop_code, ppop_state):
     """ Deriving place of performance location values """
-    # Deriving from zip code (record type is 2 in this case)
+    # Deriving from zip code (record type is 2 or 3 in this case)
     if obj['legal_entity_zip5']:
         # legal entity city data
         city_info = sess.query(ZipCity).filter_by(zip_code=obj['legal_entity_zip5']).one()
@@ -208,16 +208,6 @@ def derive_le_location_data(obj, sess, ppop_code, ppop_state):
         # legal entity cd data
         if not obj['legal_entity_congressional']:
             obj['legal_entity_congressional'] = obj['place_of_performance_congr']
-
-    # if record type is 3, all of these are blank
-    if obj['record_type'] == 3:
-        # legal entity county data
-        obj['legal_entity_county_code'] = None
-        obj['legal_entity_county_name'] = None
-
-        # legal entity state data
-        obj['legal_entity_state_code'] = None
-        obj['legal_entity_state_name'] = None
 
 
 def derive_awarding_office_name(obj, sess):

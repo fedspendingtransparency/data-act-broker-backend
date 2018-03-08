@@ -242,7 +242,7 @@ def test_ppop_derivations(database):
 def test_legal_entity_derivations(database):
     initialize_db_values(database)
 
-    # if there is a legal_entity_zip5, record_type is always 2
+    # if there is a legal_entity_zip5, record_type is always 2 or 3
     # when we have legal_entity_zip5 and zip4
     obj = initialize_test_obj(le_zip5="12345", le_zip4="6789")
     obj = fabs_derivations(obj, database.session)
@@ -278,16 +278,6 @@ def test_legal_entity_derivations(database):
     assert obj['legal_entity_county_name'] == "Test County"
     assert obj['legal_entity_state_code'] == "NY"
     assert obj['legal_entity_state_name'] == "New York"
-
-    # if there is no legal_entity_zip5, and no ppop_code (record_type is 3)
-    obj = initialize_test_obj(ppop_code="", record_type=3)
-    obj = fabs_derivations(obj, database.session)
-    assert obj['legal_entity_city_name'] is None
-    assert obj['legal_entity_congressional'] is None
-    assert obj['legal_entity_county_code'] is None
-    assert obj['legal_entity_county_name'] is None
-    assert obj['legal_entity_state_code'] is None
-    assert obj['legal_entity_state_name'] is None
 
 
 def test_primary_place_country(database):
