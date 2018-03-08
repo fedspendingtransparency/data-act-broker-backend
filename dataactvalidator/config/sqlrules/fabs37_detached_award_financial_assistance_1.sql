@@ -6,7 +6,7 @@ WITH detached_award_financial_assistance_fabs37_1_{0} AS
         row_number,
         cfda_number,
         action_type,
-        correction_late_delete_ind,
+        correction_delete_indicatr,
         action_date
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
@@ -14,12 +14,12 @@ SELECT
     row_number,
     cfda_number,
     action_type,
-    correction_late_delete_ind,
+    correction_delete_indicatr,
     action_date
 FROM detached_award_financial_assistance_fabs37_1_{0} AS dafa
 WHERE dafa.action_type = 'A'
-    AND (dafa.correction_late_delete_ind <> 'C'
-        OR dafa.correction_late_delete_ind IS NULL
+    AND (dafa.correction_delete_indicatr <> 'C'
+        OR dafa.correction_delete_indicatr IS NULL
     )
     AND dafa.row_number NOT IN (
         SELECT DISTINCT sub_dafa.row_number

@@ -69,7 +69,7 @@ def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1
         'award_modification_amendme': award_mod_amend,
         'fain': fain,
         'uri': uri,
-        'correction_late_delete_ind': cldi,
+        'correction_delete_indicatr': cldi,
         'awarding_office_code': awarding_office,
         'funding_office_code': funding_office,
         'legal_entity_congressional': legal_congr,

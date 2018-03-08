@@ -19,7 +19,7 @@ WITH detached_award_financial_assistance_fabs31_6_{0} AS
         awardee_or_recipient_uniqu,
         business_types,
         record_type,
-        correction_late_delete_ind,
+        correction_delete_indicatr,
         submission_id
     FROM detached_award_financial_assistance
     WHERE submission_id = {0}),
@@ -37,7 +37,7 @@ SELECT
     dafa.action_type,
     dafa.awardee_or_recipient_uniqu,
     dafa.business_types,
-    dafa.correction_late_delete_ind,
+    dafa.correction_delete_indicatr,
     dafa.record_type
 FROM detached_award_financial_assistance_fabs31_6_{0} AS dafa
 WHERE NOT (dafa.record_type = 1
@@ -45,7 +45,7 @@ WHERE NOT (dafa.record_type = 1
     )
     AND COALESCE(dafa.assistance_type, '') IN ('02', '03', '04', '05')
     AND dafa.action_type = 'A'
-    AND COALESCE(dafa.correction_late_delete_ind, '') = 'C'
+    AND COALESCE(dafa.correction_delete_indicatr, '') = 'C'
     AND dafa.awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
     AND (CASE WHEN pg_temp.is_date(COALESCE(dafa.action_date, '0'))
             THEN CAST(dafa.action_date AS DATE)

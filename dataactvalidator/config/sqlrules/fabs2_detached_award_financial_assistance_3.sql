@@ -6,10 +6,10 @@ SELECT
     dafa.award_modification_amendme,
     dafa.uri,
     dafa.awarding_sub_tier_agency_c,
-    dafa.correction_late_delete_ind
+    dafa.correction_delete_indicatr
 FROM detached_award_financial_assistance AS dafa
 WHERE dafa.submission_id = {0}
-    AND COALESCE(UPPER(dafa.correction_late_delete_ind), '') = 'C'
+    AND COALESCE(UPPER(dafa.correction_delete_indicatr), '') = 'C'
     AND NOT EXISTS (
         SELECT 1
         FROM published_award_financial_assistance AS pafa
