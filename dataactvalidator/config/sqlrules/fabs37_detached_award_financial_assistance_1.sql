@@ -1,5 +1,5 @@
 -- For new assistance awards (ActionType = A), the CFDA_Number must be active as of the ActionDate.
--- This does not apply to correction records (those with CorrectionLateDeleteIndicator = C).
+-- This does not apply to correction records (those with CorrectionDeleteIndicator = C).
 -- If publish_date <= action_date <= archived_date, it passes validation (active).
 WITH detached_award_financial_assistance_fabs37_1_{0} AS
     (SELECT submission_id,

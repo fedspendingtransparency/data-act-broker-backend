@@ -50,11 +50,9 @@ def test_failure(database):
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(afa_generated_unique="ama1asta1fain1uri1",
                                                           correction_delete_indicatr=None)
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(afa_generated_unique="ama1asta1fain1uri1",
-                                                          correction_delete_indicatr="L")
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(afa_generated_unique="ama1asta1fain1uri1",
                                                            correction_delete_indicatr=None,
                                                            is_active=True)
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, pub_award_1])
-    assert errors == 2
+    errors = number_of_errors(_FILE, database, models=[det_award_1, pub_award_1])
+    assert errors == 1

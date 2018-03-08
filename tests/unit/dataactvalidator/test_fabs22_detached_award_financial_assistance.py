@@ -11,23 +11,23 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ When provided, CorrectionDeleteIndicator must contain one of the following values: C, D, or L. """
+    """ When provided, CorrectionDeleteIndicator must contain one of the following values: C or D. """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(correction_delete_indicatr="")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(correction_delete_indicatr=None)
     det_award_3 = DetachedAwardFinancialAssistanceFactory(correction_delete_indicatr="c")
     det_award_4 = DetachedAwardFinancialAssistanceFactory(correction_delete_indicatr="D")
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(correction_delete_indicatr="L")
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5])
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4])
     assert errors == 0
 
 
 def test_failure(database):
     """ Test failure for when provided, CorrectionDeleteIndicator must contain one of the following values:
-        C, D, or L. """
+        C or D. """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(correction_delete_indicatr="A")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(correction_delete_indicatr="Z")
     det_award_3 = DetachedAwardFinancialAssistanceFactory(correction_delete_indicatr="cd")
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(correction_delete_indicatr="L")
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
-    assert errors == 3
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4])
+    assert errors == 4

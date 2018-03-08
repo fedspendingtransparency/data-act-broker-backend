@@ -1,5 +1,5 @@
 -- The combination of FAIN, AwardModificationAmendmentNumber, URI, and AwardingSubTierAgencyCode must be unique from
--- currently published ones unless the record is a correction or deletion, if CorrectionLateDeleteIndicator = C or D.
+-- currently published ones unless the record is a correction or deletion, if CorrectionDeleteIndicator = C or D.
 SELECT
     dafa.row_number,
     dafa.fain,

@@ -1,5 +1,5 @@
 -- The unique combination of FAIN, AwardModificationAmendmentNumber, URI, and AwardingSubTierAgencyCode must exist as
--- a currently published record when the record is a deletion (i.e., if CorrectionLateDeleteIndicator = D).
+-- a currently published record when the record is a deletion (i.e., if CorrectionDeleteIndicator = D).
 SELECT
     dafa.row_number,
     dafa.fain,

@@ -1,5 +1,5 @@
 -- For other assistance awards (ActionType = B, C, or D), the CFDA_Number need NOT be active as of the ActionDate.
--- This does not apply to correction records (those with CorrectionLateDeleteIndicator = C).
+-- This does not apply to correction records (those with CorrectionDeleteIndicator = C).
 -- Should not be active (action_date <= archived_date and when archived date exists)
 -- If the ActionDate is < published_date, should trigger a warning.
 WITH detached_award_financial_assistance_fabs37_2_{0} AS

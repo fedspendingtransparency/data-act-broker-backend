@@ -1,4 +1,4 @@
--- When provided, CorrectionLateDeleteIndicator must contain one of the following values: ""C"", ""D"".
+-- When provided, CorrectionDeleteIndicator must contain one of the following values: ""C"", ""D"".
 SELECT
     row_number,
     correction_delete_indicatr
