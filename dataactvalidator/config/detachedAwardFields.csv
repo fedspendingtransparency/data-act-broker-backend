@@ -19,7 +19,6 @@ fundingofficecode,funding_office_code,FALSE,str,6,,
 fundingsubtieragencycode,funding_sub_tier_agency_co,FALSE,str,4,D1,
 legalentityaddressline1,legal_entity_address_line1,FALSE,str,150,D2,
 legalentityaddressline2,legal_entity_address_line2,FALSE,str,150,,
-legalentityaddressline3,legal_entity_address_line3,FALSE,str,55,,
 legalentitycongressionaldistrict,legal_entity_congressional,FALSE,str,2,,TRUE
 legalentitycountrycode,legal_entity_country_code,TRUE,str,3,"D1, D2, D12",
 legalentityforeigncityname,legal_entity_foreign_city,FALSE,str,40,D9,

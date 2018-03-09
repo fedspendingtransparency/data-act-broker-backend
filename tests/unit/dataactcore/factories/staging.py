@@ -250,7 +250,6 @@ class DetachedAwardFinancialAssistanceFactory(factory.Factory):
     funding_sub_tier_agency_co = fuzzy.FuzzyText()
     legal_entity_address_line1 = fuzzy.FuzzyText()
     legal_entity_address_line2 = fuzzy.FuzzyText()
-    legal_entity_address_line3 = fuzzy.FuzzyText()
     legal_entity_country_code = fuzzy.FuzzyText()
     legal_entity_foreign_city = fuzzy.FuzzyText()
     legal_entity_foreign_posta = fuzzy.FuzzyText()
