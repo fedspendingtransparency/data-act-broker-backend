@@ -41,8 +41,8 @@ from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
-feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.4.5&q="
-delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&templateName=1.4.5&q="
+feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.5.0&q="
+delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&templateName=1.5.0&q="
 country_code_map = {'USA': 'US', 'ASM': 'AS', 'GUM': 'GU', 'MNP': 'MP', 'PRI': 'PR', 'VIR': 'VI', 'FSM': 'FM',
                     'MHL': 'MH', 'PLW': 'PW', 'XBK': 'UM', 'XHO': 'UM', 'XJV': 'UM', 'XJA': 'UM', 'XKR': 'UM',
                     'XPL': 'UM', 'XMW': 'UM', 'XWK': 'UM'}
@@ -308,7 +308,7 @@ def legislative_mandates_values(data, obj):
                  'interagencyContractingAuthority': 'interagency_contracting_au',
                  'otherStatutoryAuthority': 'other_statutory_authority',
                  'serviceContractAct': 'service_contract_act',
-                 'WalshHealyAct': 'walsh_healey_act'}
+                 'materialsSuppliesArticlesEquipment': 'materials_supplies_article'}
 
     for key, value in value_map.items():
         try:
@@ -321,7 +321,7 @@ def legislative_mandates_values(data, obj):
                  'DavisBaconAct': 'davis_bacon_act_descrip',
                  'interagencyContractingAuthority': 'interagency_contract_desc',
                  'serviceContractAct': 'service_contract_act_desc',
-                 'WalshHealyAct': 'walsh_healey_act_descrip'}
+                 'materialsSuppliesArticlesEquipment': 'materials_supplies_descrip'}
 
     for key, value in value_map.items():
         try:
@@ -1585,7 +1585,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
         'typeofsetaside': 'type_set_aside_description',
         'useofepadesignatedproducts': 'epa_designated_produc_desc',
         'vendorcountrycode': 'legal_entity_country_name',
-        'walshhealyact': 'walsh_healey_act_descrip'
+        'walshhealyact': 'materials_supplies_descrip'
     }
     for tag, description in colon_split_mappings.items():
         data[description] = data.apply(lambda x: get_data_after_colon(x, tag), axis=1)
@@ -2022,8 +2022,8 @@ def format_fpds_data(data, sub_tier_list, naics_data):
             'vendorname': 'awardee_or_recipient_legal',
             'vendorsitecode': 'vendor_site_code',
             'veteranownedflag': 'veteran_owned_business',
-            'walsh_healey_act_descrip': 'walsh_healey_act_descrip',
-            'walshhealyact': 'walsh_healey_act',
+            'materials_supplies_descrip': 'materials_supplies_descrip',
+            'walshhealyact': 'materials_supplies_article',
             'womenownedflag': 'woman_owned_business',
             'zipcode': 'legal_entity_zip4'
         }, {}
