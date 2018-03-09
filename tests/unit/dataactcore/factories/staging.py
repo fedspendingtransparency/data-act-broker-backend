@@ -245,7 +245,6 @@ class DetachedAwardFinancialAssistanceFactory(factory.Factory):
     face_value_loan_guarantee = fuzzy.FuzzyDecimal(9999)
     fain = fuzzy.FuzzyText()
     federal_action_obligation = fuzzy.FuzzyDecimal(9999)
-    fiscal_year_and_quarter_co = fuzzy.FuzzyText()
     funding_agency_code = fuzzy.FuzzyText()
     funding_office_code = fuzzy.FuzzyText()
     funding_sub_tier_agency_co = fuzzy.FuzzyText()
