@@ -11,5 +11,4 @@ WHERE submission_id = {0}
     UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\d\d\d$'
     OR UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\*\*\*$'
     OR UPPER(place_of_performance_code) = '00FORGN'
-    )
-    ;
+    );

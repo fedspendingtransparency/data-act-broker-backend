@@ -17,7 +17,9 @@ SELECT
     dafa.record_type
 FROM detached_award_financial_assistance_fabs43_3_{0} AS dafa
 WHERE CASE WHEN COALESCE(dafa.place_of_performance_congr, '') <> ''
-            THEN ((dafa.place_of_performance_congr <> '90'
+            THEN (
+                (dafa.record_type = 3)
+                OR (dafa.place_of_performance_congr <> '90'
                     AND dafa.row_number NOT IN (
                         SELECT DISTINCT sub_dafa.row_number
                         FROM detached_award_financial_assistance_fabs43_3_{0} AS sub_dafa
@@ -31,7 +33,6 @@ WHERE CASE WHEN COALESCE(dafa.place_of_performance_congr, '') <> ''
                         FROM state_congressional AS sc_2
                         WHERE UPPER(LEFT(dafa.place_of_performance_code, 2)) = sc_2.state_code) < 2
                 )
-                OR (dafa.record_type = 3)
             )
             ELSE FALSE
         END;
