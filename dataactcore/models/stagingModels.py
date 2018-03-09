@@ -841,8 +841,6 @@ class DetachedAwardFinancialAssistance(Base):
     face_value_loan_guarantee = Column(Numeric)
     fain = Column(Text, index=True)
     federal_action_obligation = Column(Numeric)
-    fiscal_year_and_quarter_co = Column(Text)
-    funding_agency_code = Column(Text, index=True)
     funding_office_code = Column(Text, index=True)
     funding_sub_tier_agency_co = Column(Text, index=True)
     legal_entity_address_line1 = Column(Text)
