@@ -192,21 +192,34 @@ def derive_le_location_data(obj, sess, ppop_code, ppop_state):
         obj['legal_entity_state_code'] = state_info.state_code
         obj['legal_entity_state_name'] = state_info.state_name
 
-    # deriving legal entity stuff that's based on record type of 1 (ppop code must be in the format XX**### for these)
+    # deriving legal entity stuff that's based on record type of 1
+    # (ppop code must be in the format XX**###, XX*****, 00FORGN for these)
     if obj['record_type'] == 1:
-        # legal entity county data
-        county_code = ppop_code[-3:]
-        county_info = sess.query(CountyCode). \
-            filter_by(county_number=county_code, state_code=ppop_state.state_code).first()
-        obj['legal_entity_county_code'] = county_code
-        obj['legal_entity_county_name'] = county_info.county_name
 
-        # legal entity state data
-        obj['legal_entity_state_code'] = ppop_state.state_code
-        obj['legal_entity_state_name'] = ppop_state.state_name
+        county_wide_pattern = re.compile("^[a-zA-Z]{2}\*{2}\d{3}$")
+        state_wide_pattern = re.compile("^[a-zA-Z]{2}\*{5}$")
+
+        obj['legal_entity_county_code'] = None
+        obj['legal_entity_county_name'] = None
+        obj['legal_entity_state_code'] = None
+        obj['legal_entity_state_name'] = None
+        obj['legal_entity_congressional'] = None
+
+        if county_wide_pattern.match(ppop_code):
+            # legal entity county data
+            county_code = ppop_code[-3:]
+            county_info = sess.query(CountyCode). \
+                filter_by(county_number=county_code, state_code=ppop_state.state_code).first()
+            obj['legal_entity_county_code'] = county_code
+            obj['legal_entity_county_name'] = county_info.county_name
+
+        if county_wide_pattern.match(ppop_code) or state_wide_pattern.match(ppop_code):
+            # legal entity state data
+            obj['legal_entity_state_code'] = ppop_state.state_code
+            obj['legal_entity_state_name'] = ppop_state.state_name
 
         # legal entity cd data
-        if not obj['legal_entity_congressional']:
+        if not obj['legal_entity_congressional'] and county_wide_pattern.match(ppop_code):
             obj['legal_entity_congressional'] = obj['place_of_performance_congr']
 
 

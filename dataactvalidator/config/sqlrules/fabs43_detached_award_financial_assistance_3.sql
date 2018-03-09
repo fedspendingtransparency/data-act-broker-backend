@@ -1,20 +1,25 @@
 -- If PrimaryPlaceOfPerformanceCongressionalDistrict is provided it must be valid in the state indicated by
 -- PrimaryPlaceOfPerformanceCode. The PrimaryPlaceOfPerformanceCongressionalDistrict may be 90 if the state has more
 -- than one congressional district or PrimaryPlaceOfPerformanceCode is 00*****
+-- If record type 3 then PrimaryPlaceOfPerformanceCongressionalDistrict is null
 WITH detached_award_financial_assistance_fabs43_3_{0} AS
     (SELECT submission_id,
         row_number,
         place_of_performance_code,
-        place_of_performance_congr
+        place_of_performance_congr,
+        record_type
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT
     dafa.row_number,
     dafa.place_of_performance_code,
-    dafa.place_of_performance_congr
+    dafa.place_of_performance_congr,
+    dafa.record_type
 FROM detached_award_financial_assistance_fabs43_3_{0} AS dafa
 WHERE CASE WHEN COALESCE(dafa.place_of_performance_congr, '') <> ''
-            THEN ((dafa.place_of_performance_congr <> '90'
+            THEN (
+                (dafa.record_type = 3)
+                OR (dafa.place_of_performance_congr <> '90'
                     AND dafa.row_number NOT IN (
                         SELECT DISTINCT sub_dafa.row_number
                         FROM detached_award_financial_assistance_fabs43_3_{0} AS sub_dafa
