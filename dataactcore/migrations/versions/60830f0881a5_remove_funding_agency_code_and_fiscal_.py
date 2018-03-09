@@ -1,4 +1,4 @@
-"""Remove funding_agency_code and fiscal_year_and_quarter_correction from DetachedAwardProcurement
+"""Remove funding_agency_code and fiscal_year_and_quarter_correction from DetachedAwardFinancialAssistance
 
 Revision ID: 60830f0881a5
 Revises: 654507a3934c
