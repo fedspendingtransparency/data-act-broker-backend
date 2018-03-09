@@ -183,8 +183,6 @@ def retrieve_batch(service_type, min_id, return_single_id):
                 yield to_prime_contract(as_dict)
             else:
                 yield to_prime_grant(as_dict)
-        else:
-            pass
 
 
 def fetch_and_replace_batch(sess, service_type, min_id=None):

@@ -56,6 +56,6 @@ if __name__ == '__main__':
                     log_fsrs_counts(grants)
             else:
                 if not args.ids:
-                    logger.error('Missing --ids argument when loading just procurment or grants awards')
+                    logger.error('Missing --ids argument when loading just procurement or grants awards')
                 else:
                     logger.error('Missing --procurement or --grants argument when loading specific award ids')
