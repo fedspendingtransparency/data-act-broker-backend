@@ -169,26 +169,33 @@ def to_subgrant(soap_dict):
     return FSRSSubgrant(**model_attrs)
 
 
-def retrieve_batch(service_type, min_id):
+def retrieve_batch(service_type, min_id, return_single_id):
     """The FSRS web service returns records in batches (500 at a time).
     Retrieve one such batch, converting each result (and sub-results) into
     dicts"""
-    for report in new_client(service_type).service.getData(id=min_id)['reports']:
-        as_dict = soap_to_dict(report)
-        if service_type == PROCUREMENT:
-            yield to_prime_contract(as_dict)
-        else:
-            yield to_prime_grant(as_dict)
+
+    # Subtracting 1 from min_id since FSRS API starts one after value
+    # If the last id is 50 for example the min_id is 51, the API will retrieve 52 and greater
+    for report in new_client(service_type).service.getData(id=min_id-1)['reports']:
+        if (report['id'] == min_id and return_single_id) or not return_single_id:
+            as_dict = soap_to_dict(report)
+            if service_type == PROCUREMENT:
+                yield to_prime_contract(as_dict)
+            else:
+                yield to_prime_grant(as_dict)
 
 
 def fetch_and_replace_batch(sess, service_type, min_id=None):
     """Hit one of the FSRS APIs and replace any local records that match.
     Returns the award models"""
     model = SERVICE_MODEL[service_type]
+    return_single_id = True
+
     if min_id is None:
         min_id = model.next_id(sess)
+        return_single_id = False
 
-    awards = list(retrieve_batch(service_type, min_id))
+    awards = list(retrieve_batch(service_type, min_id, return_single_id))
     ids = [a.internal_id for a in awards]
     sess.query(model).filter(model.internal_id.in_(ids)).delete(synchronize_session=False)
     sess.add_all(awards)
