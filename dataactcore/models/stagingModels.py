@@ -845,7 +845,6 @@ class DetachedAwardFinancialAssistance(Base):
     funding_sub_tier_agency_co = Column(Text, index=True)
     legal_entity_address_line1 = Column(Text)
     legal_entity_address_line2 = Column(Text)
-    legal_entity_address_line3 = Column(Text)
     legal_entity_congressional = Column(Text, index=True)
     legal_entity_country_code = Column(Text)
     legal_entity_foreign_city = Column(Text)
