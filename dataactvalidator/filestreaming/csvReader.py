@@ -254,6 +254,8 @@ def normalize_headers(header_row, long_headers, long_to_short_dict):
             header = 'deobligationsrecoveriesrefundsdofprioryearbyprogramobjectclass_cpe'
         if header == 'facevalueloanguarantee':
             header = 'facevalueofdirectloanorloanguarantee'
+        if header == 'totalbudgetaryresources_cpe':
+            header = 'budgetauthorityavailableamounttotal_cpe'
         if long_headers and header in long_to_short_dict:
             yield FieldCleaner.clean_string(long_to_short_dict[header])
         else:
