@@ -356,8 +356,7 @@ def place_of_performance_values(data, obj):
         obj['place_of_perform_county_na'] = None
 
     # within placeOfPerformance, the principalPlaceOfPerformance sub-level
-    value_map = {'locationCode': 'place_of_performance_locat',
-                 'stateCode': 'place_of_performance_state',
+    value_map = {'stateCode': 'place_of_performance_state',
                  'countryCode': 'place_of_perform_country_c'}
 
     for key, value in value_map.items():
@@ -1529,7 +1528,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
         'unique_transaction_id', 'maj_agency_cat', 'mod_agency', 'maj_fund_agency_cat', 'progsourceagency',
         'progsourceaccount', 'progsourcesubacct', 'account_title', 'rec_flag', 'state', 'congressionaldistrict',
         'registrationdate', 'renewaldate', 'statecode', 'placeofperformancecongressionaldistrict', 'psc_cat',
-        'fiscal_year', 'competitiveprocedures', 'organizationaltype', 'isserviceprovider',
+        'fiscal_year', 'competitiveprocedures', 'organizationaltype', 'isserviceprovider', 'locationcode',
         'isarchitectureandengineering', 'isconstructionfirm', 'isotherbusinessororganization',
         'prime_awardee_executive1', 'prime_awardee_executive1_compensation', 'prime_awardee_executive2',
         'prime_awardee_executive2_compensation', 'prime_awardee_executive3', 'prime_awardee_executive3_compensation',
@@ -1916,7 +1915,6 @@ def format_fpds_data(data, sub_tier_list, naics_data):
             'local_area_set_aside_desc': 'local_area_set_aside_desc',
             'localareasetaside': 'local_area_set_aside',
             'localgovernmentflag': 'us_local_government',
-            'locationcode': 'place_of_performance_locat',
             'majorprogramcode': 'major_program',
             'manufacturingorganizationtype': 'domestic_or_foreign_entity',
             'minorityinstitutionflag': 'minority_institution',
