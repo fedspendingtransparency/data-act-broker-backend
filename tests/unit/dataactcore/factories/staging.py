@@ -545,6 +545,7 @@ class AwardProcurementFactory(factory.Factory):
     referenced_idv_modificatio = fuzzy.FuzzyText()
     undefinitized_action = fuzzy.FuzzyText()
     domestic_or_foreign_entity = fuzzy.FuzzyText()
+    cage_code = fuzzy.FuzzyText()
 
 
 class DetachedAwardProcurementFactory(factory.Factory):
@@ -822,12 +823,12 @@ class DetachedAwardProcurementFactory(factory.Factory):
     pulled_from = fuzzy.FuzzyText()
     last_modified = fuzzy.FuzzyDate(date(2015, 1, 1), date(2015, 12, 31))
     initial_report_date = fuzzy.FuzzyText()
-    referenced_idv_type = fuzzy.FuzzyText()
     referenced_idv_agency_name = fuzzy.FuzzyText()
     referenced_multi_or_single = fuzzy.FuzzyText()
     award_or_idv_flag = fuzzy.FuzzyText()
     place_of_perform_country_n = fuzzy.FuzzyText()
     place_of_perform_state_nam = fuzzy.FuzzyText()
+    cage_code = fuzzy.FuzzyText()
 
 
 class FPDSContractingOfficeFactory(factory.Factory):

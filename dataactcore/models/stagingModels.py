@@ -509,6 +509,7 @@ class AwardProcurement(Base):
     place_of_perform_county_na = Column(Text)
     base_exercised_options_val = Column(Text)
     base_and_all_options_value = Column(Text)
+    cage_code = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -803,6 +804,7 @@ class DetachedAwardProcurement(Base):
     award_or_idv_flag = Column(Text)
     place_of_perform_country_n = Column(Text)
     place_of_perform_state_nam = Column(Text)
+    cage_code = Column(Text)
     ignore_updated_at = False
 
     def __init__(self, **kwargs):

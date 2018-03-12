@@ -647,7 +647,8 @@ def vendor_site_details_values(data, obj):
     # vendorDUNSInformation sub-level
     value_map = {'DUNSNumber': 'awardee_or_recipient_uniqu',
                  'globalParentDUNSName': 'ultimate_parent_legal_enti',
-                 'globalParentDUNSNumber': 'ultimate_parent_unique_ide'}
+                 'globalParentDUNSNumber': 'ultimate_parent_unique_ide',
+                 'cageCode': 'cage_code'}
 
     for key, value in value_map.items():
         try:
