@@ -64,7 +64,7 @@
         <ns1:legislativeMandates>
           <ns1:ClingerCohenAct description="NO">N</ns1:ClingerCohenAct>
           <ns1:materialsSuppliesArticlesEquipment description="NO">N</ns1:materialsSuppliesArticlesEquipment>
-          <ns1:serviceContractAct description="NO">N</ns1:serviceContractAct>
+          <ns1:laborStandards description="NO">N</ns1:laborStandards>
           <ns1:DavisBaconAct description="NO">N</ns1:DavisBaconAct>
           <ns1:interagencyContractingAuthority description="NOT APPLICABLE">X</ns1:interagencyContractingAuthority></ns1:legislativeMandates>
         <ns1:productOrServiceInformation>
@@ -273,7 +273,7 @@
         <ns1:legislativeMandates>
           <ns1:ClingerCohenAct description="NO">N</ns1:ClingerCohenAct>
           <ns1:materialsSuppliesArticlesEquipment description="NOT APPLICABLE">X</ns1:materialsSuppliesArticlesEquipment>
-          <ns1:serviceContractAct description="NOT APPLICABLE">X</ns1:serviceContractAct>
+          <ns1:laborStandards description="NOT APPLICABLE">X</ns1:laborStandards>
           <ns1:DavisBaconAct description="NOT APPLICABLE">X</ns1:DavisBaconAct>
           <ns1:interagencyContractingAuthority description="NOT APPLICABLE">X</ns1:interagencyContractingAuthority></ns1:legislativeMandates>
         <ns1:productOrServiceInformation>

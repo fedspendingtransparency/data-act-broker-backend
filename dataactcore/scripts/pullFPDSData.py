@@ -307,7 +307,7 @@ def legislative_mandates_values(data, obj):
                  'DavisBaconAct': 'davis_bacon_act',
                  'interagencyContractingAuthority': 'interagency_contracting_au',
                  'otherStatutoryAuthority': 'other_statutory_authority',
-                 'serviceContractAct': 'service_contract_act',
+                 'laborStandards': 'labor_standards',
                  'materialsSuppliesArticlesEquipment': 'materials_supplies_article'}
 
     for key, value in value_map.items():
@@ -320,7 +320,7 @@ def legislative_mandates_values(data, obj):
     value_map = {'ClingerCohenAct': 'clinger_cohen_act_pla_desc',
                  'DavisBaconAct': 'davis_bacon_act_descrip',
                  'interagencyContractingAuthority': 'interagency_contract_desc',
-                 'serviceContractAct': 'service_contract_act_desc',
+                 'laborStandards': 'labor_standards_descrip',
                  'materialsSuppliesArticlesEquipment': 'materials_supplies_descrip'}
 
     for key, value in value_map.items():
@@ -1601,7 +1601,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
         'fundedbyforeignentity': 'foreign_funding_desc',
         'lettercontract': 'undefinitized_action_desc',
         'research': 'research_description',
-        'servicecontractact': 'service_contract_act_desc',
+        'servicecontractact': 'labor_standards_descrip',
         'statutoryexceptiontofairopportunity': 'fair_opportunity_limi_desc',
         'typeofidc': 'type_of_idc_description',
     }
@@ -1982,8 +1982,8 @@ def format_fpds_data(data, sub_tier_list, naics_data):
             'sdbflag': 'self_certified_small_disad',
             'sea_transportation_desc': 'sea_transportation_desc',
             'seatransportation': 'sea_transportation',
-            'service_contract_act_desc': 'service_contract_act_desc',
-            'servicecontractact': 'service_contract_act',
+            'labor_standards_descrip': 'labor_standards_descrip',
+            'servicecontractact': 'labor_standards',
             'signeddate': 'action_date',
             'shelteredworkshopflag': 'the_ability_one_program',
             'smallbusinesscompetitivenessdemonstrationprogram': 'small_business_competitive',
