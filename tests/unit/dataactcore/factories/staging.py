@@ -549,6 +549,7 @@ class AwardProcurementFactory(factory.Factory):
     inherently_government_func = fuzzy.FuzzyText()
     organizational_type = fuzzy.FuzzyText()
     number_of_employees = fuzzy.FuzzyText()
+    annual_revenue = fuzzy.FuzzyText()
 
 
 class DetachedAwardProcurementFactory(factory.Factory):

@@ -513,6 +513,7 @@ class AwardProcurement(Base):
     inherently_government_func = Column(Text)
     organizational_type = Column(Text)
     number_of_employees = Column(Text)
+    annual_revenue = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

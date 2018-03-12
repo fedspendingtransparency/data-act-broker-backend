@@ -213,7 +213,8 @@ mapping = OrderedDict([
     ('cage_code', 'cage_code'),
     ('inherently_governmental_function', 'inherently_government_func'),
     ('organizational_type', 'organizational_type'),
-    ('number_of_employees', 'number_of_employees')
+    ('number_of_employees', 'number_of_employees'),
+    ('annual_revenue', 'annual_revenue')
 ])
 db_columns = [val for key, val in mapping.items()]
 
@@ -446,4 +447,5 @@ def initial_query(session):
         file_model.cage_code,
         file_model.inherently_government_func,
         file_model.organizational_type,
-        file_model.number_of_employees)
+        file_model.number_of_employees,
+        file_model.annual_revenue)
