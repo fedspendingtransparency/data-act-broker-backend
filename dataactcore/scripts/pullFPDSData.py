@@ -304,7 +304,7 @@ def total_dollar_values_values(data, obj):
 def legislative_mandates_values(data, obj):
     """ Get values from the legislativeMandates level of the xml """
     value_map = {'ClingerCohenAct': 'clinger_cohen_act_planning',
-                 'DavisBaconAct': 'davis_bacon_act',
+                 'constructionWageRateRequirements': 'construction_wage_rate_req',
                  'interagencyContractingAuthority': 'interagency_contracting_au',
                  'otherStatutoryAuthority': 'other_statutory_authority',
                  'laborStandards': 'labor_standards',
@@ -318,7 +318,7 @@ def legislative_mandates_values(data, obj):
 
     # get descriptions for things in the value map
     value_map = {'ClingerCohenAct': 'clinger_cohen_act_pla_desc',
-                 'DavisBaconAct': 'davis_bacon_act_descrip',
+                 'constructionWageRateRequirements': 'construction_wage_rat_desc',
                  'interagencyContractingAuthority': 'interagency_contract_desc',
                  'laborStandards': 'labor_standards_descrip',
                  'materialsSuppliesArticlesEquipment': 'materials_supplies_descrip'}
@@ -1596,7 +1596,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
     manual_description_mappings = {
         'ccrexception': 'sam_exception_description',
         'costaccountingstandardsclause': 'cost_accounting_stand_desc',
-        'davisbaconact': 'davis_bacon_act_descrip',
+        'davisbaconact': 'construction_wage_rat_desc',
         'fedbizopps': 'fed_biz_opps_description',
         'fundedbyforeignentity': 'foreign_funding_desc',
         'lettercontract': 'undefinitized_action_desc',
@@ -1805,8 +1805,8 @@ def format_fpds_data(data, sub_tier_list, naics_data):
             'countryoforigin': 'country_of_product_or_serv',
             'currentcompletiondate': 'period_of_performance_curr',
             'detached_award_proc_unique': 'detached_award_proc_unique',
-            'davis_bacon_act_descrip': 'davis_bacon_act_descrip',
-            'davisbaconact': 'davis_bacon_act',
+            'construction_wage_rat_desc': 'construction_wage_rat_desc',
+            'davisbaconact': 'construction_wage_rate_req',
             'descriptionofcontractrequirement': 'award_description',
             'divisionname': 'division_name',
             'divisionnumberorofficecode': 'division_number_or_office',

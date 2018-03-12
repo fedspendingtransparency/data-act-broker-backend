@@ -66,7 +66,7 @@ contracting_officer_determination_of_business_size,contracting_officers_deter,FA
 cost_accounting_standards_clause,cost_accounting_standards,FALSE,str,,,
 cost_or_pricing_data,cost_or_pricing_data,FALSE,str,,,
 country_of_product_or_service_origin,country_of_product_or_serv,FALSE,str,,,
-davis_bacon_act,davis_bacon_act,FALSE,str,,,
+construction_wage_rate_req,construction_wage_rate_req,FALSE,str,,,
 evaluated_preference,evaluated_preference,FALSE,str,,,
 extent_competed,extent_competed,FALSE,str,,,
 fedbizopps,fed_biz_opps,FALSE,str,,,

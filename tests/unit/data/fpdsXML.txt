@@ -65,7 +65,7 @@
           <ns1:ClingerCohenAct description="NO">N</ns1:ClingerCohenAct>
           <ns1:materialsSuppliesArticlesEquipment description="NO">N</ns1:materialsSuppliesArticlesEquipment>
           <ns1:laborStandards description="NO">N</ns1:laborStandards>
-          <ns1:DavisBaconAct description="NO">N</ns1:DavisBaconAct>
+          <ns1:constructionWageRateRequirements description="NO">N</ns1:constructionWageRateRequirements>
           <ns1:interagencyContractingAuthority description="NOT APPLICABLE">X</ns1:interagencyContractingAuthority></ns1:legislativeMandates>
         <ns1:productOrServiceInformation>
           <ns1:productOrServiceCode description="TRANSPORTATION/TRAVEL/RELOCATION- TRAVEL/LODGING/RECRUITMENT: LODGING, HOTEL/MOTEL" productOrServiceType="SERVICE">V231</ns1:productOrServiceCode>
@@ -274,7 +274,7 @@
           <ns1:ClingerCohenAct description="NO">N</ns1:ClingerCohenAct>
           <ns1:materialsSuppliesArticlesEquipment description="NOT APPLICABLE">X</ns1:materialsSuppliesArticlesEquipment>
           <ns1:laborStandards description="NOT APPLICABLE">X</ns1:laborStandards>
-          <ns1:DavisBaconAct description="NOT APPLICABLE">X</ns1:DavisBaconAct>
+          <ns1:constructionWageRateRequirements description="NOT APPLICABLE">X</ns1:constructionWageRateRequirements>
           <ns1:interagencyContractingAuthority description="NOT APPLICABLE">X</ns1:interagencyContractingAuthority></ns1:legislativeMandates>
         <ns1:productOrServiceInformation>
           <ns1:productOrServiceCode description="INFORMATION RETRIEVAL" productOrServiceType="SERVICE">R612</ns1:productOrServiceCode></ns1:productOrServiceInformation>
