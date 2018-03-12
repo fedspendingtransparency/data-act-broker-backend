@@ -547,6 +547,7 @@ class AwardProcurementFactory(factory.Factory):
     domestic_or_foreign_entity = fuzzy.FuzzyText()
     cage_code = fuzzy.FuzzyText()
     inherently_government_func = fuzzy.FuzzyText()
+    organizational_type = fuzzy.FuzzyText()
 
 
 class DetachedAwardProcurementFactory(factory.Factory):
@@ -831,6 +832,7 @@ class DetachedAwardProcurementFactory(factory.Factory):
     place_of_perform_state_nam = fuzzy.FuzzyText()
     cage_code = fuzzy.FuzzyText()
     inherently_government_func = fuzzy.FuzzyText()
+    organizational_type = fuzzy.FuzzyText()
 
 
 class FPDSContractingOfficeFactory(factory.Factory):

@@ -721,7 +721,8 @@ def vendor_site_details_values(data, obj):
                  'isLimitedLiabilityCorporation': 'limited_liability_corporat',
                  'isShelteredWorkshop': 'the_ability_one_program',
                  'isSubchapterSCorporation': 'subchapter_s_corporation',
-                 'numberOfEmployees': 'number_of_employees'}
+                 'numberOfEmployees': 'number_of_employees',
+                 'organizationalType': 'organizational_type'}
 
     for key, value in value_map.items():
         try:
