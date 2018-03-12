@@ -207,6 +207,7 @@ def contract_data_values(data, obj, atom_type):
                  'costOrPricingData': 'cost_or_pricing_data',
                  'descriptionOfContractRequirement': 'award_description',
                  'GFE-GFP': 'government_furnished_prope',
+                 'inherentlyGovernmentalFunction': 'inherently_government_func',
                  'majorProgramCode': 'major_program',
                  'multiYearContract': 'multi_year_contract',
                  'nationalInterestActionCode': 'national_interest_action',
@@ -645,10 +646,10 @@ def vendor_site_details_values(data, obj):
             obj[value] = None
 
     # vendorDUNSInformation sub-level
-    value_map = {'DUNSNumber': 'awardee_or_recipient_uniqu',
+    value_map = {'cageCode': 'cage_code',
+                 'DUNSNumber': 'awardee_or_recipient_uniqu',
                  'globalParentDUNSName': 'ultimate_parent_legal_enti',
-                 'globalParentDUNSNumber': 'ultimate_parent_unique_ide',
-                 'cageCode': 'cage_code'}
+                 'globalParentDUNSNumber': 'ultimate_parent_unique_ide'}
 
     for key, value in value_map.items():
         try:

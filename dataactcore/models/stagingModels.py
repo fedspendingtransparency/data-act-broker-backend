@@ -510,6 +510,7 @@ class AwardProcurement(Base):
     base_exercised_options_val = Column(Text)
     base_and_all_options_value = Column(Text)
     cage_code = Column(Text)
+    inherently_government_func = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -805,6 +806,7 @@ class DetachedAwardProcurement(Base):
     place_of_perform_country_n = Column(Text)
     place_of_perform_state_nam = Column(Text)
     cage_code = Column(Text)
+    inherently_government_func = Column(Text)
     ignore_updated_at = False
 
     def __init__(self, **kwargs):
