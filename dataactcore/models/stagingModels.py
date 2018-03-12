@@ -512,6 +512,7 @@ class AwardProcurement(Base):
     cage_code = Column(Text)
     inherently_government_func = Column(Text)
     organizational_type = Column(Text)
+    number_of_employees = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

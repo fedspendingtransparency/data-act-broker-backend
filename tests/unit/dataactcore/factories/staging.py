@@ -548,6 +548,7 @@ class AwardProcurementFactory(factory.Factory):
     cage_code = fuzzy.FuzzyText()
     inherently_government_func = fuzzy.FuzzyText()
     organizational_type = fuzzy.FuzzyText()
+    number_of_employees = fuzzy.FuzzyText()
 
 
 class DetachedAwardProcurementFactory(factory.Factory):

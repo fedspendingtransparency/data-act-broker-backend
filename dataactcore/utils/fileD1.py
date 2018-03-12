@@ -212,7 +212,8 @@ mapping = OrderedDict([
     ('primaryplaceofperformancecityname', 'place_of_perform_city_name'),
     ('cage_code', 'cage_code'),
     ('inherently_governmental_function', 'inherently_government_func'),
-    ('organizational_type', 'organizational_type')
+    ('organizational_type', 'organizational_type'),
+    ('number_of_employees', 'number_of_employees')
 ])
 db_columns = [val for key, val in mapping.items()]
 
@@ -444,4 +445,5 @@ def initial_query(session):
         file_model.place_of_perform_city_name,
         file_model.cage_code,
         file_model.inherently_government_func,
-        file_model.organizational_type)
+        file_model.organizational_type,
+        file_model.number_of_employees)
