@@ -10,6 +10,7 @@ from suds.xsd import doctor
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.fsrs import FSRSProcurement, FSRSSubcontract, FSRSGrant, FSRSSubgrant
+from dataactbroker.scripts.loadFSRS import g_states_to_code
 
 
 logger = logging.getLogger(__name__)
@@ -137,6 +138,8 @@ def flatten_soap_dict(simple_fields, address_fields, comma_field, soap_dict):
     for prefix in address_fields:
         for field in ('city', 'street', 'state', 'country', 'zip', 'district'):
             model_attrs[prefix + '_' + field] = soap_dict[prefix].get(field)
+            if field == 'state':
+                model_attrs[prefix + '_' + field + '_name'] = g_states_to_code.get(model_attrs[prefix + '_state'])
     for idx in range(5):
         idx = str(idx + 1)
         if 'top_pay_employees' in soap_dict:
