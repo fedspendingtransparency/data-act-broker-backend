@@ -1,21 +1,21 @@
-fieldname,fieldname_short,required,data_type,field_length,rule_labels
-AdjustmentsToUnobligatedBalanceBroughtForward_CPE,adjustments_to_unobligated_cpe,Required,numeric,21,"A2, A12, A17"
-AgencyIdentifier,agency_identifier,Required,string,3,"A1"
-AllocationTransferAgencyIdentifier,allocation_transfer_agency,Conditional per Validation Rule,string,3,"A1"
-AvailabilityTypeCode,availability_type_code,Conditional per Validation Rule,string,1,"A1"
-BeginningPeriodOfAvailability,beginning_period_of_availa,Conditional per Validation Rule,string,4,A1
-BorrowingAuthorityAmountTotal_CPE,borrowing_authority_amount_cpe,Conditional per Validation Rule,numeric,21,"A3, A10, A17, A25"
-BudgetAuthorityAppropriatedAmount_CPE,budget_authority_appropria_cpe,Required,numeric,21,"A2, A8, A17"
-BudgetAuthorityAvailableAmountTotal_CPE,budget_authority_available_cpe,Required,numeric,21,"A2, A4, A6, A17, A24"
-BudgetAuthorityUnobligatedBalanceBroughtForward_FYB,budget_authority_unobligat_fyb,Conditional per Validation Rule,numeric,21,"A2, A7, A16, A17"
-ContractAuthorityAmountTotal_CPE,contract_authority_amount_cpe,Conditional per Validation Rule,numeric,21,"A3, A9, A17, A26"
-DeobligationsRecoveriesRefundsByTAS_CPE,deobligations_recoveries_r_cpe,Required,numeric,21,
-EndingPeriodOfAvailability,ending_period_of_availabil,Conditional per Validation Rule,string,4,A1
-GrossOutlayAmountByTAS_CPE,gross_outlay_amount_by_tas_cpe,Required,numeric,21,"A14, A17, A18"
-MainAccountCode,main_account_code,Required,string,4,A1
-ObligationsIncurredTotalByTAS_CPE,obligations_incurred_total_cpe,Required,numeric,21,"A4, A17, A19, A22"
-OtherBudgetaryResourcesAmount_CPE,other_budgetary_resources_cpe,Conditional per Validation Rule,numeric,21,"A2, A3, A17, A28"
-SpendingAuthorityfromOffsettingCollectionsAmountTotal_CPE,spending_authority_from_of_cpe,Conditional per Validation Rule,numeric,21,"A3, A11, A17, A27"
-StatusOfBudgetaryResourcesTotal_CPE,status_of_budgetary_resour_cpe,Required,numeric,21,"A4,  A17, A23, A24"
-SubAccountCode,sub_account_code,Required,string,3,A1
-UnobligatedBalance_CPE,unobligated_balance_cpe,Required,numeric,21,"A4, A15, A17"
+fieldname,fieldname_short,required,data_type,field_length
+AdjustmentsToUnobligatedBalanceBroughtForward_CPE,adjustments_to_unobligated_cpe,Required,numeric,21
+AgencyIdentifier,agency_identifier,Required,string,3
+AllocationTransferAgencyIdentifier,allocation_transfer_agency,Conditional per Validation Rule,string,3
+AvailabilityTypeCode,availability_type_code,Conditional per Validation Rule,string,1
+BeginningPeriodOfAvailability,beginning_period_of_availa,Conditional per Validation Rule,string,4
+BorrowingAuthorityAmountTotal_CPE,borrowing_authority_amount_cpe,Conditional per Validation Rule,numeric,21
+BudgetAuthorityAppropriatedAmount_CPE,budget_authority_appropria_cpe,Required,numeric,21
+BudgetAuthorityAvailableAmountTotal_CPE,budget_authority_available_cpe,Required,numeric,21
+BudgetAuthorityUnobligatedBalanceBroughtForward_FYB,budget_authority_unobligat_fyb,Conditional per Validation Rule,numeric,21
+ContractAuthorityAmountTotal_CPE,contract_authority_amount_cpe,Conditional per Validation Rule,numeric,21
+DeobligationsRecoveriesRefundsByTAS_CPE,deobligations_recoveries_r_cpe,Required,numeric,21
+EndingPeriodOfAvailability,ending_period_of_availabil,Conditional per Validation Rule,string,4
+GrossOutlayAmountByTAS_CPE,gross_outlay_amount_by_tas_cpe,Required,numeric,21
+MainAccountCode,main_account_code,Required,string,4
+ObligationsIncurredTotalByTAS_CPE,obligations_incurred_total_cpe,Required,numeric,21
+OtherBudgetaryResourcesAmount_CPE,other_budgetary_resources_cpe,Conditional per Validation Rule,numeric,21
+SpendingAuthorityfromOffsettingCollectionsAmountTotal_CPE,spending_authority_from_of_cpe,Conditional per Validation Rule,numeric,21
+StatusOfBudgetaryResourcesTotal_CPE,status_of_budgetary_resour_cpe,Required,numeric,21
+SubAccountCode,sub_account_code,Required,string,3
+UnobligatedBalance_CPE,unobligated_balance_cpe,Required,numeric,21

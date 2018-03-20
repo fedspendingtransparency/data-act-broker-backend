@@ -15,7 +15,7 @@ class FieldCleaner(StringCleaner):
         # Open CSV file for reading each record as a dictionary
         with open(file_in, "rU") as csvfile:
             reader = csv.DictReader(csvfile)
-            fieldnames = ["fieldname", "fieldname_short", "required", "data_type", "field_length", "rule_labels"]
+            fieldnames = ["fieldname", "fieldname_short", "required", "data_type", "field_length"]
             writer = csv.DictWriter(open(file_out, "w"), fieldnames=fieldnames, lineterminator='\n')
             writer.writeheader()
             for record in reader:
