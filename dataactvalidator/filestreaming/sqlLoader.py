@@ -12,7 +12,7 @@ from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 class SQLLoader:
     sql_rules_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "sqlrules")
-    headers = ['rule_label', 'rule_description', 'rule_error_message', 'rule_cross_file_flag',
+    headers = ['rule_label', 'rule_error_message', 'rule_cross_file_flag',
                'file_type', 'severity_name', 'query_name', 'target_file']
 
     @classmethod
@@ -57,7 +57,6 @@ class SQLLoader:
                     sql = cls.read_sql_str(row['query_name'])
 
                     rule_sql = RuleSql(rule_sql=sql, rule_label=row['rule_label'],
-                                       rule_description=row['rule_description'],
                                        rule_error_message=row['rule_error_message'], query_name=row['query_name'])
 
                     # look up file type id
