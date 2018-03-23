@@ -1,0 +1,15 @@
+label,error_message,file_type,column_name,label_type
+FABSREQ1,"This field is required for all submissions but was not provided in this row (AwardingSubtierAgencyCode).",detached_award,awarding_sub_tier_agency_c,requirement
+FABSREQ2,"This field is required for all submissions but was not provided in this row (RecordType).",detached_award,record_type,requirement
+FABSREQ3,"This field is required for all submissions but was not provided in this row (BusinessFundsIndicator).",detached_award,business_funds_indicator,requirement
+FABSREQ4,"This field is required for all submissions but was not provided in this row (LegalEntityCountryCode).",detached_award,legal_entity_country_code,requirement
+FABSREQ5,"This field is required for all submissions but was not provided in this row (BusinessTypes).",detached_award,business_types,requirement
+FABSREQ6,"This field is required for all submissions but was not provided in this row (AssistanceType).",detached_award,assistance_type,requirement
+FABSREQ7,"This field is required for all submissions but was not provided in this row (ActionDate).",detached_award,action_date,requirement
+FABSREQ8,"This field is required for all submissions but was not provided in this row (AwardeeOrRecipientLegalEntityName).",detached_award,awardee_or_recipient_legal,requirement
+FABSREQ9,"This field is required for all submissions but was not provided in this row (CFDA_Number).",detached_award,cfda_number,requirement
+FABSREQ10,"This field is required for all submissions but was not provided in this row (AwardDescription).",detached_award,award_description,requirement
+FABSTYPE1,"The value provided was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line. (FederalActionObligation)",detached_award,federal_action_obligation,type
+FABSTYPE2,"The value provided was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line. (NonFederalFundingAmount)",detached_award,non_federal_funding_amount,type
+FABSTYPE3,"The value provided was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line. (FaceValueLoanGuarantee)",detached_award,face_value_loan_guarantee,type
+FABSTYPE4,"The value provided was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line. (OriginalLoanSubsidyCost)",detached_award,original_loan_subsidy_cost,type
