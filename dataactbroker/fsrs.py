@@ -10,13 +10,13 @@ from suds.xsd import doctor
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.fsrs import FSRSProcurement, FSRSSubcontract, FSRSGrant, FSRSSubgrant
-from dataactbroker.scripts.loadFSRS import g_states_to_code
-
+from dataactcore.models.domainModels import States
 
 logger = logging.getLogger(__name__)
 PROCUREMENT = 'procurement_service'
 GRANT = 'grant_service'
 SERVICE_MODEL = {PROCUREMENT: FSRSProcurement, GRANT: FSRSGrant}
+g_state_by_code = {}
 
 
 def service_config(service_type):
@@ -30,6 +30,17 @@ def config_valid():
     proc_wsdl = service_config(PROCUREMENT).get('wsdl')
     grant_wsdl = service_config(GRANT).get('wsdl')
     return bool(proc_wsdl) and bool(grant_wsdl)
+
+
+def get_state_mappings(sess):
+    """ Creates dictionary that maps state code to state name, deletes global variable if already processed"""
+
+    states = sess.query(States).all()
+
+    for state in states:
+        g_state_by_code[state.state_code] = state.state_name
+
+    del states
 
 
 class ControlFilter(MessagePlugin):
@@ -138,8 +149,14 @@ def flatten_soap_dict(simple_fields, address_fields, comma_field, soap_dict):
     for prefix in address_fields:
         for field in ('city', 'street', 'state', 'country', 'zip', 'district'):
             model_attrs[prefix + '_' + field] = soap_dict[prefix].get(field)
+
+            # Deriving state name since not provided by FSRS feed
             if field == 'state':
-                model_attrs[prefix + '_' + field + '_name'] = g_states_to_code.get(model_attrs[prefix + '_state'])
+                # Only populate for USA locations
+                if soap_dict[prefix].get('country') and soap_dict[prefix]['country'].upper() == 'USA':
+                    model_attrs[prefix + '_' + field + '_name'] = g_state_by_code.get(model_attrs[prefix + '_state'])
+                else:
+                    model_attrs[prefix + '_' + field + '_name'] = None
     for idx in range(5):
         idx = str(idx + 1)
         if 'top_pay_employees' in soap_dict:

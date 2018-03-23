@@ -4,13 +4,10 @@ import argparse
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactbroker.fsrs import config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT
+from dataactbroker.fsrs import config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT, get_state_mappings
 from dataactvalidator.health_check import create_app
-from dataactcore.models.domainModels import States
 
 logger = logging.getLogger(__name__)
-
-g_states_to_code = {}
 
 
 def log_fsrs_counts(total_awards):
@@ -31,9 +28,7 @@ if __name__ == '__main__':
         sess = GlobalDB.db().session
         args = parser.parse_args()
 
-        states = sess.query(States).all()
-
-        g_states_to_code = {state.state_code: state.state_name for state in states}
+        get_state_mappings(sess)
 
         if not config_valid():
             logger.error("No config for broker/fsrs/[service]/wsdl")
