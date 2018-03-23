@@ -91,6 +91,7 @@ class Validator(object):
                                                                     FIELD_TYPE_DICT_ID[current_schema.field_types_id]):
                 record_type_failure = True
                 record_failed = True
+                # if it's a FABS record and the type column is in the list, label it specifically
                 if fabs_record and type_labels and current_schema.name_short in type_labels:
                     failed_rules.append(Failure(field_name, ValidationError.typeError, current_data,
                                                 type_labels[current_schema.name_short], "fatal"))
