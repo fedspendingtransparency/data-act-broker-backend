@@ -38,9 +38,10 @@ def test_config_valid_password_none(monkeypatch):
     assert not fileE.config_valid()
 
 
-def make_suds(duns, parent_duns, parent_name):
+def make_suds(duns, legal_business_name, parent_duns, parent_name):
     suds_obj = Mock()
     suds_obj.entityIdentification.DUNS = duns
+    suds_obj.entityIdentification.legalBusinessName = legal_business_name
     parent = suds_obj.coreData.DUNSInformation.globalParentDUNS
     parent.DUNSNumber = parent_duns
     parent.legalBusinessName = parent_name
@@ -48,18 +49,20 @@ def make_suds(duns, parent_duns, parent_name):
 
 
 def test_suds_to_row_no_compensation():
-    suds_obj = make_suds('A Duns', 'Par Duns', 'Par Name')
+    suds_obj = make_suds('A Duns', 'Legal Business Name', 'Par Duns', 'Par Name')
     suds_obj.coreData.listOfExecutiveCompensationInformation = ''
     row = fileE.suds_to_row(suds_obj)
-    assert row == fileE.Row('A Duns', 'Par Duns', 'Par Name', '', '', '', '', '', '', '', '', '', '')
+    assert row == fileE.Row('A Duns', 'Legal Business Name',  'Par Duns', 'Par Name',
+                            '', '', '', '', '', '', '', '', '', '')
 
     del suds_obj.coreData.listOfExecutiveCompensationInformation
     row = fileE.suds_to_row(suds_obj)
-    assert row == fileE.Row('A Duns', 'Par Duns', 'Par Name', '', '', '', '', '', '', '', '', '', '')
+    assert row == fileE.Row('A Duns', 'Legal Business Name', 'Par Duns', 'Par Name',
+                            '', '', '', '', '', '', '', '', '', '')
 
 
 def test_suds_to_row_too_few_compensation():
-    suds_obj = make_suds('B Duns', 'Par DunsB', 'Par NameB')
+    suds_obj = make_suds('B Duns', 'Legal Business Name', 'Par DunsB', 'Par NameB')
     info = suds_obj.coreData.listOfExecutiveCompensationInformation
 
     middle = Mock(compensation=111.11)
@@ -72,7 +75,7 @@ def test_suds_to_row_too_few_compensation():
     info.executiveCompensationDetail = [middle, top, bottom]
     row = fileE.suds_to_row(suds_obj)
     assert row == fileE.Row(
-        'B Duns', 'Par DunsB', 'Par NameB',
+        'B Duns', 'Legal Business Name', 'Par DunsB', 'Par NameB',
         'Top Person', 222.22,
         'Middle Person', 111.11,
         'Bottom Person', 0.0,
@@ -80,7 +83,7 @@ def test_suds_to_row_too_few_compensation():
 
 
 def test_suds_to_row_too_many_compensation():
-    suds_obj = make_suds('B Duns', 'Par DunsB', 'Par NameB')
+    suds_obj = make_suds('B Duns', 'Legal Business Name', 'Par DunsB', 'Par NameB')
     info = suds_obj.coreData.listOfExecutiveCompensationInformation
     info.executiveCompensationDetail = [Mock(compensation=i * 11.11) for i in range(1, 10)]
     for idx, person in enumerate(info.executiveCompensationDetail):
@@ -89,7 +92,7 @@ def test_suds_to_row_too_many_compensation():
 
     row = fileE.suds_to_row(suds_obj)
     assert row == fileE.Row(
-        'B Duns', 'Par DunsB', 'Par NameB',
+        'B Duns', 'Legal Business Name', 'Par DunsB', 'Par NameB',
         'Person 9', 99.99, 'Person 8', 88.88, 'Person 7', 77.77,
         'Person 6', 66.66, 'Person 5', 55.55)
 
@@ -103,6 +106,7 @@ def test_retrieve_rows(monkeypatch):
             entity=[
                 Mock(
                     entityIdentification=Mock(DUNS='entity1'),
+                    DUNSType=Mock(legalBusinessName='Legal Business Name'),
                     coreData=Mock(
                         listOfExecutiveCompensationInformation=Mock(
                             executiveCompensationDetail=[
@@ -141,6 +145,7 @@ def test_retrieve_rows(monkeypatch):
     rows = fileE.retrieve_rows(['duns1', 'duns2'])
     assert len(rows) == 2
     assert rows[0].AwardeeOrRecipientUniqueIdentifier == 'entity1'
+    assert rows[0].AwardeeOrRecipientLegalEntityName == 'Legal Business Name'
     assert rows[0].HighCompOfficer1Amount == 234.56
     assert rows[0].HighCompOfficer5Amount == ''
     assert rows[1].UltimateParentUniqueIdentifier == 'parent2Duns'

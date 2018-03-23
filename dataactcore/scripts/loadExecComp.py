@@ -34,7 +34,6 @@ def parse_sam_file(file, sess):
         nrows = len(f.readlines()) - 2  # subtract the header and footer
     column_header_mapping = {
         "awardee_or_recipient_uniqu": 0,
-        "awardee_or_recipient_legal": 12,  # TODO: check this is correct
         "sam_extract": 4,
         "expiration_date": 7,
         "activation_date": 9,
