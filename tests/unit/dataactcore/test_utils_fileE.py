@@ -105,8 +105,7 @@ def test_retrieve_rows(monkeypatch):
         listOfEntities=Mock(
             entity=[
                 Mock(
-                    entityIdentification=Mock(DUNS='entity1'),
-                    DUNSType=Mock(legalBusinessName='Legal Business Name'),
+                    entityIdentification=Mock(DUNS='entity1', legalBusinessName='Legal Business Name'),
                     coreData=Mock(
                         listOfExecutiveCompensationInformation=Mock(
                             executiveCompensationDetail=[
