@@ -1,14 +1,14 @@
-"""empty message
+"""Adding schema v1.2 F columns
 
 Revision ID: c75d57250419
-Revises: 85858c8aaac5
+Revises: 3ff0ad501645
 Create Date: 2018-03-22 12:52:12.495263
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'c75d57250419'
-down_revision = '85858c8aaac5'
+down_revision = '3ff0ad501645'
 branch_labels = None
 depends_on = None
 

@@ -1,4 +1,4 @@
-"""empty message
+"""Adding column lega entity name schema v1.2 File E
 
 Revision ID: ee7bff1d660c
 Revises: c75d57250419
