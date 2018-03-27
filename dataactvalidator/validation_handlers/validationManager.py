@@ -262,13 +262,13 @@ class ValidationManager:
 
                 required_list = None
                 type_list = None
-                if file_type in ['detached_award']:
+                if file_type == "detached_award":
                     # create a list of all required/type labels for FABS
                     labels = sess.query(ValidationLabel).all()
                     required_list = {}
                     type_list = {}
                     for label in labels:
-                        if label.label_type == 'requirement':
+                        if label.label_type == "requirement":
                             required_list[label.column_name] = label.label
                         else:
                             type_list[label.column_name] = label.label
@@ -321,17 +321,17 @@ class ValidationManager:
                         passed_validations = True
                         valid = True
                     else:
-                        if file_type in ["detached_award"]:
+                        if file_type == "detached_award":
                             record['afa_generated_unique'] = (record['award_modification_amendme'] or '-none-') + "_" +\
                                                              (record['awarding_sub_tier_agency_c'] or '-none-') + \
                                                              "_" + (record['fain'] or '-none-') + "_" + \
                                                              (record['uri'] or '-none-')
                         passed_validations, failures, valid = Validator.validate(record, csv_schema,
-                                                                                 file_type in ["detached_award"],
+                                                                                 file_type == "detached_award",
                                                                                  required_list, type_list)
                     if valid:
                         # todo: update this logic later when we have actual validations
-                        if file_type in ["detached_award"]:
+                        if file_type == "detached_award":
                             record["is_valid"] = True
 
                         model_instance = model(job_id=job_id, submission_id=submission_id,
@@ -414,7 +414,7 @@ class ValidationManager:
 
             # Update detached_award is_valid rows where applicable
             # Update submission to include action dates where applicable
-            if file_type in ["detached_award"]:
+            if file_type == "detached_award":
                 sess.query(DetachedAwardFinancialAssistance).\
                     filter(DetachedAwardFinancialAssistance.row_number.in_(error_rows_unique),
                            DetachedAwardFinancialAssistance.submission_id == submission_id).\
@@ -438,7 +438,7 @@ class ValidationManager:
             # Update error info for submission
             populate_job_error_info(job)
 
-            if file_type in ["detached_award"]:
+            if file_type == "detached_award":
                 # set number of errors and warnings for detached submission
                 populate_submission_error_info(submission_id)
 
