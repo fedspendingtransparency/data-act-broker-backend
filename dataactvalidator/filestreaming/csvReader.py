@@ -256,6 +256,8 @@ def normalize_headers(header_row, long_headers, long_to_short_dict):
             header = 'facevalueofdirectloanorloanguarantee'
         if header == 'totalbudgetaryresources_cpe':
             header = 'budgetauthorityavailableamounttotal_cpe'
+        if header == 'correctionlatedeleteindicator':
+            header = 'correctiondeleteindicator'
         if long_headers and header in long_to_short_dict:
             yield FieldCleaner.clean_string(long_to_short_dict[header])
         else:
