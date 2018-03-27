@@ -1,4 +1,4 @@
-"""Adding column lega entity name schema v1.2 File E
+"""Adding column legal entity name to Executive Compensation
 
 Revision ID: ee7bff1d660c
 Revises: c75d57250419

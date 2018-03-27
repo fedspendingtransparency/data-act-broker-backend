@@ -154,9 +154,10 @@ def flatten_soap_dict(simple_fields, address_fields, comma_field, soap_dict):
             if field == 'state':
                 # Only populate for USA locations
                 if soap_dict[prefix].get('country') and soap_dict[prefix]['country'].upper() == 'USA':
-                    model_attrs[prefix + '_' + field + '_name'] = g_state_by_code.get(model_attrs[prefix + '_state'])
+                    model_attrs[prefix + '_state_name'] = g_state_by_code.get(model_attrs[prefix + '_state'])
                 else:
-                    model_attrs[prefix + '_' + field + '_name'] = None
+                    model_attrs[prefix + '_state_name'] = None
+
     for idx in range(5):
         idx = str(idx + 1)
         if 'top_pay_employees' in soap_dict:

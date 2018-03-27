@@ -1,4 +1,4 @@
-"""Adding schema v1.2 F columns
+"""Adding legal entity, place of performance state name columns to all FSRS tables
 
 Revision ID: c75d57250419
 Revises: 3ff0ad501645
