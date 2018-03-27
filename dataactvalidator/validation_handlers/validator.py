@@ -27,7 +27,7 @@ class Validator(object):
     META_FIELDS = ["row_number", "afa_generated_unique"]
 
     @classmethod
-    def validate(cls, record, csv_schema, fabs_record=False):
+    def validate(cls, record, csv_schema, fabs_record=False, required_labels=None, type_labels=None):
         """
         Run initial set of single file validation:
         - check if required fields are present
@@ -75,7 +75,12 @@ class Validator(object):
                 if current_schema.required:
                     # If empty and required return field name and error
                     record_failed = True
-                    failed_rules.append(Failure(field_name, ValidationError.requiredError, "", "", "fatal"))
+                    # if it's a FABS record and the required column is in the list, label it specifically
+                    if fabs_record and required_labels and current_schema.name_short in required_labels:
+                        failed_rules.append(Failure(field_name, ValidationError.requiredError, "",
+                                                    required_labels[current_schema.name_short], "fatal"))
+                    else:
+                        failed_rules.append(Failure(field_name, ValidationError.requiredError, "", "", "fatal"))
                     continue
                 else:
                     # If field is empty and not required its valid
@@ -86,7 +91,12 @@ class Validator(object):
                                                                     FIELD_TYPE_DICT_ID[current_schema.field_types_id]):
                 record_type_failure = True
                 record_failed = True
-                failed_rules.append(Failure(field_name, ValidationError.typeError, current_data, "", "fatal"))
+                # if it's a FABS record and the type column is in the list, label it specifically
+                if fabs_record and type_labels and current_schema.name_short in type_labels:
+                    failed_rules.append(Failure(field_name, ValidationError.typeError, current_data,
+                                                type_labels[current_schema.name_short], "fatal"))
+                else:
+                    failed_rules.append(Failure(field_name, ValidationError.typeError, current_data, "", "fatal"))
                 # Don't check value rules if type failed
                 continue
 
