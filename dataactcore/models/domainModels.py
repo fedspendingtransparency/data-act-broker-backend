@@ -198,6 +198,7 @@ class ExecutiveCompensation(Base):
 
     executive_compensation_id = Column(Integer, primary_key=True)
     awardee_or_recipient_uniqu = Column(Text)
+    awardee_or_recipient_legal = Column(Text)
     ultimate_parent_unique_ide = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
     high_comp_officer1_full_na = Column(Text)
