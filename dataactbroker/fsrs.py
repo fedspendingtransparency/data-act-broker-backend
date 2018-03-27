@@ -32,15 +32,21 @@ def config_valid():
     return bool(proc_wsdl) and bool(grant_wsdl)
 
 
-def get_state_mappings(sess):
-    """ Creates dictionary that maps state code to state name, deletes global variable if already processed"""
+def config_state_mappings(sess=None, init=False):
+    """ Creates dictionary that maps state code to state name, deletes mapping when done"""
 
-    states = sess.query(States).all()
+    if init:
+        global g_state_by_code
 
-    for state in states:
-        g_state_by_code[state.state_code] = state.state_name
+        states = sess.query(States).all()
 
-    del states
+        for state in states:
+            g_state_by_code[state.state_code] = state.state_name
+
+        del states
+    else:
+        # Deletes global variable
+        del g_state_by_code
 
 
 class ControlFilter(MessagePlugin):

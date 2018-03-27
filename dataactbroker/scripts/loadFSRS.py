@@ -4,7 +4,7 @@ import argparse
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactbroker.fsrs import config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT, get_state_mappings
+from dataactbroker.fsrs import config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT, config_state_mappings
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,8 @@ if __name__ == '__main__':
         sess = GlobalDB.db().session
         args = parser.parse_args()
 
-        get_state_mappings(sess)
+        # Setups state mapping for deriving state name
+        config_state_mappings(sess, init=True)
 
         if not config_valid():
             logger.error("No config for broker/fsrs/[service]/wsdl")
@@ -61,3 +62,6 @@ if __name__ == '__main__':
                     logger.error('Missing --ids argument when loading just procurement or grants awards')
                 else:
                     logger.error('Missing --procurement or --grants argument when loading specific award ids')
+
+        # Deletes state mapping variable
+        config_state_mappings()
