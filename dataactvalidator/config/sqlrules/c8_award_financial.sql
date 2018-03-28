@@ -23,9 +23,16 @@ SELECT
     af.uri
 FROM award_financial_c8_{0} AS af
 WHERE af.transaction_obligated_amou IS NOT NULL
-    AND (COALESCE(af.allocation_transfer_agency, '')  = ''
+    AND (COALESCE(af.allocation_transfer_agency, '') = ''
         OR (COALESCE(af.allocation_transfer_agency, '') != ''
             AND af.allocation_transfer_agency = af.agency_identifier
+        )
+        OR (COALESCE(af.allocation_transfer_agency, '') != ''
+            AND af.allocation_transfer_agency != af.agency_identifier
+            AND NOT EXISTS (
+                SELECT 1
+                FROM cgac
+                WHERE cgac_code = af.allocation_transfer_agency)
         )
     )
     AND NOT EXISTS (

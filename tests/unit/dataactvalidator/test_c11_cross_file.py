@@ -15,69 +15,71 @@ def test_column_headers(database):
 def test_success(database):
     """ Unique PIID, ParentAwardId from file C exists in file D1 during the same reporting period. """
 
+    cgac = CGACFactory(cgac_code='good')
     af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
                                allocation_transfer_agency=None, transaction_obligated_amou='12345')
     ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id')
 
-    assert number_of_errors(_FILE, database, models=[af, ap]) == 0
+    assert number_of_errors(_FILE, database, models=[af, ap, cgac]) == 0
 
     af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
                                allocation_transfer_agency=None, transaction_obligated_amou='12345')
     ap_1 = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id')
     ap_2 = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id')
 
-    assert number_of_errors(_FILE, database, models=[af, ap_1, ap_2]) == 0
+    assert number_of_errors(_FILE, database, models=[af, ap_1, ap_2, cgac]) == 0
 
     af = AwardFinancialFactory(piid=None, parent_award_id='some_parent_award_id',
                                allocation_transfer_agency=None, transaction_obligated_amou='12345')
     ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id')
 
-    assert number_of_errors(_FILE, database, models=[af, ap]) == 0
+    assert number_of_errors(_FILE, database, models=[af, ap, cgac]) == 0
 
     af = AwardFinancialFactory(piid='some_piid', parent_award_id=None, allocation_transfer_agency=None,
                                transaction_obligated_amou='12345')
     ap = AwardProcurementFactory(piid='some_piid', parent_award_id=None)
 
-    assert number_of_errors(_FILE, database, models=[af, ap]) == 0
+    assert number_of_errors(_FILE, database, models=[af, ap, cgac]) == 0
 
     # Not perform when no transaction obligated amount value in the field
     af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
                                allocation_transfer_agency=None, transaction_obligated_amou=None)
     ap = AwardProcurementFactory(piid='some_other_piid', parent_award_id='some_parent_award_id')
 
-    assert number_of_errors(_FILE, database, models=[af, ap]) == 0
+    assert number_of_errors(_FILE, database, models=[af, ap, cgac]) == 0
 
     # Not perform when no transaction obligated amount value in the field
     af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
                                allocation_transfer_agency=None, transaction_obligated_amou=None)
     ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_other_parent_award_id')
 
-    assert number_of_errors(_FILE, database, models=[af, ap]) == 0
+    assert number_of_errors(_FILE, database, models=[af, ap, cgac]) == 0
 
     af = AwardFinancialFactory(piid=None, parent_award_id=None, allocation_transfer_agency=None,
                                transaction_obligated_amou='12345')
     ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_other_parent_award_id')
 
-    assert number_of_errors(_FILE, database, models=[af, ap]) == 0
+    assert number_of_errors(_FILE, database, models=[af, ap, cgac]) == 0
 
-    # Not perform when allocation transfer agency is filled in but is different from agency id
+    # Not perform when valid allocation transfer agency is filled in but is different from agency id
     af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
-                               allocation_transfer_agency='bad', agency_identifier='red',
+                               allocation_transfer_agency='good', agency_identifier='red',
                                transaction_obligated_amou='12345')
     ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_other_parent_award_id')
 
-    assert number_of_errors(_FILE, database, models=[af, ap]) == 0
+    assert number_of_errors(_FILE, database, models=[af, ap, cgac]) == 0
 
 
 def test_failure(database):
     """ Unique PIID, ParentAwardId from file C doesn't exist in file D1 during the same reporting period. """
 
+    cgac = CGACFactory(cgac_code='good')
     # Perform when there's a transaction obligated amount value in the field
     af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
                                allocation_transfer_agency=None, transaction_obligated_amou='12345')
     ap = AwardProcurementFactory(piid='some_other_piid', parent_award_id='some_parent_award_id')
 
-    assert number_of_errors(_FILE, database, models=[af, ap]) == 1
+    assert number_of_errors(_FILE, database, models=[af, ap, cgac]) == 1
 
     # Perform when there's a transaction obligated amount value in the field
     af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
@@ -85,14 +87,22 @@ def test_failure(database):
                                transaction_obligated_amou='12345')
     ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_other_parent_award_id')
 
-    assert number_of_errors(_FILE, database, models=[af, ap]) == 1
+    assert number_of_errors(_FILE, database, models=[af, ap, cgac]) == 1
 
     af = AwardFinancialFactory(piid='some_piid', parent_award_id=None,
                                allocation_transfer_agency='bad', agency_identifier='bad',
                                transaction_obligated_amou='12345')
     ap = AwardProcurementFactory(piid='some_other_piid', parent_award_id='some_other_parent_award_id')
 
-    assert number_of_errors(_FILE, database, models=[af, ap]) == 1
+    assert number_of_errors(_FILE, database, models=[af, ap, cgac]) == 1
+
+    # Perform when invalid allocation transfer agency is filled in but is different from agency id
+    af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
+                               allocation_transfer_agency='bad', agency_identifier='red',
+                               transaction_obligated_amou='12345')
+    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_other_parent_award_id')
+
+    assert number_of_errors(_FILE, database, models=[af, ap, cgac]) == 1
 
 
 def test_valid_allocation_transfer_agency(database):

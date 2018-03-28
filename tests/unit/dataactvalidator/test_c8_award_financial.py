@@ -150,15 +150,29 @@ def test_valid_allocation_transfer_agency(database):
     assert errors == 0
 
 
-def test_ignore_when_different_ata(database):
-    """ Tests that rule is not applied when allocation transfer agency does not match agency id. """
+def test_ignore_when_different_valid_ata(database):
+    """ Tests that rule is not applied when valid allocation transfer agency does not match agency id. """
     tas = _TAS
     cgac = CGACFactory(cgac_code='good')
     # Perform when there's a transaction obligated amount value in the field
-    af = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency='bad',
-                               agency_identifier='red', transaction_obligated_amou='12345')
+    af = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency='good',
+                               agency_identifier='bad', transaction_obligated_amou='12345')
     afa = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain='123', uri='456',
                                           allocation_transfer_agency=None)
 
     errors = number_of_errors(_FILE, database, models=[af, afa, cgac])
     assert errors == 0
+
+
+def test_invalid_when_different_invalid_ata(database):
+    """ Tests that rule is applied when invalid allocation transfer agency does not match agency id. """
+    tas = _TAS
+    cgac = CGACFactory(cgac_code='good')
+    # Perform when there's a transaction obligated amount value in the field
+    af = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency='red',
+                               agency_identifier='bad', transaction_obligated_amou='12345')
+    afa = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain='123', uri='456',
+                                          allocation_transfer_agency=None)
+
+    errors = number_of_errors(_FILE, database, models=[af, afa, cgac])
+    assert errors == 1
