@@ -290,6 +290,10 @@ def split_ppop_zip(obj):
             obj['place_of_perform_zip_last4'] = obj['place_of_performance_zip4a'][-4:]
 
 
+def derive_parent_duns(obj):
+    """ Deriving parent DUNS name and number from SAMS API"""
+    
+
 def set_active(obj):
     """ Setting active  """
     if obj['correction_delete_indicatr'] and obj['correction_delete_indicatr'].upper() == 'D':
@@ -310,6 +314,8 @@ def fabs_derivations(obj, sess):
     obj['legal_entity_city_name'] = None
     obj['place_of_performance_zip5'] = None
     obj['place_of_perform_zip_last4'] = None
+    obj['ultimate_parent_legal_enti'] = None
+    obj['ultimate_parent_unique_ide'] = None
 
     # deriving total_funding_amount
     federal_action_obligation = obj['federal_action_obligation'] or 0
@@ -339,6 +345,8 @@ def fabs_derivations(obj, sess):
     derive_le_country_name(obj, sess)
 
     split_ppop_zip(obj)
+
+    derive_parent_duns(obj)
 
     set_active(obj)
 

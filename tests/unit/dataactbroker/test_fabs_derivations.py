@@ -6,7 +6,6 @@ from tests.unit.dataactcore.factories.domain import (
 
 from tests.unit.dataactcore.factories.staging import FPDSContractingOfficeFactory
 
-
 def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, use_frec=False):
     """ Initialize the values in the DB that can be used throughout the tests """
     if cgac_code:
@@ -51,8 +50,8 @@ def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1
                         ppop_code="NY00000", ppop_zip4a=None, ppop_cd=None, le_zip5=None, le_zip4=None, record_type=2,
                         award_mod_amend=None, fain=None, uri=None, cldi=None, awarding_office='033103',
                         funding_office='033103', legal_congr=None, legal_city="WASHINGTON", legal_state="DC",
-                        primary_place_country='USA', legal_country='USA', detached_award_financial_assistance_id=None,
-                        job_id=None):
+                        primary_place_country='USA', legal_country='USA', awardee_or_recipient_uniqu=None,
+                        detached_award_financial_assistance_id=None, job_id=None):
     """ Initialize the values in the object being run through the fabs_derivations function """
     obj = {
         'federal_action_obligation': fao,
@@ -77,6 +76,7 @@ def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1
         'legal_entity_state_code': legal_state,
         'place_of_perform_country_c': primary_place_country,
         'legal_entity_country_code': legal_country,
+        'awardee_or_recipient_uniqu': awardee_or_recipient_uniqu,
         'detached_award_financial_assistance_id': detached_award_financial_assistance_id,
         'job_id': job_id
     }
@@ -384,6 +384,22 @@ def test_split_zip(database):
     obj = fabs_derivations(obj, database.session)
     assert obj['place_of_performance_zip5'] is None
     assert obj['place_of_perform_zip_last4'] is None
+
+
+def test_derive_parent_duns(database, monkeypatch):
+    obj = initialize_test_obj(awardee_or_recipient_uniqu='123456')
+
+    assert not obj['ultimate_parent_legal_enti']
+    assert not obj['ultimate_parent_unique_ide']
+
+
+def test_derive_parent_duns_return_none(database, monkeypatch):
+    obj = initialize_test_obj(awardee_or_recipient_uniqu='123456')
+
+    fabs_derivations(obj, database.session)
+
+    assert not obj['ultimate_parent_legal_enti']
+    assert not obj['ultimate_parent_unique_ide']
 
 
 def test_is_active(database):
