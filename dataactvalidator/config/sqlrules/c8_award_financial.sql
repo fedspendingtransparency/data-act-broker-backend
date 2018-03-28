@@ -4,6 +4,7 @@ WITH award_financial_c8_{0} AS
     (SELECT submission_id,
         row_number,
         allocation_transfer_agency,
+        agency_identifier,
         transaction_obligated_amou,
         fain,
         uri
@@ -22,6 +23,11 @@ SELECT
     af.uri
 FROM award_financial_c8_{0} AS af
 WHERE af.transaction_obligated_amou IS NOT NULL
+    AND (COALESCE(af.allocation_transfer_agency, '')  = ''
+        OR (COALESCE(af.allocation_transfer_agency, '') != ''
+            AND af.allocation_transfer_agency = af.agency_identifier
+        )
+    )
     AND NOT EXISTS (
         SELECT 1
         FROM cgac
