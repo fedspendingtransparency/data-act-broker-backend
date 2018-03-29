@@ -25,18 +25,6 @@ WHERE af.transaction_obligated_amou IS NOT NULL
         OR (COALESCE(af.allocation_transfer_agency, '') <> ''
             AND af.allocation_transfer_agency = af.agency_identifier
         )
-        OR (COALESCE(af.allocation_transfer_agency, '') <> ''
-            AND af.allocation_transfer_agency <> af.agency_identifier
-            AND NOT EXISTS (
-                SELECT 1
-                FROM cgac
-                WHERE cgac_code = af.allocation_transfer_agency)
-        )
-    )
-    AND NOT EXISTS (
-        SELECT 1
-        FROM cgac
-        WHERE cgac_code = af.allocation_transfer_agency
     )
     AND ((af.parent_award_id IS NULL
             AND NOT EXISTS (
