@@ -99,7 +99,7 @@ class FSRSProcurement(Base, _ContractAttributes, _PrimeAwardAttributes):
 
 class FSRSSubcontract(Base, _ContractAttributes):
     __tablename__ = "fsrs_subcontract"
-    parent_id = Column(Integer, ForeignKey('fsrs_procurement.id', ondelete='CASCADE'))
+    parent_id = Column(Integer, ForeignKey('fsrs_procurement.id', ondelete='CASCADE'), index=True)
     parent = relationship(FSRSProcurement, back_populates='subawards')
     subcontract_amount = Column(String)
     subcontract_date = Column(Date)
@@ -119,7 +119,7 @@ class FSRSGrant(Base, _GrantAttributes, _PrimeAwardAttributes):
 
 class FSRSSubgrant(Base, _GrantAttributes):
     __tablename__ = "fsrs_subgrant"
-    parent_id = Column(Integer, ForeignKey('fsrs_grant.id', ondelete='CASCADE'))
+    parent_id = Column(Integer, ForeignKey('fsrs_grant.id', ondelete='CASCADE'), index=True)
     parent = relationship(FSRSGrant, back_populates='subawards')
     subaward_amount = Column(String)
     subaward_date = Column(Date)
