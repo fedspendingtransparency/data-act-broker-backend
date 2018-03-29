@@ -1,6 +1,5 @@
 from random import choice
 from string import ascii_uppercase, ascii_lowercase, digits
-from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactcore.factories.staging import AwardFinancialFactory, AwardProcurementFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
@@ -15,12 +14,9 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Test that a four digit object class with no flag is a success, and a three digit object class with
-        a flag is a success. Ignores rows with parent_award_id from AwardFinancialFactory and doesn't care about
-        parent_award_id in AwardProcurementFactory """
-    # Create cgac
-    cgac = CGACFactory(cgac_code="123")
-
+    """ Test For each unique PIID in File C, the sum of each TransactionObligatedAmount should match (but with opposite
+        signs) the sum of the FederalActionObligation reported in D1. This rule does not apply if the ATA field is
+        populated and is different from the Agency ID. """
     # Create a 12 character random piid
     piid_1 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     piid_2 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
@@ -38,14 +34,14 @@ def test_success(database):
     # Add a row for a different piid
     af_2_row_1 = AwardFinancialFactory(transaction_obligated_amou=9900, piid=piid_2, parent_award_id=None,
                                        allocation_transfer_agency=None)
-    # Valid, matching ata/aid, not ignored
-    af_2_row_2 = AwardFinancialFactory(transaction_obligated_amou=9, piid=piid_2, parent_award_id=None,
+    # Matching ata/aid, not ignored
+    af_2_row_2 = AwardFinancialFactory(transaction_obligated_amou=99, piid=piid_2, parent_award_id=None,
                                        allocation_transfer_agency="123", agency_identifier="123")
-    # Invalid, not matching ata/aid, not ignored
-    af_2_row_3 = AwardFinancialFactory(transaction_obligated_amou=90, piid=piid_2, parent_award_id=None,
+    # Not matching ata/aid, ignored
+    af_2_row_3 = AwardFinancialFactory(transaction_obligated_amou=10, piid=piid_2, parent_award_id=None,
                                        allocation_transfer_agency="345", agency_identifier="123")
 
-    # Third piid with all rows ignored because one has a valid ATA different from AID
+    # Third piid with all rows ignored because one has an ATA different from AID
     af_3_row_1 = AwardFinancialFactory(transaction_obligated_amou=8888, piid=piid_3, parent_award_id=None,
                                        allocation_transfer_agency="123", agency_identifier="345")
     af_3_row_2 = AwardFinancialFactory(transaction_obligated_amou=8888, piid=piid_3, parent_award_id=None,
@@ -60,22 +56,20 @@ def test_success(database):
     # This one doesn't match but will be ignored
     ap_3 = AwardProcurementFactory(piid=piid_3, parent_award_id=None, federal_action_obligation=-9999)
 
-    errors = number_of_errors(_FILE, database, models=[cgac, af_1_row_1, af_1_row_2, af_1_row_3, af_2_row_1, af_2_row_2,
+    errors = number_of_errors(_FILE, database, models=[af_1_row_1, af_1_row_2, af_1_row_3, af_2_row_1, af_2_row_2,
                                                        af_2_row_3, af_3_row_1, af_3_row_2, ap_1_row_1, ap_1_row_2,
                                                        ap_1_row_3, ap_2, ap_3])
     assert errors == 0
 
 
 def test_failure(database):
-    """ Test that a three digit object class with no flag is an error """
-    # Create cgac
-    cgac = CGACFactory(cgac_code="123")
-
+    """ Test failure for each unique PIID in File C, the sum of each TransactionObligatedAmount should match (but with
+        opposite signs) the sum of the FederalActionObligation reported in D1. This rule does not apply if the ATA field
+        is populated and is different from the Agency ID. """
     # Create a 12 character random piid
     piid_1 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     piid_2 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     piid_3 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
-    piid_4 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     # No ATA, not matching (off by 1)
     af_1_row_1 = AwardFinancialFactory(transaction_obligated_amou=1100, piid=piid_1, parent_award_id='',
@@ -87,13 +81,9 @@ def test_failure(database):
     af_2 = AwardFinancialFactory(transaction_obligated_amou=9999, piid=piid_2, parent_award_id=None,
                                  allocation_transfer_agency=None)
 
-    # ATA but valid, matching ATA, should not be ignored
+    # Matching ATA, should not be ignored
     af_3 = AwardFinancialFactory(transaction_obligated_amou=11, piid=piid_3, parent_award_id=None,
                                  allocation_transfer_agency="123", agency_identifier="123")
-
-    # ATA not matching but invalid, should not be ignored
-    af_4 = AwardFinancialFactory(transaction_obligated_amou=11, piid=piid_4, parent_award_id=None,
-                                 allocation_transfer_agency="345", agency_identifier="123")
 
     # Award Procurement portion of checks
     # Sum of all these would be sum of piid_1 af if one wasn't ignored
@@ -103,9 +93,7 @@ def test_failure(database):
     ap_2 = AwardProcurementFactory(piid=piid_2, parent_award_id=None, federal_action_obligation=-1111)
     # third piid that should not be ignored because ATA is present but matches
     ap_3 = AwardProcurementFactory(piid=piid_3, parent_award_id=None, federal_action_obligation=0)
-    # fourth piid that should not be ignored because ATA is present and doesn't match but is invalid
-    ap_4 = AwardProcurementFactory(piid=piid_4, parent_award_id=None, federal_action_obligation=0)
 
-    errors = number_of_errors(_FILE, database, models=[af_1_row_1, af_1_row_2, af_2, af_3, af_4, ap_1_row_1, ap_1_row_2,
-                                                       ap_2, ap_3, ap_4])
-    assert errors == 4
+    errors = number_of_errors(_FILE, database, models=[af_1_row_1, af_1_row_2, af_2, af_3, ap_1_row_1, ap_1_row_2, ap_2,
+                                                       ap_3])
+    assert errors == 3

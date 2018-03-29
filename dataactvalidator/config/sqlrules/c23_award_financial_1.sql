@@ -1,7 +1,7 @@
 -- For each unique PIID in File C (award financial) where ParentAwardId is null, the sum of each
 -- TransactionObligatedAmount submitted in the reporting period should match (in inverse) the sum of the
 -- FederalActionObligation amounts reported in D1 (award procurement) for the same timeframe, regardless of
--- modifications.
+-- modifications. This rule does not apply if the ATA field is populated and is different from the Agency ID.
 WITH award_financial_c23_1_{0} AS
     (SELECT piid,
     allocation_transfer_agency,
@@ -39,8 +39,4 @@ WHERE af.sum_ob_amount <> -1 * ap.sum_fed_amount
         WHERE sub_af.piid = af.piid
             AND COALESCE(sub_af.allocation_transfer_agency, '') <> ''
             AND sub_af.allocation_transfer_agency <> sub_af.agency_identifier
-            AND EXISTS (
-                SELECT 1
-                FROM cgac
-                WHERE cgac_code = sub_af.allocation_transfer_agency)
     );
