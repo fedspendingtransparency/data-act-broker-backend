@@ -1,6 +1,6 @@
 -- Unique FAIN/URI from file C exists in file D2. FAIN may be null for aggregated records.
 -- URI may be null for non-aggregated records. Do not process if allocation transfer agency does is not null and does
--- not match agency ID
+-- not match agency ID (per C24, a non-SQL rule negation)
 WITH award_financial_c8_{0} AS
     (SELECT submission_id,
         row_number,
