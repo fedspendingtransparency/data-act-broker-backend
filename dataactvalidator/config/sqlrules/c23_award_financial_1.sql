@@ -1,10 +1,11 @@
--- For each unique PIID for procurement in File C (award financial) where ParentAwardId is null, the sum of each
+-- For each unique PIID in File C (award financial) where ParentAwardId is null, the sum of each
 -- TransactionObligatedAmount submitted in the reporting period should match (in inverse) the sum of the
 -- FederalActionObligation amounts reported in D1 (award procurement) for the same timeframe, regardless of
 -- modifications.
 WITH award_financial_c23_1_{0} AS
     (SELECT piid,
     allocation_transfer_agency,
+    agency_identifier,
     transaction_obligated_amou,
     parent_award_id
     FROM award_financial
@@ -37,4 +38,9 @@ WHERE af.sum_ob_amount <> -1 * ap.sum_fed_amount
         FROM award_financial_c23_1_{0} AS sub_af
         WHERE sub_af.piid = af.piid
             AND COALESCE(sub_af.allocation_transfer_agency, '') <> ''
+            AND sub_af.allocation_transfer_agency <> sub_af.agency_identifier
+            AND EXISTS (
+                SELECT 1
+                FROM cgac
+                WHERE cgac_code = sub_af.allocation_transfer_agency)
     );
