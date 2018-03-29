@@ -1243,7 +1243,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
         params = 'SIGNED_DATE:[2016/10/01,' + yesterday.strftime('%Y/%m/%d') + '] '
     # if a date that the script was last successfully run is provided, get data since that date
     else:
-        last_run_date = last_run.update_date - relativedelta(days=1)
+        last_run_date = last_run - relativedelta(days=1)
         params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
         if start_date and end_date:
             params = 'LAST_MOD_DATE:[' + start_date + ',' + end_date + '] '
@@ -1332,7 +1332,7 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
     """ Get data from the delete feed """
     data = []
     yesterday = now - datetime.timedelta(days=1)
-    last_run_date = last_run.update_date
+    last_run_date = last_run - relativedelta(days=1)
     params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
     if start_date and end_date:
         params = 'LAST_MOD_DATE:[' + start_date + ',' + end_date + '] '
@@ -2270,15 +2270,16 @@ def main():
     elif args.latest:
         logger.info("Starting at: %s", str(datetime.datetime.now()))
 
-        last_update = sess.query(FPDSUpdate).one_or_none()
+        last_update_obj = sess.query(FPDSUpdate).one_or_none()
 
         # update_date can't be null because it's being used as the PK for the table, so it can only exist or
         # there are no rows in the table. If there are no rows, act like it's an "add all"
-        if not last_update:
+        if not last_update_obj:
             logger.error(
                 "No last_update date present, please run the script with the -a flag to generate an initial dataset")
             raise ValueError(
                 "No last_update date present, please run the script with the -a flag to generate an initial dataset")
+        last_update = last_update_obj.update_date
         start_date = None
         end_date = None
         if args.dates:
