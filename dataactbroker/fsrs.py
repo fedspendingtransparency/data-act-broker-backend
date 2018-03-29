@@ -130,7 +130,6 @@ _grantAddrs = ('principle_place', 'awardee_address')
 def flatten_soap_dict(simple_fields, address_fields, comma_field, soap_dict):
     """For all four FSRS models, we need to copy over values, flatten address
     data, flatten topPaid, convert comma fields"""
-    logger.debug(soap_dict)
     model_attrs = {}
     for field in simple_fields:
         model_attrs[field] = soap_dict.get(field)
@@ -150,6 +149,11 @@ def flatten_soap_dict(simple_fields, address_fields, comma_field, soap_dict):
 def to_prime_contract(soap_dict):
     model_attrs = flatten_soap_dict(_primeContract, _contractAddrs, 'bus_types', soap_dict)
     model_attrs['subawards'] = [to_subcontract(sub) for sub in soap_dict.get('subcontractors', [])]
+
+    debug_dict = {'id': model_attrs['id'], 'internal_id': model_attrs['internal_id'],
+                  'subaward_count': len(model_attrs['subawards'])}
+    logger.debug('Procurement: %s' % str(debug_dict))
+
     return FSRSProcurement(**model_attrs)
 
 
@@ -161,6 +165,11 @@ def to_subcontract(soap_dict):
 def to_prime_grant(soap_dict):
     model_attrs = flatten_soap_dict(_primeGrant, _grantAddrs, 'cfda_numbers', soap_dict)
     model_attrs['subawards'] = [to_subgrant(sub) for sub in soap_dict.get('subawardees', [])]
+
+    debug_dict = {'id': model_attrs['id'], 'internal_id': model_attrs['internal_id'],
+                  'subaward_count': len(model_attrs['subawards'])}
+    logger.debug('Grant: %s' % str(debug_dict))
+
     return FSRSGrant(**model_attrs)
 
 
