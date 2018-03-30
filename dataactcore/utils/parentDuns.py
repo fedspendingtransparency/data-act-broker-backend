@@ -7,7 +7,7 @@ from sqlalchemy import and_, func
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.fileE import config_valid, get_entities
 from dataactcore.models.domainModels import DUNS
-from dataactcore.scripts.loadDUNS import load_duns_by_row
+from dataactcore.utils.duns import load_duns_by_row
 from dataactcore.models.jobModels import FileType, Submission # noqa
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
