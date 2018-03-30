@@ -1,25 +1,25 @@
+import argparse
+import datetime
 import logging
 import os
-import sys
-import pandas as pd
 import re
-from collections import OrderedDict
-import numpy as np
-import argparse
-import zipfile
-import paramiko
+import sys
 import time
-import datetime
+import zipfile
+from collections import OrderedDict
+
+import numpy as np
+import pandas as pd
+import paramiko
 from sqlalchemy.exc import IntegrityError
 
-from dataactcore.models.domainModels import DUNS
+from dataactcore import parentDuns
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
+from dataactcore.models.domainModels import DUNS
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
-from dataactcore.config import CONFIG_BROKER
-from dataactbroker import parentDuns
-
 
 logger = logging.getLogger(__name__)
 

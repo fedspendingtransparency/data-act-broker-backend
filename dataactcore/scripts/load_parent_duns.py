@@ -1,9 +1,9 @@
 import argparse
 import logging
 
-from dataactbroker.parentDuns import sams_config_is_valid, get_duns_batches, update_missing_parent_names
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
+from dataactcore.parentDuns import sams_config_is_valid, get_duns_batches, update_missing_parent_names
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
