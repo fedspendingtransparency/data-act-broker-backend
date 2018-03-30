@@ -227,6 +227,8 @@ class DUNS(Base):
     registration_date = Column(Date, index=True)
     expiration_date = Column(Date, index=True)
     last_sam_mod_date = Column(Date)
+    ultimate_parent_unique_ide = Column(Text)
+    ultimate_parent_legal_enti = Column(Text)
 
 
 class CFDAProgram(Base):
