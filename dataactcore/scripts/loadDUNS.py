@@ -9,6 +9,7 @@ import argparse
 import zipfile
 import paramiko
 import time
+import datetime
 from sqlalchemy.exc import IntegrityError
 
 from dataactcore.models.domainModels import DUNS
@@ -17,6 +18,7 @@ from dataactcore.logging import configure_logging
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 from dataactcore.config import CONFIG_BROKER
+from dataactbroker import parentDuns
 
 
 logger = logging.getLogger(__name__)
@@ -236,6 +238,9 @@ if __name__ == '__main__':
         configure_logging()
         sess = GlobalDB.db().session
 
+        wdsl_client = parentDuns.sams_config_is_valid()
+        updated_date = datetime.date.today()
+
         if monthly and daily:
             logger.error("For loading a single local file, you must provide either monthly or daily.")
             sys.exit(1)
@@ -284,6 +289,9 @@ if __name__ == '__main__':
                     if sorted_monthly_file_names:
                         process_from_dir(root_dir, sorted_monthly_file_names[0],
                                          sess, local, monthly=True, benchmarks=benchmarks)
+
+                        parentDuns.get_duns_batches(wdsl_client, sess, updated_date=updated_date)
+                        parentDuns.update_missing_parent_names(sess, updated_date=updated_date)
                     else:
                         logger.info("No monthly file found.")
 
@@ -308,11 +316,17 @@ if __name__ == '__main__':
                 if daily_files_after:
                     for daily_file in daily_files_after:
                         process_from_dir(root_dir, daily_file, sess, local, benchmarks=benchmarks)
+
+                        parentDuns.get_duns_batches(wdsl_client, sess, updated_date=updated_date)
+                        parentDuns.update_missing_parent_names(sess, updated_date=updated_date)
                 else:
                     logger.info("No daily file found.")
             else:
                 if sorted_daily_file_names:
                     process_from_dir(root_dir, sorted_daily_file_names[-1], sess, local, benchmarks=benchmarks)
+
+                    parentDuns.get_duns_batches(wdsl_client, sess, updated_date=updated_date)
+                    parentDuns.update_missing_parent_names(sess, updated_date=updated_date)
                 else:
                     logger.info("No daily file found.")
         sess.close()
