@@ -37,7 +37,7 @@ def get_parent_from_sams(client, duns_list, block_size):
     }
         for suds_obj in get_entities(client, duns_list)
         if suds_obj.coreData.DUNSInformation.globalParentDUNS.DUNSNumber
-        and suds_obj.coreData.DUNSInformation.globalParentDUNS.legalBusinessName
+        or suds_obj.coreData.DUNSInformation.globalParentDUNS.legalBusinessName
     ]
     logger.info("Retrieved {} out of {} duns numbers from SAM ".format(str(len(duns_parent)), str(block_size)))
 
