@@ -1,9 +1,11 @@
 -- Unique FAIN/URI from file C exists in file D2. FAIN may be null for aggregated records.
--- URI may be null for non-aggregated records.
+-- URI may be null for non-aggregated records. Do not process if allocation transfer agency does is not null and does
+-- not match agency ID (per C24, a non-SQL rule negation)
 WITH award_financial_c8_{0} AS
     (SELECT submission_id,
         row_number,
         allocation_transfer_agency,
+        agency_identifier,
         transaction_obligated_amou,
         fain,
         uri
@@ -22,10 +24,10 @@ SELECT
     af.uri
 FROM award_financial_c8_{0} AS af
 WHERE af.transaction_obligated_amou IS NOT NULL
-    AND NOT EXISTS (
-        SELECT 1
-        FROM cgac
-        WHERE cgac_code = af.allocation_transfer_agency
+    AND (COALESCE(af.allocation_transfer_agency, '') = ''
+        OR (COALESCE(af.allocation_transfer_agency, '') <> ''
+            AND af.allocation_transfer_agency = af.agency_identifier
+        )
     )
     AND (af.fain IS NOT NULL
         OR af.uri IS NOT NULL

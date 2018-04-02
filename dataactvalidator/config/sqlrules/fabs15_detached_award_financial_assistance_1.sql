@@ -1,4 +1,4 @@
--- LegalEntityForeignCityName is required for foreign recipients (i.e., when LegalEntityCountryCode != USA)
+-- LegalEntityForeignCityName is required for foreign recipients (i.e., when LegalEntityCountryCode <> USA)
 SELECT
     row_number,
     legal_entity_country_code,
