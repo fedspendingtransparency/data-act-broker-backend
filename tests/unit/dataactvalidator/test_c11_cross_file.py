@@ -12,7 +12,8 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Unique PIID, ParentAwardId from file C exists in file D1 during the same reporting period. """
+    """ Unique PIID, or combination of PIID/ParentAwardId, from file C exists in file D1 during the same reporting
+        period. Do not process if allocation transfer agency is not null and does not match agency ID """
 
     af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
                                allocation_transfer_agency=None, transaction_obligated_amou='12345')
@@ -69,7 +70,8 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Unique PIID, ParentAwardId from file C doesn't exist in file D1 during the same reporting period. """
+    """ Test failure for unique PIID, or combination of PIID/ParentAwardId, from file C exists in file D1 during the
+        same reporting period. Do not process if allocation transfer agency is not null and does not match agency ID """
 
     # Perform when there's a transaction obligated amount value in the field
     af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
