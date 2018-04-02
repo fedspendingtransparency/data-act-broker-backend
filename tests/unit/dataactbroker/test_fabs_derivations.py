@@ -6,6 +6,7 @@ from tests.unit.dataactcore.factories.domain import (
 
 from tests.unit.dataactcore.factories.staging import FPDSContractingOfficeFactory
 
+
 def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, use_frec=False):
     """ Initialize the values in the DB that can be used throughout the tests """
     if cgac_code:

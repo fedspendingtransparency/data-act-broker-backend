@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import func
 
 from dataactcore.models.domainModels import (CFDAProgram, SubTierAgency, Zips, States, CountyCode, CityCode, ZipCity,
-                                             CountryCode)
+                                             CountryCode, DUNS)
 from dataactcore.models.stagingModels import FPDSContractingOffice
 
 logger = logging.getLogger(__name__)
@@ -290,9 +290,18 @@ def split_ppop_zip(obj):
             obj['place_of_perform_zip_last4'] = obj['place_of_performance_zip4a'][-4:]
 
 
-def derive_parent_duns(obj):
+def derive_parent_duns(obj, sess):
     """ Deriving parent DUNS name and number from SAMS API"""
-    
+    if obj['awardee_or_recipient_uniqu']:
+        duns_data = sess.query(DUNS).\
+            filter_by(awardee_or_recipient_uniqu=obj['awardee_or_recipient_uniqu']).one_or_none()
+        if duns_data:
+            obj['ultimate_parent_legal_enti'] = duns_data.ultimate_parent_legal_enti
+            obj['ultimate_parent_unique_ide'] = duns_data.ultimate_parent_unique_ide
+        else:
+            obj['ultimate_parent_legal_enti'] = None
+            obj['ultimate_parent_unique_ide'] = None
+
 
 def set_active(obj):
     """ Setting active  """
