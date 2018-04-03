@@ -1275,7 +1275,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError) as e:
                 exception_retries += 1
                 if exception_retries < len(retry_sleep_times):
-                    logger.info('ConnectionReset/ReadTimeout caught. Sleeping {}s and then retrying...'.format(
+                    logger.info('Connection exception caught. Sleeping {}s and then retrying...'.format(
                         retry_sleep_times[exception_retries]))
                     time.sleep(retry_sleep_times[exception_retries])
                 else:
