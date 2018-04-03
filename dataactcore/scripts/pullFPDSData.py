@@ -1272,16 +1272,15 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                                             namespaces={'http://www.fpdsng.com/FPDS': None,
                                                         'http://www.w3.org/2005/Atom': None})
                 break
-            except (ConnectionResetError, ReadTimeoutError):
+            except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError) as e:
                 exception_retries += 1
                 if exception_retries < len(retry_sleep_times):
                     logger.info('ConnectionReset/ReadTimeout caught. Sleeping {}s and then retrying...'.format(
                         retry_sleep_times[exception_retries]))
                     time.sleep(retry_sleep_times[exception_retries])
                 else:
-                    raise ResponseException(
-                        "Connection to FPDS feed lost, maximum retry attempts exceeded.", StatusCode.INTERNAL_ERROR
-                    )
+                    logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
+                    raise e
 
         # only list the data if there's data to list
         try:
