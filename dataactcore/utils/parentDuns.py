@@ -27,7 +27,7 @@ def sams_config_is_valid():
         raise Exception('Invalid SAM WSDL config')
 
 
-def get_parent_from_sams(client, duns_list, block_size):
+def get_parent_from_sams(client, duns_list):
     """Calls SAM API to retrieve parent DUNS data by DUNS number. Returns DUNS info as Data Frame"""
     duns_parent = [{
         'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
@@ -39,7 +39,6 @@ def get_parent_from_sams(client, duns_list, block_size):
         if suds_obj.coreData.DUNSInformation.globalParentDUNS.DUNSNumber
         or suds_obj.coreData.DUNSInformation.globalParentDUNS.legalBusinessName
     ]
-    logger.info("Retrieved {} out of {} duns numbers from SAM ".format(str(len(duns_parent)), str(block_size)))
 
     return pd.DataFrame(duns_parent)
 
@@ -56,7 +55,7 @@ def update_missing_parent_names(sess, updated_date=None):
 
     distinct_parent_duns = sess.query(DUNS.ultimate_parent_unique_ide, DUNS.ultimate_parent_legal_enti)\
         .filter(and_(func.coalesce(DUNS.ultimate_parent_legal_enti, '') != '',
-                     func.coalesce(DUNS.ultimate_parent_unique_ide, '') != '')).distinct()
+                     DUNS.ultimate_parent_unique_ide.isnot(None))).distinct()
 
     for duns in distinct_parent_duns:
         if parent_duns_by_number_name.get(duns.ultimate_parent_unique_ide):
@@ -67,7 +66,7 @@ def update_missing_parent_names(sess, updated_date=None):
 
     # Query to find rows where the parent duns number is present, but there is no legal enetity name
     missing_parent_name = sess.query(DUNS).filter(and_(func.coalesce(DUNS.ultimate_parent_legal_enti, '') == '',
-                                                       func.coalesce(DUNS.ultimate_parent_unique_ide, '') != ''))
+                                                       DUNS.ultimate_parent_unique_ide.isnot(None)))
 
     if updated_date:
         missing_parent_name = missing_parent_name.filter(DUNS.updated_at >= updated_date)
@@ -116,7 +115,8 @@ def get_duns_batches(client, sess, batch_start=None, batch_end=None, updated_dat
     duns_count = 0
 
     # Retrieve DUNS count to calculate number of batches based on how many duns there are
-    duns = sess.query(DUNS)
+    # Only retrieving DUNS that aren't deactivated
+    duns = sess.query(DUNS).filter(DUNS.deactivation_date.is_(None))
 
     if updated_date:
         duns = duns.filter(DUNS.updated_at >= updated_date)
@@ -139,12 +139,13 @@ def get_duns_batches(client, sess, batch_start=None, batch_end=None, updated_dat
         duns_list = list(models.keys())
 
         # Gets parent duns data from SAM API
-        duns_parent_df = get_parent_from_sams(client, duns_list, block_size)
+        duns_parent_df = get_parent_from_sams(client, duns_list)
 
         load_duns_by_row(duns_parent_df, sess, models, None, benchmarks=False)
 
         sess.commit()
 
-        logger.info('Finished batch {}: Updated {} rows in {} s'.format(batch, block_size, time.time() - start_batch))
+        logger.info('Finished batch {}: Updated {} rows in {} s'.format(batch, len(duns_parent_df.index),
+                                                                        time.time() - start_batch))
 
         batch += 1

@@ -24,18 +24,20 @@ if __name__ == '__main__':
         # Possible option if want to do make sure items load
         sess = GlobalDB.db().session
 
-        logger.info('Begin loading parents duns to DUNS table')
-
-        # Check to make sure config is valid
-        client = sams_config_is_valid()
-
-        # Run updates on DUNS table to retrieve parent DUNS data
-        get_duns_batches(client, sess, args.batch_start, args.batch_end)
-
         if args.parent_name:
             # Derive missing parent names when a parent DUNS number is provided
             update_missing_parent_names(sess)
 
-        logger.info('Finished loading parents duns to DUNS table')
+        else:
 
-        sess.close()
+            logger.info('Begin loading parents duns to DUNS table')
+
+            # Check to make sure config is valid
+            client = sams_config_is_valid()
+
+            # Run updates on DUNS table to retrieve parent DUNS data
+            get_duns_batches(client, sess, args.batch_start, args.batch_end)
+
+            logger.info('Finished loading parents duns to DUNS table')
+
+            sess.close()
