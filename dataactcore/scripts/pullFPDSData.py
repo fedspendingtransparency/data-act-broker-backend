@@ -20,6 +20,8 @@ from sqlalchemy import func
 
 from dateutil.relativedelta import relativedelta
 
+from requests.packages.urllib3.exceptions import ReadTimeoutError
+
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 
@@ -1270,11 +1272,10 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                                             namespaces={'http://www.fpdsng.com/FPDS': None,
                                                         'http://www.w3.org/2005/Atom': None})
                 break
-            except ConnectionResetError:
+            except (ConnectionResetError, ReadTimeoutError):
                 exception_retries += 1
-                # retry up to 3 times before raising an error
                 if exception_retries < len(retry_sleep_times):
-                    logger.info('ConnectionResetError caught. Sleeping {}s and then retrying...'.format(
+                    logger.info('ConnectionReset/ReadTimeout caught. Sleeping {}s and then retrying...'.format(
                         retry_sleep_times[exception_retries]))
                     time.sleep(retry_sleep_times[exception_retries])
                 else:
