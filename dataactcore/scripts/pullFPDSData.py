@@ -29,8 +29,6 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.utils.statusCode import StatusCode
-from dataactcore.utils.responseException import ResponseException
 from dataactcore.models.domainModels import SubTierAgency, CountryCode, States, CountyCode, Zips
 from dataactcore.models.stagingModels import DetachedAwardProcurement
 from dataactcore.models.jobModels import FPDSUpdate
@@ -1361,7 +1359,7 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
             else:
                 logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
                 raise e
-            
+
         # only list the data if there's data to list
         try:
             listed_data = list_data(resp_data['feed']['entry'])
