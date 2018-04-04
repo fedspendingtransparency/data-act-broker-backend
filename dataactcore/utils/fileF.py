@@ -88,6 +88,7 @@ mappings = OrderedDict([
     ('LegalEntityAddressLine1', CopyValues('company_address_street', 'awardee_address_street')),
     ('LegalEntityCityName', CopyValues('company_address_city', 'awardee_address_city')),
     ('LegalEntityStateCode', CopyValues('company_address_state', 'awardee_address_state')),
+    ('LegalEntityStateName', CopyValues('company_address_state_name', 'awardee_address_state_name')),
     ('LegalEntityZIP+4', SubawardLogic(
         lambda subcontract: _zipcode_guard(subcontract, 'company_address', True),
         lambda subgrant: _zipcode_guard(subgrant, 'awardee_address', True)
@@ -124,6 +125,7 @@ mappings = OrderedDict([
     ('PrimaryPlaceOfPerformanceCityName', copy_subaward_field('principle_place_city')),
     ('PrimaryPlaceOfPerformanceAddressLine1', copy_subaward_field('principle_place_street')),
     ('PrimaryPlaceOfPerformanceStateCode', copy_subaward_field('principle_place_state')),
+    ('PrimaryPlaceOfPerformanceStateName', copy_subaward_field('principle_place_state_name')),
     ('PrimaryPlaceOfPerformanceZIP+4', copy_subaward_field('principle_place_zip')),
     ('PrimaryPlaceOfPerformanceCongressionalDistrict', copy_subaward_field('principle_place_district')),
     ('PrimaryPlaceOfPerformanceCountryCode', copy_subaward_field('principle_place_country')),
