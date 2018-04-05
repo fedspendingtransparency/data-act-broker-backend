@@ -4,14 +4,16 @@ import os
 
 from flask_bcrypt import Bcrypt
 
-
 from dataactbroker.scripts.setupEmails import setup_emails
+
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import create_user_with_password
 from dataactcore.logging import configure_logging
 from dataactcore.models.userModel import User
+from dataactcore.models.jobModels import FileRequest
 from dataactcore.scripts.setupAllDB import setup_all_db
+
 from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.labelLoader import LabelLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
@@ -102,6 +104,14 @@ def load_zip_codes():
     read_zips()
 
 
+def uncache_file_requests():
+    logger.info('Un-caching file generation requests')
+    with create_app().app_context():
+        sess = GlobalDB.db().session
+        sess.query(FileRequest).update({"is_cached_file": False}, synchronize_session=False)
+        sess.commit()
+
+
 def main():
     parser = argparse.ArgumentParser(description='Initialize the DATA Act Broker.')
     parser.add_argument('-i', '--initialize', help='Run all broker initialization tasks', action='store_true')
@@ -118,6 +128,7 @@ def main():
     parser.add_argument('-l', '--load_location', help='Load city and county codes', action='store_true')
     parser.add_argument('-z', '--load_zips', help='Load zip code data', action='store_true')
     parser.add_argument('-o', '--load_offices', help='Load FPDS Office Codes', action='store_true')
+    parser.add_argument('-u', '--uncache_file_requests', help='Un-cache file generation requests', action='store_true')
     args = parser.parse_args()
 
     if args.initialize:
@@ -166,6 +177,9 @@ def main():
 
     if args.load_offices:
         load_offices()
+
+    if args.uncache_file_requests:
+        uncache_file_requests()
 
 if __name__ == '__main__':
     configure_logging()

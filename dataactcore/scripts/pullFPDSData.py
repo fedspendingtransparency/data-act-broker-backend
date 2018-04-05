@@ -216,6 +216,7 @@ def contract_data_values(data, obj, atom_type):
                  'programAcronym': 'program_acronym',
                  'purchaseCardAsPaymentMethod': 'purchase_card_as_payment_m',
                  'reasonForModification': 'action_type',
+                 'referencedIDVMultipleOrSingle': 'referenced_mult_or_single',
                  'referencedIDVType': 'referenced_idv_type',
                  'seaTransportation': 'sea_transportation',
                  'solicitationID': 'solicitation_identifier',
@@ -225,11 +226,9 @@ def contract_data_values(data, obj, atom_type):
 
     if atom_type == "award":
         value_map['contractActionType'] = 'contract_award_type'
-        value_map['referencedIDVMultipleOrSingle'] = 'referenced_mult_or_single'
     else:
         value_map['contractActionType'] = 'idv_type'
         value_map['multipleOrSingleAwardIDC'] = 'multiple_or_single_award_i'
-        value_map['referencedIDVMultipleOrSingle'] = 'referenced_mult_or_single'
 
     for key, value in value_map.items():
         try:
@@ -244,11 +243,13 @@ def contract_data_values(data, obj, atom_type):
                  'costAccountingStandardsClause': 'cost_accounting_stand_desc',
                  'costOrPricingData': 'cost_or_pricing_data_desc',
                  'GFE-GFP': 'government_furnished_desc',
+                 'inherentlyGovernmentalFunction': 'inherently_government_desc',
                  'multiYearContract': 'multi_year_contract_desc',
                  'nationalInterestActionCode': 'national_interest_desc',
                  'performanceBasedServiceContract': 'performance_based_se_desc',
                  'purchaseCardAsPaymentMethod': 'purchase_card_as_paym_desc',
                  'reasonForModification': 'action_type_description',
+                 'referencedIDVMultipleOrSingle': 'referenced_mult_or_si_desc',
                  'referencedIDVType': 'referenced_idv_type_desc',
                  'seaTransportation': 'sea_transportation_desc',
                  'typeOfContractPricing': 'type_of_contract_pric_desc',
@@ -257,11 +258,9 @@ def contract_data_values(data, obj, atom_type):
 
     if atom_type == "award":
         value_map['contractActionType'] = 'contract_award_type_desc'
-        value_map['referencedIDVMultipleOrSingle'] = 'referenced_mult_or_si_desc'
     else:
         value_map['contractActionType'] = 'idv_type_description'
         value_map['multipleOrSingleAwardIDC'] = 'multiple_or_single_aw_desc'
-        value_map['referencedIDVMultipleOrSingle'] = 'referenced_mult_or_si_desc'
 
     for key, value in value_map.items():
         try:

@@ -8,13 +8,17 @@ staging_model = AwardFinancialAssistance
 
 mapping = OrderedDict([
     ('actiontype', 'action_type'),
+    ('actiontypedescription', 'action_type_description'),
     ('actiondate', 'action_date'),
     ('assistancetype', 'assistance_type'),
+    ('assistancetypedescription', 'assistance_type_desc'),
     ('recordtype', 'record_type'),
+    ('recordtypedescription', 'record_type_description'),
     ('fain', 'fain'),
     ('awardmodificationamendmentnumber', 'award_modification_amendme'),
     ('uri', 'uri'),
     ('correctiondeleteindicator', 'correction_delete_indicatr'),
+    ('correctiondeleteindicatordescription', 'correction_delete_ind_desc'),
     ('fiscalyearandquartercorrection', 'fiscal_year_and_quarter_co'),
     ('sai_number', 'sai_number'),
     ('awardeeorrecipientlegalentityname', 'awardee_or_recipient_legal'),
@@ -37,6 +41,7 @@ mapping = OrderedDict([
     ('legalentityforeignpostalcode', 'legal_entity_foreign_posta'),
     ('legalentitycongressionaldistrict', 'legal_entity_congressional'),
     ('businesstypes', 'business_types'),
+    ('businesstypesdescription', 'business_types_desc'),
     ('fundingagencyname', 'funding_agency_name'),
     ('fundingagencycode', 'funding_agency_code'),
     ('fundingsubtieragencyname', 'funding_sub_tier_agency_na'),
@@ -69,6 +74,7 @@ mapping = OrderedDict([
     ('facevalueofdirectloanorloanguarantee', 'face_value_loan_guarantee'),
     ('originalloansubsidycost', 'original_loan_subsidy_cost'),
     ('businessfundsindicator', 'business_funds_indicator'),
+    ('businessfundsindicatordescription', 'business_funds_ind_desc'),
     ('fundingofficename', 'funding_office_name'),
     ('lastmodifieddate', 'modified_at')
 ])
@@ -110,13 +116,17 @@ def query_published_fabs_data(session, submission_id, page_start, page_stop):
 def initial_query(session):
     return session.query(
         file_model.action_type,
+        file_model.action_type_description,
         func.to_char(cast(file_model.action_date, Date), 'YYYYMMDD'),
         file_model.assistance_type,
+        file_model.assistance_type_desc,
         file_model.record_type,
+        file_model.record_type_description,
         file_model.fain,
         file_model.award_modification_amendme,
         file_model.uri,
         file_model.correction_delete_indicatr,
+        file_model.correction_delete_ind_desc,
         file_model.fiscal_year_and_quarter_co,
         file_model.sai_number,
         file_model.awardee_or_recipient_legal,
@@ -139,6 +149,7 @@ def initial_query(session):
         file_model.legal_entity_foreign_posta,
         file_model.legal_entity_congressional,
         file_model.business_types,
+        file_model.business_types_desc,
         file_model.funding_agency_name,
         file_model.funding_agency_code,
         file_model.funding_sub_tier_agency_na,
@@ -171,5 +182,6 @@ def initial_query(session):
         file_model.face_value_loan_guarantee,
         file_model.original_loan_subsidy_cost,
         file_model.business_funds_indicator,
+        file_model.business_funds_ind_desc,
         file_model.funding_office_name,
         func.to_char(cast(file_model.modified_at, Date), 'YYYYMMDD'))
