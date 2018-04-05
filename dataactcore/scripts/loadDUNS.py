@@ -19,6 +19,25 @@ logger = logging.getLogger(__name__)
 REMOTE_SAM_DIR = '/current/SAM/2_FOUO/UTF-8/'
 
 
+def get_client():
+    username, password, host, port = get_config()
+
+    if None in (username, password):
+        logger.error("Missing config elements for connecting to SAM")
+        sys.exit(1)
+
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(
+        hostname=host,
+        username=username,
+        password=password
+    )
+
+    return client
+
+
 def get_parser():
     duns_parser = argparse.ArgumentParser(description='Get the latest data from SAM and update '
                                                       'duns table. By default, it loads the latest daily file.')
@@ -70,20 +89,9 @@ if __name__ == '__main__':
             # dealing with a local or remote directory
             if not local:
                 root_dir = CONFIG_BROKER["d_file_storage_path"]
-                username, password, host, port = get_config()
-                if None in (username, password):
-                    logger.error("Missing config elements for connecting to SAM")
-                    sys.exit(1)
 
-                client = paramiko.SSHClient()
-                client.load_system_host_keys()
-                client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                client.connect(
-                    hostname=host,
-                    username=username,
-                    password=password
-                )
-                sftp = client.open_sftp()
+                ssh_client = get_client()
+                sftp = ssh_client.open_sftp()
                 # dirlist on remote host
                 dirlist = sftp.listdir(REMOTE_SAM_DIR)
             else:
@@ -129,12 +137,18 @@ if __name__ == '__main__':
                     for daily_file in daily_files_after:
                         process_from_dir(root_dir, daily_file, sess, local, sftp, benchmarks=benchmarks)
 
-                        get_duns_batches(wdsl_client, sess, updated_date=updated_date)
-                        update_missing_parent_names(sess, updated_date=updated_date)
+                    get_duns_batches(wdsl_client, sess, updated_date=updated_date)
+                    update_missing_parent_names(sess, updated_date=updated_date)
                 else:
                     logger.info("No daily file found.")
             else:
                 if sorted_daily_file_names:
+
+                    if sftp.sock.closed:
+                        # Reconnect if channel is closed
+                        ssh_client = get_client()
+                        sftp = ssh_client.open_sftp()
+
                     process_from_dir(root_dir, sorted_daily_file_names[-1], sess, local, sftp, benchmarks=benchmarks)
 
                     get_duns_batches(wdsl_client, sess, updated_date=updated_date)
