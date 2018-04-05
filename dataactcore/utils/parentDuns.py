@@ -1,8 +1,9 @@
 import logging
-from suds.client import Client
 import pandas as pd
 import time
+import sys
 from sqlalchemy import and_, func
+from suds.client import Client
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.fileE import config_valid, get_entities
@@ -21,10 +22,10 @@ def sams_config_is_valid():
         return Client(CONFIG_BROKER['sam']['wsdl'])
     else:
         logger.error({
-            'message': "Invalid SAM config",
+            'message': "Invalid SAM wsdl config",
             'message_type': 'CoreError'
         })
-        raise Exception('Invalid SAM WSDL config')
+        sys.exit(1)
 
 
 def get_parent_from_sams(client, duns_list):
