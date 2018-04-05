@@ -54,9 +54,9 @@ OriginalLoanSubsidyCost,original_loan_subsidy_cost,ASP: Conditional per Validati
 PeriodOfPerformanceCurrentEndDate,period_of_performance_curr,ASP: Optional,string,8
 PeriodOfPerformanceStartDate,period_of_performance_star,ASP: Optional,string,8
 PrimaryPlaceOfPerformanceCityName,place_of_performance_city,ASP: Derived,string,100
-PrimaryPlaceOfPerformanceCode,place_of_performance_code,ASP: Required,string,7
+PrimaryPlaceOfPerformanceCode,place_of_performance_code,ASP: Optional,string,7
 PrimaryPlaceOfPerformanceCongressionalDistrict,place_of_performance_congr,ASP: Derived,string,2
-PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Required,string,3
+PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Optional,string,3
 PrimaryPlaceOfPerformanceCountryName,place_of_perform_country_n,ASP: Optional,string,
 PrimaryPlaceOfPerformanceCountyCode,place_of_perform_county_co,ASP: Optional,string,
 PrimaryPlaceOfPerformanceCountyName,place_of_perform_county_na,ASP: Derived,string,40

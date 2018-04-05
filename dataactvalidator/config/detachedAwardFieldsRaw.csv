@@ -30,9 +30,9 @@ NonFederalFundingAmount,non_federal_funding_amount,ASP: Optional,numeric,20
 OriginalLoanSubsidyCost,original_loan_subsidy_cost,ASP: Conditional per Validation Rule,numeric,20
 PeriodOfPerformanceCurrentEndDate,period_of_performance_curr,ASP: Optional,string,8
 PeriodOfPerformanceStartDate,period_of_performance_star,ASP: Optional,string,8
-PrimaryPlaceOfPerformanceCode,place_of_performance_code,ASP: Required,string,7
+PrimaryPlaceOfPerformanceCode,place_of_performance_code,ASP: Optional,string,7
 PrimaryPlaceOfPerformanceCongressionalDistrict,place_of_performance_congr,ASP: Conditional per Validation Rule,string,2
-PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Required,string,3
+PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Optional,string,3
 PrimaryPlaceOfPerformanceForeignLocationDescription,place_of_performance_forei,ASP: Conditional per Validation Rule,string,100
 PrimaryPlaceOfPerformanceZIP+4,place_of_performance_zip4a,ASP: Conditional per Validation Rule,string,10
 RecordType,record_type,ASP: Required,integer,1
