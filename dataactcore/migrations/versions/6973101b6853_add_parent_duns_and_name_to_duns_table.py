@@ -1,14 +1,14 @@
 """Add parent duns and parent legal business name to DUNS table
 
 Revision ID: 6973101b6853
-Revises: 224dac8f951c
+Revises: c4d42e86c655
 Create Date: 2018-03-28 10:31:51.687556
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '6973101b6853'
-down_revision = '224dac8f951c'
+down_revision = 'c4d42e86c655'
 branch_labels = None
 depends_on = None
 
