@@ -7,6 +7,8 @@ from sqlalchemy import func
 from dataactcore.models.domainModels import (CFDAProgram, SubTierAgency, Zips, States, CountyCode, CityCode, ZipCity,
                                              CountryCode)
 from dataactcore.models.stagingModels import FPDSContractingOffice
+from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, CORRECTION_DELETE_IND_DICT,
+                                        RECORD_TYPE_DICT, BUSINESS_TYPE_DICT, BUSINESS_FUNDS_IND_DICT)
 
 logger = logging.getLogger(__name__)
 
@@ -290,6 +292,57 @@ def split_ppop_zip(obj):
             obj['place_of_perform_zip_last4'] = obj['place_of_performance_zip4a'][-4:]
 
 
+def derive_labels(obj):
+    """ Deriving labels for codes entered by the user """
+
+    # Derive description for ActionType
+    if obj['action_type']:
+        obj['action_type_description'] = ACTION_TYPE_DICT.get(obj['action_type'].upper())
+    else:
+        obj['action_type_description'] = None
+
+    # Derive description for AssistanceType
+    if obj['assistance_type']:
+        obj['assistance_type_desc'] = ASSISTANCE_TYPE_DICT.get(obj['assistance_type'])
+    else:
+        obj['assistance_type_desc'] = None
+
+    # Derive description for CorrectionDeleteIndicator
+    if obj['correction_delete_indicatr']:
+        obj['correction_delete_ind_desc'] = CORRECTION_DELETE_IND_DICT.get(obj['correction_delete_indicatr'].upper())
+    else:
+        obj['correction_delete_ind_desc'] = None
+
+    # Derive description for RecordType
+    if obj['record_type']:
+        obj['record_type_description'] = RECORD_TYPE_DICT.get(obj['record_type'])
+    else:
+        obj['record_type_description'] = None
+
+    # Derive description for BusinessTypes
+    if obj['business_types']:
+        types_list = []
+        types_string = None
+        # loop through all the entries in business_types
+        for i in obj['business_types'].upper():
+            type_desc = BUSINESS_TYPE_DICT.get(i)
+            # If a valid business type was entered, append it to the list
+            if type_desc:
+                types_list.append(type_desc)
+        # If there was at least one valid business type, turn it into a string, separated by semicolons
+        if len(types_list) > 0:
+            types_string = ";".join(types_list)
+        obj['business_types_desc'] = types_string
+    else:
+        obj['business_types_desc'] = None
+
+    # Derive description for BusinessFundsIndicator
+    if obj['business_funds_indicator']:
+        obj['business_funds_ind_desc'] = BUSINESS_FUNDS_IND_DICT.get(obj['business_funds_indicator'].upper())
+    else:
+        obj['business_funds_ind_desc'] = None
+
+
 def set_active(obj):
     """ Setting active  """
     if obj['correction_delete_indicatr'] and obj['correction_delete_indicatr'].upper() == 'D':
@@ -339,6 +392,8 @@ def fabs_derivations(obj, sess):
     derive_le_country_name(obj, sess)
 
     split_ppop_zip(obj)
+
+    derive_labels(obj)
 
     set_active(obj)
 
