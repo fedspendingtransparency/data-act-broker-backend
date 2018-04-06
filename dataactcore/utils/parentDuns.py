@@ -58,6 +58,7 @@ def update_missing_parent_names(sess, updated_date=None):
         .filter(and_(func.coalesce(DUNS.ultimate_parent_legal_enti, '') != '',
                      DUNS.ultimate_parent_unique_ide.isnot(None))).distinct()
 
+    # Creating a mapping (parent_duns_by_number_name) of parent duns numbers to parent name
     for duns in distinct_parent_duns:
         if parent_duns_by_number_name.get(duns.ultimate_parent_unique_ide):
             # Do not want to deal with parent ids with multiple names
@@ -65,7 +66,7 @@ def update_missing_parent_names(sess, updated_date=None):
 
         parent_duns_by_number_name[duns.ultimate_parent_unique_ide] = duns.ultimate_parent_legal_enti
 
-    # Query to find rows where the parent duns number is present, but there is no legal enetity name
+    # Query to find rows where the parent duns number is present, but there is no legal entity name
     missing_parent_name = sess.query(DUNS).filter(and_(func.coalesce(DUNS.ultimate_parent_legal_enti, '') == '',
                                                        DUNS.ultimate_parent_unique_ide.isnot(None)))
 
