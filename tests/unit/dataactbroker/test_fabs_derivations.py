@@ -4,7 +4,7 @@ from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, 
 
 from tests.unit.dataactcore.factories.domain import (
     CGACFactory, FRECFactory, SubTierAgencyFactory, StatesFactory, CountyCodeFactory, CFDAProgramFactory,
-    ZipCityFactory, ZipsFactory, CityCodeFactory, CountryCodeFactory)
+    ZipCityFactory, ZipsFactory, CityCodeFactory, CountryCodeFactory, DunsFactory)
 
 from tests.unit.dataactcore.factories.staging import FPDSContractingOfficeFactory
 
@@ -44,8 +44,10 @@ def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, us
     contracting_office = FPDSContractingOfficeFactory(contracting_office_code='033103',
                                                       contracting_office_name='Office')
     country_code = CountryCodeFactory(country_code='USA', country_name='United States of America')
+    duns = DunsFactory(awardee_or_recipient_uniqu='123456789', ultimate_parent_unique_ide='234567890',
+                       ultimate_parent_legal_enti='Parent 1')
     db.session.add_all([sub_tier, state, cfda_number, zip_code_1, zip_code_2, zip_code_3, zip_code_4, zip_city,
-                        zip_city_2, zip_city_3, county_code, city_code, contracting_office, country_code])
+                        zip_city_2, zip_city_3, county_code, city_code, contracting_office, country_code, duns])
     db.session.commit()
 
 
@@ -397,16 +399,20 @@ def test_split_zip(database):
 
 
 def test_derive_parent_duns(database, monkeypatch):
-    obj = initialize_test_obj(awardee_or_recipient_uniqu='123456')
+    initialize_db_values(database)
 
-    assert not obj['ultimate_parent_legal_enti']
-    assert not obj['ultimate_parent_unique_ide']
+    obj = initialize_test_obj(awardee_or_recipient_uniqu='123456789')
+    obj = fabs_derivations(obj, database.session)
+
+    assert obj['ultimate_parent_legal_enti'] == 'Parent 1'
+    assert obj['ultimate_parent_unique_ide'] == '234567890'
 
 
 def test_derive_parent_duns_return_none(database, monkeypatch):
-    obj = initialize_test_obj(awardee_or_recipient_uniqu='123456')
+    initialize_db_values(database)
 
-    fabs_derivations(obj, database.session)
+    obj = initialize_test_obj(awardee_or_recipient_uniqu='123456')
+    obj = fabs_derivations(obj, database.session)
 
     assert not obj['ultimate_parent_legal_enti']
     assert not obj['ultimate_parent_unique_ide']

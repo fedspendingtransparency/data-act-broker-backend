@@ -288,12 +288,12 @@ class AwardFinancialAssistance(Base):
     record_type_description = Column(Text)
     sai_number = Column(Text)
     total_funding_amount = Column(Text)
+    ultimate_parent_legal_enti = Column(Text)
+    ultimate_parent_unique_ide = Column(Text)
     uri = Column(Text, index=True)
     place_of_perform_county_co = Column(Text)
     place_of_perform_country_n = Column(Text)
     legal_entity_country_name = Column(Text)
-    ultimate_parent_legal_enti = Column(Text)
-    ultimate_parent_unique_ide = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -1021,12 +1021,12 @@ class PublishedAwardFinancialAssistance(Base):
     record_type_description = Column(Text)
     sai_number = Column(Text)
     total_funding_amount = Column(Text)
+    ultimate_parent_legal_enti = Column(Text)
+    ultimate_parent_unique_ide = Column(Text)
     uri = Column(Text, index=True)
     place_of_perform_county_co = Column(Text)
     place_of_perform_country_n = Column(Text)
     legal_entity_country_name = Column(Text)
-    ultimate_parent_legal_enti = Column(Text)
-    ultimate_parent_unique_ide = Column(Text)
     submission_id = Column(Numeric, index=True)
     ignore_updated_at = False
 

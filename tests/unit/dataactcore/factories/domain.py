@@ -205,3 +205,19 @@ class CountryCodeFactory(factory.Factory):
     country_code_id = None
     country_code = fuzzy.FuzzyText()
     country_name = fuzzy.FuzzyText()
+
+
+class DunsFactory(factory.Factory):
+    class Meta:
+        model = domainModels.DUNS
+
+    duns_id = None
+    awardee_or_recipient_uniqu = fuzzy.FuzzyText()
+    legal_business_name = fuzzy.FuzzyText()
+    activation_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
+    deactivation_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
+    registration_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
+    expiration_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
+    last_sam_mod_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
+    ultimate_parent_unique_ide = fuzzy.FuzzyText()
+    ultimate_parent_legal_enti = fuzzy.FuzzyText()

@@ -1,14 +1,14 @@
-"""Adding parent duns number and name to FABS
+"""Adding parent duns number and name to (Published)AwardFinancialAssistance
 
 Revision ID: 1fabe0bdd48c
-Revises: ee7bff1d660c
+Revises: 6973101b6853
 Create Date: 2018-03-27 15:07:45.721751
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '1fabe0bdd48c'
-down_revision = 'ee7bff1d660c'
+down_revision = '6973101b6853'
 branch_labels = None
 depends_on = None
 

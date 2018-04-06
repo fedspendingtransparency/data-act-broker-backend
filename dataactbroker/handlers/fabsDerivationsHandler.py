@@ -376,8 +376,6 @@ def fabs_derivations(obj, sess):
     obj['legal_entity_city_name'] = None
     obj['place_of_performance_zip5'] = None
     obj['place_of_perform_zip_last4'] = None
-    obj['ultimate_parent_legal_enti'] = None
-    obj['ultimate_parent_unique_ide'] = None
 
     # deriving total_funding_amount
     federal_action_obligation = obj['federal_action_obligation'] or 0
@@ -408,7 +406,7 @@ def fabs_derivations(obj, sess):
 
     split_ppop_zip(obj)
 
-    derive_parent_duns(obj)
+    derive_parent_duns(obj, sess)
 
     derive_labels(obj)
 
