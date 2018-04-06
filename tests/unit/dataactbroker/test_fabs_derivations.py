@@ -1,4 +1,6 @@
 from dataactbroker.handlers.fabsDerivationsHandler import fabs_derivations
+from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, CORRECTION_DELETE_IND_DICT,
+                                        RECORD_TYPE_DICT, BUSINESS_TYPE_DICT, BUSINESS_FUNDS_IND_DICT)
 
 from tests.unit.dataactcore.factories.domain import (
     CGACFactory, FRECFactory, SubTierAgencyFactory, StatesFactory, CountyCodeFactory, CFDAProgramFactory,
@@ -49,10 +51,13 @@ def initialize_db_values(db, cfda_title=None, cgac_code=None, frec_code=None, us
 
 def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1234", sub_fund_agency_code=None,
                         ppop_code="NY00000", ppop_zip4a=None, ppop_cd=None, le_zip5=None, le_zip4=None, record_type=2,
-                        award_mod_amend=None, fain=None, uri=None, cldi=None, awarding_office='033103',
+                        award_mod_amend=None, fain=None, uri=None, cdi=None, awarding_office='033103',
                         funding_office='033103', legal_congr=None, legal_city="WASHINGTON", legal_state="DC",
-                        primary_place_country='USA', legal_country='USA', awardee_or_recipient_uniqu=None,
-                        detached_award_financial_assistance_id=None, job_id=None):
+                        primary_place_country='USA', legal_country='USA', detached_award_financial_assistance_id=None,
+                        job_id=None, action_type=None, assist_type=None, busi_type=None, busi_fund=None,
+                        awardee_or_recipient_uniqu=None
+                        ):
+
     """ Initialize the values in the object being run through the fabs_derivations function """
     obj = {
         'federal_action_obligation': fao,
@@ -69,7 +74,7 @@ def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1
         'award_modification_amendme': award_mod_amend,
         'fain': fain,
         'uri': uri,
-        'correction_delete_indicatr': cldi,
+        'correction_delete_indicatr': cdi,
         'awarding_office_code': awarding_office,
         'funding_office_code': funding_office,
         'legal_entity_congressional': legal_congr,
@@ -79,7 +84,11 @@ def initialize_test_obj(fao=None, nffa=None, cfda_num="00.000", sub_tier_code="1
         'legal_entity_country_code': legal_country,
         'awardee_or_recipient_uniqu': awardee_or_recipient_uniqu,
         'detached_award_financial_assistance_id': detached_award_financial_assistance_id,
-        'job_id': job_id
+        'job_id': job_id,
+        'action_type': action_type,
+        'assistance_type': assist_type,
+        'business_types': busi_type,
+        'business_funds_indicator': busi_fund
     }
     return obj
 
@@ -403,6 +412,44 @@ def test_derive_parent_duns_return_none(database, monkeypatch):
     assert not obj['ultimate_parent_unique_ide']
 
 
+def test_derive_labels(database):
+    initialize_db_values(database)
+
+    # Testing when these values are blank
+    obj = initialize_test_obj()
+    obj = fabs_derivations(obj, database.session)
+    assert obj['action_type_description'] is None
+    assert obj['assistance_type_desc'] is None
+    assert obj['correction_delete_ind_desc'] is None
+    assert obj['business_types_desc'] is None
+    assert obj['business_funds_ind_desc'] is None
+
+    # Testing for valid values of each
+    obj = initialize_test_obj(cdi='c', action_type='a', assist_type='02', busi_type='d', busi_fund='non')
+    obj = fabs_derivations(obj, database.session)
+    assert obj['action_type_description'] == ACTION_TYPE_DICT['A']
+    assert obj['assistance_type_desc'] == ASSISTANCE_TYPE_DICT['02']
+    assert obj['correction_delete_ind_desc'] == CORRECTION_DELETE_IND_DICT['C']
+    assert obj['record_type_description'] == RECORD_TYPE_DICT[2]
+    assert obj['business_types_desc'] == BUSINESS_TYPE_DICT['D']
+    assert obj['business_funds_ind_desc'] == BUSINESS_FUNDS_IND_DICT['NON']
+
+    # Testing for invalid values of each
+    obj = initialize_test_obj(cdi='f', action_type='z', assist_type='01', record_type=5, busi_type='Z', busi_fund='ab')
+    obj = fabs_derivations(obj, database.session)
+    assert obj['action_type_description'] is None
+    assert obj['assistance_type_desc'] is None
+    assert obj['correction_delete_ind_desc'] is None
+    assert obj['record_type_description'] is None
+    assert obj['business_types_desc'] is None
+    assert obj['business_funds_ind_desc'] is None
+
+    # Test multiple business types (2 valid, one invalid)
+    obj = initialize_test_obj(cdi='f', action_type='z', assist_type='01', record_type=5, busi_type='azb')
+    obj = fabs_derivations(obj, database.session)
+    assert obj['business_types_desc'] == BUSINESS_TYPE_DICT['A'] + ';' + BUSINESS_TYPE_DICT['B']
+
+
 def test_is_active(database):
     initialize_db_values(database)
 
@@ -412,11 +459,11 @@ def test_is_active(database):
     assert obj['is_active'] is True
 
     # Testing with value other than D
-    obj = initialize_test_obj(cldi="c")
+    obj = initialize_test_obj(cdi="c")
     obj = fabs_derivations(obj, database.session)
     assert obj['is_active'] is True
 
     # Testing with D
-    obj = initialize_test_obj(cldi="D")
+    obj = initialize_test_obj(cdi="D")
     obj = fabs_derivations(obj, database.session)
     assert obj['is_active'] is False
