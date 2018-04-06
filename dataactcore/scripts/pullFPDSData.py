@@ -20,6 +20,8 @@ from sqlalchemy import func
 
 from dateutil.relativedelta import relativedelta
 
+from requests.packages.urllib3.exceptions import ReadTimeoutError
+
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 
@@ -27,8 +29,6 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.utils.statusCode import StatusCode
-from dataactcore.utils.responseException import ResponseException
 from dataactcore.models.domainModels import SubTierAgency, CountryCode, States, CountyCode, Zips
 from dataactcore.models.stagingModels import DetachedAwardProcurement
 from dataactcore.models.jobModels import FPDSUpdate
@@ -1271,15 +1271,15 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                                             namespaces={'http://www.fpdsng.com/FPDS': None,
                                                         'http://www.w3.org/2005/Atom': None})
                 break
-            except ConnectionResetError:
+            except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError) as e:
                 exception_retries += 1
-                # retry up to 3 times before raising an error
                 if exception_retries < len(retry_sleep_times):
+                    logger.info('Connection exception caught. Sleeping {}s and then retrying...'.format(
+                        retry_sleep_times[exception_retries]))
                     time.sleep(retry_sleep_times[exception_retries])
                 else:
-                    raise ResponseException(
-                        "Connection to FPDS feed lost, maximum retry attempts exceeded.", StatusCode.INTERNAL_ERROR
-                    )
+                    logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
+                    raise e
 
         # only list the data if there's data to list
         try:
@@ -1341,12 +1341,26 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
     i = 0
     logger.info('Starting delete feed: %sCONTRACT_TYPE:"%s"', delete_url + params, contract_type.upper())
     while True:
-        resp = requests.get(delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"&start=' + str(i),
-                            timeout=60)
-        resp_data = xmltodict.parse(resp.text, process_namespaces=True,
-                                    namespaces={'http://www.fpdsng.com/FPDS': None,
-                                                'http://www.w3.org/2005/Atom': None,
-                                                'https://www.fpds.gov/FPDS': None})
+        exception_retries = -1
+        retry_sleep_times = [5, 30, 60, 180, 300]
+
+        try:
+            resp = requests.get(delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"&start=' + str(i),
+                                timeout=60)
+            resp_data = xmltodict.parse(resp.text, process_namespaces=True,
+                                        namespaces={'http://www.fpdsng.com/FPDS': None,
+                                                    'http://www.w3.org/2005/Atom': None,
+                                                    'https://www.fpds.gov/FPDS': None})
+        except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError) as e:
+            exception_retries += 1
+            if exception_retries < len(retry_sleep_times):
+                logger.info('Connection exception caught. Sleeping {}s and then retrying...'.format(
+                    retry_sleep_times[exception_retries]))
+                time.sleep(retry_sleep_times[exception_retries])
+            else:
+                logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
+                raise e
+
         # only list the data if there's data to list
         try:
             listed_data = list_data(resp_data['feed']['entry'])
