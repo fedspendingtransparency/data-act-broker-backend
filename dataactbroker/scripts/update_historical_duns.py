@@ -6,7 +6,7 @@ import argparse
 from datetime import datetime
 
 from dataactcore.models.domainModels import DUNS
-from dataactcore.scripts.loadDUNS import load_duns_by_row
+from dataactcore.utils.duns import load_duns_by_row
 from dataactvalidator.scripts.loaderUtils import clean_data
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
