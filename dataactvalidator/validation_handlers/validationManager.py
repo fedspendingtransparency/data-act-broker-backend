@@ -24,7 +24,6 @@ from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, FlexField
 from dataactcore.models.errorModels import ErrorMetadata
-from dataactcore.models.jobModels import Job
 from dataactcore.models.validationModels import RuleSql
 
 from dataactcore.utils.responseException import ResponseException
@@ -60,8 +59,8 @@ class ValidationManager:
         self.directory = directory
 
         # create long-to-short (and vice-versa) column name mappings
-        sess = GlobalDB.db().session
-        colnames = sess.query(FileColumn.name, FileColumn.name_short).all()
+        self.sess = GlobalDB.db().session
+        colnames = self.sess.query(FileColumn.name, FileColumn.name_short).all()
         self.long_to_short_dict = {row.name: row.name_short for row in colnames}
         self.short_to_long_dict = {row.name_short: row.name for row in colnames}
 
@@ -77,8 +76,8 @@ class ValidationManager:
         Args:
             region_name - AWS region to write to, not used for local
             bucket_name - AWS bucket to write to, not used for local
-            file_name - File to be written
-            header - Column headers for file to be written
+            file_name   - file to be written
+            header      - column headers for file to be written
         """
         if self.isLocal:
             return CsvLocalWriter(file_name, header)
@@ -95,12 +94,12 @@ class ValidationManager:
         """ Read and process the next record
 
         Args:
-            reader: CsvReader object
-            writer: CsvWriter object
-            row_number: Next row number to be read
-            job: current job
-            fields: List of FileColumn objects for this file type
-            error_list: instance of ErrorInterface to keep track of errors
+            reader     - CsvReader object
+            writer     - CsvWriter object
+            row_number - next row number to be read
+            job        - current job
+            fields     - list of FileColumn objects for this file type
+            error_list - instance of ErrorInterface to keep track of errors
 
         Returns:
             Tuple with six elements:
@@ -145,12 +144,11 @@ class ValidationManager:
     def run_validation(self, job):
         """ Run validations for specified job
         Args:
-            job: Job to be validated
+            job: - Job to be validated
         Returns:
             True if successful
         """
-
-        sess = GlobalDB.db().session
+        sess = self.sess
         error_list = ErrorInterface()
         job_id = job.job_id
         submission_id = job.submission_id
@@ -504,9 +502,9 @@ class ValidationManager:
             Run each cross-file rule and create error report.
 
             Args:
-                job: Current job
+                job  -- current job
         """
-        sess = GlobalDB.db().session
+        sess = self.sess
         job_id = job.job_id
         # Create File Status object
         create_file_if_needed(job_id)
@@ -623,29 +621,20 @@ class ValidationManager:
         # Mark validation complete
         mark_file_complete(job_id)
 
-    def validate_job(self, job_id):
+    def validate_job(self, job):
         """ Gets file for job, validates each row, and sends valid rows to a staging table
         Args:
-        request -- HTTP request containing the jobId
+            job  -- job to be validated
         Returns:
-        Http response object
+            JSONResponse object
         """
-        # Create connection to job tracker database
-        sess = GlobalDB.db().session
-
-        # Get the job
-        job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
-        if job is None:
-            validation_error_type = ValidationError.jobError
-            write_file_error(job_id, None, validation_error_type)
-            raise ResponseException('Job ID {} not found in database'.format(job_id), StatusCode.CLIENT_ERROR, None,
-                                    validation_error_type)
+        sess = self.sess
 
         # Make sure job's prerequisites are complete
-        if not run_job_checks(job_id):
+        if not run_job_checks(job.job_id):
             validation_error_type = ValidationError.jobError
-            write_file_error(job_id, None, validation_error_type)
-            raise ResponseException('Prerequisites for Job ID {} are not complete'.format(job_id),
+            write_file_error(job.job_id, None, validation_error_type)
+            raise ResponseException('Prerequisites for Job ID {} are not complete'.format(job.job_id),
                                     StatusCode.CLIENT_ERROR, None, validation_error_type)
 
         # Make sure this is a validation job
@@ -653,13 +642,13 @@ class ValidationManager:
             job_type_name = job.job_type.name
         else:
             validation_error_type = ValidationError.jobError
-            write_file_error(job_id, None, validation_error_type)
+            write_file_error(job.job_id, None, validation_error_type)
             raise ResponseException(
-                'Job ID {} is not a validation job (job type is {})'.format(job_id, job.job_type.name),
+                'Job ID {} is not a validation job (job type is {})'.format(job.job_id, job.job_type.name),
                 StatusCode.CLIENT_ERROR, None, validation_error_type)
 
-        # set job status to running and do validations
-        mark_job_status(job_id, "running")
+        # Set job status to running and do validations
+        mark_job_status(job.job_id, "running")
         if job_type_name == 'csv_record_validation':
             self.run_validation(job)
         elif job_type_name == 'validation':

@@ -581,7 +581,8 @@ class FileTests(BaseTestAPI):
 
         self.assertEqual(response.status_code, 200)
         json = response.json
-        self.assertIn(json["status"], ["running", "finished"])
+        print(json)
+        self.assertIn(json["status"], ["ready", "running", "finished"])
         self.assertEqual(json["file_type"], "D1")
         self.assertIn("url", json)
         self.assertEqual(json["start"], "01/02/2016")

@@ -5,7 +5,6 @@ import re
 import requests
 import smart_open
 import sqlalchemy as sa
-import threading
 
 from collections import namedtuple
 from datetime import datetime
@@ -18,11 +17,11 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql.expression import case
 from werkzeug.utils import secure_filename
 
-from dataactbroker.handlers.fileGenerationHandler import generate_d_file, generate_e_file, generate_f_file
 from dataactbroker.handlers.submission_handler import create_submission, get_submission_status, get_submission_files
 from dataactbroker.permissions import current_user_can, current_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
+from dataactcore.aws.sqsHandler import sqs_queue
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
@@ -53,6 +52,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
+from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager
 
 logger = logging.getLogger(__name__)
 
@@ -374,109 +374,42 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def start_generation_job(self, job):
-        """ Initiates a file generation job
-
+    def start_generation_job(self, job, agency_code, start_date, end_date):
+        """ Validates the dates for a D file generation job and passes the Job ID to SQS
         Args:
             job: the file generation job to start
-
         Returns:
             Tuple of boolean indicating successful start, and error response if False
         """
         sess = GlobalDB.db().session
-        file_type_name = job.file_type.name
         file_type = job.file_type.letter_name
-
         try:
             if file_type in ['D1', 'D2']:
-                # Populate start and end dates, these should be provided in MM/DD/YYYY format, using calendar year
-                # (not fiscal year)
-                request_dict = RequestDictionary(self.request)
-                start, end = request_dict.get_value("start"), request_dict.get_value("end")
-                if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
+                # Validate and set Job's start and end dates
+                if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
                     raise ResponseException("Start or end date cannot be parsed into a date", StatusCode.CLIENT_ERROR)
-
+                job.start_date = start_date
+                job.end_date = end_date
+                sess.commit()
             elif file_type not in ["E", "F"]:
                 raise ResponseException("File type must be either D1, D2, E or F", StatusCode.CLIENT_ERROR)
 
         except ResponseException as e:
             return False, JsonResponse.error(e, e.status, file_type=file_type, status='failed')
 
-        submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
-
-        # If this job has already generated a D file that is cached, don't request new job info
-        file_request = sess.query(FileRequest).filter_by(job_id=job.job_id).one_or_none()
-        log_data = {
-            'message_type': 'BrokerDebug',
-            'job_id': job.job_id,
-            'submission_id': job.submission_id,
-            'file_type': file_type
-        }
-        old_filename = None
-        if file_request and file_request.is_cached_file:
-            log_data['message'] = 'D file generation running on job with cached file'
-            old_filename = job.original_filename
+        if CONFIG_BROKER["use_aws"]:
+            # Add job_id to the SQS job queue
+            logger.info({'message_type': 'BrokerInfo', 'job_id': job.job_id,
+                         'message': 'Sending file generation job {} to Validator in SQS'.format(job.job_id)})
+            queue = sqs_queue()
+            response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes={'agency_code': agency_code})
+            logger.debug({'message_type': 'BrokerInfo', 'job_id': job.job_id,
+                          'message': 'Send message response: {}'.format(response)})
         else:
-            log_data['message'] = 'Adding job info for job id of {}'.format(job.job_id)
-        logger.debug(log_data)
-        job = self.add_generation_job_info(file_type_name=file_type_name, job=job)
-
-        # Generate and upload file to S3
-        upload_file_name, timestamped_name = job.filename, job.original_filename
-        if file_type in ['D1', 'D2']:
-            date_error = self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission.submission_id,
-                                                      file_type, file_type_name, start, end, job)
-            if date_error is not None:
-                return False, date_error
-
-            agency_code = submission.frec_code if submission.frec_code else submission.cgac_code
-            t = threading.Thread(target=generate_d_file, args=(file_type, agency_code, start, end, job.job_id,
-                                                               upload_file_name, self.isLocal, job.submission_id,
-                                                               old_filename))
-        else:
-            t = threading.Thread(
-                target=generate_e_file if file_type == 'E' else generate_f_file,
-                args=(submission.submission_id, job.job_id, timestamped_name, upload_file_name, self.isLocal))
-        t.start()
+            file_generation_manager = FileGenerationManager(True)
+            file_generation_manager.generate_from_job(job, agency_code)
 
         return True, None
-
-    def add_job_info_for_d_file(self, upload_file_name, timestamped_name, submission_id, file_type, file_type_name,
-                                start_date, end_date, job):
-        """ Populates upload and validation job objects with start and end dates, filenames, and status
-
-        Args:
-            upload_file_name - Filename to use on S3
-            timestamped_name - Version of filename without user ID
-            submission_id - Submission to add D files to
-            file_type - File type as either "D1" or "D2"
-            file_type_name - Full name of file type
-            start_date - Beginning of period for D file
-            end_date - End of period for D file
-            job - Job object for upload job
-        """
-        sess = GlobalDB.db().session
-        val_job = sess.query(Job).filter(Job.submission_id == submission_id,
-                                         Job.file_type_id == FILE_TYPE_DICT[file_type_name],
-                                         Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one()
-        try:
-            val_job.filename = upload_file_name
-            val_job.original_filename = timestamped_name
-            val_job.job_status_id = JOB_STATUS_DICT["waiting"]
-            job.start_date = datetime.strptime(start_date, "%m/%d/%Y").date()
-            job.end_date = datetime.strptime(end_date, "%m/%d/%Y").date()
-            val_job.start_date = datetime.strptime(start_date, "%m/%d/%Y").date()
-            val_job.end_date = datetime.strptime(end_date, "%m/%d/%Y").date()
-
-            # Clear out error messages to prevent stale messages
-            job.error_message = None
-            val_job.error_message = None
-        except ValueError as e:
-            # Date was not in expected format
-            exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, ValueError)
-            return JsonResponse.error(exc, exc.status, url="", start="", end="", file_type=file_type)
-
-        return None
 
     def download_file(self, local_file_path, file_url, upload_name, response):
         """ Download a file locally from the specified URL, returns True if successful """
@@ -538,7 +471,10 @@ class FileHandler:
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
-        success, error_response = self.start_generation_job(job)
+        request_dict = RequestDictionary(self.request)
+        agency_code = job.submission.frec_code if job.submission.frec_code else job.submission.cgac_code
+        success, error_response = self.start_generation_job(job, agency_code, request_dict.get_value("start"),
+                                                            request_dict.get_value("end"))
         log_data['message'] = 'Finished start_generation_job method for submission {}'.format(submission_id)
         logger.debug(log_data)
 
@@ -571,16 +507,9 @@ class FileHandler:
 
     def generate_detached_file(self, file_type, cgac_code, frec_code, start, end):
         """ Start a file generation job for the specified file type """
-        # check if date format is MM/DD/YYYY
-        if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
-            raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
-
-        # add job info
+        # Add job info
         file_type_name = FILE_TYPE_DICT_ID[FILE_TYPE_DICT_LETTER_ID[file_type]]
-        new_job = self.add_generation_job_info(
-            file_type_name=file_type_name,
-            dates={'start_date': start, 'end_date': end}
-        )
+        new_job = self.add_generation_job_info(file_type_name=file_type_name, start_date=start, end_date=end)
 
         agency_code = frec_code if frec_code else cgac_code
         logger.info({
@@ -593,10 +522,7 @@ class FileHandler:
             'end_date': end
         })
 
-        # thread detached D file generation
-        t = threading.Thread(target=generate_d_file, args=(file_type, agency_code, start, end, new_job.job_id,
-                                                           new_job.filename, self.isLocal))
-        t.start()
+        self.start_generation_job(new_job, agency_code, start, end)
 
         # Return same response as check generation route
         return self.check_detached_generation(new_job.job_id)
@@ -708,7 +634,7 @@ class FileHandler:
         upload_job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
         response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '', 'start': '',
                          'end': ''}
-        if upload_job is None or upload_job.filename is None:
+        if upload_job is None or (upload_job.filename is None and not CONFIG_BROKER["use_aws"]):
             response_dict['status'] = 'invalid'
             response_dict['message'] = 'No generation job found with the specified ID' if upload_job is None else\
                                        'No file has been generated for this submission.'
@@ -928,28 +854,18 @@ class FileHandler:
                                                         path=CONFIG_BROKER["help_files_path"])
         return JsonResponse.create(StatusCode.OK, response)
 
-    def add_generation_job_info(self, file_type_name, job=None, dates=None):
-        # if job is None, that means the info being added is for detached d file generation
+    def add_generation_job_info(self, file_type_name, job=None, start_date=None, end_date=None):
         sess = GlobalDB.db().session
 
+        # if job is None, that means the info being added is for detached D file generation
         if job is None:
             job = Job(job_type_id=JOB_TYPE_DICT['file_upload'], user_id=g.user.user_id,
-                      file_type_id=FILE_TYPE_DICT[file_type_name], start_date=dates['start_date'],
-                      end_date=dates['end_date'])
+                      file_type_id=FILE_TYPE_DICT[file_type_name], start_date=start_date, end_date=end_date)
             sess.add(job)
 
-        timestamped_name = S3Handler.get_timestamped_filename(
-            CONFIG_BROKER["".join([str(file_type_name), "_file_name"])])
-        if self.isLocal:
-            upload_file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
-        else:
-            upload_file_name = "".join([str(job.submission_id), "/", timestamped_name])
-
-        # This will update the reference so no need to return the job, just the upload and timestamped file names
+        # Update the job message and status
         job.message = None
-        job.filename = upload_file_name
-        job.original_filename = timestamped_name
-        job.job_status_id = JOB_STATUS_DICT["running"]
+        job.job_status_id = JOB_STATUS_DICT["ready"]
         sess.commit()
 
         return job
