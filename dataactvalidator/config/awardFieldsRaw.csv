@@ -67,4 +67,6 @@ RecordType,record_type,ASP: Required,integer,1
 RecordTypeDescription,record_type_description,ASP: Optional,string,
 SAI_Number,sai_number,ASP: Optional,string,50
 TotalFundingAmount,total_funding_amount,ASP: Derived,numeric,20
+UltimateParentLegalEntityName,ultimate_parent_legal_enti,FALSE,str,120,
+UltimateParentUniqueIdentifier,ultimate_parent_unique_ide,FALSE,str,9,
 URI,uri,ASP: Conditional per Validation Rule,string,70

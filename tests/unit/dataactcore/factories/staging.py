@@ -223,6 +223,8 @@ class AwardFinancialAssistanceFactory(factory.Factory):
     record_type_description = fuzzy.FuzzyText()
     sai_number = fuzzy.FuzzyText()
     total_funding_amount = fuzzy.FuzzyText()
+    ultimate_parent_legal_enti = fuzzy.FuzzyText()
+    ultimate_parent_unique_ide = fuzzy.FuzzyText()
     uri = fuzzy.FuzzyText()
 
 
@@ -352,6 +354,8 @@ class PublishedAwardFinancialAssistanceFactory(factory.Factory):
     record_type = fuzzy.FuzzyInteger(1, 3)
     record_type_description = fuzzy.FuzzyText()
     sai_number = fuzzy.FuzzyText()
+    ultimate_parent_legal_enti = fuzzy.FuzzyText()
+    ultimate_parent_unique_ide = fuzzy.FuzzyText()
     uri = fuzzy.FuzzyText()
     modified_at = fuzzy.FuzzyDate(date(2015, 1, 1), date(2015, 12, 31))
 
