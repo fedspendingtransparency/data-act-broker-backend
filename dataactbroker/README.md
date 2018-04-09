@@ -291,52 +291,6 @@ Example output:
 }
 ```
 
-#### POST "/v1/submission_error_reports/"
-A call to this route should have JSON or form-urlencoded with a key of "submission_id" and value of the submission id received from the submit_files route.  The response object will be JSON with keys of "job_X_error_url" for each job X that is part of the submission, and the value will be the signed URL of the error report on S3. Note that for failed jobs (i.e. file-level errors), no error reports will be created.
-
-Example input:
-
-```json
-{
-   "submission_id":1610
-}
-```
-
-Example output:
-
-```json
-{
-  "job_3012_error_url": "https...",
-  "job_3006_error_url": "https...",
-  "job_3010_error_url": "https...",
-  "job_3008_error_url": "https...",
-  "cross_appropriations-program_activity": "https..."
-}
-```
-
-#### POST "/v1/submission_warning_reports/"
-A call to this route should have JSON or form-urlencoded with a key of "submission_id" and value of the submission id received from the submit_files route.  The response object will be JSON with keys of "job_X_warning_url" for each job X that is part of the submission, and the value will be the signed URL of the error report on S3. Note that for failed jobs (i.e. file-level errors), no error reports will be created.
-
-Example input:
-
-```json
-{
-   "submission_id":1610
-}
-```
-
-Example output:
-
-```json
-{
-  "job_3012_warning_url": "https...",
-  "job_3006_warning_url": "https...",
-  "job_3010_warning_url": "https...",
-  "job_3008_warning_url": "https...",
-  "cross_warning_appropriations-program_activity": "https..."
-}
-```
-
 #### POST "/v1/check_status/"
 A call to this route will provide status information on all jobs associated with the specified submission.
 The request should have JSON or form-urlencoded with a key "submission_id".  The response will contain a list of

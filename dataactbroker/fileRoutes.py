@@ -100,20 +100,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         return JsonResponse.create(StatusCode.OK, {"data": data})
 
-    @app.route("/v1/submission_error_reports/", methods=["POST"])
-    @requires_login
-    @use_kwargs({'submission_id': webargs_fields.Int(required=True)})
-    def submission_error_reports(submission_id):
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.get_error_report_urls_for_submission(submission_id)
-
-    @app.route("/v1/submission_warning_reports/", methods=["POST"])
-    @requires_login
-    @use_kwargs({'submission_id': webargs_fields.Int(required=True)})
-    def submission_warning_reports(submission_id):
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.get_error_report_urls_for_submission(submission_id, is_warning=True)
-
     @app.route("/v1/error_metrics/", methods=["POST"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
