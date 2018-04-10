@@ -779,6 +779,7 @@ class FileHandler:
             # Create lookup dictionaries so we don't have to query the API every time.
             state_dict = {}
             country_dict = {}
+            sub_tier_dict = {}
 
             states = sess.query(States).all()
             for state in states:
@@ -789,6 +790,17 @@ class FileHandler:
             for country in countries:
                 country_dict[country.country_code.upper()] = country.state_name
             del countries
+
+            sub_tiers = sess.query(SubTierAgency).all()
+            for sub_tier in sub_tiers:
+                sub_tier_dict[sub_tier.sub_tier_agency_code] = {
+                    "is_frec": sub_tier.is_frec,
+                    "cgac_code": sub_tier.cgac.cgac_code,
+                    "frec_code": sub_tier.frec.frec_code,
+                    "sub_tier_agency_name": sub_tier.sub_tier_agency_name,
+                    "agency_name": sub_tier.frec.agency_name if sub_tier.is_frec else sub_tier.cgac.agency_name
+                }
+            del sub_tiers
 
             agency_codes_list = []
             row_count = 1
@@ -803,7 +815,7 @@ class FileHandler:
                 temp_obj.pop('updated_at', None)
                 temp_obj.pop('_sa_instance_state', None)
 
-                temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict)
+                temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict)
 
                 # if it's a correction or deletion row and an old row is active, update the old row to be inactive
                 if row.correction_delete_indicatr is not None:

@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from sqlalchemy import func
 
-from dataactcore.models.domainModels import CFDAProgram, SubTierAgency, Zips, CountyCode, CityCode, ZipCity, DUNS
+from dataactcore.models.domainModels import CFDAProgram, Zips, CountyCode, CityCode, ZipCity, DUNS
 from dataactcore.models.stagingModels import FPDSContractingOffice
 from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, CORRECTION_DELETE_IND_DICT,
                                         RECORD_TYPE_DICT, BUSINESS_TYPE_DICT, BUSINESS_FUNDS_IND_DICT)
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 # TODO: Make these lookups (potentially) instead of DB calls, ordered from smallest to largest:
-# SubTierAgency (1,476 entries), CFDAProgram (2,971 entries), CountyCode (3,295 entries),
+# CFDAProgram (2,971 entries), CountyCode (3,295 entries),
 # FPDSContractingOffice (6,566 entries)
 
 def get_zip_data(sess, zip_five, zip_four):
@@ -49,33 +49,28 @@ def derive_cfda(obj, sess, job_id, detached_award_financial_assistance_id):
         obj['cfda_title'] = None
 
 
-def derive_awarding_agency_data(obj, sess):
+def derive_awarding_agency_data(obj, sub_tier_dict):
     """ Deriving awarding sub tier agency name, awarding agency name, and awarding agency code """
     if obj['awarding_sub_tier_agency_c']:
-        awarding_sub_tier = sess.query(SubTierAgency).\
-            filter_by(sub_tier_agency_code=obj['awarding_sub_tier_agency_c']).one()
-        use_frec = awarding_sub_tier.is_frec
-        awarding_agency = awarding_sub_tier.frec if use_frec else awarding_sub_tier.cgac
-        obj['awarding_agency_code'] = awarding_agency.frec_code if use_frec else awarding_agency.cgac_code
-        obj['awarding_agency_name'] = awarding_agency.agency_name
-        obj['awarding_sub_tier_agency_n'] = awarding_sub_tier.sub_tier_agency_name
+        sub_tier = sub_tier_dict.get(obj['awarding_sub_tier_agency_c'])
+        use_frec = sub_tier["is_frec"]
+        obj['awarding_agency_code'] = sub_tier["frec_code"] if use_frec else sub_tier["cgac_code"]
+        obj['awarding_agency_name'] = sub_tier["agency_name"]
+        obj['awarding_sub_tier_agency_n'] = sub_tier["sub_tier_agency_name"]
     else:
         obj['awarding_agency_code'] = None
         obj['awarding_agency_name'] = None
         obj['awarding_sub_tier_agency_n'] = None
 
 
-def derive_funding_agency_data(obj, sess):
+def derive_funding_agency_data(obj, sub_tier_dict):
     """ Deriving funding sub tier agency name, funding agency name, and funding agency code """
     if obj['funding_sub_tier_agency_co']:
-        funding_sub_tier_agency = sess.query(SubTierAgency). \
-            filter_by(sub_tier_agency_code=obj['funding_sub_tier_agency_co']).one()
-        obj['funding_sub_tier_agency_na'] = funding_sub_tier_agency.sub_tier_agency_name
-        use_frec = funding_sub_tier_agency.is_frec
-        funding_agency = funding_sub_tier_agency.frec if use_frec else funding_sub_tier_agency.cgac
-        obj['funding_agency_code'] = funding_agency.frec_code if use_frec else funding_agency.cgac_code
-        obj['funding_agency_name'] = funding_agency.agency_name
-        obj['funding_sub_tier_agency_na'] = funding_sub_tier_agency.sub_tier_agency_name
+        sub_tier = sub_tier_dict.get(obj['funding_sub_tier_agency_co'])
+        use_frec = sub_tier["is_frec"]
+        obj['funding_agency_code'] = sub_tier["frec_code"] if use_frec else sub_tier["cgac_code"]
+        obj['funding_agency_name'] = sub_tier["agency_name"]
+        obj['funding_sub_tier_agency_na'] = sub_tier["sub_tier_agency_name"]
     else:
         obj['funding_sub_tier_agency_na'] = None
         obj['funding_agency_name'] = None
@@ -350,7 +345,7 @@ def set_active(obj):
         obj['is_active'] = True
 
 
-def fabs_derivations(obj, sess, state_dict, country_dict):
+def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict):
     # copy log data and remove keys in the row left for logging
     job_id = obj['job_id']
     detached_award_financial_assistance_id = obj['detached_award_financial_assistance_id']
@@ -370,9 +365,9 @@ def fabs_derivations(obj, sess, state_dict, country_dict):
 
     derive_cfda(obj, sess, job_id, detached_award_financial_assistance_id)
 
-    derive_awarding_agency_data(obj, sess)
+    derive_awarding_agency_data(obj, sub_tier_dict)
 
-    derive_funding_agency_data(obj, sess)
+    derive_funding_agency_data(obj, sub_tier_dict)
 
     ppop_code, ppop_state_code, ppop_state_name = derive_ppop_state(obj, state_dict)
 
