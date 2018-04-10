@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from sqlalchemy import func
 
-from dataactcore.models.domainModels import CFDAProgram, Zips, CountyCode, CityCode, ZipCity, DUNS
+from dataactcore.models.domainModels import Zips, CountyCode, CityCode, ZipCity, DUNS
 from dataactcore.models.stagingModels import FPDSContractingOffice
 from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, CORRECTION_DELETE_IND_DICT,
                                         RECORD_TYPE_DICT, BUSINESS_TYPE_DICT, BUSINESS_FUNDS_IND_DICT)
@@ -13,8 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 # TODO: Make these lookups (potentially) instead of DB calls, ordered from smallest to largest:
-# CFDAProgram (2,971 entries), CountyCode (3,295 entries),
-# FPDSContractingOffice (6,566 entries)
+# CountyCode (3,295 entries), FPDSContractingOffice (6,566 entries)
 
 def get_zip_data(sess, zip_five, zip_four):
     """ Get zip data based on 5-digit or 9-digit zips and the counts of congressional districts associated with them """
@@ -34,19 +33,16 @@ def get_zip_data(sess, zip_five, zip_four):
     return zip_info, cd_count
 
 
-def derive_cfda(obj, sess, job_id, detached_award_financial_assistance_id):
+def derive_cfda(obj, cfda_dict, job_id, detached_award_financial_assistance_id):
     """ Deriving cfda title from cfda number using cfda program table """
-    cfda_title = sess.query(CFDAProgram).filter_by(program_number=obj['cfda_number']).one_or_none()
-    if cfda_title:
-        obj['cfda_title'] = cfda_title.program_title
-    else:
+    obj['cfda_title'] = cfda_dict.get(str(obj['cfda_number']))
+    if not obj['cfda_title']:
         logger.error({
             'message': 'CFDA title not found for CFDA number {}'.format(obj['cfda_number']),
             'message_type': 'BrokerError',
             'job_id': job_id,
             'detached_award_financial_assistance_id': detached_award_financial_assistance_id
         })
-        obj['cfda_title'] = None
 
 
 def derive_awarding_agency_data(obj, sub_tier_dict):
@@ -345,7 +341,7 @@ def set_active(obj):
         obj['is_active'] = True
 
 
-def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict):
+def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict):
     # copy log data and remove keys in the row left for logging
     job_id = obj['job_id']
     detached_award_financial_assistance_id = obj['detached_award_financial_assistance_id']
@@ -363,7 +359,7 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict):
     non_federal_funding_amount = obj['non_federal_funding_amount'] or 0
     obj['total_funding_amount'] = federal_action_obligation + non_federal_funding_amount
 
-    derive_cfda(obj, sess, job_id, detached_award_financial_assistance_id)
+    derive_cfda(obj, cfda_dict, job_id, detached_award_financial_assistance_id)
 
     derive_awarding_agency_data(obj, sub_tier_dict)
 
