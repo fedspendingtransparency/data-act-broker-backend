@@ -788,7 +788,7 @@ class FileHandler:
 
             countries = sess.query(CountryCode).all()
             for country in countries:
-                country_dict[country.country_code.upper()] = country.state_name
+                country_dict[country.country_code.upper()] = country.country_name
             del countries
 
             sub_tiers = sess.query(SubTierAgency).all()
