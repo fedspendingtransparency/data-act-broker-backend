@@ -805,7 +805,9 @@ class FileHandler:
 
             cfdas = sess.query(CFDAProgram).all()
             for cfda in cfdas:
-                cfda_dict[str(cfda.program_number)] = cfda.program_title
+                # This is so the key is always "##.###", which is what's required based on the SQL
+                # Could also be "###.###" which this will still pad correctly
+                cfda_dict["%06.3f"%cfda.program_number] = cfda.program_title
             del cfdas
 
             agency_codes_list = []

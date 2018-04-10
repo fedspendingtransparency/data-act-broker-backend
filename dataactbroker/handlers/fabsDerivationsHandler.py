@@ -35,7 +35,7 @@ def get_zip_data(sess, zip_five, zip_four):
 
 def derive_cfda(obj, cfda_dict, job_id, detached_award_financial_assistance_id):
     """ Deriving cfda title from cfda number using cfda program table """
-    obj['cfda_title'] = cfda_dict.get(str(obj['cfda_number']))
+    obj['cfda_title'] = cfda_dict.get(obj['cfda_number'])
     if not obj['cfda_title']:
         logger.error({
             'message': 'CFDA title not found for CFDA number {}'.format(obj['cfda_number']),
