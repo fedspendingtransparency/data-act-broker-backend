@@ -44,7 +44,7 @@ from dataactcore.models.views import SubmissionUpdatedView
 
 from dataactcore.utils import fileD2
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.report import get_cross_file_pairs, report_file_name
+from dataactcore.utils.report import report_file_name
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -90,52 +90,6 @@ class FileHandler:
         self.isLocal = is_local
         self.serverPath = server_path
         self.s3manager = S3Handler()
-
-    def get_error_report_urls_for_submission(self, submission_id, is_warning=False):
-        """
-        Gets the Signed URLs for download based on the submissionId
-        """
-        sess = GlobalDB.db().session
-        try:
-            self.s3manager = S3Handler()
-            response_dict = {}
-            jobs = sess.query(Job).filter_by(submission_id=submission_id)
-            for job in jobs:
-                if job.job_type.name == 'csv_record_validation':
-                    report_name = report_file_name(
-                        job.submission_id, is_warning, job.file_type.name)
-                    if is_warning:
-                        key = 'job_{}_warning_url'.format(job.job_id)
-                    else:
-                        key = 'job_{}_error_url'.format(job.job_id)
-                    if not self.isLocal:
-                        response_dict[key] = self.s3manager.get_signed_url("errors", report_name, method="GET")
-                    else:
-                        path = os.path.join(self.serverPath, report_name)
-                        response_dict[key] = path
-
-            # For each pair of files, get url for the report
-            for c in get_cross_file_pairs():
-                first_file = c[0]
-                second_file = c[1]
-                report_name = report_file_name(
-                    submission_id, is_warning, first_file.name,
-                    second_file.name
-                )
-                if self.isLocal:
-                    report_path = os.path.join(self.serverPath, report_name)
-                else:
-                    report_path = self.s3manager.get_signed_url("errors", report_name, method="GET")
-                # Assign to key based on source and target
-                response_dict[get_cross_report_key(first_file.name, second_file.name, is_warning)] = report_path
-
-            return JsonResponse.create(StatusCode.OK, response_dict)
-
-        except ResponseException as e:
-            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
-        except Exception as e:
-            # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
     def submit(self, create_credentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
@@ -1558,14 +1512,6 @@ def submission_report_url(submission, warning, file_type, cross_type):
     else:
         url = S3Handler().get_signed_url("errors", file_name, method="GET")
     return JsonResponse.create(StatusCode.OK, {"url": url})
-
-
-def get_cross_report_key(source_type, target_type, is_warning=False):
-    """ Generate a key for cross-file error reports """
-    if is_warning:
-        return "cross_warning_{}-{}".format(source_type, target_type)
-    else:
-        return "cross_{}-{}".format(source_type, target_type)
 
 
 def submission_error(submission_id, file_type):
