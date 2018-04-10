@@ -3,29 +3,33 @@
 -- when all monetary amounts are zero for the TAS.
 WITH appropriation_a33_2_{0} AS 
     (SELECT row_number,
-        allocation_transfer_agency,
-        agency_identifier,
-        beginning_period_of_availa,
-        ending_period_of_availabil,
-        availability_type_code,
-        main_account_code,
-        sub_account_code,
-        submission_id,
-        tas,
-        adjustments_to_unobligated_cpe,
-        budget_authority_appropria_cpe,
-        borrowing_authority_amount_cpe,
-        contract_authority_amount_cpe,
-        spending_authority_from_of_cpe,
-        other_budgetary_resources_cpe,
-        budget_authority_available_cpe,
-        gross_outlay_amount_by_tas_cpe,
-        obligations_incurred_total_cpe,
-        deobligations_recoveries_r_cpe,
-        unobligated_balance_cpe,
-        status_of_budgetary_resour_cpe
-    FROM appropriation
-    WHERE submission_id = {0})
+        approp.allocation_transfer_agency,
+        approp.agency_identifier,
+        approp.beginning_period_of_availa,
+        approp.ending_period_of_availabil,
+        approp.availability_type_code,
+        approp.main_account_code,
+        approp.sub_account_code,
+        approp.submission_id,
+        approp.tas,
+        approp.adjustments_to_unobligated_cpe,
+        approp.budget_authority_appropria_cpe,
+        approp.borrowing_authority_amount_cpe,
+        approp.contract_authority_amount_cpe,
+        approp.spending_authority_from_of_cpe,
+        approp.other_budgetary_resources_cpe,
+        approp.budget_authority_available_cpe,
+        approp.gross_outlay_amount_by_tas_cpe,
+        approp.obligations_incurred_total_cpe,
+        approp.deobligations_recoveries_r_cpe,
+        approp.unobligated_balance_cpe,
+        approp.status_of_budgetary_resour_cpe
+    FROM appropriation as approp
+    LEFT JOIN tas_lookup
+        ON tas_lookup.account_num = approp.tas_id
+    WHERE submission_id = {0}
+        -- In case a file a submission contains a financial account
+        AND tas_lookup.financial_indicator2 IS DISTINCT FROM 'F')
 SELECT DISTINCT
     approp.row_number,
     approp.allocation_transfer_agency,

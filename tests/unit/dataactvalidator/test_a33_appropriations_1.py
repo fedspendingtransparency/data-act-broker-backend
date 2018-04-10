@@ -83,7 +83,7 @@ def test_financing_tas(database):
     cars = TASFactory()
     database.session.add(cars)
     database.session.commit()
-    gtas = SF133Factory(tas_id=cars.tas_id)
+    gtas = SF133Factory(tas_id=cars.account_num)
     submission = SubmissionFactory(
         reporting_fiscal_period=gtas.period,
         reporting_fiscal_year=gtas.fiscal_year,

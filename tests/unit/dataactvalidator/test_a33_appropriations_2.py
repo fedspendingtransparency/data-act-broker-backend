@@ -1,5 +1,5 @@
 from tests.unit.dataactcore.factories.staging import AppropriationFactory
-from tests.unit.dataactcore.factories.domain import SF133Factory
+from tests.unit.dataactcore.factories.domain import SF133Factory, TASFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
@@ -47,3 +47,16 @@ def test_failure_with_rule_exception(database):
                       main_account_code="000", sub_account_code="000")
 
     assert number_of_errors(_FILE, database, models=[ap1, ap2, ap3, sf]) == 2
+
+
+def test_financial_tas_approp(database):
+    """ Tests that TAS for File A are not present in SF-133
+    except when a financial account (financial indicator type F)"""
+    tas_1 = TASFactory()
+
+    ap = AppropriationFactory(tas_id=tas_1.account_num)
+
+    assert number_of_errors(_FILE, database, models=[tas_1, ap]) == 1
+
+    tas_1.financial_indicator2 = 'F'
+    assert number_of_errors(_FILE, database, models=[tas_1, ap]) == 0
