@@ -30,7 +30,7 @@ from dataactcore.interfaces.function_bag import (
     create_jobs, get_error_metrics_by_job_jd, get_error_type, get_fabs_meta, mark_job_status, run_job_checks,
     get_last_validated_date, get_lastest_certified_date)
 
-from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States
+from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, CountryCode
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
@@ -777,11 +777,18 @@ class FileHandler:
                 filter_by(is_valid=True, submission_id=submission_id).all()
 
             # Create lookup dictionaries so we don't have to query the API every time.
-            states = sess.query(States).all()
             state_dict = {}
+            country_dict = {}
+
+            states = sess.query(States).all()
             for state in states:
                 state_dict[state.state_code.upper()] = state.state_name
             del states
+
+            countries = sess.query(CountryCode).all()
+            for country in countries:
+                country_dict[country.country_code.upper()] = country.state_name
+            del countries
 
             agency_codes_list = []
             row_count = 1
@@ -796,7 +803,7 @@ class FileHandler:
                 temp_obj.pop('updated_at', None)
                 temp_obj.pop('_sa_instance_state', None)
 
-                temp_obj = fabs_derivations(temp_obj, sess, state_dict)
+                temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict)
 
                 # if it's a correction or deletion row and an old row is active, update the old row to be inactive
                 if row.correction_delete_indicatr is not None:

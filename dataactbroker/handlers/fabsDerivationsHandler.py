@@ -4,8 +4,7 @@ import logging
 from datetime import datetime
 from sqlalchemy import func
 
-from dataactcore.models.domainModels import (CFDAProgram, SubTierAgency, Zips, CountyCode, CityCode, ZipCity,
-                                             CountryCode, DUNS)
+from dataactcore.models.domainModels import CFDAProgram, SubTierAgency, Zips, CountyCode, CityCode, ZipCity, DUNS
 from dataactcore.models.stagingModels import FPDSContractingOffice
 from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, CORRECTION_DELETE_IND_DICT,
                                         RECORD_TYPE_DICT, BUSINESS_TYPE_DICT, BUSINESS_FUNDS_IND_DICT)
@@ -14,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 # TODO: Make these lookups (potentially) instead of DB calls, ordered from smallest to largest:
-# CountryCode (264 entries), SubTierAgency (1,476 entries), CFDAProgram (2,971 entries), CountyCode (3,295 entries),
+# SubTierAgency (1,476 entries), CFDAProgram (2,971 entries), CountyCode (3,295 entries),
 # FPDSContractingOffice (6,566 entries)
 
 def get_zip_data(sess, zip_five, zip_four):
@@ -256,26 +255,16 @@ def derive_le_city_code(obj, sess):
             obj['legal_entity_city_code'] = None
 
 
-def derive_ppop_country_name(obj, sess):
+def derive_ppop_country_name(obj, country_dict):
     """ Deriving place of performance country name """
     if obj['place_of_perform_country_c']:
-        country_data = sess.query(CountryCode). \
-            filter_by(country_code=obj['place_of_perform_country_c'].upper()).one_or_none()
-        if country_data:
-            obj['place_of_perform_country_n'] = country_data.country_name
-        else:
-            obj['place_of_perform_country_n'] = None
+        obj['place_of_perform_country_n'] = country_dict.get(obj['place_of_perform_country_c'].upper())
 
 
-def derive_le_country_name(obj, sess):
+def derive_le_country_name(obj, country_dict):
     """ Deriving legal entity country name """
     if obj['legal_entity_country_code']:
-        country_data = sess.query(CountryCode). \
-            filter_by(country_code=obj['legal_entity_country_code'].upper()).one_or_none()
-        if country_data:
-            obj['legal_entity_country_name'] = country_data.country_name
-        else:
-            obj['legal_entity_country_name'] = None
+        obj['legal_entity_country_name'] = country_dict.get(obj['legal_entity_country_code'].upper())
 
 
 def split_ppop_zip(obj):
@@ -361,7 +350,7 @@ def set_active(obj):
         obj['is_active'] = True
 
 
-def fabs_derivations(obj, sess, state_dict):
+def fabs_derivations(obj, sess, state_dict, country_dict):
     # copy log data and remove keys in the row left for logging
     job_id = obj['job_id']
     detached_award_financial_assistance_id = obj['detached_award_financial_assistance_id']
@@ -397,9 +386,9 @@ def fabs_derivations(obj, sess, state_dict):
 
     derive_le_city_code(obj, sess)
 
-    derive_ppop_country_name(obj, sess)
+    derive_ppop_country_name(obj, country_dict)
 
-    derive_le_country_name(obj, sess)
+    derive_le_country_name(obj, country_dict)
 
     split_ppop_zip(obj)
 
