@@ -5,15 +5,11 @@ from datetime import datetime
 from sqlalchemy import func
 
 from dataactcore.models.domainModels import Zips, CityCode, ZipCity, DUNS
-from dataactcore.models.stagingModels import FPDSContractingOffice
 from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, CORRECTION_DELETE_IND_DICT,
                                         RECORD_TYPE_DICT, BUSINESS_TYPE_DICT, BUSINESS_FUNDS_IND_DICT)
 
 logger = logging.getLogger(__name__)
 
-
-# TODO: Make these lookups (potentially) instead of DB calls, ordered from smallest to largest:
-# FPDSContractingOffice (6,566 entries)
 
 def get_zip_data(sess, zip_five, zip_four):
     """ Get zip data based on 5-digit or 9-digit zips and the counts of congressional districts associated with them """
@@ -197,28 +193,6 @@ def derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, p
             obj['legal_entity_congressional'] = obj['place_of_performance_congr']
 
 
-def derive_awarding_office_name(obj, sess):
-    """ Deriving awarding_office_name based off awarding_office_code """
-    if obj['awarding_office_code']:
-        award_office = sess.query(FPDSContractingOffice). \
-            filter_by(contracting_office_code=obj['awarding_office_code']).one_or_none()
-        if award_office:
-            obj['awarding_office_name'] = award_office.contracting_office_name
-        else:
-            obj['awarding_office_name'] = None
-
-
-def derive_funding_office_name(obj, sess):
-    """ Deriving funding_office_name based off funding_office_code """
-    if obj['funding_office_code']:
-        funding_office = sess.query(FPDSContractingOffice). \
-            filter_by(contracting_office_code=func.upper(obj['funding_office_code'])).one_or_none()
-        if funding_office:
-            obj['funding_office_name'] = funding_office.contracting_office_name
-        else:
-            obj['funding_office_name'] = None
-
-
 def derive_le_city_code(obj, sess):
     """ Deriving legal entity city code """
     if obj['legal_entity_city_name'] and obj['legal_entity_state_code']:
@@ -326,7 +300,7 @@ def set_active(obj):
         obj['is_active'] = True
 
 
-def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict, county_dict):
+def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict, county_dict, fpds_office_dict):
     # copy log data and remove keys in the row left for logging
     job_id = obj['job_id']
     detached_award_financial_assistance_id = obj['detached_award_financial_assistance_id']
@@ -356,9 +330,11 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
 
     derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, ppop_state_name, county_dict)
 
-    derive_awarding_office_name(obj, sess)
+    # Deriving awarding_office_name based off awarding_office_code
+    obj['awarding_office_name'] = fpds_office_dict.get(obj['awarding_office_code'])
 
-    derive_funding_office_name(obj, sess)
+    # Deriving funding_office_name based off funding_office_code
+    obj['funding_office_name'] = fpds_office_dict.get(obj['funding_office_code'])
 
     derive_le_city_code(obj, sess)
 

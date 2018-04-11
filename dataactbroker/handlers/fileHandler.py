@@ -38,7 +38,8 @@ from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
     JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID,
     FILE_TYPE_DICT_LETTER_NAME)
-from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
+from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
+                                              FPDSContractingOffice)
 from dataactcore.models.userModel import User
 from dataactcore.models.views import SubmissionUpdatedView
 
@@ -783,6 +784,14 @@ class FileHandler:
             sub_tier_dict = {}
             cfda_dict = {}
             county_dict = {}
+            fpds_office_dict = {}
+
+            # This table is big enough that we want to only grab 2 columns
+            offices = sess.query(FPDSContractingOffice.contracting_office_code,
+                                 FPDSContractingOffice.contracting_office_name).all()
+            for office in offices:
+                fpds_office_dict[office.contracting_office_code] = office.contracting_office_name
+            del offices
 
             counties = sess.query(CountyCode).all()
             for county in counties:
@@ -834,7 +843,7 @@ class FileHandler:
                 temp_obj.pop('_sa_instance_state', None)
 
                 temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict,
-                                            county_dict)
+                                            county_dict, fpds_office_dict)
 
                 # if it's a correction or deletion row and an old row is active, update the old row to be inactive
                 if row.correction_delete_indicatr is not None:
