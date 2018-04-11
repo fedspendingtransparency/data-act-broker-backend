@@ -18,7 +18,7 @@ from dataactvalidator.validation_handlers.file_generation_handler import (
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
 logger = logging.getLogger(__name__)
-STATUS_MAP = {"waiting": "invalid", "ready": "invalid", "running": "waiting", "finished": "finished",
+STATUS_MAP = {"waiting": "waiting", "ready": "invalid", "running": "waiting", "finished": "finished",
               "invalid": "failed", "failed": "failed"}
 VALIDATION_STATUS_MAP = {"waiting": "waiting", "ready": "waiting", "running": "waiting", "finished": "finished",
                          "failed": "failed", "invalid": "failed"}
@@ -163,17 +163,8 @@ def check_file_generation(job_id):
         response_dict['message'] = 'No generation job found with the specified ID'
         return response_dict
 
-    # Only attached D file generationshave validation Jobs
-    file_type = FILE_TYPE_DICT_LETTER[upload_job.file_type_id]
-    if file_type in ['D1', 'D2'] and upload_job.submission_id:
-        validation_job = sess.query(Job).filter(Job.submission_id == upload_job.submission_id,
-                                                Job.file_type_id == upload_job.file_type_id,
-                                                Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one()
-    else:
-        validation_job = None
-
-    response_dict['status'] = map_generate_status(sess, upload_job, validation_job)
-    response_dict['file_type'] = file_type
+    response_dict['status'] = map_generate_status(sess, upload_job)
+    response_dict['file_type'] = FILE_TYPE_DICT_LETTER[upload_job.file_type_id]
     response_dict['message'] = upload_job.error_message or ''
 
     # Generate the URL (or path) to the file
@@ -185,28 +176,31 @@ def check_file_generation(job_id):
         response_dict['url'] = upload_job.filename
 
     # Only D file generations have start and end dates
-    if file_type in ['D1', 'D2']:
+    if response_dict['file_type'] in ['D1', 'D2']:
         response_dict['start'] = upload_job.start_date.strftime("%m/%d/%Y") if upload_job.start_date is not None else ""
         response_dict['end'] = upload_job.end_date.strftime("%m/%d/%Y") if upload_job.end_date is not None else ""
 
     return response_dict
 
 
-def map_generate_status(sess, upload_job, validation_job=None):
+def map_generate_status(sess, upload_job):
     """ Maps job status to file generation statuses expected by frontend """
-    upload_status = upload_job.job_status.name
-    if validation_job is None:
-        errors_present = False
-        validation_status = None
-    else:
+    print(upload_job.__dict__)
+    if FILE_TYPE_DICT_LETTER[upload_job.file_type_id] in ['D1', 'D2'] and upload_job.submission_id:
+        validation_job = sess.query(Job).filter(Job.submission_id == upload_job.submission_id,
+                                                Job.file_type_id == upload_job.file_type_id,
+                                                Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one()
         validation_status = validation_job.job_status.name
         if validation_job.number_of_errors > 0:
             errors_present = True
         else:
             errors_present = False
+    else:
+        validation_job = None
+        errors_present = False
 
-    response_status = STATUS_MAP[upload_status]
-    if response_status == "failed" and upload_job.error_message is None:
+    response_status = STATUS_MAP[upload_job.job_status.name]
+    if response_status == "failed" and upload_job.error_message in ['', None]:
         # Provide an error message if none present
         upload_job.error_message = "Upload job failed without error message"
 
@@ -224,13 +218,13 @@ def map_generate_status(sess, upload_job, validation_job=None):
             upload_job.error_message = "Validation completed but row-level errors were found"
 
     if response_status == "failed":
-        if upload_job.error_message is None and validation_job.error_message is None:
+        if upload_job.error_message in ['', None] and validation_job.error_message in ['', None]:
             if validation_status == "invalid":
                 upload_job.error_message = "Generated file had file-level errors"
             else:
                 upload_job.error_message = "Validation job had an internal error"
 
-        elif upload_job.error_message is None:
+        elif upload_job.error_message in ['', None]:
             upload_job.error_message = validation_job.error_message
 
     sess.commit()

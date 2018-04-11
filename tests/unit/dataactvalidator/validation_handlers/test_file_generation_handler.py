@@ -3,6 +3,7 @@ import os
 import re
 
 from collections import OrderedDict
+from flask import Flask
 from unittest.mock import Mock
 
 from dataactcore.models.jobModels import FileType, JobStatus, JobType
@@ -45,7 +46,8 @@ def test_generate_d1_file_query(monkeypatch, mock_broker_config_paths, database,
     database.session.add(job)
     database.session.commit()
 
-    file_generation_handler.generate_d_file(database.session, job, '123', is_local=True)
+    with Flask(__name__).app_context():
+        file_generation_handler.generate_d_file(database.session, job, '123', is_local=True)
 
     # check headers
     file_rows = read_file_rows(file_path)
@@ -90,7 +92,8 @@ def test_generate_d2_file_query(monkeypatch, mock_broker_config_paths, database,
     database.session.add(job)
     database.session.commit()
 
-    file_generation_handler.generate_d_file(database.session, job, '123', is_local=True)
+    with Flask(__name__).app_context():
+        file_generation_handler.generate_d_file(database.session, job, '123', is_local=True)
 
     # check headers
     file_rows = read_file_rows(file_path)
@@ -139,7 +142,9 @@ def test_generate_f_file(monkeypatch, mock_broker_config_paths, database, job_co
     expected = [['key4', 'key11'], ['a', 'b'], ['c', 'd']]
 
     monkeypatch.setattr(file_generation_handler, 'mark_job_status', Mock())
-    file_generation_handler.generate_f_file(database.session, job1, is_local=True)
+
+    with Flask(__name__).app_context():
+        file_generation_handler.generate_f_file(database.session, job1, is_local=True)
 
     assert read_file_rows(file_path1) == expected
 
@@ -148,7 +153,10 @@ def test_generate_f_file(monkeypatch, mock_broker_config_paths, database, job_co
     expected = [['key11', 'key4'], ['b', 'a'], ['d', 'c']]
 
     monkeypatch.setattr(file_generation_handler, 'mark_job_status', Mock())
-    file_generation_handler.generate_f_file(database.session, job2, is_local=True)
+
+    with Flask(__name__).app_context():
+        file_generation_handler.generate_f_file(database.session, job2, is_local=True)
+
     assert read_file_rows(file_path2) == expected
 
 
@@ -184,7 +192,8 @@ def test_generate_e_file_query(monkeypatch, mock_broker_config_paths, database, 
     monkeypatch.setattr(file_generation_handler, 'mark_job_status', Mock())
     monkeypatch.setattr(file_generation_handler.fileE, 'retrieve_rows', Mock(return_value=[]))
 
-    file_generation_handler.generate_e_file(database.session, job, is_local=True)
+    with Flask(__name__).app_context():
+        file_generation_handler.generate_e_file(database.session, job, is_local=True)
 
     # [0][0] gives us the first, non-keyword args
     call_args = file_generation_handler.fileE.retrieve_rows.call_args[0][0]
@@ -225,7 +234,9 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database, jo
     ]
 
     monkeypatch.setattr(file_generation_handler, 'mark_job_status', Mock())
-    file_generation_handler.generate_e_file(database.session, job, is_local=True)
+    
+    with Flask(__name__).app_context():
+        file_generation_handler.generate_e_file(database.session, job, is_local=True)
 
     expected = [
         ['AwardeeOrRecipientUniqueIdentifier',
@@ -240,40 +251,3 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database, jo
         ['A', 'B', 'C', '1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B']
     ]
     assert read_file_rows(file_path) == expected
-
-
-# def test_job_context_success(database, job_constants):
-#     """When a job successfully runs, it should be marked as "finished" """
-#     sess = database.session
-#     job = JobFactory(
-#         job_status=sess.query(JobStatus).filter_by(name='running').one(),
-#         job_type=sess.query(JobType).filter_by(name='validation').one(),
-#         file_type=sess.query(FileType).filter_by(name='sub_award').one(),
-#     )
-#     sess.add(job)
-#     sess.commit()
-
-#     with file_generation_handler.job_context(job.job_id, is_local=True):
-#         pass    # i.e. be successful
-
-#     sess.refresh(job)
-#     assert job.job_status.name == 'finished'
-
-
-# def test_job_context_fail(database, job_constants):
-#     """When a job raises an exception and has no retries left, it should be marked as failed"""
-#     sess = database.session
-#     job = JobFactory(
-#         job_status=sess.query(JobStatus).filter_by(name='running').one(),
-#         job_type=sess.query(JobType).filter_by(name='validation').one(),
-#         file_type=sess.query(FileType).filter_by(name='sub_award').one(),
-#     )
-#     sess.add(job)
-#     sess.commit()
-
-#     with file_generation_handler.job_context(job.job_id, is_local=True):
-#         raise Exception('This failed!')
-
-#     sess.refresh(job)
-#     assert job.job_status.name == 'failed'
-#     assert job.error_message == 'This failed!'

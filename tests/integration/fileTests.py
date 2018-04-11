@@ -581,7 +581,6 @@ class FileTests(BaseTestAPI):
 
         self.assertEqual(response.status_code, 200)
         json = response.json
-        print(json)
         self.assertIn(json["status"], ["ready", "running", "finished"])
         self.assertEqual(json["file_type"], "D1")
         self.assertIn("url", json)
@@ -594,8 +593,7 @@ class FileTests(BaseTestAPI):
         post_json = {}
         response = self.app.post_json("/v1/check_detached_generation_status/", post_json,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
-        assert response.json['message'] == (
-            'job_id: Missing data for required field.')
+        assert response.json['message'] == ('job_id: Missing data for required field.')
 
         post_json = {'job_id': -1}
         response = self.app.post_json("/v1/check_detached_generation_status/", post_json,

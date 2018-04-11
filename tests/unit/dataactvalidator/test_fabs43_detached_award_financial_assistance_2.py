@@ -8,7 +8,6 @@ def test_column_headers(database):
     expected_subset = {"row_number", "place_of_performance_zip4a", "place_of_performance_congr",
                        "place_of_perform_country_c"}
     actual = set(query_columns(_FILE, database))
-    print(actual)
     assert expected_subset == actual
 
 
