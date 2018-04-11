@@ -34,16 +34,18 @@ def test_generate_d1_file_query(monkeypatch, mock_broker_config_paths, database,
     dap_5 = dap_model(awarding_agency_code='234', action_date='20170115', detached_award_proc_unique='unique5')
     database.session.add_all([dap_1, dap_2, dap_3, dap_4, dap_5])
 
+    file_path = str(mock_broker_config_paths['d_file_storage_path'].join('d1_test'))
     job = JobFactory(
         job_status=database.session.query(JobStatus).filter_by(name='running').one(),
         job_type=database.session.query(JobType).filter_by(name='file_upload').one(),
         file_type=database.session.query(FileType).filter_by(name='award_procurement').one(),
+        filename=file_path, original_filename='d1_test', start_date='01/01/2017', end_date='01/31/2017',
     )
+
     database.session.add(job)
     database.session.commit()
 
-    file_path = str(mock_broker_config_paths['d_file_storage_path'].join('d1'))
-    file_generation_handler.generate_d_file('D1', '123', '01/01/2017', '01/31/2017', job.job_id, 'd1', is_local=True)
+    file_generation_handler.generate_d_file(database.session, job, '123', is_local=True)
 
     # check headers
     file_rows = read_file_rows(file_path)
@@ -78,16 +80,17 @@ def test_generate_d2_file_query(monkeypatch, mock_broker_config_paths, database,
     pafa_6 = pafa(awarding_agency_code='234', action_date='20170115', afa_generated_unique='unique6', is_active=True)
     database.session.add_all([pafa_1, pafa_2, pafa_3, pafa_4, pafa_5, pafa_6])
 
+    file_path = str(mock_broker_config_paths['d_file_storage_path'].join('d2_test'))
     job = JobFactory(
         job_status=database.session.query(JobStatus).filter_by(name='running').one(),
         job_type=database.session.query(JobType).filter_by(name='file_upload').one(),
         file_type=database.session.query(FileType).filter_by(name='award').one(),
+        filename=file_path, original_filename='d2_test', start_date='01/01/2017', end_date='01/31/2017',
     )
     database.session.add(job)
     database.session.commit()
 
-    file_path = str(mock_broker_config_paths['d_file_storage_path'].join('d2'))
-    file_generation_handler.generate_d_file('D2', '123', '01/01/2017', '01/31/2017', job.job_id, 'd2', is_local=True)
+    file_generation_handler.generate_d_file(database.session, job, '123', is_local=True)
 
     # check headers
     file_rows = read_file_rows(file_path)
@@ -110,37 +113,62 @@ def test_generate_d2_file_query(monkeypatch, mock_broker_config_paths, database,
     assert file_rows[2] == expected2
 
 
-def test_generate_f_file(monkeypatch, mock_broker_config_paths):
+def test_generate_f_file(monkeypatch, mock_broker_config_paths, database, job_constants):
     """A CSV with fields in the right order should be written to the file system"""
+    file_path1 = str(mock_broker_config_paths['broker_files'].join('f_test1'))
+    job1 = JobFactory(
+        job_status=database.session.query(JobStatus).filter_by(name='running').one(),
+        job_type=database.session.query(JobType).filter_by(name='file_upload').one(),
+        file_type=database.session.query(FileType).filter_by(name='sub_award').one(),
+        filename=file_path1, original_filename='f_test1',
+    )
+    file_path2 = str(mock_broker_config_paths['broker_files'].join('f_test2'))
+    job2 = JobFactory(
+        job_status=database.session.query(JobStatus).filter_by(name='running').one(),
+        job_type=database.session.query(JobType).filter_by(name='file_upload').one(),
+        file_type=database.session.query(FileType).filter_by(name='sub_award').one(),
+        filename=file_path2, original_filename='f_test2',
+    )
+    database.session.add(job1, job2)
+    database.session.commit()
+
     file_f_mock = Mock()
     monkeypatch.setattr(file_generation_handler, 'fileF', file_f_mock)
     file_f_mock.generate_f_rows.return_value = [dict(key4='a', key11='b'), dict(key4='c', key11='d')]
-
     file_f_mock.mappings = OrderedDict([('key4', 'mapping4'), ('key11', 'mapping11')])
-    file_path = str(mock_broker_config_paths['broker_files'].join('uniq1'))
     expected = [['key4', 'key11'], ['a', 'b'], ['c', 'd']]
 
     monkeypatch.setattr(file_generation_handler, 'mark_job_status', Mock())
-    file_generation_handler.generate_f_file(1, 1, 'uniq1', 'uniq1', is_local=True)
-    assert read_file_rows(file_path) == expected
+    file_generation_handler.generate_f_file(database.session, job1, is_local=True)
+
+    assert read_file_rows(file_path1) == expected
 
     # re-order
     file_f_mock.mappings = OrderedDict([('key11', 'mapping11'), ('key4', 'mapping4')])
-    file_path = str(mock_broker_config_paths['broker_files'].join('uniq2'))
     expected = [['key11', 'key4'], ['b', 'a'], ['d', 'c']]
 
     monkeypatch.setattr(file_generation_handler, 'mark_job_status', Mock())
-    file_generation_handler.generate_f_file(1, 1, 'uniq2', 'uniq2', is_local=True)
-    assert read_file_rows(file_path) == expected
+    file_generation_handler.generate_f_file(database.session, job2, is_local=True)
+    assert read_file_rows(file_path2) == expected
 
 
-def test_generate_e_file_query(monkeypatch, database):
+def test_generate_e_file_query(monkeypatch, mock_broker_config_paths, database, job_constants):
     """Verify that generate_e_file makes an appropriate query (matching both D1 and D2 entries)"""
     # Generate several file D1 entries, largely with the same submission_id, and with two overlapping DUNS. Generate
     # several D2 entries with the same submission_id as well
     sub = SubmissionFactory()
     sub_2 = SubmissionFactory()
     database.session.add_all([sub, sub_2])
+    database.session.commit()
+
+    file_path = str(mock_broker_config_paths['broker_files'].join('e_test1'))
+    job = JobFactory(
+        job_status=database.session.query(JobStatus).filter_by(name='running').one(),
+        job_type=database.session.query(JobType).filter_by(name='file_upload').one(),
+        file_type=database.session.query(FileType).filter_by(name='executive_compensation').one(),
+        filename=file_path, original_filename='e_test1', submission_id=sub.submission_id,
+    )
+    database.session.add(job)
     database.session.commit()
 
     model = AwardProcurementFactory(submission_id=sub.submission_id)
@@ -156,7 +184,7 @@ def test_generate_e_file_query(monkeypatch, database):
     monkeypatch.setattr(file_generation_handler, 'mark_job_status', Mock())
     monkeypatch.setattr(file_generation_handler.fileE, 'retrieve_rows', Mock(return_value=[]))
 
-    file_generation_handler.generate_e_file(sub.submission_id, 1, 'uniq', 'uniq', is_local=True)
+    file_generation_handler.generate_e_file(database.session, job, is_local=True)
 
     # [0][0] gives us the first, non-keyword args
     call_args = file_generation_handler.fileE.retrieve_rows.call_args[0][0]
@@ -166,17 +194,26 @@ def test_generate_e_file_query(monkeypatch, database):
     assert list(sorted(call_args)) == list(sorted(expected))
 
 
-def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
+def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database, job_constants):
     """Verify that an appropriate CSV is written, based on fileE.Row's structure"""
     # Create an award so that we have _a_ duns
-    sess = database.session
     sub = SubmissionFactory()
-    sess.add(sub)
-    sess.commit()
+    database.session.add(sub)
+    database.session.commit()
 
     ap = AwardProcurementFactory(submission_id=sub.submission_id)
-    sess.add(ap)
-    sess.commit()
+    database.session.add(ap)
+    database.session.commit()
+
+    file_path = str(mock_broker_config_paths['broker_files'].join('e_test1'))
+    job = JobFactory(
+        job_status=database.session.query(JobStatus).filter_by(name='running').one(),
+        job_type=database.session.query(JobType).filter_by(name='file_upload').one(),
+        file_type=database.session.query(FileType).filter_by(name='executive_compensation').one(),
+        filename=file_path, original_filename='e_test1', submission_id=sub.submission_id,
+    )
+    database.session.add(job)
+    database.session.commit()
 
     monkeypatch.setattr(file_generation_handler.fileE, 'row_to_dict', Mock())
     file_generation_handler.fileE.row_to_dict.return_value = {}
@@ -188,9 +225,8 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
     ]
 
     monkeypatch.setattr(file_generation_handler, 'mark_job_status', Mock())
-    file_generation_handler.generate_e_file(ap.submission_id, 1, 'uniq', 'uniq', is_local=True)
+    file_generation_handler.generate_e_file(database.session, job, is_local=True)
 
-    file_path = str(mock_broker_config_paths['broker_files'].join('uniq'))
     expected = [
         ['AwardeeOrRecipientUniqueIdentifier',
          'UltimateParentUniqueIdentifier',
