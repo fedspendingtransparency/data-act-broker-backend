@@ -114,7 +114,7 @@ def test_zero_federal_action_obligation_and_original_loan_subsidy_cost(database)
     assert errors == 0
 
 
-def test_zero_federal_action_obligation_and_positive_original_loan_subsidy_cost(database):
+def test_ignored_and_failed_federal_action_obligation_values(database):
     """ Tests that a single warning is thrown for both a federal action obligation of 0
         and an original loan subsidy cost of 0 """
 
@@ -137,7 +137,7 @@ def test_zero_federal_action_obligation_and_positive_original_loan_subsidy_cost(
     assert errors == 0
 
 
-def test_positive_federal_action_obligation_and_zero_original_loan_subsidy_cost(database):
+def test_ignored_and_failed_original_loan_subsidy_cost_values(database):
     """ Tests that a single warning is thrown for both a federal action obligation of 0
         and an original loan subsidy cost of 0 """
 
