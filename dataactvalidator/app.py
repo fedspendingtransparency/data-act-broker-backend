@@ -71,10 +71,10 @@ def run_app():
                         validation_manager.validate_job(job)
                     else:
                         # Retrieve the agency code data from the message attributes
-                        agency_code = current_message.attributes['agency_code']
+                        agency_code = current_message.attributes.get('agency_code')
 
                         file_generation_manager = FileGenerationManager(local)
-                        file_generation_manager.generate_from_job(job, agency_code)
+                        file_generation_manager.generate_from_job(job.job_id, agency_code)
 
                     # Delete from SQS once processed
                     message.delete()

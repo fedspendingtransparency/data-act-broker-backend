@@ -52,7 +52,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
-from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager
+from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager, check_file_generation
 
 logger = logging.getLogger(__name__)
 
@@ -73,10 +73,6 @@ class FileHandler:
     FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
     EXTERNAL_FILE_TYPES = ["award", "award_procurement", "executive_compensation", "sub_award"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
-    STATUS_MAP = {"waiting": "invalid", "ready": "invalid", "running": "waiting", "finished": "finished",
-                  "invalid": "failed", "failed": "failed"}
-    VALIDATION_STATUS_MAP = {"waiting": "waiting", "ready": "waiting", "running": "waiting", "finished": "finished",
-                             "failed": "failed", "invalid": "failed"}
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
 
@@ -374,7 +370,7 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def start_generation_job(self, job, agency_code, start_date, end_date):
+    def start_generation_job(self, job, start_date, end_date, agency_code=None):
         """ Validates the dates for a D file generation job and passes the Job ID to SQS
         Args:
             job: the file generation job to start
@@ -407,7 +403,7 @@ class FileHandler:
                           'message': 'Send message response: {}'.format(response)})
         else:
             file_generation_manager = FileGenerationManager(True)
-            file_generation_manager.generate_from_job(job, agency_code)
+            file_generation_manager.generate_from_job(job.job_id, agency_code)
 
         return True, None
 
@@ -473,7 +469,7 @@ class FileHandler:
 
         request_dict = RequestDictionary(self.request)
         agency_code = job.submission.frec_code if job.submission.frec_code else job.submission.cgac_code
-        success, error_response = self.start_generation_job(job, agency_code, request_dict.get_value("start"),
+        success, error_response = self.start_generation_job(job, request_dict.get_value("start"),
                                                             request_dict.get_value("end"))
         log_data['message'] = 'Finished start_generation_job method for submission {}'.format(submission_id)
         logger.debug(log_data)
@@ -522,7 +518,7 @@ class FileHandler:
             'end_date': end
         })
 
-        self.start_generation_job(new_job, agency_code, start, end)
+        self.start_generation_job(new_job, start, end, agency_code)
 
         # Return same response as check generation route
         return self.check_detached_generation(new_job.job_id)
@@ -627,34 +623,7 @@ class FileHandler:
         Returns:
             Response object with keys job_id, status, file_type, url, message, start, and end.
         """
-        sess = GlobalDB.db().session
-
-        # We want to use one_or_none() here so we can see if the job is None so we can mark the status as invalid to
-        # indicate that a status request is invoked for a job that isn't created yet
-        upload_job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
-        response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '', 'start': '',
-                         'end': ''}
-        if upload_job is None or (upload_job.filename is None and not CONFIG_BROKER["use_aws"]):
-            response_dict['status'] = 'invalid'
-            response_dict['message'] = 'No generation job found with the specified ID' if upload_job is None else\
-                                       'No file has been generated for this submission.'
-            return JsonResponse.create(StatusCode.OK, response_dict)
-
-        file_type = FILE_TYPE_DICT_LETTER[upload_job.file_type_id]
-        response_dict["status"] = JOB_STATUS_DICT_ID[upload_job.job_status_id]
-        response_dict["file_type"] = file_type
-        response_dict["message"] = upload_job.error_message or ""
-        if response_dict["status"] is not 'finished':
-            response_dict["url"] = "#"
-        elif CONFIG_BROKER["use_aws"]:
-            path, file_name = upload_job.filename.split("/")
-            response_dict["url"] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
-                                                              method="GET")
-        else:
-            response_dict["url"] = upload_job.filename
-
-        response_dict["start"] = upload_job.start_date.strftime("%m/%d/%Y") if upload_job.start_date is not None else ""
-        response_dict["end"] = upload_job.end_date.strftime("%m/%d/%Y") if upload_job.end_date is not None else ""
+        response_dict = check_file_generation(job_id)
 
         return JsonResponse.create(StatusCode.OK, response_dict)
 
@@ -667,36 +636,11 @@ class FileHandler:
             If file_type is D1 or D2, also includes start and end.
         """
         sess = GlobalDB.db().session
-
         upload_job = sess.query(Job).filter(Job.submission_id == submission.submission_id,
                                             Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
                                             Job.job_type_id == JOB_TYPE_DICT['file_upload']).one()
 
-        if file_type in ['D1', 'D2']:
-            validation_job = sess.query(Job).filter(Job.submission_id == submission.submission_id,
-                                                    Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
-                                                    Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one()
-        else:
-            validation_job = None
-
-        response_dict = {
-            'status': map_generate_status(upload_job, validation_job),
-            'file_type': file_type,
-            'size': upload_job.file_size,
-            'message': upload_job.error_message or "",
-            'url': '#'
-        }
-        if CONFIG_BROKER["use_aws"] and response_dict["status"] is 'finished' and upload_job.filename:
-            path, file_name = upload_job.filename.split("/")
-            response_dict["url"] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
-                                                              method="GET")
-        elif response_dict["status"] is 'finished' and upload_job.filename:
-            response_dict["url"] = upload_job.filename
-
-        # Pull start and end from jobs table if D1 or D2
-        if file_type in ["D1", "D2"]:
-            response_dict['start'] = upload_job.start_date.strftime('%m/%d/%Y') if upload_job.start_date else ''
-            response_dict['end'] = upload_job.end_date.strftime('%m/%d/%Y') if upload_job.end_date else ''
+        response_dict = check_file_generation(upload_job.job_id)
 
         return JsonResponse.create(StatusCode.OK, response_dict)
 
@@ -1535,51 +1479,6 @@ def get_xml_response_content(api_url):
         'function': 'get_xml_response_content'
     })
     return result
-
-
-def map_generate_status(upload_job, validation_job=None):
-    """ Maps job status to file generation statuses expected by frontend """
-    sess = GlobalDB.db().session
-    upload_status = upload_job.job_status.name
-    if validation_job is None:
-        errors_present = False
-        validation_status = None
-    else:
-        validation_status = validation_job.job_status.name
-        if validation_job.number_of_errors > 0:
-            errors_present = True
-        else:
-            errors_present = False
-
-    response_status = FileHandler.STATUS_MAP[upload_status]
-    if response_status == "failed" and upload_job.error_message is None:
-        # Provide an error message if none present
-        upload_job.error_message = "Upload job failed without error message"
-
-    if validation_job is None:
-        # No validation job, so don't need to check it
-        sess.commit()
-        return response_status
-
-    if response_status == "finished":
-        # Check status of validation job if present
-        response_status = FileHandler.VALIDATION_STATUS_MAP[validation_status]
-        if response_status == "finished" and errors_present:
-            # If validation completed with errors, mark as failed
-            response_status = "failed"
-            upload_job.error_message = "Validation completed but row-level errors were found"
-
-    if response_status == "failed":
-        if upload_job.error_message is None and validation_job.error_message is None:
-            if validation_status == "invalid":
-                upload_job.error_message = "Generated file had file-level errors"
-            else:
-                upload_job.error_message = "Validation job had an internal error"
-
-        elif upload_job.error_message is None:
-            upload_job.error_message = validation_job.error_message
-    sess.commit()
-    return response_status
 
 
 def fabs_derivations(obj, sess):
