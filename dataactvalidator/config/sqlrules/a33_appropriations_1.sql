@@ -20,7 +20,7 @@ FROM sf_133 AS sf
             OR sf.allocation_transfer_agency = sub.cgac_code
         )
     LEFT JOIN tas_lookup
-        ON tas_lookup.tas_id = sf.tas_id
+        ON tas_lookup.account_num = sf.tas_id
 WHERE sub.submission_id = {0}
     AND NOT EXISTS (
         SELECT 1
@@ -28,4 +28,4 @@ WHERE sub.submission_id = {0}
         WHERE sf.tas IS NOT DISTINCT FROM approp.tas
             AND approp.submission_id = {0}
     )
-    AND tas_lookup.financial_indicator2 IS DISTINCT FROM 'F';
+    AND COALESCE(UPPER(tas_lookup.financial_indicator2), '') <> 'F';

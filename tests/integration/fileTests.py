@@ -461,26 +461,6 @@ class FileTests(BaseTestAPI):
             bytes_written = key.set_contents_from_filename(full_path)
             return {'bytesWritten': bytes_written, 's3FileName': s3_file_name}
 
-    def test_error_report(self):
-        """Test broker csv_validation error report."""
-        post_json = {"submission_id": self.error_report_submission_id}
-        response = self.app.post_json(
-            "/v1/submission_error_reports/", post_json, headers={"x-session-id": self.session_id})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers.get("Content-Type"), "application/json")
-        self.assertEqual(len(response.json), 14)
-        self.assertIn("cross_appropriations-program_activity", response.json)
-
-    def test_warning_reports(self):
-        """Test broker csv_validation error report."""
-        post_json = {"submission_id": self.error_report_submission_id}
-        response = self.app.post_json(
-            "/v1/submission_warning_reports/", post_json, headers={"x-session-id": self.session_id})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers.get("Content-Type"), "application/json")
-        self.assertEqual(len(response.json), 14)
-        self.assertIn("cross_warning_appropriations-program_activity", response.json)
-
     def check_metrics(self, submission_id, exists, type_file):
         """Get error metrics for specified submission."""
         post_json = {"submission_id": submission_id}

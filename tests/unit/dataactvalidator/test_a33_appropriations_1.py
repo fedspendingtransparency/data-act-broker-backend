@@ -80,17 +80,36 @@ def test_failure_null_ata(database):
 def test_financing_tas(database):
     """GTAS entries associated with a CARS with a "financing" financial
     indicator should be ignored"""
-    cars = TASFactory()
-    database.session.add(cars)
-    database.session.commit()
-    gtas = SF133Factory(tas_id=cars.tas_id)
-    submission = SubmissionFactory(
-        reporting_fiscal_period=gtas.period,
-        reporting_fiscal_year=gtas.fiscal_year,
-        cgac_code=gtas.allocation_transfer_agency
-    )
-    errors = number_of_errors(_FILE, database, models=[gtas, cars], submission=submission)
-    assert errors == 1
+    cars_1 = TASFactory(financial_indicator2='other indicator')
+    cars_2 = TASFactory(financial_indicator2=None)
 
-    cars.financial_indicator2 = 'F'
-    assert error_rows(_FILE, database, models=[gtas, cars], submission=submission) == []
+    gtas_1 = SF133Factory(tas_id=cars_1.account_num, allocation_transfer_agency=None)
+
+    gtas_2 = SF133Factory(tas_id=cars_2.account_num, period=gtas_1.period, fiscal_year=gtas_1.fiscal_year,
+                          agency_identifier=gtas_1.agency_identifier, allocation_transfer_agency=None)
+
+    submission_1 = SubmissionFactory(
+        reporting_fiscal_period=gtas_1.period,
+        reporting_fiscal_year=gtas_1.fiscal_year,
+        cgac_code=gtas_1.agency_identifier
+    )
+
+    errors = number_of_errors(_FILE, database, models=[gtas_1, gtas_2, cars_1, cars_2], submission=submission_1)
+    assert errors == 2
+
+    cars_3 = TASFactory(financial_indicator2='f')
+    cars_4 = TASFactory(financial_indicator2='F')
+
+    gtas_3 = SF133Factory(tas_id=cars_3.account_num, allocation_transfer_agency=None)
+
+    gtas_4 = SF133Factory(tas_id=cars_4.account_num, period=gtas_3.period, fiscal_year=gtas_3.fiscal_year,
+                          agency_identifier=gtas_3.agency_identifier, allocation_transfer_agency=None)
+
+    submission_2 = SubmissionFactory(
+        reporting_fiscal_period=gtas_3.period,
+        reporting_fiscal_year=gtas_3.fiscal_year,
+        cgac_code=gtas_3.agency_identifier
+    )
+
+    errors = number_of_errors(_FILE, database, models=[gtas_3, gtas_4, cars_3, cars_4], submission=submission_2)
+    assert errors == 0
