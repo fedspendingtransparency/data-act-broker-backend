@@ -24,6 +24,7 @@ from dataactbroker.permissions import current_user_can, current_user_can_on_subm
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
+from dataactcore.utils.business_categories import get_business_categories
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (
@@ -831,6 +832,9 @@ class FileHandler:
             for row in query:
                 # remove all keys in the row that are not in the intermediate table
                 temp_obj = row.__dict__
+
+                temp_obj['business_categories'] = get_business_categories(row=temp_obj, data_type='fabs')
+
                 temp_obj.pop('row_number', None)
                 temp_obj.pop('is_valid', None)
                 temp_obj.pop('created_at', None)

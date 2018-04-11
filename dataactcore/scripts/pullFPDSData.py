@@ -33,6 +33,7 @@ from dataactcore.models.domainModels import SubTierAgency, CountryCode, States, 
 from dataactcore.models.stagingModels import DetachedAwardProcurement
 from dataactcore.models.jobModels import FPDSUpdate
 
+from dataactcore.utils.business_categories import get_business_categories
 from dataactcore.models.jobModels import Submission  # noqa
 from dataactcore.models.userModel import User  # noqa
 
@@ -1210,6 +1211,9 @@ def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, co
                                    county_by_code=county_by_code, state_code_list=state_code_list,
                                    country_list=country_list)
             tmp_obj['updated_at'] = now
+
+            tmp_obj['business_categories'] = get_business_categories(row=tmp_obj, data_type='fpds')
+
             insert_statement = insert(DetachedAwardProcurement).values(**tmp_obj).\
                 on_conflict_do_update(index_elements=['detached_award_proc_unique'], set_=tmp_obj)
             sess.execute(insert_statement)
@@ -1219,6 +1223,9 @@ def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, co
                                    sub_tier_list=sub_tier_list, county_by_name=county_by_name,
                                    county_by_code=county_by_code, state_code_list=state_code_list,
                                    country_list=country_list)
+
+            tmp_obj['business_categories'] = get_business_categories(row=tmp_obj, data_type='fpds')
+
             try:
                 statement = insert(DetachedAwardProcurement).values(**tmp_obj)
                 sess.execute(statement)

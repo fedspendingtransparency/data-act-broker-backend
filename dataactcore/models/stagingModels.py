@@ -1,4 +1,12 @@
-from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean, ForeignKey, DateTime
+from sqlalchemy import ARRAY
+from sqlalchemy import Boolean
+from sqlalchemy import Column
+from sqlalchemy import DateTime
+from sqlalchemy import ForeignKey
+from sqlalchemy import Index
+from sqlalchemy import Integer
+from sqlalchemy import Numeric
+from sqlalchemy import Text
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
@@ -803,6 +811,7 @@ class DetachedAwardProcurement(Base):
     award_or_idv_flag = Column(Text)
     place_of_perform_country_n = Column(Text)
     place_of_perform_state_nam = Column(Text)
+    business_categories = Column(ARRAY(Text))
     ignore_updated_at = False
 
     def __init__(self, **kwargs):
@@ -896,6 +905,7 @@ class PublishedAwardFinancialAssistance(Base):
     award_modification_amendme = Column(Text)
     business_funds_indicator = Column(Text)
     business_types = Column(Text)
+    business_categories = Column(ARRAY(Text))
     cfda_number = Column(Text, index=True)
     cfda_title = Column(Text)
     correction_late_delete_ind = Column(Text, index=True)
