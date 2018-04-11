@@ -234,7 +234,7 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database, jo
     ]
 
     monkeypatch.setattr(file_generation_handler, 'mark_job_status', Mock())
-    
+
     with Flask(__name__).app_context():
         file_generation_handler.generate_e_file(database.session, job, is_local=True)
 

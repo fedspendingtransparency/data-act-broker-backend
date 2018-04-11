@@ -8,8 +8,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.jobModels import Job, FileRequest
-from dataactcore.models.lookups import (JOB_TYPE_DICT, JOB_STATUS_DICT, JOB_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER,
-                                        FILE_TYPE_DICT_LETTER_ID)
+from dataactcore.models.lookups import (JOB_TYPE_DICT, JOB_STATUS_DICT, FILE_TYPE_DICT_LETTER)
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 

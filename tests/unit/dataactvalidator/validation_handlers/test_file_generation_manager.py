@@ -1,10 +1,3 @@
-import csv
-import os
-import re
-
-from collections import OrderedDict
-from unittest.mock import Mock
-
 from dataactcore.models.jobModels import FileType, JobStatus, JobType
 from dataactvalidator.validation_handlers import file_generation_manager
 from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
@@ -46,6 +39,7 @@ def test_job_context_fail(database, job_constants):
     sess.refresh(job)
     assert job.job_status.name == 'failed'
     assert job.error_message == 'This failed!'
+
 
 def test_check_detached_d_file_generation(database, job_constants):
     """Job statuses should return the correct status and error message to the user"""

@@ -35,9 +35,8 @@ from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
 from dataactcore.models.lookups import (
-    FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
-    JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID,
-    FILE_TYPE_DICT_LETTER_NAME)
+    FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
+    RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
 from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
                                               FPDSContractingOffice)
 from dataactcore.models.userModel import User
@@ -422,7 +421,6 @@ class FileHandler:
             return JsonResponse.error(exc, exc.status)
 
         request_dict = RequestDictionary(self.request)
-        agency_code = job.submission.frec_code if job.submission.frec_code else job.submission.cgac_code
         success, error_response = self.start_generation_job(job, request_dict.get_value("start"),
                                                             request_dict.get_value("end"))
         log_data['message'] = 'Finished start_generation_job method for submission {}'.format(submission_id)
