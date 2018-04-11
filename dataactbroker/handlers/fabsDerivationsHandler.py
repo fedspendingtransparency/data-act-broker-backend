@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from sqlalchemy import func
 
-from dataactcore.models.domainModels import Zips, CountyCode, CityCode, ZipCity, DUNS
+from dataactcore.models.domainModels import Zips, CityCode, ZipCity, DUNS
 from dataactcore.models.stagingModels import FPDSContractingOffice
 from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, CORRECTION_DELETE_IND_DICT,
                                         RECORD_TYPE_DICT, BUSINESS_TYPE_DICT, BUSINESS_FUNDS_IND_DICT)
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 # TODO: Make these lookups (potentially) instead of DB calls, ordered from smallest to largest:
-# CountyCode (3,295 entries), FPDSContractingOffice (6,566 entries)
+# FPDSContractingOffice (6,566 entries)
 
 def get_zip_data(sess, zip_five, zip_four):
     """ Get zip data based on 5-digit or 9-digit zips and the counts of congressional districts associated with them """
@@ -93,7 +93,7 @@ def derive_ppop_state(obj, state_dict):
     return ppop_code, state_code, state_name
 
 
-def derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code):
+def derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code, county_dict):
     """ Deriving place of performance location values from zip4 """
     if obj['place_of_performance_zip4a'] and obj['place_of_performance_zip4a'] != 'city-wide':
         zip_five = obj['place_of_performance_zip4a'][:5]
@@ -114,12 +114,7 @@ def derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code):
 
         # deriving PrimaryPlaceOfPerformanceCountyName/Code
         obj['place_of_perform_county_co'] = zip_info.county_number
-        county_info = sess.query(CountyCode). \
-            filter_by(county_number=zip_info.county_number, state_code=zip_info.state_abbreviation).first()
-        if county_info:
-            obj['place_of_perform_county_na'] = county_info.county_name
-        else:
-            obj['place_of_perform_county_na'] = None
+        obj['place_of_perform_county_na'] = county_dict.get(zip_info.state_abbreviation + zip_info.county_number)
 
         # deriving PrimaryPlaceOfPerformanceCityName
         city_info = sess.query(ZipCity).filter_by(zip_code=zip_five).one()
@@ -130,10 +125,8 @@ def derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code):
         if re.match('^[A-Z]{2}\*\*\d{3}$', ppop_code):
             # getting county name
             county_code = ppop_code[-3:]
-            county_info = sess.query(CountyCode). \
-                filter_by(county_number=county_code, state_code=ppop_state_code).first()
             obj['place_of_perform_county_co'] = county_code
-            obj['place_of_perform_county_na'] = county_info.county_name
+            obj['place_of_perform_county_na'] = county_dict.get(ppop_state_code + county_code)
             obj['place_of_performance_city'] = None
         # if ppop_code is in city format
         elif re.match('^[A-Z]{2}\d{5}$', ppop_code) and not re.match('^[A-Z]{2}0{5}$', ppop_code):
@@ -150,7 +143,7 @@ def derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code):
         obj['place_of_performance_city'] = None
 
 
-def derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, ppop_state_name):
+def derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, ppop_state_name, county_dict):
     """ Deriving place of performance location values """
     # Deriving from zip code (record type is 2 or 3 in this case)
     if obj['legal_entity_zip5']:
@@ -167,15 +160,9 @@ def derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, p
             else:
                 obj['legal_entity_congressional'] = '90'
 
-        # legal entity city data
-        county_info = sess.query(CountyCode). \
-            filter_by(county_number=zip_data.county_number, state_code=zip_data.state_abbreviation).first()
-        if county_info:
-            obj['legal_entity_county_code'] = county_info.county_number
-            obj['legal_entity_county_name'] = county_info.county_name
-        else:
-            obj['legal_entity_county_code'] = None
-            obj['legal_entity_county_name'] = None
+        # legal entity county data
+        obj['legal_entity_county_code'] = zip_data.county_number
+        obj['legal_entity_county_name'] = county_dict.get(zip_data.state_abbreviation + zip_data.county_number)
 
         # legal entity state data
         obj['legal_entity_state_code'] = zip_data.state_abbreviation
@@ -197,10 +184,8 @@ def derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, p
         if county_wide_pattern.match(ppop_code):
             # legal entity county data
             county_code = ppop_code[-3:]
-            county_info = sess.query(CountyCode). \
-                filter_by(county_number=county_code, state_code=ppop_state_code).first()
             obj['legal_entity_county_code'] = county_code
-            obj['legal_entity_county_name'] = county_info.county_name
+            obj['legal_entity_county_name'] = county_dict.get(ppop_state_code + county_code)
 
         if county_wide_pattern.match(ppop_code) or state_wide_pattern.match(ppop_code):
             # legal entity state data
@@ -341,7 +326,7 @@ def set_active(obj):
         obj['is_active'] = True
 
 
-def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict):
+def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict, county_dict):
     # copy log data and remove keys in the row left for logging
     job_id = obj['job_id']
     detached_award_financial_assistance_id = obj['detached_award_financial_assistance_id']
@@ -367,9 +352,9 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
 
     ppop_code, ppop_state_code, ppop_state_name = derive_ppop_state(obj, state_dict)
 
-    derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code)
+    derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code, county_dict)
 
-    derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, ppop_state_name)
+    derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, ppop_state_name, county_dict)
 
     derive_awarding_office_name(obj, sess)
 

@@ -30,7 +30,7 @@ from dataactcore.interfaces.function_bag import (
     create_jobs, get_error_metrics_by_job_jd, get_error_type, get_fabs_meta, mark_job_status, run_job_checks,
     get_last_validated_date, get_lastest_certified_date)
 
-from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram
+from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
@@ -782,6 +782,13 @@ class FileHandler:
             country_dict = {}
             sub_tier_dict = {}
             cfda_dict = {}
+            county_dict = {}
+
+            counties = sess.query(CountyCode).all()
+            for county in counties:
+                # We ony ever get county name by state + code so we can make the keys a combination
+                county_dict[county.state_code.upper() + county.county_number] = county.county_name
+            del counties
 
             # Only grabbing the 2 columns we need because, unlike the other lookups, this has a ton of columns and
             # they can be pretty big
@@ -826,7 +833,8 @@ class FileHandler:
                 temp_obj.pop('updated_at', None)
                 temp_obj.pop('_sa_instance_state', None)
 
-                temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict)
+                temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict,
+                                            county_dict)
 
                 # if it's a correction or deletion row and an old row is active, update the old row to be inactive
                 if row.correction_delete_indicatr is not None:
