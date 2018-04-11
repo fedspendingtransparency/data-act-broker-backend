@@ -776,21 +776,21 @@ class FileHandler:
             query = sess.query(DetachedAwardFinancialAssistance).\
                 filter_by(is_valid=True, submission_id=submission_id).all()
 
-            # Create lookup dictionaries so we don't have to query the API every time.
+            # Create lookup dictionaries so we don't have to query the API every time. We do biggest to smallest
+            # to save the most possible space, although none of these should take that much.
             state_dict = {}
             country_dict = {}
             sub_tier_dict = {}
             cfda_dict = {}
 
-            states = sess.query(States).all()
-            for state in states:
-                state_dict[state.state_code.upper()] = state.state_name
-            del states
-
-            countries = sess.query(CountryCode).all()
-            for country in countries:
-                country_dict[country.country_code.upper()] = country.country_name
-            del countries
+            # Only grabbing the 2 columns we need because, unlike the other lookups, this has a ton of columns and
+            # they can be pretty big
+            cfdas = sess.query(CFDAProgram.program_number, CFDAProgram.program_title).all()
+            for cfda in cfdas:
+                # This is so the key is always "##.###", which is what's required based on the SQL
+                # Could also be "###.###" which this will still pad correctly
+                cfda_dict["%06.3f" % cfda.program_number] = cfda.program_title
+            del cfdas
 
             sub_tiers = sess.query(SubTierAgency).all()
             for sub_tier in sub_tiers:
@@ -803,12 +803,15 @@ class FileHandler:
                 }
             del sub_tiers
 
-            cfdas = sess.query(CFDAProgram).all()
-            for cfda in cfdas:
-                # This is so the key is always "##.###", which is what's required based on the SQL
-                # Could also be "###.###" which this will still pad correctly
-                cfda_dict["%06.3f"%cfda.program_number] = cfda.program_title
-            del cfdas
+            countries = sess.query(CountryCode).all()
+            for country in countries:
+                country_dict[country.country_code.upper()] = country.country_name
+            del countries
+
+            states = sess.query(States).all()
+            for state in states:
+                state_dict[state.state_code.upper()] = state.state_name
+            del states
 
             agency_codes_list = []
             row_count = 1
