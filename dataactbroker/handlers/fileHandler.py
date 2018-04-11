@@ -30,7 +30,7 @@ from dataactcore.interfaces.function_bag import (
     create_jobs, get_error_metrics_by_job_jd, get_error_type, get_fabs_meta, mark_job_status, run_job_checks,
     get_last_validated_date, get_lastest_certified_date)
 
-from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
+from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
@@ -38,7 +38,8 @@ from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
     JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID,
     FILE_TYPE_DICT_LETTER_NAME)
-from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
+from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
+                                              FPDSContractingOffice)
 from dataactcore.models.userModel import User
 from dataactcore.models.views import SubmissionUpdatedView
 
@@ -776,6 +777,58 @@ class FileHandler:
             query = sess.query(DetachedAwardFinancialAssistance).\
                 filter_by(is_valid=True, submission_id=submission_id).all()
 
+            # Create lookup dictionaries so we don't have to query the API every time. We do biggest to smallest
+            # to save the most possible space, although none of these should take that much.
+            state_dict = {}
+            country_dict = {}
+            sub_tier_dict = {}
+            cfda_dict = {}
+            county_dict = {}
+            fpds_office_dict = {}
+
+            # This table is big enough that we want to only grab 2 columns
+            offices = sess.query(FPDSContractingOffice.contracting_office_code,
+                                 FPDSContractingOffice.contracting_office_name).all()
+            for office in offices:
+                fpds_office_dict[office.contracting_office_code] = office.contracting_office_name
+            del offices
+
+            counties = sess.query(CountyCode).all()
+            for county in counties:
+                # We ony ever get county name by state + code so we can make the keys a combination
+                county_dict[county.state_code.upper() + county.county_number] = county.county_name
+            del counties
+
+            # Only grabbing the 2 columns we need because, unlike the other lookups, this has a ton of columns and
+            # they can be pretty big
+            cfdas = sess.query(CFDAProgram.program_number, CFDAProgram.program_title).all()
+            for cfda in cfdas:
+                # This is so the key is always "##.###", which is what's required based on the SQL
+                # Could also be "###.###" which this will still pad correctly
+                cfda_dict["%06.3f" % cfda.program_number] = cfda.program_title
+            del cfdas
+
+            sub_tiers = sess.query(SubTierAgency).all()
+            for sub_tier in sub_tiers:
+                sub_tier_dict[sub_tier.sub_tier_agency_code] = {
+                    "is_frec": sub_tier.is_frec,
+                    "cgac_code": sub_tier.cgac.cgac_code,
+                    "frec_code": sub_tier.frec.frec_code,
+                    "sub_tier_agency_name": sub_tier.sub_tier_agency_name,
+                    "agency_name": sub_tier.frec.agency_name if sub_tier.is_frec else sub_tier.cgac.agency_name
+                }
+            del sub_tiers
+
+            countries = sess.query(CountryCode).all()
+            for country in countries:
+                country_dict[country.country_code.upper()] = country.country_name
+            del countries
+
+            states = sess.query(States).all()
+            for state in states:
+                state_dict[state.state_code.upper()] = state.state_name
+            del states
+
             agency_codes_list = []
             row_count = 1
             log_data['message'] = 'Starting derivations for FABS submission'
@@ -789,7 +842,8 @@ class FileHandler:
                 temp_obj.pop('updated_at', None)
                 temp_obj.pop('_sa_instance_state', None)
 
-                temp_obj = fabs_derivations(temp_obj, sess)
+                temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict,
+                                            county_dict, fpds_office_dict)
 
                 # if it's a correction or deletion row and an old row is active, update the old row to be inactive
                 if row.correction_delete_indicatr is not None:
