@@ -28,4 +28,4 @@ WHERE sub.submission_id = {0}
         WHERE sf.tas IS NOT DISTINCT FROM approp.tas
             AND approp.submission_id = {0}
     )
-    AND tas_lookup.financial_indicator2 IS DISTINCT FROM 'F';
+    AND COALESCE(UPPER(tas_lookup.financial_indicator2), '') <> 'F';

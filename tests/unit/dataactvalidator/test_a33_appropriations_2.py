@@ -52,11 +52,18 @@ def test_failure_with_rule_exception(database):
 def test_financial_tas_approp(database):
     """ Tests that TAS for File A are not present in SF-133
     except when a financial account (financial indicator type F)"""
-    tas_1 = TASFactory()
+    tas_1 = TASFactory(financial_indicator2='other indicator')
+    tas_2 = TASFactory(financial_indicator2=None)
 
-    ap = AppropriationFactory(tas_id=tas_1.account_num)
+    ap_1 = AppropriationFactory(tas_id=tas_1.account_num)
+    ap_2 = AppropriationFactory(tas_id=tas_2.account_num)
 
-    assert number_of_errors(_FILE, database, models=[tas_1, ap]) == 1
+    assert number_of_errors(_FILE, database, models=[tas_1, tas_2, ap_1, ap_2]) == 2
 
-    tas_1.financial_indicator2 = 'F'
-    assert number_of_errors(_FILE, database, models=[tas_1, ap]) == 0
+    tas_3 = TASFactory(financial_indicator2='F')
+    tas_4 = TASFactory(financial_indicator2='f')
+
+    ap_3 = AppropriationFactory(tas_id=tas_3.account_num)
+    ap_4 = AppropriationFactory(tas_id=tas_4.account_num)
+
+    assert number_of_errors(_FILE, database, models=[tas_3, tas_4, ap_3, ap_4]) == 0

@@ -29,7 +29,7 @@ WITH appropriation_a33_2_{0} AS
         ON tas_lookup.account_num = approp.tas_id
     WHERE submission_id = {0}
         -- In case a file a submission contains a financial account
-        AND tas_lookup.financial_indicator2 IS DISTINCT FROM 'F')
+        AND COALESCE(UPPER(tas_lookup.financial_indicator2), '') <> 'F')
 SELECT DISTINCT
     approp.row_number,
     approp.allocation_transfer_agency,
