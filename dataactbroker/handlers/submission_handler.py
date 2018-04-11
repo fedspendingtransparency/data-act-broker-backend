@@ -96,11 +96,8 @@ def get_submission_status(submission, jobs):
     skip_count = 0
 
     for job in jobs:
-        if job.job_type.name not in ["external_validation", None]:
-            job_status = job.job_status.name
-            statuses[job_status] += 1
-        else:
-            skip_count += 1
+        job_status = job.job_status.name
+        statuses[job_status] += 1
 
     status = "unknown"
 

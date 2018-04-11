@@ -1,6 +1,5 @@
 import logging
 from operator import attrgetter
-import time
 import uuid
 
 from sqlalchemy import func
@@ -372,46 +371,19 @@ def create_jobs(upload_files, submission, existing_submission=False):
             jobs_required.append(validation_job_id)
         upload_dict[upload_file.file_type] = upload_job_id
 
-    # once single-file upload/validation jobs are created, create the cross-file
-    # validation job and dependencies
-    # todo: remove external validation jobs from the code-base--they aren't used
-    if existing_submission and not submission.d2_submission:
-        # find cross-file and external validation jobs and mark them as waiting
-        # (note: job_type of 'validation' is a cross-file job)
-        val_job = sess.query(Job).\
-            filter_by(
-                submission_id=submission_id,
-                job_type_id=JOB_TYPE_DICT["validation"]).\
-            one()
-        val_job.job_status_id = JOB_STATUS_DICT["waiting"]
-        ext_job = sess.query(Job).\
-            filter_by(
-                submission_id=submission_id,
-                job_type_id=JOB_TYPE_DICT["external_validation"]).\
-            one()
-        ext_job.job_status_id = JOB_STATUS_DICT["waiting"]
-        submission.updated_at = time.strftime("%c")
     # todo: add these back in for detached_d2 when we have actual validations
-    elif not submission.d2_submission:
+    if not submission.d2_submission:
         # create cross-file validation job
         validation_job = Job(
             job_status_id=JOB_STATUS_DICT["waiting"],
             job_type_id=JOB_TYPE_DICT["validation"],
             submission_id=submission_id)
         sess.add(validation_job)
-        # create external validation job
-        external_job = Job(
-            job_status_id=JOB_STATUS_DICT["waiting"],
-            job_type_id=JOB_TYPE_DICT["external_validation"],
-            submission_id=submission_id)
-        sess.add(external_job)
         sess.flush()
         # create dependencies for validation jobs
         for job_id in jobs_required:
             val_dependency = JobDependency(job_id=validation_job.job_id, prerequisite_id=job_id)
             sess.add(val_dependency)
-            ext_dependency = JobDependency(job_id=external_job.job_id, prerequisite_id=job_id)
-            sess.add(ext_dependency)
 
     sess.commit()
     upload_dict["submission_id"] = submission_id
