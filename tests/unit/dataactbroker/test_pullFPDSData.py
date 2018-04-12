@@ -76,9 +76,9 @@ def test_calculate_remaining_fields(database):
                     'legal_entity_country_name': 'UNITED STATES',
                     'legal_entity_state_code': 'GA',
                     'legal_entity_state_descrip': 'GEORGIA'}
-    tmp_obj_bc = business_category_dict.copy()
-    tmp_obj_bc['emerging_small_business'] = 'Y'
-    tmp_obj = pullFPDSData.calculate_remaining_fields({**tmp_obj_data, **tmp_obj_bc},
+    tmp_obj_data.update(business_category_dict.copy())
+    tmp_obj_data['emerging_small_business'] = 'Y'
+    tmp_obj = pullFPDSData.calculate_remaining_fields(tmp_obj_data,
                                                       sess,
                                                       {sub_tier.sub_tier_agency_code: sub_tier},
                                                       county_by_name,
@@ -100,9 +100,9 @@ def test_calculate_remaining_fields(database):
                       'legal_entity_country_name': 'UNITED STATES',
                       'legal_entity_state_code': 'GA',
                       'legal_entity_state_descrip': 'GEORGIA'}
-    tmp_obj_2_bc = business_category_dict.copy()
-    tmp_obj_2_bc['contracting_officers_deter'] = 'O'
-    tmp_obj_2 = pullFPDSData.calculate_remaining_fields({**tmp_obj_2_data, **tmp_obj_2_bc},
+    tmp_obj_2_data.update(business_category_dict.copy())
+    tmp_obj_2_data['contracting_officers_deter'] = 'O'
+    tmp_obj_2 = pullFPDSData.calculate_remaining_fields(tmp_obj_2_data,
                                                         sess,
                                                         {sub_tier.sub_tier_agency_code: sub_tier},
                                                         county_by_name,
@@ -124,9 +124,9 @@ def test_calculate_remaining_fields(database):
                       'legal_entity_country_name': 'GUAM',
                       'legal_entity_state_code': 'GA',
                       'legal_entity_state_descrip': 'GEORGIA'}
-    tmp_obj_3_bc = business_category_dict.copy()
-    tmp_obj_3_bc['alaskan_native_owned_corpo'] = 'True'
-    tmp_obj_3 = pullFPDSData.calculate_remaining_fields({**tmp_obj_3_data, **tmp_obj_3_bc},
+    tmp_obj_3_data.update(business_category_dict.copy())
+    tmp_obj_3_data['alaskan_native_owned_corpo'] = 'True'
+    tmp_obj_3 = pullFPDSData.calculate_remaining_fields(tmp_obj_3_data,
                                                         sess,
                                                         {sub_tier.sub_tier_agency_code: sub_tier},
                                                         county_by_name,
