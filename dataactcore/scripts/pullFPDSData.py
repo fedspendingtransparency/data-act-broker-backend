@@ -929,6 +929,9 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
     if obj['legal_entity_country_code']:
         calculate_legal_entity_fields(obj, sess, county_by_code, state_code_list, country_list)
 
+    # calculate business categories
+    obj['business_categories'] = get_business_categories(row=obj, data_type='fpds')
+
     # calculate unique key
     key_list = ['agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id',
                 'transaction_number']
@@ -943,9 +946,6 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
                 unique_string += "-none-"
         except KeyError:
             unique_string += "-none-"
-
-    # calculate business categories
-    obj['business_categories'] = get_business_categories(row=obj, data_type='fpds')
 
     # The order of the unique key is agency_id, referenced_idv_agency_iden, piid, award_modification_amendme,
     # parent_award_id, transaction_number
