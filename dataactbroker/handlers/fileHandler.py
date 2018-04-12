@@ -351,7 +351,9 @@ class FileHandler:
             logger.info({'message_type': 'BrokerInfo', 'job_id': job.job_id,
                          'message': 'Sending file generation job {} to Validator in SQS'.format(job.job_id)})
             queue = sqs_queue()
-            response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes={'agency_code': agency_code})
+            response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes={
+                'attributes': {'agency_code': agency_code}
+            })
             logger.debug({'message_type': 'BrokerInfo', 'job_id': job.job_id,
                           'message': 'Send message response: {}'.format(response)})
         else:
