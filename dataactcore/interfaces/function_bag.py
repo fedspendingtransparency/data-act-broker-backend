@@ -377,14 +377,13 @@ def create_jobs(upload_files, submission, existing_submission=False):
     if existing_submission and not submission.d2_submission:
         # find cross-file jobs and mark them as waiting
         # (note: job_type of 'validation' is a cross-file job)
-        val_job = sess.query(Job). \
+        val_job = sess.query(Job).\
             filter_by(
-            submission_id=submission_id,
-            job_type_id=JOB_TYPE_DICT["validation"]). \
+                submission_id=submission_id,
+                job_type_id=JOB_TYPE_DICT["validation"]).\
             one()
         val_job.job_status_id = JOB_STATUS_DICT["waiting"]
         submission.updated_at = time.strftime("%c")
-
     # todo: add these back in for detached_d2 when we have actual validations
     elif not submission.d2_submission:
         # create cross-file validation job
