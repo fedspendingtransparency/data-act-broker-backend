@@ -833,8 +833,6 @@ class FileHandler:
                 # remove all keys in the row that are not in the intermediate table
                 temp_obj = row.__dict__
 
-                temp_obj['business_categories'] = get_business_categories(row=temp_obj, data_type='fabs')
-
                 temp_obj.pop('row_number', None)
                 temp_obj.pop('is_valid', None)
                 temp_obj.pop('created_at', None)
@@ -1913,6 +1911,9 @@ def fabs_derivations(obj, sess):
         obj['is_active'] = False
     else:
         obj['is_active'] = True
+
+    # calculate business categories
+    obj['business_categories'] = get_business_categories(row=obj, data_type='fabs')
 
     obj['modified_at'] = datetime.utcnow()
 

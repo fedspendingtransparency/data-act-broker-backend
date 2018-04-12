@@ -1,12 +1,4 @@
-from sqlalchemy import ARRAY
-from sqlalchemy import Boolean
-from sqlalchemy import Column
-from sqlalchemy import DateTime
-from sqlalchemy import ForeignKey
-from sqlalchemy import Index
-from sqlalchemy import Integer
-from sqlalchemy import Numeric
-from sqlalchemy import Text
+from sqlalchemy import ARRAY, Boolean, Column, DateTime, ForeignKey, Index, Integer, Numeric, Text
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
