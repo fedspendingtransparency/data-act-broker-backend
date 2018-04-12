@@ -1,3 +1,4 @@
+import logging
 from sqlalchemy import or_
 
 from dataactcore.interfaces.db import GlobalDB
@@ -6,13 +7,14 @@ from dataactcore.models import lookups
 from dataactcore.models.jobModels import JobStatus, JobType, FileType, PublishStatus
 from dataactvalidator.health_check import create_app
 
+logger = logging.getLogger(__name__)
+
 
 def setup_job_tracker_db():
     """Create job tracker tables from model metadata."""
     with create_app().app_context():
         sess = GlobalDB.db().session
         insert_codes(sess)
-        delete_unused_job_types(sess)
         sess.commit()
 
 
@@ -29,6 +31,11 @@ def insert_codes(sess):
     for t in lookups.JOB_TYPE:
         this_type = JobType(job_type_id=t.id, name=t.name, description=t.desc)
         sess.merge(this_type)
+
+    # Delete unused job types if they exist
+    if sess.query(JobType).filter(JobType.name.in_(['db_transfer', 'external_validation'])).count() > 0:
+        logger.info('Deleting unused job types db_transfer and external_validation')
+        delete_unused_job_types(sess)
 
     # insert publish status
     for ps in lookups.PUBLISH_STATUS:
@@ -53,7 +60,6 @@ def delete_unused_job_types(sess):
     """
 
     # Using raw sql to delete jobs to avoid sqlalchemy cascading that deletes the entire submission
-
     # Delete related jobs from job_dependency table
     delete_job_dependency_statement = """
      DELETE FROM job_dependency
