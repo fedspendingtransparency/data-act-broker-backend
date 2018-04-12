@@ -53,9 +53,7 @@ JOB_STATUS_DICT_ID = {item.id: item.name for item in JOB_STATUS}
 JOB_TYPE = [
     LookupType(1, 'file_upload', 'file must be uploaded to S3'),
     LookupType(2, 'csv_record_validation', 'do record level validation and add to staging table'),
-    LookupType(3, 'db_transfer', 'information must be moved from production DB to staging table'),
-    LookupType(4, 'validation', 'new information must be validated'),
-    LookupType(5, 'external_validation', 'new information must be validated against external sources')
+    LookupType(4, 'validation', 'new information must be validated')
 ]
 JOB_TYPE_DICT = {item.name: item.id for item in JOB_TYPE}
 JOB_TYPE_DICT_ID = {item.id: item.name for item in JOB_TYPE}
