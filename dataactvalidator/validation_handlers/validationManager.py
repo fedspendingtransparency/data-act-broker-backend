@@ -47,9 +47,7 @@ CHUNK_SIZE = 1024
 
 
 class ValidationManager:
-    """
-    Outer level class, called by flask route
-    """
+    """ Outer level class, called by flask route """
     reportHeaders = ["Field name", "Error message", "Row number", "Value provided", "Rule label"]
     crossFileReportHeaders = ["Source File", "Target File", "Field names", "Error message", "Values provided",
                               "Row number", "Rule label"]
@@ -61,15 +59,21 @@ class ValidationManager:
 
         # create long-to-short (and vice-versa) column name mappings
         sess = GlobalDB.db().session
-        colnames = sess.query(FileColumn.name, FileColumn.name_short).all()
-        self.long_to_short_dict = {row.name: row.name_short for row in colnames}
-        self.short_to_long_dict = {row.name_short: row.name for row in colnames}
+        colnames = sess.query(FileColumn.name, FileColumn.name_short, FileColumn.file_id).all()
 
-    def get_reader(self):
-        """
-        Gets the reader type based on if its local install or not.
-        """
-        return CsvReader()
+        self.long_to_short_dict = {}
+        self.short_to_long_dict = {}
+        # fill in long_to_short and short_to_long dicts
+        for col in colnames:
+            # Get long_to_short_dict filled in
+            if not self.long_to_short_dict.get(col.file_id):
+                self.long_to_short_dict[col.file_id] = {}
+            self.long_to_short_dict[col.file_id][col.name] = col.name_short
+
+            # Get short_to_long_dict filled in
+            if not self.short_to_long_dict.get(col.file_id):
+                self.short_to_long_dict[col.file_id] = {}
+            self.short_to_long_dict[col.file_id][col.name_short] = col.name
 
     def get_writer(self, region_name, bucket_name, file_name, header):
         """ Gets the write type based on if its a local install or not.
@@ -116,7 +120,7 @@ class ValidationManager:
         job_id = job.job_id
         try:
             (next_record, flex_fields) = reader.get_next_record()
-            record = FieldCleaner.clean_row(next_record, self.long_to_short_dict, fields)
+            record = FieldCleaner.clean_row(next_record, self.long_to_short_dict[job.file_type_id], fields)
             record["row_number"] = row_number
             for flex_field in flex_fields:
                 flex_field.submission_id = job.submission_id
@@ -201,7 +205,7 @@ class ValidationManager:
         # Create File Status object
         create_file_if_needed(job_id, file_name)
 
-        reader = self.get_reader()
+        reader = CsvReader()
 
         # Get file size and write to jobs table
         if CONFIG_BROKER["use_aws"]:
@@ -235,7 +239,8 @@ class ValidationManager:
 
             # Pull file and return info on whether it's using short or long col headers
             reader.open_file(region_name, bucket_name, file_name, fields, bucket_name,
-                             self.get_file_name(error_file_name), self.long_to_short_dict, is_local=self.isLocal)
+                             self.get_file_name(error_file_name), self.long_to_short_dict[job.file_type_id],
+                             is_local=self.isLocal)
 
             # list to keep track of rows that fail validations
             error_rows = []
@@ -332,8 +337,8 @@ class ValidationManager:
                             continue
 
                     if not passed_validations:
-                        fatal = write_errors(failures, job, self.short_to_long_dict, error_csv, warning_csv, row_number,
-                                             error_list, flex_cols)
+                        fatal = write_errors(failures, job, self.short_to_long_dict[job.file_type_id], error_csv,
+                                             warning_csv, row_number, error_list, flex_cols)
                         if fatal:
                             error_rows.append(row_number)
 
@@ -358,8 +363,8 @@ class ValidationManager:
                 # third phase of validations: run validation rules as specified
                 # in the schema guidance. these validations are sql-based.
                 #
-                sql_error_rows = self.run_sql_validations(job, file_type, self.short_to_long_dict, error_csv,
-                                                          warning_csv, row_number, error_list)
+                sql_error_rows = self.run_sql_validations(job, file_type, self.short_to_long_dict[job.file_type_id],
+                                                          error_csv, warning_csv, row_number, error_list)
                 error_rows.extend(sql_error_rows)
             error_file.close()
             warning_file.close()
@@ -468,7 +473,7 @@ class ValidationManager:
         """
         job_id = job.job_id
         error_rows = []
-        sql_failures = validate_file_by_sql(job, file_type, self.short_to_long_dict)
+        sql_failures = validate_file_by_sql(job, file_type, self.short_to_long_dict[job.file_type_id])
         for failure in sql_failures:
             # convert shorter, machine friendly column names used in the
             # SQL validation queries back to their long names
@@ -558,7 +563,9 @@ class ValidationManager:
                 warning_csv.writerow(self.crossFileReportHeaders)
 
                 # send comboRules to validator.crossValidate sql
-                cross_validate_sql(combo_rules.all(), submission_id, self.short_to_long_dict, first_file.id,
+                current_cols_short_to_long = self.short_to_long_dict[first_file.id].copy()
+                current_cols_short_to_long.update(self.short_to_long_dict[second_file.id].copy())
+                cross_validate_sql(combo_rules.all(), submission_id, current_cols_short_to_long, first_file.id,
                                    second_file.id, job, error_csv, warning_csv, error_list, job_id)
             # close files
             error_file.close()
