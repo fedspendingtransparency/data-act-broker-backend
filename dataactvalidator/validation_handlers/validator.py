@@ -297,17 +297,17 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
     for rule in rules:
 
         rule_start = datetime.now()
-        # logger.info({
-        #     'message': 'Beginning SQL validation rule {} {}'.format(rule.query_name, log_string),
-        #     'message_type': 'ValidatorInfo',
-        #     'submission_id': job.submission_id,
-        #     'job_id': job.job_id,
-        #     'rule': rule.query_name,
-        #     'file_type': job.file_type.name,
-        #     'action': 'run_sql_validation_rule',
-        #     'status': 'start',
-        #     'start_time': rule_start
-        # })
+        logger.info({
+            'message': 'Beginning SQL validation rule {} {}'.format(rule.query_name, log_string),
+            'message_type': 'ValidatorInfo',
+            'submission_id': job.submission_id,
+            'job_id': job.job_id,
+            'rule': rule.query_name,
+            'file_type': job.file_type.name,
+            'action': 'run_sql_validation_rule',
+            'status': 'start',
+            'start_time': rule_start
+        })
 
         failures = sess.execute(rule.rule_sql.format(job.submission_id))
         if failures.rowcount:
@@ -324,19 +324,19 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
                           for failure in failures)
 
         rule_duration = (datetime.now() - rule_start).total_seconds()
-        # logger.info({
-        #     'message': 'Completed SQL validation rule {} {}'.format(rule.query_name, log_string),
-        #     'message_type': 'ValidatorInfo',
-        #     'submission_id': job.submission_id,
-        #     'job_id': job.job_id,
-        #     'rule': rule.query_name,
-        #     'file_type': job.file_type.name,
-        #     'action': 'run_sql_validation_rule',
-        #     'status': 'finish',
-        #     'start_time': rule_start,
-        #     'end_time': datetime.now(),
-        #     'duration': rule_duration
-        # })
+        logger.info({
+            'message': 'Completed SQL validation rule {} {}'.format(rule.query_name, log_string),
+            'message_type': 'ValidatorInfo',
+            'submission_id': job.submission_id,
+            'job_id': job.job_id,
+            'rule': rule.query_name,
+            'file_type': job.file_type.name,
+            'action': 'run_sql_validation_rule',
+            'status': 'finish',
+            'start_time': rule_start,
+            'end_time': datetime.now(),
+            'duration': rule_duration
+        })
 
     sql_val_duration = (datetime.now()-sql_val_start).total_seconds()
     logger.info({
