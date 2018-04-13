@@ -116,3 +116,32 @@ SUBMISSION_TYPE = [
     LookupType(3, 'fabs', 'Warning for FABS pages')
 ]
 SUBMISSION_TYPE_DICT = {item.name: item.id for item in SUBMISSION_TYPE}
+
+BUSINESS_CATEGORY_FIELDS = ['airport_authority', 'alaskan_native_owned_corpo', 'alaskan_native_servicing_i',
+                            'american_indian_owned_busi', 'asian_pacific_american_own', 'black_american_owned_busin',
+                            'c1862_land_grant_college', 'c1890_land_grant_college', 'c1994_land_grant_college',
+                            'c8a_program_participant', 'city_local_government', 'community_developed_corpor',
+                            'community_development_corp', 'contracting_officers_deter', 'corporate_entity_not_tax_e',
+                            'corporate_entity_tax_exemp', 'council_of_governments', 'county_local_government',
+                            'domestic_or_foreign_entity', 'domestic_shelter', 'dot_certified_disadvantage',
+                            'economically_disadvantaged', 'educational_institution', 'emerging_small_business',
+                            'federal_agency', 'federally_funded_research', 'for_profit_organization',
+                            'foreign_government', 'foreign_owned_and_located', 'foundation',
+                            'hispanic_american_owned_bu', 'hispanic_servicing_institu', 'historically_black_college',
+                            'historically_underutilized', 'hospital_flag', 'housing_authorities_public',
+                            'indian_tribe_federally_rec', 'inter_municipal_local_gove', 'international_organization',
+                            'interstate_entity', 'joint_venture_economically', 'joint_venture_women_owned',
+                            'labor_surplus_area_firm', 'limited_liability_corporat', 'local_government_owned',
+                            'manufacturer_of_goods', 'minority_institution', 'minority_owned_business',
+                            'municipality_local_governm', 'native_american_owned_busi', 'native_hawaiian_owned_busi',
+                            'native_hawaiian_servicing', 'nonprofit_organization', 'other_minority_owned_busin',
+                            'other_not_for_profit_organ', 'partnership_or_limited_lia', 'planning_commission',
+                            'port_authority', 'private_university_or_coll', 'sba_certified_8_a_joint_ve',
+                            'school_district_local_gove', 'school_of_forestry', 'self_certified_small_disad',
+                            'service_disabled_veteran_o', 'small_agricultural_coopera', 'small_disadvantaged_busine',
+                            'sole_proprietorship', 'state_controlled_instituti', 'subchapter_s_corporation',
+                            'subcontinent_asian_asian_i', 'the_ability_one_program', 'township_local_government',
+                            'transit_authority', 'tribal_college', 'tribally_owned_business', 'us_federal_government',
+                            'us_government_entity', 'us_local_government', 'us_state_government',
+                            'us_tribal_government', 'veteran_owned_business', 'veterinary_college',
+                            'veterinary_hospital', 'woman_owned_business', 'women_owned_small_business']
