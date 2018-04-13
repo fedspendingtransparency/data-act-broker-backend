@@ -836,6 +836,7 @@ class FileHandler:
             for row in query:
                 # remove all keys in the row that are not in the intermediate table
                 temp_obj = row.__dict__
+
                 temp_obj.pop('row_number', None)
                 temp_obj.pop('is_valid', None)
                 temp_obj.pop('created_at', None)

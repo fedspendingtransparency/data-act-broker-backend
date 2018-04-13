@@ -7,6 +7,7 @@ from sqlalchemy import func
 from dataactcore.models.domainModels import Zips, CityCode, ZipCity, DUNS
 from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, CORRECTION_DELETE_IND_DICT,
                                         RECORD_TYPE_DICT, BUSINESS_TYPE_DICT, BUSINESS_FUNDS_IND_DICT)
+from dataactcore.utils.business_categories import get_business_categories
 
 logger = logging.getLogger(__name__)
 
@@ -349,6 +350,9 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
     derive_labels(obj)
 
     set_active(obj)
+
+    # calculate business categories
+    obj['business_categories'] = get_business_categories(row=obj, data_type='fabs')
 
     obj['modified_at'] = datetime.utcnow()
 
