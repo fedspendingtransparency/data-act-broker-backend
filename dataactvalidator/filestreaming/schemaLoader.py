@@ -21,7 +21,7 @@ class SchemaLoader(object):
         "award_financial": "awardFinancialFields.csv",
         "program_activity": "programActivityFields.csv",
         "award_procurement": "awardProcurementFields.csv",
-        "detached_award": "detachedAwardFields.csv",
+        "detached_award": "fabsFields.csv",
         "executive_compensation": "executiveCompensationFields.csv"}
 
     @staticmethod
