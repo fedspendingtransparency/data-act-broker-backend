@@ -976,8 +976,6 @@ class FileTests(BaseTestAPI):
                                JOB_TYPE_DICT['file_upload'], None, None, None],
             'recordRunning': [FILE_TYPE_DICT['award'], JOB_STATUS_DICT['running'],
                               JOB_TYPE_DICT['csv_record_validation'], None, None, None],
-            'externalWaiting': [FILE_TYPE_DICT['award'], JOB_STATUS_DICT['waiting'],
-                                JOB_TYPE_DICT['external_validation'], None, None, None],
             'awardFin': [FILE_TYPE_DICT['award_financial'], JOB_STATUS_DICT['ready'],
                          JOB_TYPE_DICT['csv_record_validation'], "awardFin.csv", 100, 100],
             'appropriations': [FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['ready'],
