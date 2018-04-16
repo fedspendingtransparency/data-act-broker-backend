@@ -28,7 +28,7 @@ def generate_d_file(sess, job, agency_code, is_local=True, old_filename=None):
             is_local     -- True if in local development, False otherwise
             old_filename -- previous version of filename, in cases where reverting to old file is necessary
     """
-    log_data = {'message_type': 'BrokerInfo', 'job_id': job.job_id, 'file_type': job.file_type.letter_name,
+    log_data = {'message_type': 'ValidatorInfo', 'job_id': job.job_id, 'file_type': job.file_type.letter_name,
                 'agency_code': agency_code, 'start_date': job.start_date, 'end_date': job.end_date}
     if job.submission_id:
         log_data['submission_id'] = job.submission_id
@@ -122,7 +122,7 @@ def generate_f_file(sess, job, is_local):
             job      -- upload Job
             is_local -- True if in local development, False otherwise
     """
-    log_data = {'message': 'Starting file F generation', 'message_type': 'BrokerInfo', 'job_id': job.job_id,
+    log_data = {'message': 'Starting file F generation', 'message_type': 'ValidatorInfo', 'job_id': job.job_id,
                 'submission_id': job.submission_id, 'file_type': 'sub_award'}
     logger.info(log_data)
 
@@ -148,7 +148,7 @@ def generate_e_file(sess, job, is_local):
             job      -- upload Job
             is_local -- True if in local development, False otherwise
     """
-    log_data = {'message': 'Starting file E generation', 'message_type': 'BrokerInfo', 'job_id': job.job_id,
+    log_data = {'message': 'Starting file E generation', 'message_type': 'ValidatorInfo', 'job_id': job.job_id,
                 'submission_id': job.submission_id, 'file_type': 'executive_compensation'}
     logger.info(log_data)
 
@@ -211,7 +211,7 @@ def copy_parent_file_request_data(sess, child_job, parent_job, is_local):
     """
     file_type = parent_job.file_type.letter_name
     log_data = {'message': 'Copying data from parent job with job_id:{}'.format(parent_job.job_id),
-                'message_type': 'BrokerInfo', 'job_id': child_job.job_id, 'file_type': parent_job.file_type.name}
+                'message_type': 'ValidatorInfo', 'job_id': child_job.job_id, 'file_type': parent_job.file_type.name}
 
     # keep path but update file name
     filename = '{}/{}'.format(child_job.filename.rsplit('/', 1)[0], parent_job.original_filename)

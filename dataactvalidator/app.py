@@ -43,6 +43,7 @@ def run_app():
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
         queue = sqs_queue()
+        messages = []
 
         logger.info("Starting SQS polling")
         while True:

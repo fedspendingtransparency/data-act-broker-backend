@@ -38,6 +38,8 @@ class FileGenerationManager:
             job         -- upload Job
             agency_code -- FREC or CGAC code to generate data from
         """
+        mark_job_status(job_id, 'running')
+
         with job_context(job_id, self.is_local) as context:
             sess, job = context
 
@@ -112,13 +114,13 @@ def job_context(job_id, is_local=True):
             yield sess, job
             if not job.from_cached:
                 # only mark completed jobs as done
-                logger.info({'message': 'Marking job {} as finished'.format(job.job_id), 'message_type': 'BrokerInfo',
-                             'job_id': job.job_id})
+                logger.info({'message': 'Marking job {} as finished'.format(job.job_id), 'job_id': job.job_id,
+                             'message_type': 'ValidatorInfo'})
                 mark_job_status(job.job_id, "finished")
         except Exception as e:
             # logger.exception() automatically adds traceback info
             logger.exception({'message': 'Marking job {} as failed'.format(job.job_id), 'job_id': job.job_id,
-                              'message_type': 'BrokerException', 'exception': str(e)})
+                              'message_type': 'ValidatorException', 'exception': str(e)})
 
             # mark job as failed
             job.error_message = str(e)
@@ -138,7 +140,7 @@ def job_context(job_id, is_local=True):
                 child_requests = sess.query(FileRequest).filter_by(parent_job_id=job.job_id).all()
                 if len(child_requests) > 0:
                     logger.info({'message': 'Copying file data from job {} to its children'.format(job.job_id),
-                                 'message_type': 'BrokerInfo', 'job_id': job.job_id})
+                                 'message_type': 'ValidatorInfo', 'job_id': job.job_id})
                     for child in child_requests:
                         copy_parent_file_request_data(sess, child.job, job, is_local)
             GlobalDB.close()
@@ -167,21 +169,15 @@ def start_generation_job(job, start_date, end_date, agency_code=None):
     except ResponseException as e:
         return False, JsonResponse.error(e, e.status, file_type=file_type, status='failed')
 
+    # Add job_id to the SQS job queue
+    logger.info({'message_type': 'ValidatorInfo', 'job_id': job.job_id,
+                 'message': 'Sending file generation job {} to Validator in SQS'.format(job.job_id)})
+    queue = sqs_queue()
 
-
-    if CONFIG_BROKER["use_aws"]:
-        # Add job_id to the SQS job queue
-        logger.info({'message_type': 'BrokerInfo', 'job_id': job.job_id,
-                     'message': 'Sending file generation job {} to Validator in SQS'.format(job.job_id)})
-        queue = sqs_queue()
-
-        message_attr = {'agency_code': {'DataType': 'String', 'StringValue': agency_code}} if agency_code else {}
-        response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes=message_attr)
-        logger.debug({'message_type': 'BrokerInfo', 'job_id': job.job_id,
-                      'message': 'Send message response: {}'.format(response)})
-    else:
-        file_generation_manager = FileGenerationManager(True)
-        file_generation_manager.generate_from_job(job.job_id, agency_code)
+    message_attr = {'agency_code': {'DataType': 'String', 'StringValue': agency_code}} if agency_code else {}
+    response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes=message_attr)
+    logger.debug({'message_type': 'ValidatorInfo', 'job_id': job.job_id,
+                  'message': 'Send message response: {}'.format(response)})
 
     return True, None
 
