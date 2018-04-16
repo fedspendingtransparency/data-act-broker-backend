@@ -75,7 +75,7 @@ FILE_TYPE = [
     LookupFileType(5, 'award_procurement', '', 'D1', 5, True, AwardProcurement),
     LookupFileType(6, 'executive_compensation', '', 'E', None, False, None),
     LookupFileType(7, 'sub_award', '', 'F', None, False, None),
-    LookupFileType(8, 'detached_award', '', 'D2_detached', None, False, DetachedAwardFinancialAssistance)
+    LookupFileType(8, 'detached_award', '', 'FABS', None, False, DetachedAwardFinancialAssistance)
 ]
 FILE_TYPE_DICT = {item.name: item.id for item in FILE_TYPE}
 FILE_TYPE_DICT_ID = {item.id: item.name for item in FILE_TYPE}
