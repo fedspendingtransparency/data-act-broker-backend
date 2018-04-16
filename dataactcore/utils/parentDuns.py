@@ -82,13 +82,14 @@ def update_missing_parent_names(sess, updated_date=None):
     while batch <= batches:
         updated_count = 0
         start = time.time()
+        batch_start = batch*block_size
         logger.info("Processing row {} - {} with missing parent duns name"
                     .format(str(batch*block_size+1),
                             str(missing_count if batch == batches else (batch+1)*block_size)
                             ))
 
-        missing_parent_name_block = missing_parent_name.order_by(DUNS.duns_id)\
-            .offset(batch*block_size).limit(block_size)
+        missing_parent_name_block = missing_parent_name.order_by(DUNS.duns_id).\
+            slice(batch_start, batch_start + block_size)
 
         for row in missing_parent_name_block:
 
@@ -131,7 +132,8 @@ def get_duns_batches(client, sess, batch_start=None, batch_end=None, updated_dat
 
         logger.info('Beginning updating batch {}'.format(batch))
 
-        duns_to_update = duns.order_by(DUNS.duns_id).offset(batch * block_size).limit(block_size)
+        batch_start = batch * block_size
+        duns_to_update = duns.order_by(DUNS.duns_id).slice(batch_start, batch_start + block_size)
 
         # DUNS rows that will be updated
         models = {row.awardee_or_recipient_uniqu: row for row in duns_to_update}
