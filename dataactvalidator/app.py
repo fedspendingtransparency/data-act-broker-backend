@@ -68,7 +68,9 @@ def run_app():
                                                 StatusCode.CLIENT_ERROR, None, validation_error_type)
 
                     # We have two major functionalities in the Validator: validation and file generation
-                    if FILE_TYPE_DICT_LETTER[job.file_type_id] in ['A', 'B', 'C', 'D2_detached']:
+                    if not job.file_type or (job.file_type.letter_name in ['A', 'B', 'C', 'D2_detached'] or \
+                                             job.job_type.name != 'file_upload'):
+                        # Run validations
                         validation_manager = ValidationManager(local, error_report_path)
                         validation_manager.validate_job(job.job_id)
                     else:

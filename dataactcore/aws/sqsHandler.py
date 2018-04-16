@@ -32,8 +32,7 @@ class SQSMockMessage:
     def __init__(self, sqs):
         self.sqs = sqs
         self.body = sqs.job_id
-        if sqs.agency_code:
-            self.message_attributes = {'agency_code': {'StringValue': sqs.agency_code}}
+        self.message_attributes = {'agency_code': {'StringValue': sqs.agency_code}} if sqs.agency_code else None
 
     def delete(self):
         sess = GlobalDB.db().session

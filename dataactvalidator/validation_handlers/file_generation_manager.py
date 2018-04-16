@@ -20,7 +20,7 @@ from dataactvalidator.validation_handlers.file_generation_handler import (
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
 logger = logging.getLogger(__name__)
-STATUS_MAP = {"waiting": "waiting", "ready": "waiting", "running": "waiting", "finished": "finished",
+STATUS_MAP = {"waiting": "waiting", "ready": "invalid", "running": "waiting", "finished": "finished",
               "invalid": "failed", "failed": "failed"}
 VALIDATION_STATUS_MAP = {"waiting": "waiting", "ready": "waiting", "running": "waiting", "finished": "finished",
                          "failed": "failed", "invalid": "failed"}
@@ -169,6 +169,8 @@ def start_generation_job(job, start_date, end_date, agency_code=None):
     except ResponseException as e:
         return False, JsonResponse.error(e, e.status, file_type=file_type, status='failed')
 
+    mark_job_status(job.job_id, "waiting")
+
     # Add job_id to the SQS job queue
     logger.info({'message_type': 'ValidatorInfo', 'job_id': job.job_id,
                  'message': 'Sending file generation job {} to Validator in SQS'.format(job.job_id)})
@@ -204,9 +206,9 @@ def check_file_generation(job_id):
         return response_dict
 
     response_dict['file_type'] = FILE_TYPE_DICT_LETTER[upload_job.file_type_id]
-    response_dict['message'] = upload_job.error_message or ''
     response_dict['size'] = upload_job.file_size
     response_dict['status'] = map_generate_status(sess, upload_job)
+    response_dict['message'] = upload_job.error_message or ''
 
     # Generate the URL (or path) to the file
     if CONFIG_BROKER['use_aws'] and response_dict['status'] is 'finished' and upload_job.filename:
