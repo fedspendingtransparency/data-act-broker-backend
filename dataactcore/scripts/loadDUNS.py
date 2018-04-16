@@ -124,7 +124,7 @@ if __name__ == '__main__':
                         last_update = sess.query(DUNS.last_sam_mod_date).\
                                 order_by(DUNS.last_sam_mod_date.desc()). \
                                 filter(DUNS.last_sam_mod_date.isnot(None)). \
-                                limit(1).one()[0].strftime("%Y%m%d")
+                                first()[0].strftime("%Y%m%d")
                         earliest_daily_file = re.sub("_DAILY_[0-9]{8}\.ZIP", "_DAILY_" +
                                                      last_update + ".ZIP", sorted_daily_file_names[0])
                     if earliest_daily_file:
