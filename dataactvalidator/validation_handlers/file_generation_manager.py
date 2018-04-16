@@ -4,20 +4,23 @@ from contextlib import contextmanager
 from flask import Flask
 
 from dataactcore.aws.s3Handler import S3Handler
+from dataactcore.aws.sqsHandler import sqs_queue
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.jobModels import Job, FileRequest
 from dataactcore.models.lookups import (JOB_TYPE_DICT, JOB_STATUS_DICT, FILE_TYPE_DICT_LETTER)
+from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.utils.stringCleaner import StringCleaner
 
 from dataactvalidator.validation_handlers.file_generation_handler import (
     generate_d_file, generate_e_file, generate_f_file, copy_parent_file_request_data)
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
 logger = logging.getLogger(__name__)
-STATUS_MAP = {"waiting": "waiting", "ready": "invalid", "running": "waiting", "finished": "finished",
+STATUS_MAP = {"waiting": "waiting", "ready": "waiting", "running": "waiting", "finished": "finished",
               "invalid": "failed", "failed": "failed"}
 VALIDATION_STATUS_MAP = {"waiting": "waiting", "ready": "waiting", "running": "waiting", "finished": "finished",
                          "failed": "failed", "invalid": "failed"}
@@ -141,6 +144,48 @@ def job_context(job_id, is_local=True):
             GlobalDB.close()
 
 
+def start_generation_job(job, start_date, end_date, agency_code=None):
+    """ Validates the dates for a D file generation job and passes the Job ID to SQS
+    Args:
+        job: the file generation job to start
+    Returns:
+        Tuple of boolean indicating successful start, and error response if False
+    """
+    sess = GlobalDB.db().session
+    file_type = job.file_type.letter_name
+    try:
+        if file_type in ['D1', 'D2']:
+            # Validate and set Job's start and end dates
+            if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
+                raise ResponseException("Start or end date cannot be parsed into a date", StatusCode.CLIENT_ERROR)
+            job.start_date = start_date
+            job.end_date = end_date
+            sess.commit()
+        elif file_type not in ["E", "F"]:
+            raise ResponseException("File type must be either D1, D2, E or F", StatusCode.CLIENT_ERROR)
+
+    except ResponseException as e:
+        return False, JsonResponse.error(e, e.status, file_type=file_type, status='failed')
+
+
+
+    if CONFIG_BROKER["use_aws"]:
+        # Add job_id to the SQS job queue
+        logger.info({'message_type': 'BrokerInfo', 'job_id': job.job_id,
+                     'message': 'Sending file generation job {} to Validator in SQS'.format(job.job_id)})
+        queue = sqs_queue()
+
+        message_attr = {'agency_code': {'DataType': 'String', 'StringValue': agency_code}} if agency_code else {}
+        response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes=message_attr)
+        logger.debug({'message_type': 'BrokerInfo', 'job_id': job.job_id,
+                      'message': 'Send message response: {}'.format(response)})
+    else:
+        file_generation_manager = FileGenerationManager(True)
+        file_generation_manager.generate_from_job(job.job_id, agency_code)
+
+    return True, None
+
+
 def check_file_generation(job_id):
     """Check the status of a file generation
     Args:
@@ -184,7 +229,6 @@ def check_file_generation(job_id):
 
 def map_generate_status(sess, upload_job):
     """ Maps job status to file generation statuses expected by frontend """
-    print(upload_job.__dict__)
     if FILE_TYPE_DICT_LETTER[upload_job.file_type_id] in ['D1', 'D2'] and upload_job.submission_id:
         validation_job = sess.query(Job).filter(Job.submission_id == upload_job.submission_id,
                                                 Job.file_type_id == upload_job.file_type_id,

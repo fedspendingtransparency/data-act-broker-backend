@@ -21,7 +21,6 @@ from dataactbroker.handlers.submission_handler import create_submission, get_sub
 from dataactbroker.permissions import current_user_can, current_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
-from dataactcore.aws.sqsHandler import sqs_queue
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
@@ -48,10 +47,9 @@ from dataactcore.utils.report import report_file_name
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.utils.stringCleaner import StringCleaner
 
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
-from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager, check_file_generation
+from dataactvalidator.validation_handlers.file_generation_manager import check_file_generation, start_generation_job
 
 logger = logging.getLogger(__name__)
 
@@ -323,45 +321,6 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def start_generation_job(self, job, start_date, end_date, agency_code=None):
-        """ Validates the dates for a D file generation job and passes the Job ID to SQS
-        Args:
-            job: the file generation job to start
-        Returns:
-            Tuple of boolean indicating successful start, and error response if False
-        """
-        sess = GlobalDB.db().session
-        file_type = job.file_type.letter_name
-        try:
-            if file_type in ['D1', 'D2']:
-                # Validate and set Job's start and end dates
-                if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
-                    raise ResponseException("Start or end date cannot be parsed into a date", StatusCode.CLIENT_ERROR)
-                job.start_date = start_date
-                job.end_date = end_date
-                sess.commit()
-            elif file_type not in ["E", "F"]:
-                raise ResponseException("File type must be either D1, D2, E or F", StatusCode.CLIENT_ERROR)
-
-        except ResponseException as e:
-            return False, JsonResponse.error(e, e.status, file_type=file_type, status='failed')
-
-        if CONFIG_BROKER["use_aws"]:
-            # Add job_id to the SQS job queue
-            logger.info({'message_type': 'BrokerInfo', 'job_id': job.job_id,
-                         'message': 'Sending file generation job {} to Validator in SQS'.format(job.job_id)})
-            queue = sqs_queue()
-            response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes={
-                'attributes': {'agency_code': agency_code}
-            })
-            logger.debug({'message_type': 'BrokerInfo', 'job_id': job.job_id,
-                          'message': 'Send message response: {}'.format(response)})
-        else:
-            file_generation_manager = FileGenerationManager(True)
-            file_generation_manager.generate_from_job(job.job_id, agency_code)
-
-        return True, None
-
     def download_file(self, local_file_path, file_url, upload_name, response):
         """ Download a file locally from the specified URL, returns True if successful """
         if not self.isLocal:
@@ -422,9 +381,9 @@ class FileHandler:
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
-        request_dict = RequestDictionary(self.request)
-        success, error_response = self.start_generation_job(job, request_dict.get_value("start"),
-                                                            request_dict.get_value("end"))
+        req_dict = RequestDictionary(self.request)
+        success, error_response = start_generation_job(job, req_dict.get_value("start"), req_dict.get_value("end"))
+
         log_data['message'] = 'Finished start_generation_job method for submission {}'.format(submission_id)
         logger.debug(log_data)
 
@@ -472,7 +431,7 @@ class FileHandler:
             'end_date': end
         })
 
-        self.start_generation_job(new_job, start, end, agency_code)
+        start_generation_job(new_job, start, end, agency_code)
 
         # Return same response as check generation route
         return self.check_detached_generation(new_job.job_id)
@@ -765,6 +724,7 @@ class FileHandler:
         job.message = None
         job.job_status_id = JOB_STATUS_DICT["ready"]
         sess.commit()
+        sess.refresh(job)
 
         return job
 

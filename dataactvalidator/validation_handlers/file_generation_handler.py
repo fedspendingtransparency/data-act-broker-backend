@@ -61,9 +61,10 @@ def generate_d_file(sess, job, agency_code, is_local=True, old_filename=None):
         # reset the file names on the validation job
         val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
                                          Job.file_type_id == job.file_type_id,
-                                         Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one()
-        val_job.filename = "".join([filepath, old_filename])
-        val_job.original_filename = old_filename
+                                         Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one_or_none()
+        if val_job:
+            val_job.filename = "".join([filepath, old_filename])
+            val_job.original_filename = old_filename
         sess.commit()
     else:
         # search for potential parent FileRequests

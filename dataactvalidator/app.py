@@ -1,6 +1,7 @@
 import logging
 import csv
 
+from botocore.exceptions import ClientError
 from flask import Flask, g, current_app
 
 from dataactcore.aws.sqsHandler import sqs_queue
@@ -48,7 +49,7 @@ def run_app():
             current_message = None
             try:
                 # Grabs one (or more) messages from the queue
-                messages = queue.receive_messages(WaitTimeSeconds=10)
+                messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
                 for message in messages:
                     logger.info("Message received: %s", message.body)
 
@@ -71,7 +72,8 @@ def run_app():
                         validation_manager.validate_job(job)
                     else:
                         # Retrieve the agency code data from the message attributes
-                        agency_code = current_message.attributes.get('agency_code')
+                        msg_attr = current_message.message_attributes
+                        agency_code = msg_attr['agency_code']['StringValue'] if msg_attr else None
 
                         file_generation_manager = FileGenerationManager(local)
                         file_generation_manager.generate_from_job(job.job_id, agency_code)
@@ -120,7 +122,11 @@ def run_app():
                 # Set visibility to 0 so that another attempt can be made to process in SQS immediately,
                 # instead of waiting for the timeout window to expire
                 for message in messages:
-                    message.change_visibility(VisibilityTimeout=0)
+                    try:
+                        message.change_visibility(VisibilityTimeout=0)
+                    except ClientError:
+                        # Deleted messages will throw errors, which is fine because they are handled
+                        pass
 
 
 def get_current_job():
