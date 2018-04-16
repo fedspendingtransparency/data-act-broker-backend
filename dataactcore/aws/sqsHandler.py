@@ -6,15 +6,15 @@ from dataactcore.interfaces.db import GlobalDB
 
 class SQSMockQueue:
     @staticmethod
-    def send_message(MessageBody, MessageAttributes):    # noqa
+    def send_message(MessageBody, MessageAttributes=None):    # noqa
         sess = GlobalDB.db().session
         sess.add(SQS(job_id=int(MessageBody), agency_code=MessageAttributes['agency_code']['StringValue']
-                     if MessageAttributes['agency_code'] else None))
+                     if MessageAttributes and MessageAttributes['agency_code'] else None))
         sess.commit()
         return {"ResponseMetadata": {"HTTPStatusCode": 200}}
 
     @staticmethod
-    def receive_messages(WaitTimeSeconds, MessageAttributeNames):  # noqa
+    def receive_messages(WaitTimeSeconds, MessageAttributeNames=None):  # noqa
         sess = GlobalDB.db().session
         messages = []
         for sqs in sess.query(SQS):
