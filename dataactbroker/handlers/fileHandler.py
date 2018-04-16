@@ -1439,7 +1439,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
 
     total_submissions = query.count()
 
-    query = query.limit(limit).offset(offset)
+    query = query.slice(offset, offset + limit)
 
     return JsonResponse.create(StatusCode.OK, {
         "submissions": [serialize_submission(submission) for submission in query],
