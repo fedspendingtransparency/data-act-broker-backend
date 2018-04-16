@@ -21,7 +21,7 @@ class CsvReader(object):
 
     header_report_headers = ["Error type", "Header name"]
 
-    def get_filename(self, region, bucket, filename, from_open_file=None):
+    def get_filename(self, region, bucket, filename):
         """Creates a filename based on the file path
         Args:
             region: AWS region where the bucket is located
@@ -54,6 +54,7 @@ class CsvReader(object):
             bucket_name: bucket to send errors to
             error_filename: filename for error report
             long_to_short_dict: mapping of long to short schema column names
+            is_local: Boolean of whether the app is being run locally or not
         """
 
         if not self.filename:
@@ -65,10 +66,7 @@ class CsvReader(object):
         except:
             raise ValueError("".join(["Filename provided not found : ", str(self.filename)]))
 
-        self.unprocessed = ''
         self.extra_line = False
-        self.lines = []
-        self.packet_counter = 0
         self.is_finished = False
         self.column_count = 0
         header_line = self.file.readline()
