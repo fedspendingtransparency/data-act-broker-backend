@@ -70,7 +70,7 @@ def run_app():
                     # We have two major functionalities in the Validator: validation and file generation
                     if FILE_TYPE_DICT_LETTER[job.file_type_id] in ['A', 'B', 'C', 'D2_detached']:
                         validation_manager = ValidationManager(local, error_report_path)
-                        validation_manager.validate_job(job)
+                        validation_manager.validate_job(job.job_id)
                     else:
                         # Retrieve the agency code data from the message attributes
                         msg_attr = current_message.message_attributes
