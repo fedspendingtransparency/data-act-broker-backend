@@ -576,7 +576,7 @@ class FileHandler:
                 'message': 'Starting detached D file upload',
                 'message_type': 'BrokerInfo',
                 'agency_code': request_params.get('agency_code'),
-                'file_name': request_params.get('detached_award')
+                'file_name': request_params.get('fabs')
             })
 
             job_data = {}
@@ -631,7 +631,7 @@ class FileHandler:
                 sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map(request_params, ['detached_award'], response_dict, upload_files, submission)
+            self.build_file_map(request_params, ['fabs'], response_dict, upload_files, submission)
 
             self.create_response_dict_for_submission(upload_files, submission, existing_submission,
                                                      response_dict, create_credentials)
@@ -1017,7 +1017,7 @@ class FileHandler:
             initial_file_types = [FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
                                   FILE_TYPE_DICT['award_financial']]
         else:
-            initial_file_types = [FILE_TYPE_DICT['detached_award']]
+            initial_file_types = [FILE_TYPE_DICT['fabs']]
 
         jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id).all()
 
