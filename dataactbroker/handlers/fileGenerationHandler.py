@@ -319,7 +319,8 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
 
     if not is_local:
         # Need access to AWS to check if file already exists within a bucket
-        if parent_job.filename != child_job.filename and not file_already_exists(child_job.filename):
+        if parent_job.filename != child_job.filename and not file_already_exists(child_job.filename, file_type,
+                                                                                 log_data):
             # copy the parent file into the child's S3 location
             log_data['message'] = 'Copying the cached {} file from job {}'.format(file_type, parent_job.job_id)
             logger.info(log_data)
@@ -330,7 +331,7 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
     mark_job_status(child_job.job_id, JOB_STATUS_DICT_ID[parent_job.job_status_id])
 
 
-def file_already_exists(file_path):
+def file_already_exists(file_path, file_type, log_data):
     """Check to see if the same file exists in the child bucket
 
         Args:
