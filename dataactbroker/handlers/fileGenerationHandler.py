@@ -151,6 +151,9 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
 
             if parent_file_request:
                 # parent exists; copy parent data to this job
+                log_data['message'] = '{} file retrieved from its cached version'.format(job.file_type.letter_name)
+                log_data['parent_job_id'] = parent_file_request.job_id
+                logger.info(log_data)
                 copy_parent_file_request_data(sess, file_request.job, parent_file_request.job, file_type, is_local)
             else:
                 # no cached file, or cached file is out-of-date
