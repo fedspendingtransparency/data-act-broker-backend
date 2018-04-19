@@ -151,6 +151,9 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
 
             if parent_file_request:
                 # parent exists; copy parent data to this job
+                log_data['message'] = '{} file retrieved from its cached version'.format(job.file_type.letter_name)
+                log_data['parent_job_id'] = parent_file_request.job_id
+                logger.info(log_data)
                 copy_parent_file_request_data(sess, file_request.job, parent_file_request.job, file_type, is_local)
             else:
                 # no cached file, or cached file is out-of-date
@@ -317,22 +320,35 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
         val_job.original_filename = parent_job.original_filename
     sess.commit()
 
-    if not is_local and parent_job.filename != child_job.filename:
-        # check to see if the same file exists in the child bucket
-        s3 = boto3.client('s3', region_name=CONFIG_BROKER["aws_region"])
-        response = s3.list_objects_v2(Bucket=CONFIG_BROKER['aws_bucket'], Prefix=child_job.filename)
-        for obj in response.get('Contents', []):
-            if obj['Key'] == child_job.filename:
-                # the file already exists in this location
-                log_data['message'] = 'Cached {} file CSV already exists in this location'.format(file_type)
-                logger.info(log_data)
-                return
-
-        # copy the parent file into the child's S3 location
-        log_data['message'] = 'Copying the cached {} file from job {}'.format(file_type, parent_job.job_id)
-        logger.info(log_data)
-        with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
-            stream_file_to_s3(child_job.filename, reader)
+    if not is_local:
+        # Need access to AWS to check if file already exists within a bucket
+        if parent_job.filename != child_job.filename and not file_already_exists(child_job.filename, file_type,
+                                                                                 log_data):
+            # copy the parent file into the child's S3 location
+            log_data['message'] = 'Copying the cached {} file from job {}'.format(file_type, parent_job.job_id)
+            logger.info(log_data)
+            with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
+                stream_file_to_s3(child_job.filename, reader)
 
     # mark job status last so the validation job doesn't start until everything is done
     mark_job_status(child_job.job_id, JOB_STATUS_DICT_ID[parent_job.job_status_id])
+
+
+def file_already_exists(file_path, file_type, log_data):
+    """Check to see if the same file exists in the child bucket
+
+        Args:
+            file_path - the potential path to the file within the S3 bucket
+
+        Returns:
+            boolean value on whether or not the file already exists
+    """
+    s3 = boto3.client('s3', region_name=CONFIG_BROKER["aws_region"])
+    response = s3.list_objects_v2(Bucket=CONFIG_BROKER["aws_bucket"], Prefix=file_path)
+    for obj in response.get('Contents', []):
+        if obj['Key'] == file_path:
+            # the file already exists in this location
+            log_data['message'] = 'Cached {} file CSV already exists in this location'.format(file_type)
+            logger.info(log_data)
+            return True
+    return False
