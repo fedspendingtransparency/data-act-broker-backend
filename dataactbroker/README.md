@@ -404,9 +404,9 @@ Example output:
         }, {
           "field_name": "status_of_budgetary_resour_cpe, budget_authority_available_cpe",
           "error_name": "rule_failed",
-          "error_description": "StatusOfBudgetaryResourcesTotal_CPE = BudgetAuthorityAvailableAmountTotal_CPE",
+          "error_description": "StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE",
           "occurrences": 27,
-          "rule_failed": "StatusOfBudgetaryResourcesTotal_CPE = BudgetAuthorityAvailableAmountTotal_CPE",
+          "rule_failed": "StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE",
           "original_label":"A24"
         }
       ],
