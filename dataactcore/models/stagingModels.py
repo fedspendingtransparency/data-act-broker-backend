@@ -41,7 +41,7 @@ class Appropriation(Base):
     beginning_period_of_availa = Column(Text)
     borrowing_authority_amount_cpe = Column(Numeric)
     budget_authority_appropria_cpe = Column(Numeric)
-    budget_authority_available_cpe = Column(Numeric)
+    total_budgetary_resources_cpe = Column(Numeric)
     budget_authority_unobligat_fyb = Column(Numeric)
     contract_authority_amount_cpe = Column(Numeric)
     deobligations_recoveries_r_cpe = Column(Numeric)

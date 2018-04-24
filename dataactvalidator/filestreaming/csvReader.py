@@ -252,8 +252,8 @@ def normalize_headers(header_row, long_headers, long_to_short_dict):
             header = 'deobligationsrecoveriesrefundsdofprioryearbyprogramobjectclass_cpe'
         if header == 'facevalueloanguarantee':
             header = 'facevalueofdirectloanorloanguarantee'
-        if header == 'totalbudgetaryresources_cpe':
-            header = 'budgetauthorityavailableamounttotal_cpe'
+        if header == 'budgetauthorityavailableamounttotal_cpe':
+            header = 'totalbudgetaryresources_cpe'
         if header == 'correctionlatedeleteindicator':
             header = 'correctiondeleteindicator'
         if long_headers and header in long_to_short_dict:
