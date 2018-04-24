@@ -51,11 +51,10 @@ if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
         try:
             CONFIG_BROKER[k]
         except KeyError as e:
-            raise KeyError('Config error: use_aws is True, but the {} key is'
-                           ' missing from the config.yml file'.format(k))
+            raise KeyError('Config error: use_aws is True, but the {} key is missing from the config.yml file'.
+                           format(k))
         if not CONFIG_BROKER[k]:
-            raise ValueError('Config error: use_aws is True but {} value is '
-                             'missing'.format(k))
+            raise ValueError('Config error: use_aws is True but {} value is missing'.format(k))
 
     help_files_path = CONFIG_BROKER["help_files_path"]
     CONFIG_BROKER["help_files_path"] = "".join([help_files_path, "/"]) if help_files_path[-1] != "/" \

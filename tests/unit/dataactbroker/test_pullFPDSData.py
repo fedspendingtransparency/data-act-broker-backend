@@ -3,6 +3,7 @@ import os
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import SubTierAgency, CGAC, Zips
+from dataactcore.models.lookups import BUSINESS_CATEGORY_FIELDS
 
 from dataactcore.scripts import pullFPDSData
 
@@ -57,71 +58,90 @@ def test_calculate_remaining_fields(database):
     state_codes = {'GA': 'GEORGIA', 'MD': 'MARYLAND', 'PR': 'PUERTO RICO', 'GU': 'GUAM'}
     country_list = {'USA': 'UNITED STATES'}
 
-    tmp_obj = pullFPDSData.calculate_remaining_fields({'awarding_sub_tier_agency_c': "0000",
-                                                       'funding_sub_tier_agency_co': None,
-                                                       'place_of_perform_county_na': 'JUST ONE MD',
-                                                       'place_of_performance_state': 'MD',
-                                                       'place_of_perfor_state_desc': None,
-                                                       'place_of_perform_country_c': 'USA',
-                                                       'place_of_perf_country_desc': 'UNITED STATES',
-                                                       'place_of_performance_zip4a': None,
-                                                       'legal_entity_zip4': '987654321',
-                                                       'legal_entity_country_code': 'USA',
-                                                       'legal_entity_country_name': 'UNITED STATES',
-                                                       'legal_entity_state_code': 'GA',
-                                                       'legal_entity_state_descrip': 'GEORGIA'},
+    # build business category values
+    business_category_dict = {}
+    for field in BUSINESS_CATEGORY_FIELDS:
+        business_category_dict[field] = None
+
+    tmp_obj_data = {'awarding_sub_tier_agency_c': "0000",
+                    'funding_sub_tier_agency_co': None,
+                    'place_of_perform_county_na': 'JUST ONE MD',
+                    'place_of_performance_state': 'MD',
+                    'place_of_perfor_state_desc': None,
+                    'place_of_perform_country_c': 'USA',
+                    'place_of_perf_country_desc': 'UNITED STATES',
+                    'place_of_performance_zip4a': None,
+                    'legal_entity_zip4': '987654321',
+                    'legal_entity_country_code': 'USA',
+                    'legal_entity_country_name': 'UNITED STATES',
+                    'legal_entity_state_code': 'GA',
+                    'legal_entity_state_descrip': 'GEORGIA'}
+    tmp_obj_data.update(business_category_dict.copy())
+    tmp_obj_data['emerging_small_business'] = 'Y'
+    tmp_obj = pullFPDSData.calculate_remaining_fields(tmp_obj_data,
                                                       sess,
                                                       {sub_tier.sub_tier_agency_code: sub_tier},
                                                       county_by_name,
                                                       county_by_code,
                                                       state_codes,
                                                       country_list)
-    tmp_obj_2 = pullFPDSData.calculate_remaining_fields({'awarding_sub_tier_agency_c': None,
-                                                         'funding_sub_tier_agency_co': "0001",
-                                                         'funding_sub_tier_agency_na': "Not Real",
-                                                         'place_of_perform_county_na': 'JUST ONE MD',
-                                                         'place_of_performance_state': 'GA',
-                                                         'place_of_perfor_state_desc': 'GEORGIA',
-                                                         'place_of_perform_country_c': 'USA',
-                                                         'place_of_perf_country_desc': 'UNITED STATES',
-                                                         'place_of_performance_zip4a': None,
-                                                         'legal_entity_zip4': '123456789',
-                                                         'legal_entity_country_code': 'USA',
-                                                         'legal_entity_country_name': 'UNITED STATES',
-                                                         'legal_entity_state_code': 'GA',
-                                                         'legal_entity_state_descrip': 'GEORGIA'},
+
+    tmp_obj_2_data = {'awarding_sub_tier_agency_c': None,
+                      'funding_sub_tier_agency_co': "0001",
+                      'funding_sub_tier_agency_na': "Not Real",
+                      'place_of_perform_county_na': 'JUST ONE MD',
+                      'place_of_performance_state': 'GA',
+                      'place_of_perfor_state_desc': 'GEORGIA',
+                      'place_of_perform_country_c': 'USA',
+                      'place_of_perf_country_desc': 'UNITED STATES',
+                      'place_of_performance_zip4a': None,
+                      'legal_entity_zip4': '123456789',
+                      'legal_entity_country_code': 'USA',
+                      'legal_entity_country_name': 'UNITED STATES',
+                      'legal_entity_state_code': 'GA',
+                      'legal_entity_state_descrip': 'GEORGIA'}
+    tmp_obj_2_data.update(business_category_dict.copy())
+    tmp_obj_2_data['contracting_officers_deter'] = 'O'
+    tmp_obj_2 = pullFPDSData.calculate_remaining_fields(tmp_obj_2_data,
                                                         sess,
                                                         {sub_tier.sub_tier_agency_code: sub_tier},
                                                         county_by_name,
                                                         county_by_code,
                                                         state_codes,
                                                         country_list)
-    tmp_obj_3 = pullFPDSData.calculate_remaining_fields({'awarding_sub_tier_agency_c': None,
-                                                         'funding_sub_tier_agency_co': None,
-                                                         'funding_sub_tier_agency_na': None,
-                                                         'place_of_perform_county_na': None,
-                                                         'place_of_performance_state': None,
-                                                         'place_of_perfor_state_desc': None,
-                                                         'place_of_perform_country_c': 'PRI',
-                                                         'place_of_perf_country_desc': 'PUERTO RICO',
-                                                         'place_of_performance_zip4a': '123456789',
-                                                         'legal_entity_zip4': '12345',
-                                                         'legal_entity_country_code': 'GUM',
-                                                         'legal_entity_country_name': 'GUAM',
-                                                         'legal_entity_state_code': 'GA',
-                                                         'legal_entity_state_descrip': 'GEORGIA'},
+
+    tmp_obj_3_data = {'awarding_sub_tier_agency_c': None,
+                      'funding_sub_tier_agency_co': None,
+                      'funding_sub_tier_agency_na': None,
+                      'place_of_perform_county_na': None,
+                      'place_of_performance_state': None,
+                      'place_of_perfor_state_desc': None,
+                      'place_of_perform_country_c': 'PRI',
+                      'place_of_perf_country_desc': 'PUERTO RICO',
+                      'place_of_performance_zip4a': '123456789',
+                      'legal_entity_zip4': '12345',
+                      'legal_entity_country_code': 'GUM',
+                      'legal_entity_country_name': 'GUAM',
+                      'legal_entity_state_code': 'GA',
+                      'legal_entity_state_descrip': 'GEORGIA'}
+    tmp_obj_3_data.update(business_category_dict.copy())
+    tmp_obj_3_data['alaskan_native_owned_corpo'] = 'True'
+    tmp_obj_3 = pullFPDSData.calculate_remaining_fields(tmp_obj_3_data,
                                                         sess,
                                                         {sub_tier.sub_tier_agency_code: sub_tier},
                                                         county_by_name,
                                                         county_by_code,
                                                         state_codes,
                                                         country_list)
+
     assert tmp_obj['awarding_agency_code'] == '1700'
     assert tmp_obj['awarding_agency_name'] == 'test name'
     assert tmp_obj['place_of_perform_county_co'] == '024'
     assert tmp_obj['place_of_perfor_state_desc'] == 'MARYLAND'
     assert tmp_obj['legal_entity_county_code'] is None
     assert tmp_obj['legal_entity_county_name'] is None
+    assert sorted(tmp_obj['business_categories']) == ['category_business', 'emerging_small_business', 'small_business',
+                                                      'special_designations']
     assert tmp_obj_2['funding_agency_code'] == '999'
     assert tmp_obj_2['funding_agency_name'] is None
     assert tmp_obj_2['place_of_perform_county_co'] is None
@@ -129,6 +149,7 @@ def test_calculate_remaining_fields(database):
     assert tmp_obj_2['legal_entity_zip_last4'] == '6789'
     assert tmp_obj_2['legal_entity_county_code'] == '123'
     assert tmp_obj_2['legal_entity_county_name'] == 'COUNTY ONE'
+    assert sorted(tmp_obj_2['business_categories']) == ['category_business', 'other_than_small_business']
     assert tmp_obj_3['place_of_perform_country_c'] == 'USA'
     assert tmp_obj_3['place_of_perf_country_desc'] == 'UNITED STATES'
     assert tmp_obj_3['place_of_performance_state'] == 'PR'
@@ -142,6 +163,7 @@ def test_calculate_remaining_fields(database):
     assert tmp_obj_3['legal_entity_state_descrip'] == 'GUAM'
     assert tmp_obj_3['legal_entity_county_code'] == '123'
     assert tmp_obj_3['legal_entity_county_name'] == 'GU COUNTY'
+    assert sorted(tmp_obj_3['business_categories']) == ['alaskan_native_owned_business', 'minority_owned_business']
 
 
 def test_process_data(database):
