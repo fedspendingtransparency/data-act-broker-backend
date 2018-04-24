@@ -1,14 +1,14 @@
--- BudgetAuthorityAvailableAmountTotal_CPE = CPE value for GTAS SF 133 line #1910
+-- TotalBudgetaryResources_CPE = CPE value for GTAS SF 133 line #1910
 WITH appropriation_a6_{0} AS
     (SELECT submission_id,
         row_number,
-        budget_authority_available_cpe,
+        total_budgetary_resources_cpe,
         tas
     FROM appropriation
     WHERE submission_id = {0})
 SELECT
     approp.row_number,
-    approp.budget_authority_available_cpe,
+    approp.total_budgetary_resources_cpe,
     sf.amount AS sf_133_amount
 FROM appropriation_a6_{0} AS approp
     INNER JOIN sf_133 AS sf
@@ -18,4 +18,4 @@ FROM appropriation_a6_{0} AS approp
         AND sf.period = sub.reporting_fiscal_period
         AND sf.fiscal_year = sub.reporting_fiscal_year
 WHERE sf.line = 1910
-    AND approp.budget_authority_available_cpe <> sf.amount;
+    AND approp.total_budgetary_resources_cpe <> sf.amount;

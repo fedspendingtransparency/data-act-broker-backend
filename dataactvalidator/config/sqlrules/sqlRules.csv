@@ -2,10 +2,10 @@ rule_label,rule_error_message,rule_cross_file_flag,file_type,severity_name,targe
 A1.1,"TAS components: The combination of all the elements that make up the TAS must match the Treasury Central Accounting Reporting System (CARS). AgencyIdentifier, MainAccountCode, and SubAccountCode are always required. AllocationTransferAgencyIdentifier, BeginningPeriodOfAvailability, EndingPeriodOfAvailability and AvailabilityTypeCode are required if present in the CARS table.",n,appropriations,fatal,,a1_appropriations
 A1.2,"TAS components: The combination of all the elements that make up the TAS must match the Treasury Central Accounting Reporting System (CARS). AgencyIdentifier, MainAccountCode, and SubAccountCode are always required. AllocationTransferAgencyIdentifier, BeginningPeriodOfAvailability, EndingPeriodOfAvailability and AvailabilityTypeCode are required if present in the CARS table.",n,program_activity,fatal,,a1_object_class_program_activity
 A1.3,"TAS components: The combination of all the elements that make up the TAS must match the Treasury Central Accounting Reporting System (CARS). AgencyIdentifier, MainAccountCode, and SubAccountCode are always required. AllocationTransferAgencyIdentifier, BeginningPeriodOfAvailability, EndingPeriodOfAvailability and AvailabilityTypeCode are required if present in the CARS table.",n,award_financial,fatal,,a1_award_financial
-A2,"BudgetAuthorityAvailableAmountTotal_CPE = BudgetAuthorityAppropriatedAmount_CPE + BudgetAuthorityUnobligatedBalanceBroughtForward_FYB + AdjustmentsToUnobligatedBalanceBroughtForward_CPE + OtherBudgetaryResourcesAmount_CPE",n,appropriations,fatal,,a2_appropriations
+A2,"TotalBudgetaryResources_CPE = BudgetAuthorityAppropriatedAmount_CPE + BudgetAuthorityUnobligatedBalanceBroughtForward_FYB + AdjustmentsToUnobligatedBalanceBroughtForward_CPE + OtherBudgetaryResourcesAmount_CPE",n,appropriations,fatal,,a2_appropriations
 A3,"OtherBudgetaryResourcesAmount_CPE = ContractAuthorityAmountTotal_CPE + BorrowingAuthorityAmountTotal_CPE + SpendingAuthorityfromOffsettingCollectionsAmountTotal_CPE",n,appropriations,fatal,,a3_appropriations
 A4,"StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE + UnobligatedBalance_CPE",n,appropriations,fatal,,a4_appropriations
-A6,"BudgetAuthorityAvailableAmountTotal_CPE= CPE value for GTAS SF 133 line #1910",n,appropriations,fatal,,a6_appropriations
+A6,"TotalBudgetaryResources_CPE= CPE value for GTAS SF 133 line #1910",n,appropriations,fatal,,a6_appropriations
 A7,"BudgetAuthorityUnobligatedBalanceBroughtForward_FYB= value for GTAS SF 133 line #1000",n,appropriations,fatal,,a7_appropriations
 A8,"BudgetAuthorityAppropriatedAmount_CPE= CPE aggregate value for GTAS SF 133 line #1160 + #1180 + #1260 + #1280",n,appropriations,fatal,,a8_appropriations
 A9,"ContractAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1540 + #1640",n,appropriations,fatal,,a9_appropriations
@@ -20,7 +20,7 @@ A18,"The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does no
 A19,"The ObligationsIncurredTotalByTAS_CPE amount in the appropriation file (A) does not equal the negative sum of the corresponding ObligationsIncurredByProgramObjectClass_CPE values in the award financial file (B).",y,appropriations,warning,program_activity,a19_cross_file
 A22,"ObligationsIncurredTotalByTAS_CPE= CPE value for GTAS SF 133 line #2190",n,appropriations,fatal,,a22_appropriations
 A23,"StatusOfBudgetaryResourcesTotal_CPE= CPE value for GTAS SF 133 line #2500",n,appropriations,fatal,,a23_appropriations
-A24,"StatusOfBudgetaryResourcesTotal_CPE = BudgetAuthorityAvailableAmountTotal_CPE",n,appropriations,fatal,,a24_appropriations
+A24,"StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE",n,appropriations,fatal,,a24_appropriations
 A29,"DeobligationsRecoveriesRefundsByTAS_CPE = CPE aggregate value for GTAS SF 133 line 1021+1033",n,appropriations,fatal,,a29_appropriations
 A30.1,"All TAS values in File A (appropriations) should exist in File B (object class program activity)",y,appropriations,fatal,program_activity,a30_appropriations
 A30.2,"All TAS values in File B (object class program activity) should exist in File A (appropriations)",y,program_activity,fatal,appropriations,a30_object_class_program_activity
