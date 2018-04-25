@@ -21,7 +21,7 @@ class AppropriationFactory(factory.Factory):
     beginning_period_of_availa = fuzzy.FuzzyText()
     borrowing_authority_amount_cpe = fuzzy.FuzzyDecimal(9999)
     budget_authority_appropria_cpe = fuzzy.FuzzyDecimal(9999)
-    budget_authority_available_cpe = fuzzy.FuzzyDecimal(9999)
+    total_budgetary_resources_cpe = fuzzy.FuzzyDecimal(9999)
     budget_authority_unobligat_fyb = fuzzy.FuzzyDecimal(9999)
     contract_authority_amount_cpe = fuzzy.FuzzyDecimal(9999)
     deobligations_recoveries_r_cpe = fuzzy.FuzzyDecimal(9999)
