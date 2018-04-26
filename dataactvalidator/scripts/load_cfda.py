@@ -21,6 +21,7 @@ LOCAL_CFDA_FILE2 = os.path.join('dataactvalidator', 'config', 'cfda_program2.csv
 
 
 def find_latest_file(bucket, days_to_search=DAYS_TO_SEARCH):
+    # TODO: If/When the bucket is public, simply use the folder structure to find the latest file instead of guessing
     # Check for the latest Saturday upload, otherwise manually look it up
     today = datetime.today()
     if today.weekday() == WEEKDAY_UPLOADED:
