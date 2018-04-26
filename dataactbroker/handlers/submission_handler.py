@@ -93,14 +93,10 @@ def get_submission_status(submission, jobs):
         string containing the status of the submission"""
     status_names = JOB_STATUS_DICT.keys()
     statuses = {name: 0 for name in status_names}
-    skip_count = 0
 
     for job in jobs:
-        if job.job_type.name not in ["external_validation", None]:
-            job_status = job.job_status.name
-            statuses[job_status] += 1
-        else:
-            skip_count += 1
+        job_status = job.job_status.name
+        statuses[job_status] += 1
 
     status = "unknown"
 
@@ -114,7 +110,7 @@ def get_submission_status(submission, jobs):
         status = "waiting"
     elif statuses["ready"] != 0:
         status = "ready"
-    elif statuses["finished"] == jobs.count() - skip_count:  # need to account for the jobs that were skipped above
+    elif statuses["finished"] == jobs.count():
         status = "validation_successful"
         if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
             status = "validation_successful_warnings"

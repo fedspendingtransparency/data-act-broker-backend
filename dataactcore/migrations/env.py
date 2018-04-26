@@ -65,6 +65,25 @@ for (key, value) in db_dict.items():
 # ... etc.
 
 
+def include_object(schema_obj, schema_obj_name, type_, reflected, compare_to):
+    """Use this function to ignore certain database object migrations when autogenerating
+    schema_obj: A schemaItem object
+    name: Name of object
+    type_: Type of object (str) (ex: table, column, index)
+    reflected: bool True if object was created based on table reflection, false if created based on MetaData object
+    compare_to: schemaItem object the current object is being compared to (None if no object comparison)
+    """
+
+    # Skipping the following indexes since alembic tries to drop these indexes
+    # These fields are created and updated by the TimeStampMixin
+    if type_ == 'index' and schema_obj_name in ['ix_detached_award_procurement_updated_at',
+                                                'ix_published_award_financial_assistance_created_at']:
+        logger.info("Skipping schema migration for object {}".format(schema_obj_name))
+        return False
+
+    return True
+
+
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
 
@@ -92,7 +111,8 @@ def run_migrations_offline():
         with open(file_, 'w') as buffer:
             context.configure(url=rec['url'], output_buffer=buffer,
                               target_metadata=target_metadata.get(db_name),
-                              literal_binds=True)
+                              literal_binds=True,
+                              include_object=include_object)
             with context.begin_transaction():
                 context.run_migrations(engine_name=db_name)
 
@@ -133,7 +153,8 @@ def run_migrations_online():
                 upgrade_token="%s_upgrades" % db_name,
                 downgrade_token="%s_downgrades" % db_name,
                 target_metadata=target_metadata.get(db_name),
-                compare_type=True  # instruct autogen to detect col type changes
+                compare_type=True,  # instruct autogen to detect col type changes
+                include_object=include_object
             )
             context.run_migrations(engine_name=db_name)
 
