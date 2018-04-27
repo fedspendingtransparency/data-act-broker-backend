@@ -123,7 +123,7 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
             job.filename = "".join([filepath, old_filename])
             job.original_filename = old_filename
 
-            if submission_id is not None:
+            if submission_id:
                 # reset the file names on the validation job
                 val_job = sess.query(Job).filter(Job.submission_id == submission_id,
                                                  Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
