@@ -17,7 +17,6 @@ CFDA_FILE_FORMAT = os.path.join('Assistance Listings', 'usaspendinggov', '%Y', '
 WEEKDAY_UPLOADED = 5  # datetime.weekday()'s integer representing the day it's usually uploaded (Saturday)
 DAYS_TO_SEARCH = 4 * 7  # 4 weeks
 LOCAL_CFDA_FILE = os.path.join('dataactvalidator', 'config', 'cfda_program.csv')
-LOCAL_CFDA_FILE2 = os.path.join('dataactvalidator', 'config', 'cfda_program2.csv')
 
 
 def find_latest_file(bucket, days_to_search=DAYS_TO_SEARCH):
