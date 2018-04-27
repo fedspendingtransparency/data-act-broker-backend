@@ -12,8 +12,7 @@ from botocore.exceptions import ClientError
 s3 = boto3.client('s3', )
 logger = logging.getLogger(__name__)
 
-CFDA_FILE_FORMAT = os.path.join('Assistance Listings', 'usaspendinggov', '%Y', '%m-%b',
-                                'AssistanceListings_USASpendingGov_PUBLIC_WEEKLY_%Y%m%d.csv')
+CFDA_FILE_FORMAT = CONFIG_BROKER['cfda_file_path']
 WEEKDAY_UPLOADED = 5  # datetime.weekday()'s integer representing the day it's usually uploaded (Saturday)
 DAYS_TO_SEARCH = 4 * 7  # 4 weeks
 LOCAL_CFDA_FILE = os.path.join('dataactvalidator', 'config', 'cfda_program.csv')
@@ -59,10 +58,10 @@ def file_exists(bucket, src):
 
 
 def load_cfda():
-    gsa_connection = boto3.resource('s3', region_name='us-east-1')
+    gsa_connection = boto3.resource('s3', region_name=CONFIG_BROKER['cfda_region'])
     # disregard aws credentials for public file
     gsa_connection.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
-    gsa_bucket = gsa_connection.Bucket('falextracts')
+    gsa_bucket = gsa_connection.Bucket(CONFIG_BROKER['cfda_bucket'])
 
     latest_file = find_latest_file(gsa_bucket)
     if not latest_file:
