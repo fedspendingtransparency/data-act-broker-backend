@@ -113,8 +113,8 @@ FABS19,"LegalEntityCountryCode Field must contain a valid three character GENC S
 FABS21,"FundingSubTierAgencyCode is an optional field, but when provided must be a valid 4-digit sub-tier agency code.",n,fabs,fatal,,fabs21_detached_award_financial_assistance
 FABS22,"When provided, CorrectionDeleteIndicator must contain one of the following values: ""C"" or ""D"".",n,fabs,fatal,,fabs22_detached_award_financial_assistance
 FABS23,"AwardingSubTierAgencyCode must be a valid 4-digit sub-tier agency code.",n,fabs,fatal,,fabs23_detached_award_financial_assistance
-FABS24.1,"PrimaryPlaceOfPerformanceCountryCode must contain a valid three character GENC Standard Edition 3.0 (Update 4) country code for aggregate or non-aggregate records (i.e., when RecordType = 1 or 2).",n,fabs,fatal,,fabs24_detached_award_financial_assistance_1
-FABS24.2,"PrimaryPlaceOfPerformanceCountryCode must be blank for PII-redacted non-aggregate records (i.e., when RecordType = 3).",n,fabs,fatal,,fabs24_detached_award_financial_assistance_2
+FABS24.1,"PrimaryPlaceOfPerformanceCountryCode must be blank for PII-redacted non-aggregate records (i.e., when RecordType = 3).",n,fabs,fatal,,fabs24_detached_award_financial_assistance_1
+FABS24.2,"PrimaryPlaceOfPerformanceCountryCode must contain a valid three character GENC Standard Edition 3.0 (Update 4) country code for aggregate or non-aggregate records (i.e., when RecordType = 1 or 2).",n,fabs,fatal,,fabs24_detached_award_financial_assistance_2
 FABS26.1,"FederalActionObligation must be blank or 0 for loans (i.e., when AssistanceType = 07 or 08).",n,fabs,fatal,,fabs26_detached_award_financial_assistance_1
 FABS26.2,"FederalActionObligation is required for non-loans (i.e., when AssistanceType is not 07 or 08).",n,fabs,fatal,,fabs26_detached_award_financial_assistance_2
 FABS27,"NonFederalFundingAmount must be blank or 0 or for loans (i.e., when AssistanceType = 07 or 08).",n,fabs,fatal,,fabs27_detached_award_financial_assistance
