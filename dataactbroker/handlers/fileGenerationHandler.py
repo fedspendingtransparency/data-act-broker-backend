@@ -122,6 +122,7 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
             filepath = CONFIG_BROKER['broker_files'] if is_local else "".join([str(job.submission_id), "/"])
             job.filename = "".join([filepath, old_filename])
             job.original_filename = old_filename
+            job.from_cached = False
 
             if submission_id:
                 # reset the file names on the validation job
@@ -162,6 +163,10 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
                 log_data['message'] = 'Starting file {} {}generation'.format(file_type, 're' if exists else '')
                 log_data['file_name'] = file_name
                 logger.info(log_data)
+
+                # mark this Job as uncached
+                job = sess.query(Job).filter(Job.job_id == job_id).first()
+                job.from_cached = False
 
                 # mark this FileRequest as the cached version, requested today
                 file_request.is_cached_file = True
