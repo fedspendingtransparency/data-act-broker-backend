@@ -122,13 +122,15 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
             filepath = CONFIG_BROKER['broker_files'] if is_local else "".join([str(job.submission_id), "/"])
             job.filename = "".join([filepath, old_filename])
             job.original_filename = old_filename
+            job.from_cached = False
 
-            # reset the file names on the validation job
-            val_job = sess.query(Job).filter(Job.submission_id == submission_id,
-                                             Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
-                                             Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one()
-            val_job.filename = "".join([filepath, old_filename])
-            val_job.original_filename = old_filename
+            if submission_id:
+                # reset the file names on the validation job
+                val_job = sess.query(Job).filter(Job.submission_id == submission_id,
+                                                 Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
+                                                 Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one()
+                val_job.filename = "".join([filepath, old_filename])
+                val_job.original_filename = old_filename
             sess.commit()
         else:
             # search for potential parent FileRequests
@@ -151,7 +153,7 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
 
             if parent_file_request:
                 # parent exists; copy parent data to this job
-                log_data['message'] = '{} file retrieved from its cached version'.format(job.file_type.letter_name)
+                log_data['message'] = '{} file retrieved from its cached version'.format(file_type)
                 log_data['parent_job_id'] = parent_file_request.job_id
                 logger.info(log_data)
                 copy_parent_file_request_data(sess, file_request.job, parent_file_request.job, file_type, is_local)
@@ -161,6 +163,10 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
                 log_data['message'] = 'Starting file {} {}generation'.format(file_type, 're' if exists else '')
                 log_data['file_name'] = file_name
                 logger.info(log_data)
+
+                # mark this Job as uncached
+                job = sess.query(Job).filter(Job.job_id == job_id).first()
+                job.from_cached = False
 
                 # mark this FileRequest as the cached version, requested today
                 file_request.is_cached_file = True

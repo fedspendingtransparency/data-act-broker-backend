@@ -128,3 +128,19 @@ class SubmissionWindowFactory(factory.Factory):
     block_certification = False
     message = fuzzy.FuzzyText()
     application_type = factory.SubFactory(ApplicationTypeFactory)
+
+
+class FileRequestFactory(factory.Factory):
+    class Meta:
+        model = jobModels.FileRequest
+
+    file_request_id = fuzzy.FuzzyInteger(9999)
+    request_date = fuzzy.FuzzyDate(date(2010, 1, 1))
+    job_id = fuzzy.FuzzyInteger(9999)
+    job = factory.SubFactory(JobFactory)
+    parent_job_id = fuzzy.FuzzyInteger(9999)
+    start_date = fuzzy.FuzzyDate(date(2010, 1, 1))
+    end_date = fuzzy.FuzzyDate(date(2010, 1, 1))
+    agency_code = fuzzy.FuzzyText()
+    file_type = fuzzy.FuzzyText()
+    is_cached_file = fuzzy.FuzzyChoice((False, True))
