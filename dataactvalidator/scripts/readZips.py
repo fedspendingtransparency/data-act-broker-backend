@@ -6,6 +6,7 @@ import re
 import logging
 import boto
 import urllib.request
+import pandas as pd
 
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
@@ -14,6 +15,7 @@ from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import Zips, StateCongressional
+from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 
 from dataactvalidator.health_check import create_app
 
@@ -36,6 +38,26 @@ def update_state_congr_table(sess):
     sess.bulk_save_objects([StateCongressional(state_code=state_data.state_abbreviation,
                                                congressional_district_no=state_data.congressional_district_no)
                             for state_data in distinct_list])
+    sess.commit()
+
+
+def update_state_congr_table_census(census_file, sess):
+    logger.info("Adding congressional districtions from census to the state_congressional table")
+
+    data = pd.read_csv(census_file, dtype=str)
+    model = StateCongressional
+
+    data = clean_data(
+        data,
+        model,
+        {"state_code": "state_code",
+         "congressional_district_no": "congressional_district_no",
+         "census_year": "census_year"},
+        {'congressional_district_no': {"pad_to_length": 2}}
+    )
+
+    table_name = model.__table__.name
+    insert_dataframe(data, table_name, sess.connection())
     sess.commit()
 
 
@@ -236,6 +258,8 @@ def read_zips():
             # parse remaining 5 digit zips that weren't in the first file
             citystate_file = s3bucket.get_key("ctystate.txt").generate_url(expires_in=600)
             parse_citystate_file(urllib.request.urlopen(citystate_file), sess)
+
+            census_file = s3bucket.get_key("census_congressional_districts.csv").generate_url(expires_in=600)
         else:
             base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", CONFIG_BROKER["zip_folder"])
             # creating the list while ignoring hidden files on mac
@@ -247,7 +271,10 @@ def read_zips():
             citystate_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "ctystate.txt")
             parse_citystate_file(open(citystate_file), sess)
 
+            census_file = os.path.join(base_path, "census_congressional_districts.csv")
+
         update_state_congr_table(sess)
+        update_state_congr_table_census(census_file, sess)
 
         logger.info("Zipcode script complete")
 
