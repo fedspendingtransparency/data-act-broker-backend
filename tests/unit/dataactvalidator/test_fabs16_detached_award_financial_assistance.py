@@ -11,7 +11,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ LegalEntityForeignProvinceName must be blank for foreign recipients (i.e., when LegalEntityCountryCode = USA)
+    """ LegalEntityForeignProvinceName must be blank for domestic recipients (i.e., when LegalEntityCountryCode = USA)
         or RecordType = 1. Foreign reign recipients don't affect success."""
 
     det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="Japan",
@@ -35,7 +35,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test failure LegalEntityForeignProvinceName must be blank for foreign recipients
+    """ Test failure LegalEntityForeignProvinceName must be blank for domestic recipients
         (i.e., when LegalEntityCountryCode = USA) or RecordType = 1 """
 
     det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA",
