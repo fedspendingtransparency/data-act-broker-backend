@@ -118,7 +118,7 @@ def test_generate_d_file_success_regen(monkeypatch, mock_broker_config_paths, da
         job_type=sess.query(JobType).filter_by(name='file_upload').one(),
         file_type=sess.query(FileType).filter_by(name='award').one(),
         filename=str(mock_broker_config_paths['d_file_storage_path'].join('original')),
-        original_filename='original',
+        original_filename='original', from_cached=True,
     )
     sess.add(job)
     sess.commit()
@@ -145,7 +145,7 @@ def test_generate_d_file_success_new_gen(monkeypatch, mock_broker_config_paths, 
         job_type=sess.query(JobType).filter_by(name='file_upload').one(),
         file_type=sess.query(FileType).filter_by(name='award').one(),
         filename=str(mock_broker_config_paths['d_file_storage_path'].join('original')),
-        original_filename='original',
+        original_filename='original', from_cached=True,
     )
     sess.add(original_job)
     sess.commit()
