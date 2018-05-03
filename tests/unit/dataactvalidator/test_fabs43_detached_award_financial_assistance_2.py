@@ -40,10 +40,12 @@ def test_success(database):
     # Testing foreign places are ignored
     det_award_6 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="",
                                                           place_of_performance_congr="",
-                                                          place_of_perform_country_c="uK")
+                                                          place_of_perform_country_c="uK",
+                                                          record_type=1)
     det_award_7 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="city-wide",
                                                           place_of_performance_congr="",
-                                                          place_of_perform_country_c="uK")
+                                                          place_of_perform_country_c="uK",
+                                                          record_type=2)
 
     # Testing record type 3 entries are ignored
     det_award_8 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a="",
