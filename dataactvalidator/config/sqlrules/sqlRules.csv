@@ -105,8 +105,8 @@ FABS14.1,"LegalEntityZIPLast4 must be blank for aggregate and PII-redacted non-a
 FABS14.2,"LegalEntityZIPLast4 must be blank for foreign recipients (i.e., when LegalEntityCountryCode is not USA)",n,fabs,fatal,,fabs14_detached_award_financial_assistance_2
 FABS14.3,"When it exists, LegalEntityZIPLast4 should be provided for domestic recipients (i.e., when LegalEntityCountryCode = USA) for non-aggregate records (i.e., when RecordType = 2). A warning will be triggered when it is not provided.",n,fabs,warning,,fabs14_detached_award_financial_assistance_3
 FABS15.1,"LegalEntityForeignCityName is required for foreign recipients (i.e., when LegalEntityCountryCode is not USA) for non-aggregate and PII-redacted non-aggregate records (RecordType = 2 or 3).",n,fabs,fatal,,fabs15_detached_award_financial_assistance_1
-FABS15.2,"LegalEntityForeignCityName must be blank for domestic recipients (i.e., when LegalEntityCountryCode = USA)",n,fabs,fatal,,fabs15_detached_award_financial_assistance_2
-FABS16,"LegalEntityForeignProvinceName must be blank for domestic recipients (i.e., when LegalEntityCountryCode = USA)",n,fabs,fatal,,fabs16_detached_award_financial_assistance
+FABS15.2,"LegalEntityForeignCityName must be blank for domestic recipients (i.e., when LegalEntityCountryCode = USA) and for aggregate records (RecordType = 1).",n,fabs,fatal,,fabs15_detached_award_financial_assistance_2
+FABS16,"LegalEntityForeignProvinceName must be blank for domestic recipients (i.e., when LegalEntityCountryCode = USA) and for aggregate records (RecordType = 1).",n,fabs,fatal,,fabs16_detached_award_financial_assistance
 FABS17,"LegalEntityForeignPostalCode must be blank for domestic recipients (i.e., when LegalEntityCountryCode = USA)",n,fabs,fatal,,fabs17_detached_award_financial_assistance
 FABS18,"BusinessTypes must be one to three letters in length. BusinessTypes values must be non-repeated letters from A to X.",n,fabs,fatal,,fabs18_detached_award_financial_assistance
 FABS19,"LegalEntityCountryCode Field must contain a valid three character GENC Standard Edition 3.0 (Update 4) country code.",n,fabs,fatal,,fabs19_detached_award_financial_assistance
