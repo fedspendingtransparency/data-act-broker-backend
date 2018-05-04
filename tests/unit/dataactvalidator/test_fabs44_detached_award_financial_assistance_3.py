@@ -23,7 +23,6 @@ def test_success(database):
     det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5="", legal_entity_congressional="01")
     det_award_3 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5="", legal_entity_congressional="")
     det_award_4 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5="12345", legal_entity_congressional=None)
-
     det_award_5 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5="12345", legal_entity_congressional="01")
     det_award_6 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5="23456", legal_entity_congressional="02")
 

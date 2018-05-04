@@ -22,8 +22,7 @@ WHERE CASE WHEN COALESCE(dafa.place_of_performance_congr, '') <> ''
                         JOIN state_congressional AS sc_1
                             ON UPPER(LEFT(sub_dafa.place_of_performance_code, 2)) = sc_1.state_code
                             AND sub_dafa.place_of_performance_congr = sc_1.congressional_district_no
-                            AND (sc_1.census_year IS NULL
-                                OR sc_1.census_year >= 2000)
+                            AND COALESCE(sc_1.census_year, 2010) >= 2000
                         )
                 )
                 OR (dafa.place_of_performance_congr = '90'

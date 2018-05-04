@@ -10,10 +10,11 @@ FROM detached_award_financial_assistance AS dafa
 WHERE submission_id = {0}
     AND COALESCE(legal_entity_zip5, '') <> ''
     AND COALESCE(legal_entity_congressional, '') <> ''
-    AND dafa.legal_entity_congressional
-        NOT IN (SELECT sc.congressional_district_no
-    	        FROM state_congressional AS sc,
-    	 	        zips as z
-    	        WHERE z.zip5 = dafa.legal_entity_zip5
-    	            AND z.state_abbreviation = sc.state_code
-    	            AND sc.census_year IS NULL OR sc.census_year >= 2000);
+    AND NOT EXISTS (
+        SELECT 1
+        FROM state_congressional AS sc,
+            zips as z
+        WHERE z.zip5 = dafa.legal_entity_zip5
+            AND z.state_abbreviation = sc.state_code
+            AND sc.congressional_district_no = dafa.legal_entity_congressional
+            AND COALESCE(sc.census_year, 2010) >= 2000);
