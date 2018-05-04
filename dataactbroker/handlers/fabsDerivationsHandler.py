@@ -172,10 +172,6 @@ def derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, p
         county_wide_pattern = re.compile("^[a-zA-Z]{2}\*{2}\d{3}$")
         state_wide_pattern = re.compile("^[a-zA-Z]{2}\*{5}$")
 
-        obj['legal_entity_county_code'] = None
-        obj['legal_entity_county_name'] = None
-        obj['legal_entity_state_code'] = None
-        obj['legal_entity_state_name'] = None
         obj['legal_entity_congressional'] = None
 
         if county_wide_pattern.match(ppop_code):
@@ -216,6 +212,36 @@ def derive_le_country_name(obj, country_dict):
     """ Deriving legal entity country name """
     if obj['legal_entity_country_code']:
         obj['legal_entity_country_name'] = country_dict.get(obj['legal_entity_country_code'].upper())
+
+
+def derive_ppop_code(obj):
+    """ Deriving place of performance code for PII-redacted records """
+    if obj['record_type'] == 3:
+        if obj['legal_entity_country_code'].upper() == 'USA' and obj['legal_entity_state_code']:
+            ppop_code = obj['legal_entity_state_code'].upper()
+            if obj['legal_entity_city_code']:
+                obj['place_of_performance_code'] = ppop_code + obj['legal_entity_city_code']
+            else:
+                obj['place_of_performance_code'] = ppop_code + '00000'
+
+
+def derive_pii_redacted_ppop_data(obj):
+    """ Deriving ppop location data for PII-redacted records """
+    if obj['record_type'] == 3:
+        # These are the same no matter where the country code is
+        obj['place_of_perform_country_c'] = obj['legal_entity_country_code']
+        obj['place_of_perform_country_n'] = obj['legal_entity_country_name']
+        # Deriving data for domestic recipients
+        if obj['legal_entity_country_code'].upper() == 'USA':
+            obj['place_of_performance_city'] = obj['legal_entity_city_name']
+            obj['place_of_perform_county_co'] = obj['legal_entity_county_code']
+            obj['place_of_perform_county_na'] = obj['legal_entity_county_name']
+            obj['place_of_perform_state_nam'] = obj['legal_entity_state_name']
+            obj['place_of_performance_zip4a'] = obj['legal_entity_zip5']
+            obj['place_of_performance_congr'] = obj['legal_entity_congressional']
+        else:
+            obj['place_of_performance_city'] = obj['legal_entity_foreign_city']
+            obj['place_of_performance_forei'] = obj['legal_entity_foreign_city']
 
 
 def split_ppop_zip(obj):
@@ -310,6 +336,10 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
 
     # initializing a few of the derivations so the keys exist
     obj['legal_entity_state_code'] = None
+    obj['legal_entity_state_name'] = None
+    obj['legal_entity_county_code'] = None
+    obj['legal_entity_county_name'] = None
+    obj['legal_entity_city_code'] = None
     obj['legal_entity_city_name'] = None
     obj['place_of_performance_zip5'] = None
     obj['place_of_perform_zip_last4'] = None
@@ -342,6 +372,10 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
     derive_ppop_country_name(obj, country_dict)
 
     derive_le_country_name(obj, country_dict)
+
+    derive_ppop_code(obj)
+
+    derive_pii_redacted_ppop_data(obj)
 
     split_ppop_zip(obj)
 
