@@ -1,6 +1,6 @@
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
-from dataactcore.models.domainModels import StateCongressional
+from tests.unit.dataactcore.factories.domain import StateCongressionalFactory
 
 _FILE = 'fabs43_detached_award_financial_assistance_4'
 
@@ -15,9 +15,9 @@ def test_success(database):
     """ Test PrimaryPlaceOfPerformanceCongressionalDistrict exists in the state indicated by the
         PrimaryPlaceOfPerformanceCode or is 90 in a state with multiple districts or when PrimaryPlaceOfPerformanceCode
         is 00*****. Districts that were created under the 2000 census or later are considered valid"""
-    state_congr_1 = StateCongressional(congressional_district_no="01", state_code="NY", census_year=None)
-    state_congr_2 = StateCongressional(congressional_district_no="02", state_code="NY", census_year=None)
-    state_congr_3 = StateCongressional(congressional_district_no="03", state_code="NY", census_year=2000)
+    state_congr_1 = StateCongressionalFactory(congressional_district_no="01", state_code="NY", census_year=None)
+    state_congr_2 = StateCongressionalFactory(congressional_district_no="02", state_code="NY", census_year=None)
+    state_congr_3 = StateCongressionalFactory(congressional_district_no="03", state_code="NY", census_year=2000)
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY12345",
                                                           place_of_performance_congr="01")
@@ -46,10 +46,10 @@ def test_failure(database):
     """ Test failure PrimaryPlaceOfPerformanceCongressionalDistrict exists in the state indicated by the
         PrimaryPlaceOfPerformanceCode or is 90 in a state with multiple districts or when PrimaryPlaceOfPerformanceCode
         is 00*****. Districts that were created under the 2000 census or later are considered valid"""
-    state_congr_1 = StateCongressional(congressional_district_no="01", state_code="NY", census_year=None)
-    state_congr_2 = StateCongressional(congressional_district_no="02", state_code="NY", census_year=None)
-    state_congr_3 = StateCongressional(congressional_district_no="01", state_code="PA", census_year=None)
-    state_congr_4 = StateCongressional(congressional_district_no="03", state_code="NJ", census_year=1999)
+    state_congr_1 = StateCongressionalFactory(congressional_district_no="01", state_code="NY", census_year=None)
+    state_congr_2 = StateCongressionalFactory(congressional_district_no="02", state_code="NY", census_year=None)
+    state_congr_3 = StateCongressionalFactory(congressional_district_no="01", state_code="PA", census_year=None)
+    state_congr_4 = StateCongressionalFactory(congressional_district_no="03", state_code="NJ", census_year=1999)
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="nY12345",
                                                           place_of_performance_congr="03")
