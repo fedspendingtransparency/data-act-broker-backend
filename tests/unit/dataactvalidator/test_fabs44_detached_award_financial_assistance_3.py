@@ -13,9 +13,9 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Test If LegalEntityCongressionalDistrict is provided, it must be valid in the 5-digit zip code indicated by
-        LegalEntityZIP5. """
+        LegalEntityZIP5. Districts that were created under the 2000 census or later are considered valid"""
     zip1 = ZipsFactory(zip5="12345", congressional_district_no="01", state_abbreviation="AB")
-    zip2 = ZipsFactory(zip5="23456", congressional_district_no="02", state_abbreviation="CD")
+    zip2 = ZipsFactory(zip5="23456", congressional_district_no="01", state_abbreviation="CD")
     sc1 = StateCongressionalFactory(state_code="AB", congressional_district_no="01", census_year=None)
     sc2 = StateCongressionalFactory(state_code="CD", congressional_district_no="02", census_year=2000)
 
@@ -34,7 +34,7 @@ def test_success(database):
 
 def test_failure(database):
     """ Test failure If LegalEntityCongressionalDistrict is provided, it must be valid in the 5-digit zip code indicated
-        by LegalEntityZIP5. """
+        by LegalEntityZIP5. Districts that were created under the 2000 census or later are considered valid"""
     zip1 = ZipsFactory(zip5="12345", congressional_district_no="01", state_abbreviation="AB")
     sc1 = StateCongressionalFactory(state_code="AB", congressional_district_no="01", census_year=None)
     sc2 = StateCongressionalFactory(state_code="AB", congressional_district_no="02", census_year=1999)
