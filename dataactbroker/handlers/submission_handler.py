@@ -215,3 +215,87 @@ def get_windows():
     return sess.query(SubmissionWindow).filter(
                                             SubmissionWindow.start_date <= curr_date,
                                             SubmissionWindow.end_date >= curr_date)
+
+
+def check_current_submission_page(submission):
+    """ Check what page of the submission the user should be allowed to see and if they should be redirected to an
+        earlier one. """
+    sess = GlobalDB.db().session
+
+    submission_id = submission.submission_id
+
+    # /v1/uploadDetachedFiles/
+    # DetachedFiles
+    if submission.d2_submission:
+        data = {
+            "message": "The current progress of this submission ID is on /v1/uploadDetachedFiles/ page.",
+            "step": "6"
+        }
+        return JsonResponse.create(StatusCode.OK, data)
+
+    # /v1/reviewData/
+    # Checks that both E and F files are finished
+    review_data = sess.query(Job).filter(Job.submission_id == submission_id,
+                                         Job.file_type_id.in_([6, 7]), Job.job_status_id == 4)
+
+    # Need to check that cross file is done as well
+    generate_ef = sess.query(Job).filter(Job.submission_id == submission_id, Job.job_type_id == 4,
+                                         Job.number_of_errors == 0, Job.job_status_id == 4)
+
+    if review_data.count() == 2 and generate_ef.count() > 0:
+        data = {
+            "message": "The current progress of this submission ID is on /v1/reviewData/ page.",
+            "step": "5"
+        }
+        return JsonResponse.create(StatusCode.OK, data)
+
+    # /v1/generateEF/
+    if generate_ef.count() > 0:
+        data = {
+            "message": "The current progress of this submission ID is on /v1/generateEF/ page.",
+            "step": "4"
+        }
+        return JsonResponse.create(StatusCode.OK, data)
+
+    validate_cross_file = sess.query(Job).filter(Job.submission_id == submission_id,
+                                                 Job.file_type_id.in_([4, 5]), Job.job_type_id == 2,
+                                                 Job.number_of_errors == 0, Job.file_size.isnot(None),
+                                                 Job.job_status_id == 4)
+
+    generate_files = sess.query(Job).filter(Job.submission_id == submission_id,
+                                            Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
+                                            Job.number_of_errors == 0, Job.file_size.isnot(None),
+                                            Job.job_status_id == 4)
+
+    # /v1/validateCrossFile/
+    if validate_cross_file.count() == 2 and generate_files.count() == 3:
+        data = {
+            "message": "The current progress of this submission ID is on /v1/validateCrossFile/ page.",
+            "step": "3"
+        }
+        return JsonResponse.create(StatusCode.OK, data)
+
+    # /v1/generateFiles/
+    if generate_files.count() == 3:
+        data = {
+            "message": "The current progress of this submission ID is on /v1/generateFiles/ page.",
+            "step": "2"
+        }
+        return JsonResponse.create(StatusCode.OK, data)
+
+    # /v1/validateData/
+    validate_data = sess.query(Job).filter(Job.submission_id == submission_id,
+                                           Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
+                                           Job.number_of_errors != 0, Job.file_size.isnot(None))
+    check_header_errors = sess.query(Job).filter(Job.submission_id == submission_id,
+                                                 Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
+                                                 Job.job_status_id != 4, Job.file_size.isnot(None))
+    if validate_data.count() or check_header_errors.count() > 0:
+        data = {
+            "message": "The current progress of this submission ID is on /v1/validateData/ page.",
+            "step": "1"
+        }
+        return JsonResponse.create(StatusCode.OK, data)
+
+    else:
+        return JsonResponse.error(ValueError("The submisssion ID returns no response"), StatusCode.CLIENT_ERROR)
