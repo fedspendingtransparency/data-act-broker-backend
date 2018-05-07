@@ -1493,10 +1493,18 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
 
 def list_certifications(submission):
     """ List all certifications for a single submission including the file history that goes with them """
+    if submission.d2_submission:
+        return JsonResponse.error(ValueError("FABS submissions do not have a certification history"),
+                                  StatusCode.CLIENT_ERROR)
+
     sess = GlobalDB.db().session
 
     certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
         order_by(CertifyHistory.created_at.desc()).all()
+
+    if len(certify_history) == 0:
+        return JsonResponse.error(ValueError("This submission has no certification history"),
+                                  StatusCode.CLIENT_ERROR)
 
     # get the details for each of the certifications
     certifications = []

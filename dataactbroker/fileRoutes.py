@@ -84,18 +84,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @convert_to_submission_id
     @requires_submission_perms('reader')
     def submission_list_certifications(submission):
-        if submission.d2_submission:
-            return JsonResponse.error(ValueError("FABS submissions do not have a certification history"),
-                                      StatusCode.CLIENT_ERROR)
-
-        sess = GlobalDB.db().session
-
-        certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id)
-
-        if certify_history.count() == 0:
-            return JsonResponse.error(ValueError("This submission has no certification history"),
-                                      StatusCode.CLIENT_ERROR)
-
+        """ List all certifications for a specific submission """
         return list_certifications(submission)
 
     @app.route("/v1/get_certified_file/", methods=["POST"])
