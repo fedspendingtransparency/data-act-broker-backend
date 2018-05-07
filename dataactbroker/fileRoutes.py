@@ -164,11 +164,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         """ Return metadata of FABS submission """
         return JsonResponse.create(StatusCode.OK, get_fabs_meta(submission.submission_id))
 
-    @app.route("/v1/complete_generation/<generation_id>/", methods=["POST"])
-    def complete_generation(generation_id):
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.complete_generation(generation_id)
-
     @app.route("/v1/upload_detached_file/", methods=["POST"])
     def upload_detached_file():
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
