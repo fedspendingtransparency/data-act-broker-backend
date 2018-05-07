@@ -17,7 +17,7 @@ from dataactcore.scripts.setupAllDB import setup_all_db
 from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
-from dataactvalidator.scripts.loadFile import load_domain_values
+from dataactvalidator.scripts.loadFile import load_domain_values, load_cfda_program
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
 from dataactvalidator.scripts.loadTas import load_tas
 from dataactvalidator.scripts.loadLocationData import load_location_data
@@ -70,6 +70,10 @@ def load_domain_value_files(base_path):
     logger.info('Loading domain values')
     load_domain_values(base_path)
 
+def load_cfda(base_path):
+    """load cfda load"""
+    logger.info('Loading cfda values')
+    load_cfda_program(base_path)
 
 def load_sf133():
     logger.info('Loading SF-133')
@@ -93,7 +97,6 @@ def load_location_codes():
     """Load city and county codes into the broker database."""
     logger.info('Loading location data')
     load_location_data()
-
 
 def load_zip_codes():
     """Load zip codes into the broker database."""
@@ -120,6 +123,7 @@ def main():
     parser.add_argument('-c', '--load_agencies', help='Update agency data (CGACs, FRECs, SubTierAgencies)',
                         action='store_true')
     parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
+    parser.add_argument('--cfda_load', help='Pull Catalog of Federal Domestic Assistance', action='store_true')
     parser.add_argument('-s', '--update_sf133', help='Update broker SF-133 reports', action='store_true')
     parser.add_argument('-v', '--update_validator', help='Update validator schema', action='store_true')
     parser.add_argument('-l', '--load_location', help='Load city and county codes', action='store_true')
@@ -152,6 +156,9 @@ def main():
 
     if args.update_domain:
         load_domain_value_files(validator_config_path)
+
+    if args.cfda_load:
+        load_cfda(validator_config_path)
 
     if args.load_agencies:
         load_agency_data(validator_config_path)

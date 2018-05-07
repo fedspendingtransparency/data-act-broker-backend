@@ -99,7 +99,13 @@ def load_country_codes(filename):
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
-def load_cfda_program(filename):
+def load_cfda_program(base_path):
+
+    if CONFIG_BROKER["use_aws"]:
+        filename = s3bucket.get_key("cfda_program.csv").generate_url(expires_in=600)
+    else:
+        filename = os.path.join(base_path, "cfda_program.csv")
+
     """Load country code lookup table."""
     model = CFDAProgram
 
