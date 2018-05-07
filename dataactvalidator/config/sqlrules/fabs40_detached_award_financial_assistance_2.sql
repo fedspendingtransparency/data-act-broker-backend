@@ -1,5 +1,5 @@
--- PrimaryPlaceOfPerformanceCode for aggregate records (i.e., when RecordType = 1)
--- must be in countywide (XX**###), statewide (XX*****), or (00FORGN) foreign formats.
+-- PrimaryPlaceOfPerformanceCode must be in countywide (XX**###), statewide (XX*****) or 00FORGN formats for aggregate
+-- records (RecordType = 1).
 SELECT
     row_number,
     place_of_performance_code,

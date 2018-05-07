@@ -1,5 +1,5 @@
 -- Verify that all of the submitted data (from File A (appropriation)) has an associated GTAS
--- Each TAS reported in File A should be reported in GTAS for SF 133, with the exception of Financing Accounts, or
+-- Each TAS reported in File A should be reported in GTAS for SF-133, with the exception of Financing Accounts, or
 -- when all monetary amounts are zero for the TAS.
 WITH appropriation_a33_2_{0} AS 
     (SELECT row_number,

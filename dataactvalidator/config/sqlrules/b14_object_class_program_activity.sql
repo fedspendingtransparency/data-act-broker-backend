@@ -1,6 +1,6 @@
 -- All the Direct Appropriation (D) amounts reported for (4801_CPE - 4801_FYB) + (4802_CPE - 4802_FYB) +
 -- 4881_CPE + 4882_CPE + (4901_CPE - 4901_FYB) + 4902_CPE + (4908_CPE - 4908_FYB) + 4981_CPE + 4982_CPE =
--- the opposite sign of SF 133 line 2004 per TAS, for the same reporting period
+-- the opposite sign of SF-133 line 2004 per TAS, for the same reporting period
 WITH object_class_program_activity_b14_{0} AS
     (SELECT submission_id,
         tas,

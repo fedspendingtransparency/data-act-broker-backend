@@ -1,4 +1,4 @@
--- When LegalEntityCountryCode is not USA, LegalEntityCongressionalDistrict must be blank.
+-- For foreign recipients (LegalEntityCountryCode is not USA), LegalEntityCongressionalDistrict must be blank.
 SELECT
     row_number,
     legal_entity_country_code,

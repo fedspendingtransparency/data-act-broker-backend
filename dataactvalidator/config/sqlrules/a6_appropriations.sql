@@ -1,4 +1,4 @@
--- TotalBudgetaryResources_CPE = CPE value for GTAS SF 133 line #1910
+-- TotalBudgetaryResources_CPE = CPE value for GTAS SF-133 line #1910
 WITH appropriation_a6_{0} AS
     (SELECT submission_id,
         row_number,

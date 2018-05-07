@@ -1,5 +1,5 @@
--- PrimaryPlaceOfPerformanceCode must be 00FORGN when PrimaryPlaceofPerformanceCountryCode is not USA,
--- not 00FORGN otherwise for record type 1 and 2.
+-- For aggregate or non-aggregate records (RecordType = 1 or 2): PrimaryPlaceOfPerformanceCode must be 00FORGN for
+-- foreign places of performance (PrimaryPlaceOfPerformanceCountryCode is not USA) and must not be 00FORGN otherwise.
 SELECT
     row_number,
     record_type,
