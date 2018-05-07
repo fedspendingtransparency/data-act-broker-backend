@@ -568,6 +568,11 @@ class FileHandler:
 
     def generate_detached_file(self, file_type, cgac_code, frec_code, start, end):
         """ Start a file generation job for the specified file type """
+        # Make sure it's a valid request
+        if not cgac_code and not frec_code:
+            return JsonResponse.error(ValueError("Detached file generation requires CGAC or FR Entity Code"),
+                                      StatusCode.CLIENT_ERROR)
+
         # check if date format is MM/DD/YYYY
         if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
             raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)

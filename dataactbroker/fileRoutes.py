@@ -134,10 +134,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     })
     def generate_detached_file(file_type, cgac_code, frec_code, start, end):
         """ Generate a file from external API, independent from a submission """
-        if not cgac_code and not frec_code:
-            return JsonResponse.error(ValueError("Detached file generation requires CGAC or FR Entity Code"),
-                                      StatusCode.CLIENT_ERROR)
-
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.generate_detached_file(file_type, cgac_code, frec_code, start, end)
 
