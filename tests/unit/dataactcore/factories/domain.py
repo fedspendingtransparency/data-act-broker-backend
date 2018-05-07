@@ -221,3 +221,13 @@ class DunsFactory(factory.Factory):
     last_sam_mod_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
     ultimate_parent_unique_ide = fuzzy.FuzzyText()
     ultimate_parent_legal_enti = fuzzy.FuzzyText()
+
+
+class StateCongressionalFactory(factory.Factory):
+    class Meta:
+        model = domainModels.StateCongressional
+
+    state_congressional_id = None
+    state_code = fuzzy.FuzzyText()
+    congressional_district_no = fuzzy.FuzzyText()
+    census_year = fuzzy.FuzzyInteger(1990, 2040)

@@ -19,7 +19,7 @@ fundingofficecode,funding_office_code,FALSE,str,6,
 fundingsubtieragencycode,funding_sub_tier_agency_co,FALSE,str,4,
 legalentityaddressline1,legal_entity_address_line1,FALSE,str,150,
 legalentityaddressline2,legal_entity_address_line2,FALSE,str,150,
-legalentitycongressionaldistrict,legal_entity_congressional,FALSE,str,2,
+legalentitycongressionaldistrict,legal_entity_congressional,FALSE,str,2,TRUE
 legalentitycountrycode,legal_entity_country_code,TRUE,str,3,
 legalentityforeigncityname,legal_entity_foreign_city,FALSE,str,40,
 legalentityforeignpostalcode,legal_entity_foreign_posta,FALSE,str,50,

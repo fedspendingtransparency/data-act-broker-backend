@@ -341,6 +341,8 @@ class StateCongressional(Base):
     state_congressional_id = Column(Integer, primary_key=True)
     state_code = Column(Text, index=True)
     congressional_district_no = Column(Text, index=True)
+    census_year = Column(Integer, index=True)
+
 
 Index("ix_sc_state_cd",
       StateCongressional.state_code,
