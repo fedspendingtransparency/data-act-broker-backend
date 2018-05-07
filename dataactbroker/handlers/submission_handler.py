@@ -7,7 +7,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import sum_number_of_errors_for_job_list
 
 from dataactcore.models.lookups import JOB_STATUS_DICT, PUBLISH_STATUS_DICT
-from dataactcore.models.jobModels import FileRequest, Job, Submission, SubmissionSubTierAffiliation
+from dataactcore.models.jobModels import FileRequest, Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow
 from dataactcore.models.stagingModels import AwardFinancial
 
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -185,3 +185,33 @@ def delete_all_submission_data(submission):
     sess.expire_all()
 
     return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
+
+def list_windows():
+    current_windows = get_windows()
+
+    data = []
+
+    if current_windows.count() is 0:
+        data = None
+    else:
+        for window in current_windows:
+            data.append({
+                'start_date': str(window.start_date),
+                'end_date': str(window.end_date),
+                'notice_block': window.block_certification,
+                'message': window.message,
+                'type': window.application_type.application_name
+            })
+
+    return JsonResponse.create(StatusCode.OK, {"data": data})
+
+
+def get_windows():
+    sess = GlobalDB.db().session
+
+    curr_date = datetime.now().date()
+
+    return sess.query(SubmissionWindow).filter(
+                                            SubmissionWindow.start_date <= curr_date,
+                                            SubmissionWindow.end_date >= curr_date)

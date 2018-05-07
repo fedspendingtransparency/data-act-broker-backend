@@ -8,7 +8,8 @@ from webargs.flaskparser import parser as webargs_parser, use_kwargs
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler,
     narratives_for_submission, submission_report_url, update_narratives, list_certifications, file_history_url)
-from dataactbroker.handlers.submission_handler import delete_all_submission_data, get_submission_stats
+from dataactbroker.handlers.submission_handler import (delete_all_submission_data, get_submission_stats,
+                                                       get_windows, list_windows)
 
 from dataactbroker.permissions import requires_login, requires_submission_perms
 
@@ -16,7 +17,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import get_fabs_meta
 
 from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, PUBLISH_STATUS_DICT
-from dataactcore.models.jobModels import Submission, Job, CertifyHistory, SubmissionWindow
+from dataactcore.models.jobModels import Submission, Job, CertifyHistory
 
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
@@ -49,23 +50,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/window/", methods=["GET"])
     def window():
-        current_windows = get_window()
-
-        data = []
-
-        if current_windows.count() is 0:
-            data = None
-        else:
-            for window in current_windows:
-                data.append({
-                             'start_date': str(window.start_date),
-                             'end_date': str(window.end_date),
-                             'notice_block': window.block_certification,
-                             'message': window.message,
-                             'type': window.application_type.application_name
-                })
-
-        return JsonResponse.create(StatusCode.OK, {"data": data})
+        return list_windows()
 
     @app.route("/v1/error_metrics/", methods=["POST"])
     @convert_to_submission_id
@@ -360,7 +345,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
             return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
 
-        windows = get_window()
+        windows = get_windows()
         for window in windows:
             if window.block_certification:
                 return JsonResponse.error(ValueError(window.message), StatusCode.CLIENT_ERROR)
@@ -443,13 +428,3 @@ def find_existing_submissions_in_period(sess, cgac_code, frec_code, reporting_fi
         }
         return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
     return JsonResponse.create(StatusCode.OK, {"message": "Success"})
-
-
-def get_window():
-    sess = GlobalDB.db().session
-
-    curr_date = datetime.now().date()
-
-    return sess.query(SubmissionWindow).filter(
-                                            SubmissionWindow.start_date <= curr_date,
-                                            SubmissionWindow.end_date >= curr_date)
