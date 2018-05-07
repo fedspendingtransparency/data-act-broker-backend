@@ -11,7 +11,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from flask import g, request
 from shutil import copyfile
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, desc
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql.expression import case
@@ -92,12 +92,57 @@ class FileHandler:
         self.serverPath = server_path
         self.s3manager = S3Handler()
 
-    def submit(self, create_credentials):
+    def validate_submit_files(self, create_credentials):
+        """ Validate whether the submission can be submitted or not (does the submission exist for this date range
+            already)
+
+        Arguments:
+            create_credentials: If True, will create temporary credentials for S3 uploads
+
+        Returns:
+            Results of submit function"""
+        sess = GlobalDB.db().session
+        submission_request = self.request
+
+        start_date = submission_request.json.get('reporting_period_start_date')
+        end_date = submission_request.json.get('reporting_period_end_date')
+        is_quarter = submission_request.json.get('is_quarter_format', False)
+
+        if not (start_date is None or end_date is None):
+            formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(start_date,
+                                                                                          end_date, is_quarter)
+
+            submissions = sess.query(Submission).filter(
+                Submission.cgac_code == submission_request.json.get('cgac_code'),
+                Submission.frec_code == submission_request.json.get('frec_code'),
+                Submission.reporting_start_date == formatted_start_date,
+                Submission.reporting_end_date == formatted_end_date,
+                Submission.is_quarter_format == submission_request.json.get('is_quarter'),
+                Submission.d2_submission.is_(False),
+                Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
+
+            if 'existing_submission_id' in submission_request.json:
+                submissions.filter(Submission.submission_id !=
+                                   submission_request.json['existing_submission_id'])
+
+            submissions = submissions.order_by(desc(Submission.created_at))
+
+            if submissions.count() > 0:
+                data = {
+                    "message": "A submission with the same period already exists.",
+                    "submissionId": submissions[0].submission_id
+                }
+                return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+
+        return self.submit(sess, create_credentials)
+
+    def submit(self, sess, create_credentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
 
         Flask request should include keys from FILE_TYPES class variable above
 
         Arguments:
+            sess - current DB session
             create_credentials - If True, will create temporary credentials for S3 uploads
 
         Returns:
@@ -105,7 +150,6 @@ class FileHandler:
         key_url is the S3 URL for uploading
         key_id is the job id to be passed to the finalize_submission route
         """
-        sess = GlobalDB.db().session
         try:
             response_dict = {}
             upload_files = []

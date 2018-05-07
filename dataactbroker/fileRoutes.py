@@ -32,40 +32,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @requires_login
     def submit_files():
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-
-        sess = GlobalDB.db().session
-
-        start_date = request.json.get('reporting_period_start_date')
-        end_date = request.json.get('reporting_period_end_date')
-        is_quarter = request.json.get('is_quarter_format', False)
-
-        if not (start_date is None or end_date is None):
-            formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(start_date,
-                                                                                          end_date, is_quarter)
-
-            submissions = sess.query(Submission).filter(
-                Submission.cgac_code == request.json.get('cgac_code'),
-                Submission.frec_code == request.json.get('frec_code'),
-                Submission.reporting_start_date == formatted_start_date,
-                Submission.reporting_end_date == formatted_end_date,
-                Submission.is_quarter_format == request.json.get('is_quarter'),
-                Submission.d2_submission.is_(False),
-                Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
-
-            if 'existing_submission_id' in request.json:
-                submissions.filter(Submission.submission_id !=
-                                   request.json['existing_submission_id'])
-
-            submissions = submissions.order_by(desc(Submission.created_at))
-
-            if submissions.count() > 0:
-                data = {
-                        "message": "A submission with the same period already exists.",
-                        "submissionId": submissions[0].submission_id
-                }
-                return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
-
-        return file_manager.submit(create_credentials)
+        return file_manager.validate_submit_files(create_credentials)
 
     @app.route("/v1/finalize_job/", methods=["POST"])
     @requires_login
