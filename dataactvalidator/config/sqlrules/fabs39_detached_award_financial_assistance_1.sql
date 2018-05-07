@@ -1,6 +1,5 @@
--- For record type 1 or 2, 00***** is a valid PrimaryPlaceOfPerformanceCode value and indicates a multi-state project.
--- 00FORGN indicates that the place of performance is in a foreign country (allow it to pass, don't test).
--- If neither of the above, PrimaryPlaceOfPerformanceCode must start with valid 2 character state abbreviation
+-- PrimaryPlaceOfPerformanceCode is a required field for aggregate and non-aggregate records (RecordType = 1 or 2), and
+-- must be 00*****, 00FORGN, or start with a valid 2-character state code.
 WITH detached_award_financial_assistance_fabs39_1_{0} AS
     (SELECT submission_id,
         row_number,

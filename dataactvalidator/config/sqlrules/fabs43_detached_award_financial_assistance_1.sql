@@ -1,4 +1,5 @@
---  If PrimaryPlaceOfPerformanceCountryCode is not USA, Congressional District must be blank
+-- For foreign places of performance (PrimaryPlaceOfPerformanceCountryCode is not USA),
+-- PrimaryPlaceOfPerformanceCongressionalDistrict must be blank.
 SELECT
     row_number,
     place_of_perform_country_c,
