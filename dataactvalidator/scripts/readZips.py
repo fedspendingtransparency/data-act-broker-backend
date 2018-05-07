@@ -26,7 +26,7 @@ chunk_size = 1024 * 10
 
 
 # update contents of state_congressional table based on zips we just inserted
-def update_state_congr_table(sess):
+def update_state_congr_table_current(sess):
     logger.info("Loading zip codes complete, beginning update of state_congressional table")
     # clear old data out
     sess.query(StateCongressional).delete(synchronize_session=False)
@@ -273,7 +273,7 @@ def read_zips():
 
             census_file = os.path.join(base_path, "census_congressional_districts.csv")
 
-        update_state_congr_table(sess)
+        update_state_congr_table_current(sess)
         update_state_congr_table_census(census_file, sess)
 
         logger.info("Zipcode script complete")

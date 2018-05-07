@@ -12,9 +12,9 @@ WHERE submission_id = {0}
     AND COALESCE(legal_entity_congressional, '') <> ''
     AND NOT EXISTS (
         SELECT 1
-        FROM state_congressional AS sc,
-            zips as z
-        WHERE z.zip5 = dafa.legal_entity_zip5
-            AND z.state_abbreviation = sc.state_code
-            AND sc.congressional_district_no = dafa.legal_entity_congressional
-            AND COALESCE(sc.census_year, 2010) >= 2000);
+        FROM state_congressional AS sc
+            INNER JOIN zips AS z
+            ON z.state_abbreviation = sc.state_code
+                WHERE z.zip5 = dafa.legal_entity_zip5
+                    AND sc.congressional_district_no = dafa.legal_entity_congressional
+                    AND COALESCE(sc.census_year, 2010) >= 2000);
