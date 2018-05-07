@@ -102,6 +102,8 @@ def load_country_codes(filename):
 def load_cfda_program(base_path):
 
     if CONFIG_BROKER["use_aws"]:
+        s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
+        s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
         filename = s3bucket.get_key("cfda_program.csv").generate_url(expires_in=600)
     else:
         filename = os.path.join(base_path, "cfda_program.csv")
