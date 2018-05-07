@@ -1,6 +1,6 @@
--- PrimaryPlaceOfPerformanceForeignLocationDescription must be blank for domestic recipients
--- (i.e., when PrimaryPlaceOfPerformanceCountryCode = USA) or for for aggregate and PII-redacted non-aggregate
--- records (RecordType=1 or 3).
+-- PrimaryPlaceOfPerformanceForeignLocationDescription must be blank for aggregate or PII-redacted non-aggregate records
+-- (RecordType = 1 or 3). For non-aggregate records (RecordType = 2), it must be blank for domestic places of
+-- performance (PrimaryPlaceOfPerformanceCountryCode = USA).
 SELECT
     row_number,
     place_of_performance_forei,

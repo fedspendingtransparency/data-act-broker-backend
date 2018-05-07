@@ -1,4 +1,4 @@
--- ContractAuthorityAmountTotal_CPE = CPE aggregate value for GTAS SF 133 line #1540 + #1640
+-- ContractAuthorityAmountTotal_CPE = CPE aggregate value for GTAS SF-133 line #1540 + #1640
 WITH appropriation_a9_{0} AS
     (SELECT row_number,
         contract_authority_amount_cpe,

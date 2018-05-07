@@ -1,6 +1,6 @@
 -- For AssistanceType of 02, 03, 04, or 05 whose ActionDate is after October 1, 2010,
 -- AwardeeOrRecipientUniqueIdentifier must be found in our records, unless the record
--- is an aggregate or PII-redacted non-aggregate record (RecordType=1 or 3) or individual recipient
+-- is an aggregate or PII-redacted non-aggregate record (RecordType=1 or 3) or awarded to an individual recipient
 -- (BusinessTypes includes 'P').
 CREATE OR REPLACE function pg_temp.is_date(str text) returns boolean AS $$
 BEGIN

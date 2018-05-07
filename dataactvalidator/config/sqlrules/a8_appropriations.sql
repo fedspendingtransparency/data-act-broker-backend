@@ -1,4 +1,4 @@
--- BudgetAuthorityAppropriatedAmount_CPE = CPE aggregate value for GTAS SF 133 line #1160 + #1180 + #1260 + #1280
+-- BudgetAuthorityAppropriatedAmount_CPE = CPE aggregate value for GTAS SF-133 line #1160 + #1180 + #1260 + #1280
 WITH appropriation_a8_{0} AS
     (SELECT row_number,
         budget_authority_appropria_cpe,

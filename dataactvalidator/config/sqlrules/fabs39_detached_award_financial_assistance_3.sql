@@ -1,5 +1,5 @@
--- PrimaryPlaceofPerformanceZIP+4 should not be provided for any format of PrimaryPlaceOfPerformanceCode
--- other than XX##### and record type is 1 and 2.
+-- For aggregate or non-aggregate records (RecordType = 1 or 2): PrimaryPlaceofPerformanceZIP+4 must not be provided for
+-- any format of PrimaryPlaceOfPerformanceCode other than XX#####.
 SELECT
     row_number,
     record_type,

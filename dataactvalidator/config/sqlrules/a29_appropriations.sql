@@ -1,4 +1,4 @@
--- DeobligationsRecoveriesRefundsByTAS_CPE = CPE aggregate value for GTAS SF 133 line 1021+1033
+-- DeobligationsRecoveriesRefundsByTAS_CPE = CPE aggregate value for GTAS SF-133 line 1021+1033
 SELECT
     approp.row_number,
     approp.deobligations_recoveries_r_cpe,
