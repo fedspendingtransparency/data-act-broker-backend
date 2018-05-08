@@ -37,7 +37,7 @@ def load_object_class(filename):
         num = insert_dataframe(data, table_name, sess.connection())
         sess.commit()
 
-    logger.info('{} records inserted to {}'.format(num, table_name))
+    logger.info('{} Records Inserted To {}'.format(num, table_name))
 
 
 def load_program_activity(filename):
@@ -70,7 +70,7 @@ def load_program_activity(filename):
         num = insert_dataframe(data, table_name, sess.connection())
         sess.commit()
 
-    logger.info('{} records inserted to {}'.format(num, table_name))
+    logger.info('{} Records Inserted To {}'.format(num, table_name))
 
 
 def load_country_codes(filename):
@@ -96,7 +96,7 @@ def load_country_codes(filename):
         num = insert_dataframe(data, table_name, sess.connection())
         sess.commit()
 
-    logger.info('{} records inserted to {}'.format(num, table_name))
+    logger.info('{} Records Inserted To {}'.format(num, table_name))
 
 def load_domain_values_temp(base_path, local_program_activity=None):
     """Load all domain value files.
@@ -117,11 +117,11 @@ def load_domain_values_temp(base_path, local_program_activity=None):
         program_activity_file = os.path.join(base_path, "program_activity.csv")
         country_codes_file = os.path.join(base_path, "country_codes.csv")
 
-    logger.info('Loading object class')
+    logger.info('Loading Object Class')
     load_object_class(object_class_file)
-    logger.info('Loading country codes')
+    logger.info('Loading Country Codes')
     load_country_codes(country_codes_file)
-    logger.info('Loading cfda program')
+    logger.info('Loading Program Activity')
 
     if local_program_activity is not None:
         load_program_activity(local_program_activity)
