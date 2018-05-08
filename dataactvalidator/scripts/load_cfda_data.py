@@ -11,6 +11,8 @@ from dataactcore.models.domainModels import ObjectClass, ProgramActivity, Countr
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe, format_date
 
+logger = logging.getLogger(__name__)
+
 def load_cfda_program(base_path):
     """
     Load cfda program.
@@ -31,6 +33,7 @@ def load_cfda_program(base_path):
     model = CFDAProgram
 
     with create_app().app_context():
+        configure_logging()
         sess = GlobalDB.db().session
         # for object class, delete and replace values
         sess.query(model).delete()
