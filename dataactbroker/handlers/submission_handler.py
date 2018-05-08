@@ -1,7 +1,7 @@
 import logging
 
 from datetime import datetime
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, desc
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import sum_number_of_errors_for_job_list
@@ -299,3 +299,33 @@ def check_current_submission_page(submission):
 
     else:
         return JsonResponse.error(ValueError("The submisssion ID returns no response"), StatusCode.CLIENT_ERROR)
+
+
+def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
+                                        submission_id=None):
+    """ Find all the submissions in the given period """
+    # We need either a cgac or a frec code for this function
+    if not cgac_code and not frec_code:
+        return JsonResponse.error(ValueError("CGAC or FR Entity Code required"), StatusCode.CLIENT_ERROR)
+
+    sess = GlobalDB.db().session
+
+    submission_query = sess.query(Submission).filter(
+        (Submission.cgac_code == cgac_code) if cgac_code else (Submission.frec_code == frec_code),
+        Submission.reporting_fiscal_year == reporting_fiscal_year,
+        Submission.reporting_fiscal_period == reporting_fiscal_period,
+        Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
+
+    if submission_id:
+        submission_query = submission_query.filter(
+            Submission.submission_id != submission_id)
+
+    submission_query = submission_query.order_by(desc(Submission.created_at))
+
+    if submission_query.count() > 0:
+        data = {
+            "message": "A submission with the same period already exists.",
+            "submissionId": submission_query[0].submission_id
+        }
+        return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+    return JsonResponse.create(StatusCode.OK, {"message": "Success"})

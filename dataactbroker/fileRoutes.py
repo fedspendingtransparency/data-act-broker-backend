@@ -1,7 +1,6 @@
 from datetime import datetime
 from functools import wraps
 from flask import request, g
-from sqlalchemy import desc
 from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import parser as webargs_parser, use_kwargs
 
@@ -9,7 +8,8 @@ from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler,
     narratives_for_submission, submission_report_url, update_narratives, list_certifications, file_history_url)
 from dataactbroker.handlers.submission_handler import (delete_all_submission_data, get_submission_stats,
-                                                       get_windows, list_windows, check_current_submission_page)
+                                                       get_windows, list_windows, check_current_submission_page,
+                                                       find_existing_submissions_in_period)
 
 from dataactbroker.permissions import requires_login, requires_submission_perms
 
@@ -17,7 +17,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import get_fabs_meta
 
 from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, PUBLISH_STATUS_DICT
-from dataactcore.models.jobModels import Submission, CertifyHistory
+from dataactcore.models.jobModels import CertifyHistory
 
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
@@ -221,12 +221,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                  'reporting_fiscal_period': webargs_fields.String(required=True)})
     def check_year_and_quarter(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period):
         """ Check if cgac (or frec) code, year, and quarter already has a published submission """
-        if not cgac_code and not frec_code:
-            return JsonResponse.error(ValueError("CGAC or FR Entity Code required"), StatusCode.CLIENT_ERROR)
-
-        sess = GlobalDB.db().session
-        return find_existing_submissions_in_period(sess, cgac_code, frec_code, reporting_fiscal_year,
-                                                   reporting_fiscal_period)
+        return find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period)
 
     @app.route("/v1/certify_submission/", methods=['POST'])
     @convert_to_submission_id
@@ -247,9 +242,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             if window.block_certification:
                 return JsonResponse.error(ValueError(window.message), StatusCode.CLIENT_ERROR)
 
-        sess = GlobalDB.db().session
-
-        response = find_existing_submissions_in_period(sess, submission.cgac_code, submission.frec_code,
+        response = find_existing_submissions_in_period(submission.cgac_code, submission.frec_code,
                                                        submission.reporting_fiscal_year,
                                                        submission.reporting_fiscal_period, submission.submission_id)
 
@@ -302,26 +295,3 @@ def convert_to_submission_id(fn):
                 "submission_id is required", StatusCode.CLIENT_ERROR)
         return fn(submission_id, *args, **kwargs)
     return wrapped
-
-
-def find_existing_submissions_in_period(sess, cgac_code, frec_code, reporting_fiscal_year,
-                                        reporting_fiscal_period, submission_id=None):
-    submission_query = sess.query(Submission).filter(
-        (Submission.cgac_code == cgac_code) if cgac_code else (Submission.frec_code == frec_code),
-        Submission.reporting_fiscal_year == reporting_fiscal_year,
-        Submission.reporting_fiscal_period == reporting_fiscal_period,
-        Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
-
-    if submission_id:
-        submission_query = submission_query.filter(
-            Submission.submission_id != submission_id)
-
-    submission_query = submission_query.order_by(desc(Submission.created_at))
-
-    if submission_query.count() > 0:
-        data = {
-            "message": "A submission with the same period already exists.",
-            "submissionId": submission_query[0].submission_id
-        }
-        return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
-    return JsonResponse.create(StatusCode.OK, {"message": "Success"})
