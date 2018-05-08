@@ -1219,9 +1219,14 @@ def narratives_for_submission(submission):
     return JsonResponse.create(StatusCode.OK, result)
 
 
-def update_narratives(submission, narratives_json):
+def update_narratives(submission, narrative_request):
     """Clear existing narratives and replace them with the provided set. We assume narratives_json contains non-empty
     strings (i.e. that it's been cleaned)"""
+    json = narrative_request or {}
+    # clean input
+    narratives_json = {key.upper(): value.strip() for key, value in json.items()
+                       if isinstance(value, str) and value.strip()}
+
     sess = GlobalDB.db().session
     sess.query(SubmissionNarrative).\
         filter_by(submission_id=submission.submission_id).\

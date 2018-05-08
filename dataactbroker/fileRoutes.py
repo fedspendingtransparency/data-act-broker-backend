@@ -190,11 +190,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @app.route("/v1/submission/<int:submission_id>/narrative", methods=['POST'])
     @requires_submission_perms('writer')
     def post_submission_narratives(submission):
-        json = request.json or {}
-        # clean input
-        json = {key.upper(): value.strip() for key, value in json.items()
-                if isinstance(value, str) and value.strip()}
-        return update_narratives(submission, json)
+        return update_narratives(submission, request.json)
 
     @app.route("/v1/submission/<int:submission_id>/report_url", methods=['POST'])
     @requires_submission_perms('reader')
