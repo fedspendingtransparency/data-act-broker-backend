@@ -13,21 +13,19 @@ from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe, f
 
 def load_cfda_program(base_path):
     """
-    Load all domain value files.
+    Load cfda program.
 
     Parameters
     ----------
-        base_path : directory that contains the domain values files.
+        base_path : directory that contains the cfda values files.
     """
+    logger.info('Loading CFDA program')
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
         s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-        cfda_program_file = s3bucket.get_key("cfda_program.csv").generate_url(expires_in=600)
+        filename = s3bucket.get_key("cfda_program.csv").generate_url(expires_in=600)
     else:
-        cfda_program_file = os.path.join(base_path, "cfda_program.csv")
-
-    logger.info('Loading CFDA program')
-    load_cfda_program(cfda_program_file)
+        filename = os.path.join(base_path, "cfda_program.csv")
 
     """Load country code lookup table."""
     model = CFDAProgram
