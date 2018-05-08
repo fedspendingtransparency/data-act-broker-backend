@@ -76,10 +76,14 @@ def load_domain_value_files(base_path):
     load_domain_values(base_path)
 
 def load_domain_value_files_temp(base_path):
-    """Load domain values (e.g., CGAC codes, object class, SF-133)."""
-    logger.info('Loading domain values (temp)')
+    """Load domain values (e.g., CGAC codes, object class)."""
+    logger.info('Loading domain values (not cfda)')
     load_domain_values_temp(base_path)
 
+def load_cfda(base_path):
+    """Load cfda values."""
+    logger.info('Loading cfda data')
+    load_cfda_program(base_path)
 
 def load_sf133():
     logger.info('Loading SF-133')
@@ -129,6 +133,7 @@ def main():
                         action='store_true')
     parser.add_argument('-tempd', '--update_domain_temp', help='load slowly changing domain values such as object class',
                         action='store_true')
+    parser.add_argument('-cfda', '--cfda_load', help='Load CFDA to database', action='store_true')
     parser.add_argument('-c', '--load_agencies', help='Update agency data (CGACs, FRECs, SubTierAgencies)',
                         action='store_true')
     parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
@@ -167,6 +172,9 @@ def main():
 
     if args.update_domain_temp:
         load_domain_value_files_temp(validator_config_path)
+
+    if args.cfda_load:
+        load_cfda(validator_config_path)
 
     if args.load_agencies:
         load_agency_data(validator_config_path)
