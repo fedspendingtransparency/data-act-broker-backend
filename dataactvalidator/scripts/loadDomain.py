@@ -131,4 +131,4 @@ def load_domain_values_temp(base_path, local_program_activity=None):
 
 if __name__ == '__main__':
     configure_logging()
-    load_domain_values(os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"))
+    load_domain_values_temp(os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"))
