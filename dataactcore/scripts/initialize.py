@@ -18,6 +18,7 @@ from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.scripts.loadFile import load_domain_values
+from dataactvalidator.scripts.load_cfda_data import load_cfda_program
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
 from dataactvalidator.scripts.loadTas import load_tas
 from dataactvalidator.scripts.loadLocationData import load_location_data
@@ -70,6 +71,11 @@ def load_domain_value_files(base_path):
     logger.info('Loading domain values')
     load_domain_values(base_path)
 
+def load_domain_value_files_temp(base_path):
+    """Load domain values (e.g., CGAC codes, object class, SF-133)."""
+    logger.info('Loading domain values (temp)')
+    load_domain_values(base_path)
+
 
 def load_sf133():
     logger.info('Loading SF-133')
@@ -117,6 +123,8 @@ def main():
     parser.add_argument('-r', '--load_rules', help='Load SQL-based validation rules', action='store_true')
     parser.add_argument('-d', '--update_domain', help='load slowly changing domain values such as object class',
                         action='store_true')
+    parser.add_argument('-tempd', '--update_domain_temp', help='load slowly changing domain values such as object class',
+                        action='store_true')
     parser.add_argument('-c', '--load_agencies', help='Update agency data (CGACs, FRECs, SubTierAgencies)',
                         action='store_true')
     parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
@@ -152,6 +160,9 @@ def main():
 
     if args.update_domain:
         load_domain_value_files(validator_config_path)
+
+    if args.update_domain_temp:
+        load_domain_value_files_temp(validator_config_path)
 
     if args.load_agencies:
         load_agency_data(validator_config_path)
