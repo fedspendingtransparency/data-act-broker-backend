@@ -1,7 +1,6 @@
-from functools import wraps
 from flask import request
 from webargs import fields as webargs_fields, validate as webargs_validate
-from webargs.flaskparser import parser as webargs_parser, use_kwargs
+from webargs.flaskparser import use_kwargs
 
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler,
@@ -10,6 +9,7 @@ from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
     certify_dabs_submission, find_existing_submissions_in_period)
 
+from dataactbroker.decorators import convert_to_submission_id
 from dataactbroker.permissions import requires_login, requires_submission_perms
 
 from dataactcore.interfaces.function_bag import get_fabs_meta
@@ -17,7 +17,6 @@ from dataactcore.interfaces.function_bag import get_fabs_meta
 from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER
 
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
 
@@ -233,22 +232,3 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @use_kwargs({'d2_submission': webargs_fields.Bool(missing=False)})
     def restart_validation(submission, d2_submission):
         return FileHandler.restart_validation(submission, d2_submission)
-
-
-def convert_to_submission_id(fn):
-    """Decorator which reads the request, looking for a submission key to
-    convert into a submission_id parameter. The provided function should have
-    a submission_id parameter as its first argument."""
-    @wraps(fn)
-    @requires_login     # check login before checking submission_id
-    def wrapped(*args, **kwargs):
-        req_args = webargs_parser.parse({
-            'submission': webargs_fields.Int(),
-            'submission_id': webargs_fields.Int()
-        })
-        submission_id = req_args.get('submission', req_args.get('submission_id'))
-        if submission_id is None:
-            raise ResponseException(
-                "submission_id is required", StatusCode.CLIENT_ERROR)
-        return fn(submission_id, *args, **kwargs)
-    return wrapped
