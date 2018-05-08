@@ -123,7 +123,7 @@ def main():
     parser.add_argument('-c', '--load_agencies', help='Update agency data (CGACs, FRECs, SubTierAgencies)',
                         action='store_true')
     parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
-    parser.add_argument('--cfda_load', help='Pull Catalog of Federal Domestic Assistance', action='store_true')
+    parser.add_argument('-cfda', '--cfda_load', help='Pull Catalog of Federal Domestic Assistance', action='store_true')
     parser.add_argument('-s', '--update_sf133', help='Update broker SF-133 reports', action='store_true')
     parser.add_argument('-v', '--update_validator', help='Update validator schema', action='store_true')
     parser.add_argument('-l', '--load_location', help='Load city and county codes', action='store_true')
