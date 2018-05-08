@@ -1,13 +1,15 @@
 import logging
 
 from datetime import datetime
+from flask import g
 from sqlalchemy import func, or_, desc
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import sum_number_of_errors_for_job_list
 
 from dataactcore.models.lookups import JOB_STATUS_DICT, PUBLISH_STATUS_DICT
-from dataactcore.models.jobModels import FileRequest, Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow
+from dataactcore.models.jobModels import (FileRequest, Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
+                                          CertifyHistory)
 from dataactcore.models.stagingModels import AwardFinancial
 
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -329,3 +331,46 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
         }
         return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
     return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
+
+def certify_dabs_submission(submission, file_manager):
+    """ Certifying a dabs submission """
+    if not submission.publishable:
+        return JsonResponse.error(ValueError("Submission cannot be certified due to critical errors"),
+                                  StatusCode.CLIENT_ERROR)
+
+    if not submission.is_quarter_format:
+        return JsonResponse.error(ValueError("Monthly submissions cannot be certified"), StatusCode.CLIENT_ERROR)
+
+    if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+        return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
+
+    windows = get_windows()
+    for window in windows:
+        if window.block_certification:
+            return JsonResponse.error(ValueError(window.message), StatusCode.CLIENT_ERROR)
+
+    response = find_existing_submissions_in_period(submission.cgac_code, submission.frec_code,
+                                                   submission.reporting_fiscal_year,
+                                                   submission.reporting_fiscal_period, submission.submission_id)
+
+    if response.status_code == StatusCode.OK:
+        sess = GlobalDB.db().session
+
+        # create the certify_history entry
+        certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
+                                         submission_id=submission.submission_id)
+        sess.add(certify_history)
+        sess.commit()
+
+        # get the certify_history entry including the PK
+        certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
+            order_by(CertifyHistory.created_at.desc()).first()
+
+        # move files (locally we don't move but we still need to populate the certified_files_history table)
+        file_manager.move_certified_files(submission, certify_history, file_manager.is_local)
+
+        # set submission contents
+        submission.certifying_user_id = g.user.user_id
+        submission.publish_status_id = PUBLISH_STATUS_DICT['published']
+        sess.commit()

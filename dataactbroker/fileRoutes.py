@@ -1,23 +1,20 @@
-from datetime import datetime
 from functools import wraps
-from flask import request, g
+from flask import request
 from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import parser as webargs_parser, use_kwargs
 
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler,
     narratives_for_submission, submission_report_url, update_narratives, list_certifications, file_history_url)
-from dataactbroker.handlers.submission_handler import (delete_all_submission_data, get_submission_stats,
-                                                       get_windows, list_windows, check_current_submission_page,
-                                                       find_existing_submissions_in_period)
+from dataactbroker.handlers.submission_handler import (
+    delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
+    certify_dabs_submission, find_existing_submissions_in_period)
 
 from dataactbroker.permissions import requires_login, requires_submission_perms
 
-from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import get_fabs_meta
 
-from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, PUBLISH_STATUS_DICT
-from dataactcore.models.jobModels import CertifyHistory
+from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER
 
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
@@ -227,48 +224,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @convert_to_submission_id
     @requires_submission_perms('submitter', check_owner=False)
     def certify_submission(submission):
-        if not submission.publishable:
-            return JsonResponse.error(ValueError("Submission cannot be certified due to critical errors"),
-                                      StatusCode.CLIENT_ERROR)
-
-        if not submission.is_quarter_format:
-            return JsonResponse.error(ValueError("Monthly submissions cannot be certified"), StatusCode.CLIENT_ERROR)
-
-        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
-            return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
-
-        windows = get_windows()
-        for window in windows:
-            if window.block_certification:
-                return JsonResponse.error(ValueError(window.message), StatusCode.CLIENT_ERROR)
-
-        response = find_existing_submissions_in_period(submission.cgac_code, submission.frec_code,
-                                                       submission.reporting_fiscal_year,
-                                                       submission.reporting_fiscal_period, submission.submission_id)
-
-        if response.status_code == StatusCode.OK:
-            sess = GlobalDB.db().session
-
-            # create the certify_history entry
-            certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
-                                             submission_id=submission.submission_id)
-            sess.add(certify_history)
-            sess.commit()
-
-            # get the certify_history entry including the PK
-            certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
-                order_by(CertifyHistory.created_at.desc()).first()
-
-            # move files (locally we don't move but we still need to populate the certified_files_history table)
-            file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-            file_manager.move_certified_files(submission, certify_history, is_local)
-
-            # set submission contents
-            submission.certifying_user_id = g.user.user_id
-            submission.publish_status_id = PUBLISH_STATUS_DICT['published']
-            sess.commit()
-
-        return response
+        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+        return certify_dabs_submission(submission, file_manager)
 
     @app.route("/v1/restart_validation/", methods=['POST'])
     @convert_to_submission_id
