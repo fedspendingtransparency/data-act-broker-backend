@@ -101,6 +101,7 @@ def load_country_codes(filename):
 
 def load_cfda_program(base_path):
 
+    logger.info('Loading CFDA program')
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
         s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
@@ -188,19 +189,15 @@ def load_domain_values(base_path, local_program_activity=None):
         object_class_file = s3bucket.get_key("object_class.csv").generate_url(expires_in=600)
         program_activity_file = s3bucket.get_key("program_activity.csv").generate_url(expires_in=600)
         country_codes_file = s3bucket.get_key("country_codes.csv").generate_url(expires_in=600)
-        cfda_program_file = s3bucket.get_key("cfda_program.csv").generate_url(expires_in=600)
     else:
         object_class_file = os.path.join(base_path, "object_class.csv")
         program_activity_file = os.path.join(base_path, "program_activity.csv")
         country_codes_file = os.path.join(base_path, "country_codes.csv")
-        cfda_program_file = os.path.join(base_path, "cfda_program.csv")
 
     logger.info('Loading object class')
     load_object_class(object_class_file)
     logger.info('Loading country codes')
     load_country_codes(country_codes_file)
-    logger.info('Loading cfda program')
-    load_cfda_program(cfda_program_file)
     logger.info('Loading program activity')
 
     if local_program_activity is not None:
