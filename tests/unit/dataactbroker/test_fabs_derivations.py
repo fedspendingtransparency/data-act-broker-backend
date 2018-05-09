@@ -42,10 +42,14 @@ def initialize_db_values(db):
     zip_city_3 = ZipCityFactory(zip_code=zip_code_4.zip5, city_name='Test City 3')
     city_code = CityCodeFactory(feature_name='Test City', city_code='00001', state_code='NY',
                                 county_number=zip_code_1.county_number, county_name='Test City County')
-    duns = DunsFactory(awardee_or_recipient_uniqu='123456789', ultimate_parent_unique_ide='234567890',
+    duns_1 = DunsFactory(awardee_or_recipient_uniqu='123456789', ultimate_parent_unique_ide='234567890',
                        ultimate_parent_legal_enti='Parent 1')
+    duns_2a = DunsFactory(awardee_or_recipient_uniqu='234567890', ultimate_parent_unique_ide='234567890',
+                          ultimate_parent_legal_enti='Parent 2')
+    duns_2b = DunsFactory(awardee_or_recipient_uniqu='234567890', ultimate_parent_unique_ide=None,
+                          ultimate_parent_legal_enti=None)
     db.session.add_all([zip_code_1, zip_code_2, zip_code_3, zip_code_4, zip_city, zip_city_2, zip_city_3, city_code,
-                        duns])
+                        duns_1, duns_2a, duns_2b])
     db.session.commit()
 
 
@@ -487,7 +491,7 @@ def test_split_zip(database):
     assert obj['place_of_perform_zip_last4'] is None
 
 
-def test_derive_parent_duns(database):
+def test_derive_parent_duns_single(database):
     initialize_db_values(database)
 
     obj = initialize_test_obj(awardee_or_recipient_uniqu='123456789')
@@ -495,6 +499,17 @@ def test_derive_parent_duns(database):
                            FPDS_OFFICE_DICT)
 
     assert obj['ultimate_parent_legal_enti'] == 'Parent 1'
+    assert obj['ultimate_parent_unique_ide'] == '234567890'
+
+
+def test_derive_parent_duns_multiple(database):
+    initialize_db_values(database)
+
+    obj = initialize_test_obj(awardee_or_recipient_uniqu='234567890')
+    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
+                           FPDS_OFFICE_DICT)
+
+    assert obj['ultimate_parent_legal_enti'] == 'Parent 2'
     assert obj['ultimate_parent_unique_ide'] == '234567890'
 
 

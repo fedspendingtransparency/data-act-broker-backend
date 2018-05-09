@@ -2,7 +2,7 @@ import re
 import logging
 
 from datetime import datetime
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 from dataactcore.models.domainModels import Zips, CityCode, ZipCity, DUNS
 from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, CORRECTION_DELETE_IND_DICT,
@@ -259,7 +259,10 @@ def derive_parent_duns(obj, sess):
     """ Deriving parent DUNS name and number from SAMS API"""
     if obj['awardee_or_recipient_uniqu']:
         duns_data = sess.query(DUNS).\
-            filter_by(awardee_or_recipient_uniqu=obj['awardee_or_recipient_uniqu']).one_or_none()
+            filter_by(awardee_or_recipient_uniqu=obj['awardee_or_recipient_uniqu']).\
+            filter(or_(DUNS.ultimate_parent_unique_ide.isnot(None), DUNS.ultimate_parent_unique_ide.isnot(None))).\
+            first()
+        print(str(duns_data))
         if duns_data:
             obj['ultimate_parent_legal_enti'] = duns_data.ultimate_parent_legal_enti
             obj['ultimate_parent_unique_ide'] = duns_data.ultimate_parent_unique_ide
