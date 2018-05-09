@@ -16,7 +16,8 @@ def domain_app(test_app):
     yield test_app
 
 
-def test_list_agencies_limits(user_constants, domain_app):
+@pytest.mark.usefixtures("user_constants")
+def test_list_agencies_limits(domain_app):
     """List agencies should limit to only the user's agencies"""
     sess = GlobalDB.db().session
     user = UserFactory()
@@ -43,7 +44,8 @@ def test_list_agencies_limits(user_constants, domain_app):
     assert res['frec_agency_list'][0]['frec_code'] == frec.frec_code
 
 
-def test_list_agencies_superuser(database, domain_app):
+@pytest.mark.usefixtures("database")
+def test_list_agencies_superuser(domain_app):
     """All agencies should be visible to website admins"""
     sess = GlobalDB.db().session
     user = UserFactory(website_admin=True)
@@ -66,7 +68,8 @@ def test_list_agencies_superuser(database, domain_app):
     assert result == {'0', '1', '2'}    # i.e. all of them
 
 
-def test_list_agencies_all(user_constants, domain_app):
+@pytest.mark.usefixtures("user_constants")
+def test_list_agencies_all(domain_app):
     """All agencies should be visible to website admins"""
     sess = GlobalDB.db().session
     user = UserFactory()
