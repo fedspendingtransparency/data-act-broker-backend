@@ -40,7 +40,6 @@ def get_accessible_agencies(cgac_sub_tiers, frec_sub_tiers):
 def get_all_agencies():
     """ List all CGAC and FREC agencies separately """
     sess = GlobalDB.db().session
-    agency_list, shared_list = [], []
 
     # combine CGAC SubTierAgencies and CGACs without SubTierAgencies into the agency_list
     csubs = sess.query(SubTierAgency).filter(SubTierAgency.is_frec.is_(False)).distinct(SubTierAgency.cgac_id).all()
@@ -52,3 +51,14 @@ def get_all_agencies():
     shared_list = [{'agency_name': fst.frec.agency_name, 'frec_code': fst.frec.frec_code} for fst in fsubs]
 
     return JsonResponse.create(StatusCode.OK, {'agency_list': agency_list, 'shared_agency_list': shared_list})
+
+
+def organize_sub_tier_agencies(sub_tier_agencies):
+    """ Returns an organized list of sub tier agencies and their associated top tiers """
+    agencies = []
+    for sub_tier in sub_tier_agencies:
+        agency_name = sub_tier.frec.agency_name if sub_tier.is_frec else sub_tier.cgac.agency_name
+        agencies.append({'agency_name': '{}: {}'.format(agency_name, sub_tier.sub_tier_agency_name),
+                         'agency_code': sub_tier.sub_tier_agency_code, 'priority': sub_tier.priority})
+
+    JsonResponse.create(StatusCode.OK, {'sub_tier_agency_list': agencies})
