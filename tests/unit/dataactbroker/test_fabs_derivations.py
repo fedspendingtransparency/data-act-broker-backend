@@ -43,13 +43,15 @@ def initialize_db_values(db):
     city_code = CityCodeFactory(feature_name='Test City', city_code='00001', state_code='NY',
                                 county_number=zip_code_1.county_number, county_name='Test City County')
     duns_1 = DunsFactory(awardee_or_recipient_uniqu='123456789', ultimate_parent_unique_ide='234567890',
-                       ultimate_parent_legal_enti='Parent 1')
+                         ultimate_parent_legal_enti='Parent 1')
     duns_2a = DunsFactory(awardee_or_recipient_uniqu='234567890', ultimate_parent_unique_ide='234567890',
                           ultimate_parent_legal_enti='Parent 2')
     duns_2b = DunsFactory(awardee_or_recipient_uniqu='234567890', ultimate_parent_unique_ide=None,
                           ultimate_parent_legal_enti=None)
+    duns_3 = DunsFactory(awardee_or_recipient_uniqu='345678901', ultimate_parent_unique_ide=None,
+                         ultimate_parent_legal_enti=None)
     db.session.add_all([zip_code_1, zip_code_2, zip_code_3, zip_code_4, zip_city, zip_city_2, zip_city_3, city_code,
-                        duns_1, duns_2a, duns_2b])
+                        duns_1, duns_2a, duns_2b, duns_3])
     db.session.commit()
 
 
@@ -513,15 +515,15 @@ def test_derive_parent_duns_multiple(database):
     assert obj['ultimate_parent_unique_ide'] == '234567890'
 
 
-def test_derive_parent_duns_return_none(database):
+def test_derive_parent_duns_no_parent_info(database):
     initialize_db_values(database)
 
-    obj = initialize_test_obj(awardee_or_recipient_uniqu='123456')
+    obj = initialize_test_obj(awardee_or_recipient_uniqu='345678901')
     obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
                            FPDS_OFFICE_DICT)
 
-    assert not obj['ultimate_parent_legal_enti']
-    assert not obj['ultimate_parent_unique_ide']
+    assert obj['ultimate_parent_legal_enti'] is None
+    assert obj['ultimate_parent_unique_ide'] is None
 
 
 def test_derive_labels(database):
