@@ -1,6 +1,7 @@
 import json
 from unittest.mock import Mock
 
+from flask import g
 import pytest
 
 from dataactbroker import domainRoutes
@@ -16,7 +17,7 @@ def domain_app(test_app):
     yield test_app
 
 
-def test_list_agencies_limits(monkeypatch, user_constants, domain_app):
+def test_list_agencies_limits(user_constants, domain_app):
     """List agencies should limit to only the user's agencies"""
     sess = GlobalDB.db().session
     user = UserFactory()
@@ -31,8 +32,8 @@ def test_list_agencies_limits(monkeypatch, user_constants, domain_app):
                          UserAffiliation(cgac=None, frec=frec, permission_type_id=2)]
     sess.add_all([cgac] + [frec_cgac] + [frec] + sub_tiers + [user])
     sess.commit()
-    monkeypatch.setattr(domainRoutes, 'g', Mock(user=user))
 
+    g.user = user
     result = domain_app.get('/v1/list_agencies/').data.decode('UTF-8')
     res = json.loads(result)
     assert len(res['cgac_agency_list']) == 1
@@ -43,7 +44,7 @@ def test_list_agencies_limits(monkeypatch, user_constants, domain_app):
     assert res['frec_agency_list'][0]['frec_code'] == frec.frec_code
 
 
-def test_list_agencies_superuser(database, monkeypatch, domain_app):
+def test_list_agencies_superuser(database, domain_app):
     """All agencies should be visible to website admins"""
     sess = GlobalDB.db().session
     user = UserFactory(website_admin=True)
@@ -56,8 +57,8 @@ def test_list_agencies_superuser(database, monkeypatch, domain_app):
                                            sub_tier_agency_name="Test Subtier Agency "+str(3+i)) for i in range(3)]
     sess.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers + [user])
     sess.commit()
-    monkeypatch.setattr(domainRoutes, 'g', Mock(user=user))
 
+    g.user = user
     result = domain_app.get('/v1/list_agencies/').data.decode('UTF-8')
     response = json.loads(result)
     result = {el['cgac_code'] for el in response['cgac_agency_list']}
@@ -66,7 +67,7 @@ def test_list_agencies_superuser(database, monkeypatch, domain_app):
     assert result == {'0', '1', '2'}    # i.e. all of them
 
 
-def test_list_agencies_all(monkeypatch, user_constants, domain_app):
+def test_list_agencies_all(user_constants, domain_app):
     """All agencies should be visible to website admins"""
     sess = GlobalDB.db().session
     user = UserFactory()
@@ -80,8 +81,8 @@ def test_list_agencies_all(monkeypatch, user_constants, domain_app):
     user.affiliations = [UserAffiliation(cgac=cgacs[0], frec=frecs[0], permission_type_id=2)]
     sess.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers + [user])
     sess.commit()
-    monkeypatch.setattr(domainRoutes, 'g', Mock(user=user))
 
+    g.user = user
     result = domain_app.get('/v1/list_all_agencies/').data.decode('UTF-8')
     response = json.loads(result)
     result = {el['cgac_code'] for el in response['agency_list']}
