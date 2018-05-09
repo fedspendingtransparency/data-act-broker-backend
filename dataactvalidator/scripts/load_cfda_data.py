@@ -7,11 +7,12 @@ import boto
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import ObjectClass, ProgramActivity, CountryCode, CFDAProgram
+from dataactcore.models.domainModels import CFDAProgram
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe, format_date
 
 logger = logging.getLogger(__name__)
+
 
 def load_cfda_program(base_path):
     """
@@ -94,6 +95,7 @@ def load_cfda_program(base_path):
         sess.commit()
 
     logger.info('{} records inserted to {}'.format(num, table_name))
+
 
 if __name__ == '__main__':
     configure_logging()

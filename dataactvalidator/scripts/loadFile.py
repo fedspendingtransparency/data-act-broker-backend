@@ -180,12 +180,10 @@ def load_domain_values(base_path, local_program_activity=None):
         object_class_file = s3bucket.get_key("object_class.csv").generate_url(expires_in=600)
         program_activity_file = s3bucket.get_key("program_activity.csv").generate_url(expires_in=600)
         country_codes_file = s3bucket.get_key("country_codes.csv").generate_url(expires_in=600)
-        cfda_program_file = s3bucket.get_key("cfda_program.csv").generate_url(expires_in=600)
     else:
         object_class_file = os.path.join(base_path, "object_class.csv")
         program_activity_file = os.path.join(base_path, "program_activity.csv")
         country_codes_file = os.path.join(base_path, "country_codes.csv")
-        cfda_program_file = os.path.join(base_path, "cfda_program.csv")
 
     logger.info('Loading object class')
     load_object_class(object_class_file)
