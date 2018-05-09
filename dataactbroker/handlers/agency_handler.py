@@ -1,9 +1,6 @@
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, SubTierAgency
 
-from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.statusCode import StatusCode
-
 
 def get_sub_tiers_from_perms(is_admin, cgac_affil_ids, frec_affil_ids):
     sess = GlobalDB.db().session
@@ -34,7 +31,7 @@ def get_accessible_agencies(cgac_sub_tiers, frec_sub_tiers):
     # convert the list of frec sub_tier_agencies into a list of frec agencies
     frec_list = [{'agency_name': fst.frec.agency_name, 'frec_code': fst.frec.frec_code} for fst in frec_sub_tiers]
 
-    return JsonResponse.create(StatusCode.OK, {'cgac_agency_list': cgac_list, 'frec_agency_list': frec_list})
+    return {'cgac_agency_list': cgac_list, 'frec_agency_list': frec_list}
 
 
 def get_all_agencies():
@@ -50,7 +47,7 @@ def get_all_agencies():
     fsubs = sess.query(SubTierAgency).filter(SubTierAgency.is_frec.is_(True)).distinct(SubTierAgency.frec_id).all()
     shared_list = [{'agency_name': fst.frec.agency_name, 'frec_code': fst.frec.frec_code} for fst in fsubs]
 
-    return JsonResponse.create(StatusCode.OK, {'agency_list': agency_list, 'shared_agency_list': shared_list})
+    return {'agency_list': agency_list, 'shared_agency_list': shared_list}
 
 
 def organize_sub_tier_agencies(sub_tier_agencies):
@@ -61,4 +58,4 @@ def organize_sub_tier_agencies(sub_tier_agencies):
         agencies.append({'agency_name': '{}: {}'.format(agency_name, sub_tier.sub_tier_agency_name),
                          'agency_code': sub_tier.sub_tier_agency_code, 'priority': sub_tier.priority})
 
-    JsonResponse.create(StatusCode.OK, {'sub_tier_agency_list': agencies})
+    return {'sub_tier_agency_list': agencies}
