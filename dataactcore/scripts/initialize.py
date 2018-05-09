@@ -19,7 +19,6 @@ from dataactvalidator.filestreaming.labelLoader import LabelLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.scripts.loadFile import load_domain_values
-from dataactvalidator.scripts.loadDomain import load_domain_values_temp
 from dataactvalidator.scripts.load_cfda_data import load_cfda_program
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
 from dataactvalidator.scripts.loadTas import load_tas
@@ -71,14 +70,15 @@ def load_sql_rules():
 
 
 def load_domain_value_files(base_path):
-    """Load domain values (e.g., CGAC codes, object class, SF-133)."""
-    logger.info('Loading domain values')
+    """Load domain values (Country codes, Program Activity, Object Class, CFDA)."""
+    logger.info('Loading Country codes, Program Activity, Object Class, CFDA')
     load_domain_values(base_path)
+    load_cfda(base_path)
 
 def load_domain_value_files_temp(base_path):
-    """Load domain values (e.g., CGAC codes, object class)."""
-    logger.info('Loading domain values (not cfda)')
-    load_domain_values_temp(base_path)
+    """Load domain values (Country codes, Program Activity, Object Class)."""
+    logger.info('Loading Country codes, Program Activity, Object Class (not cfda)')
+    load_domain_values(base_path)
 
 def load_cfda(base_path):
     """Load cfda values."""

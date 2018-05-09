@@ -191,8 +191,6 @@ def load_domain_values(base_path, local_program_activity=None):
     load_object_class(object_class_file)
     logger.info('Loading country codes')
     load_country_codes(country_codes_file)
-    logger.info('Loading cfda program')
-    load_cfda_program(cfda_program_file)
     logger.info('Loading program activity')
 
     if local_program_activity is not None:
