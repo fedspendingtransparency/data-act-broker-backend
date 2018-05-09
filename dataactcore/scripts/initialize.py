@@ -72,15 +72,18 @@ def load_domain_value_files(base_path):
     load_domain_values(base_path)
     load_cfda(base_path)
 
+
 def load_domain_value_files_temp(base_path):
     """Load domain values (Country codes, Program Activity, Object Class)."""
     logger.info('Loading Country codes, Program Activity, Object Class (not cfda)')
     load_domain_values(base_path)
 
+
 def load_cfda(base_path):
     """Load cfda values."""
     logger.info('Loading cfda data')
     load_cfda_program(base_path)
+
 
 def load_sf133():
     logger.info('Loading SF-133')
@@ -128,7 +131,7 @@ def main():
     parser.add_argument('-r', '--load_rules', help='Load SQL-based validation rules', action='store_true')
     parser.add_argument('-d', '--update_domain', help='load slowly changing domain values such as object class',
                         action='store_true')
-    parser.add_argument('-tempd', '--update_domain_temp', help='load slowly changing domain values such as object class',
+    parser.add_argument('-tempd', '--update_domain_temp', help='temp domain values such as object class',
                         action='store_true')
     parser.add_argument('-cfda', '--cfda_load', help='Load CFDA to database', action='store_true')
     parser.add_argument('-c', '--load_agencies', help='Update agency data (CGACs, FRECs, SubTierAgencies)',
@@ -197,6 +200,7 @@ def main():
 
     if args.uncache_file_requests:
         uncache_file_requests()
+
 
 if __name__ == '__main__':
     configure_logging()
