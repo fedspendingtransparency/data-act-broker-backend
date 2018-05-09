@@ -1,8 +1,6 @@
 from dataactbroker.decorators import get_dabs_sub_tier_agencies, get_fabs_sub_tier_agencies
-from dataactbroker.handlers.agency_handler import get_cgacs_without_sub_tier_agencies, get_accessible_agencies
+from dataactbroker.handlers.agency_handler import get_accessible_agencies, get_all_agencies
 
-from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import SubTierAgency
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 
@@ -25,21 +23,8 @@ def add_domain_routes(app):
 
     @app.route("/v1/list_all_agencies/", methods=["GET"])
     def list_all_agencies():
-        """ List all CGAC and FREC Agencies
-        """
-        sess = GlobalDB.db().session
-        agency_list, shared_list = [], []
-
-        # combine CGAC SubTierAgencies and CGACs without SubTierAgencies into the agency_list
-        csubs = sess.query(SubTierAgency).filter(SubTierAgency.is_frec.is_(False)).distinct(SubTierAgency.cgac_id).all()
-        all_cgacs = get_cgacs_without_sub_tier_agencies(sess) + [st.cgac for st in csubs if st.is_frec is False]
-        agency_list = [{'agency_name': cst.agency_name, 'cgac_code': cst.cgac_code} for cst in all_cgacs]
-
-        # add distinct FRECs from SubTierAgencies with a True is_frec into the shared_list
-        fsubs = sess.query(SubTierAgency).filter(SubTierAgency.is_frec.is_(True)).distinct(SubTierAgency.frec_id).all()
-        shared_list = [{'agency_name': fst.frec.agency_name, 'frec_code': fst.frec.frec_code} for fst in fsubs]
-
-        return JsonResponse.create(StatusCode.OK, {'agency_list': agency_list, 'shared_agency_list': shared_list})
+        """ List all CGAC and FREC Agencies """
+        return get_all_agencies()
 
     @app.route("/v1/list_sub_tier_agencies/", methods=["GET"])
     @get_fabs_sub_tier_agencies

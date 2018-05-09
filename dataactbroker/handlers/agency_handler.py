@@ -35,3 +35,20 @@ def get_accessible_agencies(cgac_sub_tiers, frec_sub_tiers):
     frec_list = [{'agency_name': fst.frec.agency_name, 'frec_code': fst.frec.frec_code} for fst in frec_sub_tiers]
 
     return JsonResponse.create(StatusCode.OK, {'cgac_agency_list': cgac_list, 'frec_agency_list': frec_list})
+
+
+def get_all_agencies():
+    """ List all CGAC and FREC agencies separately """
+    sess = GlobalDB.db().session
+    agency_list, shared_list = [], []
+
+    # combine CGAC SubTierAgencies and CGACs without SubTierAgencies into the agency_list
+    csubs = sess.query(SubTierAgency).filter(SubTierAgency.is_frec.is_(False)).distinct(SubTierAgency.cgac_id).all()
+    all_cgacs = get_cgacs_without_sub_tier_agencies(sess) + [st.cgac for st in csubs if st.is_frec is False]
+    agency_list = [{'agency_name': cst.agency_name, 'cgac_code': cst.cgac_code} for cst in all_cgacs]
+
+    # add distinct FRECs from SubTierAgencies with a True is_frec into the shared_list
+    fsubs = sess.query(SubTierAgency).filter(SubTierAgency.is_frec.is_(True)).distinct(SubTierAgency.frec_id).all()
+    shared_list = [{'agency_name': fst.frec.agency_name, 'frec_code': fst.frec.frec_code} for fst in fsubs]
+
+    return JsonResponse.create(StatusCode.OK, {'agency_list': agency_list, 'shared_agency_list': shared_list})
