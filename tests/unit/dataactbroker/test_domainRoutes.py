@@ -1,5 +1,4 @@
 import json
-from unittest.mock import Mock
 
 from flask import g
 import pytest
