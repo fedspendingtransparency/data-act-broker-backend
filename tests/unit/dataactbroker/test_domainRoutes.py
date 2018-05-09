@@ -4,7 +4,6 @@ from flask import g
 import pytest
 
 from dataactbroker import domainRoutes
-from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.userModel import UserAffiliation
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory, SubTierAgencyFactory
 from tests.unit.dataactcore.factories.user import UserFactory
@@ -17,9 +16,8 @@ def domain_app(test_app):
 
 
 @pytest.mark.usefixtures("user_constants")
-def test_list_agencies_limits(domain_app):
+def test_list_agencies_limits(domain_app, database):
     """List agencies should limit to only the user's agencies"""
-    sess = GlobalDB.db().session
     user = UserFactory()
     cgac = CGACFactory()
     frec_cgac = CGACFactory()
@@ -30,8 +28,8 @@ def test_list_agencies_limits(domain_app):
                                       sub_tier_agency_name="Test Subtier Agency 1")]
     user.affiliations = [UserAffiliation(cgac=cgac, frec=None, permission_type_id=2),
                          UserAffiliation(cgac=None, frec=frec, permission_type_id=2)]
-    sess.add_all([cgac] + [frec_cgac] + [frec] + sub_tiers + [user])
-    sess.commit()
+    database.session.add_all([cgac] + [frec_cgac] + [frec] + sub_tiers + [user])
+    database.session.commit()
 
     g.user = user
     result = domain_app.get('/v1/list_agencies/').data.decode('UTF-8')
@@ -44,10 +42,8 @@ def test_list_agencies_limits(domain_app):
     assert res['frec_agency_list'][0]['frec_code'] == frec.frec_code
 
 
-@pytest.mark.usefixtures("database")
-def test_list_agencies_superuser(domain_app):
+def test_list_agencies_superuser(domain_app, database):
     """All agencies should be visible to website admins"""
-    sess = GlobalDB.db().session
     user = UserFactory(website_admin=True)
     cgacs = [CGACFactory(cgac_code=str(i)) for i in range(3)]
     frec_cgac = CGACFactory()
@@ -56,8 +52,8 @@ def test_list_agencies_superuser(domain_app):
                                            sub_tier_agency_name="Test Subtier Agency "+str(i)) for i in range(3)]
     frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3+i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
                                            sub_tier_agency_name="Test Subtier Agency "+str(3+i)) for i in range(3)]
-    sess.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers + [user])
-    sess.commit()
+    database.session.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers + [user])
+    database.session.commit()
 
     g.user = user
     result = domain_app.get('/v1/list_agencies/').data.decode('UTF-8')
@@ -69,9 +65,8 @@ def test_list_agencies_superuser(domain_app):
 
 
 @pytest.mark.usefixtures("user_constants")
-def test_list_agencies_all(domain_app):
+def test_list_agencies_all(domain_app, database):
     """All agencies should be visible to website admins"""
-    sess = GlobalDB.db().session
     user = UserFactory()
     cgacs = [CGACFactory(cgac_code=str(i)) for i in range(3)]
     frec_cgac = CGACFactory()
@@ -81,8 +76,8 @@ def test_list_agencies_all(domain_app):
     frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3+i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
                                            sub_tier_agency_name="Test Subtier Agency "+str(3+i)) for i in range(3)]
     user.affiliations = [UserAffiliation(cgac=cgacs[0], frec=frecs[0], permission_type_id=2)]
-    sess.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers + [user])
-    sess.commit()
+    database.session.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers + [user])
+    database.session.commit()
 
     g.user = user
     result = domain_app.get('/v1/list_all_agencies/').data.decode('UTF-8')
@@ -91,3 +86,51 @@ def test_list_agencies_all(domain_app):
     assert result == {'0', '1', '2'}    # i.e. all of them
     result = {el['frec_code'] for el in response['shared_agency_list']}
     assert result == {'0', '1', '2'}    # i.e. all of them
+
+
+@pytest.mark.usefixtures("user_constants")
+def test_list_sub_tier_agencies(domain_app, database):
+    """ List all sub tiers that a user has FABS permissions for """
+    user = UserFactory()
+    cgacs = [CGACFactory(cgac_code=str(i)) for i in range(3)]
+    frec_cgac = CGACFactory()
+    frecs = [FRECFactory(frec_code=str(i), cgac=frec_cgac) for i in range(3)]
+    cgac_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(i), cgac=cgacs[i], frec=None, is_frec=False,
+                                           sub_tier_agency_name="Test Subtier Agency " + str(i)) for i in range(3)]
+    frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3 + i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
+                                           sub_tier_agency_name="Test Subtier Agency " + str(3 + i)) for i in range(3)]
+    user.affiliations = [UserAffiliation(cgac=cgacs[0], frec=None, permission_type_id=5),
+                         UserAffiliation(cgac=None, frec=frecs[2], permission_type_id=5)]
+    database.session.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers + [user])
+    database.session.commit()
+
+    g.user = user
+    result = domain_app.get('/v1/list_sub_tier_agencies/').data.decode('UTF-8')
+    response = json.loads(result)
+    result = {el['agency_code'] for el in response['sub_tier_agency_list']}
+    assert len(response["sub_tier_agency_list"]) == 2  # Only one cgac and one frec
+    assert result == {'0', '5'}  # Only subtiers created from the relevant cgacs
+
+
+@pytest.mark.usefixtures("user_constants")
+def test_list_sub_tier_agencies_admin(domain_app, database):
+    """ List all sub tiers that a user has FABS permissions for """
+    user = UserFactory(website_admin=True)
+    cgacs = [CGACFactory(cgac_code=str(i)) for i in range(3)]
+    frec_cgac = CGACFactory()
+    frecs = [FRECFactory(frec_code=str(i), cgac=frec_cgac) for i in range(3)]
+    cgac_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(i), cgac=cgacs[i], frec=None, is_frec=False,
+                                           sub_tier_agency_name="Test Subtier Agency " + str(i)) for i in range(3)]
+    frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3 + i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
+                                           sub_tier_agency_name="Test Subtier Agency " + str(3 + i)) for i in range(3)]
+    user.affiliations = [UserAffiliation(cgac=cgacs[0], frec=None, permission_type_id=5),
+                         UserAffiliation(cgac=None, frec=frecs[2], permission_type_id=5)]
+    database.session.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers + [user])
+    database.session.commit()
+
+    g.user = user
+    result = domain_app.get('/v1/list_sub_tier_agencies/').data.decode('UTF-8')
+    response = json.loads(result)
+    result = {el['agency_code'] for el in response['sub_tier_agency_list']}
+    assert len(response["sub_tier_agency_list"]) == 6  # All of them, ignores affiliations
+    assert result == {'0', '1', '2', '3', '4', '5'}  # All of them, ignores affiliations
