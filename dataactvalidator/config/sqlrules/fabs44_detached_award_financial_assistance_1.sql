@@ -6,4 +6,5 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND UPPER(COALESCE(legal_entity_country_code, '')) <> 'USA'
-    AND COALESCE(legal_entity_congressional, '') <> '';
+    AND COALESCE(legal_entity_congressional, '') <> ''
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

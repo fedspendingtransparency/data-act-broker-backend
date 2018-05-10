@@ -1,13 +1,15 @@
 import logging
 
 from datetime import datetime
-from sqlalchemy import func, or_
+from flask import g
+from sqlalchemy import func, or_, desc
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import sum_number_of_errors_for_job_list
 
 from dataactcore.models.lookups import JOB_STATUS_DICT, PUBLISH_STATUS_DICT
-from dataactcore.models.jobModels import FileRequest, Job, Submission, SubmissionSubTierAffiliation
+from dataactcore.models.jobModels import (FileRequest, Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
+                                          CertifyHistory)
 from dataactcore.models.stagingModels import AwardFinancial
 
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -185,3 +187,190 @@ def delete_all_submission_data(submission):
     sess.expire_all()
 
     return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
+
+def list_windows():
+    current_windows = get_windows()
+
+    data = []
+
+    if current_windows.count() is 0:
+        data = None
+    else:
+        for window in current_windows:
+            data.append({
+                'start_date': str(window.start_date),
+                'end_date': str(window.end_date),
+                'notice_block': window.block_certification,
+                'message': window.message,
+                'type': window.application_type.application_name
+            })
+
+    return JsonResponse.create(StatusCode.OK, {"data": data})
+
+
+def get_windows():
+    sess = GlobalDB.db().session
+
+    curr_date = datetime.now().date()
+
+    return sess.query(SubmissionWindow).filter(
+                                            SubmissionWindow.start_date <= curr_date,
+                                            SubmissionWindow.end_date >= curr_date)
+
+
+def check_current_submission_page(submission):
+    """ Check what page of the submission the user should be allowed to see and if they should be redirected to an
+        earlier one. """
+    sess = GlobalDB.db().session
+
+    submission_id = submission.submission_id
+
+    # /v1/uploadDetachedFiles/
+    # DetachedFiles
+    if submission.d2_submission:
+        data = {
+            "message": "The current progress of this submission ID is on /v1/uploadDetachedFiles/ page.",
+            "step": "6"
+        }
+        return JsonResponse.create(StatusCode.OK, data)
+
+    # /v1/reviewData/
+    # Checks that both E and F files are finished
+    review_data = sess.query(Job).filter(Job.submission_id == submission_id,
+                                         Job.file_type_id.in_([6, 7]), Job.job_status_id == 4)
+
+    # Need to check that cross file is done as well
+    generate_ef = sess.query(Job).filter(Job.submission_id == submission_id, Job.job_type_id == 4,
+                                         Job.number_of_errors == 0, Job.job_status_id == 4)
+
+    if review_data.count() == 2 and generate_ef.count() > 0:
+        data = {
+            "message": "The current progress of this submission ID is on /v1/reviewData/ page.",
+            "step": "5"
+        }
+        return JsonResponse.create(StatusCode.OK, data)
+
+    # /v1/generateEF/
+    if generate_ef.count() > 0:
+        data = {
+            "message": "The current progress of this submission ID is on /v1/generateEF/ page.",
+            "step": "4"
+        }
+        return JsonResponse.create(StatusCode.OK, data)
+
+    validate_cross_file = sess.query(Job).filter(Job.submission_id == submission_id,
+                                                 Job.file_type_id.in_([4, 5]), Job.job_type_id == 2,
+                                                 Job.number_of_errors == 0, Job.file_size.isnot(None),
+                                                 Job.job_status_id == 4)
+
+    generate_files = sess.query(Job).filter(Job.submission_id == submission_id,
+                                            Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
+                                            Job.number_of_errors == 0, Job.file_size.isnot(None),
+                                            Job.job_status_id == 4)
+
+    # /v1/validateCrossFile/
+    if validate_cross_file.count() == 2 and generate_files.count() == 3:
+        data = {
+            "message": "The current progress of this submission ID is on /v1/validateCrossFile/ page.",
+            "step": "3"
+        }
+        return JsonResponse.create(StatusCode.OK, data)
+
+    # /v1/generateFiles/
+    if generate_files.count() == 3:
+        data = {
+            "message": "The current progress of this submission ID is on /v1/generateFiles/ page.",
+            "step": "2"
+        }
+        return JsonResponse.create(StatusCode.OK, data)
+
+    # /v1/validateData/
+    validate_data = sess.query(Job).filter(Job.submission_id == submission_id,
+                                           Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
+                                           Job.number_of_errors != 0, Job.file_size.isnot(None))
+    check_header_errors = sess.query(Job).filter(Job.submission_id == submission_id,
+                                                 Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
+                                                 Job.job_status_id != 4, Job.file_size.isnot(None))
+    if validate_data.count() or check_header_errors.count() > 0:
+        data = {
+            "message": "The current progress of this submission ID is on /v1/validateData/ page.",
+            "step": "1"
+        }
+        return JsonResponse.create(StatusCode.OK, data)
+
+    else:
+        return JsonResponse.error(ValueError("The submisssion ID returns no response"), StatusCode.CLIENT_ERROR)
+
+
+def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
+                                        submission_id=None):
+    """ Find all the submissions in the given period """
+    # We need either a cgac or a frec code for this function
+    if not cgac_code and not frec_code:
+        return JsonResponse.error(ValueError("CGAC or FR Entity Code required"), StatusCode.CLIENT_ERROR)
+
+    sess = GlobalDB.db().session
+
+    submission_query = sess.query(Submission).filter(
+        (Submission.cgac_code == cgac_code) if cgac_code else (Submission.frec_code == frec_code),
+        Submission.reporting_fiscal_year == reporting_fiscal_year,
+        Submission.reporting_fiscal_period == reporting_fiscal_period,
+        Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
+
+    if submission_id:
+        submission_query = submission_query.filter(
+            Submission.submission_id != submission_id)
+
+    submission_query = submission_query.order_by(desc(Submission.created_at))
+
+    if submission_query.count() > 0:
+        data = {
+            "message": "A submission with the same period already exists.",
+            "submissionId": submission_query[0].submission_id
+        }
+        return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+    return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
+
+def certify_dabs_submission(submission, file_manager):
+    """ Certifying a dabs submission """
+    if not submission.publishable:
+        return JsonResponse.error(ValueError("Submission cannot be certified due to critical errors"),
+                                  StatusCode.CLIENT_ERROR)
+
+    if not submission.is_quarter_format:
+        return JsonResponse.error(ValueError("Monthly submissions cannot be certified"), StatusCode.CLIENT_ERROR)
+
+    if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+        return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
+
+    windows = get_windows()
+    for window in windows:
+        if window.block_certification:
+            return JsonResponse.error(ValueError(window.message), StatusCode.CLIENT_ERROR)
+
+    response = find_existing_submissions_in_period(submission.cgac_code, submission.frec_code,
+                                                   submission.reporting_fiscal_year,
+                                                   submission.reporting_fiscal_period, submission.submission_id)
+
+    if response.status_code == StatusCode.OK:
+        sess = GlobalDB.db().session
+
+        # create the certify_history entry
+        certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
+                                         submission_id=submission.submission_id)
+        sess.add(certify_history)
+        sess.commit()
+
+        # get the certify_history entry including the PK
+        certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
+            order_by(CertifyHistory.created_at.desc()).first()
+
+        # move files (locally we don't move but we still need to populate the certified_files_history table)
+        file_manager.move_certified_files(submission, certify_history, file_manager.is_local)
+
+        # set submission contents
+        submission.certifying_user_id = g.user.user_id
+        submission.publish_status_id = PUBLISH_STATUS_DICT['published']
+        sess.commit()
