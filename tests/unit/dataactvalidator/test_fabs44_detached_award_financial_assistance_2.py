@@ -13,7 +13,8 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Test if LegalEntityZIPLast4 is not provided and LegalEntityZIP5 is, LegalEntityCongressionalDistrict must be
-        provided for domestic and non-aggregate and PII-redacted non-aggregate records (RecordType = 2 or 3) """
+        provided for domestic and non-aggregate and PII-redacted non-aggregate records (RecordType = 2 or 3). This rule
+        is ignored when CorrectionDeleteIndicator is D """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(legal_entity_zip5="12345", legal_entity_zip_last4="6789",
                                                           legal_entity_congressional="01",
                                                           legal_entity_country_code="USA", record_type=2,

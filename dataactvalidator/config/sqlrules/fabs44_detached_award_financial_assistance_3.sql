@@ -10,6 +10,7 @@ FROM detached_award_financial_assistance AS dafa
 WHERE submission_id = {0}
     AND COALESCE(legal_entity_zip5, '') <> ''
     AND COALESCE(legal_entity_congressional, '') <> ''
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
     AND NOT EXISTS (
         SELECT 1
         FROM state_congressional AS sc
