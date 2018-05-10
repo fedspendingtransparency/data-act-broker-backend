@@ -27,8 +27,15 @@ logger = logging.getLogger(__name__)
 
 
 class AccountHandler:
-    """
-    This class contains the login / logout  functions
+    """ This class contains the login / logout  functions
+
+        Attributes:
+            isLocal: A boolean indicating if the application is being run locally or not
+            request: A Flask object containing the data from the request
+            bcrypt: A Bcrypt object associated with the app
+
+        Constants:
+            FRONT_END: A string indicating the URL of the front end of the app
     """
     # Handles login process, compares username and password provided
     FRONT_END = ""
@@ -37,32 +44,30 @@ class AccountHandler:
     def __init__(self, request, bcrypt=None, is_local=False):
         """ Creates the Login Handler
 
-        Args:
-            request - Flask request object
-            bcrypt - Bcrypt object associated with app
+            Args:
+                request: Flask request object
+                bcrypt: Bcrypt object associated with app
         """
         self.isLocal = is_local
         self.request = request
         self.bcrypt = bcrypt
 
     def login(self, session):
-        """
+        """ Logs a user in if their password matches using local data
 
-        Logs a user in if their password matches
+            Args:
+                session: the Session object from flask
 
-        arguments:
-
-        session  -- (Session) object from flask
-
-        return the response object
-
+            Returns:
+                A JsonResponse containing the user information or details on which error occurred, such as whether a
+                type was wrong, something wasn't implemented, invalid keys were provided, login was denied, or a
+                different, unexpected error occurred.
         """
         try:
             sess = GlobalDB.db().session
             safe_dictionary = RequestDictionary(self.request)
 
             username = safe_dictionary.get_value('username')
-
             password = safe_dictionary.get_value('password')
 
             try:
@@ -73,7 +78,6 @@ class AccountHandler:
             try:
                 if check_correct_password(user, password, self.bcrypt):
                     # We have a valid login
-
                     return self.create_session_and_response(session, user)
                 else:
                     raise ValueError("Invalid username and/or password")
@@ -84,6 +88,7 @@ class AccountHandler:
                 LoginSession.logout(session)
                 raise e
 
+        # Catch any specifically raised errors or any other errors that may have happened and return them cleanly
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
@@ -95,16 +100,15 @@ class AccountHandler:
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
     def max_login(self, session):
-        """
+        """ Logs a user in if their password matches using MAX
 
-        Logs a user in if their password matches
+            Args:
+                session: Session object from flask
 
-        arguments:
-
-        session  -- (Session) object from flask
-
-        return the response object
-
+            Returns:
+                A JsonResponse containing the user information or details on which error occurred, such as whether a
+                type was wrong, something wasn't implemented, invalid keys were provided, login was denied, or a
+                different, unexpected error occurred.
         """
         try:
             safe_dictionary = RequestDictionary(self.request)
@@ -155,6 +159,7 @@ class AccountHandler:
 
             return self.create_session_and_response(session, user)
 
+        # Catch any specifically raised errors or any other errors that may have happened and return them cleanly
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
@@ -167,14 +172,28 @@ class AccountHandler:
 
     @staticmethod
     def create_session_and_response(session, user):
-        """Create a session."""
+        """ Create a session.
+
+            Args:
+                session: Session object from flask
+                user: Users object
+
+            Returns:
+                JsonResponse containing the JSON for the user
+        """
         LoginSession.login(session, user.user_id)
         data = json_for_user(user)
         data['message'] = 'Login successful'
         return JsonResponse.create(StatusCode.OK, data)
 
     def set_skip_guide(self):
-        """ Set current user's skip guide parameter """
+        """ Set current user's skip guide parameter
+        
+            Returns:
+                JsonResponse object containing results of setting the skip guide or details of the error that occurred.
+                Possible errors include the request not containing a skip_guide parameter or it not being a boolean
+                value
+        """
         sess = GlobalDB.db().session
         request_dict = RequestDictionary.derive(self.request)
         try:
@@ -196,15 +215,22 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK, {"message": "skip_guide set successfully", "skip_guide": skip_guide})
 
     def email_users(self, system_email):
-        """ Send email notification to list of users """
+        """ Send email notification to list of users
+
+            Args:
+                system_email: the address of the system to send the email from
+
+            Returns:
+                A JsonReponse containing a message that the email sent successfully or the details of the missing
+                parameters
+        """
         sess = GlobalDB.db().session
         request_dict = RequestDictionary.derive(self.request)
         required = ('users', 'submission_id', 'email_template')
         try:
             if any(field not in request_dict for field in required):
                 raise ResponseException(
-                    "Email users route requires users, email_template, and "
-                    "submission_id", StatusCode.CLIENT_ERROR
+                    "Email users route requires users, email_template, and submission_id", StatusCode.CLIENT_ERROR
                 )
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
@@ -212,13 +238,12 @@ class AccountHandler:
         user_ids = request_dict['users']
         submission_id = request_dict['submission_id']
         # Check if submission id is valid
-        _, agency_name = sess.query(Submission.submission_id, CGAC.agency_name)\
-            .join(CGAC, Submission.cgac_code == CGAC.cgac_code)\
-            .filter(Submission.submission_id == submission_id).one()
+        _, agency_name = sess.query(Submission.submission_id, CGAC.agency_name).\
+            join(CGAC, Submission.cgac_code == CGAC.cgac_code).filter(Submission.submission_id == submission_id).one()
         if not agency_name:
-            _, agency_name = sess.query(Submission.submission_id, FREC.agency_name) \
-                .join(FREC, Submission.frec_code == FREC.frec_code) \
-                .filter(Submission.submission_id == submission_id).one()
+            _, agency_name = sess.query(Submission.submission_id, FREC.agency_name).\
+                join(FREC, Submission.frec_code == FREC.frec_code).\
+                filter(Submission.submission_id == submission_id).one()
 
         template_type = request_dict['email_template']
         # Check if email template type is valid
@@ -241,7 +266,15 @@ class AccountHandler:
 
 
 def perms_to_affiliations(perms, user_id):
-    """Convert a list of perms from MAX to a list of UserAffiliations. Filter out and log any malformed perms"""
+    """ Convert a list of perms from MAX to a list of UserAffiliations. Filter out and log any malformed perms
+
+        Args:
+            perms: list of permissions (as strings) for the user
+            user_id: the ID of the user
+
+        Yields:
+            UserAffiliations based on the permissions provided
+    """
     available_cgacs = {cgac.cgac_code: cgac for cgac in GlobalDB.db().session.query(CGAC)}
     available_frecs = {frec.frec_code: frec for frec in GlobalDB.db().session.query(FREC)}
     log_data = {
@@ -296,7 +329,14 @@ def perms_to_affiliations(perms, user_id):
 
 
 def best_affiliation(affiliations):
-    """If a user has multiple permissions for a single agency, select the best"""
+    """ If a user has multiple permissions for a single agency, select the best
+    
+        Args:
+            affiliations: list of UserAffiliations a user has
+        
+        Returns:
+            List of all affiliations the user has (with duplicates, highest of each type/agency provided)
+    """
     dabs_affils, fabs_affils = {}, {}
     affiliations = sorted(affiliations, key=attrgetter('permission_type_id'))
     for affiliation in affiliations:
@@ -310,13 +350,18 @@ def best_affiliation(affiliations):
 
 
 def set_max_perms(user, max_group_list):
-    """Convert the user group lists present on MAX into a list of UserAffiliations and/or website_admin status.
+    """ Convert the user group lists present on MAX into a list of UserAffiliations and/or website_admin status.
 
-    Permissions are encoded as a comma-separated list of:
-    {parent-group}-CGAC_{cgac-code}-PERM_{one-of-R-W-S-F}
-    {parent-group}-CGAC_{cgac-code}-FREC_{frec_code}-PERM_{one-of-R-W-S-F}
-    or
-    {parent-group}-CGAC_SYS to indicate website_admin"""
+        Permissions are encoded as a comma-separated list of:
+        {parent-group}-CGAC_{cgac-code}-PERM_{one-of-R-W-S-F}
+        {parent-group}-CGAC_{cgac-code}-FREC_{frec_code}-PERM_{one-of-R-W-S-F}
+        or
+        {parent-group}-CGAC_SYS to indicate website_admin
+
+        Args:
+            user: the User object
+            max_group_list: list of all MAX groups the user has
+    """
     prefix = CONFIG_BROKER['parent_group'] + '-CGAC_'
 
     # Each group name that we care about begins with the prefix, but once we have that list, we don't need the
@@ -335,7 +380,14 @@ def set_max_perms(user, max_group_list):
 
 
 def json_for_user(user):
-    """Convert the provided user to a dictionary (for JSON)"""
+    """ Convert the provided user to a dictionary (for JSON)
+
+        Args:
+            user: the User object
+
+        Returns:
+            An object containing user details
+    """
     return {
         "user_id": user.user_id,
         "name": user.name,
@@ -350,22 +402,29 @@ def json_for_user(user):
 
 
 def get_max_dict(ticket, service):
+    """ Get the result from MAX's serviceValidate functionality
+
+        Args:
+            ticket: the ticket to send to MAX
+            service: the service to send to MAX
+
+        Returns:
+            A dictionary of the response from MAX
+    """
     url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
     max_xml = requests.get(url).content
     return xmltodict.parse(max_xml)
 
 
 def logout(session):
-    """
+    """ This function removes the session from the session table if currently logged in, and then returns a success
+        message
 
-    This function removes the session from the session table if currently logged in, and then returns a success message
+        Args:
+            session: the Session object
 
-    arguments:
-
-    session  -- (Session) object from flask
-
-    return the response object
-
+        Returns:
+            a JsonResponse that the logout was successful
     """
     # Call session handler
     LoginSession.logout(session)
@@ -373,7 +432,11 @@ def logout(session):
 
 
 def list_user_emails():
-    """ List user names and emails """
+    """ List user names and emails
+
+        Returns:
+            A JsonResponse that contains a list of user information (ID, name, and email)
+    """
     sess = GlobalDB.db().session
     users = sess.query(User)
     if not g.user.website_admin:
