@@ -14,4 +14,5 @@ WHERE submission_id = {0}
     AND COALESCE(legal_entity_zip_last4, '') = ''
     AND COALESCE(legal_entity_congressional, '') = ''
     AND UPPER(legal_entity_country_code) = 'USA'
-    AND record_type IN (2,3);
+    AND record_type IN (2,3)
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
