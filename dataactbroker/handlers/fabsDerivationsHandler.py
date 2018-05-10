@@ -262,7 +262,7 @@ def derive_parent_duns(obj, sess):
             filter_by(awardee_or_recipient_uniqu=obj['awardee_or_recipient_uniqu']).\
             filter(or_(DUNS.ultimate_parent_unique_ide.isnot(None), DUNS.ultimate_parent_unique_ide.isnot(None))).\
             first()
-        print(str(duns_data))
+
         if duns_data:
             obj['ultimate_parent_legal_enti'] = duns_data.ultimate_parent_legal_enti
             obj['ultimate_parent_unique_ide'] = duns_data.ultimate_parent_unique_ide
