@@ -1233,22 +1233,3 @@ To generate a test coverage report from the command line:
 1. Make sure you're in the project's test folder (`data-act-broker-backend/tests`).
 2. Run the tests using the `coverage` command: `coverage run integration/runTests.py`.
 3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
-
-## D File Callback
-**Route:** `/v1/complete_generation/\<generation_task_key\>/`
-
-**Method:** `POST`
-
-This route is used by the D File API to return a file location for generated D files.
-
-### Body (JSON)
-
-```
-{
-    "href": "http://..."
-}
-```
-
-### Body Description
-
-* `href' - Location where generated D file can be downloaded

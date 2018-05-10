@@ -11,7 +11,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from flask import g, request
 from shutil import copyfile
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, desc
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql.expression import case
@@ -92,12 +92,57 @@ class FileHandler:
         self.serverPath = server_path
         self.s3manager = S3Handler()
 
-    def submit(self, create_credentials):
+    def validate_submit_files(self, create_credentials):
+        """ Validate whether the submission can be submitted or not (does the submission exist for this date range
+            already)
+
+        Arguments:
+            create_credentials: If True, will create temporary credentials for S3 uploads
+
+        Returns:
+            Results of submit function"""
+        sess = GlobalDB.db().session
+        submission_request = self.request
+
+        start_date = submission_request.json.get('reporting_period_start_date')
+        end_date = submission_request.json.get('reporting_period_end_date')
+        is_quarter = submission_request.json.get('is_quarter_format', False)
+
+        if not (start_date is None or end_date is None):
+            formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(start_date,
+                                                                                          end_date, is_quarter)
+
+            submissions = sess.query(Submission).filter(
+                Submission.cgac_code == submission_request.json.get('cgac_code'),
+                Submission.frec_code == submission_request.json.get('frec_code'),
+                Submission.reporting_start_date == formatted_start_date,
+                Submission.reporting_end_date == formatted_end_date,
+                Submission.is_quarter_format == submission_request.json.get('is_quarter'),
+                Submission.d2_submission.is_(False),
+                Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
+
+            if 'existing_submission_id' in submission_request.json:
+                submissions.filter(Submission.submission_id !=
+                                   submission_request.json['existing_submission_id'])
+
+            submissions = submissions.order_by(desc(Submission.created_at))
+
+            if submissions.count() > 0:
+                data = {
+                    "message": "A submission with the same period already exists.",
+                    "submissionId": submissions[0].submission_id
+                }
+                return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+
+        return self.submit(sess, create_credentials)
+
+    def submit(self, sess, create_credentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
 
         Flask request should include keys from FILE_TYPES class variable above
 
         Arguments:
+            sess - current DB session
             create_credentials - If True, will create temporary credentials for S3 uploads
 
         Returns:
@@ -105,7 +150,6 @@ class FileHandler:
         key_url is the S3 URL for uploading
         key_id is the job id to be passed to the finalize_submission route
         """
-        sess = GlobalDB.db().session
         try:
             response_dict = {}
             upload_files = []
@@ -524,6 +568,11 @@ class FileHandler:
 
     def generate_detached_file(self, file_type, cgac_code, frec_code, start, end):
         """ Start a file generation job for the specified file type """
+        # Make sure it's a valid request
+        if not cgac_code and not frec_code:
+            return JsonResponse.error(ValueError("Detached file generation requires CGAC or FR Entity Code"),
+                                      StatusCode.CLIENT_ERROR)
+
         # check if date format is MM/DD/YYYY
         if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
             raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
@@ -1170,9 +1219,14 @@ def narratives_for_submission(submission):
     return JsonResponse.create(StatusCode.OK, result)
 
 
-def update_narratives(submission, narratives_json):
+def update_narratives(submission, narrative_request):
     """Clear existing narratives and replace them with the provided set. We assume narratives_json contains non-empty
     strings (i.e. that it's been cleaned)"""
+    json = narrative_request or {}
+    # clean input
+    narratives_json = {key.upper(): value.strip() for key, value in json.items()
+                       if isinstance(value, str) and value.strip()}
+
     sess = GlobalDB.db().session
     sess.query(SubmissionNarrative).\
         filter_by(submission_id=submission.submission_id).\
@@ -1449,10 +1503,18 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
 
 def list_certifications(submission):
     """ List all certifications for a single submission including the file history that goes with them """
+    if submission.d2_submission:
+        return JsonResponse.error(ValueError("FABS submissions do not have a certification history"),
+                                  StatusCode.CLIENT_ERROR)
+
     sess = GlobalDB.db().session
 
     certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
         order_by(CertifyHistory.created_at.desc()).all()
+
+    if len(certify_history) == 0:
+        return JsonResponse.error(ValueError("This submission has no certification history"),
+                                  StatusCode.CLIENT_ERROR)
 
     # get the details for each of the certifications
     certifications = []
