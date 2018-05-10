@@ -6,17 +6,17 @@ from dataactcore.interfaces.function_bag import get_email_template
 
 class SesEmail(object):
     """ An email object that can be sent to a user
-    
+
         Attributes:
             to_address: A string containing the address to send the email to
             from_address: A string containing the address the email is being sent from
             subject: A string containing the subject line of the email
             content: A string containing the content of the email
-        
+
         Class Attributes:
             isLocal: A boolean indicating if the application is being run locally or not
             emailLog: A string indicating the name of the email log file for local emails
-        
+
         Constants:
             SIGNING_KEY: A string containing the signing key
     """
@@ -29,7 +29,7 @@ class SesEmail(object):
 
     def __init__(self, to_address, from_address, content="", subject="", template_type=None, parameters=None):
         """ Creates an email object to be sent
-        
+
             Args:
                 to_address: Email is sent to this address
                 from_address: This will appear as the sender, must be an address verified through S3 for cloud version

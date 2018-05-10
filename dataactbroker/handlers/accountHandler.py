@@ -188,7 +188,7 @@ class AccountHandler:
 
     def set_skip_guide(self):
         """ Set current user's skip guide parameter
-        
+
             Returns:
                 JsonResponse object containing results of setting the skip guide or details of the error that occurred.
                 Possible errors include the request not containing a skip_guide parameter or it not being a boolean
@@ -330,10 +330,10 @@ def perms_to_affiliations(perms, user_id):
 
 def best_affiliation(affiliations):
     """ If a user has multiple permissions for a single agency, select the best
-    
+
         Args:
             affiliations: list of UserAffiliations a user has
-        
+
         Returns:
             List of all affiliations the user has (with duplicates, highest of each type/agency provided)
     """
@@ -441,11 +441,8 @@ def list_user_emails():
     users = sess.query(User)
     if not g.user.website_admin:
         relevant_cgacs = [aff.cgac_id for aff in g.user.affiliations]
-        subquery = sess.query(UserAffiliation.user_id).\
-            filter(UserAffiliation.cgac_id.in_(relevant_cgacs))
+        subquery = sess.query(UserAffiliation.user_id).filter(UserAffiliation.cgac_id.in_(relevant_cgacs))
         users = users.filter(User.user_id.in_(subquery))
-    user_info = [
-        {"id": user.user_id, "name": user.name, "email": user.email}
-        for user in users
-    ]
+
+    user_info = [{"id": user.user_id, "name": user.name, "email": user.email} for user in users]
     return JsonResponse.create(StatusCode.OK, {"users": user_info})
