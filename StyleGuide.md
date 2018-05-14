@@ -43,7 +43,7 @@
     Raises:
         ExceptionA: Something broke, explain
         ExceptionB: One type of error happened or another
-        	might have
+            might have
 """
 ```
 
