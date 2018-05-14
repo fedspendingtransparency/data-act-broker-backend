@@ -1,6 +1,7 @@
 import urllib.parse
 import pytest
 import json
+import re
 from unittest.mock import MagicMock
 from dataactvalidator.scripts.load_usps_files import get_payload_string, check_response_status, get_login_tokens, \
     get_file_info
@@ -18,7 +19,7 @@ def test_get_pay_load_screen():
 
     test_dict = {"a": "123", "b": "456"}
     result = get_payload_string(test_dict)
-    assert urllib.parse.unquote(result) == 'obj={"a":"123",\n"b":"456"}'
+    assert re.match(r'^obj={\"[a-b]\":\"\d{3}\",$\n\"[a-b]\":\"\d{3}\"}', urllib.parse.unquote(result), re.M)
 
 
 def test_check_response_status_success():
