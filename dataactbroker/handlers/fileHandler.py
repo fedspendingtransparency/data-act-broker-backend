@@ -27,7 +27,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (
-    create_jobs, get_error_metrics_by_job_jd, get_error_type, get_fabs_meta, mark_job_status, run_job_checks,
+    create_jobs, get_error_metrics_by_job_id, get_error_type, get_fabs_meta, mark_job_status, run_job_checks,
     get_last_validated_date, get_lastest_certified_date)
 
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode
@@ -59,33 +59,44 @@ logger = logging.getLogger(__name__)
 class FileHandler:
     """ Responsible for all tasks relating to file upload
 
-    Static fields:
-    FILE_TYPES -- list of file labels that can be included
+        Attributes:
+            request: A Flask object containing the route request
+            isLocal: A boolean flag indicating whether the application is being run locally or not
+            serverPath: A string containing the path to the server files (only applicable when run locally)
+            s3manager: An instance of S3Handler that can be used for all interactions with S3
 
-    Instance fields:
-    request -- A flask request object, comes with the request
-    s3manager -- instance of S3Handler, manages calls to S3
+        Class Attributes:
+            UploadFile: A tuple used to store details about the file being uploaded
+
+        Constants:
+            CHUNK_SIZE: An integer indicating the size of each chunk to read/stream
+            FILE_TYPES: An array of the types of files users can upload to DABS (as strings)
+            EXTERNAL_FILE_TYPES: An array of the types of files received from other sources in DABS (as strings)
+            STATUS_MAP: A dictionary containing a mapping of success/failure for job statuses
+            VALIDATION_STATUS_MAP: A dictionary containing a mapping of statuses for validation jobs
+            VALIDATOR_RESPONSE_FILE: A string indicating a file name
     """
 
     # 1024 sounds like a good chunk size, we can change if needed
     CHUNK_SIZE = 1024
     FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
     EXTERNAL_FILE_TYPES = ["award", "award_procurement", "executive_compensation", "sub_award"]
-    VALIDATOR_RESPONSE_FILE = "validatorResponse"
     STATUS_MAP = {"waiting": "invalid", "ready": "invalid", "running": "waiting", "finished": "finished",
                   "invalid": "failed", "failed": "failed"}
     VALIDATION_STATUS_MAP = {"waiting": "waiting", "ready": "waiting", "running": "waiting", "finished": "finished",
                              "failed": "failed", "invalid": "failed"}
+    # TODO: See if this is even needed and, if not, remove it
+    VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
 
     def __init__(self, route_request, is_local=False, server_path=""):
         """ Create the File Handler
 
-        Arguments:
-            route_request - HTTP request object for this route
-            isLocal - True if this is a local installation that will not use AWS or Smartronix
-            serverPath - If isLocal is True, this is used as the path to local files
+            Args:
+                route_request: HTTP request object for this route
+                is_local: True if this is a local installation that will not use AWS or Smartronix
+                server_path: If isLocal is True, this is used as the path to local files
         """
         self.request = route_request
         self.isLocal = is_local
@@ -96,11 +107,12 @@ class FileHandler:
         """ Validate whether the submission can be submitted or not (does the submission exist for this date range
             already)
 
-        Arguments:
-            create_credentials: If True, will create temporary credentials for S3 uploads
+            Args:
+                create_credentials: If True, will create temporary credentials for S3 uploads
 
-        Returns:
-            Results of submit function"""
+            Returns:
+                Results of submit function or a JsonResponse object containing a failure message
+        """
         sess = GlobalDB.db().session
         submission_request = self.request
 
@@ -108,6 +120,7 @@ class FileHandler:
         end_date = submission_request.json.get('reporting_period_end_date')
         is_quarter = submission_request.json.get('is_quarter_format', False)
 
+        # If both start and end date are provided, make sure no other submission is already published for that period
         if not (start_date is None or end_date is None):
             formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(start_date,
                                                                                           end_date, is_quarter)
@@ -139,16 +152,17 @@ class FileHandler:
     def submit(self, sess, create_credentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
 
-        Flask request should include keys from FILE_TYPES class variable above
+            Flask request should include keys from FILE_TYPES class variable above
 
-        Arguments:
-            sess - current DB session
-            create_credentials - If True, will create temporary credentials for S3 uploads
+            Args:
+                sess: current DB session
+                create_credentials: If True, will create temporary credentials for S3 uploads
 
-        Returns:
-        Flask response returned will have key_url and key_id for each key in the request
-        key_url is the S3 URL for uploading
-        key_id is the job id to be passed to the finalize_submission route
+            Returns:
+                JsonResponse object that contains the results of create_response_dict or the details of the failure
+                Flask response returned will have key_url and key_id for each key in the request
+                key_url is the S3 URL for uploading
+                key_id is the job id to be passed to the finalize_submission route
         """
         try:
             response_dict = {}
@@ -168,9 +182,7 @@ class FileHandler:
             existing_submission_id = request_params.get('existing_submission_id')
             if existing_submission_id:
                 existing_submission = True
-                existing_submission_obj = sess.query(Submission).\
-                    filter_by(submission_id=existing_submission_id).\
-                    one()
+                existing_submission_obj = sess.query(Submission).filter_by(submission_id=existing_submission_id).one()
             else:
                 existing_submission = None
                 existing_submission_obj = None
@@ -191,19 +203,15 @@ class FileHandler:
             submission_data['reporting_start_date'] = formatted_start_date
             submission_data['reporting_end_date'] = formatted_end_date
 
-            submission = create_submission(g.user.user_id, submission_data,
-                                           existing_submission_obj)
+            submission = create_submission(g.user.user_id, submission_data, existing_submission_obj)
 
             cant_edit = (
-                existing_submission and
-                not current_user_can_on_submission(
-                    'writer', existing_submission_obj)
+                existing_submission and not current_user_can_on_submission('writer', existing_submission_obj)
             )
             cant_create = not current_user_can('writer', submission.cgac_code, submission.frec_code)
             if cant_edit or cant_create:
                 raise ResponseException(
-                    "User does not have permission to create/modify that "
-                    "submission", StatusCode.PERMISSION_DENIED
+                    "User does not have permission to create/modify that submission", StatusCode.PERMISSION_DENIED
                 )
             else:
                 sess.add(submission)
@@ -250,17 +258,31 @@ class FileHandler:
 
     @staticmethod
     def check_submission_dates(start_date, end_date, is_quarter, existing_submission=None):
-        """Check validity of incoming submission start and end dates."""
-        # if any of the date fields are none, there should be an existing submission
-        # otherwise, we shouldn't be here
-        if None in (start_date, end_date, is_quarter) and existing_submission is None:
-            raise ResponseException("An existing submission is required when start/end date"
-                                    " or is_quarter aren't supplied", StatusCode.INTERNAL_ERROR)
+        """ Check validity of incoming submission start and end dates.
 
-        # convert submission start/end dates from the request into Python date
-        # objects. if a date is missing, grab it from the existing submission
-        # note: a previous check ensures that there's an existing submission
-        # when the start/end dates are empty
+            Args:
+                start_date: the start date of the submission in string format
+                end_date: the end date of the submission in string format
+                is_quarter: a boolean indicating whether the submission is a quarterly or monthly submission (True
+                    if quarter)
+                existing_submission: the existing submission to compare against
+
+            Returns:
+                The start and end dates in datetime format of the submission
+
+            Raises:
+                ResponseException: Required values were not provided, date was improperly formatted, start date is
+                    after end date, quarterly submission does not span the required amount of time, or end month
+                    is not a valid final month of a quarter
+        """
+        # if any of the date fields are none, there should be an existing submission otherwise, we shouldn't be here
+        if None in (start_date, end_date, is_quarter) and existing_submission is None:
+            raise ResponseException("An existing submission is required when start/end date "
+                                    "or is_quarter aren't supplied", StatusCode.INTERNAL_ERROR)
+
+        # Convert submission start/end dates from the request into Python date objects. If a date is missing, grab it
+        # from the existing submission. Note: a previous check ensures that there's an existing submission when the
+        # start/end dates are empty
         date_format = '%m/%Y'
         try:
             if start_date is not None:
@@ -272,32 +294,29 @@ class FileHandler:
             else:
                 end_date = existing_submission.reporting_end_date
         except ValueError:
-            raise ResponseException("Date must be provided as MM/YYYY", StatusCode.CLIENT_ERROR,
-                                    ValueError)
+            raise ResponseException("Date must be provided as MM/YYYY", StatusCode.CLIENT_ERROR, ValueError)
 
-        # the front-end is doing date checks, but we'll also do a few server side to ensure
-        # everything is correct when clients call the API directly
+        # The front-end is doing date checks, but we'll also do a few server side to ensure everything is correct when
+        # clients call the API directly
         if start_date > end_date:
             raise ResponseException(
                 "Submission start date {} is after the end date {}".format(start_date, end_date),
                 StatusCode.CLIENT_ERROR)
 
-        # currently, broker allows quarterly submissions for a single quarter only. the front-end
-        # handles this requirement, but since we have some downstream logic that depends on a
-        # quarterly submission representing one quarter, we'll check server side as well
+        # Currently, broker allows quarterly submissions for a single quarter only. the front-end handles this
+        # requirement, but since we have some downstream logic that depends on a quarterly submission representing one
+        # quarter, we'll check server side as well
         is_quarter = is_quarter if is_quarter is not None else existing_submission.is_quarter_format
         if is_quarter is None:
             is_quarter = existing_submission.is_quarter_format
         if is_quarter:
             if relativedelta(end_date + relativedelta(months=1), start_date).months != 3:
-                raise ResponseException(
-                    "Quarterly submission must span 3 months", StatusCode.CLIENT_ERROR)
+                raise ResponseException("Quarterly submission must span 3 months", StatusCode.CLIENT_ERROR)
             if end_date.month % 3 != 0:
                 raise ResponseException(
-                    "Invalid end month for a quarterly submission: {}".format(end_date.month),
-                    StatusCode.CLIENT_ERROR)
+                    "Invalid end month for a quarterly submission: {}".format(end_date.month), StatusCode.CLIENT_ERROR)
 
-        # change end_date date to the final date
+        # Change end_date date to the final date
         end_date = datetime.strptime(
                         str(end_date.year) + '/' +
                         str(end_date.month) + '/' +
@@ -311,10 +330,14 @@ class FileHandler:
     def finalize(job_id):
         """ Set upload job in job tracker database to finished, allowing dependent jobs to be started
 
-        Flask request should include key "upload_id", which holds the job_id for the file_upload job
+            Flask request should include key "upload_id", which holds the job_id for the file_upload job
 
-        Returns:
-        A flask response object, if successful just contains key "success" with value True, otherwise value is False
+            Args:
+                job_id: the ID of the job
+
+            Returns:
+                A flask response object, if successful just contains key "success" with value True, otherwise value is
+                False. If there was an error, returns a JsonResponse object containing the details of the error
         """
         sess = GlobalDB.db().session
         response_dict = {}
@@ -325,10 +348,7 @@ class FileHandler:
             if (submission.d2_submission and not current_user_can_on_submission('fabs', submission)) or \
                     (not submission.d2_submission and not current_user_can_on_submission('writer', submission)):
                 # This user cannot finalize this job
-                raise ResponseException(
-                    "Cannot finalize a job for a different agency",
-                    StatusCode.CLIENT_ERROR
-                )
+                raise ResponseException("Cannot finalize a job for a different agency", StatusCode.CLIENT_ERROR)
             # Change job status to finished
             if job.job_type_id == JOB_TYPE_DICT["file_upload"]:
                 mark_job_status(job_id, 'finished')
@@ -346,7 +366,11 @@ class FileHandler:
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
     def upload_file(self):
-        """ Saves a file and returns the saved path.  Should only be used for local installs. """
+        """ Saves a file and returns the saved path. Should only be used for local installs.
+
+            Returns:
+                JsonResponse object containing the path to the uploaded file or an error message
+        """
         try:
             if self.isLocal:
                 uploaded_file = request.files['file']
@@ -358,11 +382,9 @@ class FileHandler:
                     return_dict = {"path": path}
                     return JsonResponse.create(StatusCode.OK, return_dict)
                 else:
-                    raise ResponseException("Failure to read file",
-                                            StatusCode.CLIENT_ERROR)
+                    raise ResponseException("Failure to read file", StatusCode.CLIENT_ERROR)
             else:
-                raise ResponseException("Route Only Valid For Local Installs",
-                                        StatusCode.CLIENT_ERROR)
+                raise ResponseException("Route Only Valid For Local Installs", StatusCode.CLIENT_ERROR)
         except (ValueError, TypeError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ResponseException as e:
@@ -374,11 +396,11 @@ class FileHandler:
     def start_generation_job(self, job):
         """ Initiates a file generation job
 
-        Args:
-            job: the file generation job to start
+            Args:
+                job: the file generation job to start
 
-        Returns:
-            Tuple of boolean indicating successful start, and error response if False
+            Returns:
+                Tuple of boolean indicating successful start, and error response if False
         """
         sess = GlobalDB.db().session
         file_type_name = job.file_type.name
@@ -442,15 +464,18 @@ class FileHandler:
                                 start_date, end_date, job):
         """ Populates upload and validation job objects with start and end dates, filenames, and status
 
-        Args:
-            upload_file_name - Filename to use on S3
-            timestamped_name - Version of filename without user ID
-            submission_id - Submission to add D files to
-            file_type - File type as either "D1" or "D2"
-            file_type_name - Full name of file type
-            start_date - Beginning of period for D file
-            end_date - End of period for D file
-            job - Job object for upload job
+            Args:
+                upload_file_name: Filename to use on S3
+                timestamped_name: Version of filename without user ID
+                submission_id: Submission to add D files to
+                file_type: File type as either "D1" or "D2"
+                file_type_name: Full name of file type
+                start_date: Beginning of period for D file
+                end_date: End of period for D file
+                job: Job object for upload job
+
+            Returns:
+                Nothing if it was successful, error with the details if there was one
         """
         sess = GlobalDB.db().session
         val_job = sess.query(Job).filter(Job.submission_id == submission_id,
@@ -476,7 +501,21 @@ class FileHandler:
         return None
 
     def download_file(self, local_file_path, file_url, upload_name, response):
-        """ Download a file locally from the specified URL, returns True if successful """
+        """ Download a file locally from the specified URL.
+
+            Args:
+                local_file_path: path to where the local file will be uploaded
+                file_url: the path to the file including the file name
+                upload_name: name to upload the file as
+                response: the response streamed to the application
+
+            Returns:
+                Boolean indicating if the file could be successfully downloaded
+
+            Raises:
+                ResponseException: Error if the file_url doesn't point to a valid file or the local_file_path is not
+                    a valid directory
+        """
         if not self.isLocal:
             conn = self.s3manager.create_file_path(upload_name)
             with smart_open.smart_open(conn, 'w') as writer:
@@ -493,19 +532,27 @@ class FileHandler:
                     if chunk:
                         writer.write(chunk)
                 return True
+        # Not a valid file
         elif not os.path.isfile(file_url):
-            raise ResponseException('{} does not exist'.format(file_url),
-                                    StatusCode.INTERNAL_ERROR)
+            raise ResponseException('{} does not exist'.format(file_url), StatusCode.INTERNAL_ERROR)
+        # Not a valid file path
         elif not os.path.isdir(os.path.dirname(local_file_path)):
             dirname = os.path.dirname(local_file_path)
-            raise ResponseException('{} folder does not exist'.format(dirname),
-                                    StatusCode.INTERNAL_ERROR)
+            raise ResponseException('{} folder does not exist'.format(dirname), StatusCode.INTERNAL_ERROR)
         else:
             copyfile(file_url, local_file_path)
             return True
 
     def generate_file(self, submission_id, file_type):
-        """ Start a file generation job for the specified file type """
+        """ Start a file generation job for the specified file type within a submission
+
+            Args:
+                submission_id: submission for which we're generating the file
+                file_type: type of file to generate the job for
+
+            Returns:
+                Results of check_generation or JsonResponse object containing an error
+        """
         sess = GlobalDB.db().session
 
         # Check permission to submission
@@ -529,9 +576,8 @@ class FileHandler:
         try:
             # Check prerequisites on upload job
             if not run_job_checks(job.job_id):
-                raise ResponseException(
-                    "Must wait for completion of prerequisite validation job",
-                    StatusCode.CLIENT_ERROR)
+                raise ResponseException("Must wait for completion of prerequisite validation job",
+                                        StatusCode.CLIENT_ERROR)
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
@@ -567,7 +613,15 @@ class FileHandler:
         return self.check_generation(submission, file_type)
 
     def generate_detached_file(self, file_type, cgac_code, frec_code, start, end):
-        """ Start a file generation job for the specified file type """
+        """ Start a file generation job for the specified file type not connected to a submission
+
+            Args:
+                file_type: type of file to be generated
+                cgac_code: the code of a CGAC agency if generating for a CGAC agency
+                frec_code: the code of a FREC agency if generating for a FREC agency
+                start: start date in a string, formatted MM/DD/YYYY
+                end: end date in a string, formatted MM/DD/YYYY
+        """
         # Make sure it's a valid request
         if not cgac_code and not frec_code:
             return JsonResponse.error(ValueError("Detached file generation requires CGAC or FR Entity Code"),
@@ -579,10 +633,8 @@ class FileHandler:
 
         # add job info
         file_type_name = FILE_TYPE_DICT_ID[FILE_TYPE_DICT_LETTER_ID[file_type]]
-        new_job = self.add_generation_job_info(
-            file_type_name=file_type_name,
-            dates={'start_date': start, 'end_date': end}
-        )
+        new_job = self.add_generation_job_info(file_type_name=file_type_name,
+                                               dates={'start_date': start, 'end_date': end})
 
         agency_code = frec_code if frec_code else cgac_code
         logger.info({
@@ -604,17 +656,19 @@ class FileHandler:
         return self.check_detached_generation(new_job.job_id)
 
     def upload_detached_file(self, create_credentials):
-        """ Builds S3 URLs for a set of detached files and adds all related jobs to job tracker database
+        """ Builds S3 URLs for a set of FABS files and adds all related jobs to job tracker database
 
-        Flask request should include keys from FILE_TYPES class variable above
+            Flask request should include keys from FILE_TYPES class variable above
 
-        Arguments:
-            create_credentials - If True, will create temporary credentials for S3 uploads
+            Args:
+                create_credentials: If True, will create temporary credentials for S3 uploads
 
-        Returns:
-        Flask response returned will have key_url and key_id for each key in the request
-        key_url is the S3 URL for uploading
-        key_id is the job id to be passed to the finalize_submission route
+            Returns:
+                JsonResponse with the response dictionary from create_response_dict_for_submission or the details
+                of what error happened.
+                Flask response returned will have key_url and key_id for each key in the request
+                key_url is the S3 URL for uploading
+                key_id is the job id to be passed to the finalize_submission route
         """
         sess = GlobalDB.db().session
         try:
@@ -640,11 +694,11 @@ class FileHandler:
                 # set all jobs to their initial status of "waiting"
                 jobs[0].job_status_id = JOB_STATUS_DICT['waiting']
                 sess.commit()
-
             else:
                 existing_submission = None
                 existing_submission_obj = None
 
+            # Get cgac/frec codes for the given submission (or based on request params)
             if existing_submission_obj is not None:
                 cgac_code = existing_submission_obj.cgac_code
                 frec_code = existing_submission_obj.frec_code
@@ -661,9 +715,9 @@ class FileHandler:
             job_data['reporting_start_date'] = None
             job_data['reporting_end_date'] = None
 
+            # TODO: Is this still needed for FABS uploads? Do we do this another way now?
             """
-            Below lines commented out to temporarily allow all users
-            to upload FABS data for all agencies during testing
+            Below lines commented out to temporarily allow all users to upload FABS data for all agencies during testing
             """
             # if not current_user_can('writer', job_data["cgac_code"]):
             #     raise ResponseException("User does not have permission to create jobs for this agency",
@@ -698,10 +752,13 @@ class FileHandler:
 
     @staticmethod
     def check_detached_generation(job_id):
-        """ Return information about file generation jobs
+        """ Return information about detached file generation jobs
 
-        Returns:
-            Response object with keys job_id, status, file_type, url, message, start, and end.
+            Args:
+                job_id: ID of the detached generation job
+
+            Returns:
+                Response object with keys job_id, status, file_type, url, message, start, and end.
         """
         sess = GlobalDB.db().session
 
@@ -736,11 +793,15 @@ class FileHandler:
 
     @staticmethod
     def check_generation(submission, file_type):
-        """ Return information about file generation jobs
+        """ Return information about file generation jobs connected to a submission
 
-        Returns:
-            Response object with keys status, file_type, url, message.
-            If file_type is D1 or D2, also includes start and end.
+            Args:
+                submission: submission to get information from
+                file_type: type of file being generated to check on
+
+            Returns:
+                Response object with keys status, file_type, url, message.
+                If file_type is D1 or D2, also includes start and end.
         """
         sess = GlobalDB.db().session
 
@@ -778,7 +839,19 @@ class FileHandler:
 
     @staticmethod
     def submit_detached_file(submission):
-        """ Submits the FABS upload file associated with the submission ID """
+        """ Submits the FABS upload file associated with the submission ID, including processing all the derivations
+            and updating relevant tables (such as un-caching all D2 files associated with this agency)
+
+            Args:
+                submission: submission to publish the file for
+
+            Returns:
+                A JsonResponse object containing the submission ID or the details of the error
+
+            Raises:
+                ResponseException: if the submission being published isn't a FABS submission, the submission is
+                    already in the process of being published, or the submission has already been published
+        """
         # Check to make sure it's a valid d2 submission who hasn't already started a publish process
         if not submission.d2_submission:
             raise ResponseException("Submission is not a FABS submission", StatusCode.CLIENT_ERROR)
@@ -974,7 +1047,11 @@ class FileHandler:
         return JsonResponse.create(StatusCode.OK, response_dict)
 
     def get_protected_files(self):
-        """ Returns a set of urls to protected files on the help page """
+        """ Gets a set of urls to protected files (on S3 with timeouts) on the help page
+
+            Returns:
+                A JsonResponse object with the urls in a list or an empty object if local
+        """
         response = {}
         if self.isLocal:
             response["urls"] = {}
@@ -985,9 +1062,19 @@ class FileHandler:
         return JsonResponse.create(StatusCode.OK, response)
 
     def add_generation_job_info(self, file_type_name, job=None, dates=None):
-        # if job is None, that means the info being added is for detached d file generation
+        """ Add details to jobs for generating files
+
+            Args:
+                file_type_name: the name of the file type being generated
+                job: the generation job, None if it is a detached generation
+                dates: The start and end dates for the generation job, only used for detached files
+
+            Returns:
+                the file generation job
+        """
         sess = GlobalDB.db().session
 
+        # Create a new job for a detached generation
         if job is None:
             job = Job(job_type_id=JOB_TYPE_DICT['file_upload'], user_id=g.user.user_id,
                       file_type_id=FILE_TYPE_DICT[file_type_name], start_date=dates['start_date'],
@@ -1001,7 +1088,7 @@ class FileHandler:
         else:
             upload_file_name = "".join([str(job.submission_id), "/", timestamped_name])
 
-        # This will update the reference so no need to return the job, just the upload and timestamped file names
+        # Update the job details
         job.message = None
         job.filename = upload_file_name
         job.original_filename = timestamped_name
@@ -1012,7 +1099,22 @@ class FileHandler:
 
     def build_file_map(self, request_params, file_type_list, response_dict, upload_files, submission,
                        existing_submission=False):
-        """ build fileNameMap to be used in creating jobs """
+        """ Build fileNameMap to be used in creating jobs
+
+            Args:
+                request_params: parameters provided by the API request
+                file_type_list: a list of all file types needed by a certain submission type
+                response_dict: the response dictionary from the calling function so it can be updated with relevant
+                    information in this function
+                upload_files: files that need to be uploaded
+                submission: submission this file map is for
+                existing_submission: boolean indicating if this is an existing submission the files are being
+                    reuploaded for or a new one (true for existing)
+
+            Raises:
+                ResponseException: If a new submission is being made but not all the file types in the file_type_list
+                    are included in the request_params
+        """
         for file_type in file_type_list:
             # if file_type not included in request, and this is an update to an existing submission, skip it
             if not request_params.get(file_type):
@@ -1041,10 +1143,21 @@ class FileHandler:
 
     def create_response_dict_for_submission(self, upload_files, submission, existing_submission, response_dict,
                                             create_credentials):
+        """ Creates a response dictionary for a submission to provide credentials and file locations to the user
+
+            Args:
+                upload_files: files to be uploaded
+                submission: submission the dictionary is for
+                existing_submission: boolean indicating if the submission is new or an existing one (true for existing)
+                response_dict: the dictionary being modified to provide information to the user
+                create_credentials: if True, will create temporary S3 credentials for the user
+        """
         file_job_dict = create_jobs(upload_files, submission, existing_submission)
         for file_type in file_job_dict.keys():
             if "submission_id" not in file_type:
                 response_dict[file_type + "_id"] = file_job_dict[file_type]
+
+        # Create temporary credentials if specified, otherwise set everything to local
         if create_credentials and not self.isLocal:
             self.s3manager = S3Handler(CONFIG_BROKER["aws_bucket"])
             response_dict["credentials"] = self.s3manager.get_temporary_credentials(g.user.user_id)
@@ -1060,8 +1173,17 @@ class FileHandler:
 
     @staticmethod
     def restart_validation(submission, fabs):
-        # update all validation jobs to "ready"
+        """ Restart validations for a submission
+
+            Args:
+                submission: the submission to restart the validations for
+                fabs: a boolean to indicate whether the submission is a FABS or DABS submission (True for FABS)
+
+            Returns:
+                JsonResponse object with a "success" message
+        """
         sess = GlobalDB.db().session
+        # Determine which job types to start
         if not fabs:
             initial_file_types = [FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
                                   FILE_TYPE_DICT['award_financial']]
@@ -1074,7 +1196,7 @@ class FileHandler:
         for job in jobs:
             job.job_status_id = JOB_STATUS_DICT['waiting']
 
-        # update upload jobs to "running", only for files A, B, and C
+        # update upload jobs to "running" for files A, B, and C for DABS submissions or for the upload job in FABS
         upload_jobs = [job for job in jobs if job.job_type_id in [JOB_TYPE_DICT['file_upload']] and
                        job.file_type_id in initial_file_types]
 
@@ -1082,15 +1204,23 @@ class FileHandler:
             job.job_status_id = JOB_STATUS_DICT['running']
         sess.commit()
 
-        # call finalize job for the upload jobs for files A, B, and C which will kick off the rest of
+        # call finalize job for the upload jobs for files A, B, and C for DABS submissions and the only job for FABS,
+        # which will kick off the rest of the process for DABS and indicate to the user that the validations are done
+        # for FABS
         for job in upload_jobs:
             FileHandler.finalize(job.job_id)
 
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
     def move_certified_files(self, submission, certify_history, is_local):
-        """Copy all files within the ceritified submission to the correct certified files bucket/directory. FABS
-        submissions also create a file containing all the published rows"""
+        """ Copy all files within the ceritified submission to the correct certified files bucket/directory. FABS
+            submissions also create a file containing all the published rows
+
+            Args:
+                submission: submission for which to move the files
+                certify_history: a CertifyHistory object to use for timestamps and to update once the files are moved
+                is_local: a boolean indicating whether the application is running locally or not
+        """
         try:
             self.s3manager
         except AttributeError:
@@ -1208,11 +1338,17 @@ class FileHandler:
 
 
 def narratives_for_submission(submission):
-    """Fetch narratives for this submission, indexed by file letter"""
+    """ Fetch narratives for this submission, indexed by file letter
+
+        Args:
+            submission: the submission to gather narratives for
+
+        Returns:
+            JsonResponse object with the contents of the narratives in a key/value pair of letter/narrative
+    """
     sess = GlobalDB.db().session
     result = {letter: '' for letter in FILE_TYPE_DICT_LETTER.values()}
-    narratives = sess.query(SubmissionNarrative).\
-        filter_by(submission_id=submission.submission_id)
+    narratives = sess.query(SubmissionNarrative).filter_by(submission_id=submission.submission_id)
     for narrative in narratives:
         letter = FILE_TYPE_DICT_LETTER[narrative.file_type_id]
         result[letter] = narrative.narrative
@@ -1220,17 +1356,22 @@ def narratives_for_submission(submission):
 
 
 def update_narratives(submission, narrative_request):
-    """Clear existing narratives and replace them with the provided set. We assume narratives_json contains non-empty
-    strings (i.e. that it's been cleaned)"""
+    """ Clear existing narratives and replace them with the provided set.
+
+        Args:
+            submission: submission to update the narratives for
+            narrative_request: the contents of the request from the API
+    """
     json = narrative_request or {}
     # clean input
     narratives_json = {key.upper(): value.strip() for key, value in json.items()
                        if isinstance(value, str) and value.strip()}
 
     sess = GlobalDB.db().session
-    sess.query(SubmissionNarrative).\
-        filter_by(submission_id=submission.submission_id).\
+    # Delete old narratives
+    sess.query(SubmissionNarrative).filter_by(submission_id=submission.submission_id).\
         delete(synchronize_session='fetch')     # fetch just in case
+
     narratives = []
     for file_type_id, letter in FILE_TYPE_DICT_LETTER.items():
         if letter in narratives_json:
@@ -1246,7 +1387,16 @@ def update_narratives(submission, narrative_request):
 
 
 def create_fabs_published_file(sess, submission_id, new_route):
-    """Create a file containing all the published rows from this submission_id"""
+    """ Create a file containing all the published rows from this submission_id
+
+        Args:
+            sess: the current DB session
+            submission_id: ID of the submission the file is being created for
+            new_route: the path to the new file
+
+        Returns:
+            The full path to the newly created/uploaded file
+    """
     # create timestamped name and paths
     timestamped_name = S3Handler.get_timestamped_filename('submission_{}_published_fabs.csv'.format(submission_id))
     local_filename = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
@@ -1259,18 +1409,43 @@ def create_fabs_published_file(sess, submission_id, new_route):
 
 
 def published_fabs_query(data_utils, page_start, page_end):
+    """ Get the data from the published FABS table to write to the file with
+
+        Args:
+            data_utils: A dictionary of utils that are needed for the query being made, in this case including the
+                session object and the submission ID
+            page_start: the start of the slice to limit the data
+            page_end: the end of the slice to limit the data
+
+        Returns:
+            A list of published FABS rows.
+    """
     return fileD2.query_published_fabs_data(data_utils["sess"], data_utils["submission_id"], page_start, page_end).all()
 
 
 def _split_csv(string):
-    """Split string into a list, excluding empty strings"""
+    """ Split string into a list, excluding empty strings
+
+        Args:
+            string: the string to split
+
+        Returns:
+            Empty array if the string is empty or an array of whitespace-trimmed strings split on "," from the original
+    """
     if string is None:
         return []
     return [n.strip() for n in string.split(',') if n]
 
 
 def job_to_dict(job):
-    """Convert a Job model into a dictionary, ready to be serialized as JSON"""
+    """ Convert a Job model into a dictionary, ready to be serialized as JSON
+
+        Args:
+            job: job to convert into a dictionary
+
+        Returns:
+            A dictionary of job information
+    """
     sess = GlobalDB.db().session
 
     job_info = {
@@ -1286,8 +1461,7 @@ def job_to_dict(job):
     # @todo replace with relationships
     file_results = sess.query(File).filter_by(job_id=job.job_id).one_or_none()
     if file_results is None:
-        # Job ID not in error database, probably did not make it to
-        # validation, or has not yet been validated
+        # Job ID not in error database, probably did not make it to validation, or has not yet been validated
         job_info.update(
             file_status="",
             error_type="",
@@ -1297,19 +1471,18 @@ def job_to_dict(job):
             duplicated_headers=[],
         )
     else:
-        # If job ID was found in file, we should be able to get header error
-        # lists and file data. Get string of missing headers and parse as a
-        # list
+        # If job ID was found in file, we should be able to get header error lists and file data. Get string of missing
+        # headers and parse as a list
         job_info['file_status'] = file_results.file_status_name
         job_info['missing_headers'] = _split_csv(file_results.headers_missing)
         job_info["duplicated_headers"] = _split_csv(
             file_results.headers_duplicated)
         job_info["error_type"] = get_error_type(job.job_id)
-        job_info["error_data"] = get_error_metrics_by_job_jd(
+        job_info["error_data"] = get_error_metrics_by_job_id(
             job.job_id, job.job_type_name == 'validation',
             severity_id=RULE_SEVERITY_DICT['fatal']
         )
-        job_info["warning_data"] = get_error_metrics_by_job_jd(
+        job_info["warning_data"] = get_error_metrics_by_job_id(
             job.job_id, job.job_type_name == 'validation',
             severity_id=RULE_SEVERITY_DICT['warning']
         )
@@ -1317,19 +1490,31 @@ def job_to_dict(job):
 
 
 def reporting_date(submission):
-    """Format submission reporting date"""
+    """ Format submission reporting date in MM/YYYY format for monthly submissions and Q#/YYYY for quarterly
+
+        Args:
+            submission: submission whose dates to format
+
+        Returns:
+            Formatted dates in the format specified above
+    """
     if not (submission.reporting_start_date or submission.reporting_end_date):
         return None
     if submission.is_quarter_format:
-        return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3,
-                               submission.reporting_fiscal_year)
+        return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3, submission.reporting_fiscal_year)
     else:
         return submission.reporting_start_date.strftime("%m/%Y")
 
 
 def submission_to_dict_for_status(submission):
-    """Convert a Submission model into a dictionary, ready to be serialized as
-    JSON for the get_status function"""
+    """ Convert a Submission model into a dictionary, ready to be serialized as JSON for the get_status function
+
+        Args:
+            submission: submission to be converted to a dictionary
+
+        Returns:
+            A dictionary of submission information.
+    """
     sess = GlobalDB.db().session
 
     number_of_rows = sess.query(func.sum(Job.number_of_rows)).\
@@ -1337,10 +1522,9 @@ def submission_to_dict_for_status(submission):
         scalar() or 0
 
     # @todo replace with a relationship
-    cgac = sess.query(CGAC).\
-        filter_by(cgac_code=submission.cgac_code).one_or_none()
-    frec = sess.query(FREC).\
-        filter_by(frec_code=submission.frec_code).one_or_none()
+    # Determine the agency name
+    cgac = sess.query(CGAC).filter_by(cgac_code=submission.cgac_code).one_or_none()
+    frec = sess.query(FREC).filter_by(frec_code=submission.frec_code).one_or_none()
     if cgac:
         agency_name = cgac.agency_name
     elif frec:
@@ -1348,12 +1532,9 @@ def submission_to_dict_for_status(submission):
     else:
         agency_name = ''
 
-    relevant_job_types = (JOB_TYPE_DICT['csv_record_validation'],
-                          JOB_TYPE_DICT['validation'])
-    relevant_jobs = sess.query(Job).filter(
-        Job.submission_id == submission.submission_id,
-        Job.job_type_id.in_(relevant_job_types)
-    )
+    relevant_job_types = (JOB_TYPE_DICT['csv_record_validation'], JOB_TYPE_DICT['validation'])
+    relevant_jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                           Job.job_type_id.in_(relevant_job_types))
 
     revalidation_threshold = sess.query(RevalidationThreshold).one_or_none()
     last_validated = get_last_validated_date(submission.submission_id)
@@ -1371,9 +1552,8 @@ def submission_to_dict_for_status(submission):
         'last_validated': last_validated,
         'revalidation_threshold':
             revalidation_threshold.revalidation_date.strftime('%m/%d/%Y') if revalidation_threshold else '',
-        # Broker allows submission for a single quarter or a single month,
-        # so reporting_period start and end dates reported by check_status
-        # are always equal
+        # Broker allows submission for a single quarter or a single month, so reporting_period start and end dates
+        # reported by check_status are always equal
         'reporting_period_start_date': reporting_date(submission),
         'reporting_period_end_date': reporting_date(submission),
         'jobs': [job_to_dict(job) for job in relevant_jobs],
@@ -1386,9 +1566,12 @@ def submission_to_dict_for_status(submission):
 def get_status(submission):
     """ Get description and status of all jobs in the submission specified in request object
 
-    Returns:
-        A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding
-        file_type, job_type, status, and filename
+        Args:
+            submission: submission to get information for
+
+        Returns:
+            A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding
+            file_type, job_type, status, and filename or containing error information
     """
     try:
         return JsonResponse.create(StatusCode.OK, submission_to_dict_for_status(submission))
@@ -1400,16 +1583,23 @@ def get_status(submission):
 
 
 def get_error_metrics(submission):
-    """Returns an Http response object containing error information for every
-    validation job in specified submission """
+    """ Returns an Http response object containing error information for every validation job in specified submission
+
+        Args:
+            submission: submission to get error data for
+
+        Returns:
+            A JsonResponse object containing the error metrics for the submission or the details of the error
+    """
     sess = GlobalDB.db().session
     return_dict = {}
     try:
         jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
         for job in jobs:
+            # Get error metrics for all single-file validations
             if job.job_type.name == 'csv_record_validation':
                 file_type = job.file_type.name
-                data_list = get_error_metrics_by_job_jd(job.job_id)
+                data_list = get_error_metrics_by_job_id(job.job_id)
                 return_dict[file_type] = data_list
         return JsonResponse.create(StatusCode.OK, return_dict)
     except (ValueError, TypeError) as e:
@@ -1422,13 +1612,25 @@ def get_error_metrics(submission):
 
 
 def list_submissions(page, limit, certified, sort='modified', order='desc', d2_submission=False):
-    """ List submission based on current page and amount to display. If provided, filter based on
-    certification status """
+    """ List submission based on current page and amount to display. If provided, filter based on certification status
+
+        Args:
+            page: page number to use in getting the list
+            limit: the number of entries per page
+            certified: string indicating whether to display only certified, only uncertified, or both for submissions
+            sort: the column to order on
+            order: order ascending or descending
+            d2_submission: boolean indicating whether it is a DABS or FABS submission (True if FABS)
+
+        Returns:
+            Limited list of submissions and the total number of submissions the user has access to
+    """
     sess = GlobalDB.db().session
     submission_updated_view = SubmissionUpdatedView()
     offset = limit * (page - 1)
     certifying_user = aliased(User)
 
+    # List of all the columns to gather
     submission_columns = [Submission.submission_id, Submission.cgac_code, Submission.frec_code, Submission.user_id,
                           Submission.publish_status_id, Submission.d2_submission, Submission.number_of_warnings,
                           Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
@@ -1445,6 +1647,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     columns_to_query = (submission_columns + cgac_columns + frec_columns + user_columns + view_columns +
                         [sub_query.c.certified_date])
 
+    # Base query that is shared among all submission lists
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id).\
         outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id).\
@@ -1454,6 +1657,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         outerjoin(sub_query, Submission.submission_id == sub_query.c.submission_id).\
         filter(Submission.d2_submission.is_(d2_submission))
 
+    # Limit the data coming back to only what the given user is allowed to see
     if not g.user.website_admin:
         cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
         frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec]
@@ -1461,12 +1665,14 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
                                     Submission.frec_code.in_(frec_codes),
                                     Submission.user_id == g.user.user_id))
 
+    # Determine what types of submissions (published/unpublished/both) to display
     if certified != 'mixed':
         if certified == 'true':
             query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
         else:
             query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
 
+    # Determine what to order by, default to "modified"
     options = {
         'modified': {'model': submission_updated_view, 'col': 'updated_at'},
         'reporting': {'model': Submission, 'col': 'reporting_start_date'},
@@ -1480,12 +1686,14 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
 
     sort_order = getattr(options[sort]['model'], options[sort]['col'])
 
+    # Determine how to sort agencies using FREC or CGAC name
     if sort == "agency":
         sort_order = case([
             (FREC.agency_name.isnot(None), FREC.agency_name),
             (CGAC.agency_name.isnot(None), CGAC.agency_name)
         ])
 
+    # Set the sort order
     if order == 'desc':
         sort_order = sort_order.desc()
 
@@ -1502,7 +1710,15 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
 
 
 def list_certifications(submission):
-    """ List all certifications for a single submission including the file history that goes with them """
+    """ List all certifications for a single submission including the file history that goes with them.
+
+        Args:
+            submission: submission to get certifications for
+
+        Returns:
+            A JsonResponse containing a dictionary with the submission ID and a list of certifications or a JsonResponse
+            error containing details of what went wrong.
+    """
     if submission.d2_submission:
         return JsonResponse.error(ValueError("FABS submissions do not have a certification history"),
                                   StatusCode.CLIENT_ERROR)
@@ -1513,8 +1729,7 @@ def list_certifications(submission):
         order_by(CertifyHistory.created_at.desc()).all()
 
     if len(certify_history) == 0:
-        return JsonResponse.error(ValueError("This submission has no certification history"),
-                                  StatusCode.CLIENT_ERROR)
+        return JsonResponse.error(ValueError("This submission has no certification history"), StatusCode.CLIENT_ERROR)
 
     # get the details for each of the certifications
     certifications = []
@@ -1555,7 +1770,18 @@ def list_certifications(submission):
 
 
 def file_history_url(submission, file_history_id, is_warning, is_local):
-    """ Get the signed URL for the specified file history """
+    """ Get the signed URL for the specified historical file
+
+        Args:
+            submission: submission to get the file history for
+            file_history_id: the CertifiedFilesHistory ID to get the file from
+            is_warning: a boolean indicating if the file being retrieved is a warning or error file (True for warning)
+            is_local: a boolean indicating if the application is being run locally (True for local)
+
+        Returns:
+            A JsonResponse containing a dictionary with the url to the file or a JsonResponse error containing details
+            of what went wrong.
+    """
     sess = GlobalDB.db().session
 
     file_history = sess.query(CertifiedFilesHistory).filter_by(certified_files_history_id=file_history_id).one_or_none()
@@ -1585,6 +1811,7 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
         else:
             file_array = file_history.filename.split("/")
 
+        # Remove the last part of the array before putting it back together so we can use our existing functions
         filename = file_array.pop()
         file_path = '/'.join(x for x in file_array)
         url = S3Handler().get_signed_url(file_path, filename, bucket_route=CONFIG_BROKER['certified_bucket'],
@@ -1594,8 +1821,14 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
 
 
 def serialize_submission(submission):
-    """Convert the provided submission into a dictionary in a schema the
-    frontend expects"""
+    """ Convert the provided submission into a dictionary in a schema the frontend expects.
+
+        Args:
+            submission: the submission to convert to a dictionary
+
+        Returns:
+            A dictionary containing important details of the submission.
+    """
 
     sess = GlobalDB.db().session
 
@@ -1621,9 +1854,18 @@ def serialize_submission(submission):
 
 
 def submission_report_url(submission, warning, file_type, cross_type):
-    """ Gets the signed URL for the specified file """
-    file_name = report_file_name(
-        submission.submission_id, warning, file_type, cross_type)
+    """ Gets the signed URL for the specified error/warning file
+
+        Args:
+            submission: the submission to get the file for
+            warning: a boolean indicating if the file is a warning or error file (True for warning)
+            file_type: the name of the base file type of the error report
+            cross_type: the name of the cross file type of the error report if applicable, else None
+
+        Returns:
+            A signed URL to S3 of the specified file when not run locally. The path to the file when run locally.
+    """
+    file_name = report_file_name(submission.submission_id, warning, file_type, cross_type)
     if CONFIG_BROKER['local']:
         url = os.path.join(CONFIG_BROKER['broker_files'], file_name)
     else:
@@ -1634,12 +1876,12 @@ def submission_report_url(submission, warning, file_type, cross_type):
 def submission_error(submission_id, file_type):
     """ Check that submission exists and user has permission to it
 
-    Args:
-        submission_id:  ID of submission to check
-        file_type: file type that has been requested
+        Args:
+            submission_id:  ID of submission to check
+            file_type: file type that has been requested
 
-    Returns:
-        A JsonResponse if there's an error, None otherwise
+        Returns:
+            A JsonResponse if there's an error, None otherwise
     """
     sess = GlobalDB.db().session
 
@@ -1672,8 +1914,16 @@ def submission_error(submission_id, file_type):
         return JsonResponse.create(StatusCode.PERMISSION_DENIED, response_dict)
 
 
+# TODO: Do we even use this anymore?
 def get_xml_response_content(api_url):
-    """ Retrieve XML Response from the provided API url """
+    """ Retrieve XML Response from the provided API url.
+
+        Args:
+            api_url: API url to get the XML from
+
+        Returns:
+            XML from the provided url.
+    """
     result = requests.get(api_url, verify=False, timeout=120).text
     logger.debug({
         'message': 'Result for {}: {}'.format(api_url, result),
@@ -1683,7 +1933,16 @@ def get_xml_response_content(api_url):
 
 
 def map_generate_status(upload_job, validation_job=None):
-    """ Maps job status to file generation statuses expected by frontend """
+    """ Maps job status to file generation statuses expected by frontend. Updates the error message of the job if
+        there is one.
+
+        Args:
+            upload_job: the upload job for this file
+            validation_job: the validation job for this file if applicable
+
+        Returns:
+            The status of the submission based on upload job status and validation job status (where applicable)
+    """
     sess = GlobalDB.db().session
     upload_status = upload_job.job_status.name
     if validation_job is None:

@@ -13,7 +13,17 @@ logger = logging.getLogger(__name__)
 
 
 def get_zip_data(sess, zip_five, zip_four):
-    """ Get zip data based on 5-digit or 9-digit zips and the counts of congressional districts associated with them """
+    """ Get zip data based on 5-digit or 9-digit zips and the counts of congressional districts associated with them
+
+        Args:
+            sess: the current DB session
+            zip_five: the 5-digit zip being checked
+            zip_four: the 4-digit zip being checked
+
+        Returns:
+            A Zips object (if one was found) and a count of the congressional districts in that district as 2 return
+            values
+    """
     zip_info = None
     cd_count = 1
 
@@ -31,7 +41,14 @@ def get_zip_data(sess, zip_five, zip_four):
 
 
 def derive_cfda(obj, cfda_dict, job_id, detached_award_financial_assistance_id):
-    """ Deriving cfda title from cfda number using cfda program table """
+    """ Deriving cfda title from cfda number using cfda program table
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+            cfda_dict: a dictionary containing data for all CFDA objects keyed by cfda number
+            job_id: the ID of the submission job
+            detached_award_financial_assistance_id: the ID of the submission row
+    """
     obj['cfda_title'] = cfda_dict.get(obj['cfda_number'])
     if not obj['cfda_title']:
         logger.error({
@@ -43,7 +60,12 @@ def derive_cfda(obj, cfda_dict, job_id, detached_award_financial_assistance_id):
 
 
 def derive_awarding_agency_data(obj, sub_tier_dict):
-    """ Deriving awarding sub tier agency name, awarding agency name, and awarding agency code """
+    """ Deriving awarding sub tier agency name, awarding agency name, and awarding agency code
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+            sub_tier_dict: a dictionary containing all the data for SubTierAgency objects keyed by sub tier code
+    """
     if obj['awarding_sub_tier_agency_c']:
         sub_tier = sub_tier_dict.get(obj['awarding_sub_tier_agency_c'])
         use_frec = sub_tier["is_frec"]
@@ -57,7 +79,12 @@ def derive_awarding_agency_data(obj, sub_tier_dict):
 
 
 def derive_funding_agency_data(obj, sub_tier_dict):
-    """ Deriving funding sub tier agency name, funding agency name, and funding agency code """
+    """ Deriving funding sub tier agency name, funding agency name, and funding agency code
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+            sub_tier_dict: a dictionary containing all the data for SubTierAgency objects keyed by sub tier code
+    """
     if obj['funding_sub_tier_agency_co']:
         sub_tier = sub_tier_dict.get(obj['funding_sub_tier_agency_co'])
         use_frec = sub_tier["is_frec"]
@@ -71,8 +98,15 @@ def derive_funding_agency_data(obj, sub_tier_dict):
 
 
 def derive_ppop_state(obj, state_dict):
-    """ Deriving ppop code and ppop state name """
-    # deriving ppop state name
+    """ Deriving ppop code and ppop state name
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+            state_dict: a dictionary containing all the data for State objects keyed by state code
+
+        Returns:
+            Place of performance code, state code, and state name as 3 return values (all strings or None)
+    """
     ppop_code = None
     state_code = None
     state_name = None
@@ -91,7 +125,15 @@ def derive_ppop_state(obj, state_dict):
 
 
 def derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code, county_dict):
-    """ Deriving place of performance location values from zip4 """
+    """ Deriving place of performance location values from zip4
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+            sess: the current DB session
+            ppop_code: place of performance code
+            ppop_state_code: state code from the place of performance code
+            county_dict: a dictionary containing all the data for County objects keyed by state code + county number
+    """
     if obj['place_of_performance_zip4a'] and obj['place_of_performance_zip4a'] != 'city-wide':
         zip_five = obj['place_of_performance_zip4a'][:5]
         zip_four = None
@@ -141,7 +183,17 @@ def derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code, county_dict
 
 
 def derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, ppop_state_name, county_dict):
-    """ Deriving place of performance location values """
+    """ Deriving place of performance location values
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+            sess: the current DB session
+            ppop_code: place of performance code
+            state_dict: a dictionary containing all the data for State objects keyed by state code
+            ppop_state_code: state code from the place of performance code
+            ppop_state_name: state name from the code from place of performance code
+            county_dict: a dictionary containing all the data for County objects keyed by state code + county number
+    """
     # Deriving from zip code (record type is 2 or 3 in this case)
     if obj['legal_entity_zip5']:
         # legal entity city data
@@ -191,7 +243,12 @@ def derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, p
 
 
 def derive_le_city_code(obj, sess):
-    """ Deriving legal entity city code """
+    """ Deriving legal entity city code
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+            sess: the current DB session
+    """
     if obj['legal_entity_city_name'] and obj['legal_entity_state_code']:
         city_code = sess.query(CityCode).\
             filter(func.lower(CityCode.feature_name) == func.lower(obj['legal_entity_city_name'].strip()),
@@ -203,19 +260,33 @@ def derive_le_city_code(obj, sess):
 
 
 def derive_ppop_country_name(obj, country_dict):
-    """ Deriving place of performance country name """
+    """ Deriving place of performance country name
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+            country_dict: a dictionary containing all the data for Country objects keyed by country code
+    """
     if obj['place_of_perform_country_c']:
         obj['place_of_perform_country_n'] = country_dict.get(obj['place_of_perform_country_c'].upper())
 
 
 def derive_le_country_name(obj, country_dict):
-    """ Deriving legal entity country name """
+    """ Deriving legal entity country name
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+            country_dict: a dictionary containing all the data for Country objects keyed by country code
+    """
     if obj['legal_entity_country_code']:
         obj['legal_entity_country_name'] = country_dict.get(obj['legal_entity_country_code'].upper())
 
 
 def derive_ppop_code(obj):
-    """ Deriving place of performance code for PII-redacted records """
+    """ Deriving place of performance code for PII-redacted records
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+    """
     if obj['record_type'] == 3:
         if obj['legal_entity_country_code'].upper() == 'USA' and obj['legal_entity_state_code']:
             ppop_code = obj['legal_entity_state_code'].upper()
@@ -226,7 +297,11 @@ def derive_ppop_code(obj):
 
 
 def derive_pii_redacted_ppop_data(obj):
-    """ Deriving ppop location data for PII-redacted records """
+    """ Deriving ppop location data for PII-redacted records
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+    """
     if obj['record_type'] == 3:
         # These are the same no matter where the country code is
         obj['place_of_perform_country_c'] = obj['legal_entity_country_code']
@@ -245,7 +320,11 @@ def derive_pii_redacted_ppop_data(obj):
 
 
 def split_ppop_zip(obj):
-    """ Splitting ppop zip code into 5 and 4 digit codes for ease of website access """
+    """ Splitting ppop zip code into 5 and 4 digit codes for ease of website access
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+    """
     if obj['place_of_performance_zip4a'] and re.match('^\d{5}(-?\d{4})?$', obj['place_of_performance_zip4a']):
         if len(obj['place_of_performance_zip4a']) == 5:
             obj['place_of_performance_zip5'] = obj['place_of_performance_zip4a'][:5]
@@ -256,7 +335,12 @@ def split_ppop_zip(obj):
 
 
 def derive_parent_duns(obj, sess):
-    """ Deriving parent DUNS name and number from SAMS API"""
+    """ Deriving parent DUNS name and number from SAM API
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+            sess: the current DB session
+    """
     if obj['awardee_or_recipient_uniqu']:
         duns_data = sess.query(DUNS).\
             filter_by(awardee_or_recipient_uniqu=obj['awardee_or_recipient_uniqu']).\
@@ -272,7 +356,11 @@ def derive_parent_duns(obj, sess):
 
 
 def derive_labels(obj):
-    """ Deriving labels for codes entered by the user """
+    """ Deriving labels for codes entered by the user
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+    """
 
     # Derive description for ActionType
     if obj['action_type']:
@@ -323,7 +411,11 @@ def derive_labels(obj):
 
 
 def set_active(obj):
-    """ Setting active  """
+    """ Setting active
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+    """
     if obj['correction_delete_indicatr'] and obj['correction_delete_indicatr'].upper() == 'D':
         obj['is_active'] = False
     else:
@@ -331,6 +423,22 @@ def set_active(obj):
 
 
 def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict, county_dict, fpds_office_dict):
+    """ Performs derivations related to publishing a FABS record on a single row
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+            sess: the current DB session
+            state_dict: a dictionary containing all the data for State objects keyed by state code
+            country_dict: a dictionary containing all the data for Country objects keyed by country code
+            sub_tier_dict: a dictionary containing all the data for SubTierAgency objects keyed by sub tier code
+            cfda_dict: a dictionary containing data for all CFDA objects keyed by cfda number
+            county_dict: a dictionary containing all the data for County objects keyed by state code + county number
+            fpds_office_dict: a dictionary containing all the data for FPDSContractingOffices objects keyed by code
+
+        Returns:
+            The obj dictionary initially passed in but without the job_id or detached_award_financial_assistance_id
+            keys and with all the new keys created by derivations
+    """
     # copy log data and remove keys in the row left for logging
     job_id = obj['job_id']
     detached_award_financial_assistance_id = obj['detached_award_financial_assistance_id']
