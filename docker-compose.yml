@@ -16,9 +16,10 @@ services:
     image: dataact-broker
     build:
       context: ./
-      dockerfile: Dockerfile.broker
+      dockerfile: Dockerfile
     restart: always
+    command: top -b
     ports:
       - "9000:8080"
     volumes:
-      - ./:/workspace
+      - ./:/data-act/backend

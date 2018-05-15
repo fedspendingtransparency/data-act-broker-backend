@@ -1,21 +1,17 @@
-FROM fedora
-
-RUN dnf install -y git \
-        postgresql-devel \
-        gcc \
-        gcc-c++ \
-        libffi-devel \
-        python-devel \
-        python-pip \
-        pcre-devel \
-        redhat-rpm-config
+FROM python:3.5
 
 RUN pip install unittest-xml-reporting
+RUN pip install paramiko
 
-ADD . /backend
+COPY requirements.txt /data-act/backend/requirements.txt
+COPY server_requirements.txt /data-act/backend/server_requirements.txt
 
-RUN pip install -r backend/requirements.txt
+RUN pip install -r /data-act/backend/requirements.txt
+RUN pip install -r /data-act/backend/server_requirements.txt
 
-CMD export PYTHONPATH="${PYTHONPATH}:/"
+ENV PYTHONPATH /data-act/backend
+WORKDIR /data-act/backend
+
+VOLUME /data-act/backend
 
 CMD /bin/sh
