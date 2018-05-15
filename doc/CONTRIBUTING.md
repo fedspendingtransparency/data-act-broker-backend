@@ -339,7 +339,7 @@ via `dictConfig` (in addition to some standard settings defined in
 
 ### Setup with Docker
 
-Install docker in your local machine by selecting your OS and hitting install from this [link]("https://docs.docker.com/install/#supported-platforms").
+Install docker in your local machine by selecting your OS and hitting install from this [link](https://docs.docker.com/install/#supported-platforms).
 
 After you sucessfully installed Docker and made sure the docker daemon running on your local machine, run the following commands in the root level of this backend repository:
 `docker-compose build`  This only needs to be done the first time
@@ -349,7 +349,7 @@ Wait about 30 seconds for everything to come up then login/ssh to the backend co
 `docker exec -it dataact-broker /bin/bash`
 This will take you to the workspace directory within the dataact-backend container that will have your backend repository mounted so changes in that repository will also be changed within the container. This means developers can change the files they want and run them within the container.
 
-These are the files you need to add/change before you begin working in your container. `_example` need to be removed from these files and right db credentials needs to be added found in `docker-compose.yml` in root of this repository:
+These are the files you need to add/change before you begin working in your container. `_example` or `example_` need to be removed from these files and right db credentials (found in `docker-compose.yml`) needs to be added in `config.yml`, `local_config.yml` and `local_secrets.yml`: 
 ```
 dataactcore/config_example.yml
 dataactcore/local_config_example.yml
