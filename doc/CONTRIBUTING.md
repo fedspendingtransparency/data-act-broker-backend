@@ -79,24 +79,24 @@ If you already have a Python development environment on your machine and a prefe
 
 4. Tell virtualenvwrapper where on your machine to create virtual environments and add it to your profile. This is a one-time virtualenvwrapper setup step, and the process varies by operating system. [This tutorial](http://newcoder.io/begin/setup-your-machine/ "Python: setting up your computer") covers setting up virtualenvwrapper on OSX, Linux, and Windows.
    For Windows users, there may be extra steps needed.  If you run into an error on the import-module step, move the "VirtualEnvWrapper" folder from C:/Python27/Lib/site-packages/Users/*username*/Documents/WindowsPowerShell/Modules/ to C:/Users/*username*/Documents/WindowsPowerShell/Modules/.  Next, in powershell run the command "set-executionpolicy unrestricted".  Finally, in the VirtualEnvWrapper directory, open the file "VirtualEnvWrapperTabExpansion.psm1" and change "Function:TabExpansion" to "Function:TabExpansion2" in line 12. Windows users should also note that the virtualenvwrapper port can be problematic so if problems arise that you cannot get past, consider running without turning on virtualenvwrapper. This will cause the install changes to affect your entire system rather than just the virtualenv.
-   
+
    **Note to Mac and Linux users:** After running:
-   
+
    		pip install virtualenvwrapper
-   		
+
    	your computer may not be able to find the commands to create a new virtualenv. Run:
-   	
+
    		which virtualenvwrapper.sh
-   		
-   	to locate where pip installed virtualenvwrapper. For example, `/Library/Frameworks/Python.framework/Versions/3.5/bin/virtualenvwrapper.sh`. Add a line at the end of `~/.bash_profile` that points it to that location. You may also need to add a VIRTUALENVWRAPPER_PYTHON variable if it isn't recognizing the python version: 
-   	
+
+   	to locate where pip installed virtualenvwrapper. For example, `/Library/Frameworks/Python.framework/Versions/3.5/bin/virtualenvwrapper.sh`. Add a line at the end of `~/.bash_profile` that points it to that location. You may also need to add a VIRTUALENVWRAPPER_PYTHON variable if it isn't recognizing the python version:
+
    		export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python3
    		source /Library/Frameworks/Python.framework/Versions/3.5/bin/virtualenvwrapper.s
-   		
+
    	After saving this change, run:
-   		
+
    		$ source ~/.bash_profile
-   	
+
    	This will point to the ~/.bash_profile to get setup details and paths and should allow you to run virtualenv properly.
 
 5. Create a virtual environment for the DATA Act software. In this example we've named the environment *data-act*, but you can call it anything:
@@ -211,7 +211,7 @@ on the DATA Act team), you can access our SF-133 files through S3. The data is
 sensitive, so we do not host it publicly. In the `prod-data-act-submission`
 bucket, within the `config` directory, you should see a series of
 `sf_133_yyyy_mm.csv` files. Download these and store them in your local
-`dataactvalidator/config` folder. 
+`dataactvalidator/config` folder.
 
 Once you've placed those files, run:
 
@@ -337,6 +337,29 @@ for more configuration details. Everything within `python_config` is imported
 via `dictConfig` (in addition to some standard settings defined in
 `dataactcore.logging`.
 
+### Setup with Docker
+
+Install docker in your local machine by selecting your OS and hitting install from this [link]("https://docs.docker.com/install/#supported-platforms").
+
+After you sucessfully installed Docker and made sure the docker daemon running on your local machine, run the following commands in the root level of this backend repository:
+`docker-compose build`  This only needs to be done the first time
+`docker-compose up -d`  This command will spin up the postgres container called "dataact-postgres" which will be used by the backend container call "dataact-backend"
+
+Wait about 30 seconds for everything to come up then login/ssh to the backend container with this command:
+`docker exec -it dataact-broker /bin/bash`
+This will take you to the workspace directory within the dataact-backend container that will have your backend repository mounted so changes in that repository will also be changed within the container. This means developers can change the files they want and run them within the container.
+
+These are the files you need to add/change before you begin working in your container. `_example` need to be removed from these files and right db credentials needs to be added found in `docker-compose.yml` in root of this repository:
+```
+dataactcore/config_example.yml
+dataactcore/local_config_example.yml
+dataactcore/local_secrets_example.yml
+dataactvalidator/config/example_agency_codes_list.csv
+dataactvalidator/config/example_cars_tas.csv
+dataactvalidator/config/example_cgac.csv
+dataactvalidator/config/example_object_class.csv
+dataactvalidator/config/example_program_activity.csv
+```
 ### Adding log messages
 
 Of course, if nothing is being logged, you won't be able to see application
