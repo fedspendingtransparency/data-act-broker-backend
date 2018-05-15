@@ -245,17 +245,33 @@ def use_long_headers(header_row, long_to_short_dict):
 
 
 def normalize_headers(header_row, long_headers, long_to_short_dict):
+    """ Clean the headers (remove extra spaces and lowercase) and convert them to short headers if we're given long
+        headers
+
+        Args:
+            header_row: an array of the file headers given
+            long_headers: boolean indicating if we're using the long versions of the headers (True for long)
+            long_to_short_dict: a dictionary containing a mapping from long headers to short ones for this file type
+
+        Yields:
+            A string containing the cleaned header name (converted to short version if long versions were provided and
+            there is a mapping for that header).
+    """
     for header in header_row:
         header = FieldCleaner.clean_string(header)
-        # Replace correctly spelled header (which does NOT match the db) with the misspelling that DOES match the db
+        # Replace headers that don't match DB but are allowed by the broker with their DB matches
         if header == 'deobligationsrecoveriesrefundsofprioryearbyprogramobjectclass_cpe':
             header = 'deobligationsrecoveriesrefundsdofprioryearbyprogramobjectclass_cpe'
-        if header == 'facevalueloanguarantee':
+        elif header == 'facevalueloanguarantee':
             header = 'facevalueofdirectloanorloanguarantee'
-        if header == 'budgetauthorityavailableamounttotal_cpe':
+        elif header == 'budgetauthorityavailableamounttotal_cpe':
             header = 'totalbudgetaryresources_cpe'
-        if header == 'correctionlatedeleteindicator':
+        elif header == 'correctionlatedeleteindicator':
             header = 'correctiondeleteindicator'
+        elif header == 'place_of_performance_zip4':
+            header = 'place_of_performance_zip4a'
+
+        # yield the short header when applicable, otherwise yield the cleaned header, whatever it is
         if long_headers and header in long_to_short_dict:
             yield FieldCleaner.clean_string(long_to_short_dict[header])
         else:
