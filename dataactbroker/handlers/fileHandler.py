@@ -48,7 +48,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
-from dataactvalidator.validation_handlers.file_generation_manager import check_file_generation, start_generation_job
+from dataactvalidator.validation_handlers.file_generation_handler import check_file_generation, start_generation_job
 
 logger = logging.getLogger(__name__)
 
