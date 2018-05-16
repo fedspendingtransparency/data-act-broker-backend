@@ -8,6 +8,7 @@ from dataactvalidator.scripts.load_usps_files import get_payload_string, check_r
 
 
 def mocked_requests_post(url):
+    """ Mocks post request to USPS service. Returns a MagicMock in the structure of a request object. """
 
     if url == 'http://working_url.com':
         return MagicMock(status_code=200, text=json.dumps({'key': 'value', 'response': 'success'}))
@@ -15,22 +16,21 @@ def mocked_requests_post(url):
     return MagicMock(status_code=500, text=json.dumps({'error': 'message', 'messages': 'failure'}))
 
 
-def test_get_pay_load_screen():
-
+def test_get_pay_load_string():
+    """ Tests get_payload_string() to ensure payload is properly formatted"""
     test_dict = {"a": "123", "b": "456"}
     result = get_payload_string(test_dict)
     assert re.match(r'^obj={\"[a-b]\":\"\d{3}\",$\n\"[a-b]\":\"\d{3}\"}', urllib.parse.unquote(result), re.M)
 
 
 def test_check_response_status_success():
+    """ Tests check_response_status() function when a POST request is successful (status 200) """
     test_response = check_response_status(mocked_requests_post('http://working_url.com'))
     assert test_response == {'key': 'value', 'response': 'success'}
 
 
 def test_check_response_failed():
-    """ Tests check reponse() function: Creates dictionary of login keys to use to make additional
-            request calls to USPS
-    """
+    """ Tests check_response_status() function when a POST request is a failure (status 500) """
     with pytest.raises(SystemExit) as pytest_wrapped_error:
         check_response_status(mocked_requests_post('http://not_working_url.com'))
 
