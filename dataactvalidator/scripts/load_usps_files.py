@@ -143,12 +143,12 @@ def get_login_credentials():
 
 def logout(login_session):
     """
-       Gets the fileid for the latest version of the zip4 file to be downloaded
+       Posts request to logout of USPS service with specific login tokents
 
        Args:
             login_session: response body (type dictionary) returned by the USPS download list endpoint.
        Returns:
-            fileid as string
+            None
     """
     logger.info('Log out of USPS')
     logout_url = CONFIG_BROKER['usps']['logout']
