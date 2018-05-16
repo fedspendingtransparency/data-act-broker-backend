@@ -57,14 +57,16 @@ def generate_d_file(sess, job, agency_code, is_local=True, old_filename=None):
         filepath = CONFIG_BROKER['broker_files'] if is_local else "".join([str(job.submission_id), "/"])
         job.filename = "".join([filepath, old_filename])
         job.original_filename = old_filename
+        job.from_cached = False
 
-        # reset the file names on the validation job
-        val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
-                                         Job.file_type_id == job.file_type_id,
-                                         Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one_or_none()
-        if val_job:
-            val_job.filename = "".join([filepath, old_filename])
-            val_job.original_filename = old_filename
+        if job.submission_id:
+            # reset the file names on the validation job
+            val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
+                                             Job.file_type_id == job.file_type_id,
+                                             Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one_or_none()
+            if val_job:
+                val_job.filename = "".join([filepath, old_filename])
+                val_job.original_filename = old_filename
         sess.commit()
     else:
         # search for potential parent FileRequests
@@ -94,7 +96,8 @@ def generate_d_file(sess, job, agency_code, is_local=True, old_filename=None):
             log_data['file_name'] = job.original_filename
             logger.info(log_data)
 
-            # mark this FileRequest as the cached version, requested today
+            # mark this Job as not from-cache, and mark the FileRequest as the cached version (requested today)
+            job.from_cached = False
             file_request.is_cached_file = True
             file_request.request_date = current_date
             sess.commit()
