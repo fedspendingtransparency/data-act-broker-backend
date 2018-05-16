@@ -354,11 +354,10 @@ dataactvalidator/config/example_object_class.csv
 dataactvalidator/config/example_program_activity.csv
 ```
 
-After you sucessfully installed Docker, make sure the docker daemon running on your local machine and renamed all the files listed above, run the following commands in the root level of this backend repository:
-`docker-compose build`  This only needs to be done the first time
-`docker-compose up -d`  This command will spin up the postgres container called "dataact-postgres" which will be used by the backend container call "dataact-backend".
+After you sucessfully installed Docker, make sure the docker daemon running on your local machine and renamed all the files listed above, run the following command in the root level of this backend repository:
+`docker-compose up -d`  This command will spin up the postgres container `dataact-postgres` and build your backend container `dataact-broker`. This will take much longer the first time because it's building the image and installing the requirements.
 
-Wait about 30 seconds for everything to come up then login/ssh to the backend container with this command:
+Wait about 20 seconds for everything to come up (first time setup can take up to 8 minutes) then login/ssh to the backend container with this command:
 `docker exec -it dataact-broker /bin/bash`
 This will take you to the workspace directory within the dataact-backend container that will have your backend repository mounted so changes in that repository will also be changed within the container. This means developers can change the files they want and run them within the container.
 
