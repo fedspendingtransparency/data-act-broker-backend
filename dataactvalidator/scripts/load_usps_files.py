@@ -252,6 +252,7 @@ def upload_files_to_s3(args_dict, usps_file_dir):
             args_dict: command line arguments parsed into a dictionary
             usps_file_dir: filepath where USPS zip4 tar file is located
     """
+    s3connection = None
 
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
