@@ -305,7 +305,7 @@ def test_copy_parent_file_request_data(database, job_constants):
         job_status=sess.query(JobStatus).filter_by(name='running').one(),
         job_type=sess.query(JobType).filter_by(name='file_upload').one(),
         file_type=sess.query(FileType).filter_by(name='award').one(),
-        filename='testing/the/path/new_filename'
+        filename='job_id/new_filename'
     )
     sess.add_all([job_one, job_two])
     sess.commit()
@@ -315,7 +315,7 @@ def test_copy_parent_file_request_data(database, job_constants):
     sess.refresh(job_two)
 
     assert job_two.job_status_id == job_one.job_status_id
-    assert job_two.filename == 'testing/the/path/{}'.format(job_one.original_filename)
+    assert job_two.filename == 'job_id/{}'.format(job_one.original_filename)
     assert job_two.original_filename == job_one.original_filename
     assert job_two.number_of_errors == job_one.number_of_errors
     assert job_two.number_of_warnings == job_one.number_of_warnings
@@ -331,7 +331,7 @@ def test_check_detached_d_file_generation(database, job_constants):
         job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
         job_type=sess.query(JobType).filter_by(name='file_upload').one(),
         file_type=sess.query(FileType).filter_by(name='award').one(),
-        error_message='', filename='file/path/file.csv', original_filename='file.csv'
+        error_message='', filename='job_id/file.csv', original_filename='file.csv'
     )
     sess.add(job)
     sess.commit()
@@ -377,7 +377,7 @@ def test_check_submission_d_file_generation(database, job_constants):
         job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
         job_type=sess.query(JobType).filter_by(name='file_upload').one(),
         file_type=sess.query(FileType).filter_by(name='award_procurement').one(),
-        submission=sub, error_message='', filename='file/path/file.csv', original_filename='file.csv'
+        submission=sub, error_message='', filename='job_id/file.csv', original_filename='file.csv'
     )
     val_job = JobFactory(
         job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
