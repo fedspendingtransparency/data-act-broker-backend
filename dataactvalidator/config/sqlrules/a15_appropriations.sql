@@ -1,4 +1,4 @@
--- UnobligatedBalance_CPE = CPE value for GTAS SF 133 line #2490
+-- UnobligatedBalance_CPE = CPE value for GTAS SF-133 line #2490
 WITH appropriation_a15_{0} AS
     (SELECT submission_id,
         row_number,

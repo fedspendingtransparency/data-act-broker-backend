@@ -34,8 +34,10 @@ def test_get_next_record_flex():
 
 
 def test_normalize_headers():
-    """Verify we return the transformed headers depending on the long_headers
-    parameter"""
+    """ Verify we return the transformed headers depending on the long_headers parameter and that special exceptions
+        are processed correctly.
+    """
+    # Verify names are properly lowercased and not mapped if long_headers is false
     headers = [
         'AllocationTransferAgencyIdentifier', 'BeginningPeriodOfAvailability', 'flex_mycol', 'FLEX_ANOTHER'
     ]
@@ -45,5 +47,28 @@ def test_normalize_headers():
     assert list(result) == [
         'allocationtransferagencyidentifier', 'beginningperiodofavailability', 'flex_mycol', 'flex_another'
     ]
+
+    # Verify names are properly lowercased and mapped to short names if long_headers is true
     result = csvReader.normalize_headers(headers, True, mapping)
     assert list(result) == ['ata', 'boa', 'flex_mycol', 'flex_another']
+
+    # Verify that special hardcoded exceptions are properly handled
+    headers = ['deobligationsrecoveriesrefundsofprioryearbyprogramobjectclass_cpe', 'facevalueloanguarantee',
+               'budgetauthorityavailableamounttotal_cpe', 'CorrectionLateDeleteIndicator', 'place_of_performance_zip4']
+    mapping = {
+        'deobligationsrecoveriesrefundsdofprioryearbyprogramobjectclass_cpe': 'drfpbpo',
+        'facevalueofdirectloanorloanguarantee': 'fvdllg',
+        'totalbudgetaryresources_cpe': 'tbr',
+        'correctiondeleteindicator': 'cdi',
+        'place_of_performance_zip4a': 'zip4a'
+    }
+
+    # Test for long special headers to be properly mapped
+    result = csvReader.normalize_headers(headers, False, mapping)
+    assert list(result) == [
+        'deobligationsrecoveriesrefundsdofprioryearbyprogramobjectclass_cpe', 'facevalueofdirectloanorloanguarantee',
+        'totalbudgetaryresources_cpe', 'correctiondeleteindicator', 'place_of_performance_zip4a']
+
+    # Test for short special headers to be properly mapped
+    result = csvReader.normalize_headers(headers, True, mapping)
+    assert list(result) == ['drfpbpo', 'fvdllg', 'tbr', 'cdi', 'zip4a']

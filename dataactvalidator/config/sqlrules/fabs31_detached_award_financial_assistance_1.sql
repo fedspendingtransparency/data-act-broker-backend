@@ -1,5 +1,5 @@
--- AwardeeOrRecipientUniqueIdentifier Field must be blank for aggregate records (RecordType=1)
--- and individual recipients (BusinessTypes includes 'P').
+-- AwardeeOrRecipientUniqueIdentifier Field must be blank for aggregate and PII-redacted non-aggregate records
+-- (RecordType=1 or 3) and individual recipients (BusinessTypes includes 'P').
 SELECT
     row_number,
     record_type,
@@ -9,7 +9,7 @@ SELECT
     record_type
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND (record_type = 1
+    AND (record_type IN (1, 3)
         OR UPPER(business_types) LIKE '%%P%%'
     )
     AND COALESCE(awardee_or_recipient_uniqu, '') <> '';

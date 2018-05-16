@@ -1,4 +1,4 @@
--- BudgetAuthorityUnobligatedBalanceBroughtForward_FYB = value for GTAS SF 133 line #1000
+-- BudgetAuthorityUnobligatedBalanceBroughtForward_FYB = value for GTAS SF-133 line #1000
 WITH appropriation_a7_{0} AS
     (SELECT submission_id,
         row_number,

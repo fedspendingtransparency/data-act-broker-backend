@@ -1,4 +1,4 @@
--- ObligationsIncurredTotalByTAS_CPE = CPE value for GTAS SF 133 line #2190
+-- ObligationsIncurredTotalByTAS_CPE = CPE value for GTAS SF-133 line #2190
 SELECT
     approp.row_number,
     approp.obligations_incurred_total_cpe,

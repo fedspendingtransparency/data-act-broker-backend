@@ -1,5 +1,6 @@
 fieldname,fieldname_short,required,data_type,field_length
 AwardeeOrRecipientUniqueIdentifier,awardee_or_recipient_uniqu,optional,string,
+AwardeeOrRecipientLegalEntityName,awardee_or_recipient_legal,optional,string,
 UltimateParentUniqueIdentifier,ultimate_parent_unique_ide,optional,string,
 UltimateParentLegalEntityName,ultimate_parent_legal_enti,optional,string,
 HighCompOfficer1FullName,high_comp_officer1_full_na,optional,string,

@@ -198,6 +198,7 @@ class ExecutiveCompensation(Base):
 
     executive_compensation_id = Column(Integer, primary_key=True)
     awardee_or_recipient_uniqu = Column(Text)
+    awardee_or_recipient_legal = Column(Text)
     ultimate_parent_unique_ide = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
     high_comp_officer1_full_na = Column(Text)
@@ -226,6 +227,8 @@ class DUNS(Base):
     registration_date = Column(Date, index=True)
     expiration_date = Column(Date, index=True)
     last_sam_mod_date = Column(Date)
+    ultimate_parent_unique_ide = Column(Text)
+    ultimate_parent_legal_enti = Column(Text)
 
 
 class CFDAProgram(Base):
@@ -338,6 +341,8 @@ class StateCongressional(Base):
     state_congressional_id = Column(Integer, primary_key=True)
     state_code = Column(Text, index=True)
     congressional_district_no = Column(Text, index=True)
+    census_year = Column(Integer, index=True)
+
 
 Index("ix_sc_state_cd",
       StateCongressional.state_code,

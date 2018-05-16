@@ -1,0 +1,15 @@
+label,error_message,file_type,column_name,label_type
+FABSREQ1,"This field is required for all submissions but was not provided in this row (AwardDescription).",fabs,award_description,requirement
+FABSREQ2,"This field is required for all submissions but was not provided in this row (AwardingSubtierAgencyCode).",fabs,awarding_sub_tier_agency_c,requirement
+FABSREQ3,"This field is required for all submissions but was not provided in this row (RecordType).",fabs,record_type,requirement
+FABSREQ4,"This field is required for all submissions but was not provided in this row (BusinessFundsIndicator).",fabs,business_funds_indicator,requirement
+FABSREQ5,"This field is required for all submissions but was not provided in this row (LegalEntityCountryCode).",fabs,legal_entity_country_code,requirement
+FABSREQ6,"This field is required for all submissions but was not provided in this row (BusinessTypes).",fabs,business_types,requirement
+FABSREQ7,"This field is required for all submissions but was not provided in this row (AssistanceType).",fabs,assistance_type,requirement
+FABSREQ8,"This field is required for all submissions but was not provided in this row (ActionDate).",fabs,action_date,requirement
+FABSREQ9,"This field is required for all submissions but was not provided in this row (AwardeeOrRecipientLegalEntityName).",fabs,awardee_or_recipient_legal,requirement
+FABSREQ10,"This field is required for all submissions but was not provided in this row (CFDA_Number).",fabs,cfda_number,requirement
+FABSTYPE1,"The value provided was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line. (FederalActionObligation)",fabs,federal_action_obligation,type
+FABSTYPE2,"The value provided was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line. (NonFederalFundingAmount)",fabs,non_federal_funding_amount,type
+FABSTYPE3,"The value provided was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line. (FaceValueLoanGuarantee)",fabs,face_value_loan_guarantee,type
+FABSTYPE4,"The value provided was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line. (OriginalLoanSubsidyCost)",fabs,original_loan_subsidy_cost,type

@@ -12,6 +12,7 @@ class _FSRSAttributes(factory.Factory):
     principle_place_city = fuzzy.FuzzyText()
     principle_place_street = None
     principle_place_state = fuzzy.FuzzyText()
+    principle_place_state_name = fuzzy.FuzzyText()
     principle_place_country = fuzzy.FuzzyText()
     principle_place_zip = fuzzy.FuzzyText()
     principle_place_district = None
@@ -36,6 +37,7 @@ class _ContractAttributes(_FSRSAttributes):
     company_address_city = fuzzy.FuzzyText()
     company_address_street = None
     company_address_state = fuzzy.FuzzyText()
+    company_address_state_name = fuzzy.FuzzyText()
     company_address_country = fuzzy.FuzzyText()
     company_address_zip = fuzzy.FuzzyText()
     company_address_district = None
@@ -53,6 +55,7 @@ class _GrantAttributes(_FSRSAttributes):
     awardee_address_city = fuzzy.FuzzyText()
     awardee_address_street = None
     awardee_address_state = fuzzy.FuzzyText()
+    awardee_address_state_name = fuzzy.FuzzyText()
     awardee_address_country = fuzzy.FuzzyText()
     awardee_address_zip = fuzzy.FuzzyText()
     awardee_address_district = None
