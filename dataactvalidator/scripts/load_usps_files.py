@@ -192,16 +192,16 @@ def extract_upload_zip4_text_files(zip_file_path, extract_file_path, s3_connecti
 
     with zipfile.ZipFile(zip_file_path, 'r') as zip_group:
         for zip_individual in zip_group.namelist():
-                with zip_group.open(zip_individual, 'r', password.encode('utf-8')) as zip_nested:
-                    file_data = BytesIO(zip_nested.read())
-                    with zipfile.ZipFile(file_data) as zip_text_files:
-                        for zip_text in zip_text_files.namelist():
-                            logger.info('Extracting file {}'.format(zip_text))
-                            zip_text_files.extract(zip_text, extract_file_path, password.encode('utf-8'))
-                            if s3_connection:
-                                upload_extracted_file_to_s3(s3_connection,
-                                                            zip_folder + zip_text,
-                                                            extract_file_path + '/' + zip_text)
+            with zip_group.open(zip_individual, 'r', password.encode('utf-8')) as zip_nested:
+                file_data = BytesIO(zip_nested.read())
+                with zipfile.ZipFile(file_data) as zip_text_files:
+                    for zip_text in zip_text_files.namelist():
+                        logger.info('Extracting file {}'.format(zip_text))
+                        zip_text_files.extract(zip_text, extract_file_path, password.encode('utf-8'))
+                        if s3_connection:
+                            upload_extracted_file_to_s3(s3_connection,
+                                                        zip_folder + zip_text,
+                                                        extract_file_path + '/' + zip_text)
 
 
 def extract_upload_city_state_text_file(zip_file_path, extract_file_path, s3_connection=None):
@@ -220,12 +220,12 @@ def extract_upload_city_state_text_file(zip_file_path, extract_file_path, s3_con
 
     with zipfile.ZipFile(zip_file_path, 'r') as zip_group:
         for zip_individual in zip_group.namelist():
-                zip_group.extract(zip_individual, extract_file_path, password.encode('utf-8'))
-                logger.info('Extracting file {}'.format(zip_individual))
-                if s3_connection:
-                    upload_extracted_file_to_s3(s3_connection,
-                                                zip_individual,
-                                                extract_file_path + '/' + zip_individual)
+            zip_group.extract(zip_individual, extract_file_path, password.encode('utf-8'))
+            logger.info('Extracting file {}'.format(zip_individual))
+            if s3_connection:
+                upload_extracted_file_to_s3(s3_connection,
+                                            zip_individual,
+                                            extract_file_path + '/' + zip_individual)
 
 
 def upload_extracted_file_to_s3(s3_connection, key_file_path, zip_source_file_path):
@@ -323,8 +323,7 @@ def main():
     parser.add_argument('-r', '--remove', help='Removes files from from USPS directory', action='store_true')
     args = parser.parse_args()
 
-    usps_file_dir = os.path.join(CONFIG_BROKER['path'], 'dataactvalidator',
-                                 'config', 'usps')
+    usps_file_dir = os.path.join(CONFIG_BROKER['path'], 'dataactvalidator', 'config', 'usps')
 
     if args.download:
         download_usps_files(usps_file_dir)
