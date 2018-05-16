@@ -12,21 +12,25 @@ def test_column_headers(database):
 
 def test_success(database):
     """ PrimaryPlaceOfPerformanceCode for aggregate records (i.e., when RecordType = 1) must be in countywide
-        format (XX**###). """
+        (XX**###), statewide (XX*****), or foreign (00FORGN) formats. """
 
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY*****", record_type="2")
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY**123", record_type="1")
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny**987", record_type="1")
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
+    det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY**123", record_type="1")
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny**987", record_type="1")
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY*****", record_type="1")
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny*****", record_type="1")
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00FORGN", record_type="1")
+    det_award_6 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00forgn", record_type="1")
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4,
+                                                       det_award_5, det_award_6])
     assert errors == 0
 
 
 def test_failure(database):
     """ Test failure for PrimaryPlaceOfPerformanceCode for aggregate records (i.e., when RecordType = 1)
-        must be in countywide format (XX**###). """
+        must be in countywide (XX**###), statewide (XX*****), or foreign (00FORGN) formats. """
 
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00**333", record_type="1")
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="AB**33", record_type="1")
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00*****", record_type="1")
+    det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00**333", record_type=1)
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="AB**33", record_type=1)
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00*****", record_type=1)
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
     assert errors == 3

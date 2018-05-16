@@ -9,8 +9,10 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
-NOT_AUTHORIZED_MSG = ("You are not authorized to perform the requested task. "
-                      "Please contact your administrator.")
+NOT_AUTHORIZED_MSG = "You are not authorized to perform the requested task. Please contact your administrator."
+
+DABS_PERMS = [PERMISSION_SHORT_DICT['w'], PERMISSION_SHORT_DICT['s']]
+FABS_PERM = PERMISSION_SHORT_DICT['f']
 
 
 def requires_login(func):
@@ -91,3 +93,17 @@ def requires_submission_perms(perm, check_owner=True):
             return fn(submission, *args, **kwargs)
         return wrapped
     return inner
+
+
+def separate_affiliations(affiliations, app_type):
+    cgac_ids, frec_ids = [], []
+
+    for affil in g.user.affiliations:
+        perm_type = affil.permission_type_id
+        if (app_type == 'fabs' and perm_type == FABS_PERM) or (app_type == 'dabs' and perm_type in DABS_PERMS):
+            if affil.frec:
+                frec_ids.append(affil.frec.frec_id)
+            else:
+                cgac_ids.append(affil.cgac.cgac_id)
+
+    return cgac_ids, frec_ids

@@ -75,7 +75,7 @@ FILE_TYPE = [
     LookupFileType(5, 'award_procurement', '', 'D1', 5, True, AwardProcurement),
     LookupFileType(6, 'executive_compensation', '', 'E', None, False, None),
     LookupFileType(7, 'sub_award', '', 'F', None, False, None),
-    LookupFileType(8, 'detached_award', '', 'D2_detached', None, False, DetachedAwardFinancialAssistance)
+    LookupFileType(8, 'fabs', '', 'FABS', None, False, DetachedAwardFinancialAssistance)
 ]
 FILE_TYPE_DICT = {item.name: item.id for item in FILE_TYPE}
 FILE_TYPE_DICT_ID = {item.id: item.name for item in FILE_TYPE}
@@ -116,6 +116,76 @@ SUBMISSION_TYPE = [
     LookupType(3, 'fabs', 'Warning for FABS pages')
 ]
 SUBMISSION_TYPE_DICT = {item.name: item.id for item in SUBMISSION_TYPE}
+
+ACTION_TYPE = [
+    LookupType(1, 'A', 'New'),
+    LookupType(2, 'B', 'Continuation'),
+    LookupType(3, 'C', 'Revision'),
+    LookupType(4, 'D', 'Adjustment to Completed Project')
+]
+ACTION_TYPE_DICT = {item.name: item.desc for item in ACTION_TYPE}
+
+ASSISTANCE_TYPE = [
+    LookupType(1, '02', 'block grant (A)'),
+    LookupType(2, '03', 'formula grant (A)'),
+    LookupType(3, '04', 'project grant (B)'),
+    LookupType(4, '05', 'cooperative agreement (B)'),
+    LookupType(5, '06', 'direct payment for specified use, as a subsidy or other non-reimbursable direct financial aid '
+                        '(C)'),
+    LookupType(6, '07', 'direct loan (E)'),
+    LookupType(7, '08', 'guaranteed/insured loan (F)'),
+    LookupType(8, '09', 'insurance (G)'),
+    LookupType(9, '10', 'direct payment with unrestricted use (retirement, pension, veterans benefits, etc.) (D)'),
+    LookupType(10, '11', 'other reimbursable, contingent, intangible, or indirect financial assistance'),
+]
+ASSISTANCE_TYPE_DICT = {item.name: item.desc for item in ASSISTANCE_TYPE}
+
+CORRECTION_DELETE_IND = [
+    LookupType(1, 'C', 'Correct an Existing Record'),
+    LookupType(2, 'D', 'Delete an Existing Record')
+]
+CORRECTION_DELETE_IND_DICT = {item.name: item.desc for item in CORRECTION_DELETE_IND}
+
+RECORD_TYPE = [
+    LookupType(1, 1, 'Aggregate Record'),
+    LookupType(2, 2, 'Non-Aggregate Record'),
+    LookupType(3, 3, 'Non-Aggregate Record to an Individual Recipient (PII-Redacted)')
+]
+RECORD_TYPE_DICT = {item.name: item.desc for item in RECORD_TYPE}
+
+BUSINESS_TYPE = [
+    LookupType(1, 'A', 'State Government'),
+    LookupType(2, 'B', 'County Government'),
+    LookupType(3, 'C', 'City or Township Government'),
+    LookupType(4, 'D', 'Special District Government'),
+    LookupType(5, 'E', 'Regional Organization'),
+    LookupType(6, 'F', 'U.S. Territory or Possession'),
+    LookupType(7, 'G', 'Independent School District'),
+    LookupType(8, 'H', 'Public/State Controlled Institution of Higher Education'),
+    LookupType(9, 'I', 'Indian/Native American Tribal Government (Federally-Recognized)'),
+    LookupType(10, 'J', 'Indian/Native American Tribal Government (Other than Federally-Recognized)'),
+    LookupType(11, 'K', 'Indian/Native American Tribal Designated Organization'),
+    LookupType(12, 'L', 'Public/Indian Housing Authority'),
+    LookupType(13, 'M', 'Nonprofit with 501C3 IRS Status (Other than an Institution of Higher Education)'),
+    LookupType(14, 'N', 'Nonprofit without 501C3 IRS Status (Other than an Institution of Higher Education)'),
+    LookupType(15, 'O', 'Private Institution of Higher Education'),
+    LookupType(16, 'P', 'Individual'),
+    LookupType(17, 'Q', 'For-Profit Organization (Other than Small Business)'),
+    LookupType(18, 'R', 'Small Business'),
+    LookupType(19, 'S', 'Hispanic-serving Institution'),
+    LookupType(20, 'T', 'Historically Black College or University (HBCU)'),
+    LookupType(21, 'U', 'Tribally Controlled College or University (TCCU)'),
+    LookupType(22, 'V', 'Alaska Native and Native Hawaiian Serving Institutions'),
+    LookupType(23, 'W', 'Non-domestic (non-U.S.) Entity'),
+    LookupType(24, 'X', 'Other')
+]
+BUSINESS_TYPE_DICT = {item.name: item.desc for item in BUSINESS_TYPE}
+
+BUSINESS_FUNDS_IND = [
+    LookupType(1, 'NON', 'Not Recovery Act'),
+    LookupType(2, 'REC', 'Recovery Act')
+]
+BUSINESS_FUNDS_IND_DICT = {item.name: item.desc for item in BUSINESS_FUNDS_IND}
 
 BUSINESS_CATEGORY_FIELDS = ['airport_authority', 'alaskan_native_owned_corpo', 'alaskan_native_servicing_i',
                             'american_indian_owned_busi', 'asian_pacific_american_own', 'black_american_owned_busin',

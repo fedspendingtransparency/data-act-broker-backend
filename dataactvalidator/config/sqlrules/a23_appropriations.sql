@@ -1,4 +1,4 @@
--- StatusOfBudgetaryResourcesTotal_CPE = CPE value for GTAS SF 133 line #2500
+-- StatusOfBudgetaryResourcesTotal_CPE = CPE value for GTAS SF-133 line #2500
 SELECT
     approp.row_number,
     approp.status_of_budgetary_resour_cpe,

@@ -1,4 +1,4 @@
--- BudgetAuthorityUnobligatedBalanceBroughtForward_FYB = value for GTAS SF 133 line #2490 from the
+-- BudgetAuthorityUnobligatedBalanceBroughtForward_FYB = value for GTAS SF-133 line #2490 from the
 -- end of the prior fiscal year.
 WITH appropriation_a34_{0} AS
     (SELECT row_number,

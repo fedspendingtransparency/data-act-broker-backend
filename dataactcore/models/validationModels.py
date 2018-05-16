@@ -1,6 +1,6 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean, Enum
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
@@ -56,3 +56,15 @@ class RuleSql(Base):
     target_file_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_target_file"), nullable=True)
     target_file = relationship("FileType", uselist=False, foreign_keys=[target_file_id])
     query_name = Column(Text)
+
+
+class ValidationLabel(Base):
+    __tablename__ = "validation_label"
+
+    validation_label_id = Column(Integer, primary_key=True)
+    label = Column(Text)
+    error_message = Column(Text)
+    file_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_file"), nullable=True)
+    file = relationship("FileType", uselist=False, foreign_keys=[file_id])
+    column_name = Column(Text)
+    label_type = Column(Enum('requirement', 'type', name='label_types'))

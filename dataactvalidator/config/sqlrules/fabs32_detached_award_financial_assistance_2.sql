@@ -1,4 +1,4 @@
--- When provided, PeriodOfPerformanceStartDate must be a valid date between 19991001 and 20991231.
+-- When provided, PeriodOfPerformanceStartDate should    be a valid date between 19991001 and 20991231.
 CREATE OR REPLACE function pg_temp.is_date(str text) returns boolean AS $$
 BEGIN
   perform CAST(str AS DATE);

@@ -12,51 +12,58 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ AwardeeOrRecipientUniqueIdentifier Field must be blank for aggregate records (RecordType=1)
-        and individual recipients (BusinessTypes includes 'P'). """
+    """ AwardeeOrRecipientUniqueIdentifier Field must be blank for aggregate and PII-redacted non-aggregate records
+        (RecordType=1 or 3) and individual recipients (BusinessTypes includes 'P'). """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(record_type=1, business_types="ABP",
                                                           awardee_or_recipient_uniqu='')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(record_type=1, business_types="ABC",
                                                           awardee_or_recipient_uniqu=None)
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="pbc",
-                                                          awardee_or_recipient_uniqu=None)
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="PBC",
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(record_type=3, business_types="ABP",
                                                           awardee_or_recipient_uniqu='')
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="apc",
-                                                          awardee_or_recipient_uniqu='')
-    det_award_6 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="APC",
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(record_type=3, business_types="ABC",
                                                           awardee_or_recipient_uniqu=None)
-    det_award_7 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="abp",
-                                                          awardee_or_recipient_uniqu='')
-    det_award_8 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="ABP",
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="pbc",
                                                           awardee_or_recipient_uniqu=None)
-    det_award_9 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="ABC",
-                                                          awardee_or_recipient_uniqu='test')
+    det_award_6 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="PBC",
+                                                          awardee_or_recipient_uniqu='')
+    det_award_7 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="apc",
+                                                          awardee_or_recipient_uniqu='')
+    det_award_8 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="APC",
+                                                          awardee_or_recipient_uniqu=None)
+    det_award_9 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="abp",
+                                                          awardee_or_recipient_uniqu='')
+    det_award_10 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="ABP",
+                                                           awardee_or_recipient_uniqu=None)
+    det_award_11 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="ABC",
+                                                           awardee_or_recipient_uniqu='test')
 
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6, det_award_7, det_award_8, det_award_9])
+                                                       det_award_6, det_award_7, det_award_8, det_award_9, det_award_10,
+                                                       det_award_11])
     assert errors == 0
 
 
 def test_failure(database):
-    """ Test Failure for AwardeeOrRecipientUniqueIdentifier Field must be blank for aggregate records (RecordType=1)
-        and individual recipients (BusinessTypes includes 'P'). """
+    """ Test Failure for AwardeeOrRecipientUniqueIdentifier Field must be blank for aggregate and PII-redacted
+        non-aggregate records (RecordType=1 or 3) and individual recipients (BusinessTypes includes 'P'). """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(record_type=1, business_types="ABC",
                                                           awardee_or_recipient_uniqu='test')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="pbc",
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(record_type=3, business_types="ABC",
                                                           awardee_or_recipient_uniqu='test')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="PBC",
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="pbc",
                                                           awardee_or_recipient_uniqu='test')
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="apc",
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="PBC",
                                                           awardee_or_recipient_uniqu='test')
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="APC",
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="apc",
                                                           awardee_or_recipient_uniqu='test')
-    det_award_6 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="abp",
+    det_award_6 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="APC",
                                                           awardee_or_recipient_uniqu='test')
-    det_award_7 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="ABP",
+    det_award_7 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="abp",
+                                                          awardee_or_recipient_uniqu='test')
+    det_award_8 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="ABP",
                                                           awardee_or_recipient_uniqu='test')
 
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6, det_award_7])
-    assert errors == 7
+                                                       det_award_6, det_award_7, det_award_8])
+    assert errors == 8
