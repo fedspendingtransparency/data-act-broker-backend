@@ -6,24 +6,34 @@
 broker:
 
     # Specify the url where the front end of the application will be accessed.
-    # For a local installation this will most likely be localhost or the 
-    # location where the /public files are located. If a port is required, 
+    # For a local installation this will most likely be localhost or the
+    # location where the /public files are located. If a port is required,
     # it should be appended to the URL.
-    full_url: http://dataactbroker.domain.com
+    full_url: http://localhost:3000
+    # full_url: https://alpha-broker-sandbox.usaspending.gov/
+
+    sqs_queue_name: sqa-quene-name
 
 
     # Set the key (string) used to serialize tokens for email validations.
-    email_token_key: "1234"
+    email_token_key: "token123"
 
     # Specify valid email address to be used as reply-to for
     # administrative emails sent by the broker.
     reply_to_email: valid.email@domain.com
 
+    # Set valid email address and password to be used as the DATA Act
+    # broker's admin account. This is what you will use to log into
+    # the broker website. The password should contain a combination
+    # of letters, numbers, and special characters.
+    admin_email: valid.email@domain.com
+    admin_password: password123
+
     # The path where the broker will store submitted files and emails
     # when the broker is not using an AWS S3 bucket.
     # This should be an absolute path. Note that this path
     # is ignored if use_aws is true.
-    broker_files: /full/path/to/broker/files
+    broker_files: /data-act/backend/data-act-broker-backend/temp
 
     # The folder within dataactvalidator/config where USPS zip4 files are stored
     zip_folder: zips
@@ -33,63 +43,112 @@ broker:
     # File D1 API
     # Uses "{}" because it requires string formatting to insert query parameters
     # If the URL is provided, the file name provided will be used when uploading to S3
-    award_procurement_url: https://data-usas.uat.workplace.gov/api/contracts?CGAC={}&date_signed_beginning={}&date_signed_end={}&callback={}
+    award_procurement_url: https://award_procurement_url.gov
     award_procurement_file_name: d1_data.csv
 
     # File D2 API
     # If the URL is provided, the file name provided will be used when uploading to S3
-    award_url: https://data-usas.uat.workplace.gov/api/assistance?CGAC={}&date_signed_beginning={}&date_signed_end={}&callback={}
+    award_url: https://award_url.gov
     award_file_name: d2_data.csv
 
-    d_file_storage_path: /full/path/to/d/file/storage
+    d_file_storage_path: /data-act/backend/data-act-broker-backend/tmp/
 
     # File E
-    awardee_attributes_url: https://sample.gov
     awardee_attributes_file_name: awardee_data.csv
     executive_compensation_url: https://sample.gov
     executive_compensation_file_name: executive_compensation_data.csv
 
     # File F
-    sub_award_url: https://sample.gov
     sub_award_file_name: sub_award_data.csv
 
-    # Include folder and filename of RSS file if running on AWS, if running locally the RSS folder and file should be in
-    # the broker_files directory specified above
-    rss_folder: rss
-    rss_file: rss_file.xls
-    
+    # Connection info for fetching data related to File F
+    fsrs:
+        procurement_service:
+            wsdl: 'https://www.fsrs.gov/ws/ffata_data_api.php?wsdl'
+            username: 'ffataexport'
+            password: 'password'
+        grant_service:
+            wsdl: 'https://www.fsrs.gov/ws/ffata_grants_data_api.php?wsdl'
+            username: 'ffataexport'
+            password: 'password'
+
+    ## AWS Configuration Settings ##
+
+    # If set to true the application will use AWS for the storage of files
+    # submitted to the broker, to send e-mail, AND to access the dynamo db
+    # for session handling.
+    # Note that you must have the aws cli installed and credentials set in
+    # order to use AWS (see install instructions for more information).
+    use_aws: false
+
+    # If using AWS, set your region here
+    aws_region: us-gov-region-1
+
+    # Add your AWS Key to use for sending SES emails
+    aws_access_key_id: redacted
+    aws_secret_access_key: redacted
+
+    # Name of AWS S3 bucket for uploaded broker files. Ignored if use_aws
+    # is false. NOTE: the dummy value below MUST be changed to the correct
+    # value if use_aws is true.
+    aws_bucket: s3-bucket
+    sf_133_bucket: s3-bucket
+    archive_bucket: s3-bucket
+
+    # Name of AWS S3 bucket for certified broker files. Ignored if use_aws
+    # is false. NOTE: the dummy value below MUST be changed to the correct
+    # value if use_aws is true.
+    certified_bucket: s3-bucket
+
+    # Name of the AWS role you're using to upload broker files. Ignored if
+    # use_aws is false. NOTE: the dummy value below MUST be changed to the
+    # correct value if use_aws is true.
+    aws_role: arn:aws-us-gov:iam::id:role/awsrole
+
+    # Set the following to true to allow the broker to create temporary
+    # AWS credentials for uploading files. Ignored if use_aws is false.
+    aws_create_temp_credentials: true
+
     # S3 filenames for SF-133 file, only required if planning to load SF-133 table
     sf_133_folder: config
+    sf_133_file: sf_133.csv
 
     # Static Files Locations
-    static_files_bucket: sample-static-files-bucket
-    help_files_path: sample-help-files-folder
+    static_files_bucket: s3-bucket
+    help_files_path: help-files
 
     # Location that deleted records from the FPDS atom feed are stored
-    fpds_delete_bucket: fpds-deleted-records
+    fpds_delete_bucket: s3-bucket
+
+    # link to help for failed MAX login
+    max_help_url: https://max_help_url.gov
 
     # MAX login
-    cas_service_url: https://cas.service.url/cas/serviceValidate?ticket={}&service={}
+    cas_service_url: https://cas.service.url
     parent_group: sample
 
 services:
     # Set to true to turn on tracing rest errors.
-    rest_trace: false #deprecated
+    rest_trace: true
 
     # Set to true to turn on server debugging.
-    server_debug: false #deprecated
-    debug: false
+    server_debug: true
+    debug: true
 
     # URL/IP address that hosts the broker API
-    broker_api_host: http://dataactbroker-api.domain.com
-    broker_api_port: 443
+    # broker_api_host: alpha-broker-sandbox-api.usaspending.gov
+    # broker_api_port: 443
+    broker_api_host: 127.0.0.1
+    broker_api_port: 9999
 
     # URL/IP address that hosts the validator API
-    validator_host: http://dataactbroker-validator-api.domain.com
-    validator_port: 80
+    # validator_host: 0.0.0.0
+    validator_host: 127.0.0.1
+    validator_port: 8889
 
     # If you would like to restrict access from other origins, set the
     # allowed origins here. Otherwise, leave as '*'.
+    # cross_origin_url: ['https://alpha-broker-sandbox.usaspending.gov','http://localhost', 'http://127.0.0.1', 'http://sandbox-data-act-web-app.s3-website-us-gov-west-1.amazonaws.com']
     cross_origin_url: '*'
 
     # The path where the broker will store error reports
@@ -98,86 +157,82 @@ services:
     # same path as the broker_files setting (above)
     # for simplicity.
     # This should be an absolute path.
-    error_report_path: /full/path/to/error/reports
+    error_report_path: /data-act/backend/data-act-broker-backend/tmp
 
     # The paths to the sample D1 and D2 files for local development
-    d1_file_path: /full/path/to/d1/file/sample/d1_sample.csv
-    d2_file_path: /full/path/to/d2/file/sample/d2_sample.csv
+    d2_file_path: /data-act/backend/data-act-broker-backend/tests/integration/data/d2_sample.csv
+    d1_file_path: /data-act/backend/data-act-broker-backend/tests/integration/data/d1_sample.csv
 
-    # We import award/subaward records from FSRS
-    fsrs:
-        procurement_service:
-            wsdl: ''  # e.g. https://example.com/?wsdl'
-            username: ''
-            password: ''
-        grant_service:
-            wsdl: ''  # e.g. https://example.com/?wsdl'
-            username: ''
-            password: ''
 
 db:
     # The name of your default postgres database. Unless you've exlicitly
     # changed this, you should not have to update the value below.
     base_db_name: postgres
 
-    # The type of backend database being used
+    # The scheme (type of database) being used. Ex: postgres, mysql, etc.
     scheme: postgres
 
-    # Host and port of db instance. Set to localhost if running locally or set 
+    # Host and port of db instance. Set to localhost if running locally or set
     # the remote address
-    host: dataactbroker.postgreshost.domain.com
+    # host: broker-sbx.cvhpn1mlakcs.us-gov-west-1.rds.amazonaws.com
+    host: dataact-postgres
     port: 5432
 
+    # Set your username and password for the db instance
+    username: admin
+    password: root
+
     # Set the names for each of the application databases
-    base_db_name: postgres #This is the default db on the instance. 
+    base_db_name: postgres #This is the default db on the instance.
+    user_db_name: user_manager # User manager db
+    job_db_name: job_tracker # Job tracker db
+    staging_db_name: staging # Staging db
+    validator_db_name: validation # Validation db
+    error_db_name: error_data # Error data db
+    job_queue_db_name: job_queue # Job queue db
     db_name: data_broker
+
+    # The broker uses DynamoDb for session management. If
+    # use_aws is true above, the broker will use a
+    # Dynamo instance on your AWS account. Otherwise,
+    # provide a dynamo host and port below.
+    dynamo_host: 127.0.0.1
+    dynamo_port: 5555
 
 logging:
 
     # The path where broker still store log files.
-    log_files: /full/path/to/logfiles
+    # Ignored if use_logstash is true.
+    log_files: /data-act/backend/data-act-broker-backend/temp/logs
+    # Set to true and fill in all logstash_ settings
+    # to use logstash for logging
+    use_logstash: false
 
-    values_to_log:
-        broker:
-            - path
-            - use_aws
-            - local
-            - aws_bucket
-            - certified_bucket
-            - aws_role
-            - aws_region
-            - aws_create_temp_credentials
-            - static_files_bucket
-            - help_files_path
-            - d_file_storage_path
-            - broker_files
-            - award_procurement_url
-            - award_procurement_file_name
-            - award_url
-            - award_file_name
-            - awardee_attributes_url
-            - awardee_attributes_file_name
-            - executive_compensation_url
-            - executive_compensation_file_name
-            - sub_award_url
-            - sub_award_file_name
-            - rss_folder
-            - rss_file
-            - generated_files_folder
-            - sf_133_folder
-            - sf_133_file
-            - full_url
-        services:
-            - error_report_path
-            - broker_api_host
-            - validator_host
-            - broker_api_port
-            - validator_port
-            - protocol
-            - rest_trace
-            - server_debug
-        db:
-            - base_db_name
-            - scheme
-        logging:
-            - log_files
+    # Logstash EC2 host. Ignored if use_logstash is false.
+    # NOTE: the dummy value below MUST be changed to the correct
+    # value if use_logstash is true.
+    logstash_host: logstash-host.compute-1.amazonaws.com
+
+    # Logstash EC2 port. 514 is the port typically used with logstash,
+    # so you can mostly likely keep this as is.
+    logstash_port: 514
+
+job-queue:
+    # RabbitMQ username
+    # username: guest
+    username: username
+
+    # RabbitMQ password
+    # password: guest
+    password: password123
+
+    # URL for the job queue server. Note, do not add 'http'
+    url: ec2-queue-server.us-gov-region-1.compute.amazonaws.com
+    # url: 127.0.0.1
+
+    # Port on which Celery is listening
+    port: port
+
+    # Broker scheme which must coordinate with the type of broker being used
+    # on the remote server
+    broker_scheme: amqp

@@ -8,27 +8,24 @@ broker:
     use_aws: false
     full_url: http://localhost:3000
     reply_to_email: valid.developer.email@domain.com
-    broker_files: /full/path/to/local/broker/files
-    d_file_storage_path: /full/path/to/local/d/file/storage
 
 services:
 
     debug: true
     broker_api_host: 127.0.0.1
-    broker_api_port: 3333
+    broker_api_port: 9999
     validator_host: 127.0.0.1
-    validator_port: 3334
-    error_report_path: /full/path/to/local/error/reports
+    validator_port: 8889
+    error_report_path: /data-act/backend/data-act-broker-backend/temp/error_reports
 
 db:
 
     scheme: postgres
-    host: localhost
+    host: dataact-postgres
     port: 5432
     base_db_name: postgres #This is the default db on the instance.
     db_name: data_broker
 
 logging:
 
-    log_files: /full/path/to/local/logfiles
-
+    log_files: /data-act/backend/data-act-broker-backend/temp/logs
