@@ -506,7 +506,22 @@ class FileHandler:
                 frec_code: the code of a FREC agency if generating for a FREC agency
                 start: start date in a string, formatted MM/DD/YYYY
                 end: end date in a string, formatted MM/DD/YYYY
+
+            Returns:
+                JSONResponse object with keys job_id, status, file_type, url, message, start, and end.
+
+            Raises:
+                ResponseException: if the start and end Strings cannot be parsed into dates
         """
+        # Make sure it's a valid request
+        if not cgac_code and not frec_code:    
+            return JsonResponse.error(ValueError("Detached file generation requires CGAC or FR Entity Code"),  
+                                      StatusCode.CLIENT_ERROR) 
+   
+        # Check if date format is MM/DD/YYYY   
+        if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):  
+            raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
+
         # Add job info
         file_type_name = FILE_TYPE_DICT_ID[FILE_TYPE_DICT_LETTER_ID[file_type]]
         new_job = self.add_generation_job_info(file_type_name=file_type_name, start_date=start, end_date=end)

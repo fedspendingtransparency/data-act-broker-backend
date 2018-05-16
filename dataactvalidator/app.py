@@ -46,6 +46,7 @@ def run_app():
 
         logger.info("Starting SQS polling")
         while True:
+            # Set current_message to None before every loop to ensure it's never set to the previous message
             current_message = None
             try:
                 # Grabs one (or more) messages from the queue
