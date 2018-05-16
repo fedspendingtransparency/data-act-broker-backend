@@ -331,7 +331,7 @@ def test_check_detached_d_file_generation(database, job_constants):
         job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
         job_type=sess.query(JobType).filter_by(name='file_upload').one(),
         file_type=sess.query(FileType).filter_by(name='award').one(),
-        error_message='',
+        error_message='', filename='file/path/file.csv', original_filename='file.csv'
     )
     sess.add(job)
     sess.commit()
@@ -377,7 +377,7 @@ def test_check_submission_d_file_generation(database, job_constants):
         job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
         job_type=sess.query(JobType).filter_by(name='file_upload').one(),
         file_type=sess.query(FileType).filter_by(name='award_procurement').one(),
-        submission=sub, error_message=''
+        submission=sub, error_message='', filename='file/path/file.csv', original_filename='file.csv'
     )
     val_job = JobFactory(
         job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
