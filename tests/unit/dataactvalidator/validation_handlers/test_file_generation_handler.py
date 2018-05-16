@@ -116,66 +116,65 @@ def test_generate_d2_file_query(monkeypatch, mock_broker_config_paths, database,
     assert file_rows[2] == expected2
 
 
-def test_generate_d_file_success_regen(monkeypatch, mock_broker_config_paths, database, job_constants):
-    """Testing that a new file is not generated if this job already has a successfully generated file"""
-    sess = database.session
-    job = JobFactory(
-        job_status=sess.query(JobStatus).filter_by(name='running').one(),
-        job_type=sess.query(JobType).filter_by(name='file_upload').one(),
-        file_type=sess.query(FileType).filter_by(name='award').one(),
-        filename=str(mock_broker_config_paths['d_file_storage_path'].join('original')),
-        original_filename='original', from_cached=True,
-    )
-    sess.add(job)
-    sess.commit()
+# def test_generate_d_file_success_regen(monkeypatch, mock_broker_config_paths, database, job_constants):
+#     """Testing that a new file is not generated if this job already has a successfully generated file"""
+#     sess = database.session
+#     job = JobFactory(
+#         job_status=sess.query(JobStatus).filter_by(name='running').one(),
+#         job_type=sess.query(JobType).filter_by(name='file_upload').one(),
+#         file_type=sess.query(FileType).filter_by(name='award').one(),
+#         filename=str(mock_broker_config_paths['d_file_storage_path'].join('original')),
+#         original_filename='original', from_cached=True,
+#     )
+#     sess.add(job)
+#     sess.commit()
 
-    file_request = FileRequestFactory(
-        job=job, is_cached_file=True, agency_code='123', start_date='01/01/2017', end_date='01/31/2017',
-        file_type='d2',)
-    sess.add(file_request)
-    sess.commit()
+#     file_request = FileRequestFactory(
+#         job=job, is_cached_file=True, agency_code='123', start_date='01/01/2017', end_date='01/31/2017',
+#         file_type='d2',)
+#     sess.add(file_request)
+#     sess.commit()
 
-    monkeypatch.setattr(file_generation_handler, 'write_query_to_file', Mock(return_value=None))
-    with Flask(__name__).app_context():
-        file_generation_handler.generate_d_file(sess, job, '123', is_local=True, old_filename='original')
+#     monkeypatch.setattr(file_generation_handler, 'write_query_to_file', Mock(return_value=None))
+#     with Flask(__name__).app_context():
+#         file_generation_handler.generate_d_file(sess, job, '123', is_local=True, old_filename='original')
 
-    sess.refresh(job)
-    assert job.original_filename == 'original'
-    assert job.job_status_id == sess.query(JobStatus).filter_by(name='finished').one().job_status_id
+#     sess.refresh(job)
+#     assert job.original_filename == 'original'
+#     assert job.job_status_id == sess.query(JobStatus).filter_by(name='finished').one().job_status_id
 
 
-def test_generate_d_file_success_new_gen(monkeypatch, mock_broker_config_paths, database, job_constants):
-    """Testing that a new file is not generated if another job has already has a successfully generated file"""
-    sess = database.session
-    original_job = JobFactory(
-        job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-        job_type=sess.query(JobType).filter_by(name='file_upload').one(),
-        file_type=sess.query(FileType).filter_by(name='award').one(),
-        filename=str(mock_broker_config_paths['d_file_storage_path'].join('original')),
-        original_filename='original', from_cached=True,
-    )
-    sess.add(original_job)
-    sess.commit()
+# def test_generate_d_file_success_new_gen(monkeypatch, mock_broker_config_paths, database, job_constants):
+#     """Testing that a new file is not generated if another job has already has a successfully generated file"""
+#     sess = database.session
+#     original_job = JobFactory(
+#         job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+#         job_type=sess.query(JobType).filter_by(name='file_upload').one(),
+#         file_type=sess.query(FileType).filter_by(name='award').one(),
+#         filename=str(mock_broker_config_paths['d_file_storage_path'].join('original')),
+#         original_filename='original', from_cached=True,
+#     )
+#     sess.add(original_job)
+#     sess.commit()
 
-    file_request = FileRequestFactory(
-        job=original_job, is_cached_file=True, agency_code='123', start_date='01/01/2017', end_date='01/31/2017',
-        file_type='D2',)
-    new_job = JobFactory(
-        job_status=sess.query(JobStatus).filter_by(name='running').one(),
-        job_type=sess.query(JobType).filter_by(name='file_upload').one(),
-        file_type=sess.query(FileType).filter_by(name='award').one(),
-    )
-    sess.add_all([file_request, new_job])
-    sess.commit()
+#     file_request = FileRequestFactory(
+#         job=original_job, is_cached_file=True, agency_code='123', start_date='01/01/2017', end_date='01/31/2017',
+#         file_type='D2',)
+#     new_job = JobFactory(
+#         job_status=sess.query(JobStatus).filter_by(name='running').one(),
+#         job_type=sess.query(JobType).filter_by(name='file_upload').one(),
+#         file_type=sess.query(FileType).filter_by(name='award').one(),
+#     )
+#     sess.add_all([file_request, new_job])
+#     sess.commit()
 
-    monkeypatch.setattr(file_generation_handler, 'write_query_to_file', Mock(return_value=None))
-    with Flask(__name__).app_context():
-        file_generation_handler.generate_d_file(sess, job, '123', is_local=True, old_filename='original')
+#     monkeypatch.setattr(file_generation_handler, 'write_query_to_file', Mock(return_value=None))
+#     with Flask(__name__).app_context():
+#         file_generation_handler.generate_d_file(sess, new_job, '123', is_local=True, old_filename='original')
 
-    sess.refresh(new_job)
-    assert new_job.original_filename == 'original'
-    assert new_job.job_status_id == sess.query(JobStatus).filter_by(name='finished').one().job_status_id
-
+#     sess.refresh(new_job)
+#     assert new_job.original_filename == 'original'
+#     assert new_job.job_status_id == sess.query(JobStatus).filter_by(name='finished').one().job_status_id
 
 
 def test_generate_f_file(monkeypatch, mock_broker_config_paths, database, job_constants):
@@ -317,43 +316,6 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database, jo
     assert read_file_rows(file_path) == expected
 
 
-def test_job_context_success(database, job_constants):
-    """When a job successfully runs, it should be marked as "finished" """
-    sess = database.session
-    job = JobFactory(
-        job_status=sess.query(JobStatus).filter_by(name='running').one(),
-        job_type=sess.query(JobType).filter_by(name='validation').one(),
-        file_type=sess.query(FileType).filter_by(name='sub_award').one(),
-    )
-    sess.add(job)
-    sess.commit()
-
-    with file_generation_handler.job_context(job.job_id, is_local=True):
-        pass    # i.e. be successful
-
-    sess.refresh(job)
-    assert job.job_status.name == 'finished'
-
-
-def test_job_context_fail(database, job_constants):
-    """When a job raises an exception and has no retries left, it should be marked as failed"""
-    sess = database.session
-    job = JobFactory(
-        job_status=sess.query(JobStatus).filter_by(name='running').one(),
-        job_type=sess.query(JobType).filter_by(name='validation').one(),
-        file_type=sess.query(FileType).filter_by(name='sub_award').one(),
-    )
-    sess.add(job)
-    sess.commit()
-
-    with file_generation_handler.job_context(job.job_id, is_local=True):
-        raise Exception('This failed!')
-
-    sess.refresh(job)
-    assert job.job_status.name == 'failed'
-    assert job.error_message == 'This failed!'
-
-
 def test_copy_parent_file_request_data(database, job_constants):
     sess = database.session
 
@@ -371,7 +333,7 @@ def test_copy_parent_file_request_data(database, job_constants):
     sess.add_all([job_one, job_two])
     sess.commit()
 
-    file_generation_handler.copy_parent_file_request_data(sess, job_two, job_one, 'D2', True)
+    file_generation_handler.copy_parent_file_request_data(sess, job_two, job_one, True)
     sess.refresh(job_one)
     sess.refresh(job_two)
 
