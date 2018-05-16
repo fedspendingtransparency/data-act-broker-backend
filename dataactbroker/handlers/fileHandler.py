@@ -46,6 +46,7 @@ from dataactcore.utils.report import report_file_name
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.utils.stringCleaner import StringCleaner
 
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
 from dataactvalidator.validation_handlers.file_generation_handler import check_file_generation, start_generation_job
@@ -514,12 +515,12 @@ class FileHandler:
                 ResponseException: if the start and end Strings cannot be parsed into dates
         """
         # Make sure it's a valid request
-        if not cgac_code and not frec_code:    
-            return JsonResponse.error(ValueError("Detached file generation requires CGAC or FR Entity Code"),  
-                                      StatusCode.CLIENT_ERROR) 
-   
-        # Check if date format is MM/DD/YYYY   
-        if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):  
+        if not cgac_code and not frec_code:
+            return JsonResponse.error(ValueError("Detached file generation requires CGAC or FR Entity Code"),
+                                      StatusCode.CLIENT_ERROR)
+
+        # Check if date format is MM/DD/YYYY
+        if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
             raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
 
         # Add job info
