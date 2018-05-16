@@ -15,6 +15,7 @@ from dataactcore.models.jobModels import FileRequest
 from dataactcore.scripts.setupAllDB import setup_all_db
 
 from dataactvalidator.health_check import create_app
+from dataactvalidator.filestreaming.labelLoader import LabelLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.scripts.loadFile import load_domain_values
@@ -63,6 +64,8 @@ def load_sql_rules():
     """Load the SQL-based validation rules."""
     logger.info('Loading SQL-based validation rules')
     SQLLoader.load_sql("sqlRules.csv")
+    logger.info('Loading non-SQL-based validation labels')
+    LabelLoader.load_labels("validationLabels.csv")
 
 
 def load_domain_value_files(base_path):

@@ -1,5 +1,5 @@
 -- Verify that all of the submitted data (from File A (appropriation)) has an associated GTAS
--- Each TAS reported in File A should be reported in GTAS for SF 133, with the exception of Financing Accounts, or
+-- Each TAS reported in File A should be reported in GTAS for SF-133, with the exception of Financing Accounts, or
 -- when all monetary amounts are zero for the TAS.
 WITH appropriation_a33_2_{0} AS 
     (SELECT row_number,
@@ -18,7 +18,7 @@ WITH appropriation_a33_2_{0} AS
         approp.contract_authority_amount_cpe,
         approp.spending_authority_from_of_cpe,
         approp.other_budgetary_resources_cpe,
-        approp.budget_authority_available_cpe,
+        approp.total_budgetary_resources_cpe,
         approp.gross_outlay_amount_by_tas_cpe,
         approp.obligations_incurred_total_cpe,
         approp.deobligations_recoveries_r_cpe,
@@ -55,7 +55,7 @@ FROM appropriation_a33_2_{0} AS approp
         OR COALESCE(approp.contract_authority_amount_cpe, 0) <> 0
         OR COALESCE(approp.spending_authority_from_of_cpe, 0) <> 0
         OR COALESCE(approp.other_budgetary_resources_cpe, 0) <> 0
-        OR COALESCE(approp.budget_authority_available_cpe, 0) <> 0
+        OR COALESCE(approp.total_budgetary_resources_cpe, 0) <> 0
         OR COALESCE(approp.gross_outlay_amount_by_tas_cpe, 0) <> 0
         OR COALESCE(approp.obligations_incurred_total_cpe, 0) <> 0
         OR COALESCE(approp.deobligations_recoveries_r_cpe, 0) <> 0

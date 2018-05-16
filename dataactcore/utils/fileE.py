@@ -59,6 +59,7 @@ def get_entities(client, duns_list):
 
 Row = namedtuple('Row', (
     'AwardeeOrRecipientUniqueIdentifier',
+    'AwardeeOrRecipientLegalEntityName',
     'UltimateParentUniqueIdentifier',
     'UltimateParentLegalEntityName',
     'HighCompOfficer1FullName',
@@ -93,6 +94,7 @@ def suds_to_row(suds_obj):
 
     return Row(
         suds_obj.entityIdentification.DUNS,
+        suds_obj.entityIdentification.legalBusinessName,
         suds_obj.coreData.DUNSInformation.globalParentDUNS.DUNSNumber,
         suds_obj.coreData.DUNSInformation.globalParentDUNS.legalBusinessName,
         *officers

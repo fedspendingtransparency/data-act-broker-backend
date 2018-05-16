@@ -1,7 +1,9 @@
 fieldname,fieldname_short,required,data_type,field_length
 ActionDate,action_date,ASP: Required,string,8
 ActionType,action_type,ASP: Conditional per Validation Rule,string,1
+ActionTypeDescription,action_type_description,ASP: Optional,string,
 AssistanceType,assistance_type,ASP: Required,string,2
+AssistanceTypeDescription,assistance_type_desc,ASP: Optional,string,
 AwardDescription,award_description,ASP: Conditional per Validation Rule,string,4000
 AwardeeOrRecipientLegalEntityName,awardee_or_recipient_legal,ASP: Required,string,120
 AwardeeOrRecipientUniqueIdentifier,awardee_or_recipient_uniqu,ASP: Conditional per Validation Rule,string,9
@@ -13,10 +15,13 @@ AwardingSubTierAgencyCode,awarding_sub_tier_agency_c,ASP: Required,string,4
 AwardingSubTierAgencyName,awarding_sub_tier_agency_n,ASP: Derived,string,100
 AwardModificationAmendmentNumber,award_modification_amendme,ASP: Optional,string,25
 BusinessFundsIndicator,business_funds_indicator,ASP: Optional,string,3
+BusinessFundsIndicatorDescription,business_funds_ind_desc,ASP: Optional,string,
 BusinessTypes,business_types,ASP: Optional,string,3
+BusinessTypesDescription,business_types_desc,ASP: Optional,string,
 CFDA_Number,cfda_number,ASP: Required,string,7
 CFDA_Title,cfda_title,ASP: Derived,string,100
-CorrectionLateDeleteIndicator,correction_late_delete_ind,ASP: Optional,string,1
+CorrectionDeleteIndicator,correction_delete_indicatr,ASP: Optional,string,1
+CorrectionDeleteIndicatorDescription,correction_delete_ind_desc,ASP: Optional,string,
 FaceValueOfDirectLoanOrLoanGuarantee,face_value_loan_guarantee,ASP: Conditional per Validation Rule,numeric,20
 FAIN,fain,ASP: Conditional per Validation Rule,string,30
 FederalActionObligation,federal_action_obligation,ASP: Conditional per Validation Rule,numeric,20
@@ -34,7 +39,7 @@ LegalEntityCityCode,legal_entity_city_code,ASP: Derived,string,5
 LegalEntityCityName,legal_entity_city_name,ASP: Derived,string,40
 LegalEntityCongressionalDistrict,legal_entity_congressional,ASP: Derived,string,2
 LegalEntityCountryCode,legal_entity_country_code,ASP: Conditional per Validation Rule,string,3
-LegalEntityCountryName,legal_entity_country_name,Optional,string,
+LegalEntityCountryName,legal_entity_country_name,ASP: Optional,string,
 LegalEntityCountyCode,legal_entity_county_code,ASP: Derived,string,3
 LegalEntityCountyName,legal_entity_county_name,ASP: Derived,string,40
 LegalEntityForeignCityName,legal_entity_foreign_city,ASP: Conditional per Validation Rule,string,40
@@ -49,16 +54,19 @@ OriginalLoanSubsidyCost,original_loan_subsidy_cost,ASP: Conditional per Validati
 PeriodOfPerformanceCurrentEndDate,period_of_performance_curr,ASP: Optional,string,8
 PeriodOfPerformanceStartDate,period_of_performance_star,ASP: Optional,string,8
 PrimaryPlaceOfPerformanceCityName,place_of_performance_city,ASP: Derived,string,100
-PrimaryPlaceOfPerformanceCode,place_of_performance_code,ASP: Required,string,7
+PrimaryPlaceOfPerformanceCode,place_of_performance_code,ASP: Optional,string,7
 PrimaryPlaceOfPerformanceCongressionalDistrict,place_of_performance_congr,ASP: Derived,string,2
-PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Required,string,3
-PrimaryPlaceOfPerformanceCountryName,place_of_perform_country_n,Optional,string,
-PrimaryPlaceOfPerformanceCountyCode,place_of_perform_county_co,Optional,string,
+PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Optional,string,3
+PrimaryPlaceOfPerformanceCountryName,place_of_perform_country_n,ASP: Optional,string,
+PrimaryPlaceOfPerformanceCountyCode,place_of_perform_county_co,ASP: Optional,string,
 PrimaryPlaceOfPerformanceCountyName,place_of_perform_county_na,ASP: Derived,string,40
 PrimaryPlaceOfPerformanceForeignLocationDescription,place_of_performance_forei,ASP: Conditional per Validation Rule,string,100
 PrimaryPlaceOfPerformanceStateName,place_of_perform_state_nam,ASP: Derived,string,50
 PrimaryPlaceOfPerformanceZIP_4,place_of_performance_zip4a,ASP: Conditional per Validation Rule,string,10
 RecordType,record_type,ASP: Required,integer,1
+RecordTypeDescription,record_type_description,ASP: Optional,string,
 SAI_Number,sai_number,ASP: Optional,string,50
 TotalFundingAmount,total_funding_amount,ASP: Derived,numeric,20
+UltimateParentLegalEntityName,ultimate_parent_legal_enti,FALSE,str,120,
+UltimateParentUniqueIdentifier,ultimate_parent_unique_ide,FALSE,str,9,
 URI,uri,ASP: Conditional per Validation Rule,string,70

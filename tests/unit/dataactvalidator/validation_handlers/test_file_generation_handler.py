@@ -292,8 +292,8 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database, jo
 
     monkeypatch.setattr(file_generation_handler.fileE, 'retrieve_rows', Mock())
     file_generation_handler.fileE.retrieve_rows.return_value = [
-        fileE.Row('a', 'b', 'c', '1a', '1b', '2a', '2b', '3a', '3b', '4a', '4b', '5a', '5b'),
-        fileE.Row('A', 'B', 'C', '1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B')
+        fileE.Row('a', 'b', 'c', 'd', '1a', '1b', '2a', '2b', '3a', '3b', '4a', '4b', '5a', '5b'),
+        fileE.Row('A', 'B', 'C', 'D', '1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B')
     ]
 
     monkeypatch.setattr(file_generation_handler, 'mark_job_status', Mock())
@@ -303,6 +303,7 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database, jo
 
     expected = [
         ['AwardeeOrRecipientUniqueIdentifier',
+         'AwardeeOrRecipientLegalEntityName',
          'UltimateParentUniqueIdentifier',
          'UltimateParentLegalEntityName',
          'HighCompOfficer1FullName', 'HighCompOfficer1Amount',
@@ -310,8 +311,8 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database, jo
          'HighCompOfficer3FullName', 'HighCompOfficer3Amount',
          'HighCompOfficer4FullName', 'HighCompOfficer4Amount',
          'HighCompOfficer5FullName', 'HighCompOfficer5Amount'],
-        ['a', 'b', 'c', '1a', '1b', '2a', '2b', '3a', '3b', '4a', '4b', '5a', '5b'],
-        ['A', 'B', 'C', '1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B']
+        ['a', 'b', 'c', 'd', '1a', '1b', '2a', '2b', '3a', '3b', '4a', '4b', '5a', '5b'],
+        ['A', 'B', 'C', 'D', '1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B']
     ]
     assert read_file_rows(file_path) == expected
 

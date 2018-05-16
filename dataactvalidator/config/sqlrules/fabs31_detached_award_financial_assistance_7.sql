@@ -1,7 +1,7 @@
 -- For AssistanceType of 02, 03, 04, or 05 whose ActionDate is after October 1, 2010
 -- and ActionType = B, C, or D, AwardeeOrRecipientUniqueIdentifier should be active
--- on the ActionDate, unless the record is an aggregate record (RecordType=1) or individual recipient
--- (BusinessTypes includes 'P').
+-- on the ActionDate, unless the record is an aggregate or PII-redacted non-aggregate record (RecordType=1 or 3) or
+-- awarded to an individual recipient (BusinessTypes includes 'P').
 CREATE OR REPLACE function pg_temp.is_date(str text) returns boolean AS $$
 BEGIN
     perform CAST(str AS DATE);
@@ -39,7 +39,7 @@ SELECT
     dafa.business_types,
     dafa.record_type
 FROM detached_award_financial_assistance_fabs31_7_{0} AS dafa
-WHERE NOT (dafa.record_type = 1
+WHERE NOT (dafa.record_type IN (1, 3)
         OR UPPER(dafa.business_types) LIKE '%%P%%'
     )
     AND COALESCE(dafa.assistance_type, '') IN ('02', '03', '04', '05')

@@ -1,5 +1,5 @@
 -- Verify that all of the applicable GTASes have an associated entry in the submission (File A (appropriation)).
--- Each TAS reported to GTAS for SF 133 should be reported in File A, with the exception of Financing Accounts, or
+-- Each TAS reported to GTAS for SF-133 should be reported in File A, with the exception of Financing Accounts, or
 -- when all monetary amounts are zero for the TAS.
 SELECT DISTINCT
     NULL AS row_number,

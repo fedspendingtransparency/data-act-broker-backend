@@ -15,19 +15,19 @@ def test_success(database):
         in File D2 (Detached Award Financial Assistance) are unique"""
     det_award_1 = DetachedAwardFinancialAssistanceFactory(fain="ABC", award_modification_amendme="ABC",
                                                           uri="ABC", awarding_sub_tier_agency_c="ABC",
-                                                          correction_late_delete_ind=None)
+                                                          correction_delete_indicatr=None)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(fain="ABCD", award_modification_amendme="ABC",
                                                           uri="ABC", awarding_sub_tier_agency_c="ABC",
-                                                          correction_late_delete_ind=None)
+                                                          correction_delete_indicatr=None)
     det_award_3 = DetachedAwardFinancialAssistanceFactory(fain="ABC", award_modification_amendme="ABCD",
                                                           uri="ABC", awarding_sub_tier_agency_c="ABC",
-                                                          correction_late_delete_ind=None)
+                                                          correction_delete_indicatr=None)
     det_award_4 = DetachedAwardFinancialAssistanceFactory(fain="ABC", award_modification_amendme="ABC",
                                                           uri="ABCD", awarding_sub_tier_agency_c="ABC",
-                                                          correction_late_delete_ind=None)
+                                                          correction_delete_indicatr=None)
     det_award_5 = DetachedAwardFinancialAssistanceFactory(fain="ABC", award_modification_amendme="ABC",
                                                           uri="ABC", awarding_sub_tier_agency_c="ABCD",
-                                                          correction_late_delete_ind=None)
+                                                          correction_delete_indicatr=None)
 
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5])
     assert errors == 0
@@ -39,19 +39,16 @@ def test_failure(database):
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(fain="ABC", award_modification_amendme="ABC",
                                                           uri="ABC", awarding_sub_tier_agency_c="ABC",
-                                                          correction_late_delete_ind=None)
+                                                          correction_delete_indicatr=None)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(fain="ABC", award_modification_amendme="ABC",
                                                           uri="ABC", awarding_sub_tier_agency_c="ABC",
-                                                          correction_late_delete_ind=None)
+                                                          correction_delete_indicatr=None)
     det_award_3 = DetachedAwardFinancialAssistanceFactory(fain="ABC", award_modification_amendme="ABC",
                                                           uri="ABC", awarding_sub_tier_agency_c="ABC",
-                                                          correction_late_delete_ind="L")
+                                                          correction_delete_indicatr="C")
     det_award_4 = DetachedAwardFinancialAssistanceFactory(fain="ABC", award_modification_amendme="ABC",
                                                           uri="ABC", awarding_sub_tier_agency_c="ABC",
-                                                          correction_late_delete_ind="C")
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(fain="ABC", award_modification_amendme="ABC",
-                                                          uri="ABC", awarding_sub_tier_agency_c="ABC",
-                                                          correction_late_delete_ind="D")
+                                                          correction_delete_indicatr="D")
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5])
-    assert errors == 4
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4])
+    assert errors == 3

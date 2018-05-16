@@ -27,6 +27,10 @@ VALIDATION_STATUS_MAP = {"waiting": "waiting", "ready": "waiting", "running": "w
 
 
 class FileGenerationManager:
+    """
+        STATUS_MAP: A dictionary containing a mapping of success/failure for job statuses
+        VALIDATION_STATUS_MAP: A dictionary containing a mapping of statuses for validation jobs
+    """
     def __init__(self, is_local=True):
         # Initialize instance variables
         self.is_local = is_local

@@ -132,7 +132,7 @@ def format_fabs_data(data, sess, fips_state_list, state_code_list, sub_tier_list
             'recipient_type': 'business_types',
             'cfda_program_num': 'cfda_number',
             'cfda_program_title': 'cfda_title',
-            'correction_late_ind': 'correction_late_delete_ind',
+            'correction_late_ind': 'correction_delete_indicatr',
             'face_loan_guran': 'face_value_loan_guarantee',
             'federal_award_id': 'fain',
             'fed_funding_amount': 'federal_action_obligation',
@@ -500,7 +500,7 @@ def set_active_rows(sess):
         "FROM published_award_financial_assistance GROUP BY afa_generated_unique) sub_pafa " +
         "ON pafa.modified_at = sub_pafa.modified_at AND " +
         "COALESCE(pafa.afa_generated_unique, '') = COALESCE(sub_pafa.afa_generated_unique, '') " +
-        "WHERE COALESCE(UPPER(pafa.correction_late_delete_ind), '') != 'D') AS selected " +
+        "WHERE COALESCE(UPPER(pafa.correction_delete_indicatr), '') != 'D') AS selected " +
         "WHERE all_pafa.published_award_financial_assistance_id = selected.published_award_financial_assistance_id"
     )
     sess.commit()
