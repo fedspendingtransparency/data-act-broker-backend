@@ -16,10 +16,9 @@ services:
     image: dataact-broker
     build:
       context: ./
-      dockerfile: Dockerfile
     restart: always
-    command: top -b
+    command: /bin/sh -c "cd ./dataactcore; sleep 10s; alembic upgrade head; top -b"
     ports:
-      - "9000:8080"
+      - "9000:9999"
     volumes:
       - ./:/data-act/backend
