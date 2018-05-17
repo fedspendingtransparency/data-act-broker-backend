@@ -341,7 +341,11 @@ def start_generation_job(job, start_date, end_date, agency_code=None):
     """ Validates the dates for a D file generation job and passes the Job ID to SQS
 
         Args:
-            job: the file generation job to start
+            job: File generation job to start
+            start_date: Start date of the file generation
+            end_date: End date of the file generation
+            agency_code: Agency code for detached D file generations
+
         Returns:
             Tuple of boolean indicating successful start, and error response if False
     """

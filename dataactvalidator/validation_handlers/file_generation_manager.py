@@ -35,8 +35,9 @@ class FileGenerationManager:
 
     def generate_from_job(self, job_id, agency_code):
         """ Generates a file for a specified job
+
             Args:
-                job: upload Job
+                job_id: ID of the upload Job
                 agency_code: FREC or CGAC code to generate data from
         """
         mark_job_status(job_id, 'running')
