@@ -24,7 +24,7 @@ mapping = OrderedDict([
     ('ultimateparentlegalentityname', 'ultimate_parent_legal_enti'),
     ('ultimateparentuniqueidentifier', 'ultimate_parent_unique_ide'),
     ('awarddescription', 'award_description'),
-    ('primaryplaceofperformancezip_4', 'place_of_performance_zip4a'),
+    ('primaryplaceofperformancezip+4', 'place_of_performance_zip4a'),
     ('primaryplaceofperformancecongressionaldistrict', 'place_of_performance_congr'),
     ('awardeeorrecipientlegalentityname', 'awardee_or_recipient_legal'),
     ('legalentitycityname', 'legal_entity_city_name'),
