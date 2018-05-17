@@ -62,7 +62,8 @@ def test_generate_d1_file_query(monkeypatch, mock_broker_config_paths, database,
             expected1.append(str(dap_one.__dict__[value]))
             expected2.append(str(dap_two.__dict__[value]))
 
-    assert expected1 in file_rows and expected2 in file_rows
+    assert expected1 in file_rows
+    assert expected2 in file_rows
 
 
 def test_generate_d2_file_query(monkeypatch, mock_broker_config_paths, database, job_constants):
@@ -105,7 +106,8 @@ def test_generate_d2_file_query(monkeypatch, mock_broker_config_paths, database,
             expected1.append(str(pafa1.__dict__[value]))
             expected2.append(str(pafa2.__dict__[value]))
 
-    assert expected1 in file_rows and expected2 in file_rows
+    assert expected1 in file_rows
+    assert expected2 in file_rows
 
 
 def test_generate_d_file_success_regen(monkeypatch, mock_broker_config_paths, database, job_constants):
