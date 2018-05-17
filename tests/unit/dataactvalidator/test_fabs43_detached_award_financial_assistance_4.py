@@ -14,7 +14,9 @@ def test_column_headers(database):
 def test_success(database):
     """ Test PrimaryPlaceOfPerformanceCongressionalDistrict exists in the state indicated by the
         PrimaryPlaceOfPerformanceCode or is 90 in a state with multiple districts or when PrimaryPlaceOfPerformanceCode
-        is 00*****. Districts that were created under the 2000 census or later are considered valid"""
+        is 00*****. Districts that were created under the 2000 census or later are considered valid. This rule is
+        ignored when PrimaryPlaceOfPerformanceCode is blank.
+    """
     state_congr_1 = StateCongressionalFactory(congressional_district_no="01", state_code="NY", census_year=None)
     state_congr_2 = StateCongressionalFactory(congressional_district_no="02", state_code="NY", census_year=None)
     state_congr_3 = StateCongressionalFactory(congressional_district_no="03", state_code="NY", census_year=2000)
@@ -35,9 +37,14 @@ def test_success(database):
                                                           place_of_performance_congr='')
     det_award_8 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="Ny12345",
                                                           place_of_performance_congr=None)
+    # Test ignoring blank/empty string ppop codes
+    det_award_9 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="",
+                                                          place_of_performance_congr="03")
+    det_award_10 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code=None,
+                                                           place_of_performance_congr="03")
 
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6, det_award_7, det_award_8,
+                                                       det_award_6, det_award_7, det_award_8, det_award_9, det_award_10,
                                                        state_congr_1, state_congr_2, state_congr_3])
     assert errors == 0
 
@@ -45,7 +52,8 @@ def test_success(database):
 def test_failure(database):
     """ Test failure PrimaryPlaceOfPerformanceCongressionalDistrict exists in the state indicated by the
         PrimaryPlaceOfPerformanceCode or is 90 in a state with multiple districts or when PrimaryPlaceOfPerformanceCode
-        is 00*****. Districts that were created under the 2000 census or later are considered valid"""
+        is 00*****. Districts that were created under the 2000 census or later are considered valid.
+    """
     state_congr_1 = StateCongressionalFactory(congressional_district_no="01", state_code="NY", census_year=None)
     state_congr_2 = StateCongressionalFactory(congressional_district_no="02", state_code="NY", census_year=None)
     state_congr_3 = StateCongressionalFactory(congressional_district_no="01", state_code="PA", census_year=None)
