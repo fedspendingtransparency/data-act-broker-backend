@@ -38,7 +38,7 @@ def test_failure_with_rule_exception(database):
     ap3 = AppropriationFactory(job_id=1, row_number=3, tas=tas, adjustments_to_unobligated_cpe=0,
                                budget_authority_appropria_cpe=0, borrowing_authority_amount_cpe=0,
                                contract_authority_amount_cpe=0, spending_authority_from_of_cpe=0,
-                               other_budgetary_resources_cpe=0, budget_authority_available_cpe=0,
+                               other_budgetary_resources_cpe=0, total_budgetary_resources_cpe=0,
                                gross_outlay_amount_by_tas_cpe=0, obligations_incurred_total_cpe=0,
                                deobligations_recoveries_r_cpe=0, unobligated_balance_cpe=0,
                                status_of_budgetary_resour_cpe=0)

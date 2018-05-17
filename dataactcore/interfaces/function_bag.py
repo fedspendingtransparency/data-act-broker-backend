@@ -187,7 +187,7 @@ def mark_file_complete(job_id, filename=None):
     sess.commit()
 
 
-def get_error_metrics_by_job_jd(job_id, include_file_types=False, severity_id=None):
+def get_error_metrics_by_job_id(job_id, include_file_types=False, severity_id=None):
     """ Get error metrics for specified job, including number of errors for each field name and error type """
     sess = GlobalDB.db().session
     result_list = []

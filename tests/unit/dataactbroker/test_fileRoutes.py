@@ -29,7 +29,9 @@ def sub_ids(response):
     return {sub['submission_id'] for sub in result['submissions']}
 
 
-def test_list_submissions(file_app, database, user_constants, job_constants):
+@pytest.mark.usefixtures("user_constants")
+@pytest.mark.usefixtures("job_constants")
+def test_list_submissions(file_app, database):
     """Test listing user's submissions. The expected values here correspond to
     the number of submissions within the agency of the user that is logged in
     """
@@ -121,7 +123,9 @@ def test_is_period(file_app, database):
     assert response_json['data'][1]['notice_block'] is True
 
 
-def test_current_page(file_app, database, user_constants, job_constants, monkeypatch):
+@pytest.mark.usefixtures("user_constants")
+@pytest.mark.usefixtures("job_constants")
+def test_current_page(file_app, database):
     """Test the route to check what the current progress of the submission is at
     the correct page
     """

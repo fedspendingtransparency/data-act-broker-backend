@@ -42,8 +42,8 @@ from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
-feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.4.5&q="
-delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&templateName=1.4.5&q="
+feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.5.0&q="
+delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&templateName=1.5.0&q="
 country_code_map = {'USA': 'US', 'ASM': 'AS', 'GUM': 'GU', 'MNP': 'MP', 'PRI': 'PR', 'VIR': 'VI', 'FSM': 'FM',
                     'MHL': 'MH', 'PLW': 'PW', 'XBK': 'UM', 'XHO': 'UM', 'XJV': 'UM', 'XJA': 'UM', 'XKR': 'UM',
                     'XPL': 'UM', 'XMW': 'UM', 'XWK': 'UM'}
@@ -207,7 +207,8 @@ def contract_data_values(data, obj, atom_type):
                  'costAccountingStandardsClause': 'cost_accounting_standards',
                  'costOrPricingData': 'cost_or_pricing_data',
                  'descriptionOfContractRequirement': 'award_description',
-                 'GFE-GFP': 'government_furnished_equip',
+                 'GFE-GFP': 'government_furnished_prope',
+                 'inherentlyGovernmentalFunction': 'inherently_government_func',
                  'majorProgramCode': 'major_program',
                  'multiYearContract': 'multi_year_contract',
                  'nationalInterestActionCode': 'national_interest_action',
@@ -216,6 +217,7 @@ def contract_data_values(data, obj, atom_type):
                  'programAcronym': 'program_acronym',
                  'purchaseCardAsPaymentMethod': 'purchase_card_as_payment_m',
                  'reasonForModification': 'action_type',
+                 'referencedIDVMultipleOrSingle': 'referenced_mult_or_single',
                  'referencedIDVType': 'referenced_idv_type',
                  'seaTransportation': 'sea_transportation',
                  'solicitationID': 'solicitation_identifier',
@@ -225,11 +227,9 @@ def contract_data_values(data, obj, atom_type):
 
     if atom_type == "award":
         value_map['contractActionType'] = 'contract_award_type'
-        value_map['referencedIDVMultipleOrSingle'] = 'referenced_mult_or_single'
     else:
         value_map['contractActionType'] = 'idv_type'
         value_map['multipleOrSingleAwardIDC'] = 'multiple_or_single_award_i'
-        value_map['referencedIDVMultipleOrSingle'] = 'referenced_mult_or_single'
 
     for key, value in value_map.items():
         try:
@@ -244,11 +244,13 @@ def contract_data_values(data, obj, atom_type):
                  'costAccountingStandardsClause': 'cost_accounting_stand_desc',
                  'costOrPricingData': 'cost_or_pricing_data_desc',
                  'GFE-GFP': 'government_furnished_desc',
+                 'inherentlyGovernmentalFunction': 'inherently_government_desc',
                  'multiYearContract': 'multi_year_contract_desc',
                  'nationalInterestActionCode': 'national_interest_desc',
                  'performanceBasedServiceContract': 'performance_based_se_desc',
                  'purchaseCardAsPaymentMethod': 'purchase_card_as_paym_desc',
                  'reasonForModification': 'action_type_description',
+                 'referencedIDVMultipleOrSingle': 'referenced_mult_or_si_desc',
                  'referencedIDVType': 'referenced_idv_type_desc',
                  'seaTransportation': 'sea_transportation_desc',
                  'typeOfContractPricing': 'type_of_contract_pric_desc',
@@ -257,11 +259,9 @@ def contract_data_values(data, obj, atom_type):
 
     if atom_type == "award":
         value_map['contractActionType'] = 'contract_award_type_desc'
-        value_map['referencedIDVMultipleOrSingle'] = 'referenced_mult_or_si_desc'
     else:
         value_map['contractActionType'] = 'idv_type_description'
         value_map['multipleOrSingleAwardIDC'] = 'multiple_or_single_aw_desc'
-        value_map['referencedIDVMultipleOrSingle'] = 'referenced_mult_or_si_desc'
 
     for key, value in value_map.items():
         try:
@@ -305,11 +305,11 @@ def total_dollar_values_values(data, obj):
 def legislative_mandates_values(data, obj):
     """ Get values from the legislativeMandates level of the xml """
     value_map = {'ClingerCohenAct': 'clinger_cohen_act_planning',
-                 'DavisBaconAct': 'davis_bacon_act',
+                 'constructionWageRateRequirements': 'construction_wage_rate_req',
                  'interagencyContractingAuthority': 'interagency_contracting_au',
                  'otherStatutoryAuthority': 'other_statutory_authority',
-                 'serviceContractAct': 'service_contract_act',
-                 'WalshHealyAct': 'walsh_healey_act'}
+                 'laborStandards': 'labor_standards',
+                 'materialsSuppliesArticlesEquipment': 'materials_supplies_article'}
 
     for key, value in value_map.items():
         try:
@@ -319,10 +319,10 @@ def legislative_mandates_values(data, obj):
 
     # get descriptions for things in the value map
     value_map = {'ClingerCohenAct': 'clinger_cohen_act_pla_desc',
-                 'DavisBaconAct': 'davis_bacon_act_descrip',
+                 'constructionWageRateRequirements': 'construction_wage_rat_desc',
                  'interagencyContractingAuthority': 'interagency_contract_desc',
-                 'serviceContractAct': 'service_contract_act_desc',
-                 'WalshHealyAct': 'walsh_healey_act_descrip'}
+                 'laborStandards': 'labor_standards_descrip',
+                 'materialsSuppliesArticlesEquipment': 'materials_supplies_descrip'}
 
     for key, value in value_map.items():
         try:
@@ -357,8 +357,7 @@ def place_of_performance_values(data, obj):
         obj['place_of_perform_county_na'] = None
 
     # within placeOfPerformance, the principalPlaceOfPerformance sub-level
-    value_map = {'locationCode': 'place_of_performance_locat',
-                 'stateCode': 'place_of_performance_state',
+    value_map = {'stateCode': 'place_of_performance_state',
                  'countryCode': 'place_of_perform_country_c'}
 
     for key, value in value_map.items():
@@ -647,7 +646,8 @@ def vendor_site_details_values(data, obj):
             obj[value] = None
 
     # vendorDUNSInformation sub-level
-    value_map = {'DUNSNumber': 'awardee_or_recipient_uniqu',
+    value_map = {'cageCode': 'cage_code',
+                 'DUNSNumber': 'awardee_or_recipient_uniqu',
                  'globalParentDUNSName': 'ultimate_parent_legal_enti',
                  'globalParentDUNSNumber': 'ultimate_parent_unique_ide'}
 
@@ -721,7 +721,8 @@ def vendor_site_details_values(data, obj):
                  'isLimitedLiabilityCorporation': 'limited_liability_corporat',
                  'isShelteredWorkshop': 'the_ability_one_program',
                  'isSubchapterSCorporation': 'subchapter_s_corporation',
-                 'numberOfEmployees': 'number_of_employees'}
+                 'numberOfEmployees': 'number_of_employees',
+                 'organizationalType': 'organizational_type'}
 
     for key, value in value_map.items():
         try:
@@ -1549,7 +1550,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
         'unique_transaction_id', 'maj_agency_cat', 'mod_agency', 'maj_fund_agency_cat', 'progsourceagency',
         'progsourceaccount', 'progsourcesubacct', 'account_title', 'rec_flag', 'state', 'congressionaldistrict',
         'registrationdate', 'renewaldate', 'statecode', 'placeofperformancecongressionaldistrict', 'psc_cat',
-        'fiscal_year', 'competitiveprocedures', 'organizationaltype', 'isserviceprovider',
+        'fiscal_year', 'competitiveprocedures', 'organizationaltype', 'isserviceprovider', 'locationcode',
         'isarchitectureandengineering', 'isconstructionfirm', 'isotherbusinessororganization',
         'prime_awardee_executive1', 'prime_awardee_executive1_compensation', 'prime_awardee_executive2',
         'prime_awardee_executive2_compensation', 'prime_awardee_executive3', 'prime_awardee_executive3_compensation',
@@ -1605,7 +1606,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
         'typeofsetaside': 'type_set_aside_description',
         'useofepadesignatedproducts': 'epa_designated_produc_desc',
         'vendorcountrycode': 'legal_entity_country_name',
-        'walshhealyact': 'walsh_healey_act_descrip'
+        'walshhealyact': 'materials_supplies_descrip'
     }
     for tag, description in colon_split_mappings.items():
         data[description] = data.apply(lambda x: get_data_after_colon(x, tag), axis=1)
@@ -1616,12 +1617,12 @@ def format_fpds_data(data, sub_tier_list, naics_data):
     manual_description_mappings = {
         'ccrexception': 'sam_exception_description',
         'costaccountingstandardsclause': 'cost_accounting_stand_desc',
-        'davisbaconact': 'davis_bacon_act_descrip',
+        'davisbaconact': 'construction_wage_rat_desc',
         'fedbizopps': 'fed_biz_opps_description',
         'fundedbyforeignentity': 'foreign_funding_desc',
         'lettercontract': 'undefinitized_action_desc',
         'research': 'research_description',
-        'servicecontractact': 'service_contract_act_desc',
+        'servicecontractact': 'labor_standards_descrip',
         'statutoryexceptiontofairopportunity': 'fair_opportunity_limi_desc',
         'typeofidc': 'type_of_idc_description',
     }
@@ -1825,8 +1826,8 @@ def format_fpds_data(data, sub_tier_list, naics_data):
             'countryoforigin': 'country_of_product_or_serv',
             'currentcompletiondate': 'period_of_performance_curr',
             'detached_award_proc_unique': 'detached_award_proc_unique',
-            'davis_bacon_act_descrip': 'davis_bacon_act_descrip',
-            'davisbaconact': 'davis_bacon_act',
+            'construction_wage_rat_desc': 'construction_wage_rat_desc',
+            'davisbaconact': 'construction_wage_rate_req',
             'descriptionofcontractrequirement': 'award_description',
             'divisionname': 'division_name',
             'divisionnumberorofficecode': 'division_number_or_office',
@@ -1856,7 +1857,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
             'funding_sub_tier_agency_na': 'funding_sub_tier_agency_na',
             'fundingrequestingagencyid': 'funding_sub_tier_agency_co',
             'fundingrequestingofficeid': 'funding_office_code',
-            'gfe_gfp': 'government_furnished_equip',
+            'gfe_gfp': 'government_furnished_prope',
             'government_furnished_desc': 'government_furnished_desc',
             'haobflag': 'hispanic_american_owned_bu',
             'hbcuflag': 'historically_black_college',
@@ -1936,7 +1937,6 @@ def format_fpds_data(data, sub_tier_list, naics_data):
             'local_area_set_aside_desc': 'local_area_set_aside_desc',
             'localareasetaside': 'local_area_set_aside',
             'localgovernmentflag': 'us_local_government',
-            'locationcode': 'place_of_performance_locat',
             'majorprogramcode': 'major_program',
             'manufacturingorganizationtype': 'domestic_or_foreign_entity',
             'minorityinstitutionflag': 'minority_institution',
@@ -2002,8 +2002,8 @@ def format_fpds_data(data, sub_tier_list, naics_data):
             'sdbflag': 'self_certified_small_disad',
             'sea_transportation_desc': 'sea_transportation_desc',
             'seatransportation': 'sea_transportation',
-            'service_contract_act_desc': 'service_contract_act_desc',
-            'servicecontractact': 'service_contract_act',
+            'labor_standards_descrip': 'labor_standards_descrip',
+            'servicecontractact': 'labor_standards',
             'signeddate': 'action_date',
             'shelteredworkshopflag': 'the_ability_one_program',
             'smallbusinesscompetitivenessdemonstrationprogram': 'small_business_competitive',
@@ -2042,8 +2042,8 @@ def format_fpds_data(data, sub_tier_list, naics_data):
             'vendorname': 'awardee_or_recipient_legal',
             'vendorsitecode': 'vendor_site_code',
             'veteranownedflag': 'veteran_owned_business',
-            'walsh_healey_act_descrip': 'walsh_healey_act_descrip',
-            'walshhealyact': 'walsh_healey_act',
+            'materials_supplies_descrip': 'materials_supplies_descrip',
+            'walshhealyact': 'materials_supplies_article',
             'womenownedflag': 'woman_owned_business',
             'zipcode': 'legal_entity_zip4'
         }, {}

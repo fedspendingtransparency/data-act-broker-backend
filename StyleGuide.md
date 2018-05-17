@@ -1,3 +1,73 @@
+# Python Comments
+
+## General
+* Follow [this guide](https://google.github.io/styleguide/pyguide.html#Comments) in general (with some differences), details below
+* Only function comments should be block. Every code-level comment (even multi-line) should be single-line comments denoted with `#`
+
+## Single-line comments
+* Space after the `#`
+
+## Single-line block comments
+* Space between the text and the quotes: `""" Text here. """`
+
+## Multi-line block comments
+* Space after the first set of quotes
+* Start text on the same line as the opening quotes
+* All subsequent lines have a tab of indentation to align text with higher lines
+* Closing quotes are aligned with opening quotes and on their own line
+
+```
+""" This is the first line of this comment
+    This is the second line
+"""
+```
+
+## Function comments
+* Can be multi- or single-line depending on need
+* When a function has arguments, returns, or raises an exception those should be detailed in the comment
+* Details within the above sections should be tabbed over another time
+* If there are multiple instances of the same exception being raised, list it once and explain each instance when it is raised in the same section
+* If one or more of these sections is not applicable, do not include them
+* Extra line between each section of the comment
+
+```
+""" First line of comment describing things
+
+    Args:
+        Arg1: description
+        Arg2: description
+    
+    Returns:
+        Description of what is returned here
+        
+    Raises:
+        ExceptionA: Something broke, explain
+        ExceptionB: One type of error happened or another
+            might have
+"""
+```
+
+## Class comments
+* Can be multi- or single-line depending on need
+* If the class has attributes, class attributes, or constants, they should be written in the same way as arguments for function comments
+  * Attributes are values that are set in the init function and referenced using "self"
+  * Class attributes are shared among all instances and initialized outside of a function and referenced using the class name
+
+```
+""" First line of comment describing things
+
+    Attributes:
+        attribute1: A boolean indicating X
+        attribute2: An integer counting Y
+    
+    Class Attributes:
+    	class_attribute: A string containing Z
+    
+    Constants:
+        CONSTANT_VAR: An integer indicating A
+"""
+``` 
+
 # SQL
 
 ## General

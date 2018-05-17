@@ -1,54 +1,87 @@
-from ftplib import FTP
+import os
+from datetime import datetime, timedelta
 from io import BytesIO
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.logging import configure_logging
+import logging
 
 import boto3
+from botocore.handlers import disable_signing
+from botocore.exceptions import ClientError
+
+s3 = boto3.client('s3', )
+logger = logging.getLogger(__name__)
+
+CFDA_FILE_FORMAT = CONFIG_BROKER['cfda_file_path']
+WEEKDAY_UPLOADED = 5  # datetime.weekday()'s integer representing the day it's usually uploaded (Saturday)
+DAYS_TO_SEARCH = 4 * 7  # 4 weeks
+LOCAL_CFDA_FILE = os.path.join('dataactvalidator', 'config', 'cfda_program.csv')
+
+
+def find_latest_file(bucket, days_to_search=DAYS_TO_SEARCH):
+    # TODO: If/When the bucket is public, simply use the folder structure to find the latest file instead of guessing
+    # Check for the latest Saturday upload, otherwise manually look it up
+    today = datetime.today()
+    if today.weekday() == WEEKDAY_UPLOADED:
+        logger.info('Checking today\'s entry')
+        latest_file = today.strftime(CFDA_FILE_FORMAT)
+        if file_exists(bucket, latest_file):
+            return latest_file
+
+    logger.info('Checking last week\'s entry')
+    last_week = today - timedelta(7 - abs(today.weekday() - WEEKDAY_UPLOADED))
+    latest_file = last_week.strftime(CFDA_FILE_FORMAT)
+    if file_exists(bucket, latest_file):
+        return latest_file
+    else:
+        logger.info('Looking within the past {} days'.format(days_to_search))
+        try_date = today
+        while days_to_search > 0:
+            latest_file = try_date.strftime(CFDA_FILE_FORMAT)
+            if not file_exists(bucket, latest_file):
+                try_date = try_date - timedelta(1)
+                days_to_search -= 1
+            else:
+                break
+        if days_to_search == 0:
+            logger.error('Could not find cfda file within the past {} days.'.format(days_to_search))
+            return None
+        return latest_file
+
+
+def file_exists(bucket, src):
+    try:
+        bucket.Object(src).load()
+        return True
+    except ClientError:
+        return False
 
 
 def load_cfda():
-    # connect to host, default port
-    ftp = FTP('ftp.cfda.gov')
-    # anonymous FTP, the archive site allow general access
-    # user anonymous, password anonymous
-    ftp.login()
+    gsa_connection = boto3.resource('s3', region_name=CONFIG_BROKER['cfda_region'])
+    # disregard aws credentials for public file
+    gsa_connection.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
+    gsa_bucket = gsa_connection.Bucket(CONFIG_BROKER['cfda_bucket'])
 
-    # change the directory to /usaspending/
-    ftp.cwd('usaspending')
+    latest_file = find_latest_file(gsa_bucket)
+    if not latest_file:
+        logger.error('Could not find cfda file')
+        return
 
-    data = []
-
-    # output the directory contents
-    ftp.dir('-t', data.append)
-
-    # get the most recent updated cfda file
-    file_listing = data[0]
-
-    # break string down by adding the data to a string array using a space separator
-    # example of the list: "22553023 May 07 01:51 programs-full-usaspending17126.csv"
-    file_parts = file_listing.split(' ')
-
-    # get the last string array (file name)
-    file_name = file_parts[-1]
-
-    print('Loading ' + file_name)
+    logger.info('Loading ' + os.path.basename(latest_file))
 
     if CONFIG_BROKER["use_aws"]:
+        # download file to memory, reupload
         data = BytesIO()
-        # download file
-        ftp.retrbinary('RETR ' + file_name, data.write)
+        gsa_bucket.download_fileobj(latest_file, data)
         data.seek(0)
-
-        s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
-        s3.Bucket(CONFIG_BROKER['sf_133_bucket']).put_object(Key='cfda_program.csv', Body=data)
-
-        print('Loading file to S3 completed')
+        broker_s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
+        broker_s3.Bucket(CONFIG_BROKER['sf_133_bucket']).put_object(Key='cfda_program.csv', Body=data)
+        logger.info('Loading file to S3 completed')
     else:
-        # download file
-        ftp.retrbinary('RETR ' + file_name, open('dataactvalidator/config/cfda_program.csv', 'wb').write)
-        print('Loading file completed')
-
-    ftp.quit()
+        # download file locally
+        gsa_bucket.download_file(latest_file, LOCAL_CFDA_FILE)
+        logger.info('Loading file completed')
 
 
 if __name__ == '__main__':

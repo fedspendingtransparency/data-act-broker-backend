@@ -122,11 +122,11 @@ def test_flatten_soap_dict():
     expected = dict(
         duns='DuNs', recovery_model_q1=True, bus_types='a,b,c',
         company_address_city='CompanyCity',
-        company_address_street=None, company_address_state=None,
+        company_address_street=None, company_address_state=None, company_address_state_name=None,
         company_address_country=None, company_address_zip=None,
         company_address_district='CompanyDist',
         principle_place_street='PrincipleStreet',
-        principle_place_city=None, principle_place_state=None,
+        principle_place_city=None, principle_place_state=None, principle_place_state_name=None,
         principle_place_country=None, principle_place_zip=None,
         principle_place_district=None,
         top_paid_fullname_1='full1', top_paid_amount_1='1',
