@@ -25,7 +25,6 @@ CorrectionDeleteIndicatorDescription,correction_delete_ind_desc,ASP: Optional,st
 FaceValueOfDirectLoanOrLoanGuarantee,face_value_loan_guarantee,ASP: Conditional per Validation Rule,numeric,20
 FAIN,fain,ASP: Conditional per Validation Rule,string,30
 FederalActionObligation,federal_action_obligation,ASP: Conditional per Validation Rule,numeric,20
-FiscalYearAndQuarterCorrection,fiscal_year_and_quarter_co,ASP: Optional,string,5
 FundingAgencyCode,funding_agency_code,ASP: Optional,string,3
 FundingAgencyName,funding_agency_name,ASP: Derived,string,100
 FundingOfficeName,funding_office_name,ASP: Derived,string,100
@@ -34,7 +33,6 @@ FundingSubTierAgencyCode,funding_sub_tier_agency_co,ASP: Optional,string,4
 FundingSubTierAgencyName,funding_sub_tier_agency_na,ASP: Derived,string,100
 LegalEntityAddressLine1,legal_entity_address_line1,ASP: Conditional per Validation Rule,string,150
 LegalEntityAddressLine2,legal_entity_address_line2,ASP: Optional,string,150
-LegalEntityAddressLine3,legal_entity_address_line3,ASP: Optional,string,55
 LegalEntityCityCode,legal_entity_city_code,ASP: Derived,string,5
 LegalEntityCityName,legal_entity_city_name,ASP: Derived,string,40
 LegalEntityCongressionalDistrict,legal_entity_congressional,ASP: Derived,string,2
