@@ -62,14 +62,6 @@ def test_generate_d1_file_query(monkeypatch, mock_broker_config_paths, database,
             expected1.append(str(dap_one.__dict__[value]))
             expected2.append(str(dap_two.__dict__[value]))
 
-    print(file_rows[1])
-    print("===============================================================")
-    print(expected1)
-    print("===============================================================")
-    print(file_rows[2])
-    print("===============================================================")
-    print(expected1)
-
     assert file_rows[1] == expected1 or file_rows[2] == expected1
     assert file_rows[1] == expected2 or file_rows[2] == expected2
 
