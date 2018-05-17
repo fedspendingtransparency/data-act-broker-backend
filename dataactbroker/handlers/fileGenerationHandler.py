@@ -23,7 +23,15 @@ logger = logging.getLogger(__name__)
 
 @contextmanager
 def job_context(job_id, is_local=True):
-    """Common context for files D1, D2, E, and F generation. Handles marking the job finished and/or failed"""
+    """ Common context for files D1, D2, E, and F generation. Handles marking the job finished and/or failed
+
+        Args:
+            job_id: the ID of the submission job
+            is_local: a boolean indicating whether this is being run in a local environment or not
+
+        Yields:
+            The current DB session
+    """
     # Flask context ensures we have access to global.g
     with Flask(__name__).app_context():
         sess = GlobalDB.db().session
@@ -76,16 +84,18 @@ def job_context(job_id, is_local=True):
 
 def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_local, submission_id=None,
                     old_filename=None):
-    """Write file D1 or D2 to an appropriate CSV.
+    """ Write file D1 or D2 to an appropriate CSV.
 
         Args:
-            file_type - File type as either "D1" or "D2"
-            agency_code - FREC or CGAC code for generation
-            start - Beginning of period for D file
-            end - End of period for D file
-            job_id - Job ID for upload job
-            upload_name - File key to use on S3
-            is_local - True if in local development, False otherwise
+            file_type: File type as either "D1" or "D2"
+            agency_code: FREC or CGAC code for generation
+            start: Beginning of period for D file
+            end: End of period for D file
+            job_id: Job ID for upload job
+            upload_name: File key to use on S3
+            is_local: True if in local development, False otherwise
+            submission_id: the ID of the submission the file is being generated for
+            old_filename: Name of the file the generation is pulling from if the D file is cached
     """
     log_data = {
         'message_type': 'BrokerInfo',
@@ -188,14 +198,14 @@ def generate_d_file(file_type, agency_code, start, end, job_id, upload_name, is_
 
 
 def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, is_local):
-    """Write rows from fileF.generate_f_rows to an appropriate CSV.
+    """ Write rows from fileF.generate_f_rows to an appropriate CSV.
 
         Args:
-            submission_id - Submission ID for generation
-            job_id - Job ID for upload job
-            timestamped_name - Version of filename without user ID
-            upload_file_name - Filename to use on S3
-            is_local - True if in local development, False otherwise
+            submission_id: Submission ID for generation
+            job_id: Job ID for upload job
+            timestamped_name: Version of filename without user ID
+            upload_file_name: Filename to use on S3
+            is_local: True if in local development, False otherwise
     """
     log_data = {
         'message': 'Starting file F generation',
@@ -222,14 +232,14 @@ def generate_f_file(submission_id, job_id, timestamped_name, upload_file_name, i
 
 
 def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, is_local):
-    """Write file E to an appropriate CSV.
+    """ Write file E to an appropriate CSV.
 
         Args:
-            submission_id - Submission ID for generation
-            job_id - Job ID for upload job
-            timestamped_name - Version of filename without user ID
-            upload_file_name - Filename to use on S3
-            is_local - True if in local development, False otherwise
+            submission_id: Submission ID for generation
+            job_id: Job ID for upload job
+            timestamped_name: Version of filename without user ID
+            upload_file_name: Filename to use on S3
+            is_local: True if in local development, False otherwise
     """
     log_data = {
         'message': 'Starting file E generation',
@@ -269,17 +279,17 @@ def generate_e_file(submission_id, job_id, timestamped_name, upload_file_name, i
 
 
 def d_file_query(query_utils, page_start, page_end):
-    """Retrieve D1 or D2 data.
+    """ Retrieve D1 or D2 data.
 
         Args:
-            query_utils - object containing:
-                file_utils - fileD1 or fileD2 utils
-                sess - DB session
-                agency_code - FREC or CGAC code for generation
-                start - Beginning of period for D file
-                end - End of period for D file
-            page_start - Beginning of pagination
-            page_stop - End of pagination
+            query_utils: object containing:
+                file_utils: fileD1 or fileD2 utils
+                sess: DB session
+                agency_code: FREC or CGAC code for generation
+                start: Beginning of period for D file
+                end: End of period for D file
+            page_start: Beginning of pagination
+            page_end: End of pagination
 
         Return:
             paginated D1 or D2 query results
@@ -290,14 +300,14 @@ def d_file_query(query_utils, page_start, page_end):
 
 
 def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_local):
-    """Parent FileRequest job data to the child FileRequest job data.
+    """ Parent FileRequest job data to the child FileRequest job data.
 
         Args:
-            sess - current DB session
-            child_job - Job ID for the child FileRequest object
-            parent_job - Job ID for the parent FileRequest object
-            file_type - File type as either "D1" or "D2"
-            is_local - True if in local development, False otherwise
+            sess: current DB session
+            child_job: Job ID for the child FileRequest object
+            parent_job: Job ID for the parent FileRequest object
+            file_type: File type as either "D1" or "D2"
+            is_local: True if in local development, False otherwise
     """
     log_data = {
         'message': 'Copying data from parent job with job_id:{}'.format(parent_job.job_id),
@@ -341,10 +351,12 @@ def copy_parent_file_request_data(sess, child_job, parent_job, file_type, is_loc
 
 
 def file_already_exists(file_path, file_type, log_data):
-    """Check to see if the same file exists in the child bucket
+    """ Check to see if the same file exists in the child bucket
 
         Args:
-            file_path - the potential path to the file within the S3 bucket
+            file_path: the potential path to the file within the S3 bucket
+            file_type: the type of the file
+            log_data: an object containing what should be logged
 
         Returns:
             boolean value on whether or not the file already exists

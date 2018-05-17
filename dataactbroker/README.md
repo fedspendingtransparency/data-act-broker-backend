@@ -404,9 +404,9 @@ Example output:
         }, {
           "field_name": "status_of_budgetary_resour_cpe, budget_authority_available_cpe",
           "error_name": "rule_failed",
-          "error_description": "StatusOfBudgetaryResourcesTotal_CPE = BudgetAuthorityAvailableAmountTotal_CPE",
+          "error_description": "StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE",
           "occurrences": 27,
-          "rule_failed": "StatusOfBudgetaryResourcesTotal_CPE = BudgetAuthorityAvailableAmountTotal_CPE",
+          "rule_failed": "StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE",
           "original_label":"A24"
         }
       ],
@@ -1233,22 +1233,3 @@ To generate a test coverage report from the command line:
 1. Make sure you're in the project's test folder (`data-act-broker-backend/tests`).
 2. Run the tests using the `coverage` command: `coverage run integration/runTests.py`.
 3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
-
-## D File Callback
-**Route:** `/v1/complete_generation/\<generation_task_key\>/`
-
-**Method:** `POST`
-
-This route is used by the D File API to return a file location for generated D files.
-
-### Body (JSON)
-
-```
-{
-    "href": "http://..."
-}
-```
-
-### Body Description
-
-* `href' - Location where generated D file can be downloaded

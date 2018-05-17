@@ -25,7 +25,7 @@ from dataactcore.models.validationModels import FileColumn
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, FlexField
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
-from dataactcore.models.validationModels import RuleSql
+from dataactcore.models.validationModels import RuleSql, ValidationLabel
 
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -265,6 +265,19 @@ class ValidationManager:
                 error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
                 warning_csv = csv.writer(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
 
+                required_list = None
+                type_list = None
+                if file_type == "fabs":
+                    # create a list of all required/type labels for FABS
+                    labels = sess.query(ValidationLabel).all()
+                    required_list = {}
+                    type_list = {}
+                    for label in labels:
+                        if label.label_type == "requirement":
+                            required_list[label.column_name] = label.label
+                        else:
+                            type_list[label.column_name] = label.label
+
                 # write headers to file
                 error_csv.writerow(self.reportHeaders)
                 warning_csv.writerow(self.reportHeaders)
@@ -313,16 +326,17 @@ class ValidationManager:
                         passed_validations = True
                         valid = True
                     else:
-                        if file_type in ["detached_award"]:
+                        if file_type == "fabs":
                             record['afa_generated_unique'] = (record['award_modification_amendme'] or '-none-') + "_" +\
                                                              (record['awarding_sub_tier_agency_c'] or '-none-') + \
                                                              "_" + (record['fain'] or '-none-') + "_" + \
                                                              (record['uri'] or '-none-')
                         passed_validations, failures, valid = Validator.validate(record, csv_schema,
-                                                                                 file_type in ["detached_award"])
+                                                                                 file_type == "fabs",
+                                                                                 required_list, type_list)
                     if valid:
                         # todo: update this logic later when we have actual validations
-                        if file_type in ["detached_award"]:
+                        if file_type == "fabs":
                             record["is_valid"] = True
 
                         model_instance = model(job_id=job_id, submission_id=submission_id,
@@ -403,9 +417,9 @@ class ValidationManager:
             total_rows_excluding_header = row_number - 1
             valid_rows = total_rows_excluding_header - len(error_rows_unique)
 
-            # Update detached_award is_valid rows where applicable
+            # Update fabs is_valid rows where applicable
             # Update submission to include action dates where applicable
-            if file_type in ["detached_award"]:
+            if file_type == "fabs":
                 sess.query(DetachedAwardFinancialAssistance).\
                     filter(DetachedAwardFinancialAssistance.row_number.in_(error_rows_unique),
                            DetachedAwardFinancialAssistance.submission_id == submission_id).\
@@ -429,7 +443,7 @@ class ValidationManager:
             # Update error info for submission
             populate_job_error_info(job)
 
-            if file_type in ["detached_award"]:
+            if file_type == "fabs":
                 # set number of errors and warnings for detached submission
                 populate_submission_error_info(submission_id)
 

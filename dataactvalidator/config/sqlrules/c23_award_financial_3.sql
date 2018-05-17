@@ -1,11 +1,12 @@
 -- For each unique FAIN for financial assistance in File C (award financial), the sum of each TransactionObligatedAmount
 -- submitted in the reporting period should match (in inverse) the sum of the FederalActionObligation and
 -- OriginalLoanSubsidyCost amounts reported in D2 (award financial assistance) for the same timeframe, regardless of
--- modifications.
+-- modifications. This rule does not apply if the ATA field is populated and is different from the Agency ID.
 WITH award_financial_c23_3_{0} AS
     (SELECT transaction_obligated_amou,
         fain,
-        allocation_transfer_agency
+        allocation_transfer_agency,
+        agency_identifier
     FROM award_financial
     WHERE submission_id = {0}),
 -- gather the grouped sum from the previous WITH (we need both so we can do the NOT EXISTS later)
@@ -43,4 +44,5 @@ WHERE af.sum_ob_amount <> -1 * afa.sum_fed_act_ob_amount - afa.sum_orig_loan_sub
         FROM award_financial_c23_3_{0} AS sub_af
         WHERE sub_af.fain = af.fain
             AND COALESCE(sub_af.allocation_transfer_agency, '') <> ''
+            AND sub_af.allocation_transfer_agency <> sub_af.agency_identifier
     );

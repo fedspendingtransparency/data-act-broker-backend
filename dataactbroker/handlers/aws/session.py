@@ -8,94 +8,76 @@ from dataactcore.models.userModel import SessionMap
 
 
 class LoginSession:
-    """
-    This class is a wrapper for the session object
-    """
+    """ This class is a wrapper for the session object """
     @staticmethod
     def logout(session):
-        """
-        arguments:
+        """ Clears the current session
 
-        session -- (Session) the session object
-
-        Clears the current session
+            Args:
+                session: the Session object
         """
         session.pop("login", None)
         session.pop("name", None)
 
     @staticmethod
     def login(session, username):
-        """
-        arguments:
+        """ Sets the current session status
 
-        session -- (Session) the session object
-
-        username -- (int) the id of the user
-
-        Sets the current session status
+            Args:
+                session: the Session object
+                username: the id of the user
         """
         session["name"] = username
         session["login"] = True
 
     @staticmethod
     def reset_id(session):
-        """
-        arguments:
+        """ Resets the _uid in cases that the session becomes invalid
 
-        session -- (Session) the session object
-
-        resets the _uid in cases that the session becomes invalid
+            Args:
+                session: the Session object
         """
         session["_uid"] = "{}|{}".format(_create_identifier(), uuid4())
 
 
 def to_unix_time(datetime_value):
+    """ Converts datetime_value to time in seconds since 1970
+
+        Args:
+            datetime_value: datetime value to convert
+
+        Returns:
+            Integer value that represents the given datetime value in seconds since 1970 if the value provided is valid,
+            else returns the initial value provided without changes
     """
-    arguments:
-
-    datetime_value -- (DateTime)
-
-    Converts datetime_value to time in seconds since 1970
-
-    returns int
-    """
+    # If argument is a datetime object, convert to timestamp
     if isinstance(datetime_value, datetime):
-        # If argument is a datetime object, convert to timestamp
         return (datetime_value - datetime(1970, 1, 1)).total_seconds()
     return datetime_value
 
 
 class UserSession(dict, SessionMixin):
-    """
-    Class that wraps around normal Flask Session object
-    """
+    """ Class that wraps around normal Flask Session object """
     pass
 
 
 class UserSessionInterface(SessionInterface):
-    """
-
-    Class That implements the SessionInterface and uses SessionTable to store data
-
-    """
+    """ Class That implements the SessionInterface and uses SessionTable to store data """
 
     SESSION_CLEAR_COUNT_LIMIT = 10
 
     CountLimit = 1
 
     def __init__(self):
+        """ Initializes the UserSessionInterface """
         return
 
     def open_session(self, app, request):
-        """
+        """ Pulls or creates a new UserSession object
 
-        arguments:
-
-        app -- (Flask) the Flask application
-        request -- (Request)  the request object
-
-        implements the open_session method that pulls or creates a new UserSession object
-
+            Args:
+                app: the Flask application
+                request: the Request object
         """
         sid = request.headers.get("x-session-id")
         if sid and SessionTable.does_session_exist(sid):
@@ -114,21 +96,18 @@ class UserSessionInterface(SessionInterface):
         return session_dict
 
     def save_session(self, app, session, response):
-        """
-        arguments:
+        """ Saves the session or clears it based on the timeout limit. Also extends the expiration time of the current
+            session
 
-        app -- (Flask) the Flask application
-        request -- (Request)  the request object
-        session -- (Session)  the session object
-
-        implements the save_session method that saves the session or clears it
-        based on the timeout limit, this function also extends the expiration time of the current session
-
+            Args:
+                app: the Flask application
+                request: the Request object
+                session: the Session object
         """
         if not session:
             return
-        # Extend the expiration based on either the time out limit set here or
-        # the permanent_session_lifetime property of the app
+        # Extend the expiration based on either the time out limit set here or the permanent_session_lifetime property
+        # of the app
         if self.get_expiration_time(app, session):
             expiration = self.get_expiration_time(app, session)
         else:
@@ -153,21 +132,16 @@ class UserSessionInterface(SessionInterface):
 
 
 class SessionTable:
-    """
-    Provides helper functions for session management
+    """ Provides helper functions for session management
 
-    Constants :
-
-    TIME_OUT_LIMIT -- (int) The limit used for the session
-
+        Constants :
+            TIME_OUT_LIMIT: The limit (in seconds) for the session before it times out
     """
     TIME_OUT_LIMIT = 604800
 
     @staticmethod
     def clear_sessions():
-        """
-        Removes old sessions that are expired
-        """
+        """ Removes old sessions that are expired """
         new_time = to_unix_time(datetime.utcnow())
         sess = GlobalDB.db().session
         sess.query(SessionMap).filter(SessionMap.expiration < new_time).delete()
@@ -175,11 +149,13 @@ class SessionTable:
 
     @staticmethod
     def does_session_exist(uid):
-        """
-        arguments:
+        """ Checks if a session exists for the given uid
 
-        uid -- (String) the uid
-        return (boolean) if the session
+            Args:
+                uid: the id of the session
+
+            Returns:
+                A boolean that indicates if the session exists or not
         """
         item = GlobalDB.db().session.query(SessionMap).filter_by(uid=uid).one_or_none()
         if item is not None:
@@ -190,32 +166,36 @@ class SessionTable:
 
     @staticmethod
     def get_timeout(uid):
-        """
-        arguments:
+        """ Gets the timeout for the session
 
-        uid -- (String) the uid
-        return (int) time when the session expires
+            Args:
+                uid: the id of the session
+
+            Returns:
+                An integer indicating the expiration date/time of the given session
         """
         return GlobalDB.db().session.query(SessionMap).filter_by(uid=uid).one().expiration
 
     @staticmethod
     def get_data(uid):
-        """
-        uid -- (String) the uid
-        return (Session) the session data
+        """ Gets the data for the session
+
+            Args:
+                uid: the id of the session
+
+            Returns:
+                An object containing the data of the session, including _uid, login, sid, session_check, and name
         """
         return GlobalDB.db().session.query(SessionMap).filter_by(uid=uid).one().data
 
     @staticmethod
     def new_session(uid, data, expiration):
         """ Updates current session or creates a new one if no session exists
-        arguments:
 
-        uid  -- (String) the session id
-        data -- (String) the data for the session
-        expiration -- (int) the time in seconds from 1970 when the session is no longer active
-
-        Updates the existing session or creates a new one
+            Args:
+                uid: the id of the session
+                data: the data for the session
+                expiration: the time in seconds from 1970 when the session is no longer active
         """
         # Try converting session to json
         sess = GlobalDB.db().session
