@@ -294,6 +294,8 @@ def derive_ppop_code(obj):
                 obj['place_of_performance_code'] = ppop_code + obj['legal_entity_city_code']
             else:
                 obj['place_of_performance_code'] = ppop_code + '00000'
+        elif obj['legal_entity_country_code'].upper() != 'USA':
+            obj['place_of_performance_code'] = '00FORGN'
 
 
 def derive_pii_redacted_ppop_data(obj):
