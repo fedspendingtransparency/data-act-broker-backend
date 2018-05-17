@@ -62,7 +62,7 @@ mapping = OrderedDict([
     ('primaryplaceofperformancestatename', 'place_of_perform_state_nam'),
     ('primaryplaceofperformancecountyname', 'place_of_perform_county_na'),
     ('primaryplaceofperformancecityname', 'place_of_performance_city'),
-    ('primaryplaceofperformancezip_4', 'place_of_performance_zip4a'),
+    ('primaryplaceofperformancezip+4', 'place_of_performance_zip4a'),
     ('primaryplaceofperformanceforeignlocationdescription', 'place_of_performance_forei'),
     ('primaryplaceofperformancecongressionaldistrict', 'place_of_performance_congr'),
     ('awarddescription', 'award_description'),
@@ -85,12 +85,15 @@ def query_data(session, agency_code, start, end, page_start, page_stop):
     """ Request D2 file data
 
         Args:
-            session - DB session
-            agency_code - FREC or CGAC code for generation
-            start - Beginning of period for D file
-            end - End of period for D file
-            page_start - Beginning of pagination
-            page_stop - End of pagination
+            session: DB session
+            agency_code: FREC or CGAC code for generation
+            start: Beginning of period for D file
+            end: End of period for D file
+            page_start: Beginning of pagination
+            page_stop: End of pagination
+
+        Returns:
+            The rows using the provided dates and page size for the given agency.
     """
     rows = initial_query(session).\
         filter(file_model.is_active.is_(True)).\
@@ -105,15 +108,26 @@ def query_published_fabs_data(session, submission_id, page_start, page_stop):
     """ Request published FABS file data
 
         Args:
-            session - DB session
-            submission_id - Submission ID for generation
-            page_start - Beginning of pagination
-            page_stop - End of pagination
+            session: DB session
+            submission_id: Submission ID for generation
+            page_start: Beginning of pagination
+            page_stop: End of pagination
+
+        Returns:
+            A query to gather published data from the provided submission with the provided slice
     """
     return initial_query(session).filter(file_model.submission_id == submission_id).slice(page_start, page_stop)
 
 
 def initial_query(session):
+    """ Creates the initial query for D2 files.
+
+        Args:
+            session: The current DB session
+
+        Returns:
+            The base query (a select from the PublishedAwardFinancialAssistance table with the specified columns).
+    """
     return session.query(
         file_model.action_type,
         file_model.action_type_description,

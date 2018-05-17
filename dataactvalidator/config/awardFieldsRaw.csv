@@ -60,7 +60,7 @@ PrimaryPlaceOfPerformanceCountyCode,place_of_perform_county_co,ASP: Optional,str
 PrimaryPlaceOfPerformanceCountyName,place_of_perform_county_na,ASP: Derived,string,40
 PrimaryPlaceOfPerformanceForeignLocationDescription,place_of_performance_forei,ASP: Conditional per Validation Rule,string,100
 PrimaryPlaceOfPerformanceStateName,place_of_perform_state_nam,ASP: Derived,string,50
-PrimaryPlaceOfPerformanceZIP_4,place_of_performance_zip4a,ASP: Conditional per Validation Rule,string,10
+PrimaryPlaceOfPerformanceZIP+4,place_of_performance_zip4a,ASP: Conditional per Validation Rule,string,10
 RecordType,record_type,ASP: Required,integer,1
 RecordTypeDescription,record_type_description,ASP: Optional,string,
 SAI_Number,sai_number,ASP: Optional,string,50
