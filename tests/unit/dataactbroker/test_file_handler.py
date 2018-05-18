@@ -267,7 +267,7 @@ def test_narratives(database, job_constants):
         'D2': '',
         'E': 'EEEEEE',
         'F': '',
-        'D2_detached': ''
+        'FABS': ''
     }
 
     # Replace the narratives
@@ -285,7 +285,7 @@ def test_narratives(database, job_constants):
         'D2': '',
         'E': 'E2E2E2',
         'F': '',
-        'D2_detached': ''
+        'FABS': ''
     }
 
 good_dates = [

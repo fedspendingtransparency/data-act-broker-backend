@@ -1,4 +1,5 @@
--- For PrimaryPlaceOfPerformanceCode XX##### city must exist in provided state (zip4 not provided, error)
+-- For PrimaryPlaceOfPerformanceCode XX#####, where PrimaryPlaceOfPerformanceZIP+4 is not provided: city code ##### must
+-- be valid and exist in the provided state.
 WITH detached_award_financial_assistance_d41_1_{0} AS
     (SELECT submission_id,
         row_number,

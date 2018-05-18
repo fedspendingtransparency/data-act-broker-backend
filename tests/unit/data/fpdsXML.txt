@@ -63,9 +63,9 @@
           <ns1:numberOfActions>1</ns1:numberOfActions></ns1:contractData>
         <ns1:legislativeMandates>
           <ns1:ClingerCohenAct description="NO">N</ns1:ClingerCohenAct>
-          <ns1:WalshHealyAct description="NO">N</ns1:WalshHealyAct>
-          <ns1:serviceContractAct description="NO">N</ns1:serviceContractAct>
-          <ns1:DavisBaconAct description="NO">N</ns1:DavisBaconAct>
+          <ns1:materialsSuppliesArticlesEquipment description="NO">N</ns1:materialsSuppliesArticlesEquipment>
+          <ns1:laborStandards description="NO">N</ns1:laborStandards>
+          <ns1:constructionWageRateRequirements description="NO">N</ns1:constructionWageRateRequirements>
           <ns1:interagencyContractingAuthority description="NOT APPLICABLE">X</ns1:interagencyContractingAuthority></ns1:legislativeMandates>
         <ns1:productOrServiceInformation>
           <ns1:productOrServiceCode description="TRANSPORTATION/TRAVEL/RELOCATION- TRAVEL/LODGING/RECRUITMENT: LODGING, HOTEL/MOTEL" productOrServiceType="SERVICE">V231</ns1:productOrServiceCode>
@@ -272,9 +272,9 @@
           <ns1:multipleOrSingleAwardIDC description="SINGLE AWARD">S</ns1:multipleOrSingleAwardIDC></ns1:contractData>
         <ns1:legislativeMandates>
           <ns1:ClingerCohenAct description="NO">N</ns1:ClingerCohenAct>
-          <ns1:WalshHealyAct description="NOT APPLICABLE">X</ns1:WalshHealyAct>
-          <ns1:serviceContractAct description="NOT APPLICABLE">X</ns1:serviceContractAct>
-          <ns1:DavisBaconAct description="NOT APPLICABLE">X</ns1:DavisBaconAct>
+          <ns1:materialsSuppliesArticlesEquipment description="NOT APPLICABLE">X</ns1:materialsSuppliesArticlesEquipment>
+          <ns1:laborStandards description="NOT APPLICABLE">X</ns1:laborStandards>
+          <ns1:constructionWageRateRequirements description="NOT APPLICABLE">X</ns1:constructionWageRateRequirements>
           <ns1:interagencyContractingAuthority description="NOT APPLICABLE">X</ns1:interagencyContractingAuthority></ns1:legislativeMandates>
         <ns1:productOrServiceInformation>
           <ns1:productOrServiceCode description="INFORMATION RETRIEVAL" productOrServiceType="SERVICE">R612</ns1:productOrServiceCode></ns1:productOrServiceInformation>
