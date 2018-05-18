@@ -176,13 +176,32 @@ Before running the broker, you'll need to provide a few configuration options. T
 At startup, the broker looks for an environment variable called `env` and will use that to set the instance name. If there is no `env` environment variable, the broker will set the instance name to `local` and look for `local_config.yml` and `local_secrets.yml`.
 
 There are sample config files in `data-act-broker-backend/dataactcore`. Use these as a starting point when setting up the broker. The instructions below assume that you're installing the broker for local development.
+These are the list of the files to be cloned and renamed.
+```
+dataactcore/config_example.yml
+dataactcore/local_config_example.yml
+dataactcore/local_secrets_example.yml
+dataactvalidator/config/example_agency_codes_list.csv
+dataactvalidator/config/example_cars_tas.csv
+dataactvalidator/config/example_cgac.csv
+dataactvalidator/config/example_object_class.csv
+dataactvalidator/config/example_program_activity.csv
+```
+If you don't already have your own configs or don't want to use your local configs you can use this script to copy and rename all the necessary config files (run script from root level of this repo):
+```
+#!/bin/bash
 
-1. Open `config_example.yml` in a text editor and save it as `config.yml`.
-2. Update the values in `config.yml` as appropriate for your installation and save. In many cases the default values will work just fine. The most important config values to change will be in `local_config.yml` and `local_secrets.yml`
-3. Open `local_config_example.yml` in a text editor and save it as `local_config.yml`.
-4. Update the values in `local_config.yml` as appropriate for your installation and save.
-5. Open `local_secrets_example.yml` in a text editor and save it as `local_secrets.yml`.
-6. Update the values in `local_secrets.yml` as appropriate for your installation and save.
+mv dataactcore/config_example.yml dataactcore/config.yml
+mv dataactcore/local_config_example.yml dataactcore/local_config.yml
+mv dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
+
+
+mv dataactvalidator/config/example_agency_codes_list.csv dataactvalidator/config/agency_codes_list.csv
+mv dataactvalidator/config/example_cars_tas.csv dataactvalidator/config/cars_tas.csv
+mv dataactvalidator/config/example_cgac.csv dataactvalidator/config/cgac.csv
+mv dataactvalidator/config/example_object_class.csv dataactvalidator/config/object_class.csv
+mv dataactvalidator/config/example_program_activity.csv dataactvalidator/config/program_activity.csv```
+```
 
 ### Initialize Broker Backend Applications
 
