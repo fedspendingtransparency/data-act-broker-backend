@@ -339,10 +339,9 @@ via `dictConfig` (in addition to some standard settings defined in
 
 ### Setup with Docker
 
-Install docker in your local machine by selecting your OS and hitting install from this [link](https://docs.docker.com/docker-for-mac/install).
-This [link](https://docs.docker.com/docker-for-mac/install/) will already include docker-compose.
+Install docker in your local machine by selecting your OS and hitting install from this [link](https://docs.docker.com/install/) (this installation includes `docker-compose` as well).
 
-These are the files you need to add/change before you begin working in your container. `_example` or `example_` needs to be removed from these file names.
+These are the files you need to make a copy and change the files name before you begin working in your container. `_example` or `example_` needs to be removed from the new copy of these file names.
 ```
 dataactcore/config_example.yml
 dataactcore/local_config_example.yml
@@ -353,17 +352,33 @@ dataactvalidator/config/example_cgac.csv
 dataactvalidator/config/example_object_class.csv
 dataactvalidator/config/example_program_activity.csv
 ```
+If you don't already have your own configs or don't want to use your local configs you can use this script to copy and rename all the necessary config files (run script from root level of this repo):
 
-After you sucessfully installed Docker, make sure the docker daemon running on your local machine and renamed all the files listed above, run the following command in the root level of this backend repository:
+```
+#!/bin/bash
+
+mv dataactcore/config_example.yml dataactcore/config.yml
+mv dataactcore/local_config_example.yml dataactcore/local_config.yml
+mv dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
+
+
+mv dataactvalidator/config/example_agency_codes_list.csv dataactvalidator/config/agency_codes_list.csv
+mv dataactvalidator/config/example_cars_tas.csv dataactvalidator/config/cars_tas.csv
+mv dataactvalidator/config/example_cgac.csv dataactvalidator/config/cgac.csv
+mv dataactvalidator/config/example_object_class.csv dataactvalidator/config/object_class.csv
+mv dataactvalidator/config/example_program_activity.csv dataactvalidator/config/program_activity.csv```
+```
+
+After you successfully installed Docker, make sure the docker daemon running on your local machine by running `docker version` and renamed all the files listed above, run the following command in the root level of this backend repository:
 `docker-compose up -d`  This command will spin up the postgres container `dataact-postgres` and build your backend container `dataact-broker`. This will take much longer the first time because it's building the image and installing the requirements.
 
 Wait about 20 seconds for everything to come up (first time setup can take up to 8 minutes) then login/ssh to the backend container with this command:
 `docker exec -it dataact-broker /bin/bash`
-This will take you to the workspace directory within the dataact-backend container that will have your backend repository mounted so changes in that repository will also be changed within the container. This means developers can change the files they want and run them within the container.
+This will take you to the workspace directory within the dataact-backend container that will have your backend repository mounted so changes in that repository will also be changed within the container. This means developers can change the files locally and it will reflect what if they want to run them within the container.
 
 If you want to use postgres on your local machine, change the config to point to your host IP.
 
-At this point you are then ready to do `alembic upgrade head` in the `dataactcore` directory and `python dataactcore/initialize.py -i`
+At this point you are then ready to do `python dataactcore/initialize.py -i` and run your app.
 
 ### Adding log messages
 

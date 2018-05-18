@@ -10,9 +10,8 @@ broker:
     # location where the /public files are located. If a port is required,
     # it should be appended to the URL.
     full_url: http://localhost:3000
-    # full_url: https://alpha-broker-sandbox.usaspending.gov/
 
-    sqs_queue_name: sqa-quene-name
+    sqs_queue_name: sqs-queue-name
 
 
     # Set the key (string) used to serialize tokens for email validations.
@@ -33,7 +32,7 @@ broker:
     # when the broker is not using an AWS S3 bucket.
     # This should be an absolute path. Note that this path
     # is ignored if use_aws is true.
-    broker_files: /data-act/backend/data-act-broker-backend/temp
+    broker_files: /data-act/backend/data-act-broker-backend/tmp
 
     # The folder within dataactvalidator/config where USPS zip4 files are stored
     zip_folder: zips
@@ -65,11 +64,11 @@ broker:
     fsrs:
         procurement_service:
             wsdl: 'https://www.fsrs.gov/ws/ffata_data_api.php?wsdl'
-            username: 'ffataexport'
+            username: 'username'
             password: 'password'
         grant_service:
             wsdl: 'https://www.fsrs.gov/ws/ffata_grants_data_api.php?wsdl'
-            username: 'ffataexport'
+            username: 'username'
             password: 'password'
 
     ## AWS Configuration Settings ##
@@ -136,19 +135,15 @@ services:
     debug: true
 
     # URL/IP address that hosts the broker API
-    # broker_api_host: alpha-broker-sandbox-api.usaspending.gov
-    # broker_api_port: 443
     broker_api_host: 127.0.0.1
     broker_api_port: 9999
 
     # URL/IP address that hosts the validator API
-    # validator_host: 0.0.0.0
     validator_host: 127.0.0.1
     validator_port: 8889
 
     # If you would like to restrict access from other origins, set the
     # allowed origins here. Otherwise, leave as '*'.
-    # cross_origin_url: ['https://alpha-broker-sandbox.usaspending.gov','http://localhost', 'http://127.0.0.1', 'http://sandbox-data-act-web-app.s3-website-us-gov-west-1.amazonaws.com']
     cross_origin_url: '*'
 
     # The path where the broker will store error reports
@@ -203,7 +198,7 @@ logging:
 
     # The path where broker still store log files.
     # Ignored if use_logstash is true.
-    log_files: /data-act/backend/data-act-broker-backend/temp/logs
+    log_files: /data-act/backend/data-act-broker-backend/tmp/logs
     # Set to true and fill in all logstash_ settings
     # to use logstash for logging
     use_logstash: false
@@ -215,7 +210,7 @@ logging:
 
     # Logstash EC2 port. 514 is the port typically used with logstash,
     # so you can mostly likely keep this as is.
-    logstash_port: 514
+    logstash_port: port
 
 job-queue:
     # RabbitMQ username
@@ -227,7 +222,7 @@ job-queue:
     password: password123
 
     # URL for the job queue server. Note, do not add 'http'
-    url: ec2-queue-server.us-gov-region-1.compute.amazonaws.com
+    url: ec2-queue-server.aws-region.compute.amazonaws.com
     # url: 127.0.0.1
 
     # Port on which Celery is listening
