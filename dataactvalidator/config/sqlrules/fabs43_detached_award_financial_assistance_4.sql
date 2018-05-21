@@ -2,6 +2,7 @@
 -- PrimaryPlaceOfPerformanceCode. The PrimaryPlaceOfPerformanceCongressionalDistrict may be 90 if the state has more
 -- than one congressional district or PrimaryPlaceOfPerformanceCode is 00*****
 -- Districts that were created under the 2000 census or later are considered valid for purposes of this rule.
+-- This rule is ignored if PrimaryPlaceOfPerformanceCode is blank
 WITH detached_award_financial_assistance_fabs43_4_{0} AS
     (SELECT submission_id,
         row_number,
@@ -14,7 +15,8 @@ SELECT
     dafa.place_of_performance_code,
     dafa.place_of_performance_congr
 FROM detached_award_financial_assistance_fabs43_4_{0} AS dafa
-WHERE CASE WHEN COALESCE(dafa.place_of_performance_congr, '') <> ''
+WHERE COALESCE(dafa.place_of_performance_code, '') <> ''
+    AND CASE WHEN COALESCE(dafa.place_of_performance_congr, '') <> ''
             THEN ((dafa.place_of_performance_congr <> '90'
                     AND dafa.row_number NOT IN (
                         SELECT DISTINCT sub_dafa.row_number
