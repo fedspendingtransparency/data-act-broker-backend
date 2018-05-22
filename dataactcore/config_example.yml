@@ -32,12 +32,44 @@ broker:
     # when the broker is not using an AWS S3 bucket.
     # This should be an absolute path. Note that this path
     # is ignored if use_aws is true.
-    broker_files: /data-act/backend/data-act-broker-backend/tmp
+    broker_files: /data-act/backend/tmp
 
     # The folder within dataactvalidator/config where USPS zip4 files are stored
     zip_folder: zips
 
-    d_file_storage_path: /data-act/backend/data-act-broker-backend/tmp/
+    ## Smartronix API URLs ##
+
+    # File D1 API
+    # Uses "{}" because it requires string formatting to insert query parameters
+    # If the URL is provided, the file name provided will be used when uploading to S3
+    award_procurement_url: https://award_procurement_url.gov
+    award_procurement_file_name: d1_data.csv
+
+    # File D2 API
+    # If the URL is provided, the file name provided will be used when uploading to S3
+    award_url: https://award_url.gov
+    award_file_name: d2_data.csv
+
+    d_file_storage_path: /data-act/backend/tmp/
+
+    # File E
+    awardee_attributes_file_name: awardee_data.csv
+    executive_compensation_url: https://sample.gov
+    executive_compensation_file_name: executive_compensation_data.csv
+
+    # File F
+    sub_award_file_name: sub_award_data.csv
+
+    # Connection info for fetching data related to File F
+    fsrs:
+        procurement_service:
+            wsdl: 'https://www.fsrs.gov/ws/ffata_data_api.php?wsdl'
+            username: 'username'
+            password: 'password'
+        grant_service:
+            wsdl: 'https://www.fsrs.gov/ws/ffata_grants_data_api.php?wsdl'
+            username: 'username'
+            password: 'password'
 
     ## AWS Configuration Settings ##
 
@@ -120,11 +152,11 @@ services:
     # same path as the broker_files setting (above)
     # for simplicity.
     # This should be an absolute path.
-    error_report_path: /data-act/backend/data-act-broker-backend/tmp
+    error_report_path: /data-act/backend/tmp
 
     # The paths to the sample D1 and D2 files for local development
-    d2_file_path: /data-act/backend/data-act-broker-backend/tests/integration/data/d2_sample.csv
-    d1_file_path: /data-act/backend/data-act-broker-backend/tests/integration/data/d1_sample.csv
+    d2_file_path: /data-act/backend/tests/integration/data/d2_sample.csv
+    d1_file_path: /data-act/backend/tests/integration/data/d1_sample.csv
 
 
 db:
@@ -166,7 +198,7 @@ logging:
 
     # The path where broker still store log files.
     # Ignored if use_logstash is true.
-    log_files: /data-act/backend/data-act-broker-backend/tmp/logs
+    log_files: /data-act/backend/tmp/logs
     # Set to true and fill in all logstash_ settings
     # to use logstash for logging
     use_logstash: false
