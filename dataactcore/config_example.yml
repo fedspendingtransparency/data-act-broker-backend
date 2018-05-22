@@ -42,34 +42,20 @@ broker:
     # File D1 API
     # Uses "{}" because it requires string formatting to insert query parameters
     # If the URL is provided, the file name provided will be used when uploading to S3
-    award_procurement_url: https://award_procurement_url.gov
     award_procurement_file_name: d1_data.csv
 
     # File D2 API
     # If the URL is provided, the file name provided will be used when uploading to S3
-    award_url: https://award_url.gov
     award_file_name: d2_data.csv
 
     d_file_storage_path: /data-act/backend/tmp/
 
     # File E
     awardee_attributes_file_name: awardee_data.csv
-    executive_compensation_url: https://sample.gov
     executive_compensation_file_name: executive_compensation_data.csv
 
     # File F
     sub_award_file_name: sub_award_data.csv
-
-    # Connection info for fetching data related to File F
-    fsrs:
-        procurement_service:
-            wsdl: 'https://www.fsrs.gov/ws/ffata_data_api.php?wsdl'
-            username: 'username'
-            password: 'password'
-        grant_service:
-            wsdl: 'https://www.fsrs.gov/ws/ffata_grants_data_api.php?wsdl'
-            username: 'username'
-            password: 'password'
 
     ## AWS Configuration Settings ##
 
