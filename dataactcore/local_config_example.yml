@@ -6,17 +6,17 @@
 broker:
 
     use_aws: false
-    full_url: http://localhost:3000
+    full_url: http://0.0.0.0:3000
     reply_to_email: valid.developer.email@domain.com
 
 services:
 
     debug: true
-    broker_api_host: 127.0.0.1
+    broker_api_host: 0.0.0.0
     broker_api_port: 9999
-    validator_host: 127.0.0.1
+    validator_host: 0.0.0.0
     validator_port: 8889
-    error_report_path: /data-act/backend/data-act-broker-backend/tmp/error_reports
+    error_report_path: /data-act/backend/data-act-broker-backend/temp/error_reports
 
 db:
 
@@ -28,4 +28,4 @@ db:
 
 logging:
 
-    log_files: /data-act/backend/data-act-broker-backend/tmp/logs
+    log_files: /data-act/backend/data-act-broker-backend/temp/logs

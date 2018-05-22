@@ -363,16 +363,15 @@ Install docker in your local machine by selecting your OS and hitting install fr
 Next step is to refer to the `Create Broker Config Files` section of this documentation to copy and rename config files, if choose to use the default configs.
 
 After you successfully installed Docker, make sure the docker daemon running on your local machine by running `docker version` and make sure you have your configs set up, run the following command in the root level of this backend repository:
-`docker-compose up -d`  This command will spin up the postgres container `dataact-postgres` and build your backend container `dataact-broker`. This will take much longer the first time because it's building the image and installing the requirements.
+`docker-compose up -d`  This command will spin up the postgres container `dataact-postgres`, build your backend image `broker-backend` and run the two service `dataact-broker` and `dataact-validator`. This will take longer the first time because it's building the image and installing the requirements. You can rebuild your base container by doing `docker-compose build` if your requirements.txt changes.
 
 Wait about 20 seconds for everything to come up (first time setup can take up to 8 minutes) then login/ssh to the backend container with this command:
 `docker exec -it dataact-broker /bin/bash`
 This will take you to the workspace directory within the dataact-backend container that will have your backend repository mounted so changes in that repository will also be changed within the container. This means developers can change the files locally and it will reflect what if they want to run them within the container.
 
-If you want to use postgres on your local machine, change the config to point to your host IP.
+If you want to use postgres on your local machine, change the config to point to your host IP. If you are using docker version `17.06` and have a mac use `docker.for.mac.localhost` instead of IP. If you are using `17.12.0` substitute `docker.for.mac.host.internal` and for `18.03.0` and higher use `host.docker.internal` for your host IP to connect to your local machine.
 
-At this point you are then ready to do `python dataactcore/scripts/initialize.py -i` and run your app.
-
+At this point you can go to your browser and hit the broker api by going to `http://127.0.0.1:9999/v1/current_user/`.
 ### Adding log messages
 
 Of course, if nothing is being logged, you won't be able to see application
