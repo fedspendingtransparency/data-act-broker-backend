@@ -1,7 +1,7 @@
 FROM python:3.5
 
 RUN pip install unittest-xml-reporting
-RUN pip install paramiko
+RUN pip install paramiko==2.4.1
 
 COPY requirements.txt /data-act/backend/requirements.txt
 COPY server_requirements.txt /data-act/backend/server_requirements.txt

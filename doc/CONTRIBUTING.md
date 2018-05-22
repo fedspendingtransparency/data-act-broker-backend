@@ -191,16 +191,16 @@ If you don't already have your own configs or don't want to use your local confi
 ```
 #!/bin/bash
 
-mv dataactcore/config_example.yml dataactcore/config.yml
-mv dataactcore/local_config_example.yml dataactcore/local_config.yml
-mv dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
+cp dataactcore/config_example.yml dataactcore/config.yml
+cp dataactcore/local_config_example.yml dataactcore/local_config.yml
+cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
 
 
-mv dataactvalidator/config/example_agency_codes_list.csv dataactvalidator/config/agency_codes_list.csv
-mv dataactvalidator/config/example_cars_tas.csv dataactvalidator/config/cars_tas.csv
-mv dataactvalidator/config/example_cgac.csv dataactvalidator/config/cgac.csv
-mv dataactvalidator/config/example_object_class.csv dataactvalidator/config/object_class.csv
-mv dataactvalidator/config/example_program_activity.csv dataactvalidator/config/program_activity.csv```
+cp dataactvalidator/config/example_agency_codes_list.csv dataactvalidator/config/agency_codes_list.csv
+cp dataactvalidator/config/example_cars_tas.csv dataactvalidator/config/cars_tas.csv
+cp dataactvalidator/config/example_cgac.csv dataactvalidator/config/cgac.csv
+cp dataactvalidator/config/example_object_class.csv dataactvalidator/config/object_class.csv
+cp dataactvalidator/config/example_program_activity.csv dataactvalidator/config/program_activity.csv```
 ```
 
 ### Initialize Broker Backend Applications
@@ -360,35 +360,9 @@ via `dictConfig` (in addition to some standard settings defined in
 
 Install docker in your local machine by selecting your OS and hitting install from this [link](https://docs.docker.com/install/) (this installation includes `docker-compose` as well).
 
-These are the files you need to make a copy and change the files name before you begin working in your container. `_example` or `example_` needs to be removed from the new copy of these file names.
-```
-dataactcore/config_example.yml
-dataactcore/local_config_example.yml
-dataactcore/local_secrets_example.yml
-dataactvalidator/config/example_agency_codes_list.csv
-dataactvalidator/config/example_cars_tas.csv
-dataactvalidator/config/example_cgac.csv
-dataactvalidator/config/example_object_class.csv
-dataactvalidator/config/example_program_activity.csv
-```
-If you don't already have your own configs or don't want to use your local configs you can use this script to copy and rename all the necessary config files (run script from root level of this repo):
+Next step is to refer to the `Create Broker Config Files` section of this documentation to copy and rename config files, if choose to use the default configs.
 
-```
-#!/bin/bash
-
-mv dataactcore/config_example.yml dataactcore/config.yml
-mv dataactcore/local_config_example.yml dataactcore/local_config.yml
-mv dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
-
-
-mv dataactvalidator/config/example_agency_codes_list.csv dataactvalidator/config/agency_codes_list.csv
-mv dataactvalidator/config/example_cars_tas.csv dataactvalidator/config/cars_tas.csv
-mv dataactvalidator/config/example_cgac.csv dataactvalidator/config/cgac.csv
-mv dataactvalidator/config/example_object_class.csv dataactvalidator/config/object_class.csv
-mv dataactvalidator/config/example_program_activity.csv dataactvalidator/config/program_activity.csv```
-```
-
-After you successfully installed Docker, make sure the docker daemon running on your local machine by running `docker version` and renamed all the files listed above, run the following command in the root level of this backend repository:
+After you successfully installed Docker, make sure the docker daemon running on your local machine by running `docker version` and make sure you have your configs set up, run the following command in the root level of this backend repository:
 `docker-compose up -d`  This command will spin up the postgres container `dataact-postgres` and build your backend container `dataact-broker`. This will take much longer the first time because it's building the image and installing the requirements.
 
 Wait about 20 seconds for everything to come up (first time setup can take up to 8 minutes) then login/ssh to the backend container with this command:
@@ -397,7 +371,7 @@ This will take you to the workspace directory within the dataact-backend contain
 
 If you want to use postgres on your local machine, change the config to point to your host IP.
 
-At this point you are then ready to do `python dataactcore/initialize.py -i` and run your app.
+At this point you are then ready to do `python dataactcore/scripts/initialize.py -i` and run your app.
 
 ### Adding log messages
 
