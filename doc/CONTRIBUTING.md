@@ -176,7 +176,7 @@ Before running the broker, you'll need to provide a few configuration options. T
 At startup, the broker looks for an environment variable called `env` and will use that to set the instance name. If there is no `env` environment variable, the broker will set the instance name to `local` and look for `local_config.yml` and `local_secrets.yml`.
 
 There are sample config files in `data-act-broker-backend/dataactcore`. Use these as a starting point when setting up the broker. The instructions below assume that you're installing the broker for local development.
-These are the list of the files to be cloned and renamed.
+These are the list of the files to be copied and renamed.
 ```
 dataactcore/config_example.yml
 dataactcore/local_config_example.yml
@@ -360,20 +360,31 @@ via `dictConfig` (in addition to some standard settings defined in
 
 Install docker in your local machine by selecting your OS and hitting install from this [link](https://docs.docker.com/install/) (this installation includes `docker-compose` as well).
 
-Next step is to refer to the `Create Broker Config Files` section of this documentation to copy and rename config files, if choose to use the default configs.
+Next step is to refer to the `Create Broker Config Files` section of this documentation to copy and rename config files, if you choose to use the default configs.
 
-After you successfully installed Docker, make sure the docker daemon running on your local machine by running `docker version` and make sure you have your configs set up, run the following command in the root level of this backend repository:
-`docker-compose up -d`  This command will spin up the postgres container `dataact-postgres`, build your backend image `broker-backend` and run the two service `dataact-broker` and `dataact-validator`. This will take longer the first time because it's building the image and installing the requirements. You can rebuild your base container by doing `docker-compose build` if your requirements.txt changes.
+After you successfully installed Docker, make sure the docker daemon is running on your local machine by running `docker version` and make sure you have your configs set up. Run the following command in the root level of this backend repository:
 
-Wait about 30 seconds for everything to come up (first time setup can take up to 8 minutes) then login/ssh to the backend broker container with this command:
-`docker exec -it dataact-broker /bin/bash`
-and login/ssh to the backend validator container with:
-`docker exec -it dataact-validator /bin/bash`
-This will take you to the workspace directory within the dataact-backend container that will have your backend repository mounted so changes in that repository will also be changed within the container. This means developers can change the files locally and it will reflect what if they want to run them within the container.
+- `docker-compose up -d`  This command will spin up the postgres container `dataact-postgres`, build your backend image `broker-backend` and run the two service `dataact-broker` and `dataact-validator`. This will take longer the first time because it's building the image and installs the requirements.
 
+These commands are useful for debugging but is optional:
+
+- `docker-compose build` rebuilds your base image. example: you would do this if your requirements.txt changes.
+
+- `docker-compose down` shuts down all your local containers and removes them. This may help debug some problems. You can always spin up your containers again by doing `docker-compose up -d`.
+
+Wait about 30 seconds for everything to come up (first time setup can take up to 8 minutes). At this point you can go to your browser and hit the broker api by going to `http://127.0.0.1:9999/v1/current_user/`.
+
+Run these commands to login/ssh to the broker and validator containers:
+
+- `docker exec -it dataact-broker /bin/bash` login/ssh to broker.
+
+- `docker exec -it dataact-validator /bin/bash` login/ssh to validator.
+
+This will take you to the workspace directory within the dataact-broker and dataact-validator containers respectively, that will have your backend repository mounted so local changes in that repository will also be changed within the container.
+
+#####set up with existing postgres
 If you want to use postgres on your local machine, change the config to point to your host IP. If you are using docker version `17.06` and have a mac use `docker.for.mac.localhost` instead of IP. If you are using `17.12.0` substitute `docker.for.mac.host.internal` and for `18.03.0` and higher use `host.docker.internal` for your host IP to connect to your local machine.
 
-At this point you can go to your browser and hit the broker api by going to `http://127.0.0.1:9999/v1/current_user/`.
 ### Adding log messages
 
 Of course, if nothing is being logged, you won't be able to see application
