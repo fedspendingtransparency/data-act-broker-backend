@@ -171,7 +171,7 @@ def extract_zip_from_tar_file(zip_file_path, usps_file_dir):
     for tar_file_obj in zips_tar:
 
         if tar_file_obj.name == zip_file_path:
-            zips_tar.extract(tar_file_obj)
+            zips_tar.extract(tar_file_obj, usps_file_dir)
 
     zips_tar.close()
 
@@ -190,7 +190,7 @@ def extract_upload_zip4_text_files(zip_file_path, extract_file_path, s3_connecti
     zip_folder = CONFIG_BROKER["zip_folder"] + "/"
     password = CONFIG_BROKER['usps']['zip4']['password']
 
-    with zipfile.ZipFile(zip_file_path, 'r') as zip_group:
+    with zipfile.ZipFile(os.path.join(extract_file_path, zip_file_path), 'r') as zip_group:
         for zip_individual in zip_group.namelist():
             with zip_group.open(zip_individual, 'r', password.encode('utf-8')) as zip_nested:
                 file_data = BytesIO(zip_nested.read())
@@ -218,7 +218,7 @@ def extract_upload_city_state_text_file(zip_file_path, extract_file_path, s3_con
 
     password = CONFIG_BROKER['usps']['citystate']['password']
 
-    with zipfile.ZipFile(zip_file_path, 'r') as zip_group:
+    with zipfile.ZipFile(os.path.join(extract_file_path, zip_file_path), 'r') as zip_group:
         for zip_individual in zip_group.namelist():
             zip_group.extract(zip_individual, extract_file_path, password.encode('utf-8'))
             logger.info('Extracting file {}'.format(zip_individual))
@@ -262,13 +262,13 @@ def upload_files_to_s3(args_dict, usps_file_dir):
 
     if args_dict.zipcode:
         logger.info('Begin extracting zip4 zip file')
-        extract_zip_from_tar_file(zip4_file_path)
+        extract_zip_from_tar_file(zip4_file_path, usps_file_dir)
         logger.info('Begin extracting zip4 text files')
         extract_upload_zip4_text_files(zip4_file_path, usps_file_dir, s3connection)
 
     if args_dict.city_state:
         logger.info('Begin extracting city state zip file')
-        extract_zip_from_tar_file(city_state_file_path)
+        extract_zip_from_tar_file(city_state_file_path, usps_file_dir)
         logger.info('Begin extracting city state text file')
         extract_upload_city_state_text_file(city_state_file_path, usps_file_dir, s3connection)
 
