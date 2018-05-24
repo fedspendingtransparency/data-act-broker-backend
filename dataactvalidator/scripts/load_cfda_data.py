@@ -17,12 +17,10 @@ logger = logging.getLogger(__name__)
 def load_cfda_program(base_path):
     """
     Load cfda program.
-
     Parameters
     ----------
         base_path : directory that contains the cfda values files.
     """
-    logger.info('Loading CFDA program')
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
         s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
@@ -30,6 +28,7 @@ def load_cfda_program(base_path):
     else:
         filename = os.path.join(base_path, "cfda_program.csv")
 
+    logger.info('Loading CFDA program file: ' + "cfda_program.csv")
     """Load country code lookup table."""
     model = CFDAProgram
 

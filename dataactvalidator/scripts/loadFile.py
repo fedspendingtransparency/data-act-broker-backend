@@ -185,11 +185,11 @@ def load_domain_values(base_path, local_program_activity=None):
         program_activity_file = os.path.join(base_path, "program_activity.csv")
         country_codes_file = os.path.join(base_path, "country_codes.csv")
 
-    logger.info('Loading object class')
+    logger.info('Loading object class file: ' + "object_class.csv")
     load_object_class(object_class_file)
-    logger.info('Loading country codes')
+    logger.info('Loading country codes file: ' + "country_codes.csv")
     load_country_codes(country_codes_file)
-    logger.info('Loading program activity')
+    logger.info('Loading program activity: ' + "program_activity.csv")
 
     if local_program_activity is not None:
         load_program_activity(local_program_activity)
