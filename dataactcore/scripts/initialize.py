@@ -87,11 +87,6 @@ def load_cfda(base_path):
     logger.info('Loading cfda data')
     load_cfda_program(base_path)
 
-def load_domain_value_files_temp(base_path):
-    """Load domain values (e.g., CGAC codes, object class, SF-133)."""
-    logger.info('Loading domain values (temp)')
-    load_domain_values(base_path)
-
 
 def load_sf133():
     logger.info('Loading SF-133')
