@@ -71,7 +71,7 @@ def load_cfda_program(base_path):
              "range_and_average_of_financial_assistance_(123)": "range_and_average_of_financial_assistance",
              "program_accomplishments_(130)": "program_accomplishments",
              "regulations__guidelines__and_literature_(140)": "regulations_guidelines_and_literature",
-             "regional_or_local_office_(151)": "regional_or_local_office",
+             "regional_or__local_office_(151)": "regional_or_local_office",
              "headquarters_office_(152)": "headquarters_office",
              "website_address_(153)": "website_address",
              "related_programs_(160)": "related_programs",
