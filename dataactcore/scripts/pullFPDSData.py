@@ -1275,7 +1275,8 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                                     award_type + '"&start=' + str(i), timeout=60)
                 resp_data = xmltodict.parse(resp.text, process_namespaces=True,
                                             namespaces={'http://www.fpdsng.com/FPDS': None,
-                                                        'http://www.w3.org/2005/Atom': None})
+                                                        'http://www.w3.org/2005/Atom': None,
+                                                        'https://www.fpds.gov/FPDS': None})
                 break
             except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError) as e:
                 exception_retries += 1
