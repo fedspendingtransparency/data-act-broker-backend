@@ -19,6 +19,7 @@ from dataactvalidator.filestreaming.labelLoader import LabelLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.scripts.loadFile import load_domain_values
+from dataactvalidator.scripts.load_cfda_data import load_cfda_program
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
 from dataactvalidator.scripts.loadTas import load_tas
 from dataactvalidator.scripts.loadLocationData import load_location_data
@@ -69,9 +70,22 @@ def load_sql_rules():
 
 
 def load_domain_value_files(base_path):
-    """Load domain values (e.g., CGAC codes, object class, SF-133)."""
-    logger.info('Loading domain values')
+    """Load domain values (Country codes, Program Activity, Object Class, CFDA)."""
+    logger.info('Loading Country codes, Program Activity, Object Class, CFDA')
     load_domain_values(base_path)
+    load_cfda(base_path)
+
+
+def load_domain_value_files_temp(base_path):
+    """Load domain values (Country codes, Program Activity, Object Class)."""
+    logger.info('Loading Country codes, Program Activity, Object Class (not cfda)')
+    load_domain_values(base_path)
+
+
+def load_cfda(base_path):
+    """Load cfda values."""
+    logger.info('Loading cfda data')
+    load_cfda_program(base_path)
 
 
 def load_sf133():
@@ -120,6 +134,9 @@ def main():
     parser.add_argument('-r', '--load_rules', help='Load SQL-based validation rules', action='store_true')
     parser.add_argument('-d', '--update_domain', help='load slowly changing domain values such as object class',
                         action='store_true')
+    parser.add_argument('-tempd', '--update_domain_temp', help='only update domain values not cfda',
+                        action='store_true')
+    parser.add_argument('-cfda', '--cfda_load', help='Load CFDA to database', action='store_true')
     parser.add_argument('-c', '--load_agencies', help='Update agency data (CGACs, FRECs, SubTierAgencies)',
                         action='store_true')
     parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
@@ -156,6 +173,12 @@ def main():
     if args.update_domain:
         load_domain_value_files(validator_config_path)
 
+    if args.update_domain_temp:
+        load_domain_value_files_temp(validator_config_path)
+
+    if args.cfda_load:
+        load_cfda(validator_config_path)
+
     if args.load_agencies:
         load_agency_data(validator_config_path)
 
@@ -180,6 +203,7 @@ def main():
 
     if args.uncache_file_requests:
         uncache_file_requests()
+
 
 if __name__ == '__main__':
     configure_logging()

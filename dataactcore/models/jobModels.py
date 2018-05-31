@@ -184,6 +184,7 @@ class SQS(Base):
 
     sqs_id = Column(Integer, primary_key=True)
     job_id = Column(Integer, nullable=False)
+    agency_code = Column(Text)
 
     __table_args__ = (UniqueConstraint('job_id', name='uniq_job_id'),)
 

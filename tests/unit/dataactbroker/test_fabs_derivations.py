@@ -409,8 +409,14 @@ def test_derive_ppop_code(database):
                            FPDS_OFFICE_DICT)
     assert obj['place_of_performance_code'] == 'NY00000'
 
-    # No derivation if country isn't USA
+    # 00FORGN if country isn't USA
     obj = initialize_test_obj(record_type=3, ppop_code=None, legal_country='GBD')
+    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
+                           FPDS_OFFICE_DICT)
+    assert obj['place_of_performance_code'] == '00FORGN'
+
+    # No derivation if country is USA and there is no state code
+    obj = initialize_test_obj(record_type=3, ppop_code=None, legal_country='USA')
     obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
                            FPDS_OFFICE_DICT)
     assert obj['place_of_performance_code'] is None
