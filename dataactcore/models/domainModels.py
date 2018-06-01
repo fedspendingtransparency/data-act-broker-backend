@@ -168,7 +168,7 @@ Index("ix_sf_133_tas_group",
 class ProgramActivity(Base):
     __tablename__ = "program_activity"
     program_activity_id = Column(Integer, primary_key=True)
-    budget_year = Column(Text, nullable=False, index=True)
+    fiscal_year_quarter = Column(Text, nullable=False, index=True)
     agency_id = Column(Text, nullable=False, index=True)
     allocation_transfer_id = Column(Text)
     account_number = Column(Text, nullable=False, index=True)
@@ -176,7 +176,7 @@ class ProgramActivity(Base):
     program_activity_name = Column(Text, nullable=False, index=True)
 
 Index("ix_pa_tas_pa",
-      ProgramActivity.budget_year,
+      ProgramActivity.fiscal_year_quarter,
       ProgramActivity.agency_id,
       ProgramActivity.allocation_transfer_id,
       ProgramActivity.account_number,
