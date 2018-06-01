@@ -17,7 +17,8 @@ from sqlalchemy.sql.expression import case
 from werkzeug.utils import secure_filename
 
 from dataactbroker.handlers.fabsDerivationsHandler import fabs_derivations
-from dataactbroker.handlers.submission_handler import create_submission, get_submission_status, get_submission_files
+from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
+                                                       reporting_date)
 from dataactbroker.permissions import current_user_can, current_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
@@ -1314,23 +1315,6 @@ def job_to_dict(job):
             severity_id=RULE_SEVERITY_DICT['warning']
         )
     return job_info
-
-
-def reporting_date(submission):
-    """ Format submission reporting date in MM/YYYY format for monthly submissions and Q#/YYYY for quarterly
-
-        Args:
-            submission: submission whose dates to format
-
-        Returns:
-            Formatted dates in the format specified above
-    """
-    if not (submission.reporting_start_date or submission.reporting_end_date):
-        return None
-    if submission.is_quarter_format:
-        return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3, submission.reporting_fiscal_year)
-    else:
-        return submission.reporting_start_date.strftime("%m/%Y")
 
 
 def submission_to_dict_for_status(submission):

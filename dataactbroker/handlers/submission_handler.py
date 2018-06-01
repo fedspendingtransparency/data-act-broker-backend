@@ -5,9 +5,11 @@ from flask import g
 from sqlalchemy import func, or_, desc
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import sum_number_of_errors_for_job_list
+from dataactcore.interfaces.function_bag import (sum_number_of_errors_for_job_list, get_last_validated_date,
+                                                 get_fabs_meta)
 
 from dataactcore.models.lookups import JOB_STATUS_DICT, PUBLISH_STATUS_DICT
+from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (FileRequest, Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
                                           CertifyHistory)
 from dataactcore.models.stagingModels import AwardFinancial
@@ -83,6 +85,64 @@ def get_submission_stats(submission_id):
         "total_procurement_obligations": float(procurement.scalar() or 0),
         "total_assistance_obligations": float(fin_assist.scalar() or 0)
     }
+
+
+def get_submission_metadata(submission):
+    """ Get metadata for the submission specified
+
+        Args:
+            submission_id: submission to retrieve metadata for
+
+        Returns:
+            object containing metadata for the submission 
+    """
+    sess = GlobalDB.db().session
+
+    # Determine the agency name
+    cgac = sess.query(CGAC).filter_by(cgac_code=submission.cgac_code).one_or_none()
+    frec = sess.query(FREC).filter_by(frec_code=submission.frec_code).one_or_none()
+    if cgac:
+        agency_name = cgac.agency_name
+    elif frec:
+        agency_name = frec.agency_name
+    else:
+        agency_name = ''
+
+    # Get the last validated date of the submission
+    last_validated = get_last_validated_date(submission.submission_id)
+
+    # Get metadata for FABS submissions
+    fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
+
+    return {
+        'cgac_code': submission.cgac_code,
+        'frec_code': submission.frec_code,
+        'agency_name': agency_name,
+        'created_on': submission.created_at.strftime('%m/%d/%Y'),
+        'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
+        'last_validated': last_validated,
+        'reporting_period': reporting_date(submission),
+        'publish_status': submission.publish_status.name,
+        'quarterly_submission': submission.is_quarter_format,
+        'fabs_meta': fabs_meta
+    }
+
+
+def reporting_date(submission):
+    """ Format submission reporting date in MM/YYYY format for monthly submissions and Q#/YYYY for quarterly
+
+        Args:
+            submission: submission whose dates to format
+
+        Returns:
+            Formatted dates in the format specified above
+    """
+    if not (submission.reporting_start_date or submission.reporting_end_date):
+        return None
+    if submission.is_quarter_format:
+        return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3, submission.reporting_fiscal_year)
+    else:
+        return submission.reporting_start_date.strftime("%m/%Y")
 
 
 def get_submission_status(submission, jobs):
