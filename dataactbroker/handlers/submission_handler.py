@@ -91,10 +91,10 @@ def get_submission_metadata(submission):
     """ Get metadata for the submission specified
 
         Args:
-            submission_id: submission to retrieve metadata for
+            submission: submission to retrieve metadata for
 
         Returns:
-            object containing metadata for the submission 
+            object containing metadata for the submission
     """
     sess = GlobalDB.db().session
 
