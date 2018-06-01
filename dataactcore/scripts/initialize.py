@@ -26,6 +26,7 @@ from dataactvalidator.scripts.loadLocationData import load_location_data
 from dataactvalidator.scripts.readZips import read_zips
 from dataactvalidator.scripts.loadAgencies import load_agency_data
 from dataactvalidator.scripts.loadOffices import load_offices
+from dataactvalidator.scripts.load_program_activity import load_program_activity_data
 
 logger = logging.getLogger(__name__)
 basePath = CONFIG_BROKER["path"]
@@ -74,6 +75,7 @@ def load_domain_value_files(base_path):
     logger.info('Loading Country codes, Program Activity, Object Class, CFDA')
     load_domain_values(base_path)
     load_cfda(base_path)
+    load_program_activity(base_path)
 
 
 def load_domain_value_files_temp(base_path):
@@ -86,6 +88,17 @@ def load_cfda(base_path):
     """Load cfda values."""
     logger.info('Loading cfda data')
     load_cfda_program(base_path)
+
+
+def load_program_activity(base_path):
+    """Loads program activities into program activity table
+
+    Args:
+        base_path: directory of domain config files
+
+    """
+    logger.info('Loading program activity')
+    load_program_activity_data(base_path)
 
 
 def load_sf133():
@@ -137,6 +150,7 @@ def main():
     parser.add_argument('-tempd', '--update_domain_temp', help='only update domain values not cfda',
                         action='store_true')
     parser.add_argument('-cfda', '--cfda_load', help='Load CFDA to database', action='store_true')
+    parser.add_argument('-pa', '--program_activity', help='Load program activity to database', action='store_true')
     parser.add_argument('-c', '--load_agencies', help='Update agency data (CGACs, FRECs, SubTierAgencies)',
                         action='store_true')
     parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
@@ -178,6 +192,9 @@ def main():
 
     if args.cfda_load:
         load_cfda(validator_config_path)
+
+    if args.program_activity:
+        load_program_activity_data(validator_config_path)
 
     if args.load_agencies:
         load_agency_data(validator_config_path)
