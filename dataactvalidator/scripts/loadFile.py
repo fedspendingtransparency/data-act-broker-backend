@@ -177,20 +177,16 @@ def load_domain_values(base_path, local_program_activity=None):
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
         s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-        object_class_file = s3bucket.get_key("object_class.csv").generate_url(expires_in=600)
         program_activity_file = s3bucket.get_key("program_activity.csv").generate_url(expires_in=600)
         country_codes_file = s3bucket.get_key("country_codes.csv").generate_url(expires_in=600)
     else:
-        object_class_file = os.path.join(base_path, "object_class.csv")
         program_activity_file = os.path.join(base_path, "program_activity.csv")
         country_codes_file = os.path.join(base_path, "country_codes.csv")
 
-    logger.info('Loading object class file: ' + "object_class.csv")
-    load_object_class(object_class_file)
     logger.info('Loading country codes file: ' + "country_codes.csv")
     load_country_codes(country_codes_file)
-    logger.info('Loading program activity: ' + "program_activity.csv")
 
+    logger.info('Loading program activity: ' + "program_activity.csv")
     if local_program_activity is not None:
         load_program_activity(local_program_activity)
     else:
