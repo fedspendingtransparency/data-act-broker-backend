@@ -1,18 +1,10 @@
 from tests.unit.dataactcore.factories.staging import AppropriationFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
-from dataactcore.models.jobModels import PublishStatus
-from dataactcore.models.lookups import PUBLISH_STATUS, PUBLISH_STATUS_DICT
-from tests.unit.dataactvalidator.utils import number_of_errors, insert_submission
+from dataactcore.models.lookups import PUBLISH_STATUS_DICT
+from tests.unit.dataactvalidator.utils import number_of_errors, insert_submission, populate_publish_status
 
 
 _FILE = 'a16_appropriations'
-
-
-def populate_publish_status(database):
-    for ps in PUBLISH_STATUS:
-        status = PublishStatus(publish_status_id=ps.id, name=ps.name, description=ps.desc)
-        database.session.merge(status)
-    database.session.commit()
 
 
 def test_value_present(database):
