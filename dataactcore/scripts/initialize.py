@@ -74,7 +74,7 @@ def load_domain_value_files(base_path):
     """Load domain values (Country codes, Program Activity, Object Class, CFDA)."""
     logger.info('Loading Country codes, Program Activity, Object Class, CFDA')
     load_domain_values(base_path)
-    load_object(base_path)
+    object_class(base_path)
     load_cfda(base_path)
 
 
@@ -90,7 +90,7 @@ def load_cfda(base_path):
     load_cfda_program(base_path)
 
 
-def load_object(base_path):
+def object_class(base_path):
     """Load Object class."""
     logger.info('Loading Object Class')
     load_object_class(base_path)
@@ -144,7 +144,7 @@ def main():
                         action='store_true')
     parser.add_argument('-tempd', '--update_domain_temp', help='only update domain values not cfda',
                         action='store_true')
-    parser.add_argument('-obj', '--update_object', help='load object class to database',
+    parser.add_argument('-obj', '--object_class', help='load object class to database',
                         action='store_true')
     parser.add_argument('-cfda', '--cfda_load', help='Load CFDA to database', action='store_true')
     parser.add_argument('-c', '--load_agencies', help='Update agency data (CGACs, FRECs, SubTierAgencies)',
@@ -186,8 +186,8 @@ def main():
     if args.update_domain_temp:
         load_domain_value_files_temp(validator_config_path)
 
-    if args.update_object:
-        load_object(validator_config_path)
+    if args.object_class:
+        object_class(validator_config_path)
 
     if args.cfda_load:
         load_cfda(validator_config_path)

@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
 def load_object_class(base_path):
 
     """
-    Parameters
-    ----------
-        base_path : directory that contains the domain values files.
+    This function loads Object classes into the database
+        Args:
+            base_path : directory that contains the domain values files.
     """
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
@@ -27,26 +27,24 @@ def load_object_class(base_path):
         filename = s3bucket.get_key("object_class.csv").generate_url(expires_in=600)
     else:
         filename = os.path.join(base_path, "object_class.csv")
-    """Load object class lookup table."""
-    model = ObjectClass
+    # Load object class lookup table
 
-    logger.info('Loading Object Classe File: ' + "object_class.csv")
+    logger.info('Loading Object Class File: object_class.csv')
     with create_app().app_context():
         sess = GlobalDB.db().session
-        # for object class, delete and replace values
-        sess.query(model).delete()
+        sess.query(ObjectClass).delete()
 
         data = pd.read_csv(filename, dtype=str)
         data = clean_data(
             data,
-            model,
+            ObjectClass,
             {"max_oc_code": "object_class_code", "max_object_class_name": "object_class_name"},
             {"object_class_code": {"pad_to_length": 3}}
         )
         # de-dupe
         data.drop_duplicates(subset=['object_class_code'], inplace=True)
         # insert to db
-        table_name = model.__table__.name
+        table_name = ObjectClass.__table__.name
         num = insert_dataframe(data, table_name, sess.connection())
         sess.commit()
 
