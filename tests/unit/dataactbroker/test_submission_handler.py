@@ -71,6 +71,7 @@ def test_get_submission_metadata(database):
         'reporting_period': 'Q1/2017',
         'publish_status': 'updated',
         'quarterly_submission': True,
+        'fabs_submission': False,
         'fabs_meta': None
     }
 
@@ -108,6 +109,7 @@ def test_get_submission_metadata(database):
     # Test for unpublished FABS cgac submission
     expected_results.update({
         'last_updated': now.strftime("%Y-%m-%dT%H:%M:%S"),
+        'fabs_submission': True,
         'fabs_meta': {'publish_date': None, 'published_file': None, 'total_rows': 0, 'valid_rows': 0}
     })
 
