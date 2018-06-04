@@ -39,7 +39,6 @@ def load_program_activity_data(base_path):
         Args:
             base_path: directory of domain config files
     """
-    model = ProgramActivity
 
     program_activity_file = get_program_activity_file(base_path)
 
@@ -48,12 +47,12 @@ def load_program_activity_data(base_path):
     with create_app().app_context():
         sess = GlobalDB.db().session
 
-        sess.query(model).delete()
+        sess.query(ProgramActivity).delete()
 
         data = pd.read_csv(program_activity_file, dtype=str)
         data = clean_data(
             data,
-            model,
+            ProgramActivity,
             {"fyq": "fiscal_year_quarter", "agency_id": "agency_id", "alloc_id": "allocation_transfer_id",
              "account": "account_number", "pa_code": "program_activity_code", "pa_name": "program_activity_name"},
             {"program_activity_code": {"pad_to_length": 4}, "agency_id": {"pad_to_length": 3},
@@ -66,7 +65,7 @@ def load_program_activity_data(base_path):
         # but need to de-duped before the db load.
         data.drop_duplicates(inplace=True)
         # insert to db
-        table_name = model.__table__.name
+        table_name = ProgramActivity.__table__.name
         num = insert_dataframe(data, table_name, sess.connection())
 
         sess.commit()
