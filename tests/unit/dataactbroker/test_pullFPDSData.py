@@ -174,7 +174,8 @@ def test_process_data(database):
     f.close()
 
     resp_data = xmltodict.parse(resp, process_namespaces=True, namespaces={'http://www.fpdsng.com/FPDS': None,
-                                                                           'http://www.w3.org/2005/Atom': None})
+                                                                           'http://www.w3.org/2005/Atom': None,
+                                                                           'https://www.fpds.gov/FPDS': None})
 
     listed_data = pullFPDSData.list_data(resp_data['feed']['entry'])
 
