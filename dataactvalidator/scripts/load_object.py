@@ -19,7 +19,7 @@ def load_object_class(base_path):
     """ This function loads Object classes into the database
 
         Args:
-            base_path : directory that contains the domain values files.
+            base_path: directory that contains the domain values files.
     """
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
