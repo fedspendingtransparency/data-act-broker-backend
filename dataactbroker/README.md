@@ -291,6 +291,67 @@ Example output:
 }
 ```
 
+#### GET "/v1/submission_metadata/"
+This endpoint returns metadata for the requested endpoint.
+
+##### Sample Request
+`/v1/submission_metadata/?submission_id=123`
+
+##### Request Params
+* `submission_id` - **required** - an integer representing the ID of the submission to get metadata for
+
+##### Response (JSON)
+```
+{
+	"cgac_code": "000",
+	"frec_code": null,
+	"agency_name": "Agency Name",
+	"created_on": "04/16/2018",
+	"last_updated": "2018-04-16T18:48:09",
+	"last_validated": "04/16/2018",
+	"reporting_period": "Q2/2018",
+	"publish_status": "unpublished",
+	"quarterly_submission": false,
+	"fabs_submission": true,
+	"fabs_meta": {
+		"valid_rows": 1,
+		"total_rows": 2,
+		"publish_date": null,
+		"published_file": null
+	}
+}
+```
+
+##### Response Attributes
+* `cgac_code`: string, CGAC of agency (null if FREC agency)
+* `frec_code`: string, FREC of agency (null if CGAC agency)
+* `agency_name`: string, name of the submitting agency
+* `created_on`: string, date submission was created (MM/DD/YYYY)
+* `last_updated`: string, date/time any changes (including validations, etc) were made to the submission (YYYY-MM-DDTHH:mm:ss)
+* `last_validated`: string, date the most recent validations were completed (MM/DD/YYYY)
+* `reporting_period`: string, reporting period of the submission (Q#/YYYY for quarterly submissions, MM/YYYY for monthly)
+* `publish_status`: string, whether the submission is published or not. Can contain only the following values:
+  * `unpublished`
+  * `published`
+  * `updated`
+  * `publishing`
+* `quarterly_submission`: boolean, whether the submission is quarterly or monthly
+* `fabs_submission`: boolean, whether the submission is FABS or DABS (True for FABS)
+* `fabs_meta`: object, data specific to FABS submissions (null for DABS submissions)
+  * `publish_date`: string, Date/time submission was published (H:mm(AM/PM) MM/DD/YYYY) (null if unpublished)
+  * `published_file`: string, signed url of the published file (null if unpublished)
+  * `total_rows`: int, total rows in the submission not including header rows
+  * `valid_rows`: int, total number of valid, publishable row
+
+##### Errors
+Possible HTTP Status Codes:
+
+* 400:
+  * Missing `submission_id` parameter
+  * Submission does not exist
+* 403: Permission denied, user does not have permission to view this submission
+
+
 #### POST "/v1/check_status/"
 A call to this route will provide status information on all jobs associated with the specified submission.
 The request should have JSON or form-urlencoded with a key "submission_id".  The response will contain a list of

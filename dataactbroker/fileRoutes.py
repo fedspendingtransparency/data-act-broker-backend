@@ -7,7 +7,7 @@ from dataactbroker.handlers.fileHandler import (
     narratives_for_submission, submission_report_url, update_narratives, list_certifications, file_history_url)
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
-    certify_dabs_submission, find_existing_submissions_in_period)
+    certify_dabs_submission, find_existing_submissions_in_period, get_submission_metadata)
 
 from dataactbroker.decorators import convert_to_submission_id
 from dataactbroker.permissions import requires_login, requires_submission_perms
@@ -43,6 +43,12 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @requires_submission_perms('reader')
     def check_status(submission):
         return get_status(submission)
+
+    @app.route("/v1/submission_metadata/", methods=["GET"])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def submission_metadata(submission):
+        return JsonResponse.create(StatusCode.OK, get_submission_metadata(submission))
 
     @app.route("/v1/window/", methods=["GET"])
     def window():
