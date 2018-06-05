@@ -8,7 +8,8 @@ from dataactcore.models.lookups import PUBLISH_STATUS_DICT
 from dataactcore.models.jobModels import FileType, JobStatus, JobType
 
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
-from tests.unit.dataactcore.factories.job import SubmissionFactory, JobFactory, CertifyHistoryFactory
+from tests.unit.dataactcore.factories.job import (SubmissionFactory, JobFactory, CertifyHistoryFactory,
+                                                  RevalidationThresholdFactory)
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
 
 
@@ -31,8 +32,10 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
                      job_type=sess.query(JobType).filter_by(name='validation').one(),
                      job_status=sess.query(JobStatus).filter_by(name='finished').one(),
                      file_type=sess.query(FileType).filter_by(name='appropriations').one())
+    # Revalidation date
+    reval = RevalidationThresholdFactory(revalidation_date=datetime.date(2018, 1, 15))
 
-    sess.add_all([cgac, frec_cgac, frec, sub, job])
+    sess.add_all([cgac, frec_cgac, frec, sub, job, reval])
     sess.commit()
 
     # Test for Quarterly, updated DABS cgac submission
@@ -43,6 +46,7 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now_plus_10.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': now_plus_10.strftime('%m/%d/%Y'),
+        'revalidation_threshold': '01/15/2018',
         'reporting_period': 'Q1/2017',
         'publish_status': 'updated',
         'quarterly_submission': True,
@@ -67,7 +71,10 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
                             reporting_fiscal_period=6, reporting_fiscal_year=2010, is_quarter_format=True,
                             publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False)
 
-    sess.add_all([frec_cgac, frec, sub])
+    # Revalidation date
+    reval = RevalidationThresholdFactory(revalidation_date=datetime.date(2018, 1, 15))
+
+    sess.add_all([frec_cgac, frec, sub, reval])
     sess.commit()
 
     expected_results = {
@@ -77,6 +84,7 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': '',
+        'revalidation_threshold': '01/15/2018',
         'reporting_period': 'Q2/2010',
         'publish_status': 'published',
         'quarterly_submission': True,
@@ -102,8 +110,10 @@ def test_get_submission_metadata_monthly_dabs(database):
                             reporting_fiscal_period=4, reporting_fiscal_year=2016, is_quarter_format=False,
                             publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
                             reporting_start_date=start_date)
+    # Revalidation date
+    reval = RevalidationThresholdFactory(revalidation_date=datetime.date(2018, 1, 15))
 
-    sess.add_all([cgac, sub])
+    sess.add_all([cgac, sub, reval])
     sess.commit()
 
     expected_results = {
@@ -113,6 +123,7 @@ def test_get_submission_metadata_monthly_dabs(database):
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now_plus_10.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': '',
+        'revalidation_threshold': '01/15/2018',
         'reporting_period': start_date.strftime('%m/%Y'),
         'publish_status': 'unpublished',
         'quarterly_submission': False,
@@ -139,8 +150,10 @@ def test_get_submission_metadata_unpublished_fabs(database):
                             reporting_fiscal_period=1, reporting_fiscal_year=2015, is_quarter_format=False,
                             publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=True,
                             reporting_start_date=start_date)
+    # Revalidation date
+    reval = RevalidationThresholdFactory(revalidation_date=datetime.date(2018, 1, 15))
 
-    sess.add_all([cgac, frec_cgac, frec, sub])
+    sess.add_all([cgac, frec_cgac, frec, sub, reval])
     sess.commit()
 
     expected_results = {
@@ -150,6 +163,7 @@ def test_get_submission_metadata_unpublished_fabs(database):
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': '',
+        'revalidation_threshold': '01/15/2018',
         'reporting_period': start_date.strftime('%m/%Y'),
         'publish_status': 'unpublished',
         'quarterly_submission': False,
@@ -182,7 +196,10 @@ def test_get_submission_metadata_published_fabs(database):
     dafa_2 = DetachedAwardFinancialAssistanceFactory(submission_id=sub.submission_id, is_valid=False)
     cert_hist = CertifyHistoryFactory(submission=sub, created_at=now_plus_10)
 
-    sess.add_all([cgac, frec_cgac, frec, sub, dafa_1, dafa_2, cert_hist])
+    # Revalidation date
+    reval = RevalidationThresholdFactory(revalidation_date=datetime.date(2018, 1, 15))
+
+    sess.add_all([cgac, frec_cgac, frec, sub, dafa_1, dafa_2, cert_hist, reval])
     sess.commit()
 
     expected_results = {
@@ -192,6 +209,7 @@ def test_get_submission_metadata_published_fabs(database):
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': '',
+        'revalidation_threshold': '01/15/2018',
         'reporting_period': start_date.strftime('%m/%Y'),
         'publish_status': 'published',
         'quarterly_submission': False,

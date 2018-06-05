@@ -6,13 +6,14 @@ from sqlalchemy import func, or_, desc
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (sum_number_of_errors_for_job_list, get_last_validated_date,
-                                                 get_fabs_meta)
+                                                 get_fabs_meta, get_error_type, get_error_metrics_by_job_id)
 
-from dataactcore.models.lookups import JOB_STATUS_DICT, PUBLISH_STATUS_DICT
+from dataactcore.models.lookups import JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (FileRequest, Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
-                                          CertifyHistory)
+                                          CertifyHistory, RevalidationThreshold)
 from dataactcore.models.stagingModels import AwardFinancial
+from dataactcore.models.errorModels import File
 
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
@@ -116,6 +117,9 @@ def get_submission_metadata(submission):
     # Get metadata for FABS submissions
     fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
 
+    # Get the revalidation threshold
+    revalidation_threshold = sess.query(RevalidationThreshold).one_or_none()
+
     return {
         'cgac_code': submission.cgac_code,
         'frec_code': submission.frec_code,
@@ -123,11 +127,39 @@ def get_submission_metadata(submission):
         'created_on': submission.created_at.strftime('%m/%d/%Y'),
         'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': last_validated,
+        'revalidation_threshold':
+            revalidation_threshold.revalidation_date.strftime('%m/%d/%Y') if revalidation_threshold else '',
         'reporting_period': reporting_date(submission),
         'publish_status': submission.publish_status.name,
         'quarterly_submission': submission.is_quarter_format,
         'fabs_submission': submission.d2_submission,
         'fabs_meta': fabs_meta
+    }
+
+
+def get_submission_data(submission):
+    """ Get data for the submission specified
+
+        Args:
+            submission: submission to retrieve metadata for
+
+        Returns:
+            object containing data for the submission
+    """
+    sess = GlobalDB.db().session
+
+    number_of_rows = sess.query(func.sum(Job.number_of_rows)).\
+        filter_by(submission_id=submission.submission_id).\
+        scalar() or 0
+
+    relevant_job_types = (JOB_TYPE_DICT['csv_record_validation'], JOB_TYPE_DICT['validation'])
+    relevant_jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                           Job.job_type_id.in_(relevant_job_types))
+
+    return {
+        'number_of_errors': submission.number_of_errors,
+        'number_of_rows': number_of_rows,
+        'jobs': [job_to_dict(job) for job in relevant_jobs]
     }
 
 
@@ -146,6 +178,72 @@ def reporting_date(submission):
         return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3, submission.reporting_fiscal_year)
     else:
         return submission.reporting_start_date.strftime("%m/%Y")
+
+
+def job_to_dict(job):
+    """ Convert a Job model into a dictionary, ready to be serialized as JSON
+
+        Args:
+            job: job to convert into a dictionary
+
+        Returns:
+            A dictionary of job information
+    """
+    sess = GlobalDB.db().session
+
+    job_info = {
+        'job_id': job.job_id,
+        'job_status': job.job_status_name,
+        'job_type': job.job_type_name,
+        'filename': job.original_filename,
+        'file_size': job.file_size,
+        'number_of_rows': job.number_of_rows,
+        'file_type': job.file_type_name or '',
+    }
+
+    # @todo replace with relationships
+    file_results = sess.query(File).filter_by(job_id=job.job_id).one_or_none()
+    if file_results is None:
+        # Job ID not in error database, probably did not make it to validation, or has not yet been validated
+        job_info.update(
+            file_status="",
+            error_type="",
+            error_data=[],
+            warning_data=[],
+            missing_headers=[],
+            duplicated_headers=[],
+        )
+    else:
+        # If job ID was found in file, we should be able to get header error lists and file data. Get string of missing
+        # headers and parse as a list
+        job_info['file_status'] = file_results.file_status_name
+        job_info['missing_headers'] = _split_csv(file_results.headers_missing)
+        job_info["duplicated_headers"] = _split_csv(
+            file_results.headers_duplicated)
+        job_info["error_type"] = get_error_type(job.job_id)
+        job_info["error_data"] = get_error_metrics_by_job_id(
+            job.job_id, job.job_type_name == 'validation',
+            severity_id=RULE_SEVERITY_DICT['fatal']
+        )
+        job_info["warning_data"] = get_error_metrics_by_job_id(
+            job.job_id, job.job_type_name == 'validation',
+            severity_id=RULE_SEVERITY_DICT['warning']
+        )
+    return job_info
+
+
+def _split_csv(string):
+    """ Split string into a list, excluding empty strings
+
+        Args:
+            string: the string to split
+
+        Returns:
+            Empty array if the string is empty or an array of whitespace-trimmed strings split on "," from the original
+    """
+    if string is None:
+        return []
+    return [n.strip() for n in string.split(',') if n]
 
 
 def get_submission_status(submission, jobs):
