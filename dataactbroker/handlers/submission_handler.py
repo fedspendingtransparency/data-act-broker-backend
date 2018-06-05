@@ -121,6 +121,10 @@ def get_submission_metadata(submission):
         filter_by(submission_id=submission.submission_id).\
         scalar() or 0
 
+    total_size = sess.query(func.sum(Job.file_size)).\
+        filter_by(submission_id=submission.submission_id).\
+        scalar() or 0
+
     return {
         'cgac_code': submission.cgac_code,
         'frec_code': submission.frec_code,
@@ -128,6 +132,7 @@ def get_submission_metadata(submission):
         'number_of_errors': submission.number_of_errors,
         'number_of_warnings': submission.number_of_warnings,
         'number_of_rows': number_of_rows,
+        'total_size': total_size,
         'created_on': submission.created_at.strftime('%m/%d/%Y'),
         'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': last_validated,

@@ -33,12 +33,14 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
                      job_type=sess.query(JobType).filter_by(name='validation').one(),
                      job_status=sess.query(JobStatus).filter_by(name='finished').one(),
                      file_type=sess.query(FileType).filter_by(name='appropriations').one(),
-                     number_of_rows=3)
+                     number_of_rows=3,
+                     file_size=7655)
     job_2 = JobFactory(submission_id=sub.submission_id, last_validated=now_plus_10,
                        job_type=sess.query(JobType).filter_by(name='validation').one(),
                        job_status=sess.query(JobStatus).filter_by(name='finished').one(),
                        file_type=sess.query(FileType).filter_by(name='program_activity').one(),
-                       number_of_rows=7)
+                       number_of_rows=7,
+                       file_size=12345)
 
     sess.add_all([cgac, frec_cgac, frec, sub, job, job_2])
     sess.commit()
@@ -51,6 +53,7 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
         'number_of_errors': 40,
         'number_of_warnings': 200,
         'number_of_rows': 10,
+        'total_size': 20000,
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now_plus_10.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': now_plus_10.strftime('%m/%d/%Y'),
@@ -89,6 +92,7 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
         'number_of_errors': 0,
         'number_of_warnings': 0,
         'number_of_rows': 0,
+        'total_size': 0,
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': '',
@@ -128,6 +132,7 @@ def test_get_submission_metadata_monthly_dabs(database):
         'number_of_errors': 20,
         'number_of_warnings': 0,
         'number_of_rows': 0,
+        'total_size': 0,
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now_plus_10.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': '',
@@ -168,6 +173,7 @@ def test_get_submission_metadata_unpublished_fabs(database):
         'number_of_errors': 4,
         'number_of_warnings': 1,
         'number_of_rows': 0,
+        'total_size': 0,
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': '',
@@ -213,6 +219,7 @@ def test_get_submission_metadata_published_fabs(database):
         'number_of_errors': 0,
         'number_of_warnings': 2,
         'number_of_rows': 0,
+        'total_size': 0,
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': '',
