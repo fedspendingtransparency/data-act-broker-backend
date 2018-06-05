@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 def load_object_class(base_path):
 
     """ This function loads Object classes into the database
+
         Args:
             base_path : directory that contains the domain values files.
     """
