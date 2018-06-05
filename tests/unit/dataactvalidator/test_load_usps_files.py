@@ -46,7 +46,7 @@ def test_get_login_tokens():
     assert get_login_tokens(test_data) == {'logonkey': '1234', 'tokenkey': 'abc123'}
 
 
-def test_get_file_info():
+def test_get_file_info(database):
     """ Tests the get_file_info() function: returns the fileid for the latest version of the zip4 file to be downloaded
     """
     test_data = {"response": "success", "fileList": [{"fileid": "12345", "status": "N", "filepath": "file/path/",
@@ -56,4 +56,5 @@ def test_get_file_info():
                                                      {"fileid": "23456", "status": "N", "filepath": "file/path/",
                                                      "filename": "laterfile.tar", "fulfilled": "2012-09-15"}]}
 
-    assert get_file_info(test_data) == '23456'
+    sess = database.session
+    assert get_file_info(sess, test_data) == ('23456', '2012-10-15', None)
