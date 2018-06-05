@@ -348,3 +348,23 @@ Index("ix_sc_state_cd",
       StateCongressional.state_code,
       StateCongressional.congressional_district_no,
       unique=True)
+
+
+class ExternalDataType(Base):
+    """ external data type mapping """
+    __tablename__ = "external_data_type"
+
+    external_data_type_id = Column(Integer, primary_key=True)
+    name = Column(Text)
+    description = Column(Text)
+
+
+class ExternalDataLoadDate(Base):
+    """ data load dates corresponding to external data types """
+    __tablename__ = "external_data_load_date"
+
+    external_data_load_date_id = Column(Integer, primary_key=True)
+    last_load_date = Column(Date)
+    external_data_type_id = Column(Integer, ForeignKey("external_data_type.external_data_type_id",
+                                                       name="fk_external_data_type_id"), unique=True)
+    external_data_type = relationship("ExternalDataType", uselist=False)

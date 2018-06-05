@@ -215,3 +215,8 @@ BUSINESS_CATEGORY_FIELDS = ['airport_authority', 'alaskan_native_owned_corpo', '
                             'us_government_entity', 'us_local_government', 'us_state_government',
                             'us_tribal_government', 'veteran_owned_business', 'veterinary_college',
                             'veterinary_hospital', 'woman_owned_business', 'women_owned_small_business']
+
+EXTERNAL_DATA_TYPE = [
+    LookupType(1, 'zip_download', 'external data load type for downloading zip files')
+]
+EXTERNAL_DATA_TYPE_DICT = {item.name: item.id for item in EXTERNAL_DATA_TYPE}
