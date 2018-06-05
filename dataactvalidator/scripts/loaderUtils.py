@@ -91,6 +91,6 @@ def clean_data(data, model, field_map, field_options):
 def format_date(value):
     """ Format date from 'MMM dd, yyyy' to 'yyyymmdd' """
 
-    formatted_value = pd.to_datetime(value, format="%b, %d %Y")
+    formatted_value = pd.to_datetime(value, format="%b %d,%Y")
     formatted_value = formatted_value.apply(lambda x: x.strftime('%Y%m%d') if not pd.isnull(x) else '')
     return formatted_value
