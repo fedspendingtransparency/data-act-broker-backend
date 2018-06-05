@@ -20,6 +20,7 @@ from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.scripts.loadFile import load_domain_values
 from dataactvalidator.scripts.load_cfda_data import load_cfda_program
+from dataactvalidator.scripts.load_object_class import load_object_class
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
 from dataactvalidator.scripts.loadTas import load_tas
 from dataactvalidator.scripts.loadLocationData import load_location_data
@@ -72,32 +73,20 @@ def load_sql_rules():
 
 def load_domain_value_files(base_path):
     """Load domain values (Country codes, Program Activity, Object Class, CFDA)."""
-    logger.info('Loading Country codes, Program Activity, Object Class, CFDA')
+    logger.info('Loading Country codes')
     load_domain_values(base_path)
-    load_cfda(base_path)
-    load_program_activity(base_path)
+    logger.info('Loading Object Class')
+    load_object_class(base_path)
+    logger.info('Loading CFDA Program')
+    load_cfda_program(base_path)
+    logger.info('Loading Program Activity')
+    load_program_activity_data(base_path)
 
 
 def load_domain_value_files_temp(base_path):
     """Load domain values (Country codes, Program Activity, Object Class)."""
-    logger.info('Loading Country codes, Program Activity, Object Class (not cfda)')
+    logger.info('Loading Country codes, Program Activity (not cfda or Object class)')
     load_domain_values(base_path)
-
-
-def load_cfda(base_path):
-    """Load cfda values."""
-    logger.info('Loading cfda data')
-    load_cfda_program(base_path)
-
-
-def load_program_activity(base_path):
-    """ Loads program activities into program activity table
-
-        Args:
-            base_path: directory of domain config files
-    """
-    logger.info('Loading program activity')
-    load_program_activity_data(base_path)
 
 
 def load_sf133():
@@ -148,6 +137,7 @@ def main():
                         action='store_true')
     parser.add_argument('-tempd', '--update_domain_temp', help='only update domain values not cfda',
                         action='store_true')
+    parser.add_argument('-oc', '--update_object_class', help='load object class to database', action='store_true')
     parser.add_argument('-cfda', '--cfda_load', help='Load CFDA to database', action='store_true')
     parser.add_argument('-pa', '--program_activity', help='Load program activity to database', action='store_true')
     parser.add_argument('-c', '--load_agencies', help='Update agency data (CGACs, FRECs, SubTierAgencies)',
@@ -189,8 +179,11 @@ def main():
     if args.update_domain_temp:
         load_domain_value_files_temp(validator_config_path)
 
+    if args.update_object_class:
+        load_object_class(validator_config_path)
+
     if args.cfda_load:
-        load_cfda(validator_config_path)
+        load_cfda_program(validator_config_path)
 
     if args.program_activity:
         load_program_activity_data(validator_config_path)
