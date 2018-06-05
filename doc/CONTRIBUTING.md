@@ -176,32 +176,6 @@ Before running the broker, you'll need to provide a few configuration options. T
 At startup, the broker looks for an environment variable called `env` and will use that to set the instance name. If there is no `env` environment variable, the broker will set the instance name to `local` and look for `local_config.yml` and `local_secrets.yml`.
 
 There are sample config files in `data-act-broker-backend/dataactcore`. Use these as a starting point when setting up the broker. The instructions below assume that you're installing the broker for local development.
-These are the list of the files to be copied and renamed.
-```
-dataactcore/config_example.yml
-dataactcore/local_config_example.yml
-dataactcore/local_secrets_example.yml
-dataactvalidator/config/example_agency_codes_list.csv
-dataactvalidator/config/example_cars_tas.csv
-dataactvalidator/config/example_cgac.csv
-dataactvalidator/config/example_object_class.csv
-dataactvalidator/config/example_program_activity.csv
-```
-If you don't already have your own configs or don't want to use your local configs you can use this script to copy and rename all the necessary config files (run script from root level of this repo):
-```
-#!/bin/bash
-
-cp dataactcore/config_example.yml dataactcore/config.yml
-cp dataactcore/local_config_example.yml dataactcore/local_config.yml
-cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
-
-
-cp dataactvalidator/config/example_agency_codes_list.csv dataactvalidator/config/agency_codes_list.csv
-cp dataactvalidator/config/example_cars_tas.csv dataactvalidator/config/cars_tas.csv
-cp dataactvalidator/config/example_cgac.csv dataactvalidator/config/cgac.csv
-cp dataactvalidator/config/example_object_class.csv dataactvalidator/config/object_class.csv
-cp dataactvalidator/config/example_program_activity.csv dataactvalidator/config/program_activity.csv```
-```
 
 ### Initialize Broker Backend Applications
 
@@ -364,7 +338,7 @@ Next step is to refer to the `Create Broker Config Files` section of this docume
 
 After you successfully installed Docker, make sure the docker daemon is running on your local machine by running `docker version` and make sure you have your configs set up. Run the following command in the root level of this backend repository:
 
-- `docker-compose up -d`  This command will spin up the postgres container `dataact-postgres`, build your backend image `broker-backend` and run the two service `dataact-broker` and `dataact-validator`. This will take longer the first time because it's building the image and installs the requirements. NOTE: remove `-d` option if you want to see docker logs, you can `contrl z` out of the logs anytime. 
+- `docker-compose up -d`  This command will spin up the postgres container `dataact-postgres`, build your backend image `broker-backend` and run the two service `dataact-broker` and `dataact-validator`. This will take longer the first time because it's building the image and installs the requirements. NOTE: remove `-d` option if you want to see docker logs, you can `contrl z` out of the logs anytime.
 
 These commands are useful for debugging but is optional:
 
@@ -372,7 +346,7 @@ These commands are useful for debugging but is optional:
 
 - `docker-compose down` shuts down all your local containers and removes them. This may help debug some problems. You can always spin up your containers again by doing `docker-compose up -d`.
 
-- `docker ps` shows you the info about containers running on your local machines including which ports it's mapped to. 
+- `docker ps` shows you the info about containers running on your local machines including which ports it's mapped to.
 
 Wait about 30 seconds for everything to come up (first time setup can take up to 8 minutes). At this point you can go to your browser and hit the broker api by going to `http://127.0.0.1:9999/v1/current_user/`.
 
