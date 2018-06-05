@@ -123,11 +123,6 @@ broker:
     parent_group: sample
 
 services:
-    # Set to true to turn on tracing rest errors.
-    rest_trace: true
-
-    # Set to true to turn on server debugging.
-    server_debug: true
     debug: true
 
     # URL/IP address that hosts the broker API
@@ -155,15 +150,15 @@ services:
     d1_file_path: /data-act/backend/tests/integration/data/d1_sample.csv
 
     # We import award/subaward records from FSRS
-     fsrs:
-         procurement_service:
-             wsdl: ''  # e.g. https://example.com/?wsdl'
-             username: ''
-             password: ''
-         grant_service:
-             wsdl: ''  # e.g. https://example.com/?wsdl'
-             username: ''
-             password: ''
+    fsrs:
+       procurement_service:
+           wsdl: ''  # e.g. https://example.com/?wsdl'
+           username: ''
+           password: ''
+       grant_service:
+           wsdl: ''  # e.g. https://example.com/?wsdl'
+           username: ''
+           password: ''
 
 
 db:
