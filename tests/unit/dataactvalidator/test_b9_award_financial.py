@@ -38,7 +38,7 @@ def test_success(database):
 
 
 def test_success_null(database):
-    """Program activity name/code as null """
+    """ Program activity name/code as null """
 
     populate_publish_status(database)
 
