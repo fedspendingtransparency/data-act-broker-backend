@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 
 def load_object_class(base_path):
 
-    """
-    This function loads Object classes into the database
+    """ This function loads Object classes into the database
         Args:
             base_path : directory that contains the domain values files.
     """
@@ -27,8 +26,8 @@ def load_object_class(base_path):
         filename = s3bucket.get_key("object_class.csv").generate_url(expires_in=600)
     else:
         filename = os.path.join(base_path, "object_class.csv")
-    # Load object class lookup table
 
+    # Load object class lookup table
     logger.info('Loading Object Class File: object_class.csv')
     with create_app().app_context():
         sess = GlobalDB.db().session
