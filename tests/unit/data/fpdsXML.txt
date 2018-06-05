@@ -10,8 +10,8 @@
     <title><![CDATA[New BPA CALL 0001 awarded to B.F. SAUL PROPERTY COMPANY for the amount of $6,760]]></title>
     <link rel="alternate" type="text/html" href="https://www.fpds.gov/ezsearch/search.do?s=FPDS&amp;indexName=awardfull&amp;templateName=1.4.5&amp;q=0001+9700+"></link>
     <modified>2017-05-16 13:11:27</modified>
-    <content xmlns:ns1="http://www.fpdsng.com/FPDS" type="application/xml">
-      <ns1:award xmlns:ns1="http://www.fpdsng.com/FPDS" version="1.4">
+    <content xmlns:ns1="https://www.fpds.gov/FPDS" type="application/xml">
+      <ns1:award xmlns:ns1="https://www.fpds.gov/FPDS" version="1.4">
         <ns1:awardID>
           <ns1:awardContractID>
             <ns1:agencyID name="DEPT OF DEFENSE">9700</ns1:agencyID>
@@ -240,8 +240,8 @@
     <title><![CDATA[New IDC 000000000LC3162 awarded to MEAD DATA CENTRAL for the amount of $0]]></title>
     <link rel="alternate" type="text/html" href="https://www.fpds.gov/ezsearch/search.do?s=FPDS&amp;indexName=awardfull&amp;templateName=1.4.5&amp;q=000000000LC3162+5000+"></link>
     <modified></modified>
-    <content xmlns:ns1="http://www.fpdsng.com/FPDS" type="application/xml">
-      <ns1:IDV xmlns:ns1="http://www.fpdsng.com/FPDS" version="1.0">
+    <content xmlns:ns1="https://www.fpds.gov/FPDS" type="application/xml">
+      <ns1:IDV xmlns:ns1="https://www.fpds.gov/FPDS" version="1.0">
         <ns1:contractID>
           <ns1:IDVID>
             <ns1:agencyID name="SECURITIES AND EXCHANGE COMMISSION">5000</ns1:agencyID>
