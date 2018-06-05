@@ -117,10 +117,17 @@ def get_submission_metadata(submission):
     # Get metadata for FABS submissions
     fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
 
+    number_of_rows = sess.query(func.sum(Job.number_of_rows)).\
+        filter_by(submission_id=submission.submission_id).\
+        scalar() or 0
+
     return {
         'cgac_code': submission.cgac_code,
         'frec_code': submission.frec_code,
         'agency_name': agency_name,
+        'number_of_errors': submission.number_of_errors,
+        'number_of_warnings': submission.number_of_warnings,
+        'number_of_rows': number_of_rows,
         'created_on': submission.created_at.strftime('%m/%d/%Y'),
         'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': last_validated,
@@ -162,7 +169,7 @@ def get_revalidation_threshold():
     """ Get the revalidation threshold for all submissions
 
         Returns:
-            An object containing the revalidation threshold for submissions formatted 
+            An object containing the revalidation threshold for submissions formatted in MM/DD/YYYY format
     """
     sess = GlobalDB.db().session
 

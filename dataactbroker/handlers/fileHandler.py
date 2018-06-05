@@ -34,7 +34,7 @@ from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, 
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
-    RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
+    FILE_TYPE_DICT_ID, JOB_STATUS_DICT, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
 from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
                                               FPDSContractingOffice)
 from dataactcore.models.userModel import User

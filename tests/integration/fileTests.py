@@ -3,7 +3,7 @@ import boto
 import os
 
 from boto.s3.key import Key
-from datetime import datetime, date
+from datetime import datetime
 from shutil import copy
 
 from dataactbroker.handlers.submission_handler import populate_submission_error_info

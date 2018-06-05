@@ -26,14 +26,21 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
 
     sub = SubmissionFactory(submission_id='1', created_at=now, updated_at=now_plus_10, cgac_code=cgac.cgac_code,
                             reporting_fiscal_period=3, reporting_fiscal_year=2017, is_quarter_format=True,
-                            publish_status_id=PUBLISH_STATUS_DICT['updated'], d2_submission=False)
+                            publish_status_id=PUBLISH_STATUS_DICT['updated'], d2_submission=False, number_of_errors=40,
+                            number_of_warnings=200)
     # Job for submission
     job = JobFactory(submission_id=sub.submission_id, last_validated=now_plus_10,
                      job_type=sess.query(JobType).filter_by(name='validation').one(),
                      job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-                     file_type=sess.query(FileType).filter_by(name='appropriations').one())
+                     file_type=sess.query(FileType).filter_by(name='appropriations').one(),
+                     number_of_rows=3)
+    job_2 = JobFactory(submission_id=sub.submission_id, last_validated=now_plus_10,
+                       job_type=sess.query(JobType).filter_by(name='validation').one(),
+                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                       file_type=sess.query(FileType).filter_by(name='program_activity').one(),
+                       number_of_rows=7)
 
-    sess.add_all([cgac, frec_cgac, frec, sub, job])
+    sess.add_all([cgac, frec_cgac, frec, sub, job, job_2])
     sess.commit()
 
     # Test for Quarterly, updated DABS cgac submission
@@ -41,6 +48,9 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
         'cgac_code': cgac.cgac_code,
         'frec_code': None,
         'agency_name': cgac.agency_name,
+        'number_of_errors': 40,
+        'number_of_warnings': 200,
+        'number_of_rows': 10,
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now_plus_10.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': now_plus_10.strftime('%m/%d/%Y'),
@@ -66,7 +76,8 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
 
     sub = SubmissionFactory(submission_id='2', created_at=now, updated_at=now, cgac_code=None, frec_code=frec.frec_code,
                             reporting_fiscal_period=6, reporting_fiscal_year=2010, is_quarter_format=True,
-                            publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False)
+                            publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False, number_of_errors=0,
+                            number_of_warnings=0)
 
     sess.add_all([frec_cgac, frec, sub])
     sess.commit()
@@ -75,6 +86,9 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
         'cgac_code': None,
         'frec_code': frec.frec_code,
         'agency_name': frec.agency_name,
+        'number_of_errors': 0,
+        'number_of_warnings': 0,
+        'number_of_rows': 0,
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': '',
@@ -102,7 +116,7 @@ def test_get_submission_metadata_monthly_dabs(database):
     sub = SubmissionFactory(submission_id='3', created_at=now, updated_at=now_plus_10, cgac_code=cgac.cgac_code,
                             reporting_fiscal_period=4, reporting_fiscal_year=2016, is_quarter_format=False,
                             publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
-                            reporting_start_date=start_date)
+                            reporting_start_date=start_date, number_of_errors=20, number_of_warnings=0)
 
     sess.add_all([cgac, sub])
     sess.commit()
@@ -111,6 +125,9 @@ def test_get_submission_metadata_monthly_dabs(database):
         'cgac_code': cgac.cgac_code,
         'frec_code': None,
         'agency_name': cgac.agency_name,
+        'number_of_errors': 20,
+        'number_of_warnings': 0,
+        'number_of_rows': 0,
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now_plus_10.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': '',
@@ -139,7 +156,7 @@ def test_get_submission_metadata_unpublished_fabs(database):
     sub = SubmissionFactory(submission_id='4', created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                             reporting_fiscal_period=1, reporting_fiscal_year=2015, is_quarter_format=False,
                             publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=True,
-                            reporting_start_date=start_date)
+                            reporting_start_date=start_date, number_of_errors=4, number_of_warnings=1)
 
     sess.add_all([cgac, frec_cgac, frec, sub])
     sess.commit()
@@ -148,6 +165,9 @@ def test_get_submission_metadata_unpublished_fabs(database):
         'cgac_code': cgac.cgac_code,
         'frec_code': None,
         'agency_name': cgac.agency_name,
+        'number_of_errors': 4,
+        'number_of_warnings': 1,
+        'number_of_rows': 0,
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': '',
@@ -177,7 +197,7 @@ def test_get_submission_metadata_published_fabs(database):
     sub = SubmissionFactory(submission_id='5', created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                             reporting_fiscal_period=5, reporting_fiscal_year=2010, is_quarter_format=False,
                             publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=True,
-                            reporting_start_date=start_date)
+                            reporting_start_date=start_date, number_of_errors=0, number_of_warnings=2)
     # Data for FABS
     dafa_1 = DetachedAwardFinancialAssistanceFactory(submission_id=sub.submission_id, is_valid=True)
     dafa_2 = DetachedAwardFinancialAssistanceFactory(submission_id=sub.submission_id, is_valid=False)
@@ -190,6 +210,9 @@ def test_get_submission_metadata_published_fabs(database):
         'cgac_code': cgac.cgac_code,
         'frec_code': None,
         'agency_name': cgac.agency_name,
+        'number_of_errors': 0,
+        'number_of_warnings': 2,
+        'number_of_rows': 0,
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': '',
