@@ -99,14 +99,16 @@ def get_submission_metadata(submission):
     sess = GlobalDB.db().session
 
     # Determine the agency name
+    agency_name = ''
+
     cgac = sess.query(CGAC).filter_by(cgac_code=submission.cgac_code).one_or_none()
-    frec = sess.query(FREC).filter_by(frec_code=submission.frec_code).one_or_none()
     if cgac:
         agency_name = cgac.agency_name
-    elif frec:
-        agency_name = frec.agency_name
     else:
-        agency_name = ''
+        frec = sess.query(FREC).filter_by(frec_code=submission.frec_code).one_or_none()
+
+        if frec:
+            agency_name = frec.agency_name
 
     # Get the last validated date of the submission
     last_validated = get_last_validated_date(submission.submission_id)

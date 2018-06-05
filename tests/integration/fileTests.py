@@ -279,7 +279,6 @@ class FileTests(BaseTestAPI):
         params = {"submission_id": self.status_check_submission_id}
         response = self.app.get("/v1/submission_metadata/", params, expect_errors=True,
                                 headers={"x-session-id": self.session_id})
-        # Assert 401 status
         self.assertEqual(response.status_code, 401)
 
     def test_submission_metadata_permission(self):
@@ -290,7 +289,6 @@ class FileTests(BaseTestAPI):
         # Call check status route
         response = self.app.get("/v1/submission_metadata/", params, expect_errors=True,
                                 headers={"x-session-id": self.session_id})
-        # Assert 400 status
         self.assertEqual(response.status_code, 403)
 
     def test_submission_metadata_admin(self):
@@ -301,7 +299,6 @@ class FileTests(BaseTestAPI):
         # Call check status route
         response = self.app.get("/v1/submission_metadata/", params, expect_errors=True,
                                 headers={"x-session-id": self.session_id})
-        # Assert 200 status
         self.assertEqual(response.status_code, 200)
 
     def test_submission_metadata(self):
@@ -310,7 +307,6 @@ class FileTests(BaseTestAPI):
         # Call check status route (also checking case insensitivity of header here)
         response = self.app.get("/v1/submission_metadata/", params, expect_errors=True,
                                 headers={"x-session-id": self.session_id})
-        # Assert 200 status
         self.assertEqual(response.status_code, 200)
 
         # Make sure we got the right submission
