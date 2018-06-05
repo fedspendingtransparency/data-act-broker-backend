@@ -20,7 +20,7 @@ from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.scripts.loadFile import load_domain_values
 from dataactvalidator.scripts.load_cfda_data import load_cfda_program
-from dataactvalidator.scripts.load_object import load_object_class
+from dataactvalidator.scripts.load_object_class import load_object_class
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
 from dataactvalidator.scripts.loadTas import load_tas
 from dataactvalidator.scripts.loadLocationData import load_location_data
