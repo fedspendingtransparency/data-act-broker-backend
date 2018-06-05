@@ -3,7 +3,7 @@ import boto
 import os
 
 from boto.s3.key import Key
-from datetime import datetime
+from datetime import datetime, date
 from shutil import copy
 
 from dataactbroker.handlers.submission_handler import populate_submission_error_info
@@ -272,6 +272,20 @@ class FileTests(BaseTestAPI):
         response = self.app.post_json("/v1/submit_files/", update_json,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.json['message'], "A submission with the same period already exists.")
+
+    def test_revalidation_threshold_no_login(self):
+        """ Test response with no login """
+        self.logout()
+        response = self.app.get("/v1/revalidation_threshold/", None, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
+        self.assertEqual(response.status_code, 401)
+
+    def test_revalidation_threshold(self):
+        """Test broker status route response."""
+        self.login_user()
+        response = self.app.get("/v1/revalidation_threshold/", None, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
+        self.assertEqual(response.status_code, 200)
 
     def test_submission_metadata_no_login(self):
         """ Test response with no login """

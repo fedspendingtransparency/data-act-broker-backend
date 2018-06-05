@@ -117,9 +117,6 @@ def get_submission_metadata(submission):
     # Get metadata for FABS submissions
     fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
 
-    # Get the revalidation threshold
-    revalidation_threshold = sess.query(RevalidationThreshold).one_or_none()
-
     return {
         'cgac_code': submission.cgac_code,
         'frec_code': submission.frec_code,
@@ -127,8 +124,6 @@ def get_submission_metadata(submission):
         'created_on': submission.created_at.strftime('%m/%d/%Y'),
         'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': last_validated,
-        'revalidation_threshold':
-            revalidation_threshold.revalidation_date.strftime('%m/%d/%Y') if revalidation_threshold else '',
         'reporting_period': reporting_date(submission),
         'publish_status': submission.publish_status.name,
         'quarterly_submission': submission.is_quarter_format,
@@ -161,6 +156,19 @@ def get_submission_data(submission):
         'number_of_rows': number_of_rows,
         'jobs': [job_to_dict(job) for job in relevant_jobs]
     }
+
+
+def get_revalidation_threshold():
+    """ Get the revalidation threshold for all submissions
+
+        Returns:
+            An object containing the revalidation threshold for submissions formatted 
+    """
+    sess = GlobalDB.db().session
+
+    reval_thresh = sess.query(RevalidationThreshold).one_or_none()
+
+    return {'revalidation_threshold': reval_thresh.revalidation_date.strftime('%m/%d/%Y') if reval_thresh else ''}
 
 
 def reporting_date(submission):
