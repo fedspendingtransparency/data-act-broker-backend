@@ -91,11 +91,10 @@ def load_cfda(base_path):
 
 
 def load_program_activity(base_path):
-    """Loads program activities into program activity table
+    """ Loads program activities into program activity table
 
-    Args:
-        base_path: directory of domain config files
-
+        Args:
+            base_path: directory of domain config files
     """
     logger.info('Loading program activity')
     load_program_activity_data(base_path)

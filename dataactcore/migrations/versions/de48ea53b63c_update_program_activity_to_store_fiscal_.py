@@ -15,12 +15,6 @@ depends_on = None
 import os
 
 from alembic import op
-import sqlalchemy as sa
-
-from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.domainModels import ProgramActivity
-from dataactcore.interfaces.db import GlobalDB
-from dataactvalidator.scripts.load_program_activity import load_program_activity_data
 
 
 def upgrade(engine_name):
@@ -39,6 +33,7 @@ def upgrade_data_broker():
     op.drop_index('ix_pa_tas_pa', table_name='program_activity')
     op.drop_index('ix_program_activity_budget_year', table_name='program_activity')
 
+    # Renamed column to prevent uniqueness error
     op.alter_column('program_activity', 'budget_year', new_column_name='fiscal_year_quarter')
     op.create_index(op.f('ix_program_activity_fiscal_year_quarter'), 'program_activity', ['fiscal_year_quarter'], unique=False)
 

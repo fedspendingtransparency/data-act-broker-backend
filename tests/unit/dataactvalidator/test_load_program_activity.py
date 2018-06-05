@@ -30,7 +30,7 @@ def test_load_program_activity_data(mocked_get_pa_file, database, monkeypatch):
     monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False})
 
     mocked_get_pa_file.return_value = StringIO(
-        """YEAR,AGENCY_ID,ALLOC_ID,ACCOUNT,PA_CODE,PA_NAME,FYQ\n2000,000,111,0000,1111,Test Name,FYQ"""
+        """YEAR,AGENCY_ID,ALLOC_ID,ACCOUNT,PA_CODE,PA_NAME,FYQ\n2000,000,111,0000,1111,Test Name,FY2015Q1"""
     )
 
     sess = database.session
@@ -39,7 +39,7 @@ def test_load_program_activity_data(mocked_get_pa_file, database, monkeypatch):
 
     pa = sess.query(ProgramActivity).one_or_none()
 
-    assert pa.fiscal_year_quarter == 'FYQ'
+    assert pa.fiscal_year_quarter == 'FY2015Q1'
     assert pa.agency_id == '000'
     assert pa.allocation_transfer_id == '111'
     assert pa.account_number == '0000'

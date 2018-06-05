@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_program_activity_file(base_path):
-    """Retrieves the program activity file to load
+    """ Retrieves the program activity file to load
 
         Args:
             base_path: directory of domain config files
@@ -34,7 +34,7 @@ def get_program_activity_file(base_path):
 
 
 def load_program_activity_data(base_path):
-    """Load program activity lookup table.
+    """ Load program activity lookup table.
 
         Args:
             base_path: directory of domain config files

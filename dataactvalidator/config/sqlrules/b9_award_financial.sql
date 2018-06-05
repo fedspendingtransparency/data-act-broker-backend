@@ -2,14 +2,14 @@
 -- Circular A-11. If the program activity is unknown, enter "0000" and "Unknown/Other" as the code and name,
 -- respectively. The rule should not trigger at all for re-certifications of FY17Q2 and FY17Q3.
 WITH award_financial_b9_{0} AS
-    (SELECT af.submission_id,
-        af.row_number,
-        af.agency_identifier,
-        af.main_account_code,
-        af.program_activity_name,
-        af.program_activity_code
-    FROM award_financial AS af
-    WHERE af.submission_id = {0})
+    (SELECT submission_id,
+        row_number,
+        agency_identifier,
+        main_account_code,
+        program_activity_name,
+        program_activity_code
+    FROM award_financial
+    WHERE submission_id = {0})
 SELECT
     af.row_number,
     af.agency_identifier,
