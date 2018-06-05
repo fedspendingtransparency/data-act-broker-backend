@@ -72,28 +72,18 @@ def load_sql_rules():
 
 def load_domain_value_files(base_path):
     """Load domain values (Country codes, Program Activity, Object Class, CFDA)."""
-    logger.info('Loading Country codes, Program Activity, Object Class, CFDA')
+    logger.info('Loading Country codes, Program Activity')
     load_domain_values(base_path)
-    object_class(base_path)
-    load_cfda(base_path)
+    logger.info('Loading Object Class')
+    load_object_class(base_path)
+    logger.info('Loading CFDA Program')
+    load_cfda_program(base_path)
 
 
 def load_domain_value_files_temp(base_path):
     """Load domain values (Country codes, Program Activity, Object Class)."""
     logger.info('Loading Country codes, Program Activity (not cfda or Object class)')
     load_domain_values(base_path)
-
-
-def load_cfda(base_path):
-    """Load cfda values."""
-    logger.info('Loading cfda data')
-    load_cfda_program(base_path)
-
-
-def object_class(base_path):
-    """Load Object class."""
-    logger.info('Loading Object Class')
-    load_object_class(base_path)
 
 
 def load_sf133():
@@ -144,8 +134,7 @@ def main():
                         action='store_true')
     parser.add_argument('-tempd', '--update_domain_temp', help='only update domain values not cfda',
                         action='store_true')
-    parser.add_argument('-obj', '--object_class', help='load object class to database',
-                        action='store_true')
+    parser.add_argument('-oc', '--update_object_class', help='load object class to database', action='store_true')
     parser.add_argument('-cfda', '--cfda_load', help='Load CFDA to database', action='store_true')
     parser.add_argument('-c', '--load_agencies', help='Update agency data (CGACs, FRECs, SubTierAgencies)',
                         action='store_true')
@@ -186,11 +175,11 @@ def main():
     if args.update_domain_temp:
         load_domain_value_files_temp(validator_config_path)
 
-    if args.object_class:
-        object_class(validator_config_path)
+    if args.update_object_class:
+        load_object_class(validator_config_path)
 
     if args.cfda_load:
-        load_cfda(validator_config_path)
+        load_cfda_program(validator_config_path)
 
     if args.load_agencies:
         load_agency_data(validator_config_path)
