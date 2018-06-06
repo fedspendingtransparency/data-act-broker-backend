@@ -217,6 +217,6 @@ BUSINESS_CATEGORY_FIELDS = ['airport_authority', 'alaskan_native_owned_corpo', '
                             'veterinary_hospital', 'woman_owned_business', 'women_owned_small_business']
 
 EXTERNAL_DATA_TYPE = [
-    LookupType(1, 'zip_download', 'external data load type for downloading zip files')
+    LookupType(1, 'usps_download', 'external data load type for downloading zip files')
 ]
 EXTERNAL_DATA_TYPE_DICT = {item.name: item.id for item in EXTERNAL_DATA_TYPE}

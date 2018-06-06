@@ -2,9 +2,15 @@ import urllib.parse
 import pytest
 import json
 import re
+from datetime import datetime
+
 from unittest.mock import MagicMock
+
+from dataactcore.models.domainModels import ExternalDataLoadDate
+from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 from dataactvalidator.scripts.load_usps_files import get_payload_string, check_response_status, get_login_tokens, \
     get_file_info
+from tests.unit.mock_helpers import MockSession
 
 
 def mocked_requests_post(url):
@@ -46,9 +52,18 @@ def test_get_login_tokens():
     assert get_login_tokens(test_data) == {'logonkey': '1234', 'tokenkey': 'abc123'}
 
 
-def test_get_file_info(database):
+def test_get_file_info():
     """ Tests the get_file_info() function: returns the fileid for the latest version of the zip4 file to be downloaded
     """
+
+    # Create test external data load date
+    last_load_date = datetime.strptime('1700-01-01', '%Y-%m-%d').date()
+    test_external_data_load_date = ExternalDataLoadDate(external_data_load_date_id=-1, last_load_date=last_load_date,
+                                                        external_data_type_id=EXTERNAL_DATA_TYPE_DICT['usps_download'])
+
+    mock_session = MockSession()
+    mock_session.query('').filter_by()._first = test_external_data_load_date
+
     test_data = {"response": "success", "fileList": [{"fileid": "12345", "status": "N", "filepath": "file/path/",
                                                       "filename": "anotherfile.tar", "fulfilled": "2012-08-15"},
                                                      {"fileid": "23456", "status": "N", "filepath": "file/path/",
@@ -56,5 +71,18 @@ def test_get_file_info(database):
                                                      {"fileid": "23456", "status": "N", "filepath": "file/path/",
                                                      "filename": "laterfile.tar", "fulfilled": "2012-09-15"}]}
 
-    sess = database.session
-    assert get_file_info(sess, test_data) == ('23456', '2012-10-15', None)
+    expected_date = datetime.strptime('2012-10-15', '%Y-%m-%d').date()
+    assert get_file_info(mock_session, test_data) == ('23456', expected_date, test_external_data_load_date)
+
+
+def _assert_system_exit(self, expected_code, f):
+    with self.assertRaises(SystemExit) as cm:
+        f()
+    if isinstance(cm.exception, int):
+        self.assertEqual(cm.exception, expected_code)
+    else:
+        self.assertEqual(cm.exception.code, expected_code)
+
+
+def test_exit_code_3():
+    pass

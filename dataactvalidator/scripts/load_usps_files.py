@@ -42,16 +42,17 @@ def get_file_info(sess, download_list_response_body):
        Gets the fileid for the latest version of the zip4 file to be downloaded
 
        Args:
-            download_list_response_body: response body (type dictionary) returned by the USPS download list endpoint.
+           sess: database session within with to process database queries
+           download_list_response_body: response body (type dictionary) returned by the USPS download list endpoint.
        Returns:
-            fileid as string
+           fileid as string
     """
     download_list = download_list_response_body['fileList']
     download_list.sort(key=lambda item: item['fulfilled'], reverse=True)
     latest_file = download_list[0]
 
     last_load_date_obj = sess.query(ExternalDataLoadDate).\
-        filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['zip_download']).first()
+        filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['usps_download']).first()
 
     fulfilled_date = datetime.strptime(latest_file['fulfilled'], '%Y-%m-%d').date()
 
@@ -61,7 +62,7 @@ def get_file_info(sess, download_list_response_body):
         logger.info('Latest file already loaded. No further action will be taken. Exiting...')
         sys.exit(3)
 
-    return latest_file['fileid'], latest_file['fulfilled'], last_load_date_obj
+    return latest_file['fileid'], fulfilled_date, last_load_date_obj
 
 
 def get_payload_string(obj_request_body):
@@ -352,7 +353,7 @@ def main(sess):
     if args.download:
         file_fulfilled_date, last_load_date_obj = download_usps_files(sess, usps_file_dir)
 
-    # upload_files_to_s3(args, usps_file_dir)
+    upload_files_to_s3(args, usps_file_dir)
 
     if args.remove:
         shutil.rmtree(usps_file_dir)
@@ -362,7 +363,7 @@ def main(sess):
     if not last_load_date_obj:
         new_external_data_load_date = ExternalDataLoadDate(
             last_load_date=file_fulfilled_date,
-            external_data_type_id=EXTERNAL_DATA_TYPE_DICT['zip_download']
+            external_data_type_id=EXTERNAL_DATA_TYPE_DICT['usps_download']
         )
         sess.add(new_external_data_load_date)
     else:
