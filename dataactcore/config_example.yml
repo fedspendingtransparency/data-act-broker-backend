@@ -213,23 +213,4 @@ logging:
     # Logstash EC2 port. 514 is the port typically used with logstash,
     # so you can mostly likely keep this as is.
     logstash_port: port
-
-job-queue:
-    # RabbitMQ username
-    # username: guest
-    username: username
-
-    # RabbitMQ password
-    # password: guest
-    password: password123
-
-    # URL for the job queue server. Note, do not add 'http'
-    url: ec2-queue-server.aws-region.compute.amazonaws.com
-    # url: 127.0.0.1
-
-    # Port on which Celery is listening
-    port: port
-
-    # Broker scheme which must coordinate with the type of broker being used
-    # on the remote server
-    broker_scheme: amqp
+    
