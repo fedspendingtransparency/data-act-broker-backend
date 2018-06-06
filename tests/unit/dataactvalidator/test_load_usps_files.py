@@ -75,14 +75,29 @@ def test_get_file_info():
     assert get_file_info(mock_session, test_data) == ('23456', expected_date, test_external_data_load_date)
 
 
-def _assert_system_exit(self, expected_code, f):
-    with self.assertRaises(SystemExit) as cm:
-        f()
-    if isinstance(cm.exception, int):
-        self.assertEqual(cm.exception, expected_code)
-    else:
-        self.assertEqual(cm.exception.code, expected_code)
+def _assert_system_exit(expected_code, f, *args):
+    with pytest.raises(SystemExit) as cm:
+        f(*args)
+        if isinstance(cm.exception, int):
+            assert cm.exception == expected_code
+        else:
+            assert cm.exception.code == expected_code
 
 
 def test_exit_code_3():
-    pass
+    # Create test external data load date
+    last_load_date = datetime.strptime('2013-01-01', '%Y-%m-%d').date()
+    test_external_data_load_date = ExternalDataLoadDate(external_data_load_date_id=-1, last_load_date=last_load_date,
+                                                        external_data_type_id=EXTERNAL_DATA_TYPE_DICT['usps_download'])
+
+    mock_session = MockSession()
+    mock_session.query('').filter_by()._first = test_external_data_load_date
+
+    test_data = {"response": "success", "fileList": [{"fileid": "12345", "status": "N", "filepath": "file/path/",
+                                                      "filename": "anotherfile.tar", "fulfilled": "2012-08-15"},
+                                                     {"fileid": "23456", "status": "N", "filepath": "file/path/",
+                                                     "filename": "somefile.tar", "fulfilled": "2012-10-15"},
+                                                     {"fileid": "23456", "status": "N", "filepath": "file/path/",
+                                                     "filename": "laterfile.tar", "fulfilled": "2012-09-15"}]}
+
+    _assert_system_exit(3, get_file_info, mock_session, test_data)

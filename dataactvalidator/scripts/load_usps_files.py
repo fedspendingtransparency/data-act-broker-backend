@@ -353,7 +353,11 @@ def main(sess):
     if args.download:
         file_fulfilled_date, last_load_date_obj = download_usps_files(sess, usps_file_dir)
 
-    upload_files_to_s3(args, usps_file_dir)
+    try:
+        upload_files_to_s3(args, usps_file_dir)
+    except Exception as e:
+        logger.error(e)
+        sys.exit(1)
 
     if args.remove:
         shutil.rmtree(usps_file_dir)
