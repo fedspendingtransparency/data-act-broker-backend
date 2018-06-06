@@ -45,7 +45,7 @@ def get_file_info(sess, download_list_response_body):
            sess: database session within with to process database queries
            download_list_response_body: response body (type dictionary) returned by the USPS download list endpoint.
        Returns:
-           fileid as string
+           tuple containing: fileid as string, fulfilled_date as date, last_load_date_obj as ExternalDataLoadDate
     """
     download_list = download_list_response_body['fileList']
     download_list.sort(key=lambda item: item['fulfilled'], reverse=True)
