@@ -6,7 +6,6 @@ import boto
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import CountryCode
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
@@ -15,10 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 def load_country_codes(base_path):
-    """Load all domain value files.
+    """ Load Country Codes into the database.
 
-    Args
-        base_path: directory that contains the domain values files.
+        Args
+            base_path: directory that contains the domain values files.
     """
 
     if CONFIG_BROKER["use_aws"]:
@@ -28,7 +27,7 @@ def load_country_codes(base_path):
     else:
         filename = os.path.join(base_path, "country_codes.csv")
 
-    logger.info('Loading country codes file: ' + "country_codes.csv")
+    logger.info('Loading country codes file: country_codes.csv')
 
     with create_app().app_context():
         sess = GlobalDB.db().session
@@ -50,6 +49,3 @@ def load_country_codes(base_path):
         sess.commit()
 
     logger.info('{} records inserted to {}'.format(num, table_name))
-
-if __name__ == '__main__':
-    configure_logging()
