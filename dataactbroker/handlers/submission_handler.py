@@ -155,17 +155,11 @@ def get_submission_data(submission):
     """
     sess = GlobalDB.db().session
 
-    number_of_rows = sess.query(func.sum(Job.number_of_rows)).\
-        filter_by(submission_id=submission.submission_id).\
-        scalar() or 0
-
     relevant_job_types = (JOB_TYPE_DICT['csv_record_validation'], JOB_TYPE_DICT['validation'])
     relevant_jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
                                            Job.job_type_id.in_(relevant_job_types))
 
     return {
-        'number_of_errors': submission.number_of_errors,
-        'number_of_rows': number_of_rows,
         'jobs': [job_to_dict(job) for job in relevant_jobs]
     }
 
@@ -218,7 +212,7 @@ def job_to_dict(job):
         'filename': job.original_filename,
         'file_size': job.file_size,
         'number_of_rows': job.number_of_rows,
-        'file_type': job.file_type_name or '',
+        'file_type': job.file_type_name or ''
     }
 
     # @todo replace with relationships
