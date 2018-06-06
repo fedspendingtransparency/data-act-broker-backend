@@ -273,6 +273,47 @@ class FileTests(BaseTestAPI):
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.json['message'], "A submission with the same period already exists.")
 
+    def test_submission_metadata_no_login(self):
+        """ Test response with no login """
+        self.logout()
+        params = {"submission_id": self.status_check_submission_id}
+        response = self.app.get("/v1/submission_metadata/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
+        self.assertEqual(response.status_code, 401)
+
+    def test_submission_metadata_permission(self):
+        """ Test that other users do not have access to status check submission """
+        params = {"submission_id": self.status_check_submission_id}
+        # Log in as non-admin user
+        self.login_user()
+        # Call check status route
+        response = self.app.get("/v1/submission_metadata/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
+        self.assertEqual(response.status_code, 403)
+
+    def test_submission_metadata_admin(self):
+        """ Test that admins have access to other user's submissions """
+        params = {"submission_id": self.status_check_submission_id}
+        # Log in as admin user
+        self.login_admin_user()
+        # Call check status route
+        response = self.app.get("/v1/submission_metadata/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
+        self.assertEqual(response.status_code, 200)
+
+    def test_submission_metadata(self):
+        """Test broker status route response."""
+        params = {"submission_id": self.status_check_submission_id}
+        # Call check status route (also checking case insensitivity of header here)
+        response = self.app.get("/v1/submission_metadata/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
+        self.assertEqual(response.status_code, 200)
+
+        # Make sure we got the right submission
+        json = response.json
+        self.assertEqual(json["cgac_code"], "SYS")
+        self.assertEqual(json["reporting_period"], "Q1/2016")
+
     def test_check_status_no_login(self):
         """ Test response with no login """
         self.logout()

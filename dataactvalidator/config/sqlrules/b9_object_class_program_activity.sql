@@ -1,6 +1,6 @@
 -- Must be a valid program activity name and code for the corresponding TAS/TAFS as defined in Section 82 of OMB
 -- Circular A-11. If the program activity is unknown, enter "0000" and "Unknown/Other" as your code and name,
--- respectively.
+-- respectively. The rule should not trigger at all for re-certifications of FY17Q2 and FY17Q3.
 CREATE OR REPLACE function pg_temp.is_zero(NUMERIC) returns INTEGER AS $$
 BEGIN
     perform CAST($1 AS NUMERIC);
@@ -26,8 +26,12 @@ SELECT
     op.program_activity_name,
     op.program_activity_code
 FROM object_class_program_activity_b9_{0} AS op
+     INNER JOIN submission AS sub
+        ON op.submission_id = sub.submission_id
 WHERE op.program_activity_code <> '0000'
     AND UPPER(op.program_activity_name) <> 'UNKNOWN/OTHER'
+    AND NOT ((sub.reporting_fiscal_year, sub.reporting_fiscal_period) IN (('2017', 6), ('2017', 9))
+        AND sub.publish_status_id <> 1)
     AND op.row_number NOT IN (
         SELECT DISTINCT op.row_number
         FROM object_class_program_activity_b9_{0} AS op
@@ -36,10 +40,7 @@ WHERE op.program_activity_code <> '0000'
                 AND op.main_account_code = pa.account_number
                 AND UPPER(COALESCE(op.program_activity_name, '')) = UPPER(pa.program_activity_name)
                 AND COALESCE(op.program_activity_code, '') = pa.program_activity_code
-                AND CAST(pa.budget_year AS INTEGER) IN (2016, 2017, 2018)  -- temporarily hardcoded to 2016-2018
-                                                       -- (SELECT reporting_fiscal_year
-                                                       --  FROM submission
-                                                       --  WHERE submission_id = {0})
+                AND pa.fiscal_year_quarter = 'FY' || sub.reporting_fiscal_year || 'Q' || sub.reporting_fiscal_period / 3
     )
     -- when there's no program activity name, return sum of true/false statements of whether all numerical values
     -- are zero or not (1 = not zero) (see if there are any non-zero values basically)
