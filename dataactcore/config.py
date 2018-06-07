@@ -108,7 +108,7 @@ CONFIG_SERVICES['validator_host'] = re.sub(
     'http://|:(.*)', '', CONFIG_SERVICES['validator_host'])
 # if hosts in config file are set to 0.0.0.0, override to
 # 127.0.0.1 for cross-platform compatibility
-if CONFIG_SERVICES['broker_api_host'] == '0.0.0.0':
+if env is not "local" and CONFIG_SERVICES['broker_api_host'] == '0.0.0.0':
     CONFIG_SERVICES['broker_api_host'] = '127.0.0.1'
 
 if CONFIG_SERVICES["broker_api_port"] == 443:
