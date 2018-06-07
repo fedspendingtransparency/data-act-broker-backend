@@ -291,7 +291,7 @@ Example output:
 }
 ```
 
-#### GET "/v1/revalidation_threshold/"
+#### GET "/v1/revalidation\_threshold/"
 This endpoint returns the revalidation threshold for the broker application. This is the date that denotes the earliest last validated date a submission must have in order to be certifiable.
 
 ##### Sample Request
@@ -316,7 +316,7 @@ Possible HTTP Status Codes:
 * 403: Permission denied, user does not have permission to view this submission
 
 
-#### GET "/v1/submission_metadata/"
+#### GET "/v1/submission\_metadata/"
 This endpoint returns metadata for the requested submission.
 
 ##### Sample Request
@@ -364,28 +364,28 @@ This endpoint returns metadata for the requested submission.
 * `last_validated`: string, date the most recent validations were completed (MM/DD/YYYY)
 * `reporting_period`: string, reporting period of the submission (Q#/YYYY for quarterly submissions, MM/YYYY for monthly)
 * `publish_status`: string, whether the submission is published or not. Can contain only the following values:
-  * `unpublished`
-  * `published`
-  * `updated`
-  * `publishing`
+	* `unpublished`
+	* `published`
+	* `updated`
+	* `publishing`
 * `quarterly_submission`: boolean, whether the submission is quarterly or monthly
 * `fabs_submission`: boolean, whether the submission is FABS or DABS (True for FABS)
 * `fabs_meta`: object, data specific to FABS submissions (null for DABS submissions)
-  * `publish_date`: string, Date/time submission was published (H:mm(AM/PM) MM/DD/YYYY) (null if unpublished)
-  * `published_file`: string, signed url of the published file (null if unpublished)
-  * `total_rows`: int, total rows in the submission not including header rows
-  * `valid_rows`: int, total number of valid, publishable row
+	* `publish_date`: string, Date/time submission was published (H:mm(AM/PM) MM/DD/YYYY) (null if unpublished)
+	* `published_file`: string, signed url of the published file (null if unpublished)
+	* `total_rows`: int, total rows in the submission not including header rows
+	* `valid_rows`: int, total number of valid, publishable row
 
 ##### Errors
 Possible HTTP Status Codes:
 
 * 400:
-  * Missing `submission_id` parameter
-  * Submission does not exist
+	* Missing `submission_id` parameter
+	* Submission does not exist
 * 403: Permission denied, user does not have permission to view this submission
 
 
-#### GET "/v1/submission_data/"
+#### GET "/v1/submission\_data/"
 This endpoint returns detailed validation job data for the requested submission.
 
 ##### Sample Request
@@ -425,54 +425,54 @@ This endpoint returns detailed validation job data for the requested submission.
 ##### Response Attributes
 * `job_id `: int, database ID of the job
 * `job_status`: string, status of the job. Can be any of the following values:
-  * `waiting`
-  * `ready`
-  * `running`
-  * `finished`
-  * `invalid`
-  * `failed`
+	* `waiting`
+	* `ready`
+	* `running`
+	* `finished`
+	* `invalid`
+	* `failed`
 * `job_type`: string, the type of validation the job is, can be either of the following values:
-  * `csv_record_validation` - a single file validation
-  * `validation` - the cross-file validations
+	* `csv_record_validation` - a single file validation
+	* `validation` - the cross-file validations
 * `filename`: string, the orignal name of the submitted file (null for cross-file)
 * `file_size`: int, size of the file in bytes (null for cross-file)
 * `number_of_rows`: total number of rows in the file including header row (null for cross-file)
 * `file_type`: type of the file, can only be the following values
-  * `fabs` - will be the only file for FABS submissions and will not be present in DABS submissions
-  * `appropriations` - A
-  * `program_activity` - B
-  * `award_financial` - C
-  * `award_procurement` - D1
-  * `award` - D2
-  * ` ` - Empty string is used for cross-file jobs
+	* `fabs` - will be the only file for FABS submissions and will not be present in DABS submissions
+	* `appropriations` - A
+	* `program_activity` - B
+	* `award_financial` - C
+	* `award_procurement` - D1
+	* `award` - D2
+	* ` ` - Empty string is used for cross-file jobs
 * `file_status`: string, indicates the status of the file. Can only be the following values
-  * `complete`
-  * `header_error`
-  * `unknown_error`
-  * `single_row_error`
-  * `job_error`
-  * `incomplete`
-  * `encoding_error`
-  * `row_count_error`
-  * `file_type_error`
+	* `complete`
+	* `header_error`
+	* `unknown_error`
+	* `single_row_error`
+	* `job_error`
+	* `incomplete`
+	* `encoding_error`
+	* `row_count_error`
+	* `file_type_error`
 * `error_type`: string, the overall type of error in the validation job. Can only be the following values
-  * `header_errors`
-  * `row_errors`
-  * `none`
+	* `header_errors`
+	* `row_errors`
+	* `none`
 * `error_data`: array, details of each error that ocurred in the submission. Each entry is an object with the following keys, all returned values are strings
 	*  `field_name`: the fields that were affected by the rule separated by commas if there are multiple
 	*  `error_name`: the name of the error type, can be any of the following values
-	    *  `required_error`
-	    *  `rule_failed`
-	    *  `type_error`
-	    *  `value_error`
-	    *  `read_error`
-	    *  `write_error`
-	    *  `length_error`
-  *  `error_description`: a description of the `error_name`
-  *  `occurrences`: the number of times this error ocurred in this file
-  *  `rule_failed`: the full description of the rule that failed
-  *  `original_label`: the rule label for the rule that failed
+		*  `required_error`
+		*  `rule_failed`
+		*  `type_error`
+		*  `value_error`
+		*  `read_error`
+		*  `write_error`
+		*  `length_error`
+	*  `error_description`: a description of the `error_name`
+	*  `occurrences`: the number of times this error ocurred in this file
+	*  `rule_failed`: the full description of the rule that failed
+	*  `original_label`: the rule label for the rule that failed
 *  `warning_data`: array, details of each warning that ocurred in the submission. Each entry is an object containing the same keys as those found in `error_data` with the exception that `error_name` can only be `rule_failed`.
 *  `missing_headers`: array, each entry is a string with the name of the header that was missing
 *  `duplicated_headers`: array, each entry is a string with the name of the header that was duplicated
@@ -481,8 +481,8 @@ This endpoint returns detailed validation job data for the requested submission.
 Possible HTTP Status Codes:
 
 * 400:
-  * Missing `submission_id` parameter
-  * Submission does not exist
+	* Missing `submission_id` parameter
+	* Submission does not exist
 * 403: Permission denied, user does not have permission to view this submission
 
 
