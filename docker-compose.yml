@@ -1,0 +1,34 @@
+version: '3'
+services:
+  dataact-postgres:
+    container_name: dataact-postgres
+    image: postgres:9.4.7
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: data_broker
+    ports:
+      - "8000:5432"
+
+  dataact-broker:
+    container_name: dataact-broker
+    image: broker-backend
+    build:
+      context: ./
+    restart: always
+    command: /bin/sh -c "cd ./dataactcore; sleep 9s; alembic upgrade head; python ../dataactbroker/app.py"
+    ports:
+      - "9999:9999"
+    volumes:
+      - ./:/data-act/backend
+
+  dataact-validator:
+    container_name: dataact-validator
+    image: broker-backend
+    restart: always
+    command: /bin/sh -c "sleep 17s; python dataactvalidator/app.py"
+    ports:
+      - "8889:8889"
+    volumes:
+      - ./:/data-act/backend
