@@ -28,7 +28,8 @@ class StringCleaner:
                 string: the string to split
 
             Returns:
-                Empty array if the string is empty or an array of whitespace-trimmed strings split on "," from the original
+                Empty array if the string is empty or an array of whitespace-trimmed strings split on "," from the
+                original
         """
         if string is None:
             return []
