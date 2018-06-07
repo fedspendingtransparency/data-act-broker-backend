@@ -303,7 +303,7 @@ This endpoint returns the revalidation threshold for the broker application. Thi
 ##### Response (JSON)
 ```
 {
-	"revalidation_threshold": "01/15/2017"
+    "revalidation_threshold": "01/15/2017"
 }
 ```
 
@@ -328,26 +328,26 @@ This endpoint returns metadata for the requested submission.
 ##### Response (JSON)
 ```
 {
-	"cgac_code": "000",
-	"frec_code": null,
-	"agency_name": "Agency Name",
-	"number_of_errors": 10,
-	"number_of_warnings": 20,
-	"number_of_rows": 3,
-	"total_size": 1800,
-	"created_on": "04/16/2018",
-	"last_updated": "2018-04-16T18:48:09",
-	"last_validated": "04/16/2018",
-	"reporting_period": "Q2/2018",
-	"publish_status": "unpublished",
-	"quarterly_submission": false,
-	"fabs_submission": true,
-	"fabs_meta": {
-		"valid_rows": 1,
-		"total_rows": 2,
-		"publish_date": null,
-		"published_file": null
-	}
+    "cgac_code": "000",
+    "frec_code": null,
+    "agency_name": "Agency Name",
+    "number_of_errors": 10,
+    "number_of_warnings": 20,
+    "number_of_rows": 3,
+    "total_size": 1800,
+    "created_on": "04/16/2018",
+    "last_updated": "2018-04-16T18:48:09",
+    "last_validated": "04/16/2018",
+    "reporting_period": "Q2/2018",
+    "publish_status": "unpublished",
+    "quarterly_submission": false,
+    "fabs_submission": true,
+    "fabs_meta": {
+        "valid_rows": 1,
+        "total_rows": 2,
+        "publish_date": null,
+        "published_file": null
+    }
 }
 ```
 
@@ -364,24 +364,24 @@ This endpoint returns metadata for the requested submission.
 * `last_validated`: string, date the most recent validations were completed (MM/DD/YYYY)
 * `reporting_period`: string, reporting period of the submission (Q#/YYYY for quarterly submissions, MM/YYYY for monthly)
 * `publish_status`: string, whether the submission is published or not. Can contain only the following values:
-	* `unpublished`
-	* `published`
-	* `updated`
-	* `publishing`
+    * `unpublished`
+    * `published`
+    * `updated`
+    * `publishing`
 * `quarterly_submission`: boolean, whether the submission is quarterly or monthly
 * `fabs_submission`: boolean, whether the submission is FABS or DABS (True for FABS)
 * `fabs_meta`: object, data specific to FABS submissions (null for DABS submissions)
-	* `publish_date`: string, Date/time submission was published (H:mm(AM/PM) MM/DD/YYYY) (null if unpublished)
-	* `published_file`: string, signed url of the published file (null if unpublished)
-	* `total_rows`: int, total rows in the submission not including header rows
-	* `valid_rows`: int, total number of valid, publishable row
+    * `publish_date`: string, Date/time submission was published (H:mm(AM/PM) MM/DD/YYYY) (null if unpublished)
+    * `published_file`: string, signed url of the published file (null if unpublished)
+    * `total_rows`: int, total rows in the submission not including header rows
+    * `valid_rows`: int, total number of valid, publishable row
 
 ##### Errors
 Possible HTTP Status Codes:
 
 * 400:
-	* Missing `submission_id` parameter
-	* Submission does not exist
+    * Missing `submission_id` parameter
+    * Submission does not exist
 * 403: Permission denied, user does not have permission to view this submission
 
 
@@ -397,82 +397,82 @@ This endpoint returns detailed validation job data for the requested submission.
 ##### Response (JSON)
 ```
 {
-	"jobs": [{
-		'job_id': 520,
-		'job_status': "finished",
-		'job_type': "csv_record_validation",
-		'filename': "original_file_name.csv",
-		'file_size': 1800,
-		'number_of_rows': 3,
-		'file_type': "fabs",
-		'file_status': "complete",
-		'error_type': "row_errors",
-		'error_data': [{
-			'field_name': "recordtype",
-			'error_name': "required_error",
-			'error_description': "This field is required for all submissions but was not provided in this row.",
-			'occurrences': "1",
-			'rule_failed': "This field is required for all submissions but was not provided in this row.",
-			'original_label': "FABSREQ3"
-		}],
-		'warning_data': [],
-		'missing_headers': [],
-		'duplicated_headers': []
-	}]
+    "jobs": [{
+        'job_id': 520,
+        'job_status': "finished",
+        'job_type': "csv_record_validation",
+        'filename': "original_file_name.csv",
+        'file_size': 1800,
+        'number_of_rows': 3,
+        'file_type': "fabs",
+        'file_status': "complete",
+        'error_type': "row_errors",
+        'error_data': [{
+            'field_name': "recordtype",
+            'error_name': "required_error",
+            'error_description': "This field is required for all submissions but was not provided in this row.",
+            'occurrences': "1",
+            'rule_failed': "This field is required for all submissions but was not provided in this row.",
+            'original_label': "FABSREQ3"
+        }],
+        'warning_data': [],
+        'missing_headers': [],
+        'duplicated_headers': []
+    }]
 }
 ```
 
 ##### Response Attributes
 * `job_id `: int, database ID of the job
 * `job_status`: string, status of the job. Can be any of the following values:
-	* `waiting`
-	* `ready`
-	* `running`
-	* `finished`
-	* `invalid`
-	* `failed`
+    * `waiting`
+    * `ready`
+    * `running`
+    * `finished`
+    * `invalid`
+    * `failed`
 * `job_type`: string, the type of validation the job is, can be either of the following values:
-	* `csv_record_validation` - a single file validation
-	* `validation` - the cross-file validations
+    * `csv_record_validation` - a single file validation
+    * `validation` - the cross-file validations
 * `filename`: string, the orignal name of the submitted file (null for cross-file)
 * `file_size`: int, size of the file in bytes (null for cross-file)
 * `number_of_rows`: total number of rows in the file including header row (null for cross-file)
 * `file_type`: type of the file, can only be the following values
-	* `fabs` - will be the only file for FABS submissions and will not be present in DABS submissions
-	* `appropriations` - A
-	* `program_activity` - B
-	* `award_financial` - C
-	* `award_procurement` - D1
-	* `award` - D2
-	* ` ` - Empty string is used for cross-file jobs
+    * `fabs` - will be the only file for FABS submissions and will not be present in DABS submissions
+    * `appropriations` - A
+    * `program_activity` - B
+    * `award_financial` - C
+    * `award_procurement` - D1
+    * `award` - D2
+    * ` ` - Empty string is used for cross-file jobs
 * `file_status`: string, indicates the status of the file. Can only be the following values
-	* `complete`
-	* `header_error`
-	* `unknown_error`
-	* `single_row_error`
-	* `job_error`
-	* `incomplete`
-	* `encoding_error`
-	* `row_count_error`
-	* `file_type_error`
+    * `complete`
+    * `header_error`
+    * `unknown_error`
+    * `single_row_error`
+    * `job_error`
+    * `incomplete`
+    * `encoding_error`
+    * `row_count_error`
+    * `file_type_error`
 * `error_type`: string, the overall type of error in the validation job. Can only be the following values
-	* `header_errors`
-	* `row_errors`
-	* `none`
+    * `header_errors`
+    * `row_errors`
+    * `none`
 * `error_data`: array, details of each error that ocurred in the submission. Each entry is an object with the following keys, all returned values are strings
-	*  `field_name`: the fields that were affected by the rule separated by commas if there are multiple
-	*  `error_name`: the name of the error type, can be any of the following values
-		*  `required_error`
-		*  `rule_failed`
-		*  `type_error`
-		*  `value_error`
-		*  `read_error`
-		*  `write_error`
-		*  `length_error`
-	*  `error_description`: a description of the `error_name`
-	*  `occurrences`: the number of times this error ocurred in this file
-	*  `rule_failed`: the full description of the rule that failed
-	*  `original_label`: the rule label for the rule that failed
+    *  `field_name`: the fields that were affected by the rule separated by commas if there are multiple
+    *  `error_name`: the name of the error type, can be any of the following values
+        *  `required_error`
+        *  `rule_failed`
+        *  `type_error`
+        *  `value_error`
+        *  `read_error`
+        *  `write_error`
+        *  `length_error`
+    *  `error_description`: a description of the `error_name`
+    *  `occurrences`: the number of times this error ocurred in this file
+    *  `rule_failed`: the full description of the rule that failed
+    *  `original_label`: the rule label for the rule that failed
 *  `warning_data`: array, details of each warning that ocurred in the submission. Each entry is an object containing the same keys as those found in `error_data` with the exception that `error_name` can only be `rule_failed`.
 *  `missing_headers`: array, each entry is a string with the name of the header that was missing
 *  `duplicated_headers`: array, each entry is a string with the name of the header that was duplicated
@@ -481,8 +481,8 @@ This endpoint returns detailed validation job data for the requested submission.
 Possible HTTP Status Codes:
 
 * 400:
-	* Missing `submission_id` parameter
-	* Submission does not exist
+    * Missing `submission_id` parameter
+    * Submission does not exist
 * 403: Permission denied, user does not have permission to view this submission
 
 
