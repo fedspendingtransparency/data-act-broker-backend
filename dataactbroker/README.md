@@ -462,13 +462,13 @@ This endpoint returns detailed validation job data for the requested submission.
 * `error_data`: array, details of each error that ocurred in the submission. Each entry is an object with the following keys, all returned values are strings
 	*  `field_name`: the fields that were affected by the rule separated by commas if there are multiple
 	*  `error_name`: the name of the error type, can be any of the following values
-	  *  `required_error`
-	  *  `rule_failed`
-	  *  `type_error`
-	  *  `value_error`
-	  *  `read_error`
-	  *  `write_error`
-	  *  `length_error`
+	    *  `required_error`
+	    *  `rule_failed`
+	    *  `type_error`
+	    *  `value_error`
+	    *  `read_error`
+	    *  `write_error`
+	    *  `length_error`
   *  `error_description`: a description of the `error_name`
   *  `occurrences`: the number of times this error ocurred in this file
   *  `rule_failed`: the full description of the rule that failed
