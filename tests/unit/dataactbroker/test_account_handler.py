@@ -79,7 +79,25 @@ def test_max_login_failure(monkeypatch):
     assert error_message == json.loads(json_response.get_data().decode("utf-8"))['message']
 
 
+def test_set_user_name_updated():
+    """ Tests set_user_name()  updates a user's name """
+
+    user = UserFactory(name="No User")
+
+    mock_cas_attrs = {
+                    'maxAttribute:First-Name': 'New',
+                    'maxAttribute:Middle-Name': '',
+                    'maxAttribute:Last-Name': 'Name'
+                    }
+
+    accountHandler.set_user_name(user, mock_cas_attrs)
+
+    assert user.name == 'New Name'
+
+
 def test_set_user_name_middle_name():
+    """ Tests set_user_name() adds a middle name initial to the user's name when a middle name is provided """
+
     user = UserFactory()
 
     mock_cas_attrs = {
@@ -94,6 +112,7 @@ def test_set_user_name_middle_name():
 
 
 def test_set_user_name_empty_middle_name():
+    """ Tests set_user_name() omits a middle name initial to the user's name when a middle name is empty (spaces) """
     user = UserFactory()
 
     mock_cas_attrs = {
@@ -108,6 +127,8 @@ def test_set_user_name_empty_middle_name():
 
 
 def test_set_user_name_no_middle_name():
+    """ Tests set_user_name() omits a middle name initial to the user's name when a middle name is empty (None) """
+
     user = UserFactory()
 
     mock_cas_attrs = {
