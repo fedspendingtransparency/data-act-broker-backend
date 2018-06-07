@@ -79,8 +79,7 @@ def test_max_login_failure(monkeypatch):
     assert error_message == json.loads(json_response.get_data().decode("utf-8"))['message']
 
 
-@pytest.mark.usefixtures("user_constants")
-def test_set_user_name_middle_name(database, monkeypatch):
+def test_set_user_name_middle_name():
     user = UserFactory()
 
     mock_cas_attrs = {
@@ -94,8 +93,7 @@ def test_set_user_name_middle_name(database, monkeypatch):
     assert user.name == 'Test A. User'
 
 
-@pytest.mark.usefixtures("user_constants")
-def test_set_user_name_empty_middle_name(database, monkeypatch):
+def test_set_user_name_empty_middle_name():
     user = UserFactory()
 
     mock_cas_attrs = {
@@ -109,8 +107,7 @@ def test_set_user_name_empty_middle_name(database, monkeypatch):
     assert user.name == 'Test User'
 
 
-@pytest.mark.usefixtures("user_constants")
-def test_set_user_name_none_middle_name(database, monkeypatch):
+def test_set_user_name_no_middle_name():
     user = UserFactory()
 
     mock_cas_attrs = {

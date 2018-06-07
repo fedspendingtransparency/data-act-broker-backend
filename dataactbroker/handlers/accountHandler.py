@@ -344,7 +344,7 @@ def set_user_name(user, cas_attrs):
 
         Args:
             user: the User object
-            cas_attrs: a dictionary of the max attributes for a user who has successfully logedin
+            cas_attrs: a dictionary of the max attributes (includes first, middle, last names) for a logged in user
     """
     first_name = cas_attrs['maxAttribute:First-Name']
     middle_name = cas_attrs['maxAttribute:Middle-Name']
