@@ -17,6 +17,7 @@ from dataactcore.models.errorModels import File
 
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.utils.stringCleaner import StringCleaner
 
 logger = logging.getLogger(__name__)
 
@@ -219,45 +220,26 @@ def job_to_dict(job):
     file_results = sess.query(File).filter_by(job_id=job.job_id).one_or_none()
     if file_results is None:
         # Job ID not in error database, probably did not make it to validation, or has not yet been validated
-        job_info.update(
-            file_status="",
-            error_type="",
-            error_data=[],
-            warning_data=[],
-            missing_headers=[],
-            duplicated_headers=[],
-        )
+        job_info.update({
+            'file_status': "",
+            'error_type': "",
+            'error_data': [],
+            'warning_data': [],
+            'missing_headers': [],
+            'duplicated_headers': []
+        })
     else:
         # If job ID was found in file, we should be able to get header error lists and file data. Get string of missing
         # headers and parse as a list
         job_info['file_status'] = file_results.file_status_name
-        job_info['missing_headers'] = _split_csv(file_results.headers_missing)
-        job_info["duplicated_headers"] = _split_csv(
-            file_results.headers_duplicated)
+        job_info['missing_headers'] = StringCleaner.split_csv(file_results.headers_missing)
+        job_info["duplicated_headers"] = StringCleaner.split_csv(file_results.headers_duplicated)
         job_info["error_type"] = get_error_type(job.job_id)
-        job_info["error_data"] = get_error_metrics_by_job_id(
-            job.job_id, job.job_type_name == 'validation',
-            severity_id=RULE_SEVERITY_DICT['fatal']
-        )
-        job_info["warning_data"] = get_error_metrics_by_job_id(
-            job.job_id, job.job_type_name == 'validation',
-            severity_id=RULE_SEVERITY_DICT['warning']
-        )
+        job_info["error_data"] = get_error_metrics_by_job_id(job.job_id, job.job_type_name == 'validation',
+                                                             severity_id=RULE_SEVERITY_DICT['fatal'])
+        job_info["warning_data"] = get_error_metrics_by_job_id(job.job_id, job.job_type_name == 'validation',
+                                                               severity_id=RULE_SEVERITY_DICT['warning'])
     return job_info
-
-
-def _split_csv(string):
-    """ Split string into a list, excluding empty strings
-
-        Args:
-            string: the string to split
-
-        Returns:
-            Empty array if the string is empty or an array of whitespace-trimmed strings split on "," from the original
-    """
-    if string is None:
-        return []
-    return [n.strip() for n in string.split(',') if n]
 
 
 def get_submission_status(submission, jobs):
