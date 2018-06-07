@@ -80,6 +80,51 @@ def test_max_login_failure(monkeypatch):
 
 
 @pytest.mark.usefixtures("user_constants")
+def test_set_user_name_middle_name(database, monkeypatch):
+    user = UserFactory()
+
+    mock_cas_attrs = {
+                    'maxAttribute:First-Name': 'Test',
+                    'maxAttribute:Middle-Name': 'Abc',
+                    'maxAttribute:Last-Name': 'User'
+                    }
+
+    accountHandler.set_user_name(user, mock_cas_attrs)
+
+    assert user.name == 'Test A. User'
+
+
+@pytest.mark.usefixtures("user_constants")
+def test_set_user_name_empty_middle_name(database, monkeypatch):
+    user = UserFactory()
+
+    mock_cas_attrs = {
+                    'maxAttribute:First-Name': 'Test',
+                    'maxAttribute:Middle-Name': ' ',
+                    'maxAttribute:Last-Name': 'User'
+                }
+
+    accountHandler.set_user_name(user, mock_cas_attrs)
+
+    assert user.name == 'Test User'
+
+
+@pytest.mark.usefixtures("user_constants")
+def test_set_user_name_none_middle_name(database, monkeypatch):
+    user = UserFactory()
+
+    mock_cas_attrs = {
+                    'maxAttribute:First-Name': 'Test',
+                    'maxAttribute:Middle-Name': None,
+                    'maxAttribute:Last-Name': 'User'
+                }
+
+    accountHandler.set_user_name(user, mock_cas_attrs)
+
+    assert user.name == 'Test User'
+
+
+@pytest.mark.usefixtures("user_constants")
 def test_set_max_perms(database, monkeypatch):
     """Verify that we get the _highest_ permission within our CGAC"""
     cgac_abc = CGACFactory(cgac_code='ABC')
