@@ -292,7 +292,7 @@ Example output:
 ```
 
 #### GET "/v1/revalidation\_threshold/"
-This endpoint returns the revalidation threshold for the broker application. This is the date that denotes the earliest last validated date a submission must have in order to be certifiable.
+This endpoint returns the revalidation threshold for the broker application. This is the date that denotes the earliest validation date a submission must have in order to be certifiable.
 
 ##### Sample Request
 `/v1/revalidation_threshold/`
