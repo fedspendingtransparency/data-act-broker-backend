@@ -21,6 +21,21 @@ class StringCleaner:
         return result
 
     @staticmethod
+    def split_csv(string):
+        """ Split string into a list, excluding empty strings
+
+            Args:
+                string: the string to split
+
+            Returns:
+                Empty array if the string is empty or an array of whitespace-trimmed strings split on "," from the
+                original
+        """
+        if string is None:
+            return []
+        return [n.strip() for n in string.split(',') if n]
+
+    @staticmethod
     def is_numeric(data):
         try:
             float(data)

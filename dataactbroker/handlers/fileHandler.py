@@ -18,7 +18,7 @@ from werkzeug.utils import secure_filename
 
 from dataactbroker.handlers.fabsDerivationsHandler import fabs_derivations
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
-                                                       reporting_date)
+                                                       reporting_date, job_to_dict)
 from dataactbroker.permissions import current_user_can, current_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
@@ -26,16 +26,15 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (
-    create_jobs, get_error_metrics_by_job_id, get_error_type, get_fabs_meta, mark_job_status, run_job_checks,
+    create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, run_job_checks,
     get_last_validated_date, get_lastest_certified_date)
 
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode
-from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
-    RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
+    FILE_TYPE_DICT_ID, JOB_STATUS_DICT, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
 from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
                                               FPDSContractingOffice)
 from dataactcore.models.userModel import User
@@ -1249,72 +1248,6 @@ def published_fabs_query(data_utils, page_start, page_end):
             A list of published FABS rows.
     """
     return fileD2.query_published_fabs_data(data_utils["sess"], data_utils["submission_id"], page_start, page_end).all()
-
-
-def _split_csv(string):
-    """ Split string into a list, excluding empty strings
-
-        Args:
-            string: the string to split
-
-        Returns:
-            Empty array if the string is empty or an array of whitespace-trimmed strings split on "," from the original
-    """
-    if string is None:
-        return []
-    return [n.strip() for n in string.split(',') if n]
-
-
-def job_to_dict(job):
-    """ Convert a Job model into a dictionary, ready to be serialized as JSON
-
-        Args:
-            job: job to convert into a dictionary
-
-        Returns:
-            A dictionary of job information
-    """
-    sess = GlobalDB.db().session
-
-    job_info = {
-        'job_id': job.job_id,
-        'job_status': job.job_status_name,
-        'job_type': job.job_type_name,
-        'filename': job.original_filename,
-        'file_size': job.file_size,
-        'number_of_rows': job.number_of_rows,
-        'file_type': job.file_type_name or '',
-    }
-
-    # @todo replace with relationships
-    file_results = sess.query(File).filter_by(job_id=job.job_id).one_or_none()
-    if file_results is None:
-        # Job ID not in error database, probably did not make it to validation, or has not yet been validated
-        job_info.update(
-            file_status="",
-            error_type="",
-            error_data=[],
-            warning_data=[],
-            missing_headers=[],
-            duplicated_headers=[],
-        )
-    else:
-        # If job ID was found in file, we should be able to get header error lists and file data. Get string of missing
-        # headers and parse as a list
-        job_info['file_status'] = file_results.file_status_name
-        job_info['missing_headers'] = _split_csv(file_results.headers_missing)
-        job_info["duplicated_headers"] = _split_csv(
-            file_results.headers_duplicated)
-        job_info["error_type"] = get_error_type(job.job_id)
-        job_info["error_data"] = get_error_metrics_by_job_id(
-            job.job_id, job.job_type_name == 'validation',
-            severity_id=RULE_SEVERITY_DICT['fatal']
-        )
-        job_info["warning_data"] = get_error_metrics_by_job_id(
-            job.job_id, job.job_type_name == 'validation',
-            severity_id=RULE_SEVERITY_DICT['warning']
-        )
-    return job_info
 
 
 def submission_to_dict_for_status(submission):

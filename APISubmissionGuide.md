@@ -74,6 +74,7 @@
 ### Validate A, B, C Files
 - File-level validation begins automatically on completion of `finalize_job` call
 - Check status of validations using `/v1/check_status/` (POST)
+  - **NOTE**: This endpoint is being updated, this section WILL change
   - Header:
      - `X-Session-ID`: string, session token id
   - Payload:
@@ -115,7 +116,10 @@
   - `file_type` = `appropriations`
   - `file_type` = `program_activity`
   - `file_type` = `award_financial`
-- If there are any errors, get the error reports by calling `/v1/submission/SUBMISSIONID/report_url/` (POST) where `SUBMISSIONID` is the ID of the submission
+  - **NOTE**: This endpoint is being updated, this section WILL change
+- To get a general overview of the number of errors/warnings in the submission, along with all other metadata, `/v1/submission_metadata/` can be called. For details on its use, click [here](./dataactbroker/README.md#get-v1submission_metadata)
+- To get detailed information on each of the jobs and the errors that occurred in each, `/v1/submission_data/` can be called. For details on its use, click [here](./dataactbroker/README.md#get-v1submission_data)
+- If there are any errors and more granular detail is needed, get the error reports by calling `/v1/submission/SUBMISSIONID/report_url/` (POST) where `SUBMISSIONID` is the ID of the submission
   - Payload:
      - `file_type`: string, type of the file to get warnings/errors for (see above types for valid options)
      - `warning`: boolean (`true` for warning files, `false` for error files)
@@ -160,8 +164,9 @@
 
 ### Cross-file validations
 - Cross-file validation begins automatically upon successful completion of D file generation (no errors)
-- Poll using the `check_status` route in the same manner as described in `Validate A, B, C Files`
-- When checking the job array, find the `job_type` of `validation` to check for completion.
+- Poll using the `check_status` route in the same manner as described in `Validate A, B, C Files`. The same endpoints can also be used to gather the submission metadata and cross-file job data.
+  - **NOTE**: This endpoint is being updated, this section WILL change
+- When checking the job array, find the `job_type` of `validation` to check for errors/warnings.
 - To get a specific error/warning file, call `/v1/submission/SUBMISSIONID/report_url/`(POST) where SUBMISSIONID is the ID of the submission
   - Header:
      - `X-Session-ID`: string, session token id
@@ -317,7 +322,9 @@
           - `occurrences`: string, number of times this error has occurred in the file
           - `rule_failed`: string, label for the rule that failed
 - Continue polling with `check_status` until the job has a `job_status` of `finished` or `invalid` and the `file_status` is not `incomplete`
-- If there are any errors, get the error reports by calling `/v1/submission/SUBMISSIONID/report_url/` (POST) where `SUBMISSIONID` is the ID of the submission
+- To get a general overview of the number of errors/warnings in the submission, along with all other metadata, `/v1/submission_metadata/` can be called. For details on its use, click [here](./dataactbroker/README.md#get-v1submission_metadata)
+- To get detailed information on the validation job and the errors that occurred in it, `/v1/submission_data/` can be called. For details on its use, click [here](./dataactbroker/README.md#get-v1submission_data)
+- If there are any errors and more granular detail is needed, get the error reports by calling `/v1/submission/SUBMISSIONID/report_url/` (POST) where `SUBMISSIONID` is the ID of the submission
   - Header:
      - `X-Session-ID`: string, session token id
   - Payload:

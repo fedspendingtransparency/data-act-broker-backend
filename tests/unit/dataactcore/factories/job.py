@@ -144,3 +144,10 @@ class FileRequestFactory(factory.Factory):
     agency_code = fuzzy.FuzzyText()
     file_type = fuzzy.FuzzyText()
     is_cached_file = fuzzy.FuzzyChoice((False, True))
+
+
+class RevalidationThresholdFactory(factory.Factory):
+    class Meta:
+        model = jobModels.RevalidationThreshold
+
+    revalidation_date = fuzzy.FuzzyDate(date(2010, 1, 1))
