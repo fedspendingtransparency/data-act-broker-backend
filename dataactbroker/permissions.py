@@ -4,7 +4,7 @@ from flask import g
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission
-from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PERMISSION_SHORT_DICT
+from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PERMISSION_SHORT_DICT, FABS_PERMISSION_ID_LIST
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -39,28 +39,43 @@ def requires_admin(func):
     return inner
 
 
-def current_user_can(perm, cgac_code, frec_code):
-    """Can the current user perform the act (described by the perm level) for the given cgac_code or frec_code?"""
-    admin = hasattr(g, 'user') and g.user.website_admin
-    matching_perms = []
+def current_user_can(permission, cgac_code, frec_code):
+    """ Validate whether the current user can perform the act (described by the permission level) for the given
+        cgac_code or frec_code
+
+        Args:
+            permission: single-letter string representing an application permission
+            cgac_code: 3-digit numerical string identifying a CGAC agency
+            frec_code: 4-digit numerical string identifying a FREC agency
+
+        Returns:
+            Boolean result on whether the user has permissions greater than or equal to permission
+    """
+    # If the user is not logged in, or the user is a website admin, there is no reason to check their permissions
+    if not hasattr(g, 'user'):
+        return False
+    elif g.user.website_admin:
+        return True
+
+    # Ensure the permission exists and retrieve its ID
     try:
-        permission = PERMISSION_TYPE_DICT[perm]
+        permission_id = PERMISSION_TYPE_DICT[permission]
     except KeyError:
-        permission = 999
+        return False
 
+    # Loop through user's affiliations and return True if _any_ match the permission
     for aff in g.user.affiliations:
-        # affiliation matches agency args
-        agency = (aff.cgac and aff.cgac.cgac_code == cgac_code) or (aff.frec and aff.frec.frec_code == frec_code)
-        # affiliation permissions are FABS
-        fabs = aff.permission_type_id == PERMISSION_SHORT_DICT['f']
-        # affiliation has permission higher than perm args
-        dabs_perms = aff.permission_type_id >= permission
+        # Check if affiliation agency matches agency args
+        if (aff.cgac and aff.cgac.cgac_code == cgac_code) or (aff.frec and aff.frec.frec_code == frec_code):
+            # Check if affiliation has higher permissions than permission args
+            is_fabs = aff.permission_type_id in FABS_PERMISSION_ID_LIST
+            fabs_perms = aff.permission_type_id <= permission_id and is_fabs
+            dabs_perms = aff.permission_type_id >= permission_id and not is_fabs
 
-        if agency and ((perm == 'reader') or (dabs_perms and not fabs) or (perm == 'fabs' and fabs)):
-            matching_perms.append(aff)
+            if agency and ((permission == 'reader') or dabs_perms or fabs_perms):
+                return True
 
-    has_affil = hasattr(g, 'user') and len(matching_perms)
-    return admin or has_affil
+    return False
 
 
 def current_user_can_on_submission(perm, submission, check_owner=True):
