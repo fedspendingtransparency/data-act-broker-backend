@@ -20,7 +20,7 @@ from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import get_email_template, check_correct_password
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.lookups import PERMISSION_SHORT_DICT
+from dataactcore.models.lookups import PERMISSION_SHORT_DICT, DABS_PERMISSION_ID_LIST, FABS_PERMISSION_ID_LIST
 
 
 logger = logging.getLogger(__name__)
@@ -330,15 +330,18 @@ def best_affiliation(affiliations):
         Returns:
             List of all affiliations the user has (with duplicates, highest of each type/agency provided)
     """
-    dabs_affils, fabs_affils = {}, {}
-    affiliations = sorted(affiliations, key=attrgetter('permission_type_id'))
-    for affiliation in affiliations:
-        if affiliation.permission_type_id == PERMISSION_SHORT_DICT['f']:
-            fabs_affils[affiliation.cgac, affiliation.frec] = affiliation
-        else:
-            dabs_affils[affiliation.cgac, affiliation.frec] = affiliation
+    dabs_dict, fabs_dict = {}, {}
+    affils_list = list(affiliations)
+    dabs_affils = [affil for affil in affils_list if affil.permission_type_id in DABS_PERMISSION_ID_LIST]
+    fabs_affils = [affil for affil in affils_list if affil.permission_type_id in FABS_PERMISSION_ID_LIST]
 
-    all_affils = list(dabs_affils.values()) + list(fabs_affils.values())
+    for affil in sorted(dabs_affils, key=attrgetter('permission_type_id')):
+        dabs_dict[affil.cgac, affil.frec] = affil
+
+    for affil in sorted(fabs_affils, key=attrgetter('permission_type_id'), reverse=True):
+        fabs_dict[affil.cgac, affil.frec] = affil
+
+    all_affils = list(dabs_dict.values()) + list(fabs_dict.values())
     return all_affils
 
 

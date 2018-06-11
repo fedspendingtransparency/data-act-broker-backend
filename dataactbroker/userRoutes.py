@@ -1,6 +1,6 @@
 from flask import g, request
 
-from dataactbroker.handlers.accountHandler import AccountHandler, json_for_user, list_user_emails
+from dataactbroker.handlers.account_handler import AccountHandler, json_for_user, list_user_emails
 from dataactbroker.permissions import requires_login
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode

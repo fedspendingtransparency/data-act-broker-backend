@@ -94,6 +94,8 @@ PERMISSION_TYPES = [
 PERMISSION_TYPE_DICT = {item.name: item.id for item in PERMISSION_TYPES[:3]}
 PERMISSION_TYPE_DICT_ID = {item.id: item.name for item in PERMISSION_TYPES}
 PERMISSION_SHORT_DICT = {item.name[0]: item.id for item in PERMISSION_TYPES}
+DABS_PERMISSION_ID_LIST = [item.id for item in PERMISSION_TYPES[:3]]
+FABS_PERMISSION_ID_LIST = [item.id for item in PERMISSION_TYPES[3:]]
 
 FIELD_TYPE = [
     LookupType(1, 'INT', 'integer type'),
