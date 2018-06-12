@@ -16,7 +16,16 @@ FABS_PERM = PERMISSION_SHORT_DICT['f']
 
 
 def requires_login(func):
-    """Decorator requiring that _a_ user be logged in (i.e. that we're not using an anonymous session)"""
+    """ Decorator requiring that _a_ user be logged in (i.e. that we're not using an anonymous session)
+
+        Args:
+            permission: single-letter string representing an application permission
+            cgac_code: 3-digit numerical string identifying a CGAC agency
+            frec_code: 4-digit numerical string identifying a FREC agency
+
+        Returns:
+            Boolean result on whether the user has permissions greater than or equal to permission
+    """
     @wraps(func)
     def inner(*args, **kwargs):
         if g.user is None:
@@ -63,7 +72,7 @@ def current_user_can(permission, cgac_code, frec_code):
     except KeyError:
         return False
 
-    # Loop through user's affiliations and return True if _any_ match the permission
+    # Loop through user's affiliations and return True if any match the permission
     for aff in g.user.affiliations:
         # Check if affiliation agency matches agency args
         if (aff.cgac and aff.cgac.cgac_code == cgac_code) or (aff.frec and aff.frec.frec_code == frec_code):

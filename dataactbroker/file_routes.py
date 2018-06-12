@@ -185,10 +185,10 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/submit_detached_file/", methods=["POST"])
     @convert_to_submission_id
-    @requires_submission_perms('writer')
+    @requires_submission_perms('fabs')
     def submit_detached_file(submission):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.submit_detached_file(submission)
+        return file_manager.publish_fabs_submission(submission)
 
     @app.route("/v1/get_obligations/", methods=["POST"])
     @convert_to_submission_id

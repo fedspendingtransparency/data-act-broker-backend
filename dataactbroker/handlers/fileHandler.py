@@ -674,7 +674,7 @@ class FileHandler:
         return JsonResponse.create(StatusCode.OK, response_dict)
 
     @staticmethod
-    def submit_detached_file(submission):
+    def publish_fabs_submission(submission):
         """ Submits the FABS upload file associated with the submission ID, including processing all the derivations
             and updating relevant tables (such as un-caching all D2 files associated with this agency)
 
