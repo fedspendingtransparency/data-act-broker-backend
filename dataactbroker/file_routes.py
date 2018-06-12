@@ -11,7 +11,7 @@ from dataactbroker.handlers.submission_handler import (
     get_revalidation_threshold)
 
 from dataactbroker.decorators import convert_to_submission_id
-from dataactbroker.permissions import requires_login, requires_submission_perms
+from dataactbroker.permissions import requires_login, requires_submission_perms, current_user_can_on_submission
 
 from dataactcore.interfaces.function_bag import get_fabs_meta
 
@@ -179,6 +179,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         return JsonResponse.create(StatusCode.OK, get_fabs_meta(submission.submission_id))
 
     @app.route("/v1/upload_detached_file/", methods=["POST"])
+    @requires_submission_perms('editfabs')
     def upload_detached_file():
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.upload_detached_file(create_credentials)
@@ -221,10 +222,11 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/delete_submission/", methods=['POST'])
     @convert_to_submission_id
-    @requires_submission_perms('writer')
+    @requires_submission_perms('reader')
     def delete_submission(submission):
         """ Deletes all data associated with the specified submission
         NOTE: THERE IS NO WAY TO UNDO THIS """
+        current_user_can_on_submission('editfabs' if submission.d2_submission else 'writer', submission)
         return delete_all_submission_data(submission)
 
     @app.route("/v1/check_year_quarter/", methods=["GET"])

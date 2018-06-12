@@ -81,7 +81,7 @@ def current_user_can(permission, cgac_code, frec_code):
             fabs_perms = aff.permission_type_id <= permission_id and is_fabs
             dabs_perms = aff.permission_type_id >= permission_id and not is_fabs
 
-            if agency and ((permission == 'reader') or dabs_perms or fabs_perms):
+            if (permission == 'reader') or dabs_perms or fabs_perms:
                 return True
 
     return False
