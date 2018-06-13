@@ -87,9 +87,8 @@ PERMISSION_TYPES = [
     LookupType(1, 'reader', 'This user is allowed to view any submission for their agency'),
     LookupType(2, 'writer', 'This user is allowed to create and edit any submission for their agency'),
     LookupType(3, 'submitter', 'This user is allowed to certify and submit any submission for their agency'),
-    # Placeholder 4: website_admin
-    LookupType(5, 'fabs', 'This user is allowed to publish any FABS data for their agency'),
-    LookupType(6, 'editfabs', 'This user is allowed to create and edit any FABS data for their agency')
+    LookupType(4, 'editfabs', 'This user is allowed to create and edit any FABS data for their agency'),
+    LookupType(5, 'fabs', 'This user is allowed to publish any FABS data for their agency')
 ]
 PERMISSION_TYPE_DICT = {item.name: item.id for item in PERMISSION_TYPES[:3]}
 ALL_PERMISSION_TYPES_DICT = {item.name: item.id for item in PERMISSION_TYPES}

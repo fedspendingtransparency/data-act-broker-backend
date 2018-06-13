@@ -332,15 +332,16 @@ def best_affiliation(affiliations):
             List of all affiliations the user has (with duplicates, highest of each type/agency provided)
     """
     dabs_dict, fabs_dict = {}, {}
-    affils_list = list(affiliations)
-    dabs_affils = [affil for affil in affils_list if affil.permission_type_id in DABS_PERMISSION_ID_LIST]
-    fabs_affils = [affil for affil in affils_list if affil.permission_type_id in FABS_PERMISSION_ID_LIST]
 
-    for affil in sorted(dabs_affils, key=attrgetter('permission_type_id')):
-        dabs_dict[affil.cgac, affil.frec] = affil
+    # Sort all affiliations from lowest to highest permission
+    sorted_affiliations = sorted(list(affiliations), key=attrgetter('permission_type_id'))
 
-    for affil in sorted(fabs_affils, key=attrgetter('permission_type_id'), reverse=True):
-        fabs_dict[affil.cgac, affil.frec] = affil
+    for affiliation in sorted_affiliations:
+        # Overwrite low permissions with high permissions; keep DABS and FABS separate so FABS doesn't overwrite DABS
+        if affiliation.permission_type_id in DABS_PERMISSION_ID_LIST:
+            dabs_dict[affiliation.cgac, affiliation.frec] = affiliation
+        elif affiliation.permission_type_id in FABS_PERMISSION_ID_LIST:
+            fabs_dict[affiliation.cgac, affiliation.frec] = affiliation
 
     all_affils = list(dabs_dict.values()) + list(fabs_dict.values())
     return all_affils
