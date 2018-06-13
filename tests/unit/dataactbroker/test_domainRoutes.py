@@ -4,6 +4,7 @@ from flask import g
 import pytest
 
 from dataactbroker import domainRoutes
+from dataactcore.models.lookups import PERMISSION_SHORT_DICT
 from dataactcore.models.userModel import UserAffiliation
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory, SubTierAgencyFactory
 from tests.unit.dataactcore.factories.user import UserFactory
