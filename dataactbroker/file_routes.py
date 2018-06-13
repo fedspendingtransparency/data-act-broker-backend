@@ -11,12 +11,10 @@ from dataactbroker.handlers.submission_handler import (
     get_revalidation_threshold)
 
 from dataactbroker.decorators import convert_to_submission_id
-from dataactbroker.permissions import requires_login, requires_submission_perms, current_user_can_on_submission
+from dataactbroker.permissions import requires_login, requires_submission_perms
 
 from dataactcore.interfaces.function_bag import get_fabs_meta
-
 from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER
-
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 
@@ -28,6 +26,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     # Keys for the post route will correspond to the four types of files
     @app.route("/v1/submit_files/", methods=["POST"])
     @requires_login
+    @requires_submission_perms('writer')
     def submit_files():
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.validate_submit_files(create_credentials)
@@ -222,11 +221,10 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/delete_submission/", methods=['POST'])
     @convert_to_submission_id
-    @requires_submission_perms('reader')
+    @requires_submission_perms('reader', check_fabs='editfabs')
     def delete_submission(submission):
         """ Deletes all data associated with the specified submission
         NOTE: THERE IS NO WAY TO UNDO THIS """
-        current_user_can_on_submission('editfabs' if submission.d2_submission else 'writer', submission)
         return delete_all_submission_data(submission)
 
     @app.route("/v1/check_year_quarter/", methods=["GET"])
@@ -248,7 +246,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/restart_validation/", methods=['POST'])
     @convert_to_submission_id
-    @requires_submission_perms('writer')
+    @requires_submission_perms('reader', check_fabs='editfabs')
     @use_kwargs({'d2_submission': webargs_fields.Bool(missing=False)})
     def restart_validation(submission, d2_submission):
         return FileHandler.restart_validation(submission, d2_submission)

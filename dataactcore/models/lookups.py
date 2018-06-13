@@ -92,6 +92,7 @@ PERMISSION_TYPES = [
     LookupType(6, 'editfabs', 'This user is allowed to create and edit any FABS data for their agency')
 ]
 PERMISSION_TYPE_DICT = {item.name: item.id for item in PERMISSION_TYPES[:3]}
+ALL_PERMISSION_TYPES_DICT = {item.name: item.id for item in PERMISSION_TYPES}
 PERMISSION_TYPE_DICT_ID = {item.id: item.name for item in PERMISSION_TYPES}
 PERMISSION_SHORT_DICT = {item.name[0]: item.id for item in PERMISSION_TYPES}
 DABS_PERMISSION_ID_LIST = [item.id for item in PERMISSION_TYPES[:3]]

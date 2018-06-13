@@ -4,7 +4,8 @@ from flask import g
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission
-from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PERMISSION_SHORT_DICT, FABS_PERMISSION_ID_LIST
+from dataactcore.models.lookups import (ALL_PERMISSION_TYPES_DICT, PERMISSION_SHORT_DICT, DABS_PERMISSION_ID_LIST,
+                                        FABS_PERMISSION_ID_LIST)
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -53,7 +54,7 @@ def current_user_can(permission, cgac_code, frec_code):
         cgac_code or frec_code
 
         Args:
-            permission: single-letter string representing an application permission
+            permission: single-letter string representing an application permission_type
             cgac_code: 3-digit numerical string identifying a CGAC agency
             frec_code: 4-digit numerical string identifying a FREC agency
 
@@ -68,7 +69,7 @@ def current_user_can(permission, cgac_code, frec_code):
 
     # Ensure the permission exists and retrieve its ID
     try:
-        permission_id = PERMISSION_TYPE_DICT[permission]
+        permission_id = ALL_PERMISSION_TYPES_DICT[permission]
     except KeyError:
         return False
 
@@ -88,46 +89,73 @@ def current_user_can(permission, cgac_code, frec_code):
 
 
 def current_user_can_on_submission(perm, submission, check_owner=True):
-    """Submissions add another permission possibility: if a user created a submission, they can do anything to it,
-    regardless of submission agency"""
+    """ Submissions add another permission possibility: if a user created a submission, they can do anything to it,
+        regardless of submission agency
+
+        Args:
+            perm: string PermissionType value
+            submission: Submission object
+            check_owner: allows the functionality if the user is the owner of the Submission; default True
+
+        Returns:
+            Boolean result on whether the user has permissions greater than or equal to perm
+    """
     is_owner = hasattr(g, 'user') and submission.user_id == g.user.user_id
     return (is_owner and check_owner) or current_user_can(perm, submission.cgac_code, submission.frec_code)
 
 
-def requires_submission_perms(perm, check_owner=True):
-    """Decorator that checks the current user's permissions and validates that the submission exists. It expects a
-    submission_id parameter and will return a submission object"""
+def requires_submission_perms(perm, check_owner=True, check_fabs=False):
+    """ Decorator that checks the current user's permissions and validates that the submission exists. It expects a
+        submission_id parameter and will return a submission object
+
+        Args:
+            perm: string PermissionType value
+            check_owner: allows the functionality if the user is the owner of the Submission; default True
+            check_fabs: FABS permission to check if the Submission is FABS; default False
+
+        Returns:
+            Submission object
+    """
     def inner(fn):
         @requires_login
         @wraps(fn)
         def wrapped(submission_id, *args, **kwargs):
             sess = GlobalDB.db().session
-            submission = sess.query(Submission).\
-                filter_by(submission_id=submission_id).one_or_none()
+            submission = sess.query(Submission).filter_by(submission_id=submission_id).one_or_none()
 
             if submission is None:
                 # @todo - why don't we use 404s?
-                raise ResponseException('No such submission',
-                                        StatusCode.CLIENT_ERROR)
+                raise ResponseException('No such submission', StatusCode.CLIENT_ERROR)
 
-            if not current_user_can_on_submission(perm, submission, check_owner):
-                raise ResponseException(
-                    "User does not have permission to access that submission",
-                    StatusCode.PERMISSION_DENIED)
+            permission = check_fabs if check_fabs and submission.d2_submission else perm
+            if not current_user_can_on_submission(permission, submission, check_owner):
+                raise ResponseException("User does not have permission to access that submission",
+                                        StatusCode.PERMISSION_DENIED)
             return fn(submission, *args, **kwargs)
         return wrapped
     return inner
 
 
 def separate_affiliations(affiliations, app_type):
-    cgac_ids, frec_ids = [], []
+    """ Separates CGAC and FREC UserAffiliations and removes affiliations with permissions outside of the specified
+        application (FABS or DABS)
 
-    for affil in g.user.affiliations:
-        perm_type = affil.permission_type_id
-        if (app_type == 'fabs' and perm_type == FABS_PERM) or (app_type == 'dabs' and perm_type in DABS_PERMS):
-            if affil.frec:
-                frec_ids.append(affil.frec.frec_id)
+        Args:
+            affiliations: list of UserAffiliations
+            app_type: string deciding which application to use (FABS or DABS)
+
+        Returns:
+            A list of UserAffiliations with CGAC agencies within the app_type application
+            A list of UserAffiliations with FREC agencies within the app_type application
+    """
+    cgac_ids, frec_ids = [], []
+    app_permissions = FABS_PERMISSION_ID_LIST if app_type.lower() == 'fabs' else DABS_PERMISSION_ID_LIST
+
+    for affiliation in affiliations:
+        if affiliation.permission_type_id in app_permissions:
+            if affiliation.frec:
+                frec_ids.append(affiliation.frec.frec_id)
             else:
-                cgac_ids.append(affil.cgac.cgac_id)
+                cgac_ids.append(affiliation.cgac.cgac_id)
 
     return cgac_ids, frec_ids
