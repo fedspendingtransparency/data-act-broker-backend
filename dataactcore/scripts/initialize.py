@@ -18,14 +18,16 @@ from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.labelLoader import LabelLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
-from dataactvalidator.scripts.loadFile import load_domain_values
 from dataactvalidator.scripts.load_cfda_data import load_cfda_program
+from dataactvalidator.scripts.load_object_class import load_object_class
+from dataactvalidator.scripts.load_country_codes import load_country_codes
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
 from dataactvalidator.scripts.loadTas import load_tas
 from dataactvalidator.scripts.loadLocationData import load_location_data
 from dataactvalidator.scripts.readZips import read_zips
 from dataactvalidator.scripts.loadAgencies import load_agency_data
 from dataactvalidator.scripts.loadOffices import load_offices
+from dataactvalidator.scripts.load_program_activity import load_program_activity_data
 
 logger = logging.getLogger(__name__)
 basePath = CONFIG_BROKER["path"]
@@ -71,21 +73,14 @@ def load_sql_rules():
 
 def load_domain_value_files(base_path):
     """Load domain values (Country codes, Program Activity, Object Class, CFDA)."""
-    logger.info('Loading Country codes, Program Activity, Object Class, CFDA')
-    load_domain_values(base_path)
-    load_cfda(base_path)
-
-
-def load_domain_value_files_temp(base_path):
-    """Load domain values (Country codes, Program Activity, Object Class)."""
-    logger.info('Loading Country codes, Program Activity, Object Class (not cfda)')
-    load_domain_values(base_path)
-
-
-def load_cfda(base_path):
-    """Load cfda values."""
-    logger.info('Loading cfda data')
+    logger.info('Loading Object Class')
+    load_object_class(base_path)
+    logger.info('Loading CFDA Program')
     load_cfda_program(base_path)
+    logger.info('Loading Program Activity')
+    load_program_activity_data(base_path)
+    logger.info('Loading Country codes')
+    load_country_codes(base_path)
 
 
 def load_sf133():
@@ -134,9 +129,10 @@ def main():
     parser.add_argument('-r', '--load_rules', help='Load SQL-based validation rules', action='store_true')
     parser.add_argument('-d', '--update_domain', help='load slowly changing domain values such as object class',
                         action='store_true')
-    parser.add_argument('-tempd', '--update_domain_temp', help='only update domain values not cfda',
-                        action='store_true')
+    parser.add_argument('-cc', '--update_country_codes', help='update country codes', action='store_true')
+    parser.add_argument('-oc', '--update_object_class', help='load object class to database', action='store_true')
     parser.add_argument('-cfda', '--cfda_load', help='Load CFDA to database', action='store_true')
+    parser.add_argument('-pa', '--program_activity', help='Load program activity to database', action='store_true')
     parser.add_argument('-c', '--load_agencies', help='Update agency data (CGACs, FRECs, SubTierAgencies)',
                         action='store_true')
     parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
@@ -173,11 +169,17 @@ def main():
     if args.update_domain:
         load_domain_value_files(validator_config_path)
 
-    if args.update_domain_temp:
-        load_domain_value_files_temp(validator_config_path)
+    if args.update_country_codes:
+        load_country_codes(validator_config_path)
+
+    if args.update_object_class:
+        load_object_class(validator_config_path)
 
     if args.cfda_load:
-        load_cfda(validator_config_path)
+        load_cfda_program(validator_config_path)
+
+    if args.program_activity:
+        load_program_activity_data(validator_config_path)
 
     if args.load_agencies:
         load_agency_data(validator_config_path)
