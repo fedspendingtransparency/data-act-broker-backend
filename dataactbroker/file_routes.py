@@ -26,7 +26,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     # Keys for the post route will correspond to the four types of files
     @app.route("/v1/submit_files/", methods=["POST"])
     @requires_login
-    @requires_submission_perms('writer')
     def submit_files():
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.validate_submit_files(create_credentials)
