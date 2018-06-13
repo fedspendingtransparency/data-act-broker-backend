@@ -129,7 +129,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         required=True,
         validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.values())
     )})
-    @requires_submission_perms('writer')
     def generate_file(submission_id, file_type):
         """ Generate file from external API """
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)

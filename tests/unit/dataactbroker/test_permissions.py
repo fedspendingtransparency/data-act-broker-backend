@@ -4,7 +4,7 @@ from flask import g
 import pytest
 
 from dataactbroker import permissions
-from dataactcore.models.lookups import ALL_PERMISSION_TYPES_DICT, PERMISSION_TYPE_DICT, PERMISSION_SHORT_DICT
+from dataactcore.models.lookups import ALL_PERMISSION_TYPES_DICT, PERMISSION_TYPE_DICT
 from dataactcore.models.userModel import UserAffiliation
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
