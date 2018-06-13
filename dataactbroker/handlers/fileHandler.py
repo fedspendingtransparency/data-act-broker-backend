@@ -1307,23 +1307,151 @@ def submission_to_dict_for_status(submission):
     }
 
 
-def get_status(submission):
-    """ Get description and status of all jobs in the submission specified in request object
+def get_status(submission, file_type):
+    """ Get status information of all jobs in the submission specified in request object
 
         Args:
             submission: submission to get information for
+            file_type: the type of job to get the status for
 
         Returns:
-            A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding
-            file_type, job_type, status, and filename or containing error information
+            A flask response object to be sent back to client, holds a JSON where each file type (or the requested type)
+            is a key to an object that holds status, has_errors, has_warnings, and message. If the user requests an
+            invalid file type or the type requested is not valid for the submission type, returns a JSON response with
+            a client error.
     """
-    try:
-        return JsonResponse.create(StatusCode.OK, submission_to_dict_for_status(submission))
-    except ResponseException as e:
-        return JsonResponse.error(e, e.status)
-    except Exception as e:
-        # Unexpected exception, this is a 500 server error
-        return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
+    sess = GlobalDB.db().session
+
+    # Make sure the file type provided is valid
+    if file_type and file_type not in FILE_TYPE_DICT and file_type != 'cross':
+        return JsonResponse.error(ValueError(file_type + ' is not a valid file type'), StatusCode.CLIENT_ERROR)
+
+    # Make sure the file type provided is valid for the submission type
+    if file_type and (submission.d2_submission and file_type != 'fabs') or \
+            (not submission.d2_submission and file_type == 'fabs'):
+        return JsonResponse.error(ValueError(file_type + ' is not a valid file type for this submission'),
+                                  StatusCode.CLIENT_ERROR)
+
+    # Set up a dictionary to store the jobs we want to look at and limit it to only the file types we care about. Also
+    # setting up the response dict here because we need the same keys.
+    response_template = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': ''}
+    job_dict = {}
+    response_dict = {}
+
+    if file_type:
+        job_dict[file_type] = []
+        response_dict[file_type] = response_template
+    elif submission.d2_submission:
+        job_dict['fabs'] = []
+        response_dict['fabs'] = response_template
+    else:
+        # dabs submissions have all types except fabs including cross (which is not listed so we have to specify)
+        job_dict['cross'] = []
+        response_dict['cross'] = response_template.copy()
+        for ft in FILE_TYPE_DICT:
+            if ft != 'fabs':
+                job_dict[ft] = []
+                response_dict[ft] = response_template.copy()
+
+    # We don't need to filter on file type, that will be handled by the dictionaries
+    all_jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
+
+    for job in all_jobs:
+        dict_key = 'cross'
+        if job.file_type:
+            dict_key = job.file_type_name
+
+        # we only want to insert the relevant jobs, the rest get ignored
+        if dict_key in job_dict:
+            job_dict[dict_key].append({
+                'job_id': job.job_id,
+                'job_status': job.job_status_id,
+                'job_type': job.job_type_id,
+                'error_message': job.error_message,
+                'errors': job.number_of_errors,
+                'warnings': job.number_of_warnings
+            })
+
+    for job_file_type, job_data in job_dict.items():
+        response_dict[job_file_type] = process_job_status(job_data, response_dict[job_file_type])
+
+    return JsonResponse.create(StatusCode.OK, response_dict)
+
+
+def process_job_status(jobs, response_content):
+    """ Process the status of a job type provided and update the response content provided with the new information.
+
+        Args:
+            jobs: An array of jobs with one or two jobs referring to the same file type (upload, validation, or both)
+                Must contain all the jobs associated with that file type
+            response_content: the skeleton object holding the information that needs to be returned (status, has_errors,
+                has_warnings, and message)
+
+        Returns:
+            The response_content object originally provided, updated based on what the actual status of the jobs is.
+    """
+    upload = None
+    validation = None
+    upload_status = ''
+    validation_status = ''
+    for job in jobs:
+        if job['job_type'] == JOB_TYPE_DICT['file_upload']:
+            upload = job
+            upload_status = get_simplified_job_status(job['job_status'])
+        else:
+            validation = job
+            validation_status = get_simplified_job_status(job['job_status'])
+
+    # checking for failures
+    if upload_status == 'failed' or validation_status == 'failed':
+        response_content['status'] = 'failed'
+        response_content['has_errors'] = True
+        response_content['message'] = upload['error_message'] or validation['error_message'] or ''
+        return response_content
+
+    # If upload job exists and hasn't started or if it doesn't exist and validation job hasn't started,
+    # it should just be ready
+    if upload_status == 'ready' or (upload_status == '' and validation_status == 'ready'):
+        return response_content
+
+    # If the upload job is running, status is uploading
+    if upload_status == 'running':
+        response_content['status'] = 'uploading'
+        return response_content
+
+    # If the validation job is running, status is running
+    if validation_status == 'running':
+        response_content['status'] = 'running'
+        return response_content
+
+    # If both jobs are finished, figure out if there are errors
+    response_content['status'] = 'finished'
+    response_content['has_errors'] = validation is not None and validation['errors'] > 0
+    response_content['has_warnings'] = validation is not None and validation['warnings'] > 0
+    return response_content
+
+
+def get_simplified_job_status(job_status_id):
+    """ Return a string with the simplified job status, combining several of the existing ones. A helper function for
+        process_job_status.
+
+        Args:
+            job_status_id: the ID of the job status
+
+        Returns:
+            A string indicating in simplified form the status of the job
+    """
+    job_status = ''
+    if job_status_id == JOB_STATUS_DICT['invalid'] or job_status_id == JOB_STATUS_DICT['failed']:
+        job_status = 'failed'
+    elif job_status_id == JOB_STATUS_DICT['running']:
+        job_status = 'running'
+    elif job_status_id == JOB_STATUS_DICT['finished']:
+        job_status = 'finished'
+    elif job_status_id == JOB_STATUS_DICT['waiting'] or job_status_id == JOB_STATUS_DICT['ready']:
+        job_status = 'ready'
+
+    return job_status
 
 
 def get_error_metrics(submission):

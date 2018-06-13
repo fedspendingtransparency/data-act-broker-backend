@@ -39,11 +39,12 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.finalize(upload_id)
 
-    @app.route("/v1/check_status/", methods=["POST"])
+    @app.route("/v1/check_status/", methods=["GET"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
-    def check_status(submission):
-        return get_status(submission)
+    @use_kwargs({'type': webargs_fields.String(missing='')})
+    def check_status(submission, type):
+        return get_status(submission, type)
 
     @app.route("/v1/submission_metadata/", methods=["GET"])
     @convert_to_submission_id

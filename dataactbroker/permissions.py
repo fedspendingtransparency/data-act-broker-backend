@@ -71,25 +71,35 @@ def current_user_can_on_submission(perm, submission, check_owner=True):
 
 
 def requires_submission_perms(perm, check_owner=True):
-    """Decorator that checks the current user's permissions and validates that the submission exists. It expects a
-    submission_id parameter and will return a submission object"""
+    """ Decorator that checks the current user's permissions and validates that the submission exists. It expects a
+        submission_id parameter on top of the function arguments.
+
+        Args:
+            perm: the type of permission we are checking for
+            check_owner: a boolean indicating if we should check whether the user is the owner of the submission
+
+        Returns:
+            A submission object obtained using the submission_id provided (along with the other args/kwargs that were
+            initially provided)
+
+        Raises:
+            ResponseException: If the user doesn't have permission to access the submission at the level requested
+                or the submission doesn't exist.
+    """
     def inner(fn):
         @requires_login
         @wraps(fn)
         def wrapped(submission_id, *args, **kwargs):
             sess = GlobalDB.db().session
-            submission = sess.query(Submission).\
-                filter_by(submission_id=submission_id).one_or_none()
+            submission = sess.query(Submission).filter_by(submission_id=submission_id).one_or_none()
 
             if submission is None:
                 # @todo - why don't we use 404s?
-                raise ResponseException('No such submission',
-                                        StatusCode.CLIENT_ERROR)
+                raise ResponseException('No such submission', StatusCode.CLIENT_ERROR)
 
             if not current_user_can_on_submission(perm, submission, check_owner):
-                raise ResponseException(
-                    "User does not have permission to access that submission",
-                    StatusCode.PERMISSION_DENIED)
+                raise ResponseException("User does not have permission to access that submission",
+                                        StatusCode.PERMISSION_DENIED)
             return fn(submission, *args, **kwargs)
         return wrapped
     return inner
