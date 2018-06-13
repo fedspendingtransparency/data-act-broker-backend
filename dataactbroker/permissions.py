@@ -17,7 +17,7 @@ FABS_PERM = PERMISSION_SHORT_DICT['f']
 
 
 def requires_login(func):
-    """ Decorator requiring that _a_ user be logged in (i.e. that we're not using an anonymous session)
+    """ Decorator requiring that a user be logged in (i.e. that we're not using an anonymous session)
 
         Args:
             permission: single-letter string representing an application permission
@@ -67,22 +67,20 @@ def current_user_can(permission, cgac_code, frec_code):
     elif g.user.website_admin:
         return True
 
-    # Ensure the permission exists and retrieve its ID
+    # Ensure the permission exists and retrieve its ID and type
     try:
         permission_id = ALL_PERMISSION_TYPES_DICT[permission]
     except KeyError:
         return False
+    permission_list = FABS_PERMISSION_ID_LIST if permission_id in FABS_PERMISSION_ID_LIST else DABS_PERMISSION_ID_LIST
 
     # Loop through user's affiliations and return True if any match the permission
     for aff in g.user.affiliations:
         # Check if affiliation agency matches agency args
         if (aff.cgac and aff.cgac.cgac_code == cgac_code) or (aff.frec and aff.frec.frec_code == frec_code):
             # Check if affiliation has higher permissions than permission args
-            is_fabs = aff.permission_type_id in FABS_PERMISSION_ID_LIST
-            fabs_perms = aff.permission_type_id <= permission_id and is_fabs
-            dabs_perms = aff.permission_type_id >= permission_id and not is_fabs
-
-            if (permission == 'reader') or dabs_perms or fabs_perms:
+            aff_perm_id = aff.permission_type_id
+            if (permission == 'reader') or (aff_perm_id in permission_list and aff_perm_id >= permission_id):
                 return True
 
     return False

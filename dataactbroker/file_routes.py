@@ -129,6 +129,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         required=True,
         validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.values())
     )})
+    @requires_submission_perms('writer')
     def generate_file(submission_id, file_type):
         """ Generate file from external API """
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
@@ -177,7 +178,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         return JsonResponse.create(StatusCode.OK, get_fabs_meta(submission.submission_id))
 
     @app.route("/v1/upload_detached_file/", methods=["POST"])
-    @requires_submission_perms('editfabs')
+    @requires_login
     def upload_detached_file():
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.upload_detached_file(create_credentials)
@@ -220,10 +221,10 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/delete_submission/", methods=['POST'])
     @convert_to_submission_id
-    @requires_submission_perms('reader', check_fabs='editfabs')
+    @requires_submission_perms('writer', check_fabs='editfabs')
     def delete_submission(submission):
         """ Deletes all data associated with the specified submission
-        NOTE: THERE IS NO WAY TO UNDO THIS """
+            NOTE: THERE IS NO WAY TO UNDO THIS """
         return delete_all_submission_data(submission)
 
     @app.route("/v1/check_year_quarter/", methods=["GET"])
@@ -245,7 +246,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/restart_validation/", methods=['POST'])
     @convert_to_submission_id
-    @requires_submission_perms('reader', check_fabs='editfabs')
+    @requires_submission_perms('writer', check_fabs='editfabs')
     @use_kwargs({'d2_submission': webargs_fields.Bool(missing=False)})
     def restart_validation(submission, d2_submission):
         return FileHandler.restart_validation(submission, d2_submission)
