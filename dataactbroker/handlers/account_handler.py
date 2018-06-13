@@ -338,7 +338,7 @@ def best_affiliation(affiliations):
     for affil in sorted(dabs_affils, key=attrgetter('permission_type_id')):
         dabs_dict[affil.cgac, affil.frec] = affil
 
-    for affil in sorted(fabs_affils, key=attrgetter('permission_type_id'), reverse=True):
+    for affil in sorted(fabs_affils, key=attrgetter('permission_type_id')):
         fabs_dict[affil.cgac, affil.frec] = affil
 
     all_affils = list(dabs_dict.values()) + list(fabs_dict.values())
