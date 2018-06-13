@@ -20,7 +20,7 @@ from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import get_email_template, check_correct_password
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.lookups import PERMISSION_SHORT_DICT
+from dataactcore.models.lookups import PERMISSION_SHORT_DICT, DABS_PERMISSION_ID_LIST, FABS_PERMISSION_ID_LIST
 
 
 logger = logging.getLogger(__name__)
@@ -295,27 +295,30 @@ def perms_to_affiliations(perms, user_id):
                 continue
 
         perm_level = perm_level.lower()
-        if perm_level not in 'rwsf':
+        if perm_level not in 'rwsfa':
             logger.warning(log_data)
             continue
+        elif perm_level == 'a':
+            perm_level = 'we'
 
-        if frec_code:
-            yield UserAffiliation(
-                cgac=available_cgacs[cgac_code],
-                frec=None,
-                permission_type_id=PERMISSION_SHORT_DICT['r']
-            )
-            yield UserAffiliation(
-                cgac=None,
-                frec=available_frecs[frec_code],
-                permission_type_id=PERMISSION_SHORT_DICT[perm_level]
-            )
-        else:
-            yield UserAffiliation(
-                cgac=available_cgacs[cgac_code] if cgac_code else None,
-                frec=None,
-                permission_type_id=PERMISSION_SHORT_DICT[perm_level]
-            )
+        for permission in perm_level:
+            if frec_code:
+                yield UserAffiliation(
+                    cgac=available_cgacs[cgac_code],
+                    frec=None,
+                    permission_type_id=PERMISSION_SHORT_DICT['r']
+                )
+                yield UserAffiliation(
+                    cgac=None,
+                    frec=available_frecs[frec_code],
+                    permission_type_id=PERMISSION_SHORT_DICT[permission]
+                )
+            else:
+                yield UserAffiliation(
+                    cgac=available_cgacs[cgac_code] if cgac_code else None,
+                    frec=None,
+                    permission_type_id=PERMISSION_SHORT_DICT[permission]
+                )
 
 
 def best_affiliation(affiliations):
@@ -327,15 +330,19 @@ def best_affiliation(affiliations):
         Returns:
             List of all affiliations the user has (with duplicates, highest of each type/agency provided)
     """
-    dabs_affils, fabs_affils = {}, {}
-    affiliations = sorted(affiliations, key=attrgetter('permission_type_id'))
-    for affiliation in affiliations:
-        if affiliation.permission_type_id == PERMISSION_SHORT_DICT['f']:
-            fabs_affils[affiliation.cgac, affiliation.frec] = affiliation
-        else:
-            dabs_affils[affiliation.cgac, affiliation.frec] = affiliation
+    dabs_dict, fabs_dict = {}, {}
 
-    all_affils = list(dabs_affils.values()) + list(fabs_affils.values())
+    # Sort all affiliations from lowest to highest permission
+    sorted_affiliations = sorted(list(affiliations), key=attrgetter('permission_type_id'))
+
+    for affiliation in sorted_affiliations:
+        # Overwrite low permissions with high permissions; keep DABS and FABS separate so FABS doesn't overwrite DABS
+        if affiliation.permission_type_id in DABS_PERMISSION_ID_LIST:
+            dabs_dict[affiliation.cgac, affiliation.frec] = affiliation
+        elif affiliation.permission_type_id in FABS_PERMISSION_ID_LIST:
+            fabs_dict[affiliation.cgac, affiliation.frec] = affiliation
+
+    all_affils = list(dabs_dict.values()) + list(fabs_dict.values())
     return all_affils
 
 
