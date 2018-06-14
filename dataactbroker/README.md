@@ -793,7 +793,7 @@ File download or redirect to signed URL
 
 #### POST "/v1/submit_detached_file"
 
-This route sends a request to the backend with ID of the FABS submission we're submitting in order to process it.
+This route sends a request to the backend with ID of the FABS submission we're submitting in order to publish it.
 
 ##### Body (JSON)
 

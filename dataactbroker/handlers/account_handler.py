@@ -295,9 +295,10 @@ def perms_to_affiliations(perms, user_id):
                 continue
 
         perm_level = perm_level.lower()
-        if perm_level not in 'rwsfa':
+        if perm_level not in 'rwsefa':
             logger.warning(log_data)
             continue
+        # Replace MAX Service Account permissions with Broker "write" and "editfabs" permissions
         elif perm_level == 'a':
             perm_level = 'we'
 

@@ -7,7 +7,7 @@ from flask import Flask, g, session
 
 from dataactbroker.domainRoutes import add_domain_routes
 from dataactbroker.exception_handler import add_exception_handlers
-from dataactbroker.fileRoutes import add_file_routes
+from dataactbroker.file_routes import add_file_routes
 from dataactbroker.handlers.account_handler import AccountHandler
 from dataactbroker.handlers.aws.sesEmail import SesEmail
 from dataactbroker.handlers.aws.session import UserSessionInterface
