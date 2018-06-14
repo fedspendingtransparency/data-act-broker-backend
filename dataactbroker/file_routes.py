@@ -11,7 +11,7 @@ from dataactbroker.handlers.submission_handler import (
     get_revalidation_threshold)
 
 from dataactbroker.decorators import convert_to_submission_id
-from dataactbroker.permissions import requires_login, requires_submission_perms
+from dataactbroker.permissions import current_user_can, requires_login, requires_submission_perms
 
 from dataactcore.interfaces.function_bag import get_fabs_meta
 from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER
@@ -27,6 +27,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @app.route("/v1/submit_files/", methods=["POST"])
     @requires_login
     def submit_files():
+        current_user_can('writer', request.json.get('cgac_code', None), request.json.get('frec_code', None))
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.validate_submit_files(create_credentials)
 
@@ -179,8 +180,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @app.route("/v1/upload_detached_file/", methods=["POST"])
     @requires_login
     def upload_detached_file():
+        current_user_can('editfabs', request.json.get('cgac_code', None), request.json.get('frec_code', None))
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.upload_detached_file(create_credentials)
+        return file_manager.upload_fabs_file(create_credentials)
 
     @app.route("/v1/submit_detached_file/", methods=["POST"])
     @convert_to_submission_id

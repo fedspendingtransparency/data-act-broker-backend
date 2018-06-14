@@ -20,12 +20,10 @@ def requires_login(func):
     """ Decorator requiring that a user be logged in (i.e. that we're not using an anonymous session)
 
         Args:
-            permission: single-letter string representing an application permission
-            cgac_code: 3-digit numerical string identifying a CGAC agency
-            frec_code: 4-digit numerical string identifying a FREC agency
+            func: the function that this wrapper is wrapped around
 
         Returns:
-            Boolean result on whether the user has permissions greater than or equal to permission
+            LOGIN_REQUIRED JSONResponse object if the user doesn't exist, otherwise it runs the wrapped function
     """
     @wraps(func)
     def inner(*args, **kwargs):
@@ -36,7 +34,15 @@ def requires_login(func):
 
 
 def requires_admin(func):
-    """Decorator requiring the requesting user be a website admin"""
+    """ Decorator requiring the requesting user be a website admin
+
+        Args:
+            func: the function that this wrapper is wrapped around
+
+        Returns:
+            LOGIN_REQUIRED JSONResponse object if the user doesn't exist or is not an admin user, otherwise it runs the
+            wrapped function
+    """
     @wraps(func)
     def inner(*args, **kwargs):
         if g.user is None:
@@ -102,7 +108,7 @@ def current_user_can_on_submission(perm, submission, check_owner=True):
     return (is_owner and check_owner) or current_user_can(perm, submission.cgac_code, submission.frec_code)
 
 
-def requires_submission_perms(perm, check_owner=True, check_fabs=False):
+def requires_submission_perms(perm, check_owner=True, check_fabs=None):
     """ Decorator that checks the current user's permissions and validates that the submission exists. It expects a
         submission_id parameter and will return a submission object
 
