@@ -359,7 +359,6 @@ def test_current_user_can_multiple_dabs_permissions(database, monkeypatch, user_
     assert permissions.current_user_can('submitter', other_cgac.cgac_code, None)
 
 
-
 def test_current_user_can_on_submission(monkeypatch, database):
     submission = SubmissionFactory()
     user = UserFactory()
