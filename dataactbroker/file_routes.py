@@ -225,7 +225,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @requires_submission_perms('writer', check_fabs='editfabs')
     def delete_submission(submission):
         """ Deletes all data associated with the specified submission
-            NOTE: THERE IS NO WAY TO UNDO THIS 
+            NOTE: THERE IS NO WAY TO UNDO THIS
         """
         return delete_all_submission_data(submission)
 
