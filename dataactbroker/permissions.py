@@ -70,7 +70,7 @@ def current_user_can(permission, cgac_code, frec_code):
     # If the user is not logged in, or the user is a website admin, there is no reason to check their permissions
     if not hasattr(g, 'user'):
         return False
-    elif g.user.website_admin:
+    if g.user.website_admin:
         return True
 
     # Ensure the permission exists and retrieve its ID and type
