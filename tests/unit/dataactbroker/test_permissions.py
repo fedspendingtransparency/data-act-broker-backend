@@ -359,6 +359,37 @@ def test_current_user_can_multiple_dabs_permissions(database, monkeypatch, user_
     assert permissions.current_user_can('submitter', other_cgac.cgac_code, None)
 
 
+def test_current_user_can_multiple_dabs_fabs_permissions(database, monkeypatch, user_constants):
+    user_cgac, other_cgac = [CGACFactory() for _ in range(2)]
+    user_submitter = UserFactory(affiliations=[
+        UserAffiliation(cgac=user_cgac, permission_type_id=PERMISSION_TYPE_DICT['writer']),
+        UserAffiliation(cgac=user_cgac, permission_type_id=ALL_PERMISSION_TYPES_DICT['fabs'])
+    ])
+    database.session.add_all([user_cgac, other_cgac, user_submitter])
+    database.session.commit()
+
+    monkeypatch.setattr(permissions, 'g', Mock(user=user_submitter))
+
+    # has permission level, but wrong agency
+    assert not permissions.current_user_can('reader', other_cgac.cgac_code, None)
+    assert not permissions.current_user_can('writer', other_cgac.cgac_code, None)
+    assert not permissions.current_user_can('editfabs', other_cgac.cgac_code, None)
+    assert not permissions.current_user_can('fabs', other_cgac.cgac_code, None)
+
+    # has agency, but not permission level
+    assert not permissions.current_user_can('submitter', user_cgac.cgac_code, None)
+
+    # right agency, right permission
+    assert permissions.current_user_can('reader', user_cgac.cgac_code, None)
+    assert permissions.current_user_can('writer', user_cgac.cgac_code, None)
+    assert permissions.current_user_can('editfabs', user_cgac.cgac_code, None)
+    assert permissions.current_user_can('fabs', user_cgac.cgac_code, None)
+
+    # wrong agency, but superuser
+    user_submitter.website_admin = True
+    assert permissions.current_user_can('submitter', other_cgac.cgac_code, None)
+
+
 def test_current_user_can_on_submission(monkeypatch, database):
     submission = SubmissionFactory()
     user = UserFactory()
