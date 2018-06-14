@@ -34,7 +34,7 @@ from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, 
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
-    FILE_TYPE_DICT_ID, JOB_STATUS_DICT, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
+    FILE_TYPE_DICT_ID, JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
 from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
                                               FPDSContractingOffice)
 from dataactcore.models.userModel import User
@@ -1397,21 +1397,28 @@ def process_job_status(jobs, response_content):
     for job in jobs:
         if job['job_type'] == JOB_TYPE_DICT['file_upload']:
             upload = job
-            upload_status = get_simplified_job_status(job['job_status'])
+            upload_status = JOB_STATUS_DICT_ID[job['job_status']]
         else:
             validation = job
-            validation_status = get_simplified_job_status(job['job_status'])
+            validation_status = JOB_STATUS_DICT_ID[job['job_status']]
 
     # checking for failures
-    if upload_status == 'failed' or validation_status == 'failed':
+    if upload_status == 'invalid' or upload_status == 'failed' or validation_status == 'failed':
         response_content['status'] = 'failed'
+        response_content['has_errors'] = True
+        response_content['message'] = upload['error_message'] or validation['error_message'] or ''
+        return response_content
+
+    if validation_status == 'invalid':
+        response_content['status'] = 'finished'
         response_content['has_errors'] = True
         response_content['message'] = upload['error_message'] or validation['error_message'] or ''
         return response_content
 
     # If upload job exists and hasn't started or if it doesn't exist and validation job hasn't started,
     # it should just be ready
-    if upload_status == 'ready' or (upload_status == '' and validation_status == 'ready'):
+    if upload_status == 'ready' or upload_status == 'waiting' or \
+            (upload_status == '' and (validation_status == 'ready' or validation_status == 'waiting')):
         return response_content
 
     # If the upload job is running, status is uploading
@@ -1429,29 +1436,6 @@ def process_job_status(jobs, response_content):
     response_content['has_errors'] = validation is not None and validation['errors'] > 0
     response_content['has_warnings'] = validation is not None and validation['warnings'] > 0
     return response_content
-
-
-def get_simplified_job_status(job_status_id):
-    """ Return a string with the simplified job status, combining several of the existing ones. A helper function for
-        process_job_status.
-
-        Args:
-            job_status_id: the ID of the job status
-
-        Returns:
-            A string indicating in simplified form the status of the job
-    """
-    job_status = ''
-    if job_status_id == JOB_STATUS_DICT['invalid'] or job_status_id == JOB_STATUS_DICT['failed']:
-        job_status = 'failed'
-    elif job_status_id == JOB_STATUS_DICT['running']:
-        job_status = 'running'
-    elif job_status_id == JOB_STATUS_DICT['finished']:
-        job_status = 'finished'
-    elif job_status_id == JOB_STATUS_DICT['waiting'] or job_status_id == JOB_STATUS_DICT['ready']:
-        job_status = 'ready'
-
-    return job_status
 
 
 def get_error_metrics(submission):
