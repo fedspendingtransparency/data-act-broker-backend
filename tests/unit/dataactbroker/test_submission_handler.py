@@ -411,6 +411,7 @@ def test_certify_dabs_submission(database, monkeypatch):
                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
                                        certifying_user_id=None)
         sess.add_all([user, cgac, submission])
+        sess.commit()
 
         g.user = user
         file_handler = fileHandler.FileHandler({}, is_local=True)
@@ -419,6 +420,7 @@ def test_certify_dabs_submission(database, monkeypatch):
 
         certify_dabs_submission(submission, file_handler)
 
+        sess.refresh(submission)
         certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).one_or_none()
         assert certify_history is not None
         assert submission.certifying_user_id == user.user_id
