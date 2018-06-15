@@ -336,7 +336,7 @@ class FileHandler:
             # Compare user ID with user who submitted job, if no match return 400
             job = sess.query(Job).filter_by(job_id=job_id).one()
             submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
-            if (submission.d2_submission and not current_user_can_on_submission('fabs', submission)) or \
+            if (submission.d2_submission and not current_user_can_on_submission('editfabs', submission)) or \
                     (not submission.d2_submission and not current_user_can_on_submission('writer', submission)):
                 # This user cannot finalize this job
                 raise ResponseException("Cannot finalize a job for a different agency", StatusCode.CLIENT_ERROR)
@@ -543,7 +543,7 @@ class FileHandler:
         # Return same response as check generation route
         return self.check_detached_generation(new_job.job_id)
 
-    def upload_detached_file(self, create_credentials):
+    def upload_fabs_file(self, create_credentials):
         """ Builds S3 URLs for a set of FABS files and adds all related jobs to job tracker database
 
             Flask request should include keys from FILE_TYPES class variable above
@@ -603,13 +603,9 @@ class FileHandler:
             job_data['reporting_start_date'] = None
             job_data['reporting_end_date'] = None
 
-            # TODO: Is this still needed for FABS uploads? Do we do this another way now?
-            """
-            Below lines commented out to temporarily allow all users to upload FABS data for all agencies during testing
-            """
-            # if not current_user_can('writer', job_data["cgac_code"]):
-            #     raise ResponseException("User does not have permission to create jobs for this agency",
-            #                             StatusCode.PERMISSION_DENIED)
+            if not current_user_can('editfabs', job_data["cgac_code"]):
+                raise ResponseException("User does not have permission to create FABS jobs for this agency",
+                                        StatusCode.PERMISSION_DENIED)
 
             submission = create_submission(g.user.user_id, job_data, existing_submission_obj)
             sess.add(submission)
@@ -674,7 +670,7 @@ class FileHandler:
         return JsonResponse.create(StatusCode.OK, response_dict)
 
     @staticmethod
-    def submit_detached_file(submission):
+    def publish_fabs_submission(submission):
         """ Submits the FABS upload file associated with the submission ID, including processing all the derivations
             and updating relevant tables (such as un-caching all D2 files associated with this agency)
 
@@ -1644,7 +1640,7 @@ def submission_error(submission_id, file_type):
             response_dict["end"] = ""
         return JsonResponse.error(NoResultFound, StatusCode.CLIENT_ERROR, **response_dict)
 
-    if not current_user_can_on_submission('writer', submission):
+    if not current_user_can_on_submission('editfabs' if submission.d2_submission else 'writer', submission):
         response_dict = {
             "message": "User does not have permission to view that submission",
             "file_type": file_type,

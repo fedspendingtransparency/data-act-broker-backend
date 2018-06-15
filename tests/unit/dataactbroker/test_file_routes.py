@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from flask import g
 import pytest
 
-from dataactbroker import fileRoutes
+from dataactbroker import file_routes
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
 from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory, SubmissionWindowFactory,
@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 
 @pytest.fixture
 def file_app(test_app):
-    fileRoutes.add_file_routes(test_app.application, Mock(), Mock(), Mock())
+    file_routes.add_file_routes(test_app.application, Mock(), Mock(), Mock())
     yield test_app
 
 
