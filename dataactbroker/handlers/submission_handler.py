@@ -530,6 +530,8 @@ def certify_dabs_submission(submission, file_manager):
         Returns:
             Nothing if successful, JsonResponse error containing the details of the error if something went wrong
     """
+    current_user_id = g.user.user_id
+
     if not submission.publishable:
         return JsonResponse.error(ValueError("Submission cannot be certified due to critical errors"),
                                   StatusCode.CLIENT_ERROR)
@@ -553,7 +555,7 @@ def certify_dabs_submission(submission, file_manager):
         sess = GlobalDB.db().session
 
         # create the certify_history entry
-        certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
+        certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=current_user_id,
                                          submission_id=submission.submission_id)
         sess.add(certify_history)
         sess.commit()
@@ -566,6 +568,7 @@ def certify_dabs_submission(submission, file_manager):
         file_manager.move_certified_files(submission, certify_history, file_manager.is_local)
 
         # set submission contents
-        submission.certifying_user_id = g.user.user_id
+        submission.certifying_user_id = current_user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['published']
         sess.commit()
+        print(submission.__dict__)
