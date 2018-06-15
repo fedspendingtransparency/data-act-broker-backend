@@ -1327,8 +1327,8 @@ def get_status(submission, file_type):
         return JsonResponse.error(ValueError(file_type + ' is not a valid file type'), StatusCode.CLIENT_ERROR)
 
     # Make sure the file type provided is valid for the submission type
-    if file_type and (submission.d2_submission and file_type != 'fabs') or \
-            (not submission.d2_submission and file_type == 'fabs'):
+    is_fabs = submission.d2_submission
+    if file_type and (is_fabs and file_type != 'fabs') or (not is_fabs and file_type == 'fabs'):
         return JsonResponse.error(ValueError(file_type + ' is not a valid file type for this submission'),
                                   StatusCode.CLIENT_ERROR)
 
@@ -1341,7 +1341,7 @@ def get_status(submission, file_type):
     if file_type:
         job_dict[file_type] = []
         response_dict[file_type] = response_template
-    elif submission.d2_submission:
+    elif is_fabs:
         job_dict['fabs'] = []
         response_dict['fabs'] = response_template
     else:

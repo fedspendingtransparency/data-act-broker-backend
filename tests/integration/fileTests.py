@@ -333,6 +333,22 @@ class FileTests(BaseTestAPI):
                                 headers={"x-session-id": self.session_id})
         self.assertEqual(response.status_code, 401)
 
+    def test_submission_data_invalid_file_type(self):
+        """ Test response with a completely invalid file type """
+        self.logout()
+        params = {"submission_id": self.status_check_submission_id, "type": 'approp'}
+        response = self.app.get("/v1/submission_data/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
+        self.assertEqual(response.status_code, 401)
+
+    def test_submission_data_bad_file_type(self):
+        """ Test response with a real file type requested but invalid for this submission """
+        self.logout()
+        params = {"submission_id": self.status_check_submission_id, "type": 'fabs'}
+        response = self.app.get("/v1/submission_data/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
+        self.assertEqual(response.status_code, 401)
+
     def test_submission_data_permission(self):
         """ Test that other users do not have access to status check submission """
         params = {"submission_id": self.status_check_submission_id}
@@ -429,51 +445,51 @@ class FileTests(BaseTestAPI):
     def test_check_status_no_login(self):
         """ Test response with no login """
         self.logout()
-        post_json = {"submission_id": self.status_check_submission_id}
-        response = self.app.post_json("/v1/check_status/", post_json, expect_errors=True,
-                                      headers={"x-session-id": self.session_id})
+        params = {"submission_id": self.status_check_submission_id}
+        response = self.app.get("/v1/check_status/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
         # Assert 401 status
         self.assertEqual(response.status_code, 401)
 
     def test_check_status_no_session_id(self):
         """ Test response with no session ID """
-        post_json = {"submission_id": self.status_check_submission_id}
-        response = self.app.post_json("/v1/check_status/", post_json, expect_errors=True)
+        params = {"submission_id": self.status_check_submission_id}
+        response = self.app.get("/v1/check_status/", params, expect_errors=True)
         # Assert 401 status
         self.assertEqual(response.status_code, 401)
 
     def test_check_status_permission(self):
         """ Test that other users do not have access to status check submission """
-        post_json = {"submission_id": self.status_check_submission_id}
+        params = {"submission_id": self.status_check_submission_id}
         # Log in as non-admin user
         self.login_user()
         # Call check status route
-        response = self.app.post_json("/v1/check_status/", post_json, expect_errors=True,
-                                      headers={"x-session-id": self.session_id})
+        response = self.app.get("/v1/check_status/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
         # Assert 400 status
         self.assertEqual(response.status_code, 403)
 
     def test_check_status_admin(self):
         """ Test that admins have access to other user's submissions """
-        post_json = {"submission_id": self.status_check_submission_id}
+        params = {"submission_id": self.status_check_submission_id}
         # Log in as admin user
         self.login_admin_user()
         # Call check status route (also checking case insensitivity of header here)
-        response = self.app.post_json("/v1/check_status/", post_json, expect_errors=True,
-                                      headers={"x-SESSION-id": self.session_id})
+        response = self.app.get("/v1/check_status/", params, expect_errors=True,
+                                headers={"x-SESSION-id": self.session_id})
         # Assert 200 status
         self.assertEqual(response.status_code, 200)
 
     def test_check_status(self):
         """Test broker status route response."""
-        post_json = {"submission_id": self.status_check_submission_id}
+        params = {"submission_id": self.status_check_submission_id}
         # Populating error info before calling route to avoid changing last update time
 
         with create_app().app_context():
             sess = GlobalDB.db().session
             populate_submission_error_info(self.status_check_submission_id)
 
-            response = self.app.post_json("/v1/check_status/", post_json, headers={"x-session-id": self.session_id})
+            response = self.app.get("/v1/check_status/", params, headers={"x-session-id": self.session_id})
 
             self.assertEqual(response.status_code, 200, msg=str(response.json))
             self.assertEqual(response.headers.get("Content-Type"), "application/json")
@@ -743,8 +759,8 @@ class FileTests(BaseTestAPI):
         response = self.app.post_json("/v1/delete_submission/", post_json, headers={"x-session-id": self.session_id})
         self.assertEqual(response.json["message"], "Success")
 
-        response = self.app.post_json("/v1/check_status/", post_json, headers={"x-session-id": self.session_id},
-                                      expect_errors=True)
+        response = self.app.get("/v1/check_status/", post_json, headers={"x-session-id": self.session_id},
+                                expect_errors=True)
         self.assertEqual(response.json["message"], "No such submission")
 
         # check if models were actually delete (verifying cascading worked)

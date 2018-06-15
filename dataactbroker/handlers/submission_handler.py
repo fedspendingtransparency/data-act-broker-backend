@@ -8,7 +8,8 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (sum_number_of_errors_for_job_list, get_last_validated_date,
                                                  get_fabs_meta, get_error_type, get_error_metrics_by_job_id)
 
-from dataactcore.models.lookups import JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT
+from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT,
+                                        FILE_TYPE_DICT)
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (FileRequest, Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
                                           CertifyHistory, RevalidationThreshold)
@@ -145,23 +146,39 @@ def get_submission_metadata(submission):
     }
 
 
-def get_submission_data(submission):
+def get_submission_data(submission, file_type=''):
     """ Get data for the submission specified
 
         Args:
             submission: submission to retrieve metadata for
+            file_type: the type of job to retrieve metadata for
 
         Returns:
             object containing data for the submission
     """
+    # Make sure the file type provided is valid
+    if file_type and file_type not in FILE_TYPE_DICT and file_type != 'cross':
+        return JsonResponse.error(ValueError(file_type + ' is not a valid file type'), StatusCode.CLIENT_ERROR)
+
+    # Make sure the file type provided is valid for the submission type
+    is_fabs = submission.d2_submission
+    if file_type and (is_fabs and file_type != 'fabs') or (not is_fabs and file_type == 'fabs'):
+        return JsonResponse.error(ValueError(file_type + ' is not a valid file type for this submission'),
+                                  StatusCode.CLIENT_ERROR)
+
     sess = GlobalDB.db().session
 
-    relevant_job_types = (JOB_TYPE_DICT['csv_record_validation'], JOB_TYPE_DICT['validation'])
-    relevant_jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
-                                           Job.job_type_id.in_(relevant_job_types))
+    job_query = sess.query(Job).filter(Job.submission_id == submission.submission_id)
+    if not file_type:
+        relevant_job_types = (JOB_TYPE_DICT['csv_record_validation'], JOB_TYPE_DICT['validation'])
+        job_query = job_query.filter(Job.job_type_id.in_(relevant_job_types))
+    elif file_type == 'cross':
+        job_query = job_query.filter(Job.job_type_id == JOB_TYPE_DICT['validation'])
+    else:
+        job_query = job_query.filter(Job.file_type_id == FILE_TYPE_DICT[file_type])
 
     return {
-        'jobs': [job_to_dict(job) for job in relevant_jobs]
+        'jobs': [job_to_dict(job) for job in job_query]
     }
 
 
