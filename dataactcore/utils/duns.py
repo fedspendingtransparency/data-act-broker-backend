@@ -29,13 +29,13 @@ def get_config():
     return None, None, None, None, None
 
 
-def get_relevant_models(data, sess, benchmarks=False):
+def get_relevant_models(data, sess, benchmarks=False, table=DUNS):
     # Get a list of the duns we're gonna work off of to prevent multiple calls to the database
     if benchmarks:
         get_models = time.time()
     logger.info("Getting relevant models")
     duns_found = [duns.strip().zfill(9) for duns in list(data["awardee_or_recipient_uniqu"].unique())]
-    dun_objects_found = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu.in_(duns_found))
+    dun_objects_found = sess.query(table).filter(table.awardee_or_recipient_uniqu.in_(duns_found))
     models = {duns.awardee_or_recipient_uniqu: duns for duns in dun_objects_found}
     logger.info("Getting models with activation dates already set")
     activated_models = {duns_num: duns for duns_num, duns in models.items() if duns.activation_date is not None}
@@ -44,9 +44,9 @@ def get_relevant_models(data, sess, benchmarks=False):
     return models, activated_models
 
 
-def load_duns_by_row(data, sess, models, activated_models, benchmarks=False):
+def load_duns_by_row(data, sess, models, activated_models, benchmarks=False, table=DUNS):
     # data = activation_check(data, activated_models, benchmarks).where(pd.notnull(data), None)
-    update_duns(models, data, benchmarks=benchmarks)
+    update_duns(models, data, benchmarks=benchmarks, table=table)
     sess.add_all(models.values())
 
 
@@ -65,7 +65,7 @@ def load_duns_by_row(data, sess, models, activated_models, benchmarks=False):
 #         logger.info("Activation check took {} seconds".format(time.time()-activation_check_start))
 #     return data
 
-def update_duns(models, new_data, benchmarks=False):
+def update_duns(models, new_data, benchmarks=False, table=DUNS):
     """Modify existing models or create new ones"""
     logger.info("Updating duns")
     if benchmarks:
@@ -73,15 +73,15 @@ def update_duns(models, new_data, benchmarks=False):
     for _, row in new_data.iterrows():
         awardee_or_recipient_uniqu = row['awardee_or_recipient_uniqu']
         if awardee_or_recipient_uniqu not in models:
-            models[awardee_or_recipient_uniqu] = DUNS()
+            models[awardee_or_recipient_uniqu] = table()
         for field, value in row.items():
             setattr(models[awardee_or_recipient_uniqu], field, value)
     if benchmarks:
         logger.info("Updating duns took {} seconds".format(time.time() - update_duns_start))
 
 
-def clean_sam_data(data):
-    return clean_data(data, DUNS, {
+def clean_sam_data(data, table=DUNS):
+    return clean_data(data, table, {
         "awardee_or_recipient_uniqu": "awardee_or_recipient_uniqu",
         "activation_date": "activation_date",
         "deactivation_date": "deactivation_date",
@@ -89,11 +89,13 @@ def clean_sam_data(data):
         "expiration_date": "expiration_date",
         "last_sam_mod_date": "last_sam_mod_date",
         "sam_extract_code": "sam_extract_code",
-        "legal_business_name": "legal_business_name"
+        "legal_business_name": "legal_business_name",
+        "ultimate_parent_legal_enti": "ultimate_parent_legal_enti",
+        "ultimate_parent_unique_ide": "ultimate_parent_unique_ide"
     }, {})
 
 
-def parse_sam_file(file_path, sess, monthly=False, benchmarks=False):
+def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS, year=None):
     parse_start_time = time.time()
     logger.info("Starting file " + str(file_path))
 
@@ -110,7 +112,9 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False):
             "expiration_date": 7,
             "last_sam_mod_date": 8,
             "activation_date": 9,
-            "legal_business_name": 10
+            "legal_business_name": 10,
+            "ultimate_parent_legal_enti": 186,
+            "ultimate_parent_unique_ide": 187
         }
         column_header_mapping_ordered = OrderedDict(sorted(column_header_mapping.items(), key=lambda c: c[1]))
 
@@ -149,14 +153,16 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False):
                     # removing rows where DUNS number isn't even provided
                     csv_data = csv_data.where(csv_data["awardee_or_recipient_uniqu"].notnull())
                     # cleaning and replacing NaN/NaT with None's
-                    csv_data = clean_sam_data(csv_data.where(pd.notnull(csv_data), None))
+                    csv_data = clean_sam_data(csv_data.where(pd.notnull(csv_data), None), table=table)
 
                     if monthly:
                         logger.info("Adding all monthly data with bulk load")
                         if benchmarks:
                             bulk_month_load = time.time()
                         del csv_data["sam_extract_code"]
-                        insert_dataframe(csv_data, DUNS.__table__.name, sess.connection())
+                        if year:
+                            csv_data['year'] = year
+                        insert_dataframe(csv_data, table.__table__.name, sess.connection())
                         if benchmarks:
                             logger.info("Bulk month load took {} seconds".format(time.time()-bulk_month_load))
                     else:
@@ -169,18 +175,20 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False):
                         if not add_data.empty:
                             try:
                                 logger.info("Attempting to bulk load add data")
-                                insert_dataframe(add_data, DUNS.__table__.name, sess.connection())
+                                insert_dataframe(add_data, table.__table__.name, sess.connection())
                             except IntegrityError:
                                 logger.info("Bulk loading add data failed, loading add data by row")
                                 sess.rollback()
                                 models, activated_models = get_relevant_models(add_data, sess, benchmarks=benchmarks)
                                 logger.info("Loading add data ({} rows)".format(len(add_data.index)))
-                                load_duns_by_row(add_data, sess, models, activated_models, benchmarks=benchmarks)
+                                load_duns_by_row(add_data, sess, models, activated_models, benchmarks=benchmarks,
+                                                 table=table)
                         if not update_delete_data.empty:
                             models, activated_models = get_relevant_models(update_delete_data, sess,
                                                                            benchmarks=benchmarks)
                             logger.info("Loading update_delete data ({} rows)".format(len(update_delete_data.index)))
-                            load_duns_by_row(update_delete_data, sess, models, activated_models, benchmarks=benchmarks)
+                            load_duns_by_row(update_delete_data, sess, models, activated_models, benchmarks=benchmarks,
+                                             table=table)
                     sess.commit()
 
             added_rows += nrows
@@ -191,12 +199,13 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False):
                                                                          added_rows))
 
 
-def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False, benchmarks=False):
+def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False, benchmarks=False, table=DUNS,
+                     year=None):
     file_path = os.path.join(root_dir, file_name)
     if not local:
         logger.info("Pulling {}".format(file_name))
         with open(file_path, "wb") as zip_file:
             sftp.getfo(''.join([REMOTE_SAM_DIR, '/', file_name]), zip_file)
-    parse_sam_file(file_path, sess, monthly=monthly, benchmarks=benchmarks)
+    parse_sam_file(file_path, sess, monthly=monthly, benchmarks=benchmarks, table=table, year=year)
     if not local:
         os.remove(file_path)
