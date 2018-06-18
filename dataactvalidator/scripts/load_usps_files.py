@@ -364,14 +364,16 @@ def main(sess):
 
     # update the last load date to match the fulfilled of the file that was just finished downloading
     # date format = YYYY-MM-DD
-    if not last_load_date_obj:
-        new_external_data_load_date = ExternalDataLoadDate(
-            last_load_date=file_fulfilled_date,
-            external_data_type_id=EXTERNAL_DATA_TYPE_DICT['usps_download']
-        )
-        sess.add(new_external_data_load_date)
-    else:
-        last_load_date_obj.last_load_date = file_fulfilled_date or datetime.today().date()
+
+    if args.download:
+        if not last_load_date_obj:
+            new_external_data_load_date = ExternalDataLoadDate(
+                last_load_date=file_fulfilled_date,
+                external_data_type_id=EXTERNAL_DATA_TYPE_DICT['usps_download']
+            )
+            sess.add(new_external_data_load_date)
+        else:
+            last_load_date_obj.last_load_date = file_fulfilled_date
 
 
 if __name__ == '__main__':

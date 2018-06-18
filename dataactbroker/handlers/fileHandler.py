@@ -59,7 +59,7 @@ class FileHandler:
 
         Attributes:
             request: A Flask object containing the route request
-            isLocal: A boolean flag indicating whether the application is being run locally or not
+            is_local: A boolean flag indicating whether the application is being run locally or not
             serverPath: A string containing the path to the server files (only applicable when run locally)
             s3manager: An instance of S3Handler that can be used for all interactions with S3
 
@@ -87,10 +87,10 @@ class FileHandler:
             Args:
                 route_request: HTTP request object for this route
                 is_local: True if this is a local installation that will not use AWS or Smartronix
-                server_path: If isLocal is True, this is used as the path to local files
+                server_path: If is_local is True, this is used as the path to local files
         """
         self.request = route_request
-        self.isLocal = is_local
+        self.is_local = is_local
         self.serverPath = server_path
         self.s3manager = S3Handler()
 
@@ -220,7 +220,7 @@ class FileHandler:
                 for ext_file_type in FileHandler.EXTERNAL_FILE_TYPES:
                     filename = CONFIG_BROKER["".join([ext_file_type, "_file_name"])]
 
-                    if not self.isLocal:
+                    if not self.is_local:
                         upload_name = "{}/{}".format(
                             submission.submission_id,
                             S3Handler.get_timestamped_filename(filename)
@@ -336,7 +336,7 @@ class FileHandler:
             # Compare user ID with user who submitted job, if no match return 400
             job = sess.query(Job).filter_by(job_id=job_id).one()
             submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
-            if (submission.d2_submission and not current_user_can_on_submission('fabs', submission)) or \
+            if (submission.d2_submission and not current_user_can_on_submission('editfabs', submission)) or \
                     (not submission.d2_submission and not current_user_can_on_submission('writer', submission)):
                 # This user cannot finalize this job
                 raise ResponseException("Cannot finalize a job for a different agency", StatusCode.CLIENT_ERROR)
@@ -363,7 +363,7 @@ class FileHandler:
                 JsonResponse object containing the path to the uploaded file or an error message
         """
         try:
-            if self.isLocal:
+            if self.is_local:
                 uploaded_file = request.files['file']
                 if uploaded_file:
                     seconds = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
@@ -400,7 +400,7 @@ class FileHandler:
                 ResponseException: Error if the file_url doesn't point to a valid file or the local_file_path is not
                     a valid directory
         """
-        if not self.isLocal:
+        if not self.is_local:
             conn = self.s3manager.create_file_path(upload_name)
             with smart_open.smart_open(conn, 'w') as writer:
                 # get request if it doesn't already exist
@@ -543,7 +543,7 @@ class FileHandler:
         # Return same response as check generation route
         return self.check_detached_generation(new_job.job_id)
 
-    def upload_detached_file(self, create_credentials):
+    def upload_fabs_file(self, create_credentials):
         """ Builds S3 URLs for a set of FABS files and adds all related jobs to job tracker database
 
             Flask request should include keys from FILE_TYPES class variable above
@@ -603,13 +603,9 @@ class FileHandler:
             job_data['reporting_start_date'] = None
             job_data['reporting_end_date'] = None
 
-            # TODO: Is this still needed for FABS uploads? Do we do this another way now?
-            """
-            Below lines commented out to temporarily allow all users to upload FABS data for all agencies during testing
-            """
-            # if not current_user_can('writer', job_data["cgac_code"]):
-            #     raise ResponseException("User does not have permission to create jobs for this agency",
-            #                             StatusCode.PERMISSION_DENIED)
+            if not current_user_can('editfabs', job_data["cgac_code"]):
+                raise ResponseException("User does not have permission to create FABS jobs for this agency",
+                                        StatusCode.PERMISSION_DENIED)
 
             submission = create_submission(g.user.user_id, job_data, existing_submission_obj)
             sess.add(submission)
@@ -674,7 +670,7 @@ class FileHandler:
         return JsonResponse.create(StatusCode.OK, response_dict)
 
     @staticmethod
-    def submit_detached_file(submission):
+    def publish_fabs_submission(submission):
         """ Submits the FABS upload file associated with the submission ID, including processing all the derivations
             and updating relevant tables (such as un-caching all D2 files associated with this agency)
 
@@ -889,7 +885,7 @@ class FileHandler:
                 A JsonResponse object with the urls in a list or an empty object if local
         """
         response = {}
-        if self.isLocal:
+        if self.is_local:
             response["urls"] = {}
             return JsonResponse.create(StatusCode.CLIENT_ERROR, response)
 
@@ -952,7 +948,7 @@ class FileHandler:
 
             file_name = request_params.get(file_type)
             if file_name:
-                if not self.isLocal:
+                if not self.is_local:
                     upload_name = "{}/{}".format(
                         submission.submission_id,
                         S3Handler.get_timestamped_filename(file_name)
@@ -985,7 +981,7 @@ class FileHandler:
                 response_dict[file_type + "_id"] = file_job_dict[file_type]
 
         # Create temporary credentials if specified, otherwise set everything to local
-        if create_credentials and not self.isLocal:
+        if create_credentials and not self.is_local:
             self.s3manager = S3Handler(CONFIG_BROKER["aws_bucket"])
             response_dict["credentials"] = self.s3manager.get_temporary_credentials(g.user.user_id)
         else:
@@ -993,7 +989,7 @@ class FileHandler:
                                             "SessionToken": "local", "Expiration": "local"}
 
         response_dict["submission_id"] = file_job_dict["submission_id"]
-        if self.isLocal:
+        if self.is_local:
             response_dict["bucket_name"] = CONFIG_BROKER["broker_files"]
         else:
             response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
@@ -1756,7 +1752,7 @@ def submission_error(submission_id, file_type):
             response_dict["end"] = ""
         return JsonResponse.error(NoResultFound, StatusCode.CLIENT_ERROR, **response_dict)
 
-    if not current_user_can_on_submission('writer', submission):
+    if not current_user_can_on_submission('editfabs' if submission.d2_submission else 'writer', submission):
         response_dict = {
             "message": "User does not have permission to view that submission",
             "file_type": file_type,

@@ -24,7 +24,7 @@ The `/dataactbroker/scripts` folder contains the install scripts needed to setup
 ### Handlers
 The `dataactbroker/handlers` folder contains the logic to handle requests that are dispatched from the `domainRoutes.py`, `fileRoutes.py`, `loginRoutes.py`, and `userRoutes.py` files. Routes defined in these files may include the `@requires_login` and `@requires_submission_perms` tags to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in, as well as checking the user's permissions to determine if the user has access to this route. If user is not logged in to the system or does not have access to the route, a 401 HTTP error will be returned. This tags are defined in `dataactbroker/permissions.py`.
 
-`accountHandler.py` contains the functions to check logins and to log users out.
+`account_handler.py` contains the functions to check logins and to log users out.
 
 `fileHandler.py` contains functions for managing user file interaction. It creates all of the jobs that are part of the user submission and has query methods to get the status of a submission. In addition, this class creates downloadable links to error reports created by the DATA Act Validator.
 
@@ -675,7 +675,7 @@ File download or redirect to signed URL
 
 #### POST "/v1/submit_detached_file"
 
-This route sends a request to the backend with ID of the FABS submission we're submitting in order to process it.
+This route sends a request to the backend with ID of the FABS submission we're submitting in order to publish it.
 
 ##### Body (JSON)
 
