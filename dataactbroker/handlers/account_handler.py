@@ -30,7 +30,7 @@ class AccountHandler:
     """ This class contains the login / logout  functions
 
         Attributes:
-            isLocal: A boolean indicating if the application is being run locally or not
+            is_local: A boolean indicating if the application is being run locally or not
             request: A Flask object containing the data from the request
             bcrypt: A Bcrypt object associated with the app
 
@@ -48,7 +48,7 @@ class AccountHandler:
                 request: Flask request object
                 bcrypt: Bcrypt object associated with app
         """
-        self.isLocal = is_local
+        self.is_local = is_local
         self.request = request
         self.bcrypt = bcrypt
 

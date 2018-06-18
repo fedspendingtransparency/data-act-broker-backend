@@ -59,7 +59,7 @@ class FileHandler:
 
         Attributes:
             request: A Flask object containing the route request
-            isLocal: A boolean flag indicating whether the application is being run locally or not
+            is_local: A boolean flag indicating whether the application is being run locally or not
             serverPath: A string containing the path to the server files (only applicable when run locally)
             s3manager: An instance of S3Handler that can be used for all interactions with S3
 
@@ -87,10 +87,10 @@ class FileHandler:
             Args:
                 route_request: HTTP request object for this route
                 is_local: True if this is a local installation that will not use AWS or Smartronix
-                server_path: If isLocal is True, this is used as the path to local files
+                server_path: If is_local is True, this is used as the path to local files
         """
         self.request = route_request
-        self.isLocal = is_local
+        self.is_local = is_local
         self.serverPath = server_path
         self.s3manager = S3Handler()
 
@@ -220,7 +220,7 @@ class FileHandler:
                 for ext_file_type in FileHandler.EXTERNAL_FILE_TYPES:
                     filename = CONFIG_BROKER["".join([ext_file_type, "_file_name"])]
 
-                    if not self.isLocal:
+                    if not self.is_local:
                         upload_name = "{}/{}".format(
                             submission.submission_id,
                             S3Handler.get_timestamped_filename(filename)
@@ -363,7 +363,7 @@ class FileHandler:
                 JsonResponse object containing the path to the uploaded file or an error message
         """
         try:
-            if self.isLocal:
+            if self.is_local:
                 uploaded_file = request.files['file']
                 if uploaded_file:
                     seconds = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
@@ -400,7 +400,7 @@ class FileHandler:
                 ResponseException: Error if the file_url doesn't point to a valid file or the local_file_path is not
                     a valid directory
         """
-        if not self.isLocal:
+        if not self.is_local:
             conn = self.s3manager.create_file_path(upload_name)
             with smart_open.smart_open(conn, 'w') as writer:
                 # get request if it doesn't already exist
@@ -885,7 +885,7 @@ class FileHandler:
                 A JsonResponse object with the urls in a list or an empty object if local
         """
         response = {}
-        if self.isLocal:
+        if self.is_local:
             response["urls"] = {}
             return JsonResponse.create(StatusCode.CLIENT_ERROR, response)
 
@@ -948,7 +948,7 @@ class FileHandler:
 
             file_name = request_params.get(file_type)
             if file_name:
-                if not self.isLocal:
+                if not self.is_local:
                     upload_name = "{}/{}".format(
                         submission.submission_id,
                         S3Handler.get_timestamped_filename(file_name)
@@ -981,7 +981,7 @@ class FileHandler:
                 response_dict[file_type + "_id"] = file_job_dict[file_type]
 
         # Create temporary credentials if specified, otherwise set everything to local
-        if create_credentials and not self.isLocal:
+        if create_credentials and not self.is_local:
             self.s3manager = S3Handler(CONFIG_BROKER["aws_bucket"])
             response_dict["credentials"] = self.s3manager.get_temporary_credentials(g.user.user_id)
         else:
@@ -989,7 +989,7 @@ class FileHandler:
                                             "SessionToken": "local", "Expiration": "local"}
 
         response_dict["submission_id"] = file_job_dict["submission_id"]
-        if self.isLocal:
+        if self.is_local:
             response_dict["bucket_name"] = CONFIG_BROKER["broker_files"]
         else:
             response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]

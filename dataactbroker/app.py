@@ -38,8 +38,8 @@ def create_app():
     broker_file_path = CONFIG_BROKER['broker_files']
     AccountHandler.FRONT_END = CONFIG_BROKER['full_url']
     SesEmail.SIGNING_KEY = CONFIG_BROKER['email_token_key']
-    SesEmail.isLocal = local
-    if SesEmail.isLocal:
+    SesEmail.is_local = local
+    if SesEmail.is_local:
         SesEmail.emailLog = os.path.join(broker_file_path, 'email.log')
     # If local, make the email directory if needed
     if local and not os.path.exists(broker_file_path):
