@@ -389,10 +389,18 @@ Possible HTTP Status Codes:
 This endpoint returns detailed validation job data for the requested submission.
 
 ##### Sample Request
-`/v1/submission_data/?submission_id=123`
+`/v1/submission_data/?submission_id=123&type=appropriations`
 
 ##### Request Params
 * `submission_id` - **required** - an integer representing the ID of the submission to get job data for
+* `type` - **optional** - a string limiting the results in the array to only contain the given file type. The following are valid values for this:
+    * `fabs` - only for FABS submissions
+    * `appropriations` - A
+    * `program_activity` - B
+    * `award_financial` - C
+    * `award_procurement` - D1
+    * `award` - D2
+    * `cross` - cross-file
 
 ##### Response (JSON)
 ```
@@ -486,188 +494,62 @@ Possible HTTP Status Codes:
 * 403: Permission denied, user does not have permission to view this submission
 
 
-#### POST "/v1/check_status/"
-A call to this route will provide status information on all jobs associated with the specified submission.
-The request should have JSON or form-urlencoded with a key "submission_id".  The response will contain a list of
-status objects for each job under the key "jobs", and other submission-level data.  In error data,
-"original_label" will only be populated when "error_name" is "rule_failed".  List of keys in response:
-- jobs: Holds data for each job in submission, each job is a dict with:
-    * job_id: Internal ID we have assigned to this job
-    * job_status: Values are:
-        - waiting: Job has prerequisites that are not complete, such as a file upload
-        - ready: Job is ready to be started but has not yet reached the validator
-        - running: Job was started on the validator, but has not yet completed or errored
-        - finished: Job completed with no errors (may still have warnings)
-        - invalid: Job completed with errors
-        - failed: There was an unexpected error in the validator, job should be restarted.
-    * file_type: Which type of file this job is for, will be blank for cross-file jobs.  Values are 'appropriations', 'program_activity', 'award_financial', and 'award'.
-    * job_type: Values are:
-        - file_upload: This job is a placeholder for the frontend's upload of the file
-        - csv_record_validation: File level validation job
-        - validation: Cross file validation job
-    * filename: Original filename as submitted by user
-    * file_status:  Represents status of file being validated, values are:
-        - complete: Validation has finished, errors or warnings may have been reported
-        - header_error: Validation stopped after finding header errors
-        - unknown_error:  Something unexpected went wrong
-        - single_row_error:  File has at most one row, valid files must have a header row and at least one row with data
-        - job_error: There was a problem with the job sent to the validator, it was either the wrong type or not ready to run
-        - incomplete: File is still being validated
-    * missing_headers: List of headers that should be present but are not
-    * duplicated_headers: List of headers that were included more than once.  If file_status is 'header_error', at least one of 'missing_headers' and 'duplicated_headers' will be non-empty.
-    * file_size: Size of submitted file in bytes
-    * number_of_rows: Number of rows in submitted file, will only be provided if validation completed
-    * error_type: Values are:
-        - header_errors: Header errors were found, validation was not completed
-        - row_errors: Validation completed with row errors found
-        - none: No errors were found, warnings may still be present
-    * error_data: Holds a list of errors, each error is a dict with keys:
-        - field_name: What field the error occurred on
-        - error_name: Type of error that occurred, values are:
-            * type_error: Value was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line.
-            * required_error: A required value was missing
-            * read_error: Could not parse this value from the file
-            * write_error: This was a problem writing the value to the staging table
-            * rule_failed: A rule failed on this value
-            * length_error: Value was too long for this field
-        - error_description: Description of the error
-        - occurrences: Number of times this error occurred for this field throughout the file.  See the error report for list of rows.
-        - rule_failed: Text of the rule that failed
-        - original_label: Label of the rule as it appears in the practices and procedures document
-    * warning_data: Holds the same information as error_data, but for warnings instead of errors
-- agency_name: Which agency this submission is attached to
-- cgac_code: The CGAC code associated with that agency
-- reporting_period_start_date: Specified by user at time of submission
-- reporting_period_end_date: Specified by user at time of submission
-- number_of_errors: Total number of errors that have occurred throughout the submission
-- number_of_rows: Total number of rows in the submission
-- created_on: Date the submission was originally created
-- last_updated: Date + time of last modification to this submission
-- last_validated: Earliest date of last validation of all jobs
-- revalidation_threshold: Earliest date all jobs must be validated after in order to certify/publish
-- publish_status: Publish status of the submission (unpublished/published/updated)
-- quarterly_submission: True if the submission is quarterly, false otherwise
+#### GET "/v1/check_status/"
+This endpoint returns the status of each file type, including whether each has errors or warnings and a message if one exists.
 
+##### Sample Request
 
-Example input:
+`/v1/check_status/?submission_id=123&type=appropriations`
 
-```json
-{
-  "submission_id":1610
-}
+##### Request Params
+* `submission_id` - **required** - an integer representing the ID of the submission to get statuses for
+* `type` - **optional** - a string limiting the results in the array to only contain the given file type. The following are valid values for this:
+    * `fabs` - only for FABS submissions
+    * `appropriations` - A
+    * `program_activity` - B
+    * `award_financial` - C
+    * `award_procurement` - D1
+    * `award` - D2
+    * `cross` - cross-file
+    * `executive_compensation` - E
+    * `sub_award` - F
+
+##### Response (JSON)
+
 ```
-
-Example output:
-
-```json
 {
-  "jobs": [
-    {
-      "job_id": 3005,
-      "job_status": "invalid",
-      "file_type": "appropriations",
-      "job_type": "file_upload",
-      "filename": "approp.csv",
-      "file_status" : "header_error",
-      "missing_headers": ["header_1", "header_2"],
-      "duplicated_headers": ["header_3", "header_4"],
-      "file_size": 4508,
-      "number_of_rows": 500,
-      "error_type": "header_error",
-      "error_data": [],
-      "warning_data": []
-    }, {
-      "job_id": 3006,
-      "job_status": "finished",
-      "file_type": "appropriations",
-      "job_type": "file_upload",
-      "filename": "approp.csv",
-      "file_status" : "complete",
-      "missing_headers": [],
-      "duplicated_headers": [],
-      "file_size": 4508,
-      "number_of_rows": 500,
-      "error_type": "record_level_error",
-      "error_data":  [
-        {
-          "field_name": "allocationtransferagencyid",
-          "error_name": "type_error",
-          "error_description": "The value provided was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line.",
-          "occurrences": 27,
-          "rule_failed": "",
-          "original_label":""
-        }, {
-          "field_name": "status_of_budgetary_resour_cpe, budget_authority_available_cpe",
-          "error_name": "rule_failed",
-          "error_description": "StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE",
-          "occurrences": 27,
-          "rule_failed": "StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE",
-          "original_label":"A24"
-        }
-      ],
-      "warning_data": [
-        {
-          "field_name": "allocationtransferagencyid",
-          "error_name": "rule_failed",
-          "error_description": "BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440",
-          "occurrences": 27,
-          "rule_failed": "BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440",
-          "original_label":"A10"
-        }, {
-          "field_name": "other_budgetary_resources_cpe, borrowing_authority_amount_cpe, contract_authority_amount_cpe, spending_authority_from_of_cpe",
-          "error_name": "rule_failed",
-          "error_description": "OtherBudgetaryResourcesAmount_CPE must be provided if TAS has borrowing, contract and/or spending authority provided in File A. If not applicable, leave blank.",
-          "occurrences": 27,
-          "rule_failed": "OtherBudgetaryResourcesAmount_CPE must be provided if TAS has borrowing, contract and/or spending authority provided in File A. If not applicable, leave blank.",
-          "original_label":"A28"
-        }
-      ]
-    }, {
-      "job_status": "finished",
-      "error_data": [
-        {
-          "error_description": "A rule failed for this value",
-          "error_name": "rule_failed",
-          "field_name": "award_financial",
-          "occurrences": "11",
-          "rule_failed": "Must have either a piid, fain, or uri",
-          "original_label":""
-        }, {
-          "error_description": "A rule failed for this value",
-          "error_name": "rule_failed",
-          "field_name": "award",
-          "occurrences": "10",
-          "rule_failed": "Must have either a piid, fain, or uri",
-          "original_label":""
-        }
-      ],
-      "warning_data": [],
-      "missing_headers": [],
-      "job_id": 599,
-      "file_type": "",
-      "error_type": "none",
-      "job_type": "validation",
-      "filename": null,
-      "file_status": "complete",
-      "number_of_rows": null,
-      "file_size": null,
-      "duplicated_headers": []
+    "fabs": {
+        "status": "finished",
+        "message": "",
+        "has_errors": false,
+        "has_warnings": true
     }
-  ],
-  "agency_name": "Name of the agency",
-  "cgac_code": "012",
-  "reporting_period_start_date": "03/31/2016",
-  "reporting_period_end_date": "03/31/2016",
-  "number_of_errors": 54,
-  "number_of_rows": 446,
-  "created_on": "04/01/2016",
-  "last_updated": "2016-04-01T09:10:11",
-  "last_validated": "03/15/2017",
-  "revalidation_threshold": "02/02/2017",
-  "publish_status": "unpublished",
-  "quarterly_submission": True
 }
 ```
+
+##### Response Attributes
+Response attributes change depending on the submission and type requested. If a specific type is requested, only one attribute matching the requested type will be included. If no type is specified and the submission is a DABS submission, all possible file types will be included. The possible attributes match the valid request types. See above for a full list.
+
+The contents of each attribute are an object containing the following keys:
+
+* `status`: string, indicates the current status of the file type. Possible values include:
+    * `ready` - not yet started
+    * `uploading` - the file is uploading
+    * `running` - the jobs are running
+    * `finished` - all associated jobs are complete
+    * `failed` - one or more of the associated jobs have failed
+* `message`: string, the message associated with a job if there is one
+* `has_errors`: boolean, indicates if the file type has any errors in validation
+* `has_warnings`: boolean, indicates if the file type has any warnings in validation
+
+##### Errors
+Possible HTTP Status Codes:
+
+* 400:
+    * Missing `submission_id` parameter
+    * Submission does not exist
+* 403: Permission denied, user does not have permission to view this submission
+
 
 #### GET "/v1/get_protected_files/"
 This route returns a signed S3 URL for all files available to download on the help page.
