@@ -27,7 +27,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @app.route("/v1/submit_files/", methods=["POST"])
     @requires_login
     def submit_files():
-        current_user_can('writer', request.json.get('cgac_code', None), request.json.get('frec_code', None))
+        current_user_can('writer', cgac_code=request.json.get('cgac_code', None),
+                         frec_code=request.json.get('frec_code', None))
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.validate_submit_files(create_credentials)
 
@@ -180,7 +181,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @app.route("/v1/upload_detached_file/", methods=["POST"])
     @requires_login
     def upload_detached_file():
-        current_user_can('editfabs', request.json.get('cgac_code', None), request.json.get('frec_code', None))
+        current_user_can('editfabs', cgac_code=request.json.get('cgac_code', None),
+                         frec_code=request.json.get('frec_code', None))
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.upload_fabs_file(create_credentials)
 

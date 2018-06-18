@@ -55,7 +55,7 @@ def requires_admin(func):
     return inner
 
 
-def current_user_can(permission, cgac_code, frec_code):
+def current_user_can(permission, cgac_code=None, frec_code=None):
     """ Validate whether the current user can perform the act (described by the permission level) for the given
         cgac_code or frec_code
 
@@ -105,7 +105,8 @@ def current_user_can_on_submission(perm, submission, check_owner=True):
             Boolean result on whether the user has permissions greater than or equal to perm
     """
     is_owner = hasattr(g, 'user') and submission.user_id == g.user.user_id
-    return (is_owner and check_owner) or current_user_can(perm, submission.cgac_code, submission.frec_code)
+    user_can = current_user_can(perm, cgac_code=submission.cgac_code, frec_code=submission.frec_code)
+    return (is_owner and check_owner) or user_can
 
 
 def requires_submission_perms(perm, check_owner=True, check_fabs=None):
