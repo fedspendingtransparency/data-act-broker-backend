@@ -3,7 +3,7 @@ from operator import attrgetter
 import time
 import uuid
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -321,9 +321,8 @@ def check_job_dependencies(job_id):
             # not have a status of 'finished'.
             unfinished_prerequisites = sess.query(JobDependency).\
                 join(Job, JobDependency.prerequisite_job).\
-                filter(
-                    Job.job_status_id != JOB_STATUS_DICT['finished'],
-                    JobDependency.job_id == dep_job_id).\
+                filter(or_(Job.job_status_id != JOB_STATUS_DICT['finished'], Job.number_of_errors > 0),
+                       JobDependency.job_id == dep_job_id).\
                 count()
             if unfinished_prerequisites == 0:
                 # this job has no unfinished prerequisite jobs,

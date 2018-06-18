@@ -481,102 +481,18 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 200)
 
     def test_check_status(self):
-        """Test broker status route response."""
+        """ Test broker status route response. """
         params = {"submission_id": self.status_check_submission_id}
-        # Populating error info before calling route to avoid changing last update time
+        response = self.app.get("/v1/check_status/", params, headers={"x-session-id": self.session_id})
 
-        with create_app().app_context():
-            sess = GlobalDB.db().session
-            populate_submission_error_info(self.status_check_submission_id)
+        self.assertEqual(response.status_code, 200, msg=str(response.json))
+        self.assertEqual(response.headers.get("Content-Type"), "application/json")
+        json = response.json
 
-            response = self.app.get("/v1/check_status/", params, headers={"x-session-id": self.session_id})
-
-            self.assertEqual(response.status_code, 200, msg=str(response.json))
-            self.assertEqual(response.headers.get("Content-Type"), "application/json")
-            json = response.json
-            # response ids are coming back as string, so patch the jobIdDict
-            job_id_dict = {k: str(self.jobIdDict[k]) for k in self.jobIdDict.keys()}
-            job_list = json["jobs"]
-            approp_job = None
-            cross_job = None
-            for job in job_list:
-                if str(job["job_id"]) == str(job_id_dict["appropriations"]):
-                    # Found the job to be checked
-                    approp_job = job
-                elif str(job["job_id"]) == str(job_id_dict["cross_file"]):
-                    # Found cross file job
-                    cross_job = job
-
-            # Must have an approp job and cross-file job
-            self.assertNotEqual(approp_job, None)
-            self.assertNotEqual(cross_job, None)
-            # And that job must have the following
-            self.assertEqual(approp_job["job_status"], "ready")
-            self.assertEqual(approp_job["job_type"], "csv_record_validation")
-            self.assertEqual(approp_job["file_type"], "appropriations")
-            self.assertEqual(approp_job["filename"], "approp.csv")
-            self.assertEqual(approp_job["file_status"], "complete")
-            self.assertIn("missing_header_one", approp_job["missing_headers"])
-            self.assertIn("missing_header_two", approp_job["missing_headers"])
-            self.assertIn("duplicated_header_one", approp_job["duplicated_headers"])
-            self.assertIn("duplicated_header_two", approp_job["duplicated_headers"])
-            # Check file size and number of rows
-            self.assertEqual(approp_job["file_size"], 2345)
-            self.assertEqual(approp_job["number_of_rows"], 567)
-
-            # Check error metadata for specified error
-            rule_error_data = None
-            for data in approp_job["error_data"]:
-                if data["field_name"] == "header_three":
-                    rule_error_data = data
-            self.assertIsNotNone(rule_error_data)
-            self.assertEqual(rule_error_data["field_name"], "header_three")
-            self.assertEqual(rule_error_data["error_name"], "rule_failed")
-            self.assertEqual(rule_error_data["error_description"], "A rule failed for this value.")
-            self.assertEqual(rule_error_data["occurrences"], "7")
-            self.assertEqual(rule_error_data["rule_failed"], "Header three value must be real")
-            self.assertEqual(rule_error_data["original_label"], "A1")
-            # Check warning metadata for specified warning
-            warning_error_data = None
-            for data in approp_job["warning_data"]:
-                if data["field_name"] == "header_three":
-                    warning_error_data = data
-            self.assertIsNotNone(warning_error_data)
-            self.assertEqual(warning_error_data["field_name"], "header_three")
-            self.assertEqual(warning_error_data["error_name"], "rule_failed")
-            self.assertEqual(warning_error_data["error_description"], "A rule failed for this value.")
-            self.assertEqual(warning_error_data["occurrences"], "7")
-            self.assertEqual(warning_error_data["rule_failed"], "Header three value looks odd")
-            self.assertEqual(warning_error_data["original_label"], "A2")
-
-            rule_error_data = None
-            for data in cross_job["error_data"]:
-                if data["field_name"] == "header_four":
-                    rule_error_data = data
-
-            self.assertEqual(rule_error_data["source_file"], "appropriations")
-            self.assertEqual(rule_error_data["target_file"], "award")
-
-            # Check submission metadata
-            self.assertEqual(json["cgac_code"], "SYS")
-            self.assertEqual(json["reporting_period_start_date"], "Q1/2016")
-            self.assertEqual(json["reporting_period_end_date"], "Q1/2016")
-
-            # Check submission level info
-            self.assertEqual(json["number_of_errors"], 17)
-            self.assertEqual(json["number_of_rows"], 667)
-
-            # Get submission from db for attribute checks
-            submission = sess.query(Submission).filter(
-                Submission.submission_id == self.status_check_submission_id).one()
-
-            # Check number of errors and warnings in submission table
-            self.assertEqual(submission.number_of_errors, 17)
-            self.assertEqual(submission.number_of_warnings, 7)
-
-            # Check that submission was created today, this test may fail if run right at midnight UTC
-            self.assertEqual(json["created_on"], datetime.utcnow().strftime("%m/%d/%Y"))
-            self.assertEqual(json["last_updated"], submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"))
+        # create list of all file types including cross other than fabs
+        file_type_keys = {k if k != 'fabs' else 'cross' for k in FILE_TYPE_DICT}
+        response_keys = {k for k in json.keys()}
+        self.assertEqual(file_type_keys, response_keys)
 
     def test_get_obligations(self):
         submission = SubmissionFactory()
