@@ -199,7 +199,7 @@ class FileHandler:
             cant_edit = (
                 existing_submission and not current_user_can_on_submission('writer', existing_submission_obj)
             )
-            cant_create = not current_user_can('writer', submission.cgac_code, submission.frec_code)
+            cant_create = not current_user_can('writer', cgac_code=submission.cgac_code, frec_code=submission.frec_code)
             if cant_edit or cant_create:
                 raise ResponseException(
                     "User does not have permission to create/modify that submission", StatusCode.PERMISSION_DENIED
@@ -603,7 +603,7 @@ class FileHandler:
             job_data['reporting_start_date'] = None
             job_data['reporting_end_date'] = None
 
-            if not current_user_can('editfabs', job_data["cgac_code"]):
+            if not current_user_can('editfabs', cgac_code=cgac_code, frec_code=frec_code):
                 raise ResponseException("User does not have permission to create FABS jobs for this agency",
                                         StatusCode.PERMISSION_DENIED)
 
