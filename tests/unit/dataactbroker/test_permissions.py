@@ -23,20 +23,20 @@ def test_current_user_can_dabs_cgac_reader(database, monkeypatch, user_constants
     monkeypatch.setattr(permissions, 'g', Mock(user=user_reader))
 
     # has permission level, but wrong agency
-    assert not permissions.current_user_can('reader', other_cgac.cgac_code, None)
+    assert not permissions.current_user_can('reader', cgac_code=other_cgac.cgac_code)
 
     # has agency, but not permission level
-    assert not permissions.current_user_can('writer', user_cgac.cgac_code, None)
-    assert not permissions.current_user_can('submitter', user_cgac.cgac_code, None)
-    assert not permissions.current_user_can('editfabs', user_cgac.cgac_code, None)
-    assert not permissions.current_user_can('fabs', user_cgac.cgac_code, None)
+    assert not permissions.current_user_can('writer', cgac_code=user_cgac.cgac_code)
+    assert not permissions.current_user_can('submitter', cgac_code=user_cgac.cgac_code)
+    assert not permissions.current_user_can('editfabs', cgac_code=user_cgac.cgac_code)
+    assert not permissions.current_user_can('fabs', cgac_code=user_cgac.cgac_code)
 
     # right agency, right permission
-    assert permissions.current_user_can('reader', user_cgac.cgac_code, None)
+    assert permissions.current_user_can('reader', cgac_code=user_cgac.cgac_code)
 
     # wrong permission level, wrong agency, but superuser
     user_reader.website_admin = True
-    assert permissions.current_user_can('submitter', other_cgac.cgac_code, None)
+    assert permissions.current_user_can('submitter', cgac_code=other_cgac.cgac_code)
 
 
 def test_current_user_can_dabs_cgac_writer(database, monkeypatch, user_constants):
@@ -50,21 +50,21 @@ def test_current_user_can_dabs_cgac_writer(database, monkeypatch, user_constants
     monkeypatch.setattr(permissions, 'g', Mock(user=user_writer))
 
     # has permission level, but wrong agency
-    assert not permissions.current_user_can('reader', other_cgac.cgac_code, None)
-    assert not permissions.current_user_can('writer', other_cgac.cgac_code, None)
+    assert not permissions.current_user_can('reader', cgac_code=other_cgac.cgac_code)
+    assert not permissions.current_user_can('writer', cgac_code=other_cgac.cgac_code)
 
     # has agency, but not permission level
-    assert not permissions.current_user_can('submitter', user_cgac.cgac_code, None)
-    assert not permissions.current_user_can('editfabs', user_cgac.cgac_code, None)
-    assert not permissions.current_user_can('fabs', user_cgac.cgac_code, None)
+    assert not permissions.current_user_can('submitter', cgac_code=user_cgac.cgac_code)
+    assert not permissions.current_user_can('editfabs', cgac_code=user_cgac.cgac_code)
+    assert not permissions.current_user_can('fabs', cgac_code=user_cgac.cgac_code)
 
     # right agency, right permission
-    assert permissions.current_user_can('reader', user_cgac.cgac_code, None)
-    assert permissions.current_user_can('writer', user_cgac.cgac_code, None)
+    assert permissions.current_user_can('reader', cgac_code=user_cgac.cgac_code)
+    assert permissions.current_user_can('writer', cgac_code=user_cgac.cgac_code)
 
     # wrong permission level, wrong agency, but superuser
     user_writer.website_admin = True
-    assert permissions.current_user_can('submitter', other_cgac.cgac_code, None)
+    assert permissions.current_user_can('submitter', cgac_code=other_cgac.cgac_code)
 
 
 def test_current_user_can_dabs_cgac_submitter(database, monkeypatch, user_constants):
@@ -78,22 +78,22 @@ def test_current_user_can_dabs_cgac_submitter(database, monkeypatch, user_consta
     monkeypatch.setattr(permissions, 'g', Mock(user=user_submitter))
 
     # has permission level, but wrong agency
-    assert not permissions.current_user_can('reader', other_cgac.cgac_code, None)
-    assert not permissions.current_user_can('writer', other_cgac.cgac_code, None)
-    assert not permissions.current_user_can('submitter', other_cgac.cgac_code, None)
+    assert not permissions.current_user_can('reader', cgac_code=other_cgac.cgac_code)
+    assert not permissions.current_user_can('writer', cgac_code=other_cgac.cgac_code)
+    assert not permissions.current_user_can('submitter', cgac_code=other_cgac.cgac_code)
 
     # has agency, but not permission level
-    assert not permissions.current_user_can('editfabs', user_cgac.cgac_code, None)
-    assert not permissions.current_user_can('fabs', user_cgac.cgac_code, None)
+    assert not permissions.current_user_can('editfabs', cgac_code=user_cgac.cgac_code)
+    assert not permissions.current_user_can('fabs', cgac_code=user_cgac.cgac_code)
 
     # right agency, right permission
-    assert permissions.current_user_can('reader', user_cgac.cgac_code, None)
-    assert permissions.current_user_can('writer', user_cgac.cgac_code, None)
-    assert permissions.current_user_can('submitter', user_cgac.cgac_code, None)
+    assert permissions.current_user_can('reader', cgac_code=user_cgac.cgac_code)
+    assert permissions.current_user_can('writer', cgac_code=user_cgac.cgac_code)
+    assert permissions.current_user_can('submitter', cgac_code=user_cgac.cgac_code)
 
     # wrong agency, but superuser
     user_submitter.website_admin = True
-    assert permissions.current_user_can('submitter', other_cgac.cgac_code, None)
+    assert permissions.current_user_can('submitter', cgac_code=other_cgac.cgac_code)
 
 
 def test_current_user_can_dabs_frec_reader(database, monkeypatch, user_constants):
@@ -108,20 +108,20 @@ def test_current_user_can_dabs_frec_reader(database, monkeypatch, user_constants
     monkeypatch.setattr(permissions, 'g', Mock(user=user_reader))
 
     # has permission level, but wrong agency
-    assert not permissions.current_user_can('reader', None, other_frec.frec_code)
+    assert not permissions.current_user_can('reader', frec_code=other_frec.frec_code)
 
     # has agency, but not permission level
-    assert not permissions.current_user_can('writer', None, user_frec.frec_code)
-    assert not permissions.current_user_can('submitter', None, user_frec.frec_code)
-    assert not permissions.current_user_can('editfabs', user_frec.frec_code, None)
-    assert not permissions.current_user_can('fabs', user_frec.frec_code, None)
+    assert not permissions.current_user_can('writer', frec_code=user_frec.frec_code)
+    assert not permissions.current_user_can('submitter', frec_code=user_frec.frec_code)
+    assert not permissions.current_user_can('editfabs', cgac_code=user_frec.frec_code)
+    assert not permissions.current_user_can('fabs', cgac_code=user_frec.frec_code)
 
     # right agency, right permission
-    assert permissions.current_user_can('reader', None, user_frec.frec_code)
+    assert permissions.current_user_can('reader', frec_code=user_frec.frec_code)
 
     # wrong permission level, wrong agency, but superuser
     user_reader.website_admin = True
-    assert permissions.current_user_can('submitter', None, other_frec.frec_code)
+    assert permissions.current_user_can('submitter', frec_code=other_frec.frec_code)
 
 
 def test_current_user_can_dabs_frec_writer(database, monkeypatch, user_constants):
@@ -136,21 +136,21 @@ def test_current_user_can_dabs_frec_writer(database, monkeypatch, user_constants
     monkeypatch.setattr(permissions, 'g', Mock(user=user_writer))
 
     # has permission level, but wrong agency
-    assert not permissions.current_user_can('reader', None, other_frec.frec_code)
-    assert not permissions.current_user_can('writer', None, other_frec.frec_code)
+    assert not permissions.current_user_can('reader', frec_code=other_frec.frec_code)
+    assert not permissions.current_user_can('writer', frec_code=other_frec.frec_code)
 
     # has agency, but not permission level
-    assert not permissions.current_user_can('submitter', None, user_frec.frec_code)
-    assert not permissions.current_user_can('editfabs', user_frec.frec_code, None)
-    assert not permissions.current_user_can('fabs', user_frec.frec_code, None)
+    assert not permissions.current_user_can('submitter', frec_code=user_frec.frec_code)
+    assert not permissions.current_user_can('editfabs', cgac_code=user_frec.frec_code)
+    assert not permissions.current_user_can('fabs', cgac_code=user_frec.frec_code)
 
     # right agency, right permission
-    assert permissions.current_user_can('reader', None, user_frec.frec_code)
-    assert permissions.current_user_can('writer', None, user_frec.frec_code)
+    assert permissions.current_user_can('reader', frec_code=user_frec.frec_code)
+    assert permissions.current_user_can('writer', frec_code=user_frec.frec_code)
 
     # wrong permission level, wrong agency, but superuser
     user_writer.website_admin = True
-    assert permissions.current_user_can('submitter', None, other_frec.frec_code)
+    assert permissions.current_user_can('submitter', frec_code=other_frec.frec_code)
 
 
 def test_current_user_can_dabs_frec_submitter(database, monkeypatch, user_constants):
@@ -165,22 +165,22 @@ def test_current_user_can_dabs_frec_submitter(database, monkeypatch, user_consta
     monkeypatch.setattr(permissions, 'g', Mock(user=user_submitter))
 
     # has permission level, but wrong agency
-    assert not permissions.current_user_can('reader', None, other_frec.frec_code)
-    assert not permissions.current_user_can('writer', None, other_frec.frec_code)
-    assert not permissions.current_user_can('submitter', None, other_frec.frec_code)
+    assert not permissions.current_user_can('reader', frec_code=other_frec.frec_code)
+    assert not permissions.current_user_can('writer', frec_code=other_frec.frec_code)
+    assert not permissions.current_user_can('submitter', frec_code=other_frec.frec_code)
 
     # has agency, but not permission level
-    assert not permissions.current_user_can('editfabs', user_frec.frec_code, None)
-    assert not permissions.current_user_can('fabs', user_frec.frec_code, None)
+    assert not permissions.current_user_can('editfabs', cgac_code=user_frec.frec_code)
+    assert not permissions.current_user_can('fabs', cgac_code=user_frec.frec_code)
 
     # right agency, right permission
-    assert permissions.current_user_can('reader', None, user_frec.frec_code)
-    assert permissions.current_user_can('writer', None, user_frec.frec_code)
-    assert permissions.current_user_can('submitter', None, user_frec.frec_code)
+    assert permissions.current_user_can('reader', frec_code=user_frec.frec_code)
+    assert permissions.current_user_can('writer', frec_code=user_frec.frec_code)
+    assert permissions.current_user_can('submitter', frec_code=user_frec.frec_code)
 
     # wrong agency, but superuser
     user_submitter.website_admin = True
-    assert permissions.current_user_can('submitter', None, other_frec.frec_code)
+    assert permissions.current_user_can('submitter', frec_code=other_frec.frec_code)
 
 
 def test_current_user_can_fabs_cgac_editfabs(database, monkeypatch, user_constants):
@@ -194,21 +194,21 @@ def test_current_user_can_fabs_cgac_editfabs(database, monkeypatch, user_constan
     monkeypatch.setattr(permissions, 'g', Mock(user=user_editfabs))
 
     # has permission level, but wrong agency
-    assert not permissions.current_user_can('reader', other_cgac.cgac_code, None)
-    assert not permissions.current_user_can('editfabs', other_cgac.cgac_code, None)
+    assert not permissions.current_user_can('reader', cgac_code=other_cgac.cgac_code)
+    assert not permissions.current_user_can('editfabs', cgac_code=other_cgac.cgac_code)
 
     # has agency, but not permission level
-    assert not permissions.current_user_can('writer', user_cgac.cgac_code, None)
-    assert not permissions.current_user_can('submitter', user_cgac.cgac_code, None)
-    assert not permissions.current_user_can('fabs', user_cgac.cgac_code, None)
+    assert not permissions.current_user_can('writer', cgac_code=user_cgac.cgac_code)
+    assert not permissions.current_user_can('submitter', cgac_code=user_cgac.cgac_code)
+    assert not permissions.current_user_can('fabs', cgac_code=user_cgac.cgac_code)
 
     # right agency, right permission
-    assert permissions.current_user_can('reader', user_cgac.cgac_code, None)
-    assert permissions.current_user_can('editfabs', user_cgac.cgac_code, None)
+    assert permissions.current_user_can('reader', cgac_code=user_cgac.cgac_code)
+    assert permissions.current_user_can('editfabs', cgac_code=user_cgac.cgac_code)
 
     # wrong permission level, wrong agency, but superuser
     user_editfabs.website_admin = True
-    assert permissions.current_user_can('fabs', other_cgac.cgac_code, None)
+    assert permissions.current_user_can('fabs', cgac_code=other_cgac.cgac_code)
 
 
 def test_current_user_can_fabs_cgac_fabs(database, monkeypatch, user_constants):
@@ -222,22 +222,22 @@ def test_current_user_can_fabs_cgac_fabs(database, monkeypatch, user_constants):
     monkeypatch.setattr(permissions, 'g', Mock(user=user_fabs))
 
     # has permission level, but wrong agency
-    assert not permissions.current_user_can('reader', other_cgac.cgac_code, None)
-    assert not permissions.current_user_can('editfabs', other_cgac.cgac_code, None)
-    assert not permissions.current_user_can('fabs', other_cgac.cgac_code, None)
+    assert not permissions.current_user_can('reader', cgac_code=other_cgac.cgac_code)
+    assert not permissions.current_user_can('editfabs', cgac_code=other_cgac.cgac_code)
+    assert not permissions.current_user_can('fabs', cgac_code=other_cgac.cgac_code)
 
     # has agency, but not permission level
-    assert not permissions.current_user_can('writer', user_cgac.cgac_code, None)
-    assert not permissions.current_user_can('submitter', user_cgac.cgac_code, None)
+    assert not permissions.current_user_can('writer', cgac_code=user_cgac.cgac_code)
+    assert not permissions.current_user_can('submitter', cgac_code=user_cgac.cgac_code)
 
     # right agency, right permission
-    assert permissions.current_user_can('reader', user_cgac.cgac_code, None)
-    assert permissions.current_user_can('editfabs', user_cgac.cgac_code, None)
-    assert permissions.current_user_can('fabs', user_cgac.cgac_code, None)
+    assert permissions.current_user_can('reader', cgac_code=user_cgac.cgac_code)
+    assert permissions.current_user_can('editfabs', cgac_code=user_cgac.cgac_code)
+    assert permissions.current_user_can('fabs', cgac_code=user_cgac.cgac_code)
 
     # wrong agency, but superuser
     user_fabs.website_admin = True
-    assert permissions.current_user_can('fabs', other_cgac.cgac_code, None)
+    assert permissions.current_user_can('fabs', cgac_code=other_cgac.cgac_code)
 
 
 def test_current_user_can_fabs_frec_editfabs(database, monkeypatch, user_constants):
@@ -252,21 +252,21 @@ def test_current_user_can_fabs_frec_editfabs(database, monkeypatch, user_constan
     monkeypatch.setattr(permissions, 'g', Mock(user=user_editfabs))
 
     # has permission level, but wrong agency
-    assert not permissions.current_user_can('reader', None, other_frec.frec_code)
-    assert not permissions.current_user_can('editfabs', None, other_frec.frec_code)
+    assert not permissions.current_user_can('reader', frec_code=other_frec.frec_code)
+    assert not permissions.current_user_can('editfabs', frec_code=other_frec.frec_code)
 
     # has agency, but not permission level
-    assert not permissions.current_user_can('writer', None, user_frec.frec_code)
-    assert not permissions.current_user_can('submitter', None, user_frec.frec_code)
-    assert not permissions.current_user_can('fabs', None, user_frec.frec_code)
+    assert not permissions.current_user_can('writer', frec_code=user_frec.frec_code)
+    assert not permissions.current_user_can('submitter', frec_code=user_frec.frec_code)
+    assert not permissions.current_user_can('fabs', frec_code=user_frec.frec_code)
 
     # right agency, right permission
-    assert permissions.current_user_can('reader', None, user_frec.frec_code)
-    assert permissions.current_user_can('editfabs', None, user_frec.frec_code)
+    assert permissions.current_user_can('reader', frec_code=user_frec.frec_code)
+    assert permissions.current_user_can('editfabs', frec_code=user_frec.frec_code)
 
     # wrong permission level, wrong agency, but superuser
     user_editfabs.website_admin = True
-    assert permissions.current_user_can('fabs', None, other_frec.frec_code)
+    assert permissions.current_user_can('fabs', frec_code=other_frec.frec_code)
 
 
 def test_current_user_can_fabs_frec_fabs(database, monkeypatch, user_constants):
@@ -281,22 +281,22 @@ def test_current_user_can_fabs_frec_fabs(database, monkeypatch, user_constants):
     monkeypatch.setattr(permissions, 'g', Mock(user=user_fabs))
 
     # has permission level, but wrong agency
-    assert not permissions.current_user_can('reader', None, other_frec.frec_code)
-    assert not permissions.current_user_can('editfabs', None, other_frec.frec_code)
-    assert not permissions.current_user_can('fabs', None, other_frec.frec_code)
+    assert not permissions.current_user_can('reader', frec_code=other_frec.frec_code)
+    assert not permissions.current_user_can('editfabs', frec_code=other_frec.frec_code)
+    assert not permissions.current_user_can('fabs', frec_code=other_frec.frec_code)
 
     # has agency, but not permission level
-    assert not permissions.current_user_can('writer', None, user_frec.frec_code)
-    assert not permissions.current_user_can('submitter', None, user_frec.frec_code)
+    assert not permissions.current_user_can('writer', frec_code=user_frec.frec_code)
+    assert not permissions.current_user_can('submitter', frec_code=user_frec.frec_code)
 
     # right agency, right permission
-    assert permissions.current_user_can('reader', None, user_frec.frec_code)
-    assert permissions.current_user_can('editfabs', None, user_frec.frec_code)
-    assert permissions.current_user_can('fabs', None, user_frec.frec_code)
+    assert permissions.current_user_can('reader', frec_code=user_frec.frec_code)
+    assert permissions.current_user_can('editfabs', frec_code=user_frec.frec_code)
+    assert permissions.current_user_can('fabs', frec_code=user_frec.frec_code)
 
     # wrong agency, but superuser
     user_fabs.website_admin = True
-    assert permissions.current_user_can('fabs', None, other_frec.frec_code)
+    assert permissions.current_user_can('fabs', frec_code=other_frec.frec_code)
 
 
 def test_current_user_can_multiple_fabs_permissions(database, monkeypatch, user_constants):
@@ -311,22 +311,22 @@ def test_current_user_can_multiple_fabs_permissions(database, monkeypatch, user_
     monkeypatch.setattr(permissions, 'g', Mock(user=user_fabs))
 
     # has permission level, but wrong agency
-    assert not permissions.current_user_can('reader', other_cgac.cgac_code, None)
-    assert not permissions.current_user_can('editfabs', other_cgac.cgac_code, None)
-    assert not permissions.current_user_can('fabs', other_cgac.cgac_code, None)
+    assert not permissions.current_user_can('reader', cgac_code=other_cgac.cgac_code)
+    assert not permissions.current_user_can('editfabs', cgac_code=other_cgac.cgac_code)
+    assert not permissions.current_user_can('fabs', cgac_code=other_cgac.cgac_code)
 
     # has agency, but not permission level
-    assert not permissions.current_user_can('writer', user_cgac.cgac_code, None)
-    assert not permissions.current_user_can('submitter', user_cgac.cgac_code, None)
+    assert not permissions.current_user_can('writer', cgac_code=user_cgac.cgac_code)
+    assert not permissions.current_user_can('submitter', cgac_code=user_cgac.cgac_code)
 
     # right agency, right permission
-    assert permissions.current_user_can('reader', user_cgac.cgac_code, None)
-    assert permissions.current_user_can('editfabs', user_cgac.cgac_code, None)
-    assert permissions.current_user_can('fabs', user_cgac.cgac_code, None)
+    assert permissions.current_user_can('reader', cgac_code=user_cgac.cgac_code)
+    assert permissions.current_user_can('editfabs', cgac_code=user_cgac.cgac_code)
+    assert permissions.current_user_can('fabs', cgac_code=user_cgac.cgac_code)
 
     # wrong agency, but superuser
     user_fabs.website_admin = True
-    assert permissions.current_user_can('fabs', other_cgac.cgac_code, None)
+    assert permissions.current_user_can('fabs', cgac_code=other_cgac.cgac_code)
 
 
 def test_current_user_can_multiple_dabs_permissions(database, monkeypatch, user_constants):
@@ -341,22 +341,22 @@ def test_current_user_can_multiple_dabs_permissions(database, monkeypatch, user_
     monkeypatch.setattr(permissions, 'g', Mock(user=user_submitter))
 
     # has permission level, but wrong agency
-    assert not permissions.current_user_can('reader', other_cgac.cgac_code, None)
-    assert not permissions.current_user_can('writer', other_cgac.cgac_code, None)
-    assert not permissions.current_user_can('submitter', other_cgac.cgac_code, None)
+    assert not permissions.current_user_can('reader', cgac_code=other_cgac.cgac_code)
+    assert not permissions.current_user_can('writer', cgac_code=other_cgac.cgac_code)
+    assert not permissions.current_user_can('submitter', cgac_code=other_cgac.cgac_code)
 
     # has agency, but not permission level
-    assert not permissions.current_user_can('editfabs', user_cgac.cgac_code, None)
-    assert not permissions.current_user_can('fabs', user_cgac.cgac_code, None)
+    assert not permissions.current_user_can('editfabs', cgac_code=user_cgac.cgac_code)
+    assert not permissions.current_user_can('fabs', cgac_code=user_cgac.cgac_code)
 
     # right agency, right permission
-    assert permissions.current_user_can('reader', user_cgac.cgac_code, None)
-    assert permissions.current_user_can('writer', user_cgac.cgac_code, None)
-    assert permissions.current_user_can('submitter', user_cgac.cgac_code, None)
+    assert permissions.current_user_can('reader', cgac_code=user_cgac.cgac_code)
+    assert permissions.current_user_can('writer', cgac_code=user_cgac.cgac_code)
+    assert permissions.current_user_can('submitter', cgac_code=user_cgac.cgac_code)
 
     # wrong agency, but superuser
     user_submitter.website_admin = True
-    assert permissions.current_user_can('submitter', other_cgac.cgac_code, None)
+    assert permissions.current_user_can('submitter', cgac_code=other_cgac.cgac_code)
 
 
 def test_current_user_can_multiple_dabs_fabs_permissions(database, monkeypatch, user_constants):
@@ -371,23 +371,23 @@ def test_current_user_can_multiple_dabs_fabs_permissions(database, monkeypatch, 
     monkeypatch.setattr(permissions, 'g', Mock(user=user_submitter))
 
     # has permission level, but wrong agency
-    assert not permissions.current_user_can('reader', other_cgac.cgac_code, None)
-    assert not permissions.current_user_can('writer', other_cgac.cgac_code, None)
-    assert not permissions.current_user_can('editfabs', other_cgac.cgac_code, None)
-    assert not permissions.current_user_can('fabs', other_cgac.cgac_code, None)
+    assert not permissions.current_user_can('reader', cgac_code=other_cgac.cgac_code)
+    assert not permissions.current_user_can('writer', cgac_code=other_cgac.cgac_code)
+    assert not permissions.current_user_can('editfabs', cgac_code=other_cgac.cgac_code)
+    assert not permissions.current_user_can('fabs', cgac_code=other_cgac.cgac_code)
 
     # has agency, but not permission level
-    assert not permissions.current_user_can('submitter', user_cgac.cgac_code, None)
+    assert not permissions.current_user_can('submitter', cgac_code=user_cgac.cgac_code)
 
     # right agency, right permission
-    assert permissions.current_user_can('reader', user_cgac.cgac_code, None)
-    assert permissions.current_user_can('writer', user_cgac.cgac_code, None)
-    assert permissions.current_user_can('editfabs', user_cgac.cgac_code, None)
-    assert permissions.current_user_can('fabs', user_cgac.cgac_code, None)
+    assert permissions.current_user_can('reader', cgac_code=user_cgac.cgac_code)
+    assert permissions.current_user_can('writer', cgac_code=user_cgac.cgac_code)
+    assert permissions.current_user_can('editfabs', cgac_code=user_cgac.cgac_code)
+    assert permissions.current_user_can('fabs', cgac_code=user_cgac.cgac_code)
 
     # wrong agency, but superuser
     user_submitter.website_admin = True
-    assert permissions.current_user_can('submitter', other_cgac.cgac_code, None)
+    assert permissions.current_user_can('submitter', cgac_code=other_cgac.cgac_code)
 
 
 def test_current_user_can_on_submission(monkeypatch, database):
