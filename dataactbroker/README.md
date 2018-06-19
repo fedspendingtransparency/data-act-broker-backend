@@ -491,6 +491,7 @@ Possible HTTP Status Codes:
 * 400:
     * Missing `submission_id` parameter
     * Submission does not exist
+    * Invalid type parameter
 * 403: Permission denied, user does not have permission to view this submission
 
 
@@ -548,6 +549,7 @@ Possible HTTP Status Codes:
 * 400:
     * Missing `submission_id` parameter
     * Submission does not exist
+    * Invalid type parameter
 * 403: Permission denied, user does not have permission to view this submission
 
 

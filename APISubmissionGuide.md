@@ -1,5 +1,5 @@
 # Submission Process
-- Note: When pinging for status in any step, do not do it constantly, limit it to once every 5 seconds or longer.
+- Note: When pinging for status in any step, do not do it constantly, limit it to once every 10 seconds or longer.
 
 ## Login Process
 
@@ -73,50 +73,12 @@
 
 ### Validate A, B, C Files
 - File-level validation begins automatically on completion of `finalize_job` call
-- Check status of validations using `/v1/check_status/` (POST)
-  - **NOTE**: This endpoint is being updated, this section WILL change
-  - Header:
-     - `X-Session-ID`: string, session token id
-  - Payload:
-     - `submission_id`: string, ID of the submission that was created, received from the `submit_files` response
-  - Response:
-     - `agency_name`: string, name of the submitting agency
-     - `cgac_code`: string, CGAC of agency (null if FREC agency)
-     - `frec_code`: string, FREC of agency (null if CGAC agency)
-     - `fabs_meta`: null for all DABS submissions
-     - `created_on`: string, date submission was created (MM/DD/YYYY)
-     - `last_updated`: string, date/time any changes (including validations, etc) were made to the submission (YYYY-MM-DDTHH:mm:ss)
-     - `last_validated`: string, date the most recent validations were completed (MM/DD/YYYY)
-     - `number_of_errors`: int, total errors in submission
-     - `number_of_rows`: int, total rows in submission
-     - `publish_status`: string, whether the submission is published or not ("unpublished" "published" "updated")
-     - `quarterly_submission`: boolean
-     - `reporting_period_start_date`: string, starting date of submission (Q#/YYYY for quarterly submissions, MM/YYYY for monthly)
-     - `reporting_period_end_date`: string, starting date of submission (Q#/YYYY for quarterly submissions, MM/YYYY for monthly)
-     - `revalidation_threshold`: string, if this date is greater than the last validated date, submission will have to be revalidated before publishing (MM/DD/YYYY)
-     - `jobs`: array of objects, all relevant jobs for each file type. Contents of each object are as follows:
-        - `duplicated_headers`: array, list of headers that have been duplicated
-        - `missing_headers`: array, list of headers that have to exist but are missing
-        - `file_size`: int, size of the file in bytes
-        - `file_status`: string, status of file
-        - `file_type`: string, what the type of the file is
-        - `filename`: string, name of the file
-        - `job_id`: int, ID of the job associated with the file
-        - `job_status`: string, whether the job is still in progress or not
-        - `job_type`: string, type of job
-        - `number_of_rows`: int, number of rows in the file
-        - `error_type`: string, type of error if one exists
-        - `error_data`: array of objects, error data for all errors that have occurred in the file
-          - `error_description`: string, description of the error
-          - `error_name`: string, name of the type of error
-          - `field_name`: string, name of the field(s) the error is associated with
-          - `occurrences`: int, number of times this error has occurred in the file
-          - `rule_failed`: string, label for the rule that failed
-- Continue polling with `check_status` until the following jobs have a `job_status` of `finished` or `invalid` and the `file_status` is not `incomplete`:
-  - `file_type` = `appropriations`
-  - `file_type` = `program_activity`
-  - `file_type` = `award_financial`
-  - **NOTE**: This endpoint is being updated, this section WILL change
+- Check status of validations using `/v1/check_status/`. For details on its use, click [here](./dataactbroker/README.md#get-v1check_status)
+- Continue polling with `check_status` until the following keys have a `status` of `finished` or `failed`:
+  - `appropriations`
+  - `program_activity`
+  - `award_financial`
+  - **NOTE**: If any of these have a status of `ready` that means they were never started.
 - To get a general overview of the number of errors/warnings in the submission, along with all other metadata, `/v1/submission_metadata/` can be called. For details on its use, click [here](./dataactbroker/README.md#get-v1submission_metadata)
 - To get detailed information on each of the jobs and the errors that occurred in each, `/v1/submission_data/` can be called. For details on its use, click [here](./dataactbroker/README.md#get-v1submission_data)
 - If there are any errors and more granular detail is needed, get the error reports by calling `/v1/submission/SUBMISSIONID/report_url/` (POST) where `SUBMISSIONID` is the ID of the submission
@@ -164,9 +126,7 @@
 
 ### Cross-file validations
 - Cross-file validation begins automatically upon successful completion of D file generation (no errors)
-- Poll using the `check_status` route in the same manner as described in `Validate A, B, C Files`. The same endpoints can also be used to gather the submission metadata and cross-file job data.
-  - **NOTE**: This endpoint is being updated, this section WILL change
-- When checking the job array, find the `job_type` of `validation` to check for errors/warnings.
+- Poll using the `check_status` route in the same manner as described in `Validate A, B, C Files` except the key being looked at should be `cross`. The same endpoints can also be used to gather the submission metadata and cross-file job data.
 - To get a specific error/warning file, call `/v1/submission/SUBMISSIONID/report_url/`(POST) where SUBMISSIONID is the ID of the submission
   - Header:
      - `X-Session-ID`: string, session token id
@@ -279,49 +239,9 @@
 
 ### Validate FABS File
 - Validations are automatically started by `finalize_job`
-- Check status of validations using `/v1/check_status/` (POST)
-  - Header:
-     - `X-Session-ID`: string, session token id
-  - Payload:
-     - `submission_id`: string, ID of the submission that was created, received from the `submit_files` response
-  - Response:
-     - `agency_name`: string, name of the submitting agency
-     - `cgac_code`: string, CGAC of agency (null if FREC agency)
-     - `frec_code`: string, FREC of agency (null if CGAC agency)
-     - `fabs_meta`: object, Description of the data for FABS submissions
-         - `publish_date`: string, Date/time submission was published (H:mm(AM/PM) MM/DD/YYYY)
-         - `published_file`: null (seems to always be null)
-         - `total_rows`: int, total rows in the submission not including header rows
-         - `valid_rows`: int, total number of valid, publishable rows in the submission
-     - `created_on`: string, date submission was created (MM/DD/YYYY)
-     - `last_updated`: string, date/time any changes (including validations, etc) were made to the submission (YYYY-MM-DDTHH:mm:ss)
-     - `last_validated`: string, date the most recent validations were completed (MM/DD/YYYY)
-     - `number_of_errors`: int, total errors in submission
-     - `number_of_rows`: int, total rows in submission
-     - `publish_status`: string, whether the submission is published or not ("unpublished" "published" "publishing")
-     - `quarterly_submission`: boolean, false for all FABS submissions
-     - `reporting_period_start_date`: string, starting date of submission (MM/YYYY for FABS submissions, only present in published submissions, first month/year of all valid rows that were published)
-     - `reporting_period_end_date`: string, starting date of submission (MM/YYYY for FABS submissions, only present in published submissions, last month/year of all valid rows that were published)
-     - `revalidation_threshold`: string, if this date is greater than the last validated date, submission will have to be revalidated before publishing (MM/DD/YYYY)
-     - `jobs`: array of objects, all relevant jobs for each file type (only one in FABS submissions). Contents of the object are as follows:
-        - `duplicated_headers`: array, list of headers that have been duplicated
-        - `missing_headers`: array, list of headers that have to exist but are missing
-        - `file_size`: int, size of the file in bytes
-        - `file_status`: string, status of file
-        - `file_type`: string, what the type of the file is
-        - `filename`: string, name of the file
-        - `job_id`: int, ID of the job associated with the file
-        - `job_status`: string, whether the job is still in progress or not
-        - `job_type`: string, type of job
-        - `number_of_rows`: int, number of rows in the file
-        - `error_type`: string, type of error if one exists
-        - `error_data`: array of objects, error data for all errors that have occurred in the file
-          - `error_description`: string, description of the error
-          - `error_name`: string, name of the type of error
-          - `field_name`: string, name of the field(s) the error is associated with
-          - `occurrences`: string, number of times this error has occurred in the file
-          - `rule_failed`: string, label for the rule that failed
-- Continue polling with `check_status` until the job has a `job_status` of `finished` or `invalid` and the `file_status` is not `incomplete`
+- Check status of validations using `/v1/check_status/`. For details on its use, click [here](./dataactbroker/README.md#get-v1check_status)
+- Continue polling with `check_status` until the `fabs` key has a `status` of `finished` or `failed`.
+    - **NOTE**: If it has a status of `ready` that means it was never started.
 - To get a general overview of the number of errors/warnings in the submission, along with all other metadata, `/v1/submission_metadata/` can be called. For details on its use, click [here](./dataactbroker/README.md#get-v1submission_metadata)
 - To get detailed information on the validation job and the errors that occurred in it, `/v1/submission_data/` can be called. For details on its use, click [here](./dataactbroker/README.md#get-v1submission_data)
 - If there are any errors and more granular detail is needed, get the error reports by calling `/v1/submission/SUBMISSIONID/report_url/` (POST) where `SUBMISSIONID` is the ID of the submission

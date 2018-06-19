@@ -177,9 +177,8 @@ def get_submission_data(submission, file_type=''):
     else:
         job_query = job_query.filter(Job.file_type_id == FILE_TYPE_DICT[file_type])
 
-    return {
-        'jobs': [job_to_dict(job) for job in job_query]
-    }
+    job_dict = {'jobs': [job_to_dict(job) for job in job_query]}
+    return JsonResponse.create(StatusCode.OK, job_dict)
 
 
 def get_revalidation_threshold():

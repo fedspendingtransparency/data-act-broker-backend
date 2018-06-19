@@ -57,7 +57,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @requires_submission_perms('reader')
     @use_kwargs({'type': webargs_fields.String(missing='')})
     def submission_data(submission, type):
-        return JsonResponse.create(StatusCode.OK, get_submission_data(submission, type))
+        return get_submission_data(submission, type)
 
     @app.route("/v1/revalidation_threshold/", methods=["GET"])
     @requires_login
