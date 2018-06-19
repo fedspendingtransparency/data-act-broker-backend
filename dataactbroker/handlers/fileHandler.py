@@ -564,7 +564,7 @@ class FileHandler:
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
             logger.info({
-                'message': 'Starting detached D file upload',
+                'message': 'Starting FABS file upload',
                 'message_type': 'BrokerInfo',
                 'agency_code': request_params.get('agency_code'),
                 'file_name': request_params.get('fabs')

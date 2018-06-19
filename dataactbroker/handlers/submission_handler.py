@@ -154,7 +154,7 @@ def get_submission_data(submission, file_type=''):
             file_type: the type of job to retrieve metadata for
 
         Returns:
-            object containing data for the submission
+            JsonResponse containing the error information or the object containing metadata for all relevant file types
     """
     # Make sure the file type provided is valid
     if file_type and file_type not in FILE_TYPE_DICT and file_type != 'cross':

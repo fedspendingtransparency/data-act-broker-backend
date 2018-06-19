@@ -1,5 +1,6 @@
 import datetime
 import pytest
+import json
 
 from flask import Flask, g
 from unittest.mock import Mock
@@ -388,6 +389,7 @@ def test_get_submission_data_dabs(database):
     }
 
     response = get_submission_data(sub)
+    response = json.loads(response.data.decode('UTF-8'))
     results = response['jobs']
     assert len(results) == 3
     assert correct_job in results
@@ -396,6 +398,7 @@ def test_get_submission_data_dabs(database):
     assert different_sub_job not in results
 
     response = get_submission_data(sub, 'appropriations')
+    response = json.loads(response.data.decode('UTF-8'))
     results = response['jobs']
     assert len(results) == 1
     assert results[0] == correct_job

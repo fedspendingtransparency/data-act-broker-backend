@@ -291,9 +291,13 @@ def mark_job_status(job_id, status_name, skip_check=False):
 
 
 def check_job_dependencies(job_id):
-    """
-    For specified job, check which of its dependencies are ready to be started
-    and add them to the queue
+    """ For specified job, check which of its dependencies are ready to be started and add them to the queue
+
+        Args:
+            job_id: the ID of the job that was just finished
+
+        Raises:
+            ValueError: If the job provided is not finished
     """
     sess = GlobalDB.db().session
     log_data = {
@@ -317,17 +321,15 @@ def check_job_dependencies(job_id):
             log_data['message'] = "{} (dependency of {}) is not in a 'waiting' state".format(dep_job_id, job_id)
             logger.error(log_data)
         else:
-            # find the number of this job's prerequisites that do
-            # not have a status of 'finished'.
+            # find the number of this job's prerequisites that do not have a status of 'finished' or have errors.
             unfinished_prerequisites = sess.query(JobDependency).\
                 join(Job, JobDependency.prerequisite_job).\
                 filter(or_(Job.job_status_id != JOB_STATUS_DICT['finished'], Job.number_of_errors > 0),
                        JobDependency.job_id == dep_job_id).\
                 count()
             if unfinished_prerequisites == 0:
-                # this job has no unfinished prerequisite jobs,
-                # so it is eligible to be set to a 'ready'
-                # status and added to the queue
+                # this job has no unfinished prerequisite jobs, so it is eligible to be set to a 'ready' status and
+                # added to the queue
                 mark_job_status(dep_job_id, 'ready')
 
                 # Only want to send validation jobs to the queue, other job types should be forwarded
