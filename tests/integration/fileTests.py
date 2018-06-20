@@ -367,6 +367,28 @@ class FileTests(BaseTestAPI):
                                 headers={"x-session-id": self.session_id})
         self.assertEqual(response.status_code, 200)
 
+    def test_submission_data_invalid_type(self):
+        """ Test that an invalid file type to check status returns an error """
+        params = {"submission_id": self.status_check_submission_id, "type": "approp"}
+        response = self.app.get("/v1/submission_data/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
+        # Assert 400 status
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "approp is not a valid file type")
+
+    def test_submission_data_type_param(self):
+        """ Test broker status route response with case-ignored type argument. """
+        params = {"submission_id": self.status_check_submission_id, "type": "apPropriations"}
+        response = self.app.get("/v1/submission_data/", params, headers={"x-session-id": self.session_id})
+
+        self.assertEqual(response.status_code, 200, msg=str(response.json))
+        self.assertEqual(response.headers.get("Content-Type"), "application/json")
+        json = response.json
+
+        # create list of all file types including cross other than fabs
+        self.assertEqual(len(json["jobs"]), 1)
+        self.assertEqual(json["jobs"][0]["file_type"], "appropriations")
+
     def test_submission_data(self):
         """ Test submission_data route response. """
         params = {"submission_id": self.status_check_submission_id}
@@ -493,6 +515,29 @@ class FileTests(BaseTestAPI):
         file_type_keys = {k if k != 'fabs' else 'cross' for k in FILE_TYPE_DICT}
         response_keys = {k for k in json.keys()}
         self.assertEqual(file_type_keys, response_keys)
+
+    def test_check_status_invalid_type(self):
+        """ Test that an invalid file type to check status returns an error """
+        params = {"submission_id": self.status_check_submission_id, "type": "approp"}
+        response = self.app.get("/v1/check_status/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
+        # Assert 400 status
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "approp is not a valid file type")
+
+    def test_check_status_type_param(self):
+        """ Test broker status route response with case-ignored type argument. """
+        params = {"submission_id": self.status_check_submission_id, "type": "apPropriations"}
+        response = self.app.get("/v1/check_status/", params, headers={"x-session-id": self.session_id})
+
+        self.assertEqual(response.status_code, 200, msg=str(response.json))
+        self.assertEqual(response.headers.get("Content-Type"), "application/json")
+        json = response.json
+
+        # create list of all file types including cross other than fabs
+        response_keys = {k for k in json.keys()}
+        self.assertEqual(len(response_keys), 1)
+        self.assertEqual({"appropriations"}, response_keys)
 
     def test_get_obligations(self):
         submission = SubmissionFactory()

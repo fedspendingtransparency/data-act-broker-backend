@@ -1303,12 +1303,12 @@ def submission_to_dict_for_status(submission):
     }
 
 
-def get_status(submission, file_type):
+def get_status(submission, file_type=''):
     """ Get status information of all jobs in the submission specified in request object
 
         Args:
             submission: submission to get information for
-            file_type: the type of job to get the status for
+            file_type: the type of job to get the status for; Default ''
 
         Returns:
             A flask response object to be sent back to client, holds a JSON where each file type (or the requested type)
@@ -1317,6 +1317,7 @@ def get_status(submission, file_type):
             a client error.
     """
     sess = GlobalDB.db().session
+    file_type = file_type.lower()
 
     # Make sure the file type provided is valid
     if file_type and file_type not in FILE_TYPE_DICT and file_type != 'cross':

@@ -156,6 +156,9 @@ def get_submission_data(submission, file_type=''):
         Returns:
             JsonResponse containing the error information or the object containing metadata for all relevant file types
     """
+    sess = GlobalDB.db().session
+    file_type = file_type.lower()
+
     # Make sure the file type provided is valid
     if file_type and file_type not in FILE_TYPE_DICT and file_type != 'cross':
         return JsonResponse.error(ValueError(file_type + ' is not a valid file type'), StatusCode.CLIENT_ERROR)
@@ -165,8 +168,6 @@ def get_submission_data(submission, file_type=''):
     if file_type and (is_fabs and file_type != 'fabs') or (not is_fabs and file_type == 'fabs'):
         return JsonResponse.error(ValueError(file_type + ' is not a valid file type for this submission'),
                                   StatusCode.CLIENT_ERROR)
-
-    sess = GlobalDB.db().session
 
     job_query = sess.query(Job).filter(Job.submission_id == submission.submission_id)
     if not file_type:
