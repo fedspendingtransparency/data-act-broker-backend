@@ -5,15 +5,19 @@ from flask import g
 from sqlalchemy import func, or_, desc
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import sum_number_of_errors_for_job_list
+from dataactcore.interfaces.function_bag import (sum_number_of_errors_for_job_list, get_last_validated_date,
+                                                 get_fabs_meta, get_error_type, get_error_metrics_by_job_id)
 
-from dataactcore.models.lookups import JOB_STATUS_DICT, PUBLISH_STATUS_DICT
+from dataactcore.models.lookups import JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT
+from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (FileRequest, Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
-                                          CertifyHistory)
+                                          CertifyHistory, RevalidationThreshold)
 from dataactcore.models.stagingModels import AwardFinancial
+from dataactcore.models.errorModels import File
 
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.utils.stringCleaner import StringCleaner
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +87,159 @@ def get_submission_stats(submission_id):
         "total_procurement_obligations": float(procurement.scalar() or 0),
         "total_assistance_obligations": float(fin_assist.scalar() or 0)
     }
+
+
+def get_submission_metadata(submission):
+    """ Get metadata for the submission specified
+
+        Args:
+            submission: submission to retrieve metadata for
+
+        Returns:
+            object containing metadata for the submission
+    """
+    sess = GlobalDB.db().session
+
+    # Determine the agency name
+    agency_name = ''
+
+    cgac = sess.query(CGAC).filter_by(cgac_code=submission.cgac_code).one_or_none()
+    if cgac:
+        agency_name = cgac.agency_name
+    else:
+        frec = sess.query(FREC).filter_by(frec_code=submission.frec_code).one_or_none()
+
+        if frec:
+            agency_name = frec.agency_name
+
+    # Get the last validated date of the submission
+    last_validated = get_last_validated_date(submission.submission_id)
+
+    # Get metadata for FABS submissions
+    fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
+
+    number_of_rows = sess.query(func.sum(Job.number_of_rows)).\
+        filter_by(submission_id=submission.submission_id).\
+        scalar() or 0
+
+    total_size = sess.query(func.sum(Job.file_size)).\
+        filter_by(submission_id=submission.submission_id).\
+        scalar() or 0
+
+    return {
+        'cgac_code': submission.cgac_code,
+        'frec_code': submission.frec_code,
+        'agency_name': agency_name,
+        'number_of_errors': submission.number_of_errors,
+        'number_of_warnings': submission.number_of_warnings,
+        'number_of_rows': number_of_rows,
+        'total_size': total_size,
+        'created_on': submission.created_at.strftime('%m/%d/%Y'),
+        'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
+        'last_validated': last_validated,
+        'reporting_period': reporting_date(submission),
+        'publish_status': submission.publish_status.name,
+        'quarterly_submission': submission.is_quarter_format,
+        'fabs_submission': submission.d2_submission,
+        'fabs_meta': fabs_meta
+    }
+
+
+def get_submission_data(submission):
+    """ Get data for the submission specified
+
+        Args:
+            submission: submission to retrieve metadata for
+
+        Returns:
+            object containing data for the submission
+    """
+    sess = GlobalDB.db().session
+
+    relevant_job_types = (JOB_TYPE_DICT['csv_record_validation'], JOB_TYPE_DICT['validation'])
+    relevant_jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                           Job.job_type_id.in_(relevant_job_types))
+
+    return {
+        'jobs': [job_to_dict(job) for job in relevant_jobs]
+    }
+
+
+def get_revalidation_threshold():
+    """ Get the revalidation threshold for all submissions
+
+        Returns:
+            An object containing the revalidation threshold for submissions formatted in MM/DD/YYYY format
+    """
+    sess = GlobalDB.db().session
+
+    reval_thresh = sess.query(RevalidationThreshold).one_or_none()
+
+    return {'revalidation_threshold': reval_thresh.revalidation_date.strftime('%m/%d/%Y') if reval_thresh else ''}
+
+
+def reporting_date(submission):
+    """ Format submission reporting date in MM/YYYY format for monthly submissions and Q#/YYYY for quarterly
+
+        Args:
+            submission: submission whose dates to format
+
+        Returns:
+            Formatted dates in the format specified above
+    """
+    if not (submission.reporting_start_date or submission.reporting_end_date):
+        return None
+    if submission.is_quarter_format:
+        return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3, submission.reporting_fiscal_year)
+    else:
+        return submission.reporting_start_date.strftime("%m/%Y")
+
+
+def job_to_dict(job):
+    """ Convert a Job model into a dictionary, ready to be serialized as JSON
+
+        Args:
+            job: job to convert into a dictionary
+
+        Returns:
+            A dictionary of job information
+    """
+    sess = GlobalDB.db().session
+
+    job_info = {
+        'job_id': job.job_id,
+        'job_status': job.job_status_name,
+        'job_type': job.job_type_name,
+        'filename': job.original_filename,
+        'file_size': job.file_size,
+        'number_of_rows': job.number_of_rows,
+        'file_type': job.file_type_name or ''
+    }
+
+    # @todo replace with relationships
+    file_results = sess.query(File).filter_by(job_id=job.job_id).one_or_none()
+    if file_results is None:
+        # Job ID not in error database, probably did not make it to validation, or has not yet been validated
+        job_info.update({
+            'file_status': "",
+            'error_type': "",
+            'error_data': [],
+            'warning_data': [],
+            'missing_headers': [],
+            'duplicated_headers': []
+        })
+    else:
+        # If job ID was found in file, we should be able to get header error lists and file data. Get string of missing
+        # headers and parse as a list
+        job_info['file_status'] = file_results.file_status_name
+        job_info['missing_headers'] = StringCleaner.split_csv(file_results.headers_missing)
+        job_info["duplicated_headers"] = StringCleaner.split_csv(file_results.headers_duplicated)
+        job_info["error_type"] = get_error_type(job.job_id)
+        job_info["error_data"] = get_error_metrics_by_job_id(job.job_id, job.job_type_name == 'validation',
+                                                             severity_id=RULE_SEVERITY_DICT['fatal'])
+        job_info["warning_data"] = get_error_metrics_by_job_id(job.job_id, job.job_type_name == 'validation',
+                                                               severity_id=RULE_SEVERITY_DICT['warning'])
+    return job_info
 
 
 def get_submission_status(submission, jobs):
@@ -373,6 +530,8 @@ def certify_dabs_submission(submission, file_manager):
         Returns:
             Nothing if successful, JsonResponse error containing the details of the error if something went wrong
     """
+    current_user_id = g.user.user_id
+
     if not submission.publishable:
         return JsonResponse.error(ValueError("Submission cannot be certified due to critical errors"),
                                   StatusCode.CLIENT_ERROR)
@@ -396,7 +555,7 @@ def certify_dabs_submission(submission, file_manager):
         sess = GlobalDB.db().session
 
         # create the certify_history entry
-        certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
+        certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=current_user_id,
                                          submission_id=submission.submission_id)
         sess.add(certify_history)
         sess.commit()
@@ -409,6 +568,7 @@ def certify_dabs_submission(submission, file_manager):
         file_manager.move_certified_files(submission, certify_history, file_manager.is_local)
 
         # set submission contents
-        submission.certifying_user_id = g.user.user_id
+        submission.certifying_user_id = current_user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['published']
         sess.commit()
+        print(submission.__dict__)

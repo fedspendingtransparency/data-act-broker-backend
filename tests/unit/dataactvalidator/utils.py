@@ -3,6 +3,8 @@ from random import randint
 
 from dataactcore.models.jobModels import Submission
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
+from dataactcore.models.jobModels import PublishStatus
+from dataactcore.models.lookups import PUBLISH_STATUS
 
 
 def insert_submission(db, submission):
@@ -44,3 +46,10 @@ def number_of_errors(rule_file, staging_db, submission=None, models=None, assert
 def query_columns(rule_file, staging_db):
     sql = SQLLoader.read_sql_str(rule_file).format(randint(1, 9999))
     return staging_db.connection.execute(sql).keys()
+
+
+def populate_publish_status(database):
+    for ps in PUBLISH_STATUS:
+        status = PublishStatus(publish_status_id=ps.id, name=ps.name, description=ps.desc)
+        database.session.merge(status)
+    database.session.commit()

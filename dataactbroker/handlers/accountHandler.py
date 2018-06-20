@@ -30,7 +30,7 @@ class AccountHandler:
     """ This class contains the login / logout  functions
 
         Attributes:
-            isLocal: A boolean indicating if the application is being run locally or not
+            is_local: A boolean indicating if the application is being run locally or not
             request: A Flask object containing the data from the request
             bcrypt: A Bcrypt object associated with the app
 
@@ -48,7 +48,7 @@ class AccountHandler:
                 request: Flask request object
                 bcrypt: Bcrypt object associated with app
         """
-        self.isLocal = is_local
+        self.is_local = is_local
         self.request = request
         self.bcrypt = bcrypt
 
@@ -135,19 +135,9 @@ class AccountHandler:
                 # past the above group membership checks
                 if user is None:
                     user = User()
-
-                    first_name = cas_attrs['maxAttribute:First-Name']
-                    middle_name = cas_attrs['maxAttribute:Middle-Name']
-                    last_name = cas_attrs['maxAttribute:Last-Name']
-
                     user.email = email
 
-                    # Check for None first so the condition can short-circuit without
-                    # having to worry about calling strip() on a None object
-                    if middle_name is None or middle_name.strip() == '':
-                        user.name = first_name + " " + last_name
-                    else:
-                        user.name = first_name + " " + middle_name[0] + ". " + last_name
+                set_user_name(user, cas_attrs)
 
                 set_max_perms(user, cas_attrs['maxAttribute:GroupList'])
 
@@ -347,6 +337,25 @@ def best_affiliation(affiliations):
 
     all_affils = list(dabs_affils.values()) + list(fabs_affils.values())
     return all_affils
+
+
+def set_user_name(user, cas_attrs):
+    """ Update the name for the user based on the MAX attributes.
+
+        Args:
+            user: the User object
+            cas_attrs: a dictionary of the max attributes (includes first, middle, last names) for a logged in user
+    """
+    first_name = cas_attrs['maxAttribute:First-Name']
+    middle_name = cas_attrs['maxAttribute:Middle-Name']
+    last_name = cas_attrs['maxAttribute:Last-Name']
+
+    # Check for None first so the condition can short-circuit without
+    # having to worry about calling strip() on a None object
+    if middle_name is None or middle_name.strip() == '':
+        user.name = first_name + " " + last_name
+    else:
+        user.name = first_name + " " + middle_name[0] + ". " + last_name
 
 
 def set_max_perms(user, max_group_list):

@@ -1,7 +1,8 @@
 from tests.unit.dataactcore.factories.staging import ObjectClassProgramActivityFactory
 from tests.unit.dataactcore.factories.domain import ProgramActivityFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
-from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
+from tests.unit.dataactvalidator.utils import number_of_errors, query_columns, populate_publish_status
+from dataactcore.models.lookups import PUBLISH_STATUS_DICT
 
 
 _FILE = 'b9_object_class_program_activity'
@@ -16,60 +17,102 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Testing valid program activity name for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular
-    A-11. """
+         A-11.
+    """
 
-    op_1 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
-                                             program_activity_name='test', program_activity_code='test')
+    populate_publish_status(database)
 
-    op_2 = ObjectClassProgramActivityFactory(row_number=2, agency_identifier='test', main_account_code='test',
-                                             program_activity_name='test', program_activity_code='test')
+    op_1 = ObjectClassProgramActivityFactory(row_number=1, submission_id=1, agency_identifier='test',
+                                             main_account_code='test', program_activity_name='test',
+                                             program_activity_code='test'
+                                             )
 
-    pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
+    op_2 = ObjectClassProgramActivityFactory(row_number=2, submission_id=1, agency_identifier='test',
+                                             main_account_code='test', program_activity_name='test',
+                                             program_activity_code='test'
+                                             )
+
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY2016Q4', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
-    assert number_of_errors(_FILE, database, models=[op_1, op_2, pa]) == 0
+    submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2016', reporting_fiscal_period=12,
+                                   publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
+
+    assert number_of_errors(_FILE, database, models=[op_1, op_2, pa], submission=submission) == 0
 
 
-def test_success_fiscal_year(database):
-    """ Testing valid name for FY that matches with budget_year"""
+def test_success_fiscal_year_quarter(database):
+    """ Testing valid name for FY that matches with fiscal_year_quarter """
 
-    op = ObjectClassProgramActivityFactory(row_number=1, submission_id='1', agency_identifier='test',
+    populate_publish_status(database)
+
+    op = ObjectClassProgramActivityFactory(row_number=1, submission_id=1, agency_identifier='test',
                                            main_account_code='test', program_activity_name='test',
                                            program_activity_code='test')
 
-    pa_1 = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
-                                  account_number='test', program_activity_name='test', program_activity_code='test')
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY2017Q1', agency_id='test', allocation_transfer_id='test',
+                                account_number='test', program_activity_name='test', program_activity_code='test')
 
-    pa_2 = ProgramActivityFactory(budget_year=2017, agency_id='test2', allocation_transfer_id='test2',
-                                  account_number='test2', program_activity_name='test2', program_activity_code='test2')
+    submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=3,
+                                   publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
 
-    submission = SubmissionFactory(submission_id='1', reporting_fiscal_year='2017')
-
-    assert number_of_errors(_FILE, database, models=[op, pa_1, pa_2], submission=submission) == 0
+    assert number_of_errors(_FILE, database, models=[op, pa], submission=submission) == 0
 
 
-def test_failure_fiscal_year(database):
-    """ Testing invalid name for FY, not matches with budget_year"""
+def test_failure_fiscal_year_quarter(database):
+    """ Testing invalid program activity, does not match with fiscal_year_quarter """
 
-    op = ObjectClassProgramActivityFactory(row_number=1, submission_id='1', agency_identifier='test4',
-                                           main_account_code='test4', program_activity_name='test4',
-                                           program_activity_code='test4')
+    populate_publish_status(database)
 
-    pa_1 = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
-                                  account_number='test', program_activity_name='test', program_activity_code='test')
+    op = ObjectClassProgramActivityFactory(row_number=1, submission_id=1, agency_identifier='test2',
+                                           main_account_code='test2', program_activity_name='test2',
+                                           program_activity_code='test2')
 
-    pa_2 = ProgramActivityFactory(budget_year=2017, agency_id='test2', allocation_transfer_id='test2',
-                                  account_number='test2', program_activity_name='test2', program_activity_code='test2')
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY2015Q1', agency_id='test', allocation_transfer_id='test',
+                                account_number='test', program_activity_name='test', program_activity_code='test')
 
-    pa_3 = ProgramActivityFactory(budget_year=2018, agency_id='test3', allocation_transfer_id='test3',
-                                  account_number='test3', program_activity_name='test3', program_activity_code='test3')
+    submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2018', reporting_fiscal_period=9,
+                                   publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
 
-    pa_4 = ProgramActivityFactory(budget_year=2019, agency_id='test4', allocation_transfer_id='test4',
-                                  account_number='test4', program_activity_name='test4', program_activity_code='test4')
+    assert number_of_errors(_FILE, database, models=[op, pa], submission=submission) == 1
 
-    submission = SubmissionFactory(submission_id='1', reporting_fiscal_year='2017')
 
-    assert number_of_errors(_FILE, database, models=[op, pa_1, pa_2, pa_3, pa_4], submission=submission) == 1
+def test_failure_success_ignore_recertification(database):
+    """ Testing invalid program activity, ingored since recertification FY2017 Q2 or Q3 """
+
+    populate_publish_status(database)
+
+    populate_publish_status(database)
+
+    op = ObjectClassProgramActivityFactory(row_number=1, submission_id=1, agency_identifier='test2',
+                                           main_account_code='test2', program_activity_name='test2',
+                                           program_activity_code='test2')
+
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY2014Q1', agency_id='test', allocation_transfer_id='test',
+                                account_number='test', program_activity_name='test', program_activity_code='test')
+
+    submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=6,
+                                   publish_status_id=PUBLISH_STATUS_DICT['updated'])
+
+    assert number_of_errors(_FILE, database, models=[op, pa], submission=submission) == 0
+
+
+def test_failure_not_recertification(database):
+    """ Testing invalid program activity, ingored since not recertification FY2017 Q2 or Q3 """
+
+    populate_publish_status(database)
+
+    op = ObjectClassProgramActivityFactory(row_number=1, submission_id=1, agency_identifier='test2',
+                                           main_account_code='test2', program_activity_name='test2',
+                                           program_activity_code='test2')
+
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY2014Q1', agency_id='test', allocation_transfer_id='test',
+                                account_number='test', program_activity_name='test', program_activity_code='test')
+
+    submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=6,
+                                   publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
+
+    assert number_of_errors(_FILE, database, models=[op, pa], submission=submission) == 1
 
 
 def test_success_unknown_value(database):
@@ -78,7 +121,7 @@ def test_success_unknown_value(database):
     op = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
                                            program_activity_name='Unknown/Other', program_activity_code='0000')
 
-    pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_quarter='FYQ', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     assert number_of_errors(_FILE, database, models=[op, pa]) == 0
@@ -106,7 +149,7 @@ def test_success_ignore_blank_program_activity_name(database):
                                            ussgl497100_downward_adjus_cpe=0, ussgl497200_downward_adjus_cpe=0,
                                            ussgl498100_upward_adjustm_cpe=0, ussgl498200_upward_adjustm_cpe=0)
 
-    pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_quarter='FYQ', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     assert number_of_errors(_FILE, database, models=[op, pa]) == 0
@@ -115,19 +158,26 @@ def test_success_ignore_blank_program_activity_name(database):
 def test_success_ignore_case(database):
     """ Testing program activity validation to ignore case """
 
-    op = ObjectClassProgramActivityFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
-                                           main_account_code='test', program_activity_name='TEST',
-                                           program_activity_code='test')
+    populate_publish_status(database)
 
-    pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
+    op = ObjectClassProgramActivityFactory(row_number=1, submission_id=1, beginning_period_of_availa=2016,
+                                           agency_identifier='test', main_account_code='test',
+                                           program_activity_name='TEST', program_activity_code='test')
+
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY2017Q4', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
-    assert number_of_errors(_FILE, database, models=[op, pa]) == 0
+    submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=12,
+                                   publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
+
+    assert number_of_errors(_FILE, database, models=[op, pa], submission=submission) == 0
 
 
 def test_failure_program_activity_name(database):
     """ Testing invalid program activity name for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular
     A-11. """
+
+    populate_publish_status(database)
 
     op_1 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
                                              program_activity_name='test_wrong', program_activity_code='test')
@@ -135,28 +185,40 @@ def test_failure_program_activity_name(database):
     op_2 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
                                              program_activity_name='test_wrong', program_activity_code='0000')
 
-    pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY2017Q1', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
-    assert number_of_errors(_FILE, database, models=[op_1, op_2, pa]) == 1
+    submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=3,
+                                   publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
+
+    assert number_of_errors(_FILE, database, models=[op_1, op_2, pa], submission=submission) == 1
 
 
 def test_failure_program_activity_code(database):
-    op_1 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
-                                             program_activity_name='test', program_activity_code='test_wrong')
+    """ Testing invalid program activity code for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular
+        A-11. """
+
+    populate_publish_status(database)
+
+    op_1 = ObjectClassProgramActivityFactory(row_number=1, submission_id=1, agency_identifier='test',
+                                             main_account_code='test', program_activity_name='test',
+                                             program_activity_code='test_wrong')
 
     op_2 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
                                              program_activity_name='Unknown/Other', program_activity_code='123456')
 
-    pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY2016Q1', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
-    assert number_of_errors(_FILE, database, models=[op_1, op_2, pa]) == 1
+    submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2016', reporting_fiscal_period=3,
+                                   publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
+
+    assert number_of_errors(_FILE, database, models=[op_1, op_2, pa], submission=submission) == 1
 
 
 def test_failure_empty_activity_name(database):
     """ Testing program activity name validation to not ignore blanks if monetary sum is not 0 """
-    pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_quarter='FYQ', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     # one monetary amount not 0

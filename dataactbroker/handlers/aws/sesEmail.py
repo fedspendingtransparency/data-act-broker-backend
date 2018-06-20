@@ -14,7 +14,7 @@ class SesEmail(object):
             content: A string containing the content of the email
 
         Class Attributes:
-            isLocal: A boolean indicating if the application is being run locally or not
+            is_local: A boolean indicating if the application is being run locally or not
             emailLog: A string indicating the name of the email log file for local emails
 
         Constants:
@@ -24,7 +24,7 @@ class SesEmail(object):
     # todo: is SIGNING_KEY something that should live in the config file?
     # TODO: See if this is even needed and, if not, remove it from here, the config file, and the app file
     SIGNING_KEY = "1234"
-    isLocal = False
+    is_local = False
     emailLog = "Email.log"
 
     def __init__(self, to_address, from_address, content="", subject="", template_type=None, parameters=None):
@@ -56,7 +56,7 @@ class SesEmail(object):
 
     def send(self):
         """ Send the email built in the constructor """
-        if not SesEmail.isLocal:
+        if not SesEmail.is_local:
             # Use aws creds for ses if possible, otherwise, use aws_key from config
             connection = boto.connect_ses()
             try:

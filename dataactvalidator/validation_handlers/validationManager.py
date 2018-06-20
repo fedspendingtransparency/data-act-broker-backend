@@ -54,7 +54,7 @@ class ValidationManager:
 
     def __init__(self, is_local=True, directory=""):
         # Initialize instance variables
-        self.isLocal = is_local
+        self.is_local = is_local
         self.directory = directory
 
         # create long-to-short (and vice-versa) column name mappings
@@ -84,13 +84,13 @@ class ValidationManager:
             file_name - File to be written
             header - Column headers for file to be written
         """
-        if self.isLocal:
+        if self.is_local:
             return CsvLocalWriter(file_name, header)
         return CsvS3Writer(region_name, bucket_name, file_name, header)
 
     def get_file_name(self, path):
         """ Return full path of error report based on provided name """
-        if self.isLocal:
+        if self.is_local:
             return os.path.join(self.directory, path)
         # Forcing forward slash here instead of using os.path to write a valid path for S3
         return "".join(["errors/", path])
@@ -190,7 +190,7 @@ class ValidationManager:
         sess.commit()
 
         # If local, make the error report directory
-        if self.isLocal and not os.path.exists(self.directory):
+        if self.is_local and not os.path.exists(self.directory):
             os.makedirs(self.directory)
         # Get bucket name and file name
         file_name = job.filename
@@ -240,7 +240,7 @@ class ValidationManager:
             # Pull file and return info on whether it's using short or long col headers
             reader.open_file(region_name, bucket_name, file_name, fields, bucket_name,
                              self.get_file_name(error_file_name), self.long_to_short_dict[job.file_type_id],
-                             is_local=self.isLocal)
+                             is_local=self.is_local)
 
             # list to keep track of rows that fail validations
             error_rows = []
@@ -384,7 +384,7 @@ class ValidationManager:
             warning_file.close()
 
             # stream file to S3 when not local
-            if not self.isLocal:
+            if not self.is_local:
                 # stream error file
                 with open(error_file_path, 'rb') as csv_file:
                     with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(error_file_name)), 'w')\
@@ -586,7 +586,7 @@ class ValidationManager:
             warning_file.close()
 
             # stream file to S3 when not local
-            if not self.isLocal:
+            if not self.is_local:
                 # stream error file
                 with open(error_file_path, 'rb') as csv_file:
                     with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(error_file_name)),

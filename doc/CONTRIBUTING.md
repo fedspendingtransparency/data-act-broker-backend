@@ -79,24 +79,24 @@ If you already have a Python development environment on your machine and a prefe
 
 4. Tell virtualenvwrapper where on your machine to create virtual environments and add it to your profile. This is a one-time virtualenvwrapper setup step, and the process varies by operating system. [This tutorial](http://newcoder.io/begin/setup-your-machine/ "Python: setting up your computer") covers setting up virtualenvwrapper on OSX, Linux, and Windows.
    For Windows users, there may be extra steps needed.  If you run into an error on the import-module step, move the "VirtualEnvWrapper" folder from C:/Python27/Lib/site-packages/Users/*username*/Documents/WindowsPowerShell/Modules/ to C:/Users/*username*/Documents/WindowsPowerShell/Modules/.  Next, in powershell run the command "set-executionpolicy unrestricted".  Finally, in the VirtualEnvWrapper directory, open the file "VirtualEnvWrapperTabExpansion.psm1" and change "Function:TabExpansion" to "Function:TabExpansion2" in line 12. Windows users should also note that the virtualenvwrapper port can be problematic so if problems arise that you cannot get past, consider running without turning on virtualenvwrapper. This will cause the install changes to affect your entire system rather than just the virtualenv.
-   
+
    **Note to Mac and Linux users:** After running:
-   
+
    		pip install virtualenvwrapper
-   		
+
    	your computer may not be able to find the commands to create a new virtualenv. Run:
-   	
+
    		which virtualenvwrapper.sh
-   		
-   	to locate where pip installed virtualenvwrapper. For example, `/Library/Frameworks/Python.framework/Versions/3.5/bin/virtualenvwrapper.sh`. Add a line at the end of `~/.bash_profile` that points it to that location. You may also need to add a VIRTUALENVWRAPPER_PYTHON variable if it isn't recognizing the python version: 
-   	
+
+   	to locate where pip installed virtualenvwrapper. For example, `/Library/Frameworks/Python.framework/Versions/3.5/bin/virtualenvwrapper.sh`. Add a line at the end of `~/.bash_profile` that points it to that location. You may also need to add a VIRTUALENVWRAPPER_PYTHON variable if it isn't recognizing the python version:
+
    		export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python3
    		source /Library/Frameworks/Python.framework/Versions/3.5/bin/virtualenvwrapper.s
-   		
+
    	After saving this change, run:
-   		
+
    		$ source ~/.bash_profile
-   	
+
    	This will point to the ~/.bash_profile to get setup details and paths and should allow you to run virtualenv properly.
 
 5. Create a virtual environment for the DATA Act software. In this example we've named the environment *data-act*, but you can call it anything:
@@ -177,13 +177,6 @@ At startup, the broker looks for an environment variable called `env` and will u
 
 There are sample config files in `data-act-broker-backend/dataactcore`. Use these as a starting point when setting up the broker. The instructions below assume that you're installing the broker for local development.
 
-1. Open `config_example.yml` in a text editor and save it as `config.yml`.
-2. Update the values in `config.yml` as appropriate for your installation and save. In many cases the default values will work just fine. The most important config values to change will be in `local_config.yml` and `local_secrets.yml`
-3. Open `local_config_example.yml` in a text editor and save it as `local_config.yml`.
-4. Update the values in `local_config.yml` as appropriate for your installation and save.
-5. Open `local_secrets_example.yml` in a text editor and save it as `local_secrets.yml`.
-6. Update the values in `local_secrets.yml` as appropriate for your installation and save.
-
 ### Initialize Broker Backend Applications
 
 You will need to run two scripts to setup the broker's backend components. The first one creates the databases and loads the information needed to validate data submissions: schemas, rules, and domain values such as object classes and account codes. The second script creates a local admin user that you can use to log in. From the `data-act-broker-backend` directory:
@@ -211,7 +204,7 @@ on the DATA Act team), you can access our SF-133 files through S3. The data is
 sensitive, so we do not host it publicly. In the `prod-data-act-submission`
 bucket, within the `config` directory, you should see a series of
 `sf_133_yyyy_mm.csv` files. Download these and store them in your local
-`dataactvalidator/config` folder. 
+`dataactvalidator/config` folder.
 
 Once you've placed those files, run:
 
@@ -336,6 +329,38 @@ See the
 for more configuration details. Everything within `python_config` is imported
 via `dictConfig` (in addition to some standard settings defined in
 `dataactcore.logging`.
+
+### Setup with Docker
+
+Install docker in your local machine by selecting your OS and hitting install from this [link](https://docs.docker.com/install/) (this installation includes `docker-compose` as well).
+
+Next step is to refer to the `Create Broker Config Files` section of this documentation to copy and rename config files, if you choose to use the default configs.
+
+After you successfully installed Docker, make sure the docker daemon is running on your local machine by running `docker version` and make sure you have your configs set up. Run the following command in the root level of this backend repository:
+
+- `docker-compose up -d`  This command will spin up the postgres container `dataact-postgres`, build your backend image `broker-backend` and run the two service `dataact-broker` and `dataact-validator`. This will take longer the first time because it's building the image and installs the requirements. NOTE: remove `-d` option if you want to see docker logs, you can `contrl z` out of the logs anytime.
+
+These commands are useful for debugging but is optional:
+
+- `docker-compose build` rebuilds your base image. example: you would do this if your requirements.txt changes.
+
+- `docker-compose down` shuts down all your local containers and removes them. This may help debug some problems. You can always spin up your containers again by doing `docker-compose up -d`.
+
+- `docker ps` shows you the info about containers running on your local machines including which ports it's mapped to.
+
+Wait about 30 seconds for everything to come up (first time setup can take up to 8 minutes). At this point you can go to your browser and hit the broker api by going to `http://127.0.0.1:9999/v1/current_user/`.
+
+Run these commands to login/ssh to the broker and validator containers:
+
+- `docker exec -it dataact-broker /bin/bash` login/ssh to broker.
+
+- `docker exec -it dataact-validator /bin/bash` login/ssh to validator.
+
+This will take you to the workspace directory within the dataact-broker and dataact-validator containers respectively, that will have your backend repository mounted so local changes in that repository will also be changed within the container.
+
+#####set up with existing postgres
+
+If you want to use postgres on your local machine, change the config to point to your host IP. If you are using docker version `17.06` and have a mac use `docker.for.mac.localhost` instead of IP. If you are using `17.12.0` substitute `docker.for.mac.host.internal` and for `18.03.0` and higher use `host.docker.internal` for your host IP to connect to your local machine.
 
 ### Adding log messages
 

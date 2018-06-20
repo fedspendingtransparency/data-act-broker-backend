@@ -9,10 +9,18 @@ import tarfile
 import zipfile
 import boto3
 import shutil
+from datetime import datetime
 from io import BytesIO
 
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 from dataactcore.logging import configure_logging
+from dataactcore.models.domainModels import ExternalDataLoadDate
+from dataactcore.models.jobModels import Submission # noqa
+from dataactcore.models.userModel import User # noqa
+
+from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
 
@@ -29,19 +37,32 @@ def get_login_tokens(login_response_body_dict):
             "tokenkey": login_response_body_dict['tokenkey']}
 
 
-def get_file_info(download_list_response_body):
+def get_file_info(sess, download_list_response_body):
     """
        Gets the fileid for the latest version of the zip4 file to be downloaded
 
        Args:
-            download_list_response_body: response body (type dictionary) returned by the USPS download list endpoint.
+           sess: database session within with to process database queries
+           download_list_response_body: response body (type dictionary) returned by the USPS download list endpoint.
        Returns:
-            fileid as string
+           tuple containing: fileid as string, fulfilled_date as date, last_load_date_obj as ExternalDataLoadDate
     """
     download_list = download_list_response_body['fileList']
     download_list.sort(key=lambda item: item['fulfilled'], reverse=True)
     latest_file = download_list[0]
-    return latest_file['fileid']
+
+    last_load_date_obj = sess.query(ExternalDataLoadDate).\
+        filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['usps_download']).first()
+
+    fulfilled_date = datetime.strptime(latest_file['fulfilled'], '%Y-%m-%d').date()
+
+    if last_load_date_obj and last_load_date_obj.last_load_date >= fulfilled_date:
+        # if there is a last load date, check it against the latest file's fulfilled date
+        # if newer file not found, exit immediately with the status code of 3 which means nothing was executed
+        logger.info('Latest file already loaded. No further action will be taken. Exiting...')
+        sys.exit(3)
+
+    return latest_file['fileid'], fulfilled_date, last_load_date_obj
 
 
 def get_payload_string(obj_request_body):
@@ -273,7 +294,7 @@ def upload_files_to_s3(args_dict, usps_file_dir):
         extract_upload_city_state_text_file(city_state_file_path, usps_file_dir, s3connection)
 
 
-def download_usps_files(usps_file_dir):
+def download_usps_files(sess, usps_file_dir):
     """
         Downloads the zip4 USPS file from rest service. Requires login to the service, retrieving the id of the most
         recent file, and logs out of the service. Downloads a zip4 tar file in the current directory
@@ -290,7 +311,7 @@ def download_usps_files(usps_file_dir):
     logger.info('Calling API to retrieve file id')
     files_url = CONFIG_BROKER['usps']['files']
     file_list_response_body = usps_epf_post_request(files_url, product_codes)
-    file_id_download = get_file_info(file_list_response_body)
+    file_id_download, file_fulfilled_date, last_load_date_obj = get_file_info(sess, file_list_response_body)
 
     logout(login_session_obj)
 
@@ -310,8 +331,10 @@ def download_usps_files(usps_file_dir):
 
     logout(login_session_obj)
 
+    return file_fulfilled_date, last_load_date_obj
 
-def main():
+
+def main(sess):
     """
         Parses command line arguments either download zip4 data from USPS, upload zip4 data to s3, or upload
         city state data to s3
@@ -325,15 +348,37 @@ def main():
 
     usps_file_dir = os.path.join(CONFIG_BROKER['path'], 'dataactvalidator', 'config', 'usps')
 
-    if args.download:
-        download_usps_files(usps_file_dir)
+    file_fulfilled_date, last_load_date_obj = None, None
 
-    upload_files_to_s3(args, usps_file_dir)
+    if args.download:
+        file_fulfilled_date, last_load_date_obj = download_usps_files(sess, usps_file_dir)
+
+    try:
+        upload_files_to_s3(args, usps_file_dir)
+    except Exception as e:
+        logger.error(e)
+        sys.exit(1)
 
     if args.remove:
         shutil.rmtree(usps_file_dir)
 
+    # update the last load date to match the fulfilled of the file that was just finished downloading
+    # date format = YYYY-MM-DD
+
+    if args.download:
+        if not last_load_date_obj:
+            new_external_data_load_date = ExternalDataLoadDate(
+                last_load_date=file_fulfilled_date,
+                external_data_type_id=EXTERNAL_DATA_TYPE_DICT['usps_download']
+            )
+            sess.add(new_external_data_load_date)
+        else:
+            last_load_date_obj.last_load_date = file_fulfilled_date
+
 
 if __name__ == '__main__':
     configure_logging()
-    main()
+    with create_app().app_context():
+        sess = GlobalDB.db().session
+        main(sess)
+        sess.commit()

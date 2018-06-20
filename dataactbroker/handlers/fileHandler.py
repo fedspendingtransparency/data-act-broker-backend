@@ -17,7 +17,8 @@ from sqlalchemy.sql.expression import case
 from werkzeug.utils import secure_filename
 
 from dataactbroker.handlers.fabsDerivationsHandler import fabs_derivations
-from dataactbroker.handlers.submission_handler import create_submission, get_submission_status, get_submission_files
+from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
+                                                       reporting_date, job_to_dict)
 from dataactbroker.permissions import current_user_can, current_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
@@ -25,16 +26,15 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (
-    create_jobs, get_error_metrics_by_job_id, get_error_type, get_fabs_meta, mark_job_status, run_job_checks,
+    create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, run_job_checks,
     get_last_validated_date, get_lastest_certified_date)
 
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode
-from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
-    RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
+    FILE_TYPE_DICT_ID, JOB_STATUS_DICT, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
 from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
                                               FPDSContractingOffice)
 from dataactcore.models.userModel import User
@@ -59,7 +59,7 @@ class FileHandler:
 
         Attributes:
             request: A Flask object containing the route request
-            isLocal: A boolean flag indicating whether the application is being run locally or not
+            is_local: A boolean flag indicating whether the application is being run locally or not
             serverPath: A string containing the path to the server files (only applicable when run locally)
             s3manager: An instance of S3Handler that can be used for all interactions with S3
 
@@ -87,10 +87,10 @@ class FileHandler:
             Args:
                 route_request: HTTP request object for this route
                 is_local: True if this is a local installation that will not use AWS or Smartronix
-                server_path: If isLocal is True, this is used as the path to local files
+                server_path: If is_local is True, this is used as the path to local files
         """
         self.request = route_request
-        self.isLocal = is_local
+        self.is_local = is_local
         self.serverPath = server_path
         self.s3manager = S3Handler()
 
@@ -220,7 +220,7 @@ class FileHandler:
                 for ext_file_type in FileHandler.EXTERNAL_FILE_TYPES:
                     filename = CONFIG_BROKER["".join([ext_file_type, "_file_name"])]
 
-                    if not self.isLocal:
+                    if not self.is_local:
                         upload_name = "{}/{}".format(
                             submission.submission_id,
                             S3Handler.get_timestamped_filename(filename)
@@ -363,7 +363,7 @@ class FileHandler:
                 JsonResponse object containing the path to the uploaded file or an error message
         """
         try:
-            if self.isLocal:
+            if self.is_local:
                 uploaded_file = request.files['file']
                 if uploaded_file:
                     seconds = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
@@ -400,7 +400,7 @@ class FileHandler:
                 ResponseException: Error if the file_url doesn't point to a valid file or the local_file_path is not
                     a valid directory
         """
-        if not self.isLocal:
+        if not self.is_local:
             conn = self.s3manager.create_file_path(upload_name)
             with smart_open.smart_open(conn, 'w') as writer:
                 # get request if it doesn't already exist
@@ -889,7 +889,7 @@ class FileHandler:
                 A JsonResponse object with the urls in a list or an empty object if local
         """
         response = {}
-        if self.isLocal:
+        if self.is_local:
             response["urls"] = {}
             return JsonResponse.create(StatusCode.CLIENT_ERROR, response)
 
@@ -952,7 +952,7 @@ class FileHandler:
 
             file_name = request_params.get(file_type)
             if file_name:
-                if not self.isLocal:
+                if not self.is_local:
                     upload_name = "{}/{}".format(
                         submission.submission_id,
                         S3Handler.get_timestamped_filename(file_name)
@@ -985,7 +985,7 @@ class FileHandler:
                 response_dict[file_type + "_id"] = file_job_dict[file_type]
 
         # Create temporary credentials if specified, otherwise set everything to local
-        if create_credentials and not self.isLocal:
+        if create_credentials and not self.is_local:
             self.s3manager = S3Handler(CONFIG_BROKER["aws_bucket"])
             response_dict["credentials"] = self.s3manager.get_temporary_credentials(g.user.user_id)
         else:
@@ -993,7 +993,7 @@ class FileHandler:
                                             "SessionToken": "local", "Expiration": "local"}
 
         response_dict["submission_id"] = file_job_dict["submission_id"]
-        if self.isLocal:
+        if self.is_local:
             response_dict["bucket_name"] = CONFIG_BROKER["broker_files"]
         else:
             response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
@@ -1248,89 +1248,6 @@ def published_fabs_query(data_utils, page_start, page_end):
             A list of published FABS rows.
     """
     return fileD2.query_published_fabs_data(data_utils["sess"], data_utils["submission_id"], page_start, page_end).all()
-
-
-def _split_csv(string):
-    """ Split string into a list, excluding empty strings
-
-        Args:
-            string: the string to split
-
-        Returns:
-            Empty array if the string is empty or an array of whitespace-trimmed strings split on "," from the original
-    """
-    if string is None:
-        return []
-    return [n.strip() for n in string.split(',') if n]
-
-
-def job_to_dict(job):
-    """ Convert a Job model into a dictionary, ready to be serialized as JSON
-
-        Args:
-            job: job to convert into a dictionary
-
-        Returns:
-            A dictionary of job information
-    """
-    sess = GlobalDB.db().session
-
-    job_info = {
-        'job_id': job.job_id,
-        'job_status': job.job_status_name,
-        'job_type': job.job_type_name,
-        'filename': job.original_filename,
-        'file_size': job.file_size,
-        'number_of_rows': job.number_of_rows,
-        'file_type': job.file_type_name or '',
-    }
-
-    # @todo replace with relationships
-    file_results = sess.query(File).filter_by(job_id=job.job_id).one_or_none()
-    if file_results is None:
-        # Job ID not in error database, probably did not make it to validation, or has not yet been validated
-        job_info.update(
-            file_status="",
-            error_type="",
-            error_data=[],
-            warning_data=[],
-            missing_headers=[],
-            duplicated_headers=[],
-        )
-    else:
-        # If job ID was found in file, we should be able to get header error lists and file data. Get string of missing
-        # headers and parse as a list
-        job_info['file_status'] = file_results.file_status_name
-        job_info['missing_headers'] = _split_csv(file_results.headers_missing)
-        job_info["duplicated_headers"] = _split_csv(
-            file_results.headers_duplicated)
-        job_info["error_type"] = get_error_type(job.job_id)
-        job_info["error_data"] = get_error_metrics_by_job_id(
-            job.job_id, job.job_type_name == 'validation',
-            severity_id=RULE_SEVERITY_DICT['fatal']
-        )
-        job_info["warning_data"] = get_error_metrics_by_job_id(
-            job.job_id, job.job_type_name == 'validation',
-            severity_id=RULE_SEVERITY_DICT['warning']
-        )
-    return job_info
-
-
-def reporting_date(submission):
-    """ Format submission reporting date in MM/YYYY format for monthly submissions and Q#/YYYY for quarterly
-
-        Args:
-            submission: submission whose dates to format
-
-        Returns:
-            Formatted dates in the format specified above
-    """
-    if not (submission.reporting_start_date or submission.reporting_end_date):
-        return None
-    if submission.is_quarter_format:
-        return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3, submission.reporting_fiscal_year)
-    else:
-        return submission.reporting_start_date.strftime("%m/%Y")
 
 
 def submission_to_dict_for_status(submission):
