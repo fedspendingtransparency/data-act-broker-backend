@@ -1,5 +1,6 @@
 import datetime
 import pytest
+import json
 
 from flask import Flask, g
 from unittest.mock import Mock
@@ -271,8 +272,8 @@ def test_get_submission_data_dabs(database):
 
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
 
-    sub = SubmissionFactory(submission_id=1)
-    sub_2 = SubmissionFactory(submission_id=2)
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    sub_2 = SubmissionFactory(submission_id=2, d2_submission=False)
 
     # Job for submission
     job = JobFactory(job_id=1,
@@ -388,12 +389,19 @@ def test_get_submission_data_dabs(database):
     }
 
     response = get_submission_data(sub)
+    response = json.loads(response.data.decode('UTF-8'))
     results = response['jobs']
     assert len(results) == 3
     assert correct_job in results
     assert correct_cross_job in results
     assert upload_job not in results
     assert different_sub_job not in results
+
+    response = get_submission_data(sub, 'appropriations')
+    response = json.loads(response.data.decode('UTF-8'))
+    results = response['jobs']
+    assert len(results) == 1
+    assert results[0] == correct_job
 
 
 @pytest.mark.usefixtures("job_constants")
