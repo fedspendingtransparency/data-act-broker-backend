@@ -23,8 +23,8 @@
         - `skip_guide`: boolean, indicates whether or not the user has requested to skip introductory materials, part of response only if login is successful
         - `website_admin`: boolean, describes a super-user status, part of response only if login is successful
         - `affiliations`: list, indicates which agencies this user is a part of and what permissions they have at that agency, part of response only if login is successful
-        - `agency_name`: string, name of agency user is affiliated with
-        - `permission`: string, permission type for user (reader, writer, submitter, website_admin, fabs)
+            - `agency_name`: string, name of agency user is affiliated with
+            - `permission`: string, permission type for user (reader, writer, submitter, website_admin, fabs)
         - `message`: string, login error response "You have failed to login successfully with MAX", otherwise says "Login successful"
         - `errorType`: string, type of error, part of response only if login is unsuccessful
         - `trace`: list, traceback of error, part of response only if login is unsuccessful
@@ -225,8 +225,8 @@
         - `reporting_period_start_date`: null
         - `reporting_period_end_date`: null
     - Response:
-        - `fabs_id`: int, ID of file F upload
-        - `fabs_key`: string, path to file F within S3 bucket
+        - `fabs_id`: int, ID of FABS upload
+        - `fabs_key`: string, path to FABS within S3 bucket
         - `bucket_name`: string, name of bucket on S3 that files are stored in
         - `credentials`: object, the credentials to S3 (AccessKeyId, Expiration, SecretAccessKey, SessionToken)
         - `submission_id`: int, ID of the submission that was created
