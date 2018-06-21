@@ -220,13 +220,13 @@
         - `agency_code`: string, sub tier agency code
         - `cgac_code`: null
         - `frec_code`: null
-        - `detached_award`: string, name of the file being uploaded (e.g. "sample_file.csv")
+        - `fabs`: string, name of the file being uploaded (e.g. "sample_file.csv")
         - `is_quarter`: boolean, false for FABS submissions
         - `reporting_period_start_date`: null
         - `reporting_period_end_date`: null
     - Response:
-        - `detached_award_id`: int, ID of file F upload
-        - `detached_award_key`: string, path to file F within S3 bucket
+        - `fabs_id`: int, ID of file F upload
+        - `fabs_key`: string, path to file F within S3 bucket
         - `bucket_name`: string, name of bucket on S3 that files are stored in
         - `credentials`: object, the credentials to S3 (AccessKeyId, Expiration, SecretAccessKey, SessionToken)
         - `submission_id`: int, ID of the submission that was created
@@ -248,13 +248,13 @@
     - Header:
         - `X-Session-ID`: string, session token id
     - Payload:
-        - `file_type`: string, always "detached_award" for FABS files
+        - `file_type`: string, always "fabs" for FABS files
         - `warning`: boolean (`true` for warning files, `false` for error files)
     - Response:
         - `url`: string, direct url to the error/warning report
 - If a reupload is needed, begin again from `upload_detached_file` with these changes:
     - `upload_detached_file` Payload:
-        - `detached_award`: string, name of file being uploaded
+        - `fabs`: string, name of file being uploaded
         - `existing_submission_id`: string, ID of the submission
 
 ### Publish Submission
