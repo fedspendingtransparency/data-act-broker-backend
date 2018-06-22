@@ -17,7 +17,6 @@ def setup_all_db():
     setup_job_tracker_db()
     setup_error_db()
     setup_user_db()
-    setup_job_queue_db()
     setup_validation_db()
     setup_static_data()
     setup_submission_type_db()
