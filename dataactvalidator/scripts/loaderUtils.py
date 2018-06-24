@@ -8,7 +8,7 @@ from dataactcore.utils.failureThresholdException import FailureThresholdExceeded
 
 logger = logging.getLogger(__name__)
 
-FAILURE_THRESHOLD_PERCENTAGE = .01 
+FAILURE_THRESHOLD_PERCENTAGE = .01
 
 
 def clean_col_names(field):
@@ -44,7 +44,7 @@ def trim_item(item):
     return item
 
 
-def clean_data(data, model, field_map, field_options, required_values=[]):
+def clean_data(data, model, field_map, field_options, required_values=[], return_dropped_count=False):
 
     """ Cleans up a dataframe that contains domain values.
 
@@ -59,10 +59,11 @@ def clean_data(data, model, field_map, field_options, required_values=[]):
             "skip_duplicate" which ignores subsequent lines that repeat values
             "strip_commas" which removes commas
     Returns:
-        Dataframe conforming to requirements
+        Dataframe conforming to requirements, and additionally the number of rows dropped for missing value
+        if return_dropped_count argument is True
 
     Raises:
-        FailureThresholdExceededException: If too many rows have been discarded during processing, fail the routine. 
+        FailureThresholdExceededException: If too many rows have been discarded during processing, fail the routine.
            Also fail if the file is blank.
 
     """
@@ -87,27 +88,26 @@ def clean_data(data, model, field_map, field_options, required_values=[]):
 
     if len(required_values) > 0:
         # if file is blank, immediately fail
-        if data.empty or len(data.shape)<2:
+        if data.empty or len(data.shape) < 2:
             raise FailureThresholdExceededException(0)
-        # check the columns that must have a valid value, and if they have white space, 
+        # check the columns that must have a valid value, and if they have white space,
         # replace with NaN so that dropna finds them.
         for value in required_values:
-            logger.info(value)
-            data[value].replace('\s+', np.nan, inplace=True, regex=True)
+            data[value].replace('', np.nan, inplace=True)
         # drop any rows that are missing required data
         cleaned = data.dropna(subset=required_values)
         dropped = data[np.invert(data.index.isin(cleaned.index))]
         # log every dropped row
         for index, row in dropped.iterrows():
-            logger.info("Dropped row due to faulty data: fyq:{}--agency:{}--alloc:{}--account:{}".format(row["fiscal_year_quarter"],
-                row['agency_id'], row['allocation_transfer_id'], row['account_number'])+
-                "--pa_code:{}--pa_name:{}".format(row['program_activity_code'], row['program_activity_name'])) 
+            logger.info("Dropped row due to faulty data: fyq:{}--agency:{}--alloc:{}--account:{}".format(
+                row["fiscal_year_quarter"],
+                row['agency_id'], row['allocation_transfer_id'], row['account_number']) +
+                "--pa_code:{}--pa_name:{}".format(row['program_activity_code'], row['program_activity_name']))
 
         if (dropped.shape[0]/cleaned.shape[0]) > FAILURE_THRESHOLD_PERCENTAGE:
             raise FailureThresholdExceededException(dropped.shape[0])
-        logger.info("~~~~~~~~~~~~~~~ {} total rows dropped due to faulty data".format(dropped.shape[0]))
+        logger.info("{} total rows dropped due to faulty data".format(dropped.shape[0]))
         data = cleaned
-
 
     # apply column options as specified in fieldOptions param
     for col, options in field_options.items():
@@ -122,8 +122,10 @@ def clean_data(data, model, field_map, field_options, required_values=[]):
     # add created_at and updated_at columns
     now = datetime.utcnow()
     data = data.assign(created_at=now, updated_at=now)
-
-    return data
+    if return_dropped_count:
+        return dropped.shape[0], data
+    else:
+        return data
 
 
 def format_date(value):
@@ -132,5 +134,3 @@ def format_date(value):
     formatted_value = pd.to_datetime(value, format="%b %d,%Y")
     formatted_value = formatted_value.apply(lambda x: x.strftime('%Y%m%d') if not pd.isnull(x) else '')
     return formatted_value
-
-
