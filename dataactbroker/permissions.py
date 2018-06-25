@@ -111,15 +111,20 @@ def current_user_can_on_submission(perm, submission, check_owner=True):
 
 def requires_submission_perms(perm, check_owner=True, check_fabs=None):
     """ Decorator that checks the current user's permissions and validates that the submission exists. It expects a
-        submission_id parameter and will return a submission object
+        submission_id parameter on top of the function arguments.
 
         Args:
-            perm: string PermissionType value
-            check_owner: allows the functionality if the user is the owner of the Submission; default True
-            check_fabs: FABS permission to check if the Submission is FABS; default False
+            perm: the type of permission we are checking for
+            check_owner: a boolean indicating if we should check whether the user is the owner of the submission
+            check_fabs: FABS permission to check if the Submission is FABS; default None
 
         Returns:
-            Submission object
+            A submission object obtained using the submission_id provided (along with the other args/kwargs that were
+            initially provided)
+
+        Raises:
+            ResponseException: If the user doesn't have permission to access the submission at the level requested
+                or the submission doesn't exist.
     """
     def inner(fn):
         @requires_login

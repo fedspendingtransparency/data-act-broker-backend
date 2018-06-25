@@ -180,3 +180,11 @@ WHERE (CASE WHEN statement
 
 ## EXISTS
 The `SELECT` in an `EXISTS` statement should always select `1`
+
+# MD Files
+
+## Tabbing
+Spaces should be used in place of tabs for indentation, 4 spaces to a level
+
+## Bullets
+Bulleted lists are denoted using `-`
