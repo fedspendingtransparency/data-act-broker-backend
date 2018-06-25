@@ -13,7 +13,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import ProgramActivity, ExternalDataLoadDate, ExternalDataType
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
-from dataactcore.utils.failureThresholdException import FailureThresholdExceededException
+from dataactcore.utils.failure_threshold_exception import FailureThresholdExceededException
 
 logger = logging.getLogger(__name__)
 

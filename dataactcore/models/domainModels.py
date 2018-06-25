@@ -2,8 +2,8 @@ from datetime import timedelta
 
 import sqlalchemy as sa
 
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer, Numeric
-from sqlalchemy import Text, Float, UniqueConstraint, Boolean
+from sqlalchemy import (Column, Date, DateTime, ForeignKey, Index, Integer, Numeric,
+                        Text, Float, UniqueConstraint, Boolean)
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 

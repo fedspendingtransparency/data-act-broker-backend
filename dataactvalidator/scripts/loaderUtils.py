@@ -4,7 +4,7 @@ import numpy as np
 
 from datetime import datetime
 from pandas import isnull
-from dataactcore.utils.failureThresholdException import FailureThresholdExceededException
+from dataactcore.utils.failure_threshold_exception import FailureThresholdExceededException
 
 logger = logging.getLogger(__name__)
 
@@ -104,9 +104,9 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
                 row['agency_id'], row['allocation_transfer_id'], row['account_number']) +
                 "--pa_code:{}--pa_name:{}".format(row['program_activity_code'], row['program_activity_name']))
 
-        if (dropped.shape[0]/cleaned.shape[0]) > FAILURE_THRESHOLD_PERCENTAGE:
-            raise FailureThresholdExceededException(dropped.shape[0])
-        logger.info("{} total rows dropped due to faulty data".format(dropped.shape[0]))
+        if (len(dropped.index)/len(cleaned.index)) > FAILURE_THRESHOLD_PERCENTAGE:
+            raise FailureThresholdExceededException(len(dropped.index))
+        logger.info("{} total rows dropped due to faulty data".format(len(dropped.index)))
         data = cleaned
 
     # apply column options as specified in fieldOptions param
@@ -123,7 +123,7 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
     now = datetime.utcnow()
     data = data.assign(created_at=now, updated_at=now)
     if return_dropped_count:
-        return dropped.shape[0], data
+        return len(dropped.index), data
     else:
         return data
 
