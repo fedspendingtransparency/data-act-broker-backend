@@ -78,13 +78,19 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
 
 ```
 {
-    "message": "Login successful",
-    "user_id": 42,
-    "name": "John",
-    "title":"Developer",
-    "agency": "Department of Labor",
-    "permission" : 1,
-    "session_id": 'ABC123'
+	"user_id": 42,
+	"name": "John",
+	"title": "Developer",
+	"skip_guide": false,
+	"website_admin": false,
+	"affiliations": [
+		{
+			"agency_name": "Department of Labor (DOL)",
+			"permission": "writer"
+		}
+	],
+	"session_id": "ABC123",
+	"message": "Login successful"
 }
 ```
 
@@ -107,13 +113,19 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
 
 ```
 {
-    "message": "Login successful",
-    "user_id": 42,
-    "name": "John",
-    "title":"Developer",
-    "agency": "Department of Labor",
-    "permission" : 1,
-    "session_id": 'ABC123'
+	"user_id": 99,
+	"name": "Sample Service Account Name",
+	"title": "Sample Service Account Title",
+	"skip_guide": false,
+	"website_admin": false,
+	"affiliations": [
+		{
+			"agency_name": "Department of Labor (DOL)",
+			"permission": "editfabs"
+		}
+	],
+	"session_id": "ABC123",
+	"message": "Login successful"
 }
 ```
 
