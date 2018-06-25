@@ -2,7 +2,6 @@ from dataactcore.config import CONFIG_DB
 from dataactcore.logging import configure_logging
 from dataactcore.scripts.databaseSetup import create_database, run_migrations
 from dataactcore.scripts.setupErrorDB import setup_error_db
-from dataactcore.scripts.setupJobQueueDB import setup_job_queue_db
 from dataactcore.scripts.setupJobTrackerDB import setup_job_tracker_db
 from dataactcore.scripts.setupUserDB import setup_user_db
 from dataactcore.scripts.setupValidationDB import setup_validation_db
