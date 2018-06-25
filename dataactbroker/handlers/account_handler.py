@@ -308,12 +308,13 @@ def perms_to_affiliations(perms, user_id, service_account_flag=False):
                 continue
 
         perm_level = perm_level.lower()
-        if perm_level not in 'rwsef':
+
+        # Replace MAX Service Account permissions with Broker "write" and "editfabs" permissions
+        if service_account_flag:
+            perm_level = 'we'
+        elif perm_level not in 'rwsef':
             logger.warning(log_data)
             continue
-        # Replace MAX Service Account permissions with Broker "write" and "editfabs" permissions
-        elif service_account_flag:
-            perm_level = 'we'
 
         for permission in perm_level:
             if frec_code:
@@ -405,8 +406,6 @@ def set_max_perms(user, max_group_list, service_account_flag=False):
         user.affiliations = []
         user.website_admin = True
     else:
-        if service_account_flag:
-            print(perms)
         affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id, service_account_flag))
 
         user.affiliations = affiliations
