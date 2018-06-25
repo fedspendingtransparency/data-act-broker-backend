@@ -4,18 +4,9 @@
 ## Login Process
 
 ### Login to Max
-- Step 1: call `/vi/max_cert_login` (POST) to login to MAX using a certificate **Not yet implemented**
+- Step 1: call `/v1/max_login/` (POST) current broker login endpoint for logging into broker using MAX login
   - Payload:
-    - `cert_path`: string, absolute path of the MAX certificate file
-    - `service`: string, broker website the user is attempting to access
-  - Response:
-    - `ticket`: string,represents the verification that a user successfully logged into max. The ticket comes from the url the Max login service sends
-    - `service`: string, broker website the user is attempting to access
-
-- Step 2: call `/v1/max_login/` (POST) current broker login endpoint for logging into broker using MAX login
-  - Payload:
-     - `ticket`: string, represents the verification that a user successfully logged into max. The ticket comes from the url the Max login service sends
-     - `service`: string, broker website the user is attempting to access
+     - `cert`: string, absolute path of the MAX certificate file
   - Response:
     - `user_id`: int, database identifier of the logged in user, part of response only if login is successful
     - `name`: string, user's name, part of response only if login is successful
@@ -28,7 +19,7 @@
     - `message`: string, login error response "You have failed to login successfully with MAX", otherwise says "Login successful"
     - `errorType`: string, type of error, part of response only if login is unsuccessful
     - `trace`: list, traceback of error, part of response only if login is unsuccessful
-    - `session-token` (**Not yet implemented**): string, a hash the application uses to verify that user sending the request is logged in, part of response only if login is successful
+    - `session_id`: string, a hash the application uses to verify that user sending the request is logged in, part of response only if login is successful
 
 ## DABS Submission Process
 

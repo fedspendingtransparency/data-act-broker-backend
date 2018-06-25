@@ -55,9 +55,11 @@ Example output:
 ### User Routes
 
 #### POST "/v1/max_login/"
-This route sends a request to the backend with the ticket obtained from the MAX login endpoint in order to verify authentication and access to the Data Broker.
+This route sends a request to the backend with the ticket obtained from the MAX login endpoint in order to verify authentication and access to the Data Broker. If called by a service account, a certificate is required for authentication.
 
-#### Body (JSON)
+#### API call by Frontend
+
+##### Body (JSON)
 
 ```
 {
@@ -66,12 +68,12 @@ This route sends a request to the backend with the ticket obtained from the MAX 
 }
 ```
 
-#### Body Description
+##### Body Description
 
 * `ticket` - ticket string received from MAX from initial login request (pending validation)
 * `service` - URL encoded string that is the source of the initial login request
 
-#### Response (JSON)
+##### Response (JSON)
 Response will be somewhat similar to the original `/login` endpoint. More data will be added to the response depending on what we get back from MAX upon validating the ticket.
 
 ```
@@ -81,7 +83,37 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
     "name": "John",
     "title":"Developer",
     "agency": "Department of Labor",
-    "permission" : 1
+    "permission" : 1,
+    "session_id": 'ABC123'
+}
+```
+
+#### API call directly made by MAX Service Account
+
+##### Body (JSON)
+
+```
+{
+    "cert": /path/to/cert.pem
+}
+```
+
+##### Body Description
+
+* `cert` - Path to PEM file corresponding to the MAX Service Account certificate to be used for authentication.
+
+##### Response (JSON)
+Response will be somewhat similar to the original `/login` endpoint. More data will be added to the response depending on what we get back from MAX upon validating the ticket.
+
+```
+{
+    "message": "Login successful",
+    "user_id": 42,
+    "name": "John",
+    "title":"Developer",
+    "agency": "Department of Labor",
+    "permission" : 1,
+    "session_id": 'ABC123'
 }
 ```
 
