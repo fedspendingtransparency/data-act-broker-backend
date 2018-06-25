@@ -8,11 +8,11 @@ from dataactcore.models.domainModels import ProgramActivity, ExternalDataType
 
 @patch('dataactvalidator.scripts.load_program_activity.io.BytesIO')
 @patch('dataactvalidator.scripts.load_program_activity.boto3')
-def test_get_program_activity_file_aws(boto3, bytesIO, monkeypatch):
+def test_get_program_activity_file_aws(boto3, bytesio, monkeypatch):
 
     monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': True})
 
-    bytesIO.return_value = None
+    bytesio.return_value = None
 
     load_program_activity.get_program_activity_file('some path')
 
