@@ -27,6 +27,18 @@ def sams_config_is_valid():
         })
         sys.exit(1)
 
+def get_name_from_sams(client, duns_list):
+    """Calls SAM API to retrieve DUNS name by DUNS number. Returns DUNS info as Data Frame"""
+    duns_name = [{
+        'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
+        'legal_business_name': (suds_obj.entityIdentification.legalBusinessName or '').upper()
+    }
+        for suds_obj in get_entities(client, duns_list)
+        if suds_obj.entityIdentification.legalBusinessName
+    ]
+
+    return pd.DataFrame(duns_name)
+
 
 def get_parent_from_sams(client, duns_list):
     """Calls SAM API to retrieve parent DUNS data by DUNS number. Returns DUNS info as Data Frame"""
