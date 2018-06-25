@@ -7,6 +7,7 @@ from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PERMISSION_SHORT_DI
 from dataactcore.models.userModel import UserAffiliation
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
+from tests.unit.mock_helpers import mock_response
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.user import UserFactory
 
@@ -29,10 +30,11 @@ def make_max_dict(group_str):
 
 
 @pytest.mark.usefixtures("user_constants")
-def test_max_login_success(monkeypatch):
+def test_max_login_success_normal_login(monkeypatch):
     ah = account_handler.AccountHandler(Mock())
 
     mock_dict = Mock()
+    mock_dict.return_value.exists.return_value = False
     mock_dict.return_value.safeDictionary.side_effect = {'ticket': '', 'service': ''}
     monkeypatch.setattr(account_handler, 'RequestDictionary', mock_dict)
 
@@ -61,14 +63,81 @@ def test_max_login_success(monkeypatch):
     assert "Login successful" == json.loads(json_response.get_data().decode("utf-8"))['message']
 
 
-def test_max_login_failure(monkeypatch):
+def test_max_login_failure_normal_login(monkeypatch):
     ah = account_handler.AccountHandler(Mock())
     config = {'parent_group': 'parent-group'}
     monkeypatch.setattr(account_handler, 'CONFIG_BROKER', config)
 
     mock_dict = Mock()
+    mock_dict.return_value.exists.return_value = False
     mock_dict.return_value.safeDictionary.side_effect = {'ticket': '', 'service': ''}
     monkeypatch.setattr(account_handler, 'RequestDictionary', mock_dict)
+
+    max_dict = {'cas:serviceResponse': {}}
+    monkeypatch.setattr(account_handler, 'get_max_dict', Mock(return_value=max_dict))
+    json_response = ah.max_login(Mock())
+    error_message = "You have failed to login successfully with MAX"
+
+    # Did not get a successful response from MAX
+    assert error_message == json.loads(json_response.get_data().decode("utf-8"))['message']
+
+
+@pytest.mark.usefixtures("user_constants")
+def test_max_login_success_cert_login(monkeypatch):
+    ah = account_handler.AccountHandler(Mock())
+
+    mock_dict = Mock()
+    mock_dict.return_value.exists.return_value = True
+    mock_dict.return_value.safeDictionary.side_effect = {'cert': ''}
+    monkeypatch.setattr(account_handler, 'RequestDictionary', mock_dict)
+
+    max_dict = {'cas:serviceResponse': {}}
+    monkeypatch.setattr(account_handler, 'get_max_dict', Mock(return_value=max_dict))
+
+    config = {'parent_group': 'parent-group', 'full_url': 'full-url', 'max_cert_url': 'max-cert-url'}
+    monkeypatch.setattr(account_handler, 'CONFIG_BROKER', config)
+
+    max_dict = make_max_dict('parent-group,parent-group-CGAC_SYS')
+    monkeypatch.setattr(account_handler, 'get_max_dict', Mock(return_value=max_dict))
+
+    mock_resp = Mock()
+    mock_resp.return_value = mock_response(url='ticket=12345')
+    monkeypatch.setattr('requests.get', mock_resp)
+
+    # If it gets to this point, that means the user was in all the right groups aka successful login
+    monkeypatch.setattr(ah, 'create_session_and_response',
+                        Mock(return_value=JsonResponse.create(StatusCode.OK, {"message": "Login successful"})))
+    json_response = ah.max_login(Mock())
+
+    assert "Login successful" == json.loads(json_response.get_data().decode("utf-8"))['message']
+
+    max_dict = make_max_dict('')
+    monkeypatch.setattr(account_handler, 'get_max_dict', Mock(return_value=max_dict))
+
+    # If it gets to this point, that means the user was in all the right groups aka successful login
+    monkeypatch.setattr(ah, 'create_session_and_response',
+                        Mock(return_value=JsonResponse.create(StatusCode.OK, {"message": "Login successful"})))
+    json_response = ah.max_login(Mock())
+
+    assert "Login successful" == json.loads(json_response.get_data().decode("utf-8"))['message']
+
+
+def test_max_login_failure_cert_login(monkeypatch):
+    ah = account_handler.AccountHandler(Mock())
+    config = {'parent_group': 'parent-group'}
+    monkeypatch.setattr(account_handler, 'CONFIG_BROKER', config)
+
+    mock_dict = Mock()
+    mock_dict.return_value.exists.return_value = True
+    mock_dict.return_value.safeDictionary.side_effect = {'cert': ''}
+    monkeypatch.setattr(account_handler, 'RequestDictionary', mock_dict)
+
+    mock_resp = Mock()
+    mock_resp.return_value = mock_response(url='ticket=12345')
+    monkeypatch.setattr('requests.get', mock_resp)
+
+    config = {'full_url': 'full-url', 'max_cert_url': 'max-cert-url'}
+    monkeypatch.setattr(account_handler, 'CONFIG_BROKER', config)
 
     max_dict = {'cas:serviceResponse': {}}
     monkeypatch.setattr(account_handler, 'get_max_dict', Mock(return_value=max_dict))
@@ -266,8 +335,8 @@ def test_set_max_perms(database, monkeypatch):
     assert cgac_affils[0].permission_type_id == PERMISSION_TYPE_DICT['reader']
 
     # test creating DABS and FABS CGAC permissions from service accounts
-    perms_string = 'prefix-CGAC_ABC-PERM_A'
-    account_handler.set_max_perms(user, perms_string)
+    perms_string = 'prefix-CGAC_ABC-PERM_W'
+    account_handler.set_max_perms(user, perms_string, service_account_flag=True)
     database.session.commit()
     assert len(user.affiliations) == 2
     abc_aff, def_aff = list(sorted(user.affiliations, key=lambda a: a.permission_type_id))
@@ -279,8 +348,8 @@ def test_set_max_perms(database, monkeypatch):
     assert def_aff.permission_type_id == PERMISSION_SHORT_DICT['e']
 
     # test creating DABS and FABS FREC permissions from service accounts
-    perms_string = 'prefix-CGAC_ABC-FREC_ABCD-PERM_A'
-    account_handler.set_max_perms(user, perms_string)
+    perms_string = 'prefix-CGAC_ABC-FREC_ABCD-PERM_F'
+    account_handler.set_max_perms(user, perms_string, service_account_flag=True)
     database.session.commit()
     assert len(user.affiliations) == 3
     frec_affils = [affil for affil in user.affiliations if affil.frec is not None]
@@ -307,9 +376,12 @@ def test_create_session_and_response(database, monkeypatch):
     ])
     database.session.add_all(cgacs + [user])
     database.session.commit()
+
     monkeypatch.setattr(account_handler, 'LoginSession', Mock())
 
-    result = account_handler.AccountHandler.create_session_and_response(Mock(), user)
+    mock_session = {'sid': ''}
+
+    result = account_handler.AccountHandler.create_session_and_response(mock_session, user)
     result = json.loads(result.data.decode('utf-8'))
     assert result['message'] == 'Login successful'
     assert result['user_id'] == user.user_id
