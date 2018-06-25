@@ -176,7 +176,7 @@ def load_program_activity_data(base_path):
 
         deduped = data.drop_duplicates()
         dropped_dupes = data[np.invert(data.index.isin(deduped.index))]
-        logger.info("Dropped {} duplicate rows.".format(dropped_dupes.shape[0]))
+        logger.info("Dropped {} duplicate rows.".format(len(dropped_dupes.index)))
         data = deduped
         # insert to db
         table_name = ProgramActivity.__table__.name
