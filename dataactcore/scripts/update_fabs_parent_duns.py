@@ -43,9 +43,6 @@ FABS_PARENT_DUNS_SQL_EARLIEST = """
     joined_historical_fabs AS (
         SELECT
             hfabs.published_award_financial_assistance_id AS "fabs_id",
-            hfabs.awardee_or_recipient_uniqu,
-            hfabs.action_date,
-            min_years.min_year,
             hpd.ultimate_parent_unique_ide AS "parent_duns",
             hpd.ultimate_parent_legal_enti AS "parent_name"
         FROM published_award_financial_assistance hfabs
