@@ -153,7 +153,8 @@ Example output:
     "website_admin": False,
     "affiliations": [
         {"agency_name": "Department of Labor", "permission": "writer"}
-    ]
+    ],
+    "session_id": "ABC123"
 }
 ```
 
