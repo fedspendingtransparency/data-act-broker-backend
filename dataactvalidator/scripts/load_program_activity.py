@@ -33,8 +33,8 @@ def get_program_activity_file(base_path):
     """
 
     if CONFIG_BROKER["use_aws"]:
-        s3bucket = get_s3_object()
-        response = s3bucket.get(PA_SUB_KEY+PA_FILE_NAME)
+        s3_object = get_s3_object()
+        response = s3_object.get(PA_SUB_KEY+PA_FILE_NAME)
         pa_file = io.BytesIO(response['Body'].read())
     else:
         pa_file = os.path.join(base_path, PA_FILE_NAME)
@@ -143,7 +143,7 @@ def load_program_activity_data(base_path):
             data = pd.read_csv(program_activity_file, dtype=str)
         except pd.io.common.EmptyDataError as e:
             log_blank_file()
-            sys.exit(4)  # exit code chose arbitrarily, to indicate distinct failure states. Approved by Ops.
+            sys.exit(4)  # exit code chosen arbitrarily, to indicate distinct failure states. Approved by Ops.
         try:
             dropped_count, data = clean_data(
                 data,
