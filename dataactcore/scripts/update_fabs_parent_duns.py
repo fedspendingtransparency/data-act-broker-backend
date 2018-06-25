@@ -118,6 +118,7 @@ if __name__ == '__main__':
         # Update the FABS whose action_date falls within a yearly SAMS snapshot of DUNS data
         logger.info("Updating FABS with action dates matching the years within the parent duns")
         sess.execute(FABS_PARENT_DUNS_SQL_MATCH)
+        
         # Update the FABS whose action_dates do not fall within a yearly snapshot
         # Using the earliest year provided
         logger.info("Updating FABS with action dates not matching the parent duns, using the earliest match")
