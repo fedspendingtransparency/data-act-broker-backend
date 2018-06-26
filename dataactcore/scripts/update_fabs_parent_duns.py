@@ -6,7 +6,7 @@ from dataactcore.logging import configure_logging
 from dataactvalidator.health_check import create_app
 
 from dataactcore.models.domainModels import HistoricParentDUNS
-from dataactcore.utils.parentDuns import sams_config_is_valid, get_name_from_sams
+from dataactcore.utils.parentDuns import sams_config_is_valid, get_name_from_sams, update_missing_parent_names
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +66,8 @@ FABS_PARENT_DUNS_SQL_EARLIEST = """
        joined_historical_fabs.fabs_id = fabs.published_award_financial_assistance_id;
 """
 
-
-def update_historic_parent_names():
+def update_historic_parent_names_duns_service():
+    logger.info("Gathering historical parent duns names via SAM service")
     client = sams_config_is_valid()
     hist_duns = sess.query(HistoricParentDUNS).filter(HistoricParentDUNS.ultimate_parent_unique_ide.isnot(None),
                                                       HistoricParentDUNS.ultimate_parent_legal_enti.is_(None))
@@ -105,6 +105,15 @@ def update_historic_parent_names():
         batch += 1
     sess.add_all(models.values())
     sess.commit()
+    logger.info("Updated historical Parent DUNS names through SAM service")
+
+
+def update_historic_parent_names(sess):
+    update_historic_parent_names_duns_service(sess)
+
+    logger.info("Updating historical Parent DUNS names using the internal data")
+    while update_missing_parent_names(sess, table=HistoricParentDUNS):
+        continue
 
 if __name__ == '__main__':
     configure_logging()
@@ -114,8 +123,7 @@ if __name__ == '__main__':
         args = parser.parse_args()
         sess = GlobalDB.db().session
 
-        logger.info("Gathering historical parent duns names via SAM service")
-        update_historic_parent_names()
+        update_historic_parent_names(sess)
 
         logger.info("Updating FABS with action dates matching the years within the parent duns")
         sess.execute(FABS_PARENT_DUNS_SQL_MATCH)
