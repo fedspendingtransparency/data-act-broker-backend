@@ -113,21 +113,9 @@ class AccountHandler:
         """
         try:
             safe_dictionary = RequestDictionary(self.request)
-            service_account_flag = False
 
-            # Obtain POST content
-            if safe_dictionary.exists("cert"):
-                # Attach certificate file to the request to MAX
-                service = CONFIG_BROKER['full_url']
-                req = requests.get(CONFIG_BROKER['max_cert_url'].format(service),
-                                   cert=safe_dictionary.get_value("cert"))
-
-                regex = re.compile('ticket=(?P<ticket>[a-zA-Z0-9.-]*)')
-                ticket = regex.search(req.url).group('ticket')
-                service_account_flag = True
-            else:
-                ticket = safe_dictionary.get_value("ticket")
-                service = safe_dictionary.get_value('service')
+            ticket = safe_dictionary.get_value("ticket")
+            service = safe_dictionary.get_value('service')
 
             # Call MAX's serviceValidate endpoint and retrieve the response
             max_dict = get_max_dict(ticket, service)
@@ -151,7 +139,7 @@ class AccountHandler:
 
                 set_user_name(user, cas_attrs)
 
-                set_max_perms(user, cas_attrs['maxAttribute:GroupList'], service_account_flag)
+                set_max_perms(user, cas_attrs['maxAttribute:GroupList'])
 
                 sess.add(user)
                 sess.commit()
@@ -267,13 +255,12 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK, {"message": "Emails successfully sent"})
 
 
-def perms_to_affiliations(perms, user_id, service_account_flag=False):
+def perms_to_affiliations(perms, user_id):
     """ Convert a list of perms from MAX to a list of UserAffiliations. Filter out and log any malformed perms
 
         Args:
             perms: list of permissions (as strings) for the user
             user_id: the ID of the user
-            service_account_flag: indication of whether the permissions are associated with a service account or not
 
         Yields:
             UserAffiliations based on the permissions provided
@@ -308,13 +295,12 @@ def perms_to_affiliations(perms, user_id, service_account_flag=False):
                 continue
 
         perm_level = perm_level.lower()
-
-        # Replace MAX Service Account permissions with Broker "write" and "editfabs" permissions
-        if service_account_flag:
-            perm_level = 'we'
-        elif perm_level not in 'rwsef':
+        if perm_level not in 'rwsefa':
             logger.warning(log_data)
             continue
+        # Replace MAX Service Account permissions with Broker "write" and "editfabs" permissions
+        elif perm_level == 'a':
+            perm_level = 'we'
 
         for permission in perm_level:
             if frec_code:
@@ -406,7 +392,7 @@ def set_max_perms(user, max_group_list, service_account_flag=False):
         user.affiliations = []
         user.website_admin = True
     else:
-        affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id, service_account_flag))
+        affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id))
 
         user.affiliations = affiliations
         user.website_admin = False

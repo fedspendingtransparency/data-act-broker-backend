@@ -4,9 +4,12 @@
 ## Login Process
 
 ### Login to Max
-- Step 1: call `/v1/max_login/` (POST) current broker login endpoint for logging into broker using MAX login
+- Step 1: Authenticate with MAX directly to obtain the `ticket` value for Step 2
+    - Details coming soon
+- Step 2: call `/v1/max_login/` (POST) current broker login endpoint for logging into broker using MAX login
     - Payload:
-        - `cert`: string, absolute path of the MAX certificate file
+        - `ticket`: string, represents the verification that a user successfully logged into max. The ticket comes from the url the Max login service sends
+        - `service`: string, broker website the user is attempting to access
     - Response:
         - `user_id`: int, database identifier of the logged in user, part of response only if login is successful
         - `name`: string, user's name, part of response only if login is successful
