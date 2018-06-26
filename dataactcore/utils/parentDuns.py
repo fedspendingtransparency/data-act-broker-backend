@@ -27,6 +27,7 @@ def sams_config_is_valid():
         })
         sys.exit(1)
 
+
 def get_name_from_sams(client, duns_list):
     """Calls SAM API to retrieve DUNS name by DUNS number. Returns DUNS info as Data Frame"""
     duns_name = [{

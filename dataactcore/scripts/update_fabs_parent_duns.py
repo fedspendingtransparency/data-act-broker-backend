@@ -31,7 +31,7 @@ FABS_PARENT_DUNS_SQL_MATCH = """
        ultimate_parent_legal_enti = joined_historical_fabs.parent_name
     FROM joined_historical_fabs
     WHERE
-       joined_historical_fabs.fabs_id = fabs.published_award_financial_assistance_id 
+       joined_historical_fabs.fabs_id = fabs.published_award_financial_assistance_id
 """
 
 FABS_PARENT_DUNS_SQL_EARLIEST = """
@@ -66,6 +66,7 @@ FABS_PARENT_DUNS_SQL_EARLIEST = """
        joined_historical_fabs.fabs_id = fabs.published_award_financial_assistance_id;
 """
 
+
 def update_historic_parent_names():
     client = sams_config_is_valid()
     hist_duns = sess.query(HistoricParentDUNS).filter(HistoricParentDUNS.ultimate_parent_unique_ide.isnot(None),
@@ -89,17 +90,19 @@ def update_historic_parent_names():
             else:
                 models[row.ultimate_parent_unique_ide].append(row)
         sliced_duns_list = [str(duns) for duns in list(models.keys())]
-        duns_parent_df = get_name_from_sams(client, sliced_duns_list)
-        duns_parent_df = duns_parent_df.rename(columns={'awardee_or_recipient_uniqu': 'ultimate_parent_unique_ide',
-                                                        'legal_business_name': 'ultimate_parent_legal_enti'})
-        for _, row in duns_parent_df.iterrows():
-            parent_duns = row['ultimate_parent_unique_ide']
-            if parent_duns not in models:
-                models[parent_duns] = [HistoricParentDUNS()]
-            for field, value in row.items():
-                for model in models[parent_duns]:
-                    setattr(model, field, value)
-        all_models.extend([model for model_list in models.values() for model in model_list])
+        if sliced_duns_list:
+            duns_parent_df = get_name_from_sams(client, sliced_duns_list)
+            duns_parent_df = duns_parent_df.rename(columns={'awardee_or_recipient_uniqu': 'ultimate_parent_unique_ide',
+                                                            'legal_business_name': 'ultimate_parent_legal_enti'})
+            for _, row in duns_parent_df.iterrows():
+                parent_duns = row['ultimate_parent_unique_ide']
+                if parent_duns not in models:
+                    models[parent_duns] = [HistoricParentDUNS()]
+                for field, value in row.items():
+                    for model in models[parent_duns]:
+                        setattr(model, field, value)
+            all_models.extend([model for model_list in models.values() for model in model_list])
+        batch += 1
     sess.add_all(models.values())
     sess.commit()
 
