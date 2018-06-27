@@ -1,5 +1,6 @@
 import argparse
 import logging
+import time
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
@@ -67,6 +68,7 @@ FABS_PARENT_DUNS_SQL_EARLIEST = """
 """
 
 def update_historic_parent_names_duns_service():
+    start = time.time()
     logger.info("Gathering historical parent duns names via SAM service")
     client = sams_config_is_valid()
     hist_duns = sess.query(HistoricParentDUNS).filter(HistoricParentDUNS.ultimate_parent_unique_ide.isnot(None),
@@ -105,15 +107,17 @@ def update_historic_parent_names_duns_service():
         batch += 1
     sess.add_all(models.values())
     sess.commit()
-    logger.info("Updated historical Parent DUNS names through SAM service")
+    logger.info("Updated historical Parent DUNS names through SAM service, took {} seconds".format(time.time()-start))
 
 
 def update_historic_parent_names(sess):
     update_historic_parent_names_duns_service(sess)
 
-    logger.info("Updating historical Parent DUNS names using the internal data")
+    start = time.time()
+    logger.info("Updating historical Parent DUNS names using internal data")
     while update_missing_parent_names(sess, table=HistoricParentDUNS):
         continue
+    logger.info("Updated historical Parent DUNS names using internal data, took {} seconds".format(time.time()-start))
 
 if __name__ == '__main__':
     configure_logging()
@@ -125,11 +129,17 @@ if __name__ == '__main__':
 
         update_historic_parent_names(sess)
 
+        start = time.time()
         logger.info("Updating FABS with action dates matching the years within the parent duns")
         sess.execute(FABS_PARENT_DUNS_SQL_MATCH)
+        logger.info("Updated FABS with action dates matching the years within the parent duns, took {} seconds"
+                    .format(time.time()-start))
 
+        start = time.time()
         logger.info("Updating FABS with action dates not matching the parent duns, using the earliest match")
         sess.execute(FABS_PARENT_DUNS_SQL_EARLIEST)
-        sess.close()
+        logger.info("Updated FABS with action dates not matching the parent duns, using the earliest match, "
+                    "took {} seconds".format(time.time()-start))
 
+        sess.close()
         logger.info("Historical parent DUNS FABS updates complete.")
