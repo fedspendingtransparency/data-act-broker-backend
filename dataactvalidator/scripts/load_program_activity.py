@@ -76,7 +76,7 @@ def get_stored_pa_last_upload():
     """ Gets last recorded timestamp from last time file was processed.
 
         Returns:
-            Upload date of most recent file we have recorded (Datetime object)\
+            Upload date of most recent file we have recorded (Datetime object)
     """
     sess = GlobalDB.db().session
     last_stored_obj = sess.query(ExternalDataLoadDate).join(ExternalDataType).filter(
