@@ -67,7 +67,7 @@ FABS_PARENT_DUNS_SQL_EARLIEST = """
        joined_historical_fabs.fabs_id = fabs.published_award_financial_assistance_id;
 """
 
-def update_historic_parent_names_duns_service():
+def update_historic_parent_names_duns_service(sess):
     start = time.time()
     logger.info("Gathering historical parent duns names via SAM service")
     client = sams_config_is_valid()
