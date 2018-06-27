@@ -31,7 +31,6 @@ def get_program_activity_file(base_path):
         Returns:
             the file path for the pa file either on S3 or locally
     """
-
     if CONFIG_BROKER["use_aws"]:
         s3_object = get_s3_object()
         response = s3_object.get(PA_SUB_KEY+PA_FILE_NAME)
@@ -67,7 +66,6 @@ def get_date_of_current_pa_upload(base_path):
             DateTime object
 
     """
-
     if CONFIG_BROKER["use_aws"]:
         last_uploaded = boto3.client('s3').head_object(Bucket=PA_BUCKET, Key=PA_SUB_KEY+PA_FILE_NAME)['LastModified']
     else:
@@ -103,7 +101,6 @@ def set_stored_pa_last_upload(load_datetime):
             Datetime object representing the timestamp associated with the current file
 
     """
-
     sess = GlobalDB.db().session
     last_stored_obj = sess.query(ExternalDataLoadDate).join(ExternalDataType).filter(
         ExternalDataType.name == "program_activity_upload"
@@ -211,15 +208,14 @@ def lowercase_or_notify(x):
 
 
 def make_date_tz_aware(d):
-    """File storage locally may have TZ-unaware modification dates, so we need this for local operations.
+    """ File storage locally may have TZ-unaware modification dates, so we need this for local operations.
 
-       Args:
-           Datetime object
+        Args:
+            Datetime object
 
-       Returns:
-           Timezone-aware datetime object
+        Returns:
+            Timezone-aware datetime object
     """
-
     if d.tzinfo is None or d.tzinfo.utcoffset(d) is None:
         import pytz
         eastern = pytz.timezone('US/Eastern')
@@ -230,7 +226,5 @@ def make_date_tz_aware(d):
 
 
 def log_blank_file():
-    """ Helper function for specific reused log message
-
-    """
+    """ Helper function for specific reused log message """
     logger.error(" File was blank! Not loaded, routine aborted.")

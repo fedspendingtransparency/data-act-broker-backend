@@ -104,7 +104,7 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
                 row['agency_id'], row['allocation_transfer_id'], row['account_number']) +
                 "--pa_code:{}--pa_name:{}".format(row['program_activity_code'], row['program_activity_name']))
 
-        if (len(dropped.index)/len(cleaned.index)) > FAILURE_THRESHOLD_PERCENTAGE:
+        if (len(dropped.index)/len(data.index)) > FAILURE_THRESHOLD_PERCENTAGE:
             raise FailureThresholdExceededException(len(dropped.index))
         logger.info("{} total rows dropped due to faulty data".format(len(dropped.index)))
         data = cleaned
