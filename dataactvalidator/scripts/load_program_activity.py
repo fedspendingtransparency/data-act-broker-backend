@@ -46,7 +46,6 @@ def get_s3_object():
 
         Returns:
             s3bucket connection object
-
     """
     if CONFIG_BROKER["use_aws"]:
         s3 = boto3.resource('s3')
@@ -64,7 +63,6 @@ def get_date_of_current_pa_upload(base_path):
 
         Returns:
             DateTime object
-
     """
     if CONFIG_BROKER["use_aws"]:
         last_uploaded = boto3.client('s3').head_object(Bucket=PA_BUCKET, Key=PA_SUB_KEY+PA_FILE_NAME)['LastModified']
@@ -78,8 +76,7 @@ def get_stored_pa_last_upload():
     """ Gets last recorded timestamp from last time file was processed.
 
         Returns:
-            Upload date of most recent file we have recorded (Datetime object)
-
+            Upload date of most recent file we have recorded (Datetime object)\
     """
     sess = GlobalDB.db().session
     last_stored_obj = sess.query(ExternalDataLoadDate).join(ExternalDataType).filter(
@@ -99,7 +96,6 @@ def set_stored_pa_last_upload(load_datetime):
 
         Args:
             Datetime object representing the timestamp associated with the current file
-
     """
     sess = GlobalDB.db().session
     last_stored_obj = sess.query(ExternalDataLoadDate).join(ExternalDataType).filter(
@@ -122,7 +118,6 @@ def load_program_activity_data(base_path):
 
         Args:
             base_path: directory of domain config files
-
     """
     last_upload = get_date_of_current_pa_upload(base_path)
     if not make_date_tz_aware(last_upload) > make_date_tz_aware(get_stored_pa_last_upload()):
