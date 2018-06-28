@@ -2,7 +2,7 @@ from flask import g, request, session
 
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
-from dataactbroker.handlers.accountHandler import AccountHandler, logout
+from dataactbroker.handlers.account_handler import AccountHandler, logout
 
 
 def add_login_routes(app, bcrypt):

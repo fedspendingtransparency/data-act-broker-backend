@@ -9,7 +9,7 @@ import paramiko
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import DUNS
+from dataactcore.models.domainModels import DUNS, HistoricParentDUNS
 from dataactcore.utils.parentDuns import sams_config_is_valid, get_duns_batches, update_missing_parent_names
 from dataactcore.utils.duns import get_config, parse_sam_file, process_from_dir
 from dataactvalidator.health_check import create_app
@@ -43,6 +43,9 @@ def get_parser():
                                                       'duns table. By default, it loads the latest daily file.')
     duns_parser.add_argument("--historic", "-i", action="store_true", help='load the oldest monthly zip and all the '
                                                                            'daily files afterwards from the directory.')
+    duns_parser.add_argument("--historic_parent_duns", "-hpd", action="store_true",
+                             help='Loads only the last monthly files of every year available into a separate '
+                                  'historic_parent_duns table')
     duns_parser.add_argument("--local", "-l", type=str, default=None, help='work from a local directory')
     duns_parser.add_argument("--monthly", "-m", type=str, default=None, help='load a local monthly file')
     duns_parser.add_argument("--daily", "-d", type=str, default=None, help='load a local daily file')
@@ -58,6 +61,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     historic = args.historic
+    historic_parent_duns = args.historic_parent_duns
     local = args.local
     monthly = args.monthly
     daily = args.daily
@@ -72,6 +76,9 @@ if __name__ == '__main__':
         wdsl_client = sams_config_is_valid()
         updated_date = datetime.date.today()
 
+        if historic_parent_duns and any([historic, local, monthly, daily, update]):
+            logger.error("Historic parent duns requires no other parameters be provided.")
+            sys.exit(1)
         if monthly and daily:
             logger.error("For loading a single local file, you must provide either monthly or daily.")
             sys.exit(1)
@@ -141,6 +148,17 @@ if __name__ == '__main__':
                     update_missing_parent_names(sess, updated_date=updated_date)
                 else:
                     logger.info("No daily file found.")
+            elif historic_parent_duns:
+                yearly_files = [yearly_file for yearly_file in sorted_monthly_file_names
+                                if re.match(".*MONTHLY_\d{4}12\d{2}\.ZIP", yearly_file.upper())]
+                for yearly_file in yearly_files:
+                    year = re.findall(".*MONTHLY_(\d{4})12\d{2}\.ZIP", yearly_file)[0]
+                    if sftp.sock.closed:
+                        # Reconnect if channel is closed
+                        ssh_client = get_client()
+                        sftp = ssh_client.open_sftp()
+                    process_from_dir(root_dir, yearly_file, sess, local, sftp, monthly=True, benchmarks=benchmarks,
+                                     table=HistoricParentDUNS, year=year)
             else:
                 if sorted_daily_file_names:
 

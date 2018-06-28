@@ -8,6 +8,7 @@ class UserFactory(factory.Factory):
     class Meta:
         model = userModel.User
 
+    user_id = fuzzy.FuzzyInteger(9999)
     username = fuzzy.FuzzyText()
     email = fuzzy.FuzzyText()
     name = fuzzy.FuzzyText()

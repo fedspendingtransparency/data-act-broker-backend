@@ -7,8 +7,8 @@ from flask import Flask, g, session
 
 from dataactbroker.domainRoutes import add_domain_routes
 from dataactbroker.exception_handler import add_exception_handlers
-from dataactbroker.fileRoutes import add_file_routes
-from dataactbroker.handlers.accountHandler import AccountHandler
+from dataactbroker.file_routes import add_file_routes
+from dataactbroker.handlers.account_handler import AccountHandler
 from dataactbroker.handlers.aws.sesEmail import SesEmail
 from dataactbroker.handlers.aws.session import UserSessionInterface
 from dataactbroker.loginRoutes import add_login_routes
@@ -38,8 +38,8 @@ def create_app():
     broker_file_path = CONFIG_BROKER['broker_files']
     AccountHandler.FRONT_END = CONFIG_BROKER['full_url']
     SesEmail.SIGNING_KEY = CONFIG_BROKER['email_token_key']
-    SesEmail.isLocal = local
-    if SesEmail.isLocal:
+    SesEmail.is_local = local
+    if SesEmail.is_local:
         SesEmail.emailLog = os.path.join(broker_file_path, 'email.log')
     # If local, make the email directory if needed
     if local and not os.path.exists(broker_file_path):

@@ -232,6 +232,23 @@ class DUNS(Base):
     ultimate_parent_legal_enti = Column(Text)
 
 
+class HistoricParentDUNS(Base):
+    """ DUNS Records """
+    __tablename__ = "historic_parent_duns"
+
+    duns_id = Column(Integer, primary_key=True)
+    year = Column(Integer)
+    awardee_or_recipient_uniqu = Column(Text, index=True)
+    legal_business_name = Column(Text)
+    activation_date = Column(Date, index=True)
+    deactivation_date = Column(Date, index=True)
+    registration_date = Column(Date, index=True)
+    expiration_date = Column(Date, index=True)
+    last_sam_mod_date = Column(Date)
+    ultimate_parent_unique_ide = Column(Text)
+    ultimate_parent_legal_enti = Column(Text)
+
+
 class CFDAProgram(Base):
     __tablename__ = "cfda_program"
     cfda_program_id = Column(Integer, primary_key=True)
