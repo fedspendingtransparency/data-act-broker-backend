@@ -11,6 +11,6 @@ script:
     docker-compose run --rm dataact-broker \
       /bin/sh -c " \
       cd ./dataactcore; sleep 9s; alembic upgrade head; \
-      flake8; \
+      cd ../; flake8; \
       py.test --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml"
   - docker-compose down
