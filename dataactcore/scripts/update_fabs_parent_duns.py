@@ -105,7 +105,7 @@ def update_historic_parent_names_duns_service(sess):
                         setattr(model, field, value)
             all_models.extend([model for model_list in models.values() for model in model_list])
         batch += 1
-    sess.add_all(models.values())
+    sess.add_all(all_models)
     sess.commit()
     logger.info("Updated historical Parent DUNS names through SAM service, took {} seconds".format(time.time()-start))
 
