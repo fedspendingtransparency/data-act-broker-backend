@@ -132,12 +132,14 @@ if __name__ == '__main__':
         start = time.time()
         logger.info("Updating FABS with action dates matching the years within the parent duns")
         sess.execute(FABS_PARENT_DUNS_SQL_MATCH)
+        sess.commit()
         logger.info("Updated FABS with action dates matching the years within the parent duns, took {} seconds"
                     .format(time.time()-start))
 
         start = time.time()
         logger.info("Updating FABS with action dates not matching the parent duns, using the earliest match")
         sess.execute(FABS_PARENT_DUNS_SQL_EARLIEST)
+        sess.commit()
         logger.info("Updated FABS with action dates not matching the parent duns, using the earliest match, "
                     "took {} seconds".format(time.time()-start))
 
