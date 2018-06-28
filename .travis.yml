@@ -8,6 +8,7 @@ script:
   - cp dataactcore/config_example.yml dataactcore/config.yml
   - cp dataactcore/local_config_example.yml dataactcore/local_config.yml
   - cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
+  - docker-compose build
   - docker-compose up -d --build
   - docker exec -ti dataact-broker sh -c "flake8"
   - docker exec -ti dataact-broker sh -c "py.test --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml"
