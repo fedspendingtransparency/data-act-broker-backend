@@ -1,0 +1,12 @@
+sudo: required
+
+services:
+  - docker
+
+script:
+  - chmod +x run_tests.sh
+  - cp dataactcore/config_example.yml dataactcore/config.yml
+  - cp dataactcore/local_config_example.yml dataactcore/local_config.yml
+  - cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
+  - docker-compose run --name dataact-postgres -d dataact-postgres && docker-compose run --rm dataact-broker /bin/sh -c "./run_tests.sh"
+  - docker-compose down
