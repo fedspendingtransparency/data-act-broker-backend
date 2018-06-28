@@ -2,7 +2,7 @@ version: '3'
 services:
   dataact-postgres:
     container_name: dataact-postgres
-    image: postgres:10.3
+    image: postgres:10.3-alpine
     restart: always
     environment:
       POSTGRES_USER: admin
