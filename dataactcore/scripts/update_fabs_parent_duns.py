@@ -35,13 +35,20 @@ FABS_PARENT_DUNS_SQL_MATCH = """
        joined_historical_fabs.fabs_id = fabs.published_award_financial_assistance_id
 """
 
-FABS_PARENT_DUNS_SQL_EARLIEST = """
-    WITH min_years AS (
+CREATE_TEMP_MIN_YEARS_MATVIEW = """
+    CREATE MATERIALIZED VIEW tmp_matview_min_years
+    AS (
         SELECT awardee_or_recipient_uniqu, MIN(year) as "min_year"
         FROM historic_parent_duns
         GROUP BY awardee_or_recipient_uniqu
-    ),
-    joined_historical_fabs AS (
+    );
+
+    CREATE INDEX min_years_min_year_idx ON tmp_matview_min_years (min_year);
+    CREATE INDEX min_years_awardee_or_recipient_uniqu_idx ON tmp_matview_min_years (awardee_or_recipient_uniqu);
+"""
+
+FABS_PARENT_DUNS_SQL_EARLIEST = """
+    WITH joined_historical_fabs AS (
         SELECT
             hfabs.published_award_financial_assistance_id AS "fabs_id",
             hpd.ultimate_parent_unique_ide AS "parent_duns",
@@ -50,7 +57,7 @@ FABS_PARENT_DUNS_SQL_EARLIEST = """
         JOIN historic_parent_duns hpd ON (
             hfabs.awardee_or_recipient_uniqu=hpd.awardee_or_recipient_uniqu
         )
-        JOIN min_years ON (
+        JOIN tmp_matview_min_years min_years ON (
             hfabs.awardee_or_recipient_uniqu = min_years.awardee_or_recipient_uniqu
         )
         WHERE (
@@ -66,6 +73,13 @@ FABS_PARENT_DUNS_SQL_EARLIEST = """
     WHERE
        joined_historical_fabs.fabs_id = fabs.published_award_financial_assistance_id;
 """
+
+DROP_TEMP_MIN_YEARS_MATVIEW = """
+    DROP INDEX min_years_min_year_idx;
+    DROP INDEX min_years_awardee_or_recipient_uniqu_idx;
+    DROP MATERIALIZED VIEW tmp_matview_min_years;
+"""
+
 
 def update_historic_parent_names_duns_service(sess):
     start = time.time()
@@ -138,7 +152,11 @@ if __name__ == '__main__':
 
         start = time.time()
         logger.info("Updating FABS with action dates not matching the parent duns, using the earliest match")
+        sess.execute(CREATE_TEMP_MIN_YEARS_MATVIEW)
+        sess.commit()
         sess.execute(FABS_PARENT_DUNS_SQL_EARLIEST)
+        sess.commit()
+        sess.execute(DROP_TEMP_MIN_YEARS_MATVIEW)
         sess.commit()
         logger.info("Updated FABS with action dates not matching the parent duns, using the earliest match, "
                     "took {} seconds".format(time.time()-start))

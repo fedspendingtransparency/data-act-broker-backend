@@ -111,7 +111,7 @@ def update_missing_parent_names(sess, updated_date=None, table=DUNS):
                 updated_count += 1
 
         logger.info("Updated {} rows in {} with the parent name in {} s".format(updated_count, table.__name__,
-                                                                                     time.time()-start))
+                                                                                time.time()-start))
         total_updated_count += updated_count
 
         batch += 1
