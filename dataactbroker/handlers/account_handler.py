@@ -124,6 +124,10 @@ class AccountHandler:
                 raise ValueError("You have failed to login successfully with MAX")
             cas_attrs = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']
 
+            # Grab MAX ID to see if a service account is being logged in
+            max_id_components = cas_attrs['maxAttribute:MAX-ID'].split('_')
+            service_account_flag = (len(max_id_components) > 1 and max_id_components[0].lower() == 's')
+
             # Grab the email and list of groups from MAX's response
             email = cas_attrs['maxAttribute:Email-Address']
 
@@ -139,7 +143,7 @@ class AccountHandler:
 
                 set_user_name(user, cas_attrs)
 
-                set_max_perms(user, cas_attrs['maxAttribute:GroupList'])
+                set_max_perms(user, cas_attrs['maxAttribute:GroupList'], service_account_flag)
 
                 sess.add(user)
                 sess.commit()
@@ -255,13 +259,13 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK, {"message": "Emails successfully sent"})
 
 
-def perms_to_affiliations(perms, user_id):
+def perms_to_affiliations(perms, user_id, service_account_flag=False):
     """ Convert a list of perms from MAX to a list of UserAffiliations. Filter out and log any malformed perms
 
         Args:
             perms: list of permissions (as strings) for the user
             user_id: the ID of the user
-
+            service_account_flag: flag to indicate a service account
         Yields:
             UserAffiliations based on the permissions provided
     """
@@ -295,12 +299,13 @@ def perms_to_affiliations(perms, user_id):
                 continue
 
         perm_level = perm_level.lower()
-        if perm_level not in 'rwsefa':
+
+        if service_account_flag:
+            # Replace MAX Service Account permissions with Broker "write" and "editfabs" permissions
+            perm_level = 'we'
+        elif perm_level not in 'rwsef':
             logger.warning(log_data)
             continue
-        # Replace MAX Service Account permissions with Broker "write" and "editfabs" permissions
-        elif perm_level == 'a':
-            perm_level = 'we'
 
         for permission in perm_level:
             if frec_code:
@@ -392,7 +397,7 @@ def set_max_perms(user, max_group_list, service_account_flag=False):
         user.affiliations = []
         user.website_admin = True
     else:
-        affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id))
+        affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id, service_account_flag))
 
         user.affiliations = affiliations
         user.website_admin = False
