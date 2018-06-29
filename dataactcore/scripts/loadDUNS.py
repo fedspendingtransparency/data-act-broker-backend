@@ -151,8 +151,12 @@ if __name__ == '__main__':
             elif historic_parent_duns:
                 yearly_files = [yearly_file for yearly_file in sorted_monthly_file_names
                                 if re.match(".*MONTHLY_\d{4}12\d{2}\.ZIP", yearly_file.upper())]
+                # Add the last monthly file if the last yearly file doesn't cover the current year
+                if (re.findall(".*MONTHLY_(\d{4})12\d{2}\.ZIP", yearly_files[-1])[0] != str(updated_date.year) and
+                        sorted_monthly_file_names[-1] != yearly_files[-1]):
+                    yearly_files.append(sorted_monthly_file_names[-1])
                 for yearly_file in yearly_files:
-                    year = re.findall(".*MONTHLY_(\d{4})12\d{2}\.ZIP", yearly_file)[0]
+                    year = re.findall(".*MONTHLY_(\d{4})\d{4}\.ZIP", yearly_file)[0]
                     if sftp.sock.closed:
                         # Reconnect if channel is closed
                         ssh_client = get_client()
