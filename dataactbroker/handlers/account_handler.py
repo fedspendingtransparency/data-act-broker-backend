@@ -113,7 +113,6 @@ class AccountHandler:
         try:
             safe_dictionary = RequestDictionary(self.request)
 
-            # Obtain POST content
             ticket = safe_dictionary.get_value("ticket")
             service = safe_dictionary.get_value('service')
 
@@ -123,6 +122,10 @@ class AccountHandler:
             if 'cas:authenticationSuccess' not in max_dict['cas:serviceResponse']:
                 raise ValueError("You have failed to login successfully with MAX")
             cas_attrs = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']
+
+            # Grab MAX ID to see if a service account is being logged in
+            max_id_components = cas_attrs['maxAttribute:MAX-ID'].split('_')
+            service_account_flag = (len(max_id_components) > 1 and max_id_components[0].lower() == 's')
 
             # Grab the email and list of groups from MAX's response
             email = cas_attrs['maxAttribute:Email-Address']
@@ -139,7 +142,7 @@ class AccountHandler:
 
                 set_user_name(user, cas_attrs)
 
-                set_max_perms(user, cas_attrs['maxAttribute:GroupList'])
+                set_max_perms(user, cas_attrs['maxAttribute:GroupList'], service_account_flag)
 
                 sess.add(user)
                 sess.commit()
@@ -172,7 +175,7 @@ class AccountHandler:
                 JsonResponse containing the JSON for the user
         """
         LoginSession.login(session, user.user_id)
-        data = json_for_user(user)
+        data = json_for_user(user, session['sid'])
         data['message'] = 'Login successful'
         return JsonResponse.create(StatusCode.OK, data)
 
@@ -255,13 +258,13 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK, {"message": "Emails successfully sent"})
 
 
-def perms_to_affiliations(perms, user_id):
+def perms_to_affiliations(perms, user_id, service_account_flag=False):
     """ Convert a list of perms from MAX to a list of UserAffiliations. Filter out and log any malformed perms
 
         Args:
             perms: list of permissions (as strings) for the user
             user_id: the ID of the user
-
+            service_account_flag: flag to indicate a service account
         Yields:
             UserAffiliations based on the permissions provided
     """
@@ -295,12 +298,13 @@ def perms_to_affiliations(perms, user_id):
                 continue
 
         perm_level = perm_level.lower()
-        if perm_level not in 'rwsefa':
+
+        if service_account_flag:
+            # Replace MAX Service Account permissions with Broker "write" and "editfabs" permissions
+            perm_level = 'we'
+        elif perm_level not in 'rwsef':
             logger.warning(log_data)
             continue
-        # Replace MAX Service Account permissions with Broker "write" and "editfabs" permissions
-        elif perm_level == 'a':
-            perm_level = 'we'
 
         for permission in perm_level:
             if frec_code:
@@ -366,7 +370,7 @@ def set_user_name(user, cas_attrs):
         user.name = first_name + " " + middle_name[0] + ". " + last_name
 
 
-def set_max_perms(user, max_group_list):
+def set_max_perms(user, max_group_list, service_account_flag=False):
     """ Convert the user group lists present on MAX into a list of UserAffiliations and/or website_admin status.
 
         Permissions are encoded as a comma-separated list of:
@@ -378,6 +382,7 @@ def set_max_perms(user, max_group_list):
         Args:
             user: the User object
             max_group_list: list of all MAX groups the user has
+            service_account_flag: flag to indicate a service account
     """
     prefix = CONFIG_BROKER['parent_group'] + '-CGAC_'
 
@@ -386,17 +391,18 @@ def set_max_perms(user, max_group_list):
     perms = [group_name[len(prefix):]
              for group_name in max_group_list.split(',')
              if group_name.startswith(prefix)]
+
     if 'SYS' in perms:
         user.affiliations = []
         user.website_admin = True
     else:
-        affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id))
+        affiliations = best_affiliation(perms_to_affiliations(perms, user.user_id, service_account_flag))
 
         user.affiliations = affiliations
         user.website_admin = False
 
 
-def json_for_user(user):
+def json_for_user(user, session_id):
     """ Convert the provided user to a dictionary (for JSON)
 
         Args:
@@ -414,7 +420,8 @@ def json_for_user(user):
         "affiliations": [{"agency_name": affil.cgac.agency_name, "permission": affil.permission_type_name}
                          if affil.cgac else
                          {"agency_name": affil.frec.agency_name, "permission": affil.permission_type_name}
-                         for affil in user.affiliations]
+                         for affil in user.affiliations],
+        "session_id": session_id
     }
 
 
