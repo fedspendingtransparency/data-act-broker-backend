@@ -92,6 +92,20 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
 }
 ```
 
+##### Response Description:
+- `user_id`: int, database identifier of the logged in user, part of response only if login is successful
+- `name`: string, user's name, part of response only if login is successful
+- `title`: string, title of user , part of response only if login is successful
+- `skip_guide`: boolean, indicates whether or not the user has requested to skip introductory materials, part of response only if login is successful
+- `website_admin`: boolean, describes a super-user status, part of response only if login is successful
+- `affiliations`: list, indicates which agencies this user is a part of and what permissions they have at that agency, part of response only if login is successful
+    - `agency_name`: string, name of agency user is affiliated with
+    - `permission`: string, permission type for user (reader, writer, submitter, website_admin, fabs)
+- `message`: string, login error response "You have failed to login successfully with MAX", otherwise says "Login successful"
+- `errorType`: string, type of error, part of response only if login is unsuccessful
+- `trace`: list, traceback of error, part of response only if login is unsuccessful
+- `session_id`: string, a hash the application uses to verify that user sending the request is logged in, part of response only if login is successful
+
 #### POST "/v1/login/"
 This route checks the username and password against a credentials file. Accepts input as json or form-urlencoded, with keys "username" and "password". See `current_user` docs for details.
 

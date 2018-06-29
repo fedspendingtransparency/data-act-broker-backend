@@ -1,6 +1,5 @@
 import logging
 from operator import attrgetter
-import re
 import requests
 import xmltodict
 
