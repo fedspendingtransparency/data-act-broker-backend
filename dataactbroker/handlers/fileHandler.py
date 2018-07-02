@@ -34,7 +34,7 @@ from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, 
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
-    FILE_TYPE_DICT_ID, JOB_STATUS_DICT, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
+    FILE_TYPE_DICT_ID, JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
 from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
                                               FPDSContractingOffice)
 from dataactcore.models.userModel import User
@@ -199,7 +199,7 @@ class FileHandler:
             cant_edit = (
                 existing_submission and not current_user_can_on_submission('writer', existing_submission_obj)
             )
-            cant_create = not current_user_can('writer', submission.cgac_code, submission.frec_code)
+            cant_create = not current_user_can('writer', cgac_code=submission.cgac_code, frec_code=submission.frec_code)
             if cant_edit or cant_create:
                 raise ResponseException(
                     "User does not have permission to create/modify that submission", StatusCode.PERMISSION_DENIED
@@ -336,7 +336,7 @@ class FileHandler:
             # Compare user ID with user who submitted job, if no match return 400
             job = sess.query(Job).filter_by(job_id=job_id).one()
             submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
-            if (submission.d2_submission and not current_user_can_on_submission('fabs', submission)) or \
+            if (submission.d2_submission and not current_user_can_on_submission('editfabs', submission)) or \
                     (not submission.d2_submission and not current_user_can_on_submission('writer', submission)):
                 # This user cannot finalize this job
                 raise ResponseException("Cannot finalize a job for a different agency", StatusCode.CLIENT_ERROR)
@@ -543,7 +543,7 @@ class FileHandler:
         # Return same response as check generation route
         return self.check_detached_generation(new_job.job_id)
 
-    def upload_detached_file(self, create_credentials):
+    def upload_fabs_file(self, create_credentials):
         """ Builds S3 URLs for a set of FABS files and adds all related jobs to job tracker database
 
             Flask request should include keys from FILE_TYPES class variable above
@@ -564,7 +564,7 @@ class FileHandler:
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
             logger.info({
-                'message': 'Starting detached D file upload',
+                'message': 'Starting FABS file upload',
                 'message_type': 'BrokerInfo',
                 'agency_code': request_params.get('agency_code'),
                 'file_name': request_params.get('fabs')
@@ -603,13 +603,9 @@ class FileHandler:
             job_data['reporting_start_date'] = None
             job_data['reporting_end_date'] = None
 
-            # TODO: Is this still needed for FABS uploads? Do we do this another way now?
-            """
-            Below lines commented out to temporarily allow all users to upload FABS data for all agencies during testing
-            """
-            # if not current_user_can('writer', job_data["cgac_code"]):
-            #     raise ResponseException("User does not have permission to create jobs for this agency",
-            #                             StatusCode.PERMISSION_DENIED)
+            if not current_user_can('editfabs', cgac_code=cgac_code, frec_code=frec_code):
+                raise ResponseException("User does not have permission to create FABS jobs for this agency",
+                                        StatusCode.PERMISSION_DENIED)
 
             submission = create_submission(g.user.user_id, job_data, existing_submission_obj)
             sess.add(submission)
@@ -674,7 +670,7 @@ class FileHandler:
         return JsonResponse.create(StatusCode.OK, response_dict)
 
     @staticmethod
-    def submit_detached_file(submission):
+    def publish_fabs_submission(submission):
         """ Submits the FABS upload file associated with the submission ID, including processing all the derivations
             and updating relevant tables (such as un-caching all D2 files associated with this agency)
 
@@ -1307,23 +1303,136 @@ def submission_to_dict_for_status(submission):
     }
 
 
-def get_status(submission):
-    """ Get description and status of all jobs in the submission specified in request object
+def get_status(submission, file_type=''):
+    """ Get status information of all jobs in the submission specified in request object
 
         Args:
             submission: submission to get information for
+            file_type: the type of job to get the status for; Default ''
 
         Returns:
-            A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding
-            file_type, job_type, status, and filename or containing error information
+            A flask response object to be sent back to client, holds a JSON where each file type (or the requested type)
+            is a key to an object that holds status, has_errors, has_warnings, and message. If the user requests an
+            invalid file type or the type requested is not valid for the submission type, returns a JSON response with
+            a client error.
     """
-    try:
-        return JsonResponse.create(StatusCode.OK, submission_to_dict_for_status(submission))
-    except ResponseException as e:
-        return JsonResponse.error(e, e.status)
-    except Exception as e:
-        # Unexpected exception, this is a 500 server error
-        return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
+    sess = GlobalDB.db().session
+    file_type = file_type.lower()
+
+    # Make sure the file type provided is valid
+    if file_type and file_type not in FILE_TYPE_DICT and file_type != 'cross':
+        return JsonResponse.error(ValueError(file_type + ' is not a valid file type'), StatusCode.CLIENT_ERROR)
+
+    # Make sure the file type provided is valid for the submission type
+    is_fabs = submission.d2_submission
+    if file_type and (is_fabs and file_type != 'fabs') or (not is_fabs and file_type == 'fabs'):
+        return JsonResponse.error(ValueError(file_type + ' is not a valid file type for this submission'),
+                                  StatusCode.CLIENT_ERROR)
+
+    # Set up a dictionary to store the jobs we want to look at and limit it to only the file types we care about. Also
+    # setting up the response dict here because we need the same keys.
+    response_template = {'status': 'ready', 'has_errors': False, 'has_warnings': False, 'message': ''}
+    job_dict = {}
+    response_dict = {}
+
+    if file_type:
+        job_dict[file_type] = []
+        response_dict[file_type] = response_template
+    elif is_fabs:
+        job_dict['fabs'] = []
+        response_dict['fabs'] = response_template
+    else:
+        # dabs submissions have all types except fabs including cross (which is not listed so we have to specify)
+        job_dict['cross'] = []
+        response_dict['cross'] = response_template.copy()
+        for ft in FILE_TYPE_DICT:
+            if ft != 'fabs':
+                job_dict[ft] = []
+                response_dict[ft] = response_template.copy()
+
+    # We don't need to filter on file type, that will be handled by the dictionaries
+    all_jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
+
+    for job in all_jobs:
+        dict_key = 'cross'
+        if job.file_type:
+            dict_key = job.file_type_name
+
+        # we only want to insert the relevant jobs, the rest get ignored
+        if dict_key in job_dict:
+            job_dict[dict_key].append({
+                'job_id': job.job_id,
+                'job_status': job.job_status_id,
+                'job_type': job.job_type_id,
+                'error_message': job.error_message,
+                'errors': job.number_of_errors,
+                'warnings': job.number_of_warnings
+            })
+
+    for job_file_type, job_data in job_dict.items():
+        response_dict[job_file_type] = process_job_status(job_data, response_dict[job_file_type])
+
+    return JsonResponse.create(StatusCode.OK, response_dict)
+
+
+def process_job_status(jobs, response_content):
+    """ Process the status of a job type provided and update the response content provided with the new information.
+
+        Args:
+            jobs: An array of jobs with one or two jobs referring to the same file type (upload, validation, or both)
+                Must contain all the jobs associated with that file type
+            response_content: the skeleton object holding the information that needs to be returned (status, has_errors,
+                has_warnings, and message)
+
+        Returns:
+            The response_content object originally provided, updated based on what the actual status of the jobs is.
+    """
+    upload = None
+    validation = None
+    upload_status = ''
+    validation_status = ''
+    for job in jobs:
+        if job['job_type'] == JOB_TYPE_DICT['file_upload']:
+            upload = job
+            upload_status = JOB_STATUS_DICT_ID[job['job_status']]
+        else:
+            validation = job
+            validation_status = JOB_STATUS_DICT_ID[job['job_status']]
+
+    # checking for failures
+    if upload_status == 'invalid' or upload_status == 'failed' or validation_status == 'failed':
+        response_content['status'] = 'failed'
+        response_content['has_errors'] = True
+        response_content['message'] = upload['error_message'] or validation['error_message'] or ''
+        return response_content
+
+    if validation_status == 'invalid':
+        response_content['status'] = 'finished'
+        response_content['has_errors'] = True
+        response_content['message'] = upload['error_message'] or validation['error_message'] or ''
+        return response_content
+
+    # If upload job exists and hasn't started or if it doesn't exist and validation job hasn't started,
+    # it should just be ready
+    if upload_status == 'ready' or upload_status == 'waiting' or \
+            (upload_status == '' and (validation_status == 'ready' or validation_status == 'waiting')):
+        return response_content
+
+    # If the upload job is running, status is uploading
+    if upload_status == 'running':
+        response_content['status'] = 'uploading'
+        return response_content
+
+    # If the validation job is running, status is running
+    if validation_status == 'running':
+        response_content['status'] = 'running'
+        return response_content
+
+    # If both jobs are finished, figure out if there are errors
+    response_content['status'] = 'finished'
+    response_content['has_errors'] = validation is not None and validation['errors'] > 0
+    response_content['has_warnings'] = validation is not None and validation['warnings'] > 0
+    return response_content
 
 
 def get_error_metrics(submission):
@@ -1644,7 +1753,7 @@ def submission_error(submission_id, file_type):
             response_dict["end"] = ""
         return JsonResponse.error(NoResultFound, StatusCode.CLIENT_ERROR, **response_dict)
 
-    if not current_user_can_on_submission('writer', submission):
+    if not current_user_can_on_submission('editfabs' if submission.d2_submission else 'writer', submission):
         response_dict = {
             "message": "User does not have permission to view that submission",
             "file_type": file_type,

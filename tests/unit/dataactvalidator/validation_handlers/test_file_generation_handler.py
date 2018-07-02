@@ -1,6 +1,7 @@
 import csv
 import os
 import re
+import pytest
 
 from collections import OrderedDict
 from flask import Flask
@@ -17,8 +18,9 @@ from tests.unit.dataactcore.factories.staging import (
     PublishedAwardFinancialAssistanceFactory)
 
 
-def test_job_context_success(database, job_constants):
-    """When a job successfully runs, it should be marked as "finished" """
+@pytest.mark.usefixtures("job_constants")
+def test_job_context_success(database):
+    """ When a job successfully runs, it should be marked as "finished" """
     sess = database.session
     job = JobFactory(
         job_status=sess.query(JobStatus).filter_by(name='running').one(),
@@ -35,8 +37,9 @@ def test_job_context_success(database, job_constants):
     assert job.job_status.name == 'finished'
 
 
-def test_job_context_fail(database, job_constants):
-    """When a job raises an exception and has no retries left, it should be marked as failed"""
+@pytest.mark.usefixtures("job_constants")
+def test_job_context_fail(database):
+    """ When a job raises an exception and has no retries left, it should be marked as failed """
     sess = database.session
     job = JobFactory(
         job_status=sess.query(JobStatus).filter_by(name='running').one(),
@@ -62,8 +65,9 @@ def read_file_rows(file_path):
         return [row for row in csv.reader(f)]
 
 
-def test_generate_d1_file_query(monkeypatch, mock_broker_config_paths, database, job_constants):
-    """A CSV with fields in the right order should be written to the file system"""
+@pytest.mark.usefixtures("job_constants")
+def test_generate_d1_file_query(mock_broker_config_paths, database):
+    """ A CSV with fields in the right order should be written to the file system """
     sess = database.session
     dap_model = DetachedAwardProcurementFactory
     dap_1 = dap_model(awarding_agency_code='123', action_date='20170101', detached_award_proc_unique='unique1')
@@ -108,8 +112,9 @@ def test_generate_d1_file_query(monkeypatch, mock_broker_config_paths, database,
     assert expected2 in file_rows
 
 
-def test_generate_d2_file_query(monkeypatch, mock_broker_config_paths, database, job_constants):
-    """A CSV with fields in the right order should be written to the file system"""
+@pytest.mark.usefixtures("job_constants")
+def test_generate_d2_file_query(mock_broker_config_paths, database):
+    """ A CSV with fields in the right order should be written to the file system """
     sess = database.session
     pafa = PublishedAwardFinancialAssistanceFactory
     pafa_1 = pafa(awarding_agency_code='123', action_date='20170101', afa_generated_unique='unique1', is_active=True)
@@ -154,8 +159,9 @@ def test_generate_d2_file_query(monkeypatch, mock_broker_config_paths, database,
     assert expected2 in file_rows
 
 
-def test_generate_f_file(monkeypatch, mock_broker_config_paths, database, job_constants):
-    """A CSV with fields in the right order should be written to the file system"""
+@pytest.mark.usefixtures("job_constants")
+def test_generate_f_file(monkeypatch, mock_broker_config_paths, database):
+    """ A CSV with fields in the right order should be written to the file system """
     file_path1 = str(mock_broker_config_paths['broker_files'].join('f_test1'))
     job1 = JobFactory(
         job_status=database.session.query(JobStatus).filter_by(name='running').one(),
@@ -198,8 +204,9 @@ def test_generate_f_file(monkeypatch, mock_broker_config_paths, database, job_co
     assert read_file_rows(file_path2) == expected
 
 
-def test_generate_e_file_query(monkeypatch, mock_broker_config_paths, database, job_constants):
-    """Verify that generate_e_file makes an appropriate query (matching both D1 and D2 entries)"""
+@pytest.mark.usefixtures("job_constants")
+def test_generate_e_file_query(monkeypatch, mock_broker_config_paths, database):
+    """ Verify that generate_e_file makes an appropriate query (matching both D1 and D2 entries) """
     # Generate several file D1 entries, largely with the same submission_id, and with two overlapping DUNS. Generate
     # several D2 entries with the same submission_id as well
     sess = database.session
@@ -242,8 +249,9 @@ def test_generate_e_file_query(monkeypatch, mock_broker_config_paths, database, 
     assert list(sorted(call_args)) == list(sorted(expected))
 
 
-def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database, job_constants):
-    """Verify that an appropriate CSV is written, based on fileE.Row's structure"""
+@pytest.mark.usefixtures("job_constants")
+def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
+    """ Verify that an appropriate CSV is written, based on fileE.Row's structure """
     # Create an award so that we have _a_ duns
     sub = SubmissionFactory()
     database.session.add(sub)
@@ -293,7 +301,8 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database, jo
     assert read_file_rows(file_path) == expected
 
 
-def test_copy_parent_file_request_data(database, job_constants):
+@pytest.mark.usefixtures("job_constants")
+def test_copy_parent_file_request_data(database):
     sess = database.session
 
     job_one = JobFactory(
@@ -322,8 +331,9 @@ def test_copy_parent_file_request_data(database, job_constants):
     assert job_two.from_cached is True
 
 
-def test_check_detached_d_file_generation(database, job_constants):
-    """Job statuses should return the correct status and error message to the user"""
+@pytest.mark.usefixtures("job_constants")
+def test_check_detached_d_file_generation(database):
+    """ Job statuses should return the correct status and error message to the user """
     sess = database.session
 
     # Detached D2 generation waiting to be picked up by the Validator
@@ -359,15 +369,16 @@ def test_check_detached_d_file_generation(database, job_constants):
     assert response_dict['message'] == 'Upload job failed without error message'
 
     # Detached D2 generation with a known error
-    job.error_message = 'Detached D2 upload error message'
+    job.error_message = 'FABS upload error message'
     sess.commit()
     response_dict = file_generation_handler.check_file_generation(job.job_id)
     assert response_dict['status'] == 'failed'
-    assert response_dict['message'] == 'Detached D2 upload error message'
+    assert response_dict['message'] == 'FABS upload error message'
 
 
-def test_check_submission_d_file_generation(database, job_constants):
-    """Job statuses should return the correct status and error message to the user"""
+@pytest.mark.usefixtures("job_constants")
+def test_check_submission_d_file_generation(database):
+    """ Job statuses should return the correct status and error message to the user """
     sess = database.session
     sub = SubmissionFactory()
     sess.add(sub)
