@@ -37,24 +37,18 @@ def test_set_get_pa_last_upload_existing(monkeypatch, database):
     sess.add(pa_data_type)
     sess.commit()
 
-    load_program_activity.set_stored_pa_last_upload(
-            load_program_activity.make_date_tz_aware(datetime.datetime(2017, 12, 31, 0, 0, 0))
-        )
+    load_program_activity.set_stored_pa_last_upload(datetime.datetime(2017, 12, 31, 0, 0, 0))
 
-    stored_date = load_program_activity.make_date_tz_aware(load_program_activity.get_stored_pa_last_upload())
-
-    expected_date = load_program_activity.make_date_tz_aware(datetime.datetime(2017, 12, 31, 0, 0, 0))
+    stored_date = load_program_activity.get_stored_pa_last_upload()
+    expected_date = datetime.datetime(2017, 12, 31, 0, 0, 0)
     assert stored_date == expected_date
 
     # repeat this, because the first time, there is no stored object, but now test with one that already exists.
 
-    load_program_activity.set_stored_pa_last_upload(
-            load_program_activity.make_date_tz_aware(datetime.datetime(2016, 12, 31, 0, 0, 0))
-        )
+    load_program_activity.set_stored_pa_last_upload(datetime.datetime(2016, 12, 31, 0, 0, 0))
 
-    stored_date = load_program_activity.make_date_tz_aware(load_program_activity.get_stored_pa_last_upload())
-
-    expected_date = load_program_activity.make_date_tz_aware(datetime.datetime(2016, 12, 31, 0, 0, 0))
+    stored_date = load_program_activity.get_stored_pa_last_upload()
+    expected_date = datetime.datetime(2016, 12, 31, 0, 0, 0)
     assert stored_date == expected_date
 
 

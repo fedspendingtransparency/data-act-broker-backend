@@ -68,7 +68,7 @@ def get_date_of_current_pa_upload(base_path):
         last_uploaded = boto3.client('s3').head_object(Bucket=PA_BUCKET, Key=PA_SUB_KEY+PA_FILE_NAME)['LastModified']
     else:
         pa_file = get_program_activity_file(base_path)
-        last_uploaded = datetime.datetime.fromtimestamp(os.path.getmtime(pa_file))
+        last_uploaded = datetime.datetime.utcfromtimestamp(os.path.getmtime(pa_file))
     return last_uploaded
 
 
@@ -106,10 +106,10 @@ def set_stored_pa_last_upload(load_datetime):
             ExternalDataType.name == "program_activity_upload"
             ).one_or_none()
         last_stored_obj = ExternalDataLoadDate(external_data_type_id=data_type.external_data_type_id,
-                                               last_load_date=make_date_tz_aware(load_datetime))
+                                               last_load_date=load_datetime)
         sess.add(last_stored_obj)
     else:
-        last_stored_obj.last_load_date = make_date_tz_aware(load_datetime)
+        last_stored_obj.last_load_date = load_datetime
     sess.commit()
 
 
@@ -120,7 +120,7 @@ def load_program_activity_data(base_path):
             base_path: directory of domain config files
     """
     last_upload = get_date_of_current_pa_upload(base_path)
-    if not make_date_tz_aware(last_upload) > make_date_tz_aware(get_stored_pa_last_upload()):
+    if not (last_upload > get_stored_pa_last_upload()):
         return
     else:
         set_stored_pa_last_upload(last_upload)
@@ -200,23 +200,6 @@ def lowercase_or_notify(x):
         else:
             logger.info(" Null value found for program activity name. Entered default value.")  # should not happen
             return "(not provided)"
-
-
-def make_date_tz_aware(d):
-    """ File storage locally may have TZ-unaware modification dates, so we need this for local operations.
-
-        Args:
-            Datetime object
-
-        Returns:
-            Timezone-aware datetime object
-    """
-    if d.tzinfo is None or d.tzinfo.utcoffset(d) is None:
-        eastern = pytz.timezone('US/Eastern')
-        now_aware = eastern.localize(d)
-        return now_aware
-    else:
-        return d
 
 
 def log_blank_file():
