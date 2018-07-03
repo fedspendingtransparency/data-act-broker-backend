@@ -6,7 +6,7 @@ import numpy as np
 import boto3
 import datetime
 import sys
-
+import pytz
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -212,7 +212,6 @@ def make_date_tz_aware(d):
             Timezone-aware datetime object
     """
     if d.tzinfo is None or d.tzinfo.utcoffset(d) is None:
-        import pytz
         eastern = pytz.timezone('US/Eastern')
         now_aware = eastern.localize(d)
         return now_aware
