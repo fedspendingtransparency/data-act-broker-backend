@@ -43,7 +43,8 @@ def test_set_get_pa_last_upload_existing(monkeypatch, database):
 
     stored_date = load_program_activity.make_date_tz_aware(load_program_activity.get_stored_pa_last_upload())
 
-    assert stored_date == load_program_activity.make_date_tz_aware(datetime.datetime(2017, 12, 31, 0, 0, 0))
+    expected_date = load_program_activity.make_date_tz_aware(datetime.datetime(2017, 12, 31, 0, 0, 0))
+    assert stored_date == expected_date
 
     # repeat this, because the first time, there is no stored object, but now test with one that already exists.
 
@@ -53,7 +54,8 @@ def test_set_get_pa_last_upload_existing(monkeypatch, database):
 
     stored_date = load_program_activity.make_date_tz_aware(load_program_activity.get_stored_pa_last_upload())
 
-    assert stored_date == load_program_activity.make_date_tz_aware(datetime.datetime(2016, 12, 31, 0, 0, 0))
+    expected_date = load_program_activity.make_date_tz_aware(datetime.datetime(2016, 12, 31, 0, 0, 0))
+    assert stored_date == expected_date
 
 
 @patch('dataactvalidator.scripts.load_program_activity.set_stored_pa_last_upload')
