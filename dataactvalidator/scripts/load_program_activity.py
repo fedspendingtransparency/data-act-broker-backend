@@ -150,9 +150,10 @@ def load_program_activity_data(base_path):
         # because we're only loading a subset of program activity info,
         # there will be duplicate records in the dataframe. this is ok,
         # but need to de-duped before the db load. We also need to log them.
-        deduped = data.drop_duplicates()
-        logger.info("Dropped {} duplicate rows.".format(deduped.shape[0] - data.shape[0]))
-        data = deduped
+        base_count = data.shape[0]
+        data.drop_duplicates(inplace=True)
+        logger.info("Dropped {} duplicate rows.".format(base_count - data.shape[0]))
+
         # insert to db
         table_name = ProgramActivity.__table__.name
         num = insert_dataframe(data, table_name, sess.connection())
