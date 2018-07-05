@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 PA_BUCKET = 'da-data-sources'
 PA_SUB_KEY = 'OMB_Data/'
 PA_FILE_NAME = "DATA Act Program Activity List for Treas.csv"
+VALID_HEADERS = {'YEAR', 'AGENCY_ID', 'ALLOCATION_ID', 'ACCOUNT', 'PA_CODE', 'PA_NAME', 'FYQ'}
 
 
 def get_program_activity_file(base_path):
@@ -120,6 +121,13 @@ def load_program_activity_data(base_path):
         except pd.io.common.EmptyDataError as e:
             log_blank_file()
             sys.exit(4)  # exit code chosen arbitrarily, to indicate distinct failure states. Approved by Ops.
+
+        headers = set([header.upper() for header in list(data)])
+
+        if not VALID_HEADERS.issubset(headers):
+            logger.error("Missing required headers. Required headers include: %s" % str(VALID_HEADERS))
+            sys.exit(4)
+
         try:
             dropped_count, data = clean_data(
                 data,
@@ -179,13 +187,13 @@ def lowercase_or_notify(x):
         return x.lower()
     except Exception as e:
         if x and not np.isnan(x):
-            logger.info(" Program activity of {} was unable to be lowercased. Entered as-is.".format(x))
+            logger.info("Program activity of {} was unable to be lowercased. Entered as-is.".format(x))
             return x
         else:
-            logger.info(" Null value found for program activity name. Entered default value.")  # should not happen
+            logger.info("Null value found for program activity name. Entered default value.")  # should not happen
             return "(not provided)"
 
 
 def log_blank_file():
     """ Helper function for specific reused log message """
-    logger.error(" File was blank! Not loaded, routine aborted.")
+    logger.error("File was blank! Not loaded, routine aborted.")
