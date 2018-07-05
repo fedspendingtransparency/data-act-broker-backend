@@ -6,11 +6,10 @@ import numpy as np
 import boto3
 import datetime
 import sys
-import pytz
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import ProgramActivity, ExternalDataLoadDate, ExternalDataType
+from dataactcore.models.domainModels import ProgramActivity, ExternalDataLoadDate
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
