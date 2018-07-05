@@ -12,7 +12,7 @@ from dataactcore.models.domainModels import ProgramActivity, ExternalDataType
 def test_get_program_activity_file_aws(boto3, bytesio, monkeypatch):
     """ Test retrieving the program activity file from AWS """
 
-    monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': True})
+    monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': True, 'aws_region': 'region'})
 
     bytesio.return_value = None
 
@@ -71,7 +71,7 @@ def test_load_program_activity_data(mocked_get_pa_file, mocked_get_current_date,
     monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False})
 
     mocked_get_pa_file.return_value = StringIO(
-        """YEAR,AGENCY_ID,ALLOCATION_ID,ACCOUNT,PA_CODE,PA_NAME,FYQ\n2000,000,111,0000,1111,Test Name,FY2015Q1"""
+        """AGENCY_CODE,ALLOCATION_ID,ACCOUNT_CODE,PA_CODE,PA_TITLE,FYQ\n2000,000,111,0000,1111,Test Name,FY2015Q1"""
     )
 
     mocked_get_current_date.return_value = datetime.datetime(2017, 12, 31, 0, 0, 0)
@@ -102,7 +102,7 @@ def test_load_program_activity_data_only_header(mocked_get_pa_file, mocked_get_c
     monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False})
 
     mocked_get_pa_file.return_value = StringIO(
-        """YEAR,AGENCY_ID,ALLOCATION_ID,ACCOUNT,PA_CODE,PA_NAME,FYQ"""
+        """AGENCY_CODE,ALLOCATION_ID,ACCOUNT_CODE,PA_CODE,PA_TITLE,FYQ"""
     )
 
     mocked_get_current_date.return_value = datetime.datetime(2017, 12, 31, 0, 0, 0)
