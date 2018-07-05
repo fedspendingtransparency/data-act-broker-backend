@@ -11,6 +11,7 @@ import pytz
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import ProgramActivity, ExternalDataLoadDate, ExternalDataType
+from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 from dataactcore.utils.failure_threshold_exception import FailureThresholdExceededException
@@ -32,26 +33,14 @@ def get_program_activity_file(base_path):
             the file path for the pa file either on S3 or locally
     """
     if CONFIG_BROKER["use_aws"]:
-        s3_object = get_s3_object()
+        s3 = boto3.resource('s3')
+        s3_object = s3.Object(PA_BUCKET, PA_SUB_KEY + PA_FILE_NAME)
         response = s3_object.get(PA_SUB_KEY+PA_FILE_NAME)
         pa_file = io.BytesIO(response['Body'].read())
     else:
         pa_file = os.path.join(base_path, PA_FILE_NAME)
 
     return pa_file
-
-
-def get_s3_object():
-    """ Gets the s3 connection
-
-        Returns:
-            s3bucket connection object
-    """
-    if CONFIG_BROKER["use_aws"]:
-        s3 = boto3.resource('s3')
-        s3_object = s3.Object(PA_BUCKET, PA_SUB_KEY + PA_FILE_NAME)
-        return s3_object
-    raise Exception("Config specifies not to use AWS, cannot call S3 bucket.")
 
 
 def get_date_of_current_pa_upload(base_path):
@@ -79,9 +68,8 @@ def get_stored_pa_last_upload():
             Upload date of most recent file we have recorded (Datetime object)
     """
     sess = GlobalDB.db().session
-    last_stored_obj = sess.query(ExternalDataLoadDate).join(ExternalDataType).filter(
-        ExternalDataType.name == "program_activity_upload"
-        ).one_or_none()
+    last_stored_obj = sess.query(ExternalDataLoadDate).filter_by(
+        external_data_type_id=EXTERNAL_DATA_TYPE_DICT['program_activity_upload']).one_or_none()
     if not last_stored_obj:
         # return epoch ts to make sure we load the data the first time through,
         # and ideally any time the data might have been wiped
@@ -98,14 +86,10 @@ def set_stored_pa_last_upload(load_datetime):
             Datetime object representing the timestamp associated with the current file
     """
     sess = GlobalDB.db().session
-    last_stored_obj = sess.query(ExternalDataLoadDate).join(ExternalDataType).filter(
-        ExternalDataType.name == "program_activity_upload"
-        ).one_or_none()
+    last_stored_obj = sess.query(ExternalDataLoadDate).filter_by(
+        external_data_type_id=EXTERNAL_DATA_TYPE_DICT['program_activity_upload']).one_or_none()
     if not last_stored_obj:
-        data_type = sess.query(ExternalDataType).filter(
-            ExternalDataType.name == "program_activity_upload"
-            ).one_or_none()
-        last_stored_obj = ExternalDataLoadDate(external_data_type_id=data_type.external_data_type_id,
+        last_stored_obj = ExternalDataLoadDate(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['program_activity_upload'],
                                                last_load_date=load_datetime)
         sess.add(last_stored_obj)
     else:

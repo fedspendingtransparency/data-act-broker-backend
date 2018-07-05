@@ -44,7 +44,6 @@ def test_set_get_pa_last_upload_existing(monkeypatch, database):
     assert stored_date == expected_date
 
     # repeat this, because the first time, there is no stored object, but now test with one that already exists.
-
     load_program_activity.set_stored_pa_last_upload(datetime.datetime(2016, 12, 31, 0, 0, 0))
 
     stored_date = load_program_activity.get_stored_pa_last_upload()
@@ -56,12 +55,8 @@ def test_set_get_pa_last_upload_existing(monkeypatch, database):
 @patch('dataactvalidator.scripts.load_program_activity.get_stored_pa_last_upload')
 @patch('dataactvalidator.scripts.load_program_activity.get_date_of_current_pa_upload')
 @patch('dataactvalidator.scripts.load_program_activity.get_program_activity_file')
-def test_load_program_activity_data(mocked_get_pa_file,
-                                    mocked_get_current_date,
-                                    mocked_get_stored_date,
-                                    mocked_set_stored_date,
-                                    database,
-                                    monkeypatch):
+def test_load_program_activity_data(mocked_get_pa_file, mocked_get_current_date, mocked_get_stored_date,
+                                    mocked_set_stored_date, database, monkeypatch):
     monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False})
 
     mocked_get_pa_file.return_value = StringIO(

@@ -58,6 +58,8 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
             "keep_null" when set to true, empty fields will not be padded
             "skip_duplicate" which ignores subsequent lines that repeat values
             "strip_commas" which removes commas
+        required_values: list of required values
+        return_dropped_count: flag to return dropped count
     Returns:
         Dataframe conforming to requirements, and additionally the number of rows dropped for missing value
         if return_dropped_count argument is True
@@ -99,10 +101,10 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
         dropped = data[np.invert(data.index.isin(cleaned.index))]
         # log every dropped row
         for index, row in dropped.iterrows():
-            logger.info("Dropped row due to faulty data: fyq:{}--agency:{}--alloc:{}--account:{}".format(
-                row["fiscal_year_quarter"],
-                row['agency_id'], row['allocation_transfer_id'], row['account_number']) +
-                "--pa_code:{}--pa_name:{}".format(row['program_activity_code'], row['program_activity_name']))
+            logger.info(
+                "Dropped row due to faulty data: fyq:{}--agency:{}--alloc:{}--account:{}--pa_code:{}--pa_name:{}".
+                format(row["fiscal_year_quarter"], row['agency_id'], row['allocation_transfer_id'],
+                       row['account_number'], row['program_activity_code'], row['program_activity_name']))
 
         if (len(dropped.index)/len(data.index)) > FAILURE_THRESHOLD_PERCENTAGE:
             raise FailureThresholdExceededException(len(dropped.index))
@@ -124,8 +126,7 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
     data = data.assign(created_at=now, updated_at=now)
     if return_dropped_count:
         return len(dropped.index), data
-    else:
-        return data
+    return data
 
 
 def format_date(value):
