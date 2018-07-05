@@ -49,7 +49,7 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
     """ Cleans up a dataframe that contains domain values.
 
     Args:
-        data : dataframe of domain values
+        data: dataframe of domain values
         field_map: dict that maps columns of the dataframe csv to our db columns
         field_options: dict with keys of attribute names, value contains a dict with options for that attribute.
             Current options are:

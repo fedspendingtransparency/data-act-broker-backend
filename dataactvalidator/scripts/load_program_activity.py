@@ -106,8 +106,6 @@ def load_program_activity_data(base_path):
     last_upload = get_date_of_current_pa_upload(base_path)
     if not (last_upload > get_stored_pa_last_upload()):
         return
-    else:
-        set_stored_pa_last_upload(last_upload)
 
     program_activity_file = get_program_activity_file(base_path)
 
@@ -140,13 +138,9 @@ def load_program_activity_data(base_path):
                 True
             )
         except FailureThresholdExceededException as e:
-            if e.count == 0:
-                log_blank_file()
-                sys.exit(4)
-            else:
-                count_str = "Application tried to drop {} rows ".format(e.count)
-                logger.error("Loading of program activity file failed due to exceeded failure threshold. " + count_str)
-                sys.exit(5)
+            count_str = "Application tried to drop {} rows".format(e.count)
+            logger.error("Loading of program activity file failed due to exceeded failure threshold. " + count_str)
+            sys.exit(5)
 
         sess.query(ProgramActivity).delete()
 
@@ -156,17 +150,15 @@ def load_program_activity_data(base_path):
         # because we're only loading a subset of program activity info,
         # there will be duplicate records in the dataframe. this is ok,
         # but need to de-duped before the db load. We also need to log them.
-
         deduped = data.drop_duplicates()
-        dropped_dupes = data[np.invert(data.index.isin(deduped.index))]
-        logger.info("Dropped {} duplicate rows.".format(len(dropped_dupes.index)))
+        logger.info("Dropped {} duplicate rows.".format(deduped.shape[0] - data.shape[0]))
         data = deduped
         # insert to db
         table_name = ProgramActivity.__table__.name
         num = insert_dataframe(data, table_name, sess.connection())
-
         sess.commit()
 
+    set_stored_pa_last_upload(last_upload)
     logger.info('{} records inserted to {}'.format(num, table_name))
 
     if dropped_count > 0:
