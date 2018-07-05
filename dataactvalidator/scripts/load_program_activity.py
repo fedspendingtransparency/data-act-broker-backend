@@ -138,9 +138,13 @@ def load_program_activity_data(base_path):
                 True
             )
         except FailureThresholdExceededException as e:
-            count_str = "Application tried to drop {} rows".format(e.count)
-            logger.error("Loading of program activity file failed due to exceeded failure threshold. " + count_str)
-            sys.exit(5)
+            if e.count == 0:
+                log_blank_file()
+                sys.exit(4)
+            else:
+                count_str = "Application tried to drop {} rows".format(e.count)
+                logger.error("Loading of program activity file failed due to exceeded failure threshold. " + count_str)
+                sys.exit(5)
 
         sess.query(ProgramActivity).delete()
 
