@@ -33,7 +33,7 @@ def get_program_activity_file(base_path):
             the file path for the pa file either on S3 or locally
     """
     if CONFIG_BROKER["use_aws"]:
-        s3 = boto3.resource('s3')
+        s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
         s3_object = s3.Object(PA_BUCKET, PA_SUB_KEY + PA_FILE_NAME)
         response = s3_object.get(PA_SUB_KEY+PA_FILE_NAME)
         pa_file = io.BytesIO(response['Body'].read())
@@ -54,7 +54,8 @@ def get_date_of_current_pa_upload(base_path):
             DateTime object
     """
     if CONFIG_BROKER["use_aws"]:
-        last_uploaded = boto3.client('s3').head_object(Bucket=PA_BUCKET, Key=PA_SUB_KEY+PA_FILE_NAME)['LastModified']
+        last_uploaded = boto3.client('s3', region_name=CONFIG_BROKER['aws_region']). \
+            head_object(Bucket=PA_BUCKET, Key=PA_SUB_KEY+PA_FILE_NAME)['LastModified']
     else:
         pa_file = get_program_activity_file(base_path)
         last_uploaded = datetime.datetime.utcfromtimestamp(os.path.getmtime(pa_file))
