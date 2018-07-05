@@ -28,6 +28,19 @@ def sams_config_is_valid():
         sys.exit(1)
 
 
+def get_name_from_sams(client, duns_list):
+    """Calls SAM API to retrieve DUNS name by DUNS number. Returns DUNS info as Data Frame"""
+    duns_name = [{
+        'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
+        'legal_business_name': (suds_obj.entityIdentification.legalBusinessName or '').upper()
+    }
+        for suds_obj in get_entities(client, duns_list)
+        if suds_obj.entityIdentification.legalBusinessName
+    ]
+
+    return pd.DataFrame(duns_name)
+
+
 def get_parent_from_sams(client, duns_list):
     """Calls SAM API to retrieve parent DUNS data by DUNS number. Returns DUNS info as Data Frame"""
     duns_parent = [{
@@ -44,7 +57,7 @@ def get_parent_from_sams(client, duns_list):
     return pd.DataFrame(duns_parent)
 
 
-def update_missing_parent_names(sess, updated_date=None):
+def update_missing_parent_names(sess, updated_date=None, table=DUNS):
     """Updates DUNS rows in batches where the parent DUNS number is provided but not the parent name.
        Uses other instances of the parent DUNS number where the name is populated to derive blank parent names.
        Updated_date argument used for daily DUNS loads so that only data updated that day is updated.
@@ -54,9 +67,9 @@ def update_missing_parent_names(sess, updated_date=None):
     # Create a mapping of all the unique parent duns -> name mappings from the database
     parent_duns_by_number_name = {}
 
-    distinct_parent_duns = sess.query(DUNS.ultimate_parent_unique_ide, DUNS.ultimate_parent_legal_enti)\
-        .filter(and_(func.coalesce(DUNS.ultimate_parent_legal_enti, '') != '',
-                     DUNS.ultimate_parent_unique_ide.isnot(None))).distinct()
+    distinct_parent_duns = sess.query(table.ultimate_parent_unique_ide, table.ultimate_parent_legal_enti)\
+        .filter(and_(func.coalesce(table.ultimate_parent_legal_enti, '') != '',
+                     table.ultimate_parent_unique_ide.isnot(None))).distinct()
 
     # Creating a mapping (parent_duns_by_number_name) of parent duns numbers to parent name
     for duns in distinct_parent_duns:
@@ -67,17 +80,18 @@ def update_missing_parent_names(sess, updated_date=None):
         parent_duns_by_number_name[duns.ultimate_parent_unique_ide] = duns.ultimate_parent_legal_enti
 
     # Query to find rows where the parent duns number is present, but there is no legal entity name
-    missing_parent_name = sess.query(DUNS).filter(and_(func.coalesce(DUNS.ultimate_parent_legal_enti, '') == '',
-                                                       DUNS.ultimate_parent_unique_ide.isnot(None)))
+    missing_parent_name = sess.query(table).filter(and_(func.coalesce(table.ultimate_parent_legal_enti, '') == '',
+                                                        table.ultimate_parent_unique_ide.isnot(None)))
 
     if updated_date:
-        missing_parent_name = missing_parent_name.filter(DUNS.updated_at >= updated_date)
+        missing_parent_name = missing_parent_name.filter(table.updated_at >= updated_date)
 
     missing_count = missing_parent_name.count()
 
     batch = 0
     block_size = 10000
     batches = missing_count // block_size
+    total_updated_count = 0
 
     while batch <= batches:
         updated_count = 0
@@ -88,20 +102,22 @@ def update_missing_parent_names(sess, updated_date=None):
                             str(missing_count if batch == batches else (batch+1)*block_size)
                             ))
 
-        missing_parent_name_block = missing_parent_name.order_by(DUNS.duns_id).\
+        missing_parent_name_block = missing_parent_name.order_by(table.duns_id).\
             slice(batch_start, batch_start + block_size)
 
         for row in missing_parent_name_block:
-
             if parent_duns_by_number_name.get(row.ultimate_parent_unique_ide):
                 setattr(row, 'ultimate_parent_legal_enti', parent_duns_by_number_name[row.ultimate_parent_unique_ide])
                 updated_count += 1
 
-        logger.info("Updated {} rows in DUNS with the parent name in {} s".format(updated_count, time.time()-start))
+        logger.info("Updated {} rows in {} with the parent name in {} s".format(updated_count, table.__name__,
+                                                                                time.time()-start))
+        total_updated_count += updated_count
 
         batch += 1
 
     sess.commit()
+    return total_updated_count
 
 
 def get_duns_batches(client, sess, batch_start=None, batch_end=None, updated_date=None):

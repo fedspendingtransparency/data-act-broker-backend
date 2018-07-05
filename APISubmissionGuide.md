@@ -4,31 +4,9 @@
 ## Login Process
 
 ### Login to Max
-- Step 1: call `/vi/max_cert_login` (POST) to login to MAX using a certificate **Not yet implemented**
-    - Payload:
-        - `cert_path`: string, absolute path of the MAX certificate file
-        - `service`: string, broker website the user is attempting to access
-    - Response:
-        - `ticket`: string,represents the verification that a user successfully logged into max. The ticket comes from the url the Max login service sends
-        - `service`: string, broker website the user is attempting to access
-
-- Step 2: call `/v1/max_login/` (POST) current broker login endpoint for logging into broker using MAX login
-    - Payload:
-        - `ticket`: string, represents the verification that a user successfully logged into max. The ticket comes from the url the Max login service sends
-        - `service`: string, broker website the user is attempting to access
-    - Response:
-        - `user_id`: int, database identifier of the logged in user, part of response only if login is successful
-        - `name`: string, user's name, part of response only if login is successful
-        - `title`: string, title of user , part of response only if login is successful
-        - `skip_guide`: boolean, indicates whether or not the user has requested to skip introductory materials, part of response only if login is successful
-        - `website_admin`: boolean, describes a super-user status, part of response only if login is successful
-        - `affiliations`: list, indicates which agencies this user is a part of and what permissions they have at that agency, part of response only if login is successful
-            - `agency_name`: string, name of agency user is affiliated with
-            - `permission`: string, permission type for user (reader, writer, submitter, website_admin, fabs)
-        - `message`: string, login error response "You have failed to login successfully with MAX", otherwise says "Login successful"
-        - `errorType`: string, type of error, part of response only if login is unsuccessful
-        - `trace`: list, traceback of error, part of response only if login is unsuccessful
-        - `session-token` (**Not yet implemented**): string, a hash the application uses to verify that user sending the request is logged in, part of response only if login is successful
+- Step 1: Authenticate with MAX directly to obtain the `ticket` value for Step 2
+    - Please refer to documentation provided by MAX.gov
+- Step 2: call `/v1/max_login/` (POST) current broker login endpoint for logging into broker using MAX login. For details on its use, click [here](./dataactbroker/README.md#post-v1max_login)
 
 ## DABS Submission Process
 
