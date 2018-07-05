@@ -56,6 +56,7 @@ def get_date_of_current_pa_upload(base_path):
     if CONFIG_BROKER["use_aws"]:
         last_uploaded = boto3.client('s3', region_name=CONFIG_BROKER['aws_region']). \
             head_object(Bucket=PA_BUCKET, Key=PA_SUB_KEY+PA_FILE_NAME)['LastModified']
+        print(last_uploaded)
     else:
         pa_file = get_program_activity_file(base_path)
         last_uploaded = datetime.datetime.utcfromtimestamp(os.path.getmtime(pa_file))
