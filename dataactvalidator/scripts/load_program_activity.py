@@ -78,6 +78,7 @@ def get_stored_pa_last_upload():
         last_stored = datetime.datetime.utcfromtimestamp(0)
     else:
         last_stored = last_stored_obj.last_load_date
+    print("HERE: {}".format(last_stored))
     return last_stored
 
 
