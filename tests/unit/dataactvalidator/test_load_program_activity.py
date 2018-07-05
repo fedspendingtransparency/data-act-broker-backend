@@ -12,7 +12,7 @@ from dataactcore.models.domainModels import ProgramActivity, ExternalDataType
 def test_get_program_activity_file_aws(boto3, bytesio, monkeypatch):
     """ Test retrieving the program activity file from AWS """
 
-    monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': True})
+    monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': True, 'aws_region': 'region'})
 
     bytesio.return_value = None
 
