@@ -119,7 +119,7 @@ def load_program_activity_data(base_path):
             data = pd.read_csv(program_activity_file, dtype=str)
         except pd.io.common.EmptyDataError as e:
             log_blank_file()
-            sys.exit(4)  # exit code chosen arbitrarily, to indicate distinct failure states. Approved by Ops.
+            sys.exit(4)  # exit code chosen arbitrarily, to indicate distinct failure states
 
         headers = set([header.upper() for header in list(data)])
 
