@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 PA_BUCKET = 'da-data-sources'
 PA_SUB_KEY = 'OMB_Data/'
 PA_FILE_NAME = "DATA Act Program Activity List for Treas.csv"
-VALID_HEADERS = {'YEAR', 'AGENCY_CODE', 'ALLOCATION_ID', 'ACCOUNT_CODE', 'PA_CODE', 'PA_TITLE', 'FYQ'}
+VALID_HEADERS = {'AGENCY_CODE', 'ALLOCATION_ID', 'ACCOUNT_CODE', 'PA_CODE', 'PA_TITLE', 'FYQ'}
 
 
 def get_program_activity_file(base_path):
