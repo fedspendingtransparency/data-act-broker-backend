@@ -60,6 +60,7 @@ def clean_data(data, model, field_map, field_options, required_values=[], return
             "strip_commas" which removes commas
         required_values: list of required values
         return_dropped_count: flag to return dropped count
+
     Returns:
         Dataframe conforming to requirements, and additionally the number of rows dropped for missing value
         if return_dropped_count argument is True
