@@ -166,7 +166,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @requires_submission_perms('reader')
     @use_kwargs({'file_type': webargs_fields.String(
         required=True,
-        validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.values()))
+        validate=webargs_validate.OneOf(('D1', 'D2', 'E', 'F')))
     })
     def check_generation_status(submission, file_type):
         """ Return status of file generation job """
