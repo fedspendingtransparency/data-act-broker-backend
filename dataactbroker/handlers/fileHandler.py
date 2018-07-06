@@ -1726,6 +1726,34 @@ def submission_report_url(submission, warning, file_type, cross_type):
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 
+def get_upload_file_url(submission, file_type):
+    """ Gets the signed url of the upload file for the given file type and submission.
+
+        Args:
+            submission: the submission to get the file url for
+            file_type: the letter of the file type to get the file url for
+
+        Returns:
+            A signed URL to S3 of the specified file when not run locally. The path to the file when run locally.
+            Error response if the wrong file type for the submission is given
+    """
+    # check for proper file type
+    if (submission.d2_submission and file_type != 'FABS') or (not submission.d2_submission and file_type == 'FABS'):
+        return JsonResponse.error(ValueError("Invalid file type for this submission"), StatusCode.CLIENT_ERROR)
+
+    sess = GlobalDB.db().session
+    file_job = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                      Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
+                                      Job.job_type_id == JOB_TYPE_DICT['file_upload']).first()
+    split_name = file_job.filename.split('/')
+    if CONFIG_BROKER['local']:
+        # when local, can just grab the filename because it stores the entire path
+        url = os.path.join(CONFIG_BROKER['broker_files'], split_name[-1])
+    else:
+        url = S3Handler().get_signed_url(split_name[0], split_name[1], method="GET")
+    return JsonResponse.create(StatusCode.OK, {"url": url})
+
+
 def submission_error(submission_id, file_type):
     """ Check that submission exists and user has permission to it
 
