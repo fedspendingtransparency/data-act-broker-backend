@@ -24,7 +24,7 @@ The `/dataactbroker/scripts` folder contains the install scripts needed to setup
 ### Handlers
 The `dataactbroker/handlers` folder contains the logic to handle requests that are dispatched from the `domainRoutes.py`, `fileRoutes.py`, `loginRoutes.py`, and `userRoutes.py` files. Routes defined in these files may include the `@requires_login` and `@requires_submission_perms` tags to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in, as well as checking the user's permissions to determine if the user has access to this route. If user is not logged in to the system or does not have access to the route, a 401 HTTP error will be returned. This tags are defined in `dataactbroker/permissions.py`.
 
-`accountHandler.py` contains the functions to check logins and to log users out.
+`account_handler.py` contains the functions to check logins and to log users out.
 
 `fileHandler.py` contains functions for managing user file interaction. It creates all of the jobs that are part of the user submission and has query methods to get the status of a submission. In addition, this class creates downloadable links to error reports created by the DATA Act Validator.
 
@@ -55,7 +55,7 @@ Example output:
 ### User Routes
 
 #### POST "/v1/max_login/"
-This route sends a request to the backend with the ticket obtained from the MAX login endpoint in order to verify authentication and access to the Data Broker.
+This route sends a request to the backend with the ticket obtained from the MAX login endpoint in order to verify authentication and access to the Data Broker. If called by a service account, a certificate is required for authentication.
 
 #### Body (JSON)
 
@@ -76,14 +76,35 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
 
 ```
 {
-    "message": "Login successful",
-    "user_id": 42,
-    "name": "John",
-    "title":"Developer",
-    "agency": "Department of Labor",
-    "permission" : 1
+	"user_id": 42,
+	"name": "John",
+	"title": "Developer",
+	"skip_guide": false,
+	"website_admin": false,
+	"affiliations": [
+		{
+			"agency_name": "Department of Labor (DOL)",
+			"permission": "writer"
+		}
+	],
+	"session_id": "ABC123",
+	"message": "Login successful"
 }
 ```
+
+##### Response Description:
+- `user_id`: int, database identifier of the logged in user, part of response only if login is successful
+- `name`: string, user's name, part of response only if login is successful
+- `title`: string, title of user, part of response only if login is successful
+- `skip_guide`: boolean, indicates whether or not the user has requested to skip introductory materials, part of response only if login is successful
+- `website_admin`: boolean, describes a super-user status, part of response only if login is successful
+- `affiliations`: list, indicates which agencies this user is a part of and what permissions they have at that agency, part of response only if login is successful
+    - `agency_name`: string, name of agency user is affiliated with
+    - `permission`: string, permission type for user (reader, writer, submitter, website_admin, editfabs, fabs)
+- `message`: string, login error response "You have failed to login successfully with MAX", otherwise says "Login successful"
+- `errorType`: string, type of error, part of response only if login is unsuccessful
+- `trace`: list, traceback of error, part of response only if login is unsuccessful
+- `session_id`: string, a hash the application uses to verify that user sending the request is logged in, part of response only if login is successful
 
 #### POST "/v1/login/"
 This route checks the username and password against a credentials file. Accepts input as json or form-urlencoded, with keys "username" and "password". See `current_user` docs for details.
@@ -109,7 +130,8 @@ Example output:
     "website_admin": False,
     "affiliations": [
         {"agency_name": "Department of Labor", "permission": "writer"}
-    ]
+    ],
+    "session_id": "ABC123"
 }
 ```
 
@@ -298,7 +320,7 @@ This endpoint returns the revalidation threshold for the broker application. Thi
 `/v1/revalidation_threshold/`
 
 ##### Request Params
-* N/A
+N/A
 
 ##### Response (JSON)
 ```
@@ -308,12 +330,12 @@ This endpoint returns the revalidation threshold for the broker application. Thi
 ```
 
 ##### Response Attributes
-* `revalidation_threshold`: string, the date of the revalidation threshold (MM/DD/YYYY)
+- `revalidation_threshold`: string, the date of the revalidation threshold (MM/DD/YYYY)
 
 ##### Errors
 Possible HTTP Status Codes:
 
-* 403: Permission denied, user does not have permission to view this submission
+- 403: Permission denied, user does not have permission to view this submission
 
 
 #### GET "/v1/submission\_metadata/"
@@ -323,7 +345,7 @@ This endpoint returns metadata for the requested submission.
 `/v1/submission_metadata/?submission_id=123`
 
 ##### Request Params
-* `submission_id` - **required** - an integer representing the ID of the submission to get metadata for
+- `submission_id` - **required** - an integer representing the ID of the submission to get metadata for
 
 ##### Response (JSON)
 ```
@@ -352,47 +374,55 @@ This endpoint returns metadata for the requested submission.
 ```
 
 ##### Response Attributes
-* `cgac_code`: string, CGAC of agency (null if FREC agency)
-* `frec_code`: string, FREC of agency (null if CGAC agency)
-* `agency_name`: string, name of the submitting agency
-* `number_of_errors`: int, total errors in the submission
-* `number_of_warnings`: int, total warnings in the submission
-* `number_of_rows`: int, total number of rows in the submission including file headers
-* `total_size`: int, total size of all files in the submission in bytes
-* `created_on`: string, date submission was created (MM/DD/YYYY)
-* `last_updated`: string, date/time any changes (including validations, etc) were made to the submission (YYYY-MM-DDTHH:mm:ss)
-* `last_validated`: string, date the most recent validations were completed (MM/DD/YYYY)
-* `reporting_period`: string, reporting period of the submission (Q#/YYYY for quarterly submissions, MM/YYYY for monthly)
-* `publish_status`: string, whether the submission is published or not. Can contain only the following values:
-    * `unpublished`
-    * `published`
-    * `updated`
-    * `publishing`
-* `quarterly_submission`: boolean, whether the submission is quarterly or monthly
-* `fabs_submission`: boolean, whether the submission is FABS or DABS (True for FABS)
-* `fabs_meta`: object, data specific to FABS submissions (null for DABS submissions)
-    * `publish_date`: string, Date/time submission was published (H:mm(AM/PM) MM/DD/YYYY) (null if unpublished)
-    * `published_file`: string, signed url of the published file (null if unpublished)
-    * `total_rows`: int, total rows in the submission not including header rows
-    * `valid_rows`: int, total number of valid, publishable row
+- `cgac_code`: string, CGAC of agency (null if FREC agency)
+- `frec_code`: string, FREC of agency (null if CGAC agency)
+- `agency_name`: string, name of the submitting agency
+- `number_of_errors`: int, total errors in the submission
+- `number_of_warnings`: int, total warnings in the submission
+- `number_of_rows`: int, total number of rows in the submission including file headers
+- `total_size`: int, total size of all files in the submission in bytes
+- `created_on`: string, date submission was created (MM/DD/YYYY)
+- `last_updated`: string, date/time any changes (including validations, etc) were made to the submission (YYYY-MM-DDTHH:mm:ss)
+- `last_validated`: string, date the most recent validations were completed (MM/DD/YYYY)
+- `reporting_period`: string, reporting period of the submission (Q#/YYYY for quarterly submissions, MM/YYYY for monthly)
+- `publish_status`: string, whether the submission is published or not. Can contain only the following values:
+    - `unpublished`
+    - `published`
+    - `updated`
+    - `publishing`
+- `quarterly_submission`: boolean, whether the submission is quarterly or monthly
+- `fabs_submission`: boolean, whether the submission is FABS or DABS (True for FABS)
+- `fabs_meta`: object, data specific to FABS submissions (null for DABS submissions)
+    - `publish_date`: string, Date/time submission was published (H:mm(AM/PM) MM/DD/YYYY) (null if unpublished)
+    - `published_file`: string, signed url of the published file (null if unpublished)
+    - `total_rows`: int, total rows in the submission not including header rows
+    - `valid_rows`: int, total number of valid, publishable row
 
 ##### Errors
 Possible HTTP Status Codes:
 
-* 400:
-    * Missing `submission_id` parameter
-    * Submission does not exist
-* 403: Permission denied, user does not have permission to view this submission
+- 400:
+    - Missing `submission_id` parameter
+    - Submission does not exist
+- 403: Permission denied, user does not have permission to view this submission
 
 
 #### GET "/v1/submission\_data/"
 This endpoint returns detailed validation job data for the requested submission.
 
 ##### Sample Request
-`/v1/submission_data/?submission_id=123`
+`/v1/submission_data/?submission_id=123&type=appropriations`
 
 ##### Request Params
-* `submission_id` - **required** - an integer representing the ID of the submission to get job data for
+- `submission_id` - **required** - an integer representing the ID of the submission to get job data for
+- `type` - **optional** - a string limiting the results in the array to only contain the given file type. The following are valid values for this:
+    - `fabs` - only for FABS submissions
+    - `appropriations` - A
+    - `program_activity` - B
+    - `award_financial` - C
+    - `award_procurement` - D1
+    - `award` - D2
+    - `cross` - cross-file
 
 ##### Response (JSON)
 ```
@@ -423,251 +453,127 @@ This endpoint returns detailed validation job data for the requested submission.
 ```
 
 ##### Response Attributes
-* `job_id `: int, database ID of the job
-* `job_status`: string, status of the job. Can be any of the following values:
-    * `waiting`
-    * `ready`
-    * `running`
-    * `finished`
-    * `invalid`
-    * `failed`
-* `job_type`: string, the type of validation the job is, can be either of the following values:
-    * `csv_record_validation` - a single file validation
-    * `validation` - the cross-file validations
-* `filename`: string, the orignal name of the submitted file (null for cross-file)
-* `file_size`: int, size of the file in bytes (null for cross-file)
-* `number_of_rows`: total number of rows in the file including header row (null for cross-file)
-* `file_type`: type of the file, can only be the following values
-    * `fabs` - will be the only file for FABS submissions and will not be present in DABS submissions
-    * `appropriations` - A
-    * `program_activity` - B
-    * `award_financial` - C
-    * `award_procurement` - D1
-    * `award` - D2
-    * ` ` - Empty string is used for cross-file jobs
-* `file_status`: string, indicates the status of the file. Can only be the following values
-    * `complete`
-    * `header_error`
-    * `unknown_error`
-    * `single_row_error`
-    * `job_error`
-    * `incomplete`
-    * `encoding_error`
-    * `row_count_error`
-    * `file_type_error`
-* `error_type`: string, the overall type of error in the validation job. Can only be the following values
-    * `header_errors`
-    * `row_errors`
-    * `none`
-* `error_data`: array, details of each error that ocurred in the submission. Each entry is an object with the following keys, all returned values are strings
-    *  `field_name`: the fields that were affected by the rule separated by commas if there are multiple
-    *  `error_name`: the name of the error type, can be any of the following values
-        *  `required_error`
-        *  `rule_failed`
-        *  `type_error`
-        *  `value_error`
-        *  `read_error`
-        *  `write_error`
-        *  `length_error`
-    *  `error_description`: a description of the `error_name`
-    *  `occurrences`: the number of times this error ocurred in this file
-    *  `rule_failed`: the full description of the rule that failed
-    *  `original_label`: the rule label for the rule that failed
-*  `warning_data`: array, details of each warning that ocurred in the submission. Each entry is an object containing the same keys as those found in `error_data` with the exception that `error_name` can only be `rule_failed`.
-*  `missing_headers`: array, each entry is a string with the name of the header that was missing
-*  `duplicated_headers`: array, each entry is a string with the name of the header that was duplicated
+- `job_id `: int, database ID of the job
+- `job_status`: string, status of the job. Can be any of the following values:
+    - `waiting`
+    - `ready`
+    - `running`
+    - `finished`
+    - `invalid`
+    - `failed`
+- `job_type`: string, the type of validation the job is, can be either of the following values:
+    - `csv_record_validation` - a single file validation
+    - `validation` - the cross-file validations
+- `filename`: string, the orignal name of the submitted file (null for cross-file)
+- `file_size`: int, size of the file in bytes (null for cross-file)
+- `number_of_rows`: total number of rows in the file including header row (null for cross-file)
+- `file_type`: type of the file, can only be the following values
+    - `fabs` - will be the only file for FABS submissions and will not be present in DABS submissions
+    - `appropriations` - A
+    - `program_activity` - B
+    - `award_financial` - C
+    - `award_procurement` - D1
+    - `award` - D2
+    - ` ` - Empty string is used for cross-file jobs
+- `file_status`: string, indicates the status of the file. Can only be the following values
+    - `complete`
+    - `header_error`
+    - `unknown_error`
+    - `single_row_error`
+    - `job_error`
+    - `incomplete`
+    - `encoding_error`
+    - `row_count_error`
+    - `file_type_error`
+- `error_type`: string, the overall type of error in the validation job. Can only be the following values
+    - `header_errors`
+    - `row_errors`
+    - `none`
+- `error_data`: array, details of each error that ocurred in the submission. Each entry is an object with the following keys, all returned values are strings
+    -  `field_name`: the fields that were affected by the rule separated by commas if there are multiple
+    -  `error_name`: the name of the error type, can be any of the following values
+        -  `required_error`
+        -  `rule_failed`
+        -  `type_error`
+        -  `value_error`
+        -  `read_error`
+        -  `write_error`
+        -  `length_error`
+    -  `error_description`: a description of the `error_name`
+    -  `occurrences`: the number of times this error ocurred in this file
+    -  `rule_failed`: the full description of the rule that failed
+    -  `original_label`: the rule label for the rule that failed
+-  `warning_data`: array, details of each warning that ocurred in the submission. Each entry is an object containing the same keys as those found in `error_data` with the exception that `error_name` can only be `rule_failed`.
+-  `missing_headers`: array, each entry is a string with the name of the header that was missing
+-  `duplicated_headers`: array, each entry is a string with the name of the header that was duplicated
 
 ##### Errors
 Possible HTTP Status Codes:
 
-* 400:
-    * Missing `submission_id` parameter
-    * Submission does not exist
-* 403: Permission denied, user does not have permission to view this submission
+- 400:
+    - Missing `submission_id` parameter
+    - Submission does not exist
+    - Invalid type parameter
+- 403: Permission denied, user does not have permission to view this submission
 
 
-#### POST "/v1/check_status/"
-A call to this route will provide status information on all jobs associated with the specified submission.
-The request should have JSON or form-urlencoded with a key "submission_id".  The response will contain a list of
-status objects for each job under the key "jobs", and other submission-level data.  In error data,
-"original_label" will only be populated when "error_name" is "rule_failed".  List of keys in response:
-- jobs: Holds data for each job in submission, each job is a dict with:
-    * job_id: Internal ID we have assigned to this job
-    * job_status: Values are:
-        - waiting: Job has prerequisites that are not complete, such as a file upload
-        - ready: Job is ready to be started but has not yet reached the validator
-        - running: Job was started on the validator, but has not yet completed or errored
-        - finished: Job completed with no errors (may still have warnings)
-        - invalid: Job completed with errors
-        - failed: There was an unexpected error in the validator, job should be restarted.
-    * file_type: Which type of file this job is for, will be blank for cross-file jobs.  Values are 'appropriations', 'program_activity', 'award_financial', and 'award'.
-    * job_type: Values are:
-        - file_upload: This job is a placeholder for the frontend's upload of the file
-        - csv_record_validation: File level validation job
-        - validation: Cross file validation job
-    * filename: Original filename as submitted by user
-    * file_status:  Represents status of file being validated, values are:
-        - complete: Validation has finished, errors or warnings may have been reported
-        - header_error: Validation stopped after finding header errors
-        - unknown_error:  Something unexpected went wrong
-        - single_row_error:  File has at most one row, valid files must have a header row and at least one row with data
-        - job_error: There was a problem with the job sent to the validator, it was either the wrong type or not ready to run
-        - incomplete: File is still being validated
-    * missing_headers: List of headers that should be present but are not
-    * duplicated_headers: List of headers that were included more than once.  If file_status is 'header_error', at least one of 'missing_headers' and 'duplicated_headers' will be non-empty.
-    * file_size: Size of submitted file in bytes
-    * number_of_rows: Number of rows in submitted file, will only be provided if validation completed
-    * error_type: Values are:
-        - header_errors: Header errors were found, validation was not completed
-        - row_errors: Validation completed with row errors found
-        - none: No errors were found, warnings may still be present
-    * error_data: Holds a list of errors, each error is a dict with keys:
-        - field_name: What field the error occurred on
-        - error_name: Type of error that occurred, values are:
-            * type_error: Value was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line.
-            * required_error: A required value was missing
-            * read_error: Could not parse this value from the file
-            * write_error: This was a problem writing the value to the staging table
-            * rule_failed: A rule failed on this value
-            * length_error: Value was too long for this field
-        - error_description: Description of the error
-        - occurrences: Number of times this error occurred for this field throughout the file.  See the error report for list of rows.
-        - rule_failed: Text of the rule that failed
-        - original_label: Label of the rule as it appears in the practices and procedures document
-    * warning_data: Holds the same information as error_data, but for warnings instead of errors
-- agency_name: Which agency this submission is attached to
-- cgac_code: The CGAC code associated with that agency
-- reporting_period_start_date: Specified by user at time of submission
-- reporting_period_end_date: Specified by user at time of submission
-- number_of_errors: Total number of errors that have occurred throughout the submission
-- number_of_rows: Total number of rows in the submission
-- created_on: Date the submission was originally created
-- last_updated: Date + time of last modification to this submission
-- last_validated: Earliest date of last validation of all jobs
-- revalidation_threshold: Earliest date all jobs must be validated after in order to certify/publish
-- publish_status: Publish status of the submission (unpublished/published/updated)
-- quarterly_submission: True if the submission is quarterly, false otherwise
+#### GET "/v1/check_status/"
+This endpoint returns the status of each file type, including whether each has errors or warnings and a message if one exists.
 
+##### Sample Request
 
-Example input:
+`/v1/check_status/?submission_id=123&type=appropriations`
 
-```json
-{
-  "submission_id":1610
-}
+##### Request Params
+- `submission_id` - **required** - an integer representing the ID of the submission to get statuses for
+- `type` - **optional** - a string limiting the results in the array to only contain the given file type. The following are valid values for this:
+    - `fabs` - only for FABS submissions
+    - `appropriations` - A
+    - `program_activity` - B
+    - `award_financial` - C
+    - `award_procurement` - D1
+    - `award` - D2
+    - `cross` - cross-file
+    - `executive_compensation` - E
+    - `sub_award` - F
+
+##### Response (JSON)
+
 ```
-
-Example output:
-
-```json
 {
-  "jobs": [
-    {
-      "job_id": 3005,
-      "job_status": "invalid",
-      "file_type": "appropriations",
-      "job_type": "file_upload",
-      "filename": "approp.csv",
-      "file_status" : "header_error",
-      "missing_headers": ["header_1", "header_2"],
-      "duplicated_headers": ["header_3", "header_4"],
-      "file_size": 4508,
-      "number_of_rows": 500,
-      "error_type": "header_error",
-      "error_data": [],
-      "warning_data": []
-    }, {
-      "job_id": 3006,
-      "job_status": "finished",
-      "file_type": "appropriations",
-      "job_type": "file_upload",
-      "filename": "approp.csv",
-      "file_status" : "complete",
-      "missing_headers": [],
-      "duplicated_headers": [],
-      "file_size": 4508,
-      "number_of_rows": 500,
-      "error_type": "record_level_error",
-      "error_data":  [
-        {
-          "field_name": "allocationtransferagencyid",
-          "error_name": "type_error",
-          "error_description": "The value provided was of the wrong type. Note that all type errors in a line must be fixed before the rest of the validation logic is applied to that line.",
-          "occurrences": 27,
-          "rule_failed": "",
-          "original_label":""
-        }, {
-          "field_name": "status_of_budgetary_resour_cpe, budget_authority_available_cpe",
-          "error_name": "rule_failed",
-          "error_description": "StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE",
-          "occurrences": 27,
-          "rule_failed": "StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE",
-          "original_label":"A24"
-        }
-      ],
-      "warning_data": [
-        {
-          "field_name": "allocationtransferagencyid",
-          "error_name": "rule_failed",
-          "error_description": "BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440",
-          "occurrences": 27,
-          "rule_failed": "BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440",
-          "original_label":"A10"
-        }, {
-          "field_name": "other_budgetary_resources_cpe, borrowing_authority_amount_cpe, contract_authority_amount_cpe, spending_authority_from_of_cpe",
-          "error_name": "rule_failed",
-          "error_description": "OtherBudgetaryResourcesAmount_CPE must be provided if TAS has borrowing, contract and/or spending authority provided in File A. If not applicable, leave blank.",
-          "occurrences": 27,
-          "rule_failed": "OtherBudgetaryResourcesAmount_CPE must be provided if TAS has borrowing, contract and/or spending authority provided in File A. If not applicable, leave blank.",
-          "original_label":"A28"
-        }
-      ]
-    }, {
-      "job_status": "finished",
-      "error_data": [
-        {
-          "error_description": "A rule failed for this value",
-          "error_name": "rule_failed",
-          "field_name": "award_financial",
-          "occurrences": "11",
-          "rule_failed": "Must have either a piid, fain, or uri",
-          "original_label":""
-        }, {
-          "error_description": "A rule failed for this value",
-          "error_name": "rule_failed",
-          "field_name": "award",
-          "occurrences": "10",
-          "rule_failed": "Must have either a piid, fain, or uri",
-          "original_label":""
-        }
-      ],
-      "warning_data": [],
-      "missing_headers": [],
-      "job_id": 599,
-      "file_type": "",
-      "error_type": "none",
-      "job_type": "validation",
-      "filename": null,
-      "file_status": "complete",
-      "number_of_rows": null,
-      "file_size": null,
-      "duplicated_headers": []
+    "fabs": {
+        "status": "finished",
+        "message": "",
+        "has_errors": false,
+        "has_warnings": true
     }
-  ],
-  "agency_name": "Name of the agency",
-  "cgac_code": "012",
-  "reporting_period_start_date": "03/31/2016",
-  "reporting_period_end_date": "03/31/2016",
-  "number_of_errors": 54,
-  "number_of_rows": 446,
-  "created_on": "04/01/2016",
-  "last_updated": "2016-04-01T09:10:11",
-  "last_validated": "03/15/2017",
-  "revalidation_threshold": "02/02/2017",
-  "publish_status": "unpublished",
-  "quarterly_submission": True
 }
 ```
+
+##### Response Attributes
+Response attributes change depending on the submission and type requested. If a specific type is requested, only one attribute matching the requested type will be included. If no type is specified and the submission is a DABS submission, all possible file types will be included. The possible attributes match the valid request types. See above for a full list.
+
+The contents of each attribute are an object containing the following keys:
+
+- `status`: string, indicates the current status of the file type. Possible values include:
+    - `ready` - not yet started
+    - `uploading` - the file is uploading
+    - `running` - the jobs are running
+    - `finished` - all associated jobs are complete
+    - `failed` - one or more of the associated jobs have failed
+- `message`: string, the message associated with a job if there is one
+- `has_errors`: boolean, indicates if the file type has any errors in validation
+- `has_warnings`: boolean, indicates if the file type has any warnings in validation
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Missing `submission_id` parameter
+    - Submission does not exist
+    - Invalid type parameter
+- 403: Permission denied, user does not have permission to view this submission
+
 
 #### GET "/v1/get_protected_files/"
 This route returns a signed S3 URL for all files available to download on the help page.
@@ -793,7 +699,7 @@ File download or redirect to signed URL
 
 #### POST "/v1/submit_detached_file"
 
-This route sends a request to the backend with ID of the FABS submission we're submitting in order to process it.
+This route sends a request to the backend with ID of the FABS submission we're submitting in order to publish it.
 
 ##### Body (JSON)
 

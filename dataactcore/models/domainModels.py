@@ -2,7 +2,8 @@ from datetime import timedelta
 
 import sqlalchemy as sa
 
-from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text, Float, UniqueConstraint, Boolean
+from sqlalchemy import (Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, Text, Float, UniqueConstraint,
+                        Boolean)
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
@@ -231,6 +232,23 @@ class DUNS(Base):
     ultimate_parent_legal_enti = Column(Text)
 
 
+class HistoricParentDUNS(Base):
+    """ DUNS Records """
+    __tablename__ = "historic_parent_duns"
+
+    duns_id = Column(Integer, primary_key=True)
+    year = Column(Integer)
+    awardee_or_recipient_uniqu = Column(Text, index=True)
+    legal_business_name = Column(Text)
+    activation_date = Column(Date, index=True)
+    deactivation_date = Column(Date, index=True)
+    registration_date = Column(Date, index=True)
+    expiration_date = Column(Date, index=True)
+    last_sam_mod_date = Column(Date)
+    ultimate_parent_unique_ide = Column(Text)
+    ultimate_parent_legal_enti = Column(Text)
+
+
 class CFDAProgram(Base):
     __tablename__ = "cfda_program"
     cfda_program_id = Column(Integer, primary_key=True)
@@ -364,7 +382,7 @@ class ExternalDataLoadDate(Base):
     __tablename__ = "external_data_load_date"
 
     external_data_load_date_id = Column(Integer, primary_key=True)
-    last_load_date = Column(Date)
+    last_load_date = Column(DateTime)
     external_data_type_id = Column(Integer, ForeignKey("external_data_type.external_data_type_id",
                                                        name="fk_external_data_type_id"), unique=True)
     external_data_type = relationship("ExternalDataType", uselist=False)

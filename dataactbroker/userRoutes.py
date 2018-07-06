@@ -1,6 +1,6 @@
-from flask import g, request
+from flask import g, request, session
 
-from dataactbroker.handlers.accountHandler import AccountHandler, json_for_user, list_user_emails
+from dataactbroker.handlers.account_handler import AccountHandler, json_for_user, list_user_emails
 from dataactbroker.permissions import requires_login
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
@@ -25,7 +25,7 @@ def add_user_routes(app, system_email, bcrypt):
     @requires_login
     def current_user():
         """ gets the current user information """
-        return JsonResponse.create(StatusCode.OK, json_for_user(g.user))
+        return JsonResponse.create(StatusCode.OK, json_for_user(g.user, session['sid']))
 
     @app.route("/v1/set_skip_guide/", methods=["POST"])
     @requires_login

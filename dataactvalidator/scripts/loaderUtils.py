@@ -1,8 +1,14 @@
+import logging
 import pandas as pd
 import numpy as np
 
 from datetime import datetime
 from pandas import isnull
+from dataactcore.utils.failure_threshold_exception import FailureThresholdExceededException
+
+logger = logging.getLogger(__name__)
+
+FAILURE_THRESHOLD_PERCENTAGE = .01
 
 
 def clean_col_names(field):
@@ -38,12 +44,12 @@ def trim_item(item):
     return item
 
 
-def clean_data(data, model, field_map, field_options):
+def clean_data(data, model, field_map, field_options, required_values=[], return_dropped_count=False):
+
     """ Cleans up a dataframe that contains domain values.
 
-    Parameters:
-    ----------
-        data : dataframe of domain values
+    Args:
+        data: dataframe of domain values
         field_map: dict that maps columns of the dataframe csv to our db columns
         field_options: dict with keys of attribute names, value contains a dict with options for that attribute.
             Current options are:
@@ -52,9 +58,21 @@ def clean_data(data, model, field_map, field_options):
             "keep_null" when set to true, empty fields will not be padded
             "skip_duplicate" which ignores subsequent lines that repeat values
             "strip_commas" which removes commas
+        required_values: list of required values
+        return_dropped_count: flag to return dropped count
+
+    Returns:
+        Dataframe conforming to requirements, and additionally the number of rows dropped for missing value
+        if return_dropped_count argument is True
+
+    Raises:
+        FailureThresholdExceededException: If too many rows have been discarded during processing, fail the routine.
+           Also fail if the file is blank.
+
     """
     # incoming .csvs often have extraneous blank rows at the end,
     # so get rid of those
+
     data.dropna(inplace=True, how='all')
 
     # clean the dataframe column names
@@ -71,6 +89,29 @@ def clean_data(data, model, field_map, field_options):
     # trim all columns
     data = data.applymap(lambda x: trim_item(x) if len(str(x).strip()) else None)
 
+    if len(required_values) > 0:
+        # if file is blank, immediately fail
+        if data.empty or len(data.shape) < 2:
+            raise FailureThresholdExceededException(0)
+        # check the columns that must have a valid value, and if they have white space,
+        # replace with NaN so that dropna finds them.
+        for value in required_values:
+            data[value].replace('', np.nan, inplace=True)
+        # drop any rows that are missing required data
+        cleaned = data.dropna(subset=required_values)
+        dropped = data[np.invert(data.index.isin(cleaned.index))]
+        # log every dropped row
+        for index, row in dropped.iterrows():
+            logger.info(
+                "Dropped row due to faulty data: fyq:{}--agency:{}--alloc:{}--account:{}--pa_code:{}--pa_name:{}".
+                format(row["fiscal_year_quarter"], row['agency_id'], row['allocation_transfer_id'],
+                       row['account_number'], row['program_activity_code'], row['program_activity_name']))
+
+        if (len(dropped.index)/len(data.index)) > FAILURE_THRESHOLD_PERCENTAGE:
+            raise FailureThresholdExceededException(len(dropped.index))
+        logger.info("{} total rows dropped due to faulty data".format(len(dropped.index)))
+        data = cleaned
+
     # apply column options as specified in fieldOptions param
     for col, options in field_options.items():
         if 'pad_to_length' in options:
@@ -84,7 +125,8 @@ def clean_data(data, model, field_map, field_options):
     # add created_at and updated_at columns
     now = datetime.utcnow()
     data = data.assign(created_at=now, updated_at=now)
-
+    if return_dropped_count:
+        return len(dropped.index), data
     return data
 
 

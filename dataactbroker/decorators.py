@@ -12,8 +12,15 @@ from dataactcore.utils.statusCode import StatusCode
 
 
 def convert_to_submission_id(fn):
-    """Decorator which reads the request, looking for a submission key to convert into a submission_id parameter. The
-    provided function should have a submission_id parameter as its first argument."""
+    """ Decorator which reads the request, looking for a submission key to convert into a submission_id parameter. The
+        provided function should have a submission_id parameter as its first argument.
+
+        Returns:
+            The submission ID that was found
+
+        Raises:
+            ResponseException: If a submission_id or submission parameter is not found
+    """
     @wraps(fn)
     @requires_login     # check login before checking submission_id
     def wrapped(*args, **kwargs):
@@ -23,8 +30,7 @@ def convert_to_submission_id(fn):
         })
         submission_id = req_args.get('submission', req_args.get('submission_id'))
         if submission_id is None:
-            raise ResponseException(
-                "submission_id is required", StatusCode.CLIENT_ERROR)
+            raise ResponseException("submission_id is required", StatusCode.CLIENT_ERROR)
         return fn(submission_id, *args, **kwargs)
     return wrapped
 
