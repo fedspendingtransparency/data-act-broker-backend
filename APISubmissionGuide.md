@@ -70,6 +70,7 @@
     - Add the key `existing_submission_id` with the ID of the submission as the content (string).
     - Response will update to not include the IDs and keys for any files that were not resubmitted
     - Only call `finalize_job` on the updated files
+- If for any reason one of the uploaded files need to be redownloaded, use the `get_file_url` route to get the signed url for it. For details on its use, click [here](./dataactbroker/README.md#get-v1get_file_url)
 
 ### Generate D1, D2 Files
 - D File generation must be manually started ONLY AFTER all errors in A, B, C files have been fixed (warnings are allowed)
@@ -234,6 +235,7 @@
     - `upload_detached_file` Payload:
         - `fabs`: string, name of file being uploaded
         - `existing_submission_id`: string, ID of the submission
+- If for any reason the uploaded file needs to be redownloaded, use the `get_file_url` route to get the signed url for it. For details on its use, click [here](./dataactbroker/README.md#get-v1get_file_url)
 
 ### Publish Submission
 - Publishing must be done through the broker website
