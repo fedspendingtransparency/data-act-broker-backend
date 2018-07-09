@@ -2,7 +2,8 @@ from datetime import timedelta
 
 import sqlalchemy as sa
 
-from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text, Float, UniqueConstraint, Boolean
+from sqlalchemy import (Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, Text, Float, UniqueConstraint,
+                        Boolean)
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
@@ -381,7 +382,7 @@ class ExternalDataLoadDate(Base):
     __tablename__ = "external_data_load_date"
 
     external_data_load_date_id = Column(Integer, primary_key=True)
-    last_load_date = Column(Date)
+    last_load_date = Column(DateTime)
     external_data_type_id = Column(Integer, ForeignKey("external_data_type.external_data_type_id",
                                                        name="fk_external_data_type_id"), unique=True)
     external_data_type = relationship("ExternalDataType", uselist=False)
