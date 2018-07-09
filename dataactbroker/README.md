@@ -698,7 +698,7 @@ This route requests the URL associated with a particular type of submission repo
 File download or redirect to signed URL
 
 #### GET "/v1/get\_file\_url"
-This endpoint returns the signed url for the uploaded file of the requested type
+This endpoint returns the signed url for the uploaded/generated file of the requested type
 
 ##### Sample Request
 `/v1/get_file_url?submission_id=123&file_type=A`
@@ -728,7 +728,7 @@ This endpoint returns the signed url for the uploaded file of the requested type
 ##### Errors
 Possible HTTP Status Codes:
 
-- 400: No such submission, invalid type for this submission, missing parameter
+- 400: No such submission, invalid file type (overall or for the submission specifically), missing parameter
 - 401: Login required
 - 403: Do not have permission to access that submission
 

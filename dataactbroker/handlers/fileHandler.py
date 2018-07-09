@@ -1745,6 +1745,9 @@ def get_upload_file_url(submission, file_type):
     file_job = sess.query(Job).filter(Job.submission_id == submission.submission_id,
                                       Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
                                       Job.job_type_id == JOB_TYPE_DICT['file_upload']).first()
+    if not file_job.filename:
+        return JsonResponse.error(ValueError("No file uploaded or generated for this type"), StatusCode.CLIENT_ERROR)
+
     split_name = file_job.filename.split('/')
     if CONFIG_BROKER['local']:
         # when local, can just grab the filename because it stores the entire path
