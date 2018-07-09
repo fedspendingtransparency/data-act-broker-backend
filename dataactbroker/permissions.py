@@ -1,8 +1,11 @@
 from functools import wraps
-
 from flask import g
 
+from webargs import fields as webargs_fields
+from webargs.flaskparser import parser as webargs_parser
+
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.domainModels import SubTierAgency
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import (ALL_PERMISSION_TYPES_DICT, PERMISSION_SHORT_DICT, DABS_PERMISSION_ID_LIST,
                                         FABS_PERMISSION_ID_LIST)
@@ -142,6 +145,47 @@ def requires_submission_perms(perm, check_owner=True, check_fabs=None):
                 raise ResponseException("User does not have permission to access that submission",
                                         StatusCode.PERMISSION_DENIED)
             return fn(submission, *args, **kwargs)
+        return wrapped
+    return inner
+
+
+def requires_sub_agency_perms(perm):
+    """ Decorator that checks the current user's permissions and validates them against the agency code. It expects an
+         agency_code parameter on top of the function arguments.
+
+        Args:
+            perm: the type of permission we are checking for
+
+        Returns:
+            The args/kwargs that were initially provided
+
+        Raises:
+            ResponseException: If the user doesn't have permission to access the submission at the level requested
+                or no valid agency code was provided.
+    """
+    def inner(fn):
+        @requires_login
+        @wraps(fn)
+        def wrapped(*args, **kwargs):
+            sess = GlobalDB.db().session
+            req_args = webargs_parser.parse({'agency_code': webargs_fields.String(missing=None)})
+
+            # Retrieve agency codes based on SubTierAgency
+            agency_code = req_args.get('agency_code', None)
+            if agency_code:
+                sub_tier_agency = sess.query(SubTierAgency).\
+                    filter(SubTierAgency.sub_tier_agency_code == agency_code).one_or_none()
+                cgac_code = sub_tier_agency.cgac.cgac_code if sub_tier_agency and sub_tier_agency.cgac_id else None
+                frec_code = sub_tier_agency.frec.frec_code if sub_tier_agency and sub_tier_agency.frec_id else None
+
+            if cgac_code is None and frec_code is None:
+                raise ResponseException('No valid agency provided', StatusCode.CLIENT_ERROR)
+
+            if not current_user_can(perm, cgac_code=cgac_code, frec_code=frec_code):
+                raise ResponseException(
+                    "User does not have '{}' permissions for SubTierAgency {}".format(perm, agency_code),
+                    StatusCode.PERMISSION_DENIED)
+            return fn(*args, **kwargs)
         return wrapped
     return inner
 
