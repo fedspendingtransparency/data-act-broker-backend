@@ -603,10 +603,6 @@ class FileHandler:
             job_data['reporting_start_date'] = None
             job_data['reporting_end_date'] = None
 
-            if not current_user_can('editfabs', cgac_code=cgac_code, frec_code=frec_code):
-                raise ResponseException("User does not have permission to create FABS jobs for this agency",
-                                        StatusCode.PERMISSION_DENIED)
-
             submission = create_submission(g.user.user_id, job_data, existing_submission_obj)
             sess.add(submission)
             sess.commit()
