@@ -12,7 +12,6 @@ from flask import g, request
 from shutil import copyfile
 from sqlalchemy import func, and_, desc
 from sqlalchemy.orm import aliased
-from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql.expression import case
 from werkzeug.utils import secure_filename
 
@@ -427,23 +426,25 @@ class FileHandler:
             copyfile(file_url, local_file_path)
             return True
 
-    def generate_file(self, submission_id, file_type):
+    def generate_file(self, submission, file_type, start, end):
         """ Start a file generation job for the specified file type within a submission
 
             Args:
-                submission_id: submission for which we're generating the file
+                submission: submission for which we're generating the file
                 file_type: type of file to generate the job for
+                start: the start date for the file to generate
+                end: the end date for the file to generate
 
             Returns:
-                Results of check_generation or JsonResponse object containing an error
+                Results of check_generation or JsonResponse object containing an error if the prerequisite job isn't
+                complete.
         """
+        # if submission is a FABS submission, throw an error
+        if submission.d2_submission:
+            raise ResponseException("Cannot generate files for FABS submissions", StatusCode.CLIENT_ERROR)
+
+        submission_id = submission.submission_id
         sess = GlobalDB.db().session
-
-        # Check permission to submission
-        error = submission_error(submission_id, file_type)
-        if error:
-            return error
-
         job = sess.query(Job).filter(Job.submission_id == submission_id,
                                      Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
                                      Job.job_type_id == JOB_TYPE_DICT['file_upload']).one()
@@ -465,8 +466,7 @@ class FileHandler:
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
-        req_dict = RequestDictionary(self.request)
-        success, error_response = start_generation_job(job, req_dict.get_value("start"), req_dict.get_value("end"))
+        success, error_response = start_generation_job(job, start, end)
 
         log_data['message'] = 'Finished start_generation_job method for submission {}'.format(submission_id)
         logger.debug(log_data)
@@ -1755,47 +1755,6 @@ def get_upload_file_url(submission, file_type):
     else:
         url = S3Handler().get_signed_url(split_name[0], split_name[1], method="GET")
     return JsonResponse.create(StatusCode.OK, {"url": url})
-
-
-def submission_error(submission_id, file_type):
-    """ Check that submission exists and user has permission to it
-
-        Args:
-            submission_id:  ID of submission to check
-            file_type: file type that has been requested
-
-        Returns:
-            A JsonResponse if there's an error, None otherwise
-    """
-    sess = GlobalDB.db().session
-
-    submission = sess.query(Submission).filter_by(submission_id=submission_id).one_or_none()
-    if submission is None:
-        # Submission does not exist, change to 400 in this case since route call specified a bad ID
-        response_dict = {
-            "message": "Submission does not exist",
-            "file_type": file_type,
-            "url": "#",
-            "status": "failed"
-        }
-        if file_type in ('D1', 'D2'):
-            # Add empty start and end dates
-            response_dict["start"] = ""
-            response_dict["end"] = ""
-        return JsonResponse.error(NoResultFound, StatusCode.CLIENT_ERROR, **response_dict)
-
-    if not current_user_can_on_submission('editfabs' if submission.d2_submission else 'writer', submission):
-        response_dict = {
-            "message": "User does not have permission to view that submission",
-            "file_type": file_type,
-            "url": "#",
-            "status": "failed"
-        }
-        if file_type in ('D1', 'D2'):
-            # Add empty start and end dates
-            response_dict["start"] = ""
-            response_dict["end"] = ""
-        return JsonResponse.create(StatusCode.PERMISSION_DENIED, response_dict)
 
 
 # TODO: Do we even use this anymore?
