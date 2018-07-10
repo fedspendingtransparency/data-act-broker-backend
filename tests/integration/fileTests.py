@@ -45,6 +45,7 @@ class FileTests(BaseTestAPI):
             cls.submission_user_id = submission_user.user_id
 
             other_user = sess.query(User).filter(User.email == cls.test_users['agency_user']).one()
+            cls.other_user_email = other_user.email
             cls.other_user_id = other_user.user_id
 
             # setup submission/jobs data for test_check_status
@@ -106,6 +107,18 @@ class FileTests(BaseTestAPI):
                                                                 start_date="10/2015", end_date="12/2015",
                                                                 is_quarter=False, number_of_errors=0,
                                                                 is_fabs=True)
+
+            cls.test_other_user_submission_id = cls.insert_submission(sess, cls.other_user_id, cgac_code="NOT",
+                                                                      start_date="10/2015", end_date="12/2015",
+                                                                      is_quarter=True, number_of_errors=0)
+            for job_type in ['file_upload', 'csv_record_validation']:
+                for file_type in ['appropriations', 'program_activity', 'award_financial']:
+                    cls.insert_job(sess, FILE_TYPE_DICT[file_type], FILE_STATUS_DICT['complete'],
+                                   JOB_TYPE_DICT[job_type], cls.test_other_user_submission_id, job_id=None,
+                                   filename=None, file_size=None, num_rows=None)
+            cls.insert_job(sess, None, FILE_STATUS_DICT['complete'],
+                           JOB_TYPE_DICT['validation'], cls.test_other_user_submission_id, job_id=None,
+                           filename=None, file_size=None, num_rows=None)
 
             cls.test_certify_history_id = cls.setup_certification_history(sess)
 
@@ -190,20 +203,14 @@ class FileTests(BaseTestAPI):
     def test_update_submission(self):
         """ Test submit_files with an existing submission ID """
         self.call_file_submission()
-        # note: this is a quarterly test submission, so
-        # updated dates must still reflect a quarter
-        if CONFIG_BROKER["use_aws"]:
-            update_json = {"existing_submission_id": self.updateSubmissionId,
-                           "award_financial": "updated.csv",
-                           "reporting_period_start_date": "04/2016",
-                           "reporting_period_end_date": "06/2016"}
-        else:
-            # If local must use full destination path
-            file_path = CONFIG_BROKER["broker_files"]
-            update_json = {"existing_submission_id": self.updateSubmissionId,
-                           "award_financial": os.path.join(file_path, "updated.csv"),
-                           "reporting_period_start_date": "04/2016",
-                           "reporting_period_end_date": "06/2016"}
+        # note: this is a quarterly test submission, so updated dates must still reflect a quarter
+        file_path = "updated.csv" if CONFIG_BROKER["use_aws"] else os.path.join(CONFIG_BROKER["broker_files"],
+                                                                                "updated.csv")
+        update_json = {"existing_submission_id": self.updateSubmissionId,
+                       "award_financial": file_path,
+                       "reporting_period_start_date": "04/2016",
+                       "reporting_period_end_date": "06/2016"}
+
         # Mark submission as published
         with create_app().app_context():
             sess = GlobalDB.db().session
@@ -272,6 +279,36 @@ class FileTests(BaseTestAPI):
         response = self.app.post_json("/v1/submit_files/", update_json,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.json['message'], "A submission with the same period already exists.")
+
+    def test_submit_file_wrong_permissions_wrong_user(self):
+        self.login_user()
+        new_submission_json = {
+            "cgac_code": "NOT",
+            "frec_code": None,
+            "is_quarter": True,
+            "appropriations": "appropriations.csv",
+            "award_financial": "award_financial.csv",
+            "program_activity": "program_activity.csv",
+            "reporting_period_start_date": "07/2015",
+            "reporting_period_end_date": "09/2015"}
+        response = self.app.post_json("/v1/submit_files/", new_submission_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json['message'], "User does not have permission to write to that agency")
+
+    def test_submit_file_wrong_permissions_right_user(self):
+        self.login_user(username=self.other_user_email)
+        update_submission_json = {
+            "existing_submission_id": self.test_other_user_submission_id,
+            "is_quarter": True,
+            "appropriations": "appropriations.csv",
+            "award_financial": "award_financial.csv",
+            "program_activity": "program_activity.csv",
+            "reporting_period_start_date": "10/2015",
+            "reporting_period_end_date": "12/2015"}
+        response = self.app.post_json("/v1/submit_files/", update_submission_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 200)
 
     def test_revalidation_threshold_no_login(self):
         """ Test response with no login """

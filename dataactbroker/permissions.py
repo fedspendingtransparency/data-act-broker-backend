@@ -174,21 +174,27 @@ def requires_agency_perms(perm):
             })
 
             # Use codes based on existing Submission if existing_submission_id is provided, otherwise use CGAC or FREC
-            submission_id = req_args.get('existing_submission_id', None)
-            if submission_id is not None:
-                submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one_or_none()
-                cgac_code = submission.cgac_code if submission else None
-                frec_code = submission.frec_code if submission else None
+            if req_args['existing_submission_id'] is not None:
+                submission = sess.query(Submission).\
+                    filter(Submission.submission_id == req_args['existing_submission_id']).one_or_none()
+
+                # Ensure submission exists
+                if submission is None:
+                    raise ResponseException('No valid agency provided', StatusCode.CLIENT_ERROR)
+
+                # Check permissions for the submission
+                if not current_user_can_on_submission(perm, submission):
+                    raise ResponseException("User does not have permission to write to that agency",
+                                            StatusCode.PERMISSION_DENIED)
             else:
-                cgac_code = req_args.get('cgac_code', None)
-                frec_code = req_args.get('frec_code', None)
+                # Ensure there is either a CGAC or FREC code
+                if req_args['cgac_code'] is None and req_args['frec_code'] is None:
+                    raise ResponseException('No valid agency provided', StatusCode.CLIENT_ERROR)
 
-            if cgac_code is None and frec_code is None:
-                raise ResponseException('No valid agency provided', StatusCode.CLIENT_ERROR)
-
-            if not current_user_can(perm, cgac_code=cgac_code, frec_code=frec_code):
-                raise ResponseException("User does not have permission to write to that agency",
-                                        StatusCode.PERMISSION_DENIED)
+                # Check permissions for the agency
+                if not current_user_can(perm, cgac_code=req_args['cgac_code'], frec_code=req_args['frec_code']):
+                    raise ResponseException("User does not have permission to write to that agency",
+                                            StatusCode.PERMISSION_DENIED)
             return fn(*args, **kwargs)
         return wrapped
     return inner
