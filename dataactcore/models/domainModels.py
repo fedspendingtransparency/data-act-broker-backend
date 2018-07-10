@@ -2,7 +2,7 @@ from datetime import timedelta
 
 import sqlalchemy as sa
 
-from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text, Float, UniqueConstraint, Boolean
+from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text, Float, UniqueConstraint, Boolean, ARRAY
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
@@ -235,7 +235,7 @@ class DUNS(Base):
     zip4 = Column(Text)
     country_code = Column(Text)
     congressional_district = Column(Text)
-    business_types_raw = Column(Text)
+    business_types_codes = Column(ARRAY)
     ultimate_parent_unique_ide = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
 

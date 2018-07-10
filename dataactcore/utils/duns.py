@@ -17,6 +17,7 @@ from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 logger = logging.getLogger(__name__)
 
 REMOTE_SAM_DIR = '/current/SAM/2_FOUO/UTF-8/'
+BUSINESS_TYPES_SEPARATOR = '~'
 
 
 def get_config():
@@ -98,7 +99,7 @@ def clean_sam_data(data, table=DUNS):
         "zip4": "zip4",
         "country_code": "country_code",
         "congressional_district": "congressional_district",
-        "business_types_raw": "business_types_raw",
+        "business_types_codes": "business_types_codes",
         "ultimate_parent_legal_enti": "ultimate_parent_legal_enti",
         "ultimate_parent_unique_ide": "ultimate_parent_unique_ide"
     }, {})
@@ -168,6 +169,10 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
                     lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
                     csv_data = csv_data.assign(deactivation_date=pd.Series([np.nan], name='deactivation_date')
                                                if monthly else csv_data["sam_extract_code"].apply(lambda_func))
+                    # convert business types string to array
+                    bt_func = (lambda bt_raw: pd.Series([bt_raw.split(BUSINESS_TYPES_SEPARATOR)]))
+                    csv_data = csv_data.assign(business_types_codes=csv_data["business_types_raw"].apply(bt_func))
+                    del csv_data["sam_extract_code"]
                     # removing rows where DUNS number isn't even provided
                     csv_data = csv_data.where(csv_data["awardee_or_recipient_uniqu"].notnull())
                     # cleaning and replacing NaN/NaT with None's
