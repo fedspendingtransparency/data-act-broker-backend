@@ -43,16 +43,7 @@ def get_entities(client, duns_list):
     params = client.factory.create('requestedData')
     params.coreData.value = 'Y'
 
-    max_retries=10
-    attempt = 1
-    while attempt < max_retries:
-        try:
-            result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
-            break
-        except Exception:
-            logger.warning('Error in connecting to SAM service, retrying.')
-            attempt += 1
-
+    result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
 
     if result.transactionInformation.transactionMessage:
         logger.warning({
