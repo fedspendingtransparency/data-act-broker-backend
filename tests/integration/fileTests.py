@@ -310,6 +310,35 @@ class FileTests(BaseTestAPI):
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 200)
 
+    def test_submit_file_missing_parameters(self):
+        self.login_user(username=self.other_user_email)
+        update_submission_json = {
+            "is_quarter": True,
+            "appropriations": "appropriations.csv",
+            "award_financial": "award_financial.csv",
+            "program_activity": "program_activity.csv",
+            "reporting_period_start_date": "10/2015",
+            "reporting_period_end_date": "12/2015"}
+        response = self.app.post_json("/v1/submit_files/", update_submission_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'No valid agency provided')
+
+    def test_submit_file_incorrect_parameters(self):
+        self.login_user(username=self.other_user_email)
+        update_submission_json = {
+            "existing_submission_id": -99,
+            "is_quarter": True,
+            "appropriations": "appropriations.csv",
+            "award_financial": "award_financial.csv",
+            "program_activity": "program_activity.csv",
+            "reporting_period_start_date": "10/2015",
+            "reporting_period_end_date": "12/2015"}
+        response = self.app.post_json("/v1/submit_files/", update_submission_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'No valid agency provided')
+
     def test_revalidation_threshold_no_login(self):
         """ Test response with no login """
         self.logout()

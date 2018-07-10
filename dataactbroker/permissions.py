@@ -172,6 +172,10 @@ def requires_agency_perms(perm):
                 'cgac_code': webargs_fields.String(missing=None),
                 'frec_code': webargs_fields.String(missing=None)
             })
+            # Ensure there is either an existing_submission_id, a cgac_code, or a frec_code
+            if req_args['existing_submission_id'] is None and req_args['cgac_code'] is None and \
+               req_args['frec_code'] is None:
+                raise ResponseException('No valid agency provided', StatusCode.CLIENT_ERROR)
 
             # Use codes based on existing Submission if existing_submission_id is provided, otherwise use CGAC or FREC
             if req_args['existing_submission_id'] is not None:
@@ -187,10 +191,6 @@ def requires_agency_perms(perm):
                     raise ResponseException("User does not have permission to write to that agency",
                                             StatusCode.PERMISSION_DENIED)
             else:
-                # Ensure there is either a CGAC or FREC code
-                if req_args['cgac_code'] is None and req_args['frec_code'] is None:
-                    raise ResponseException('No valid agency provided', StatusCode.CLIENT_ERROR)
-
                 # Check permissions for the agency
                 if not current_user_can(perm, cgac_code=req_args['cgac_code'], frec_code=req_args['frec_code']):
                     raise ResponseException("User does not have permission to write to that agency",
