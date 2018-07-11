@@ -195,18 +195,8 @@ class FileHandler:
             submission_data['reporting_end_date'] = formatted_end_date
 
             submission = create_submission(g.user.user_id, submission_data, existing_submission_obj)
-
-            cant_edit = (
-                existing_submission and not current_user_can_on_submission('writer', existing_submission_obj)
-            )
-            cant_create = not current_user_can('writer', cgac_code=submission.cgac_code, frec_code=submission.frec_code)
-            if cant_edit or cant_create:
-                raise ResponseException(
-                    "User does not have permission to create/modify that submission", StatusCode.PERMISSION_DENIED
-                )
-            else:
-                sess.add(submission)
-                sess.commit()
+            sess.add(submission)
+            sess.commit()
 
             # build fileNameMap to be used in creating jobs
             self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files, submission,
