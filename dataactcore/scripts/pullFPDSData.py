@@ -1258,7 +1258,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
     logger.info('Starting get feed: %s%sCONTRACT_TYPE:"%s" AWARD_TYPE:"%s"', feed_url, params, contract_type.upper(),
                 award_type)
 
-    base_url = feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type
+    base_url = feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"'
 
     MAX_ENTRIES = 10
     REQUESTS_AT_ONCE = 100
@@ -1268,7 +1268,6 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
     while True:
 
         def get_with_exception_hand(url_string):
-            logger.info(url_string)
 
             exception_retries = -1
             retry_sleep_times = [5, 30, 60, 180, 300]
@@ -1349,7 +1348,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
         if len(listed_data) < (MAX_ENTRIES * REQUESTS_AT_ONCE):
             break
 
-    logger.info("Total entries in %s: %s feed: %s", contract_type, award_type, str(i))
+    logger.info("Total entries in %s: %s feed: %s", contract_type, award_type, entries_processed)
 
     logger.info("Processed %s: %s data", contract_type, award_type)
 
@@ -2231,7 +2230,7 @@ def main():
     args = parser.parse_args()
 
     award_types_award = ["BPA Call", "Definitive Contract", "Purchase Order", "Delivery Order"]
-    award_types_idv = ["BOA", "BPA", "FSS", "IDC"]
+    award_types_idv = ["GWAC", "BOA", "BPA", "FSS", "IDC"]
 
     # get and create list of sub tier agencies
     sub_tiers = sess.query(SubTierAgency).all()
