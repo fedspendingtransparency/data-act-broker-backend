@@ -1255,13 +1255,16 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
         if start_date and end_date:
             params = 'LAST_MOD_DATE:[' + start_date + ',' + end_date + '] '
 
-    i = 0
-
     logger.info('Starting get feed: %s%sCONTRACT_TYPE:"%s" AWARD_TYPE:"%s"', feed_url, params, contract_type.upper(),
                 award_type)
 
     base_url = feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + \
         award_type + '"&start='
+
+    MAX_ENTRIES = 10
+    REQUESTS_AT_ONCE = 100
+
+    i = 0
 
     while True:
 
@@ -1287,35 +1290,36 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             return resp
         # End request.get + exceptions
 
-        async def atom_async_get():
+        async def atom_async_get(entries_already_processed):
             response_list = []
             loop = asyncio.get_event_loop()
             futures = [
                 loop.run_in_executor(
                     None,
                     get_with_exception_hand,
-                    base_url + "&start=" + str(i * 10)
+                    base_url + "&start=" + str(entries_already_processed + (start_offset * MAX_ENTRIES))
                 )
-                for i in range(100)
+                for start_offset in range(REQUESTS_AT_ONCE)
             ]
             for response in await asyncio.gather(*futures):
-                response_list.append(response)
+                response_list.append(response.text)
                 pass
             return response_list
         # End async get requests def
 
         loop = asyncio.get_event_loop()
-        full_response = loop.run_until_complete(atom_async_get())
+        full_response = loop.run_until_complete(atom_async_get(entries_already_processed=i))
 
+        listed_data = []
         for next_resp in full_response:
-            resp_data = xmltodict.parse(next_resp.text, process_namespaces=True,
+            resp_data = xmltodict.parse(next_resp, process_namespaces=True,
                                         namespaces={'http://www.fpdsng.com/FPDS': None,
                                                     'http://www.w3.org/2005/Atom': None,
                                                     'https://www.fpds.gov/FPDS': None})
             try:
                 listed_data = list_data(resp_data['feed']['entry'])
             except KeyError:
-                listed_data = []
+                continue
 
             if last_run:
                 for ld in listed_data:
@@ -1342,8 +1346,8 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
 
             data = []
 
-        # if we got less than 1000 records, we can stop calling the feed
-        if len(listed_data) < 1000:
+        # if we got less than the expected records, we can stop calling the feed
+        if len(listed_data) < (MAX_ENTRIES * REQUESTS_AT_ONCE):
             break
 
     logger.info("Total entries in %s: %s feed: %s", contract_type, award_type, str(i))
