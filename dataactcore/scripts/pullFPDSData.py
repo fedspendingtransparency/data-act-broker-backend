@@ -1271,16 +1271,18 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
 
             exception_retries = -1
             retry_sleep_times = [5, 30, 60, 180, 300]
+            request_timeout = 60
 
             while exception_retries < len(retry_sleep_times):
                 try:
-                    resp = requests.get(url_string, timeout=60)
+                    resp = requests.get(url_string, timeout=request_timeout)
                     break
-                except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError) as e:
+                except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError,
+                        requests.exceptions.ReadTimeout) as e:
                     exception_retries += 1
                     if exception_retries < len(retry_sleep_times):
-                        print('Connection exception caught. Sleeping {}s and then retrying...'.format(
-                            retry_sleep_times[exception_retries]))
+                        logger.info('Connection exception. Sleeping {}s and then retrying with a max wait of {}s...'
+                                    .format(retry_sleep_times[exception_retries], request_timeout))
                         time.sleep(retry_sleep_times[exception_retries])
                     else:
                         print('Connection to FPDS feed lost, maximum retry attempts exceeded.')
