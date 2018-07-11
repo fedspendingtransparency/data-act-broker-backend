@@ -15,7 +15,6 @@ import asyncio
 import datetime
 import time
 import re
-import threading
 
 from sqlalchemy import func
 
@@ -1262,7 +1261,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                 award_type)
 
     base_url = feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + \
-                                    award_type + '"&start='
+        award_type + '"&start='
 
     while True:
 
@@ -2397,6 +2396,7 @@ def main():
         sess.commit()
     # TODO add a correct start date for "all" so we don't get ALL the data or too little of the data
     # TODO fine-tune indexing
+
 
 if __name__ == '__main__':
     with create_app().app_context():
