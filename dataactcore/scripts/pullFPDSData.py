@@ -1268,11 +1268,12 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
         loops += 1
         exception_retries = -1
         retry_sleep_times = [5, 30, 60, 180, 300]
+        request_timeout = 60
         # looping in case feed breaks
         while True:
             try:
                 resp = requests.get(feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' +
-                                    award_type + '"&start=' + str(i), timeout=60)
+                                    award_type + '"&start=' + str(i), timeout=request_timeout)
                 resp_data = xmltodict.parse(resp.text, process_namespaces=True,
                                             namespaces={'http://www.fpdsng.com/FPDS': None,
                                                         'http://www.w3.org/2005/Atom': None,
@@ -1282,8 +1283,9 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                     requests.exceptions.ReadTimeout) as e:
                 exception_retries += 1
                 if exception_retries < len(retry_sleep_times):
-                    logger.info('Connection exception caught. Sleeping {}s and then retrying...'.format(
-                        retry_sleep_times[exception_retries]))
+                    request_timeout += 60
+                    logger.info('Connection exception caught. Sleeping {}s and then retrying with a max wait of {}s...'
+                                .format(retry_sleep_times[exception_retries], request_timeout))
                     time.sleep(retry_sleep_times[exception_retries])
                 else:
                     logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
