@@ -697,6 +697,41 @@ This route requests the URL associated with a particular type of submission repo
 ##### Response
 File download or redirect to signed URL
 
+#### GET "/v1/get\_file\_url"
+This endpoint returns the signed url for the uploaded/generated file of the requested type
+
+##### Sample Request
+`/v1/get_file_url?submission_id=123&file_type=A`
+
+##### Request Params
+- `submission_id` - **required** - an integer representing the ID of the submission to get metadata for
+- `file_type` - **required** - a string representing the file letter for the submission. Valid strings are the following:
+    - `A`
+    - `B`
+    - `C`
+    - `D1`
+    - `D2`
+    - `E`
+    - `F`
+    - `FABS`
+
+##### Response (JSON)
+```
+{
+    "url": "https://......."
+}
+```
+
+##### Response Attributes
+- `url`: string, the signed url for the requested file
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400: No such submission, invalid file type (overall or for the submission specifically), missing parameter
+- 401: Login required
+- 403: Do not have permission to access that submission
+
 #### POST "/v1/submit_detached_file"
 
 This route sends a request to the backend with ID of the FABS submission we're submitting in order to publish it.

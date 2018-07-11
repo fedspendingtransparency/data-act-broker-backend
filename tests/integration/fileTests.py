@@ -611,6 +611,14 @@ class FileTests(BaseTestAPI):
         self.check_metrics(self.test_metrics_submission_id, True, "award_financial")
         self.check_metrics(self.test_metrics_submission_id, True, "appropriations")
 
+    def test_bad_file_type_check_generation_status(self):
+        """ Test that an error comes back if an invalid file status is included for check_generation_status. """
+        post_json = {"submission_id": self.generation_submission_id, "file_type": "A"}
+        response = self.app.post_json("/v1/check_generation_status/", post_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "file_type: Not a valid choice.")
+
     def test_file_generation(self):
         """ Test the generate and check routes for external files """
         # For file generation submission, call generate route for D1 and check results
