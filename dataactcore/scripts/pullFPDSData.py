@@ -1258,17 +1258,17 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
     logger.info('Starting get feed: %s%sCONTRACT_TYPE:"%s" AWARD_TYPE:"%s"', feed_url, params, contract_type.upper(),
                 award_type)
 
-    base_url = feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + \
-        award_type + '"&start='
+    base_url = feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type
 
     MAX_ENTRIES = 10
     REQUESTS_AT_ONCE = 100
 
-    i = 0
+    entries_processed = 0
 
     while True:
 
         def get_with_exception_hand(url_string):
+            logger.info(url_string)
 
             exception_retries = -1
             retry_sleep_times = [5, 30, 60, 180, 300]
@@ -1286,7 +1286,6 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                     else:
                         print('Connection to FPDS feed lost, maximum retry attempts exceeded.')
                         raise e
-
             return resp
         # End request.get + exceptions
 
@@ -1308,7 +1307,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
         # End async get requests def
 
         loop = asyncio.get_event_loop()
-        full_response = loop.run_until_complete(atom_async_get(entries_already_processed=i))
+        full_response = loop.run_until_complete(atom_async_get(entries_processed))
 
         listed_data = []
         for next_resp in full_response:
@@ -1324,16 +1323,16 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             if last_run:
                 for ld in listed_data:
                     data.append(ld)
-                    i += 1
+                    entries_processed += 1
             else:
                 data.extend(create_processed_data_list(listed_data, contract_type, sess, sub_tier_list, county_by_name,
                                                        county_by_code, state_code_list, country_list))
-                i += len(listed_data)
+                entries_processed += len(listed_data)
 
         if data:
             # Log which one we're on so we can keep track of how far we are, insert into DB ever 1k lines
             logger.info("Retrieved %s lines of get %s: %s feed, writing next %s to DB",
-                        i, contract_type, award_type, len(data))
+                        entries_processed, contract_type, award_type, len(data))
 
             if last_run:
                 process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code,
@@ -2232,7 +2231,7 @@ def main():
     args = parser.parse_args()
 
     award_types_award = ["BPA Call", "Definitive Contract", "Purchase Order", "Delivery Order"]
-    award_types_idv = ["GWAC", "BOA", "BPA", "FSS", "IDC"]
+    award_types_idv = ["BOA", "BPA", "FSS", "IDC"]
 
     # get and create list of sub tier agencies
     sub_tiers = sess.query(SubTierAgency).all()
