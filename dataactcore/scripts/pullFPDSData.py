@@ -1310,25 +1310,24 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
         loop = asyncio.get_event_loop()
         full_response = loop.run_until_complete(atom_async_get(entries_processed))
 
-        listed_data = []
         for next_resp in full_response:
-            resp_data = xmltodict.parse(next_resp, process_namespaces=True,
+            response_dict = xmltodict.parse(next_resp, process_namespaces=True,
                                         namespaces={'http://www.fpdsng.com/FPDS': None,
                                                     'http://www.w3.org/2005/Atom': None,
                                                     'https://www.fpds.gov/FPDS': None})
             try:
-                listed_data = list_data(resp_data['feed']['entry'])
+                entries_per_response = list_data(response_dict['feed']['entry'])
             except KeyError:
                 continue
 
             if last_run:
-                for ld in listed_data:
-                    data.append(ld)
+                for entry in entries_per_response:
+                    data.append(entry)
                     entries_processed += 1
             else:
-                data.extend(create_processed_data_list(listed_data, contract_type, sess, sub_tier_list, county_by_name,
-                                                       county_by_code, state_code_list, country_list))
-                entries_processed += len(listed_data)
+                data.extend(create_processed_data_list(entries_per_response, contract_type, sess, sub_tier_list,
+                                                       county_by_name, county_by_code, state_code_list, country_list))
+                entries_processed += len(entries_per_response)
 
         if data:
             # Log which one we're on so we can keep track of how far we are, insert into DB ever 1k lines
