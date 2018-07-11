@@ -148,10 +148,10 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
             logger.info("Initial sweep took {} seconds".format(time.time() - initial_sweep))
 
         block_size = 10000
-        batches = nrows//block_size
+        batches = (nrows-1)//block_size
         # skip the first line again if the last batch is also the first batch
         skiplastrows = 2 if batches == 0 else 1
-        last_block_size = (nrows % block_size)-skiplastrows
+        last_block_size = ((nrows%block_size) or block_size)-skiplastrows
         batch = 0
         added_rows = 0
         while batch <= batches:
