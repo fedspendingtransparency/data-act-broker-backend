@@ -167,7 +167,6 @@ def requires_agency_perms(perm):
         @requires_login
         @wraps(fn)
         def wrapped(*args, **kwargs):
-            sess = GlobalDB.db().session
             req_args = webargs_parser.parse({
                 'existing_submission_id': webargs_fields.Int(missing=None),
                 'cgac_code': webargs_fields.String(missing=None),
@@ -176,25 +175,16 @@ def requires_agency_perms(perm):
             # Ensure there is either an existing_submission_id, a cgac_code, or a frec_code
             if req_args['existing_submission_id'] is None and req_args['cgac_code'] is None and \
                req_args['frec_code'] is None:
-                raise ResponseException('No valid agency provided', StatusCode.CLIENT_ERROR)
+                raise ResponseException('Missing required parameter: cgac_code, frec_code, or existing_submission_id',
+                                        StatusCode.CLIENT_ERROR)
 
             # Use codes based on existing Submission if existing_submission_id is provided, otherwise use CGAC or FREC
             if req_args['existing_submission_id'] is not None:
-                submission = sess.query(Submission).\
-                    filter(Submission.submission_id == req_args['existing_submission_id']).one_or_none()
-
-                # Ensure submission exists
-                if submission is None:
-                    raise ResponseException('No valid agency provided', StatusCode.CLIENT_ERROR)
-
-                # Check permissions for the submission
-                if not current_user_can_on_submission(perm, submission):
-                    raise ResponseException("User does not have permission to write to that agency",
-                                            StatusCode.PERMISSION_DENIED)
+                check_existing_submission_perms(perm, req_args['existing_submission_id'])
             else:
                 # Check permissions for the agency
                 if not current_user_can(perm, cgac_code=req_args['cgac_code'], frec_code=req_args['frec_code']):
-                    raise ResponseException("User does not have permission to write to that agency",
+                    raise ResponseException("User does not have permissions to write to that agency",
                                             StatusCode.PERMISSION_DENIED)
             return fn(*args, **kwargs)
         return wrapped
@@ -220,23 +210,30 @@ def requires_sub_agency_perms(perm):
         @wraps(fn)
         def wrapped(*args, **kwargs):
             sess = GlobalDB.db().session
-            req_args = webargs_parser.parse({'agency_code': webargs_fields.String(missing=None)})
+            req_args = webargs_parser.parse({
+                'agency_code': webargs_fields.String(missing=None),
+                'existing_submission_id': webargs_fields.String(missing=None)
+            })
+            if req_args['agency_code'] is None and req_args['existing_submission_id'] is None:
+                raise ResponseException('Missing required parameter: agency_code or existing_submission_id',
+                                        StatusCode.CLIENT_ERROR)
 
-            # Retrieve agency codes based on SubTierAgency
-            agency_code = req_args.get('agency_code', None)
-            if agency_code:
+            if req_args['existing_submission_id'] is not None:
+                check_existing_submission_perms(perm, req_args['existing_submission_id'])
+            else:
                 sub_tier_agency = sess.query(SubTierAgency).\
-                    filter(SubTierAgency.sub_tier_agency_code == agency_code).one_or_none()
-                cgac_code = sub_tier_agency.cgac.cgac_code if sub_tier_agency and sub_tier_agency.cgac_id else None
-                frec_code = sub_tier_agency.frec.frec_code if sub_tier_agency and sub_tier_agency.frec_id else None
+                    filter(SubTierAgency.sub_tier_agency_code == req_args['agency_code']).one_or_none()
 
-            if cgac_code is None and frec_code is None:
-                raise ResponseException('No valid agency provided', StatusCode.CLIENT_ERROR)
+                if sub_tier_agency is None:
+                    raise ResponseException('sub_tier_agency must be a valid sub_tier_agency_code',
+                                            StatusCode.CLIENT_ERROR)
 
-            if not current_user_can(perm, cgac_code=cgac_code, frec_code=frec_code):
-                raise ResponseException(
-                    "User does not have '{}' permissions for SubTierAgency {}".format(perm, agency_code),
-                    StatusCode.PERMISSION_DENIED)
+                cgac_code = sub_tier_agency.cgac.cgac_code if sub_tier_agency.cgac_id else None
+                frec_code = sub_tier_agency.frec.frec_code if sub_tier_agency.frec_id else None
+                if not current_user_can(perm, cgac_code=cgac_code, frec_code=frec_code):
+                    raise ResponseException("User does not have permissions to write to that subtier agency",
+                                            StatusCode.PERMISSION_DENIED)
+
             return fn(*args, **kwargs)
         return wrapped
     return inner
@@ -265,3 +262,28 @@ def separate_affiliations(affiliations, app_type):
                 cgac_ids.append(affiliation.cgac.cgac_id)
 
     return cgac_ids, frec_ids
+
+
+def check_existing_submission_perms(perm, submission_id):
+    """ Checks the current user's permissions against the submission with the ID of submission_id
+
+        Args:
+            perm: the type of permission we are checking for
+            submission_id: the ID of the Submission that the user input
+
+        Raises:
+            ResponseException: If the user doesn't have permission to access the submission at the level requested
+                or no valid agency code was provided.
+    """
+    sess = GlobalDB.db().session
+    submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one_or_none()
+
+    # Ensure submission exists
+    if submission is None:
+        raise ResponseException("existing_submission_id must be a valid submission_id",
+                                StatusCode.CLIENT_ERROR)
+
+    # Check permissions for the submission
+    if not current_user_can_on_submission(perm, submission):
+        raise ResponseException("User does not have permissions to write to that submission",
+                                StatusCode.PERMISSION_DENIED)

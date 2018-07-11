@@ -10,8 +10,8 @@ from dataactbroker.handlers.submission_handler import (
     certify_dabs_submission, find_existing_submissions_in_period, get_submission_metadata, get_submission_data,
     get_revalidation_threshold)
 from dataactbroker.decorators import convert_to_submission_id
-from dataactbroker.permissions import (current_user_can, requires_login, requires_submission_perms,
-                                       requires_agency_perms, requires_sub_agency_perms)
+from dataactbroker.permissions import (requires_login, requires_submission_perms, requires_agency_perms,
+                                       requires_sub_agency_perms)
 
 from dataactcore.interfaces.function_bag import get_fabs_meta
 from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER

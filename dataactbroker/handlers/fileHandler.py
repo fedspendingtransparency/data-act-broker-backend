@@ -19,7 +19,7 @@ from werkzeug.utils import secure_filename
 from dataactbroker.handlers.fabsDerivationsHandler import fabs_derivations
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
                                                        reporting_date, job_to_dict)
-from dataactbroker.permissions import current_user_can, current_user_can_on_submission
+from dataactbroker.permissions import current_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES

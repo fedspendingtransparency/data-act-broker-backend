@@ -294,7 +294,7 @@ class FileTests(BaseTestAPI):
         response = self.app.post_json("/v1/submit_files/", new_submission_json,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.json['message'], "User does not have permission to write to that agency")
+        self.assertEqual(response.json['message'], "User does not have permissions to write to that agency")
 
     def test_submit_file_wrong_permissions_right_user(self):
         self.login_user(username=self.other_user_email)
@@ -322,7 +322,8 @@ class FileTests(BaseTestAPI):
         response = self.app.post_json("/v1/submit_files/", update_submission_json,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'No valid agency provided')
+        self.assertEqual(response.json['message'],
+                         "Missing required parameter: cgac_code, frec_code, or existing_submission_id")
 
     def test_submit_file_incorrect_parameters(self):
         self.login_user(username=self.other_user_email)
@@ -337,7 +338,7 @@ class FileTests(BaseTestAPI):
         response = self.app.post_json("/v1/submit_files/", update_submission_json,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'No valid agency provided')
+        self.assertEqual(response.json['message'], 'existing_submission_id must be a valid submission_id')
 
     def test_revalidation_threshold_no_login(self):
         """ Test response with no login """
