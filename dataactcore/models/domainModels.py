@@ -235,7 +235,7 @@ class DUNS(Base):
     zip4 = Column(Text)
     country_code = Column(Text)
     congressional_district = Column(Text)
-    business_types_codes = Column(ARRAY)
+    business_types_codes = Column(ARRAY(Text))
     ultimate_parent_unique_ide = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
 

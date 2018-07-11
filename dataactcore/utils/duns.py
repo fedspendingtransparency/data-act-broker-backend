@@ -170,9 +170,9 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
                     csv_data = csv_data.assign(deactivation_date=pd.Series([np.nan], name='deactivation_date')
                                                if monthly else csv_data["sam_extract_code"].apply(lambda_func))
                     # convert business types string to array
-                    bt_func = (lambda bt_raw: pd.Series([bt_raw.split(BUSINESS_TYPES_SEPARATOR)]))
+                    bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~')]]))
                     csv_data = csv_data.assign(business_types_codes=csv_data["business_types_raw"].apply(bt_func))
-                    del csv_data["sam_extract_code"]
+                    del csv_data["business_types_raw"]
                     # removing rows where DUNS number isn't even provided
                     csv_data = csv_data.where(csv_data["awardee_or_recipient_uniqu"].notnull())
                     # cleaning and replacing NaN/NaT with None's
@@ -226,6 +226,9 @@ def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False,
                      year=None):
     file_path = os.path.join(root_dir, file_name)
     if not local:
+        if sftp.sock.closed:
+            # Reconnect if channel is closed
+            sftp = sftp.open_sftp()
         logger.info("Pulling {}".format(file_name))
         with open(file_path, "wb") as zip_file:
             sftp.getfo(''.join([REMOTE_SAM_DIR, '/', file_name]), zip_file)
