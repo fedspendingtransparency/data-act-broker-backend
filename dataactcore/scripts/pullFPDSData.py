@@ -1342,11 +1342,11 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             logger.info("Successfully inserted %s lines of get %s: %s feed, continuing feed retrieval",
                         len(data), contract_type, award_type)
 
-            data = []
-
         # if we got less than the expected records, we can stop calling the feed
-        if len(listed_data) < (MAX_ENTRIES * REQUESTS_AT_ONCE):
+        if len(data) < (MAX_ENTRIES * REQUESTS_AT_ONCE):
             break
+        else:
+            data = []
 
     logger.info("Total entries in %s: %s feed: %s", contract_type, award_type, entries_processed)
 
