@@ -1123,12 +1123,12 @@ This route sends a request to the backend to utilize the relevant external APIs 
 
 #### Body Description
 
-* `file_type` - **required** - a string indicating the file type to generate. Allowable values are:
-	* `D1` - generate a D1 file
-	* `D2` - generate a D2 file
-* `cgac_code` - **required** - the cgac of the agency for which to generate the files for
-* `start` - **required** - the start date of the requested date range, in `MM/DD/YYYY` string format
-* `end` - **required** - the end date of the requested date range, in `MM/DD/YYYY` string format
+- `file_type` - **required** - a string indicating the file type to generate. Allowable values are:
+    - `D1` - generate a D1 file
+    - `D2` - generate a D2 file
+- `cgac_code` - **required** - the cgac of the agency for which to generate the files for
+- `start` - **required** - the start date of the requested date range, in `MM/DD/YYYY` string format
+- `end` - **required** - the end date of the requested date range, in `MM/DD/YYYY` string format
 
 #### Response (JSON)
 Response will be the same format as those returned from `/v1/check_generation_status` endpoint with the exception that only D1 and D2 files will ever be present, never E or F.
