@@ -1333,7 +1333,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
         if data:
             # Log which one we're on so we can keep track of how far we are, insert into DB ever 1k lines
             logger.info("Retrieved %s lines of get %s: %s feed, writing next %s to DB",
-                        i, contract_type, award_type, len(listed_data))
+                        i, contract_type, award_type, len(data))
 
             if last_run:
                 process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code,
@@ -1342,7 +1342,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                 add_processed_data_list(data, sess)
 
             logger.info("Successfully inserted %s lines of get %s: %s feed, continuing feed retrieval",
-                        len(listed_data), contract_type, award_type)
+                        len(data), contract_type, award_type)
 
             data = []
 
