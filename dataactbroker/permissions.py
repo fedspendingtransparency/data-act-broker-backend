@@ -149,6 +149,58 @@ def requires_submission_perms(perm, check_owner=True, check_fabs=None):
     return inner
 
 
+def requires_agency_perms(perm):
+    """ Decorator that checks the current user's permissions and validates them against the agency code. It expects an
+         existing_submission_id, cgac_code, or frec_code parameter on top of the function arguments.
+
+        Args:
+            perm: the type of permission we are checking for
+
+        Returns:
+            The args/kwargs that were initially provided
+
+        Raises:
+            ResponseException: If the user doesn't have permission to access the submission at the level requested
+                or no valid agency code was provided.
+    """
+    def inner(fn):
+        @requires_login
+        @wraps(fn)
+        def wrapped(*args, **kwargs):
+            sess = GlobalDB.db().session
+            req_args = webargs_parser.parse({
+                'existing_submission_id': webargs_fields.Int(missing=None),
+                'cgac_code': webargs_fields.String(missing=None),
+                'frec_code': webargs_fields.String(missing=None)
+            })
+            # Ensure there is either an existing_submission_id, a cgac_code, or a frec_code
+            if req_args['existing_submission_id'] is None and req_args['cgac_code'] is None and \
+               req_args['frec_code'] is None:
+                raise ResponseException('No valid agency provided', StatusCode.CLIENT_ERROR)
+
+            # Use codes based on existing Submission if existing_submission_id is provided, otherwise use CGAC or FREC
+            if req_args['existing_submission_id'] is not None:
+                submission = sess.query(Submission).\
+                    filter(Submission.submission_id == req_args['existing_submission_id']).one_or_none()
+
+                # Ensure submission exists
+                if submission is None:
+                    raise ResponseException('No valid agency provided', StatusCode.CLIENT_ERROR)
+
+                # Check permissions for the submission
+                if not current_user_can_on_submission(perm, submission):
+                    raise ResponseException("User does not have permission to write to that agency",
+                                            StatusCode.PERMISSION_DENIED)
+            else:
+                # Check permissions for the agency
+                if not current_user_can(perm, cgac_code=req_args['cgac_code'], frec_code=req_args['frec_code']):
+                    raise ResponseException("User does not have permission to write to that agency",
+                                            StatusCode.PERMISSION_DENIED)
+            return fn(*args, **kwargs)
+        return wrapped
+    return inner
+
+
 def requires_sub_agency_perms(perm):
     """ Decorator that checks the current user's permissions and validates them against the agency code. It expects an
          agency_code parameter on top of the function arguments.
