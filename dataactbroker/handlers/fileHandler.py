@@ -533,7 +533,7 @@ class FileHandler:
         # Return same response as check generation route
         return self.check_detached_generation(new_job.job_id)
 
-    def upload_fabs_file(self, create_credentials):
+    def upload_fabs_file(self, create_credentials, fabs):
         """ Builds S3 URLs for a set of FABS files and adds all related jobs to job tracker database
 
             Flask request should include keys from FILE_TYPES class variable above
@@ -557,7 +557,8 @@ class FileHandler:
                 'message': 'Starting FABS file upload',
                 'message_type': 'BrokerInfo',
                 'agency_code': request_params.get('agency_code'),
-                'file_name': request_params.get('fabs')
+                'existing_submission_id': request_params.get('existing_submission_id'),
+                'file_name': fabs
             })
 
             job_data = {}
@@ -604,7 +605,7 @@ class FileHandler:
                 sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map(request_params, ['fabs'], response_dict, upload_files, submission)
+            self.build_file_map({'fabs': fabs}, ['fabs'], response_dict, upload_files, submission)
 
             self.create_response_dict_for_submission(upload_files, submission, existing_submission,
                                                      response_dict, create_credentials)
