@@ -1,3 +1,4 @@
+import json
 from flask import request
 from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import use_kwargs
@@ -183,10 +184,12 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @app.route("/v1/upload_detached_file/", methods=["POST"])
     @requires_login
     def upload_detached_file():
-        current_user_can('editfabs', cgac_code=request.json.get('cgac_code', None),
-                         frec_code=request.json.get('frec_code', None))
+        if "fabs" in request.files:
+            file = request.files['fabs']
+        else:
+            file = None
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.upload_fabs_file(create_credentials)
+        return file_manager.upload_fabs_file(create_credentials, file)
 
     @app.route("/v1/submit_detached_file/", methods=["POST"])
     @convert_to_submission_id

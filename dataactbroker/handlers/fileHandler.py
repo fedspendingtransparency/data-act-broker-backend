@@ -1,9 +1,11 @@
+import boto3
 import calendar
 import logging
 import os
 import requests
 import smart_open
 import sqlalchemy as sa
+
 
 from collections import namedtuple
 from datetime import datetime
@@ -78,6 +80,9 @@ class FileHandler:
     FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
     EXTERNAL_FILE_TYPES = ["award", "award_procurement", "executive_compensation", "sub_award"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
+    UPLOAD_FOLDER = '/data-act/backend/tmp'
+    ALLOWED_EXTENSIONS = ['csv']
+
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
 
@@ -543,7 +548,7 @@ class FileHandler:
         # Return same response as check generation route
         return self.check_detached_generation(new_job.job_id)
 
-    def upload_fabs_file(self, create_credentials):
+    def upload_fabs_file(self, create_credentials, file=None):
         """ Builds S3 URLs for a set of FABS files and adds all related jobs to job tracker database
 
             Flask request should include keys from FILE_TYPES class variable above
@@ -618,10 +623,20 @@ class FileHandler:
                 sess.commit()
 
             # build fileNameMap to be used in creating jobs
+            if file:
+                request_params = {"fabs": file}
             self.build_file_map(request_params, ['fabs'], response_dict, upload_files, submission)
 
             self.create_response_dict_for_submission(upload_files, submission, existing_submission,
                                                      response_dict, create_credentials)
+            if file:
+                if CONFIG_BROKER['use_aws']:
+                    s3 = boto3.client('s3')
+                    key = [x["upload_name"] for x in upload_files if x["file_type"]=="fabs"][0]
+                    s3.upload_fileobj(file, response_dict["bucket_name"], key)
+                else:
+                    file.save(os.path.join(self.UPLOAD_FOLDER, file.filename))
+                return self.finalize(response_dict["fabs_id"])
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
@@ -633,6 +648,25 @@ class FileHandler:
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
         except:
             return JsonResponse.error(Exception("Failed to catch exception"), StatusCode.INTERNAL_ERROR)
+
+    def initiate_upload(self):
+        def allowed_file(filename):
+            return '.' in filename and \
+                   filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
+
+        request = self.request
+        if request.method == 'POST':
+            if 'file' not in request.files:
+                return JsonResponse.create(StatusCode.OK, {"msg":"No File Part!"})
+            file = request.files['file']
+            if file.filename == '':
+                return JsonResponse.create(StatusCode.OK, {"msg":"No selected file!"})
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(self.UPLOAD_FOLDER, filename))
+                return JsonResponse.create(StatusCode.OK, {"msg":filename})
+
+            return JsonResponse.create(StatusCode.OK, {"msg":"you GETTED"})
 
     @staticmethod
     def check_detached_generation(job_id):
@@ -920,7 +954,7 @@ class FileHandler:
 
         return job
 
-    def build_file_map(self, request_params, file_type_list, response_dict, upload_files, submission,
+    def build_file_map(self, file_dict, file_type_list, response_dict, upload_files, submission,
                        existing_submission=False):
         """ Build fileNameMap to be used in creating jobs
 
@@ -940,13 +974,17 @@ class FileHandler:
         """
         for file_type in file_type_list:
             # if file_type not included in request, and this is an update to an existing submission, skip it
-            if not request_params.get(file_type):
+            if not file_dict.get(file_type):
                 if existing_submission:
                     continue
                 # this is a new submission, all files are required
                 raise ResponseException("Must include all required files for new submission", StatusCode.CLIENT_ERROR)
 
-            file_name = request_params.get(file_type)
+            file = file_dict.get(file_type)
+            if not isinstance(file, str):
+                file_name = file.filename
+            else:
+                file_name = file 
             if file_name:
                 if not self.is_local:
                     upload_name = "{}/{}".format(
@@ -954,7 +992,7 @@ class FileHandler:
                         S3Handler.get_timestamped_filename(file_name)
                     )
                 else:
-                    upload_name = file_name
+                    upload_name = os.path.join(self.UPLOAD_FOLDER,file_name)
 
                 response_dict[file_type + "_key"] = upload_name
                 upload_files.append(FileHandler.UploadFile(

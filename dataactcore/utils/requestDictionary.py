@@ -1,3 +1,4 @@
+import json
 from werkzeug.exceptions import BadRequest
 
 
@@ -43,6 +44,9 @@ class RequestDictionary:
                 return result
             elif content_type == "application/x-www-form-urlencoded":
                 return request.form
+            ## This is not common and is a one-off solution for inbound API
+            elif "multipart/form-data" in content_type:
+                return json.loads(request.form.to_dict()["data"])
             else:
                 raise ValueError("Invalid Content-Type : " + content_type)
         except BadRequest as br:
