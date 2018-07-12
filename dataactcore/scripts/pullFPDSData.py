@@ -1312,9 +1312,9 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
 
         for next_resp in full_response:
             response_dict = xmltodict.parse(next_resp, process_namespaces=True,
-                                        namespaces={'http://www.fpdsng.com/FPDS': None,
-                                                    'http://www.w3.org/2005/Atom': None,
-                                                    'https://www.fpds.gov/FPDS': None})
+                                            namespaces={'http://www.fpdsng.com/FPDS': None,
+                                                        'http://www.w3.org/2005/Atom': None,
+                                                        'https://www.fpds.gov/FPDS': None})
             try:
                 entries_per_response = list_data(response_dict['feed']['entry'])
             except KeyError:
