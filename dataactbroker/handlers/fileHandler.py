@@ -6,7 +6,6 @@ import requests
 import smart_open
 import sqlalchemy as sa
 
-
 from collections import namedtuple
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -81,8 +80,6 @@ class FileHandler:
     EXTERNAL_FILE_TYPES = ["award", "award_procurement", "executive_compensation", "sub_award"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
     UPLOAD_FOLDER = '/data-act/backend/tmp'
-    ALLOWED_EXTENSIONS = ['csv']
-
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
 
@@ -632,7 +629,7 @@ class FileHandler:
             if file:
                 if CONFIG_BROKER['use_aws']:
                     s3 = boto3.client('s3')
-                    key = [x["upload_name"] for x in upload_files if x["file_type"]=="fabs"][0]
+                    key = [x["upload_name"] for x in upload_files if x["file_type"] == "fabs"][0]
                     s3.upload_fileobj(file, response_dict["bucket_name"], key)
                 else:
                     file.save(os.path.join(self.UPLOAD_FOLDER, file.filename))
@@ -965,7 +962,7 @@ class FileHandler:
             if not isinstance(file, str):
                 file_name = file.filename
             else:
-                file_name = file 
+                file_name = file
             if file_name:
                 if not self.is_local:
                     upload_name = "{}/{}".format(
@@ -973,7 +970,7 @@ class FileHandler:
                         S3Handler.get_timestamped_filename(file_name)
                     )
                 else:
-                    upload_name = os.path.join(self.UPLOAD_FOLDER,file_name)
+                    upload_name = os.path.join(self.UPLOAD_FOLDER, file_name)
 
                 response_dict[file_type + "_key"] = upload_name
                 upload_files.append(FileHandler.UploadFile(

@@ -1,4 +1,3 @@
-import json
 from flask import request
 from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import use_kwargs

@@ -44,7 +44,7 @@ class RequestDictionary:
                 return result
             elif content_type == "application/x-www-form-urlencoded":
                 return request.form
-            ## This is not common and is a one-off solution for inbound API
+            # This is not common and is a one-off solution for inbound API
             elif "multipart/form-data" in content_type:
                 return json.loads(request.form.to_dict()["data"])
             else:
