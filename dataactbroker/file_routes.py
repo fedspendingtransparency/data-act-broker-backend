@@ -194,7 +194,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.publish_fabs_submission(submission)
 
-    @app.route("/v1/get_obligations/", methods=["POST"])
+    @app.route("/v1/get_obligations/", methods=["GET"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
     def get_obligations(submission):
