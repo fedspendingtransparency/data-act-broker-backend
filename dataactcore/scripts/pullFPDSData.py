@@ -1270,7 +1270,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
 
         def get_with_exception_hand(url_string):
             exception_retries = -1
-            retry_sleep_times = [5, 30, 60, 180, 300]
+            retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
             request_timeout = 60
 
             while exception_retries < len(retry_sleep_times):
@@ -1280,6 +1280,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                 except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError,
                         requests.exceptions.ReadTimeout) as e:
                     exception_retries += 1
+                    request_timeout += 60
                     if exception_retries < len(retry_sleep_times):
                         logger.info('Connection exception. Sleeping {}s and then retrying with a max wait of {}s...'
                                     .format(retry_sleep_times[exception_retries], request_timeout))
