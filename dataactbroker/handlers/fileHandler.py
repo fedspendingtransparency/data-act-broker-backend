@@ -229,12 +229,8 @@ class FileHandler:
             sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files, submission,
-                                existing_submission)
+            self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files, submission)
 
-            if not upload_files and existing_submission:
-                raise ResponseException("Must include at least one file for an existing submission",
-                                        StatusCode.CLIENT_ERROR)
             if not existing_submission:
                 # don't add external files to existing submission
                 for ext_file_type in FileHandler.EXTERNAL_FILE_TYPES:
@@ -570,6 +566,7 @@ class FileHandler:
 
             Args:
                 create_credentials: If True, will create temporary credentials for S3 uploads
+                fabs: the name of the FABS file being uploaded
 
             Returns:
                 JsonResponse with the response dictionary from create_response_dict_for_submission or the details
@@ -940,8 +937,7 @@ class FileHandler:
 
         return job
 
-    def build_file_map(self, request_params, file_type_list, response_dict, upload_files, submission,
-                       existing_submission=False):
+    def build_file_map(self, request_params, file_type_list, response_dict, upload_files, submission):
         """ Build fileNameMap to be used in creating jobs
 
             Args:
@@ -951,20 +947,15 @@ class FileHandler:
                     information in this function
                 upload_files: files that need to be uploaded
                 submission: submission this file map is for
-                existing_submission: boolean indicating if this is an existing submission the files are being
-                    reuploaded for or a new one (true for existing)
 
             Raises:
                 ResponseException: If a new submission is being made but not all the file types in the file_type_list
                     are included in the request_params
         """
         for file_type in file_type_list:
-            # if file_type not included in request, and this is an update to an existing submission, skip it
+            # if file_type not included in request, skip it, checks for validity are done before calling this
             if not request_params.get(file_type):
-                if existing_submission:
-                    continue
-                # this is a new submission, all files are required
-                raise ResponseException("Must include all required files for new submission", StatusCode.CLIENT_ERROR)
+                continue
 
             file_name = request_params.get(file_type)
             if file_name:
