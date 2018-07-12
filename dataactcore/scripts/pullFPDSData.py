@@ -48,6 +48,10 @@ country_code_map = {'USA': 'US', 'ASM': 'AS', 'GUM': 'GU', 'MNP': 'MP', 'PRI': '
                     'MHL': 'MH', 'PLW': 'PW', 'XBK': 'UM', 'XHO': 'UM', 'XJV': 'UM', 'XJA': 'UM', 'XKR': 'UM',
                     'XPL': 'UM', 'XMW': 'UM', 'XWK': 'UM'}
 
+# Used for asyncio get requests against the ATOM feed
+MAX_ENTRIES = 10
+REQUESTS_AT_ONCE = 100
+
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
@@ -1260,9 +1264,6 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
 
     base_url = feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"'
 
-    MAX_ENTRIES = 10
-    REQUESTS_AT_ONCE = 100
-
     entries_processed = 0
 
     while True:
@@ -2282,7 +2283,7 @@ def main():
                              "(but not both) to indicate which feeds to read in")
         logger.info("Starting at: %s", str(datetime.datetime.now()))
 
-        if False:
+        if args.other:
             for award_type in award_types_idv:
                 get_data("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
                          country_list)
@@ -2320,6 +2321,7 @@ def main():
         last_update = last_update_obj.update_date
         start_date = None
         end_date = None
+
         if args.dates:
             start_date = args.dates[0]
             end_date = args.dates[1]
