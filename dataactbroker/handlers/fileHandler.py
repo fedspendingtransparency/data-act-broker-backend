@@ -140,6 +140,31 @@ class FileHandler:
 
         return self.submit(sess, create_credentials)
 
+    @staticmethod
+    def validate_submit_file_params(request_params):
+        """ Makes sure that the request params for DABS submissions are valid for a file upload call.
+
+            Args:
+                request_params: the object containing the request params for the API call
+
+            Raises:
+                ResponseException: if not all required params are present in a new submission or none of the params
+                    are present in a re-upload for an existing submission
+        """
+        existing_submission_id = request_params.get('existing_submission_id')
+        param_count = 0
+
+        for file_type in FileHandler.FILE_TYPES:
+            if request_params.get(file_type):
+                param_count += 1
+
+        if not existing_submission_id and param_count != len(FileHandler.FILE_TYPES):
+            raise ResponseException("Must include all files for a new submission", StatusCode.CLIENT_ERROR)
+
+        if existing_submission_id and param_count == 0:
+            raise ResponseException("Must include at least one file for an existing submission",
+                                    StatusCode.CLIENT_ERROR)
+
     def submit(self, sess, create_credentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
 
@@ -160,6 +185,8 @@ class FileHandler:
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
 
+            self.validate_submit_file_params(request_params)
+
             # unfortunately, field names in the request don't match
             # field names in the db/response. create a mapping here.
             request_submission_mapping = {
@@ -174,6 +201,9 @@ class FileHandler:
             if existing_submission_id:
                 existing_submission = True
                 existing_submission_obj = sess.query(Submission).filter_by(submission_id=existing_submission_id).one()
+                # If the existing submission is a FABS submission, stop everything
+                if existing_submission_obj.d2_submission:
+                    raise ResponseException("Existing submission must be a DABS submission", StatusCode.CLIENT_ERROR)
             else:
                 existing_submission = None
                 existing_submission_obj = None
@@ -568,6 +598,9 @@ class FileHandler:
                 existing_submission_obj = sess.query(Submission).\
                     filter_by(submission_id=existing_submission_id).\
                     one()
+                # If the existing submission is a DABS submission, stop everything
+                if not existing_submission_obj.d2_submission:
+                    raise ResponseException("Existing submission must be a FABS submission", StatusCode.CLIENT_ERROR)
                 jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
                 # set all jobs to their initial status of "waiting"
                 jobs[0].job_status_id = JOB_STATUS_DICT['waiting']
