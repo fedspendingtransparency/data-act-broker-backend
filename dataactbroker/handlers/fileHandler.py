@@ -564,12 +564,6 @@ class FileHandler:
                 key_id is the job id to be passed to the finalize_submission route
         """
         sess = GlobalDB.db().session
-        if file:
-            api_triggered = True
-            return JsonResponse.create(StatusCode.OK, "You did it!")
-        else:
-            api_triggered = False
-            return JsonResponse.create(StatusCode.OK, "Nope!")
         try:
             response_dict = {}
             upload_files = []
@@ -654,25 +648,6 @@ class FileHandler:
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
         except:
             return JsonResponse.error(Exception("Failed to catch exception"), StatusCode.INTERNAL_ERROR)
-
-    def initiate_upload(self):
-        def allowed_file(filename):
-            return '.' in filename and \
-                   filename.rsplit('.', 1)[1].lower() in self.ALLOWED_EXTENSIONS
-
-        request = self.request
-        if request.method == 'POST':
-            if 'file' not in request.files:
-                return JsonResponse.create(StatusCode.OK, {"msg":"No File Part!"})
-            file = request.files['file']
-            if file.filename == '':
-                return JsonResponse.create(StatusCode.OK, {"msg":"No selected file!"})
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                file.save(os.path.join(self.UPLOAD_FOLDER, filename))
-                return JsonResponse.create(StatusCode.OK, {"msg":filename})
-
-            return JsonResponse.create(StatusCode.OK, {"msg":"you GETTED"})
 
     @staticmethod
     def check_detached_generation(job_id):
