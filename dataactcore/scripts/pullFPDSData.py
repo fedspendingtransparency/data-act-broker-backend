@@ -1269,7 +1269,6 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
     while True:
 
         def get_with_exception_hand(url_string):
-
             exception_retries = -1
             retry_sleep_times = [5, 30, 60, 180, 300]
             request_timeout = 60
@@ -1286,7 +1285,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                                     .format(retry_sleep_times[exception_retries], request_timeout))
                         time.sleep(retry_sleep_times[exception_retries])
                     else:
-                        print('Connection to FPDS feed lost, maximum retry attempts exceeded.')
+                        logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
                         raise e
             return resp
         # End request.get + exceptions
@@ -2303,9 +2302,9 @@ def main():
         else:
             sess.add(FPDSUpdate(update_date=now))
 
+        sess.commit()
         logger.info("Ending at: %s", str(datetime.datetime.now()))
 
-        sess.commit()
     elif args.latest:
         logger.info("Starting at: %s", str(datetime.datetime.now()))
 
@@ -2340,8 +2339,8 @@ def main():
         if not start_date and not end_date:
             sess.query(FPDSUpdate).update({"update_date": now}, synchronize_session=False)
 
-        logger.info("Ending at: %s", str(datetime.datetime.now()))
         sess.commit()
+        logger.info("Ending at: %s", str(datetime.datetime.now()))
     elif args.files:
         logger.info("Starting file loads at: %s", str(datetime.datetime.now()))
         max_year = 2015
@@ -2397,8 +2396,9 @@ def main():
                     if int(file[:4]) <= max_year:
                         parse_fpds_file(open(os.path.join(base_path, file)).name, sess, sub_tier_list, naics_dict)
 
-        logger.info("Ending at: %s", str(datetime.datetime.now()))
         sess.commit()
+        logger.info("Ending at: %s", str(datetime.datetime.now()))
+
     # TODO add a correct start date for "all" so we don't get ALL the data or too little of the data
     # TODO fine-tune indexing
 
