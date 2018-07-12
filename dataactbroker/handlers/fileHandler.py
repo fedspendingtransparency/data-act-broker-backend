@@ -19,7 +19,7 @@ from werkzeug.utils import secure_filename
 from dataactbroker.handlers.fabsDerivationsHandler import fabs_derivations
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
                                                        reporting_date, job_to_dict)
-from dataactbroker.permissions import current_user_can, current_user_can_on_submission
+from dataactbroker.permissions import current_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
@@ -592,10 +592,6 @@ class FileHandler:
             job_data["d2_submission"] = True
             job_data['reporting_start_date'] = None
             job_data['reporting_end_date'] = None
-
-            if not current_user_can('editfabs', cgac_code=cgac_code, frec_code=frec_code):
-                raise ResponseException("User does not have permission to create FABS jobs for this agency",
-                                        StatusCode.PERMISSION_DENIED)
 
             submission = create_submission(g.user.user_id, job_data, existing_submission_obj)
             sess.add(submission)
