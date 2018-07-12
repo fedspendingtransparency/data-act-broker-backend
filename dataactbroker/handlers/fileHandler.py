@@ -564,6 +564,12 @@ class FileHandler:
                 key_id is the job id to be passed to the finalize_submission route
         """
         sess = GlobalDB.db().session
+        if file:
+            api_triggered = True
+            return JsonResponse.create(StatusCode.OK, "You did it!")
+        else:
+            api_triggered = False
+            return JsonResponse.create(StatusCode.OK, "Nope!")
         try:
             response_dict = {}
             upload_files = []
