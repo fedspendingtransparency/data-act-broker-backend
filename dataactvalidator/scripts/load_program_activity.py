@@ -121,7 +121,7 @@ def load_program_activity_data(base_path):
         except pd.io.common.EmptyDataError as e:
             log_blank_file()
             if not exit_if_nonlocal(4):  # exit code chosen arbitrarily, to indicate distinct failure states
-                return 
+                return
         headers = set([header.upper() for header in list(data)])
 
         if not VALID_HEADERS.issubset(headers):
@@ -152,7 +152,6 @@ def load_program_activity_data(base_path):
                 logger.error("Loading of program activity file failed due to exceeded failure threshold. " + count_str)
                 if not exit_if_nonlocal(5):
                     return
-
 
         sess.query(ProgramActivity).delete()
 
@@ -202,6 +201,7 @@ def lowercase_or_notify(x):
 def log_blank_file():
     """ Helper function for specific reused log message """
     logger.error("File was blank! Not loaded, routine aborted.")
+
 
 def exit_if_nonlocal(exit_code):
     if not CONFIG_BROKER['local']:
