@@ -19,7 +19,7 @@ from werkzeug.utils import secure_filename
 from dataactbroker.handlers.fabsDerivationsHandler import fabs_derivations
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
                                                        reporting_date, job_to_dict)
-from dataactbroker.permissions import current_user_can, current_user_can_on_submission
+from dataactbroker.permissions import current_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
@@ -195,18 +195,8 @@ class FileHandler:
             submission_data['reporting_end_date'] = formatted_end_date
 
             submission = create_submission(g.user.user_id, submission_data, existing_submission_obj)
-
-            cant_edit = (
-                existing_submission and not current_user_can_on_submission('writer', existing_submission_obj)
-            )
-            cant_create = not current_user_can('writer', cgac_code=submission.cgac_code, frec_code=submission.frec_code)
-            if cant_edit or cant_create:
-                raise ResponseException(
-                    "User does not have permission to create/modify that submission", StatusCode.PERMISSION_DENIED
-                )
-            else:
-                sess.add(submission)
-                sess.commit()
+            sess.add(submission)
+            sess.commit()
 
             # build fileNameMap to be used in creating jobs
             self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files, submission,
@@ -543,7 +533,7 @@ class FileHandler:
         # Return same response as check generation route
         return self.check_detached_generation(new_job.job_id)
 
-    def upload_fabs_file(self, create_credentials):
+    def upload_fabs_file(self, create_credentials, fabs):
         """ Builds S3 URLs for a set of FABS files and adds all related jobs to job tracker database
 
             Flask request should include keys from FILE_TYPES class variable above
@@ -567,7 +557,8 @@ class FileHandler:
                 'message': 'Starting FABS file upload',
                 'message_type': 'BrokerInfo',
                 'agency_code': request_params.get('agency_code'),
-                'file_name': request_params.get('fabs')
+                'existing_submission_id': request_params.get('existing_submission_id'),
+                'file_name': fabs
             })
 
             job_data = {}
@@ -603,10 +594,6 @@ class FileHandler:
             job_data['reporting_start_date'] = None
             job_data['reporting_end_date'] = None
 
-            if not current_user_can('editfabs', cgac_code=cgac_code, frec_code=frec_code):
-                raise ResponseException("User does not have permission to create FABS jobs for this agency",
-                                        StatusCode.PERMISSION_DENIED)
-
             submission = create_submission(g.user.user_id, job_data, existing_submission_obj)
             sess.add(submission)
             sess.commit()
@@ -618,7 +605,7 @@ class FileHandler:
                 sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map(request_params, ['fabs'], response_dict, upload_files, submission)
+            self.build_file_map({'fabs': fabs}, ['fabs'], response_dict, upload_files, submission)
 
             self.create_response_dict_for_submission(upload_files, submission, existing_submission,
                                                      response_dict, create_credentials)
@@ -1723,6 +1710,37 @@ def submission_report_url(submission, warning, file_type, cross_type):
         url = os.path.join(CONFIG_BROKER['broker_files'], file_name)
     else:
         url = S3Handler().get_signed_url("errors", file_name, method="GET")
+    return JsonResponse.create(StatusCode.OK, {"url": url})
+
+
+def get_upload_file_url(submission, file_type):
+    """ Gets the signed url of the upload file for the given file type and submission.
+
+        Args:
+            submission: the submission to get the file url for
+            file_type: the letter of the file type to get the file url for
+
+        Returns:
+            A signed URL to S3 of the specified file when not run locally. The path to the file when run locally.
+            Error response if the wrong file type for the submission is given
+    """
+    # check for proper file type
+    if (submission.d2_submission and file_type != 'FABS') or (not submission.d2_submission and file_type == 'FABS'):
+        return JsonResponse.error(ValueError("Invalid file type for this submission"), StatusCode.CLIENT_ERROR)
+
+    sess = GlobalDB.db().session
+    file_job = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                      Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
+                                      Job.job_type_id == JOB_TYPE_DICT['file_upload']).first()
+    if not file_job.filename:
+        return JsonResponse.error(ValueError("No file uploaded or generated for this type"), StatusCode.CLIENT_ERROR)
+
+    split_name = file_job.filename.split('/')
+    if CONFIG_BROKER['local']:
+        # when local, can just grab the filename because it stores the entire path
+        url = os.path.join(CONFIG_BROKER['broker_files'], split_name[-1])
+    else:
+        url = S3Handler().get_signed_url(split_name[0], split_name[1], method="GET")
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 

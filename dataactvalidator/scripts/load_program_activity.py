@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 PA_BUCKET = 'da-data-sources'
 PA_SUB_KEY = 'OMB_Data/'
 PA_FILE_NAME = "DATA Act Program Activity List for Treas.csv"
-VALID_HEADERS = {'YEAR', 'AGENCY_ID', 'ALLOCATION_ID', 'ACCOUNT', 'PA_CODE', 'PA_NAME', 'FYQ'}
+VALID_HEADERS = {'AGENCY_CODE', 'ALLOCATION_ID', 'ACCOUNT_CODE', 'PA_CODE', 'PA_TITLE', 'FYQ'}
 
 
 def get_program_activity_file(base_path):
@@ -56,6 +56,8 @@ def get_date_of_current_pa_upload(base_path):
     if CONFIG_BROKER["use_aws"]:
         last_uploaded = boto3.client('s3', region_name=CONFIG_BROKER['aws_region']). \
             head_object(Bucket=PA_BUCKET, Key=PA_SUB_KEY+PA_FILE_NAME)['LastModified']
+        # LastModified is coming back to us in UTC already; just drop the TZ.
+        last_uploaded = last_uploaded.replace(tzinfo=None)
     else:
         pa_file = get_program_activity_file(base_path)
         last_uploaded = datetime.datetime.utcfromtimestamp(os.path.getmtime(pa_file))
@@ -130,8 +132,9 @@ def load_program_activity_data(base_path):
             dropped_count, data = clean_data(
                 data,
                 ProgramActivity,
-                {"fyq": "fiscal_year_quarter", "agency_id": "agency_id", "allocation_id": "allocation_transfer_id",
-                 "account": "account_number", "pa_code": "program_activity_code", "pa_name": "program_activity_name"},
+                {"fyq": "fiscal_year_quarter", "agency_code": "agency_id", "allocation_id": "allocation_transfer_id",
+                 "account_code": "account_number", "pa_code": "program_activity_code",
+                 "pa_title": "program_activity_name"},
                 {"program_activity_code": {"pad_to_length": 4}, "agency_id": {"pad_to_length": 3},
                  "allocation_transfer_id": {"pad_to_length": 3, "keep_null": True},
                  "account_number": {"pad_to_length": 4}},

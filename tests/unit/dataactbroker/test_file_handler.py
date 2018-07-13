@@ -405,6 +405,92 @@ def test_submission_report_url_s3(monkeypatch):
 
 
 @pytest.mark.usefixtures("job_constants")
+def test_get_upload_file_url_local(database, monkeypatch, tmpdir):
+    """ Test getting the url of the uploaded file locally. """
+    file_path = str(tmpdir) + os.path.sep
+    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': True, 'broker_files': file_path})
+
+    # create and insert submission/job
+    sess = database.session
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                     job_type=sess.query(JobType).filter_by(name='file_upload').one(),
+                     file_type=sess.query(FileType).filter_by(name='appropriations').one(),
+                     filename='a/path/to/some_file.csv')
+    add_models(database, [sub, job])
+
+    json_response = fileHandler.get_upload_file_url(sub, 'A')
+    url = json.loads(json_response.get_data().decode('utf-8'))['url']
+    assert url == os.path.join(file_path, 'some_file.csv')
+
+
+def test_get_upload_file_url_invalid_for_type(database):
+    """ Test that a proper error is thrown when a file type that doesn't match the submission is provided to
+        get_upload_file_url.
+    """
+    sub_1 = SubmissionFactory(submission_id=1, d2_submission=False)
+    sub_2 = SubmissionFactory(submission_id=2, d2_submission=True)
+    add_models(database, [sub_1, sub_2])
+    json_response = fileHandler.get_upload_file_url(sub_2, 'A')
+
+    # check invalid type for FABS
+    assert json_response.status_code == 400
+    response = json.loads(json_response.get_data().decode('utf-8'))
+    assert response['message'] == 'Invalid file type for this submission'
+
+    # check invalid type for DABS
+    json_response = fileHandler.get_upload_file_url(sub_1, 'FABS')
+    assert json_response.status_code == 400
+    response = json.loads(json_response.get_data().decode('utf-8'))
+    assert response['message'] == 'Invalid file type for this submission'
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_get_upload_file_url_no_file(database):
+    """ Test that a proper error is thrown when an upload job doesn't have a file associated with it
+        get_upload_file_url.
+    """
+    sess = database.session
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                     job_type=sess.query(JobType).filter_by(name='file_upload').one(),
+                     file_type=sess.query(FileType).filter_by(name='appropriations').one(),
+                     filename=None)
+    add_models(database, [sub, job])
+
+    json_response = fileHandler.get_upload_file_url(sub, 'A')
+    assert json_response.status_code == 400
+    response = json.loads(json_response.get_data().decode('utf-8'))
+    assert response['message'] == 'No file uploaded or generated for this type'
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_get_upload_file_url_s3(database, monkeypatch):
+    """ Test getting the url of the uploaded file non-locally. """
+    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
+    s3_url_handler = Mock()
+    s3_url_handler.return_value.get_signed_url.return_value = 'some/url/here.csv'
+    monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
+
+    # create and insert submission/job
+    sess = database.session
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                     job_type=sess.query(JobType).filter_by(name='file_upload').one(),
+                     file_type=sess.query(FileType).filter_by(name='appropriations').one(),
+                     filename='1/some_file.csv')
+    add_models(database, [sub, job])
+
+    json_response = fileHandler.get_upload_file_url(sub, 'A')
+    url = json.loads(json_response.get_data().decode('utf-8'))['url']
+    assert url == 'some/url/here.csv'
+    assert s3_url_handler.return_value.get_signed_url.call_args == (
+        ('1', 'some_file.csv'),
+        {'method': 'GET'}
+    )
+
+
+@pytest.mark.usefixtures("job_constants")
 def test_move_certified_files(database, monkeypatch):
     # set up cgac and submission
     cgac = CGACFactory(cgac_code='zyxwv', agency_name='Test')
