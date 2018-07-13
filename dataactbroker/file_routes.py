@@ -220,7 +220,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     def post_submission_narratives(submission):
         return update_narratives(submission, request.json)
 
-    @app.route("/v1/submission/<int:submission_id>/report_url", methods=['POST'])
+    @app.route("/v1/submission/<int:submission_id>/report_url", methods=['GET'])
     @requires_submission_perms('reader')
     @use_kwargs({
         'warning': webargs_fields.Bool(),
