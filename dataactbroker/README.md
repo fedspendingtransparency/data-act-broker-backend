@@ -221,7 +221,7 @@ This route confirms that the broker is running
 Example input: None
 Example output: "Broker is running"
 
-#### GET "/<filename\>"
+#### GET "/\<filename\>"
 This path will return files located in the local folder. This path is only accessible for local installs due
 to security reasons.
 
@@ -633,7 +633,7 @@ Possible HTTP Status Codes:
 - 403: Permission denied, user does not have permission to view this submission
 
 
-#### GET "/v1/submission/<int:submission\_id\>/narrative"
+#### GET "/v1/submission/\<int:submission\_id\>/narrative"
 Retrieve existing submission narratives (explanations/notes for particular
 files). Submission id should be the integer id associated with the submission
 in question. Users must have appropriate permissions to access these
@@ -653,7 +653,7 @@ narratives (write access for the agency of the submission or SYS).
 }
 ```
 
-#### POST "/v1/submission/<int:submission\_id\>/narrative"
+#### POST "/v1/submission/\<int:submission\_id\>/narrative"
 Set the file narratives for a given submission. The input should mirror the
 above output, i.e. an object keyed by file types mapping to strings. Keys may
 be absent. Unexpected keys will be ignored. Users must have appropriate
@@ -677,11 +677,11 @@ permissions (write access for the agency of the submission or SYS).
 {}
 ```
 
-#### GET "/v1/submission/<int:submission\_id\>/report\_url"
+#### GET "/v1/submission/\<int:submission\_id\>/report\_url"
 This route requests the URL associated with a particular type of submission report. The provided URL will expire after roughly half an hour.
 
 ##### Sample Request
-`/v1/submission/<int:submission_id\>/report_url?warning=True&file_type=appropriations&cross_type=award_financial`
+`/v1/submission/<int:submission_id>/report_url?warning=True&file_type=appropriations&cross_type=award_financial`
 
 ##### Request Params
 - `submission_id` - **required** - an integer representing the ID of the submission to get a report url for
