@@ -10,7 +10,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import DUNS, HistoricParentDUNS
-from dataactcore.utils.parentDuns import sams_config_is_valid, get_duns_batches, update_missing_parent_names
+from dataactcore.utils.parentDuns import sams_config_is_valid, update_missing_parent_names
 from dataactcore.utils.duns import get_config, parse_sam_file, process_from_dir
 from dataactvalidator.health_check import create_app
 
