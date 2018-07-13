@@ -41,6 +41,28 @@ def get_name_from_sams(client, duns_list):
     return pd.DataFrame(duns_name)
 
 
+def get_location_business_from_sams(client, duns_list):
+    """Calls SAM API to retrieve DUNS name by DUNS number. Returns DUNS info as Data Frame"""
+    duns_name = [{
+        'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
+        'address_line_1': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'addressLine1', None),
+        'address_line_2': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'addressLine2', None),
+        'city': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'city', None),
+        'state': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'stateOrProvince', None),
+        'zip': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'ZIPCode', None),
+        'zip4': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'ZIPCodePlus4', None),
+        'country_code': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'country', None),
+        'congressional_district': getattr(suds_obj.coreData.businessInformation.physicalAddress,
+                                          'congressionalDistrict', None),
+        'business_types_codes': [business_type.code for business_type
+                                 in getattr(suds_obj.coreData.generalInformation.listOfBusinessTypes, 'businessType', [])]
+    }
+        for suds_obj in get_entities(client, duns_list)
+    ]
+
+    return pd.DataFrame(duns_name)
+
+
 def get_parent_from_sams(client, duns_list):
     """Calls SAM API to retrieve parent DUNS data by DUNS number. Returns DUNS info as Data Frame"""
     duns_parent = [{

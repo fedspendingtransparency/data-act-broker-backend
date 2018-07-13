@@ -6,6 +6,7 @@ import argparse
 from datetime import datetime
 
 from dataactcore.models.domainModels import DUNS
+from dataactcore.utils.parentDuns import get_location_business_from_sams, sams_config_is_valid
 from dataactcore.utils.duns import load_duns_by_row
 from dataactvalidator.scripts.loaderUtils import clean_data
 from dataactvalidator.health_check import create_app
@@ -24,8 +25,19 @@ column_headers = [
     "activation_date",  # Activation_Date
     "legal_business_name"  # Legal_Business_Name
 ]
+props_columns = [
+    'address_line_1',
+    'address_line_2',
+    'city',
+    'state',
+    'zip',
+    'zip4',
+    'country_code',
+    'congressional_district',
+    'business_types_codes'
+]
 
-column_mappings = {x: x for x in column_headers}
+column_mappings = {x: x for x in column_headers + props_columns}
 
 
 def remove_existing_duns(data, sess):
@@ -47,7 +59,22 @@ def clean_duns_csv_data(data):
     return clean_data(data, DUNS, column_mappings, {})
 
 
-def run_duns_batches(file, sess, block_size=10000):
+def batch(iterable, n=1):
+    l = len(iterable)
+    for ndx in range(0, l, n):
+        yield iterable[ndx:min(ndx + n, l)]
+
+def update_duns_props(df, client):
+    """Returns same dataframe with address data updated"""
+    duns = df['awardee_or_recipient_uniqu'].tolist()
+    columns = ['awardee_or_recipient_uniqu'] + props_columns
+    duns_props_df = pd.DataFrame(columns=columns)
+    # SAM service only takes in batches of 100
+    for duns_list in batch(duns, 100):
+        duns_props_df = duns_props_df.append(get_location_business_from_sams(client, duns_list))
+    return pd.merge(df, duns_props_df, on=['awardee_or_recipient_uniqu'])
+
+def run_duns_batches(file, sess, client, block_size=10000):
     """Updates DUNS table in chunks from csv file"""
     logger.info("Retrieving total rows from duns file")
     start = datetime.now()
@@ -69,8 +96,11 @@ def run_duns_batches(file, sess, block_size=10000):
         # Only update database if there are DUNS from file missing in database
         if not duns_to_load.empty:
             duns_count = duns_to_load.shape[0]
-            duns_to_load = clean_duns_csv_data(duns_to_load)
 
+            # get address info for incoming duns
+            duns_to_load = update_duns_props(duns_to_load, client)
+
+            duns_to_load = clean_duns_csv_data(duns_to_load)
             models = {}
             load_duns_by_row(duns_to_load, sess, models, None)
             sess.commit()
@@ -86,24 +116,25 @@ def main():
     args = parser.parse_args()
 
     sess = GlobalDB.db().session
+    client = sams_config_is_valid()
 
     logger.info('Retrieving historical DUNS file')
     start = datetime.now()
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
         s3bucket = s3connection.lookup(CONFIG_BROKER["archive_bucket"])
-        duns_file = s3bucket.get_key("DUNS_export.csv").generate_url(expires_in=10000)
+        duns_file = s3bucket.get_key("DUNS_export_deduped.csv").generate_url(expires_in=10000)
     else:
         duns_file = os.path.join(
             CONFIG_BROKER["broker_files"],
-            "DUNS_export.csv")
+            "DUNS_export_deduped.csv")
 
     if not duns_file:
-        logger.error("No DUNS_export.csv found.")
+        logger.error("No DUNS_export_deduped.csv found.")
 
     logger.info("Retrieved historical DUNS file in {} s".format((datetime.now()-start).total_seconds()))
 
-    run_duns_batches(duns_file, sess, args.block_size)
+    run_duns_batches(duns_file, sess, client, args.block_size)
 
     logger.info("Updating historical DUNS complete")
     sess.close()
