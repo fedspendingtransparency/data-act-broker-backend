@@ -705,7 +705,7 @@ This route requests the URL associated with a particular type of submission repo
 ```
 
 ##### Response Attributes
-- `url` - file download or redirect to signed URL
+- `url` - signed url for the submission report
 
 ##### Errors
 Possible HTTP Status Codes:
