@@ -597,16 +597,8 @@ Example output if there are no files available:
 }
 ```
 
-#### POST "/v1/get_obligations/"
+#### GET "/v1/get_obligations/?submission_id=123"
 Get total obligations and specific obligations. Calls to this route should include the key "submission_id" to specify which submission we are calculating obligations from.
-
-##### Body (JSON)
-
-```
-{
-    "submission_id": 123,
-}
-```
 
 ##### Response (JSON)
 
@@ -663,18 +655,8 @@ permissions (write access for the agency of the submission or SYS).
 {}
 ```
 
-#### POST "/v1/submission/\<int:submission_id\>/report_url"
+#### GET "/v1/submission/\<int:submission_id\>/report_url?warning=True&file_type=appropriations&cross_type=award_financial"
 This route requests the URL associated with a particular type of submission report. The provided URL will expire after roughly half an hour.
-
-##### Body (JSON)
-
-```
-{
-    "warning": True,
-    "file_type": "appropriations",
-    "cross_type": "award_financial"
-}
-```
 
 ##### Response (JSON)
 
