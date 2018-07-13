@@ -686,7 +686,7 @@ This route requests the URL associated with a particular type of submission repo
 ##### Request Params
 - `submission_id` - **required** - an integer representing the ID of the submission to get a report url for
 - `warning` - **optional** - the boolean value true if the report is a warning report; defaults to false
-- `file_type` - designates the type of report you're seeking
+- `file_type` - **required** - designates the type of report you're seeking
     - `appropriations` - A
     - `program_activity` - B
     - `award_financial` - C
