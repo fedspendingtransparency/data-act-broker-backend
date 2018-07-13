@@ -597,8 +597,15 @@ Example output if there are no files available:
 }
 ```
 
-#### GET "/v1/get_obligations/?submission_id=123"
+#### GET "/v1/get_obligations/"
 Get total obligations and specific obligations. Calls to this route should include the key "submission_id" to specify which submission we are calculating obligations from.
+
+##### Sample Request
+
+`/v1/get_obligations/?submission_id=123`
+
+##### Request Params
+- `submission_id` - **required** - an integer representing the ID of the submission to get obligations for
 
 ##### Response (JSON)
 
@@ -609,6 +616,21 @@ Get total obligations and specific obligations. Calls to this route should inclu
   "total_assistance_obligations": 42500
 }
 ```
+
+##### Reponse Attributes
+The contents of each attribute are an object containing the following keys:
+- `total_obligations` - value representing the total obligations for the requested submission
+- `total_procurement_obligations` - value representing the total procurement obligations for the requested submission
+- `total_assistance_obligations` - value representing the total assistance obligations for the requested submission
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Missing `submission_id` parameter
+    - Submission does not exist
+    - Invalid type parameter
+- 403: Permission denied, user does not have permission to view this submission
 
 
 #### GET "/v1/submission/\<int:submission_id\>/narrative"
@@ -655,8 +677,24 @@ permissions (write access for the agency of the submission or SYS).
 {}
 ```
 
-#### GET "/v1/submission/\<int:submission_id\>/report_url?warning=True&file_type=appropriations&cross_type=award_financial"
+#### GET "/v1/submission/\<int:submission_id\>/report_url"
 This route requests the URL associated with a particular type of submission report. The provided URL will expire after roughly half an hour.
+
+##### Sample Request
+`/v1/submission/\<int:submission_id\>/report_url?warning=True&file_type=appropriations&cross_type=award_financial`
+
+##### Request Params
+- `submission_id` - **required** - an integer representing the ID of the submission to get a report url for
+- `warning` - **optional** - the boolean value true if the report is a warning report; defaults to false
+- `file_type` - designates the type of report you're seeking
+    - `appropriations` - A
+    - `program_activity` - B
+    - `award_financial` - C
+    - `award_procurement` - D1
+    - `award` - D2
+    - `executive_compensation` - E
+    - `sub_award` - F
+- `cross_type` - **optional** - if present, indicates that we're looking for a cross-validation report between `file_type` and this parameter. It accepts the same values as `file_type`
 
 ##### Response (JSON)
 
@@ -666,18 +704,19 @@ This route requests the URL associated with a particular type of submission repo
 }
 ```
 
-##### Request Params
-  * warning - Whether or not the requested report is a warning (or error)
-    report. Defaults to False if this parameter isn't present.
-  * file_type - One of 'appropriations', 'program_activity',
-    'award_financial', 'award', 'award_procurement', 'awardee_attributes'
-    or 'sub_award'. Designates the type of report you're seeking.
-  * cross_type - If present, indicates that we're looking for a
-    cross-validation report between `file_type` and this parameter. It accepts the
-    same values as `file_type`
+##### Response Attributes
+- `url` - file download or redirect to signed URL
 
-##### Response
-File download or redirect to signed URL
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Missing `submission_id` or `file_type` parameter
+    - Submission does not exist
+    - Invalid `file_type` or `cross_type`
+    - Invalid type parameter
+- 403: Permission denied, user does not have permission to view this submission
+
 
 #### GET "/v1/get\_file\_url"
 This endpoint returns the signed url for the uploaded/generated file of the requested type

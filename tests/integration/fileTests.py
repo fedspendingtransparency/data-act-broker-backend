@@ -957,11 +957,13 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.json['message'], "Success")
 
     def test_submission_report_url(self):
+        """ Test that the submission's report is successfully generated """
         params = {"warning": False,
                   "file_type": "appropriations"}
         response = self.app.get("/v1/submission/{}/report_url".format(self.row_error_submission_id), params,
                                 headers={"x-session-id": self.session_id}, expect_errors=False)
         self.assertEqual(response.status_code, 200)
+        self.assertIn("url", response.json)
 
     @staticmethod
     def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
