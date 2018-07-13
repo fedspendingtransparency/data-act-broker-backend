@@ -48,9 +48,14 @@ country_code_map = {'USA': 'US', 'ASM': 'AS', 'GUM': 'GU', 'MNP': 'MP', 'PRI': '
                     'MHL': 'MH', 'PLW': 'PW', 'XBK': 'UM', 'XHO': 'UM', 'XJV': 'UM', 'XJA': 'UM', 'XKR': 'UM',
                     'XPL': 'UM', 'XMW': 'UM', 'XWK': 'UM'}
 
+FPDS_NAMESPACES = {'http://www.fpdsng.com/FPDS': None,
+                   'http://www.w3.org/2005/Atom': None,
+                   'https://www.fpds.gov/FPDS': None}
+
 # Used for asyncio get requests against the ATOM feed
 MAX_ENTRIES = 10
 REQUESTS_AT_ONCE = 100
+SPOT_CHECK_COUNT = 10000
 
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -1264,33 +1269,12 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
 
     base_url = feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"'
 
+    # retrieve the total count of expected records for this pull
+    total_expected_records = get_total_expected_records(base_url)
+    logger.info('{} records expected from this feed'.format(total_expected_records))
+
     entries_processed = 0
-
     while True:
-
-        def get_with_exception_hand(url_string):
-            exception_retries = -1
-            retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
-            request_timeout = 60
-
-            while exception_retries < len(retry_sleep_times):
-                try:
-                    resp = requests.get(url_string, timeout=request_timeout)
-                    break
-                except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError,
-                        requests.exceptions.ReadTimeout) as e:
-                    exception_retries += 1
-                    request_timeout += 60
-                    if exception_retries < len(retry_sleep_times):
-                        logger.info('Connection exception. Sleeping {}s and then retrying with a max wait of {}s...'
-                                    .format(retry_sleep_times[exception_retries], request_timeout))
-                        time.sleep(retry_sleep_times[exception_retries])
-                    else:
-                        logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
-                        raise e
-            return resp
-        # End request.get + exceptions
-
         async def atom_async_get(entries_already_processed):
             response_list = []
             loop = asyncio.get_event_loop()
@@ -1312,10 +1296,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
         full_response = loop.run_until_complete(atom_async_get(entries_processed))
 
         for next_resp in full_response:
-            response_dict = xmltodict.parse(next_resp, process_namespaces=True,
-                                            namespaces={'http://www.fpdsng.com/FPDS': None,
-                                                        'http://www.w3.org/2005/Atom': None,
-                                                        'https://www.fpds.gov/FPDS': None})
+            response_dict = xmltodict.parse(next_resp, process_namespaces=True, namespaces=FPDS_NAMESPACES)
             try:
                 entries_per_response = list_data(response_dict['feed']['entry'])
             except KeyError:
@@ -1329,6 +1310,10 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                 data.extend(create_processed_data_list(entries_per_response, contract_type, sess, sub_tier_list,
                                                        county_by_name, county_by_code, state_code_list, country_list))
                 entries_processed += len(entries_per_response)
+
+        if len(data) % SPOT_CHECK_COUNT == 0 and entries_processed > total_expected_records:
+            raise Exception("Total number of expected records has changed\nExpected: {}\nRetrieved so far: {}"
+                            .format(total_expected_records, len(data)))
 
         if data:
             # Log which one we're on so we can keep track of how far we are, insert into DB ever 1k lines
@@ -1344,15 +1329,71 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             logger.info("Successfully inserted %s lines of get %s: %s feed, continuing feed retrieval",
                         len(data), contract_type, award_type)
 
-        # if we got less than the expected records, we can stop calling the feed
+        # if we got less than the full set of records, we can stop calling the feed
         if len(data) < (MAX_ENTRIES * REQUESTS_AT_ONCE):
-            break
+            # ensure we loaded the number of records we expected to, otherwise we'll need to reload
+            if entries_processed != total_expected_records:
+                raise Exception("Records retrieved != Total expected records\nExpected: {}\nRetrieved: {}"
+                                .format(total_expected_records, len(data)))
+            else:
+                break
         else:
             data = []
 
     logger.info("Total entries in %s: %s feed: %s", contract_type, award_type, entries_processed)
 
     logger.info("Processed %s: %s data", contract_type, award_type)
+
+
+def get_with_exception_hand(url_string):
+    """ Retrieve data from FPDS, allow for multiple retries and timeouts """
+    exception_retries = -1
+    retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
+    request_timeout = 60
+
+    while exception_retries < len(retry_sleep_times):
+        try:
+            resp = requests.get(url_string, timeout=request_timeout)
+            break
+        except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError,
+                requests.exceptions.ReadTimeout) as e:
+            exception_retries += 1
+            request_timeout += 60
+            if exception_retries < len(retry_sleep_times):
+                logger.info('Connection exception. Sleeping {}s and then retrying with a max wait of {}s...'
+                            .format(retry_sleep_times[exception_retries], request_timeout))
+                time.sleep(retry_sleep_times[exception_retries])
+            else:
+                logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
+                raise e
+    return resp
+
+
+def get_total_expected_records(base_url):
+    """ Retrieve the total number of expected records based on the last paginated URL """
+    # get a single call so we can find the last page
+    initial_request = get_with_exception_hand(base_url)
+    initial_request_xml = xmltodict.parse(initial_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
+
+    # pull the count from the URL of the last page
+    urls_list = list_data(initial_request_xml['feed']['link'])
+    final_request_url = None
+    for url in urls_list:
+        if url['@rel'] == 'last':
+            final_request_url = url['@href']
+            continue
+    if not final_request_url:
+        return len(list_data(initial_request_xml['feed']['entry']))
+
+    # pull the count from the final_request_url
+    final_request_count = int(final_request_url.split('&start=')[-1])
+
+    # retrieve the last page of data
+    final_request = get_with_exception_hand(final_request_url)
+    final_request_xml = xmltodict.parse(final_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
+    entries_list = list_data(final_request_xml['feed']['entry'])
+
+    return final_request_count + len(entries_list)
 
 
 def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_date=None):
@@ -1368,20 +1409,19 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
     logger.info('Starting delete feed: %sCONTRACT_TYPE:"%s"', delete_url + params, contract_type.upper())
     while True:
         exception_retries = -1
-        retry_sleep_times = [5, 30, 60, 180, 300]
+        retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
+        request_timeout = 60
 
         try:
             resp = requests.get(delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"&start=' + str(i),
-                                timeout=60)
-            resp_data = xmltodict.parse(resp.text, process_namespaces=True,
-                                        namespaces={'http://www.fpdsng.com/FPDS': None,
-                                                    'http://www.w3.org/2005/Atom': None,
-                                                    'https://www.fpds.gov/FPDS': None})
+                                timeout=request_timeout)
+            resp_data = xmltodict.parse(resp.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
         except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError) as e:
             exception_retries += 1
+            request_timeout += 60
             if exception_retries < len(retry_sleep_times):
-                logger.info('Connection exception caught. Sleeping {}s and then retrying...'.format(
-                    retry_sleep_times[exception_retries]))
+                logger.info('Connection exception caught. Sleeping {}s and then retrying with a max wait of {}s...'
+                            .format(retry_sleep_times[exception_retries], request_timeout))
                 time.sleep(retry_sleep_times[exception_retries])
             else:
                 logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
