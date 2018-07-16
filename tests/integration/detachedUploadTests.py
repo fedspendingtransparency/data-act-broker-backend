@@ -133,6 +133,25 @@ class DetachedUploadTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'existing_submission_id must be a valid submission_id')
 
+    def test_upload_detached_file_missing_fabs(self):
+        new_submission_json = {
+            "agency_code": "WRONG",
+            "is_quarter": False}
+        response = self.app.post_json("/v1/upload_detached_file/", new_submission_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "fabs: Missing data for required field.")
+
+    def test_upload_detached_file_dabs_submission(self):
+        new_submission_json = {
+            "existing_submission_id": str(self.other_submission),
+            "is_quarter": False,
+            "fabs": "test_file.csv"}
+        response = self.app.post_json("/v1/upload_detached_file/", new_submission_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "Existing submission must be a FABS submission")
+
     @staticmethod
     def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
                           is_quarter=False, publish_status_id=1, d2_submission=True):

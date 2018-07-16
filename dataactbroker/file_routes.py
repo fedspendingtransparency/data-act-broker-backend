@@ -161,7 +161,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.generate_detached_file(file_type, cgac_code, frec_code, start, end)
 
-    @app.route("/v1/check_detached_generation_status/", methods=["POST"])
+    @app.route("/v1/check_detached_generation_status/", methods=["GET"])
     @requires_login
     @use_kwargs({'job_id': webargs_fields.Int(required=True)})
     def check_detached_generation_status(job_id):
@@ -169,7 +169,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.check_detached_generation(job_id)
 
-    @app.route("/v1/check_generation_status/", methods=["POST"])
+    @app.route("/v1/check_generation_status/", methods=["GET"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
     @use_kwargs({'file_type': webargs_fields.String(
