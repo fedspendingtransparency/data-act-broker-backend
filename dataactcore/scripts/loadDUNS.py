@@ -116,8 +116,6 @@ if __name__ == '__main__':
                     if sorted_monthly_file_names:
                         process_from_dir(root_dir, sorted_monthly_file_names[0],
                                          sess, local, sftp, monthly=True, benchmarks=benchmarks)
-
-                        # get_duns_batches(wdsl_client, sess, updated_date=updated_date)
                         update_missing_parent_names(sess, updated_date=updated_date)
                     else:
                         logger.info("No monthly file found.")
@@ -144,7 +142,6 @@ if __name__ == '__main__':
                     for daily_file in daily_files_after:
                         process_from_dir(root_dir, daily_file, sess, local, sftp, benchmarks=benchmarks)
 
-                    # get_duns_batches(wdsl_client, sess, updated_date=updated_date)
                     update_missing_parent_names(sess, updated_date=updated_date)
                 else:
                     logger.info("No daily file found.")
@@ -167,7 +164,6 @@ if __name__ == '__main__':
                 if sorted_daily_file_names:
                     process_from_dir(root_dir, sorted_daily_file_names[-1], sess, local, sftp, benchmarks=benchmarks)
 
-                    # get_duns_batches(wdsl_client, sess, updated_date=updated_date)
                     update_missing_parent_names(sess, updated_date=updated_date)
                 else:
                     logger.info("No daily file found.")
