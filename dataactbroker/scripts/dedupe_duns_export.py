@@ -23,7 +23,7 @@ column_headers = [
 
 
 def generate_dedupe_export(duns_file, dedupe_export_path):
-    """Generate dedupe duns export"""
+    """ Generate deduped duns export """
 
     duns_df = pd.read_csv(duns_file, skipinitialspace=True, header=None, encoding='latin1', quotechar='"',
                           dtype=str, names=column_headers, skiprows=1)
