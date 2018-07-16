@@ -21,6 +21,11 @@ BUSINESS_TYPES_SEPARATOR = '~'
 
 
 def get_config():
+    """ Simply retrieves the config data of SAM sftp
+
+        Returns:
+            Username, password, host, and port found in the configu file for the SAM sftp
+    """
     sam_config = CONFIG_BROKER.get('sam_duns')
 
     if sam_config:
@@ -31,7 +36,17 @@ def get_config():
 
 
 def get_relevant_models(data, sess, benchmarks=False, table=DUNS):
-    # Get a list of the duns we're gonna work off of to prevent multiple calls to the database
+    """ Get a list of the duns we're gonna work off of to prevent multiple calls to the database
+
+        Args:
+            data: dataframe representing the original list of duns we have available
+            sess: the database connection
+            benchmarks: whether or not to log times
+            table: the table to work from (could be DUNS/HistoricParentDuns)
+
+        Returns:
+            A list of models, models which have been activatated
+    """
     if benchmarks:
         get_models = time.time()
     logger.info("Getting relevant models")
@@ -46,6 +61,17 @@ def get_relevant_models(data, sess, benchmarks=False, table=DUNS):
 
 
 def load_duns_by_row(data, sess, models, activated_models, benchmarks=False, table=DUNS):
+    """ Updates the DUNS in the database that match to the models provided
+
+        Args:
+            data: dataframe representing the original list of duns we have available
+            sess: the database connection
+            models: the DUNS objects representing the updated data
+            activated_models: the DUNS objects that have been activated
+            benchmarks: whether or not to log times
+            table: the table to work from (could be DUNS/HistoricParentDuns)
+    """
+    # Disabling activation_check as we're using registration_date
     # data = activation_check(data, activated_models, benchmarks).where(pd.notnull(data), None)
     update_duns(models, data, benchmarks=benchmarks, table=table)
     sess.add_all(models.values())
@@ -67,7 +93,14 @@ def load_duns_by_row(data, sess, models, activated_models, benchmarks=False, tab
 #     return data
 
 def update_duns(models, new_data, benchmarks=False, table=DUNS):
-    """Modify existing models or create new ones"""
+    """ Modify existing models or create new ones
+
+        Args:
+            models: the DUNS objects representing the updated data
+            new_data: the new data to update
+            benchmarks: whether or not to log times
+            table: the table to work from (could be DUNS/HistoricParentDuns)
+    """
     logger.info("Updating duns")
     if benchmarks:
         update_duns_start = time.time()
@@ -82,6 +115,15 @@ def update_duns(models, new_data, benchmarks=False, table=DUNS):
 
 
 def clean_sam_data(data, table=DUNS):
+    """ Wrapper around clean_data with the DUNS context
+
+        Args:
+            data: the dataframe to be cleaned
+            table: the table to work from (could be DUNS/HistoricParentDuns)
+
+        Returns:
+            a cleaned/updated dataframe to be imported
+    """
     return clean_data(data, table, {
         "awardee_or_recipient_uniqu": "awardee_or_recipient_uniqu",
         "activation_date": "activation_date",
@@ -106,6 +148,16 @@ def clean_sam_data(data, table=DUNS):
 
 
 def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS, year=None):
+    """ Takes in a SAM file and adds the DUNS data to the database
+
+        Args:
+            file_path: the path to the SAM file
+            sess: the database connection
+            monthly: whether it's a monthly file
+            benchmarks: whether to log times
+            table: the table to work from (could be DUNS/HistoricParentDuns)
+            year: the year associated with the data (primarily for  HistoricParentDUNS loads)
+    """
     parse_start_time = time.time()
     logger.info("Starting file " + str(file_path))
 
@@ -224,6 +276,19 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
 
 def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False, benchmarks=False, table=DUNS,
                      year=None):
+    """ Process the SAM file found locally or remotely
+
+        Args:
+            root_dir: the folder containing the SAM file
+            file_name: the name of the SAM file
+            sess: the database connection
+            local: whether it's local or not
+            sftp: the sftp client to pull the CSV from
+            monthly: whether it's a monthly file
+            benchmarks: whether to log times
+            table: the table to work from (could be DUNS/HistoricParentDuns)
+            year: the year associated with the data (primarily for  HistoricParentDUNS loads)
+    """
     file_path = os.path.join(root_dir, file_name)
     if not local:
         if sftp.sock.closed:

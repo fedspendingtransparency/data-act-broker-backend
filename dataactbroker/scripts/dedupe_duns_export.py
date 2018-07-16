@@ -23,7 +23,12 @@ column_headers = [
 
 
 def generate_dedupe_export(duns_file, dedupe_export_path):
-    """ Generate deduped duns export """
+    """ Generate deduped duns export
+
+        Args:
+            duns_file: path to the original duns_file
+            dedupe_export_path: path to the exported deduped file
+    """
 
     duns_df = pd.read_csv(duns_file, skipinitialspace=True, header=None, encoding='latin1', quotechar='"',
                           dtype=str, names=column_headers, skiprows=1)
@@ -33,6 +38,7 @@ def generate_dedupe_export(duns_file, dedupe_export_path):
 
 
 def main():
+    """ Pulls the DUNS_export.csv and creates a deduplicated version of the file """
     logger.info('Retrieving historical DUNS file')
     start = datetime.now()
     if CONFIG_BROKER["use_aws"]:

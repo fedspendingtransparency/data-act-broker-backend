@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def sam_config_is_valid():
-    """Check if config is valid and should be only run once per load. Returns client obj used to acces SAM API"""
+    """ Check if config is valid and should be only run once per load. Returns client obj used to acces SAM API """
     if config_valid():
         return Client(CONFIG_BROKER['sam']['wsdl'])
     else:
@@ -29,7 +29,15 @@ def sam_config_is_valid():
 
 
 def get_name_from_sam(client, duns_list):
-    """Calls SAM API to retrieve DUNS name by DUNS number. Returns DUNS info as Data Frame"""
+    """ Calls SAM API to retrieve DUNS name by DUNS number. Returns DUNS info as Data Frame
+
+        Args:
+            client: the SAM service client
+            duns_list: list of DUNS to search
+
+        Returns:
+            dataframe representing the DUNS and corresponding names
+    """
     duns_name = [{
         'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
         'legal_business_name': (suds_obj.entityIdentification.legalBusinessName or '').upper()
@@ -42,7 +50,15 @@ def get_name_from_sam(client, duns_list):
 
 
 def get_location_business_from_sam(client, duns_list):
-    """Calls SAM API to retrieve DUNS name by DUNS number. Returns DUNS info as Data Frame"""
+    """ Calls SAM API to retrieve DUNS location/business type data by DUNS number. Returns DUNS info as Data Frame
+
+        Args:
+            client: the SAM service client
+            duns_list: list of DUNS to search
+
+        Returns:
+            dataframe representing the DUNS and corresponding locations/business types
+    """
     duns_name = [{
         'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
         'address_line_1': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'addressLine1', None),
@@ -65,7 +81,15 @@ def get_location_business_from_sam(client, duns_list):
 
 
 def get_parent_from_sam(client, duns_list):
-    """Calls SAM API to retrieve parent DUNS data by DUNS number. Returns DUNS info as Data Frame"""
+    """ Calls SAM API to retrieve parent DUNS data by DUNS number. Returns DUNS info as Data Frame
+
+        Args:
+            client: the SAM service client
+            duns_list: list of DUNS to search
+
+        Returns:
+            dataframe representing the DUNS and corresponding parent DUNS data
+    """
     duns_parent = [{
         'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
         'ultimate_parent_unique_ide': suds_obj.coreData.DUNSInformation.globalParentDUNS.DUNSNumber,
@@ -81,9 +105,17 @@ def get_parent_from_sam(client, duns_list):
 
 
 def update_missing_parent_names(sess, updated_date=None, table=DUNS):
-    """Updates DUNS rows in batches where the parent DUNS number is provided but not the parent name.
-       Uses other instances of the parent DUNS number where the name is populated to derive blank parent names.
-       Updated_date argument used for daily DUNS loads so that only data updated that day is updated.
+    """ Updates DUNS rows in batches where the parent DUNS number is provided but not the parent name.
+        Uses other instances of the parent DUNS number where the name is populated to derive blank parent names.
+        Updated_date argument used for daily DUNS loads so that only data updated that day is updated.
+
+        Args:
+            sess: the database connection
+            updated_date: the date to start importing from
+            table: the table to work from (could be DUNS/HistoricParentDuns)
+
+        Returns:
+            number of DUNS updated
     """
     logger.info("Updating missing parent names")
 
@@ -144,10 +176,16 @@ def update_missing_parent_names(sess, updated_date=None, table=DUNS):
 
 
 def get_duns_batches(client, sess, batch_start=None, batch_end=None, updated_date=None):
-    """
-    Updates DUNS table with parent duns and parent name information in 100 row batches.
+    """ Updates DUNS table with parent duns and parent name information in 100 row batches.
     batch_start, batch_end arg used to run separate loads concurrently
     updated_date can specify duns rows to process at a certain updated_at date (used for daily DUNS load)
+
+        Args:
+            client: the SAM service client
+            sess: the database connection
+            batch_start: the batch number to start
+            batch_end: the batch number to end (for concurrent runs)
+            updated_date: the date to start importing from
     """
     # SAMS will only return 100 records at a time
     block_size = 100

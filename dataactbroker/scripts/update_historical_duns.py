@@ -41,7 +41,15 @@ column_mappings = {x: x for x in column_headers + list(props_columns.keys())}
 
 
 def remove_existing_duns(data, sess):
-    """Remove rows from file that already have a entry in broker database. We should only update missing DUNS"""
+    """ Remove rows from file that already have a entry in broker database. We should only update missing DUNS
+
+        Args:
+            data: dataframe representing a list of duns
+            sess: the database session
+
+        Returns:
+            a new dataframe with the DUNS removed that already exist in the database
+    """
 
     duns_in_file = ",".join(list(data['awardee_or_recipient_uniqu'].unique()))
     sql_query = "SELECT awardee_or_recipient_uniqu " +\
@@ -56,17 +64,42 @@ def remove_existing_duns(data, sess):
 
 
 def clean_duns_csv_data(data):
+    """ Simple wrapper around clean_data applied just for duns
+
+        Args:
+            data: dataframe representing the data to be cleaned
+
+        Returns:
+            a dataframe cleaned and to be imported to the database
+    """
     return clean_data(data, DUNS, column_mappings, {})
 
 
 def batch(iterable, n=1):
+    """ Simple function to create batches from a list
+
+        Args:
+            iterable: the list to be batched
+            n: the size of the batches
+
+        Yields:
+            the same list (iterable) in batches depending on the size of N
+    """
     l = len(iterable)
     for ndx in range(0, l, n):
         yield iterable[ndx:min(ndx + n, l)]
 
 
 def update_duns_props(df, client):
-    """Returns same dataframe with address data updated"""
+    """ Returns same dataframe with address data updated"
+
+        Args:
+            df: the dataframe containing the duns data
+            client: the connection to the SAM service
+
+        Returns:
+            a merged dataframe with the duns updated with location info from SAM
+    """
     all_duns = df['awardee_or_recipient_uniqu'].tolist()
     columns = ['awardee_or_recipient_uniqu'] + list(props_columns.keys())
     duns_props_df = pd.DataFrame(columns=columns)
@@ -84,7 +117,14 @@ def update_duns_props(df, client):
 
 
 def run_duns_batches(file, sess, client, block_size=10000):
-    """Updates DUNS table in chunks from csv file"""
+    """ Updates DUNS table in chunks from csv file
+
+        Args:
+            file: path to the DUNS export file to use
+            sess: the database connection
+            client: the connection to the SAM service
+            block_size: the size of the batches to read from the DUNS export file.
+    """
     logger.info("Retrieving total rows from duns file")
     start = datetime.now()
     row_count = len(pd.read_csv(file, skipinitialspace=True, header=None, encoding='latin1', quotechar='"',
@@ -119,6 +159,7 @@ def run_duns_batches(file, sess, client, block_size=10000):
 
 
 def main():
+    """ Loads DUNS from the DUNS export file (comprised of DUNS pre-2014) """
     parser = argparse.ArgumentParser(description='Adding historical DUNS to Broker.')
     parser.add_argument('-size', '--block_size', help='Number of rows to batch load', type=int,
                         default=10000)

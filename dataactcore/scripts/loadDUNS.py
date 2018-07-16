@@ -20,6 +20,11 @@ REMOTE_SAM_DIR = '/current/SAM/2_FOUO/UTF-8/'
 
 
 def get_client():
+    """ Connects to the SAM client and returns a usable object for interaction
+
+        Returns:
+            client object to interact with the SAM service
+    """
     username, password, host, port = get_config()
 
     if None in (username, password):
@@ -39,6 +44,11 @@ def get_client():
 
 
 def get_parser():
+    """ Generates list of command-line arguments
+
+        Returns:
+            argument parser to be used for commandline
+    """
     duns_parser = argparse.ArgumentParser(description='Get the latest data from SAM and update '
                                                       'duns table. By default, it loads the latest daily file.')
     duns_parser.add_argument("--historic", "-i", action="store_true", help='load the oldest monthly zip and all the '
