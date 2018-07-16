@@ -194,7 +194,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @requires_sub_agency_perms('edit_fabs')
     def upload_detached_file():
         params = RequestDictionary.derive(request)
-        api_triggered = params.get('files', {}).get('fabs', None)
+        api_triggered = params.get('_files', {}).get('fabs', None)
         fabs_filename = params.get('fabs', None)
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.upload_fabs_file(create_credentials, fabs_filename, api_triggered)
