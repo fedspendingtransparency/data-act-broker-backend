@@ -1,5 +1,6 @@
 from functools import wraps
 from flask import g
+from flask import request
 
 from webargs import fields as webargs_fields
 from webargs.flaskparser import parser as webargs_parser
@@ -12,6 +13,7 @@ from dataactcore.models.lookups import (ALL_PERMISSION_TYPES_DICT, PERMISSION_SH
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.utils.requestDictionary import RequestDictionary
 
 NOT_AUTHORIZED_MSG = "You are not authorized to perform the requested task. Please contact your administrator."
 
@@ -210,14 +212,21 @@ def requires_sub_agency_perms(perm):
         @wraps(fn)
         def wrapped(*args, **kwargs):
             sess = GlobalDB.db().session
-            req_args = webargs_parser.parse({
-                'agency_code': webargs_fields.String(missing=None),
-                'existing_submission_id': webargs_fields.String(missing=None)
-            })
+            try:
+                req_args = {
+                    'agency_code': RequestDictionary.derive(request).get('agency_code', None),
+                    'existing_submission_id': RequestDictionary.derive(request).get('existing_submission_id', None)
+                    }
+            except:
+                raise ResponseException('Bad request: agency_code or existing_submission_id not included properly',
+                                        StatusCode.CLIENT_ERROR)
+
             if req_args['agency_code'] is None and req_args['existing_submission_id'] is None:
                 raise ResponseException('Missing required parameter: agency_code or existing_submission_id',
                                         StatusCode.CLIENT_ERROR)
-
+            if  not isinstance(req_args['agency_code'], str) and not isinstance(req_args['existing_submission_id'], str):
+                raise ResponseException('Bad request: agency_code or existing_submission_id required and must be strings',
+                                        StatusCode.CLIENT_ERROR)
             if req_args['existing_submission_id'] is not None:
                 check_existing_submission_perms(perm, req_args['existing_submission_id'])
             else:
