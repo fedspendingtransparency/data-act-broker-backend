@@ -29,7 +29,7 @@ def generate_dedup_export(duns_file, dedup_export_path):
                           dtype=str, names=column_headers, skiprows=1)
     duns_modified_df = duns_df.drop_duplicates(subset=['DUNS'], keep='last')
 
-    return duns_modified_df.to_csv(dedup_export_path, columns=column_headers, index=False, quoting=csv.QUOTE_ALL)
+    duns_modified_df.to_csv(dedup_export_path, columns=column_headers, index=False, quoting=csv.QUOTE_ALL)
 
 
 def main():
@@ -40,16 +40,14 @@ def main():
         s3bucket = s3connection.lookup(CONFIG_BROKER["archive_bucket"])
         duns_file = s3bucket.get_key("DUNS_export.csv").generate_url(expires_in=10000)
     else:
-        duns_file = os.path.join(
-            CONFIG_BROKER["broker_files"],
-            "DUNS_export.csv")
+        duns_file = os.path.join(CONFIG_BROKER["broker_files"], "DUNS_export.csv")
 
     if not duns_file:
         logger.error("No DUNS_export.csv found.")
 
     logger.info("Retrieved historical DUNS file in {} s".format((datetime.now()-start).total_seconds()))
 
-    dedup_duns_export = os.path.join(CONFIG_BROKER["broker_files"], 'DUNS_export_dedup.csv')
+    dedup_duns_export = os.path.join(CONFIG_BROKER["broker_files"], 'DUNS_export_deduped.csv')
     generate_dedup_export(duns_file, dedup_duns_export)
 
     logger.info("{} generated".format(dedup_duns_export))
@@ -59,6 +57,4 @@ if __name__ == '__main__':
 
     with create_app().app_context():
         configure_logging()
-
-        with create_app().app_context():
-            main()
+        main()
