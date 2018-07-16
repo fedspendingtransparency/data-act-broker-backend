@@ -18,6 +18,8 @@ from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 
+DATE_REGEX = '^\d{2}\/\d{2}\/\d{4}$'
+
 
 # Add the file submission route
 def add_file_routes(app, create_credentials, is_local, server_path):
@@ -127,14 +129,22 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/generate_file/", methods=["POST"])
     @convert_to_submission_id
-    @use_kwargs({'file_type': webargs_fields.String(
-        required=True,
-        validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.values())
-    )})
-    def generate_file(submission_id, file_type):
+    @requires_submission_perms('writer')
+    @use_kwargs({
+        'file_type': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.OneOf(('D1', 'D2', 'E', 'F'), error="Must be either D1, D2, E or F")),
+        'start': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.Regexp(DATE_REGEX, error="Must be in the format MM/DD/YYYY")),
+        'end': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.Regexp(DATE_REGEX, error="Must be in the format MM/DD/YYYY"))
+    })
+    def generate_file(submission_id, file_type, start, end):
         """ Generate file from external API """
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.generate_file(submission_id, file_type)
+        return file_manager.generate_file(submission_id, file_type, start, end)
 
     @app.route("/v1/generate_detached_file/", methods=["POST"])
     @requires_login
@@ -164,7 +174,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @requires_submission_perms('reader')
     @use_kwargs({'file_type': webargs_fields.String(
         required=True,
-        validate=webargs_validate.OneOf(('D1', 'D2', 'E', 'F')))
+        validate=webargs_validate.OneOf(('D1', 'D2', 'E', 'F'), error="Must be either D1, D2, E or F"))
     })
     def check_generation_status(submission, file_type):
         """ Return status of file generation job """

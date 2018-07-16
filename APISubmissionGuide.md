@@ -74,34 +74,8 @@
 
 ### Generate D1, D2 Files
 - D File generation must be manually started ONLY AFTER all errors in A, B, C files have been fixed (warnings are allowed)
-- Step 1: Call `/v1/generate_file/` (POST) for each of the D files
-    - Header:
-        - `X-Session-ID`: string, session token id
-    - Payload:
-        - `start`: string, start date for D file (first day of the starting month provided in `submit_files`, MM/DD/YYYY)
-        - `end`: string, end date for D file (last day of the ending month provided in `submit_files`, MM/DD/YYYY)
-        - `file_type`: string, type of D file (can only be "D1" or "D2")
-        - `submission_id`: string, ID of the submission that was created
-    - Response:
-        - `start`: string, start date for D file (MM/DD/YYYY)
-        - `end`: string, end date for D file (MM/DD/YYYY)
-        - `file_type`: string, type of D file being generated
-        - `message`: string, response from the API if an error occurs, otherwise empty string
-        - `size`: int, size of file (always null for some reason, should only be null until file is finished)
-        - `status`: string, status of file generation
-        - `url`: string, full url of the D file ("#" if not generated or error)
-- Step 2: Poll `/v1/check_generation_status/` (POST) for each D file individually to see if generation has completed. Pinging should continue until status is not `waiting` or `running`
-    - Payload:
-        - `submission_id`: string, ID of the submission that was created
-        - `file_type`: string, type of D file (can only be "D1" or "D2")
-    - Response:
-        - `start`: string, start date for D file (MM/DD/YYYY)
-        - `end`: string, end date for D file (MM/DD/YYYY)
-        - `file_type`: string, type of D file being generated
-        - `message`: string, response from the API if an error occurs, otherwise empty string
-        - `size`: int, size of file (always null for some reason, should only be null until file is finished)
-        - `status`: string, status of file generation
-        - `url`: string, full url of the D file ("#" if not generated or error)
+- Step 1: Call `/v1/generate_file/` for each of the D files (two calls, one for D1 and one for D2). For details on its use, click [here](./dataactbroker/README.md#post-v1generate_file)
+- Step 2: Poll `/v1/check_generation_status/` for each D file individually to see if generation has completed. Pinging should continue until status is not `waiting` or `running`. For details on its use, click [here](./dataactbroker/README.md#post-v1check_generation_status)
 
 ### Cross-file validations
 - Cross-file validation begins automatically upon successful completion of D file generation (no errors)
@@ -124,32 +98,8 @@
 
 ### Generate E, F Files
 - Once cross-file validation completes with 0 errors (warnings are acceptable), E/F file generation can begin.
-- Call `/v1/generate_file/` (POST) to generate E and F files, will require being called twice
-    - Header:
-        - `X-Session-ID`: string, session token id
-    - Payload:
-        - `start`: string, empty string
-        - `end`: string, empty string
-        - `file_type`: string, type of file (can only be "E" or "F" for this generation)
-        - `submission_id`: string, ID of the submission that was created
-    - Response:
-        - `start`: string, empty string
-        - `end`: string, empty string
-        - `file_type`: string, type of file being generated
-        - `message`: string, response from the API if an error occurs, otherwise empty string
-        - `size`: int, size of file (always null for some reason, should only be null until file is finished)
-        - `status`: string, status of file generation
-        - `url`: string, full url of the D file ("#" if not generated or error)
-- Poll `/v1/check_generation_status/` (POST) for each file individually to see if generation has completed. Pinging should continue until status is not `waiting` or `running`
-    - Payload:
-        - `submission_id`: string, ID of the submission that was created
-        - `file_type`: string, type of file (can only be "E" or "F")
-    - Response:
-        - `file_type`: string, type of file being generated
-        - `message`: string, response from the API if an error occurs, otherwise empty string
-        - `size`: int, size of file (always null for some reason, should only be null until file is finished)
-        - `status`: string, status of file generation
-        - `url`: string, full url of the file ("#" if not generated or error)
+- Call `/v1/generate_file/` to generate E and F files, will require being called twice (once for E and once for F). For details on its use, click [here](./dataactbroker/README.md#post-v1generate_file)
+- Poll `/v1/check_generation_status/` for each file individually to see if generation has completed. Pinging should continue until status is not `waiting` or `running`. For details on its use, click [here](./dataactbroker/README.md#post-v1check_generation_status)
 
 ### Review and Add Comments
 - Once the E and F files are generated successfully, the results can be reviewed using a series of calls.

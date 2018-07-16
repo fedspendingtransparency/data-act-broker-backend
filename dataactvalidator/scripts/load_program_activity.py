@@ -120,13 +120,14 @@ def load_program_activity_data(base_path):
             data = pd.read_csv(program_activity_file, dtype=str)
         except pd.io.common.EmptyDataError as e:
             log_blank_file()
-            sys.exit(4)  # exit code chosen arbitrarily, to indicate distinct failure states
-
+            exit_if_nonlocal(4)  # exit code chosen arbitrarily, to indicate distinct failure states
+            return
         headers = set([header.upper() for header in list(data)])
 
         if not VALID_HEADERS.issubset(headers):
             logger.error("Missing required headers. Required headers include: %s" % str(VALID_HEADERS))
-            sys.exit(4)
+            exit_if_nonlocal(4)
+            return
 
         try:
             dropped_count, data = clean_data(
@@ -144,11 +145,13 @@ def load_program_activity_data(base_path):
         except FailureThresholdExceededException as e:
             if e.count == 0:
                 log_blank_file()
-                sys.exit(4)
+                exit_if_nonlocal(4)
+                return
             else:
                 count_str = "Application tried to drop {} rows".format(e.count)
                 logger.error("Loading of program activity file failed due to exceeded failure threshold. " + count_str)
-                sys.exit(5)
+                exit_if_nonlocal(5)
+                return
 
         sess.query(ProgramActivity).delete()
 
@@ -171,7 +174,8 @@ def load_program_activity_data(base_path):
     logger.info('{} records inserted to {}'.format(num, table_name))
 
     if dropped_count > 0:
-        sys.exit(3)
+        exit_if_nonlocal(3)
+        return
 
 
 def lowercase_or_notify(x):
@@ -197,3 +201,8 @@ def lowercase_or_notify(x):
 def log_blank_file():
     """ Helper function for specific reused log message """
     logger.error("File was blank! Not loaded, routine aborted.")
+
+
+def exit_if_nonlocal(exit_code):
+    if not CONFIG_BROKER['local']:
+        sys.exit(exit_code)
