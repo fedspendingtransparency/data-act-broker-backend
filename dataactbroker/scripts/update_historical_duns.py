@@ -64,6 +64,7 @@ def batch(iterable, n=1):
     for ndx in range(0, l, n):
         yield iterable[ndx:min(ndx + n, l)]
 
+
 def update_duns_props(df, client):
     """Returns same dataframe with address data updated"""
     duns = df['awardee_or_recipient_uniqu'].tolist()
@@ -73,6 +74,7 @@ def update_duns_props(df, client):
     for duns_list in batch(duns, 100):
         duns_props_df = duns_props_df.append(get_location_business_from_sams(client, duns_list))
     return pd.merge(df, duns_props_df, on=['awardee_or_recipient_uniqu'])
+
 
 def run_duns_batches(file, sess, client, block_size=10000):
     """Updates DUNS table in chunks from csv file"""

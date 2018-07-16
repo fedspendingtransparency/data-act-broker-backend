@@ -55,7 +55,8 @@ def get_location_business_from_sams(client, duns_list):
         'congressional_district': getattr(suds_obj.coreData.businessInformation.physicalAddress,
                                           'congressionalDistrict', None),
         'business_types_codes': [business_type.code for business_type
-                                 in getattr(suds_obj.coreData.generalInformation.listOfBusinessTypes, 'businessType', [])]
+                                 in getattr(suds_obj.coreData.generalInformation.listOfBusinessTypes,
+                                            'businessType', [])]
     }
         for suds_obj in get_entities(client, duns_list)
     ]

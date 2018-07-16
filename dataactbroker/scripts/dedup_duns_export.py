@@ -26,10 +26,11 @@ def generate_dedup_export(duns_file, dedup_export_path):
     """Generate dedup duns export"""
 
     duns_df = pd.read_csv(duns_file, skipinitialspace=True, header=None, encoding='latin1', quotechar='"',
-                                dtype=str, names=column_headers, skiprows=1)
+                          dtype=str, names=column_headers, skiprows=1)
     duns_modified_df = duns_df.drop_duplicates(subset=['DUNS'], keep='last')
 
     return duns_modified_df.to_csv(dedup_export_path, columns=column_headers, index=False, quoting=csv.QUOTE_ALL)
+
 
 def main():
     logger.info('Retrieving historical DUNS file')
