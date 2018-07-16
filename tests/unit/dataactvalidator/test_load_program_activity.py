@@ -99,7 +99,7 @@ def test_load_program_activity_data(mocked_get_pa_file, mocked_get_current_date,
 def test_load_program_activity_data_only_header(mocked_get_pa_file, mocked_get_current_date, mocked_get_stored_date,
                                                 mocked_set_stored_date, monkeypatch):
     """ Test actually loading the program activity data """
-    monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False, "local": False})
+    monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False, 'local': False})
 
     mocked_get_pa_file.return_value = StringIO(
         """AGENCY_CODE,ALLOCATION_ID,ACCOUNT_CODE,PA_CODE,PA_TITLE,FYQ"""
