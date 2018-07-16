@@ -1,5 +1,4 @@
 """
-
 Includes extra properties (Location, Business Categories) to the DUNS table
 
 Revision ID: b35d25a57731
