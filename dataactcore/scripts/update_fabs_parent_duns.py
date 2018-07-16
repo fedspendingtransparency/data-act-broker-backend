@@ -7,7 +7,7 @@ from dataactcore.logging import configure_logging
 from dataactvalidator.health_check import create_app
 
 from dataactcore.models.domainModels import HistoricParentDUNS
-from dataactcore.utils.parentDuns import sams_config_is_valid, get_name_from_sams, update_missing_parent_names
+from dataactcore.utils.parentDuns import sam_config_is_valid, get_name_from_sam, update_missing_parent_names
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ DROP_TEMP_MIN_YEARS_MATVIEW = """
 def update_historic_parent_names_duns_service(sess):
     start = time.time()
     logger.info("Gathering historical parent duns names via SAM service")
-    client = sams_config_is_valid()
+    client = sam_config_is_valid()
     hist_duns = sess.query(HistoricParentDUNS).filter(HistoricParentDUNS.ultimate_parent_unique_ide.isnot(None),
                                                       HistoricParentDUNS.ultimate_parent_legal_enti.is_(None))
     duns_count = hist_duns.count()
@@ -107,7 +107,7 @@ def update_historic_parent_names_duns_service(sess):
                 models[row.ultimate_parent_unique_ide].append(row)
         sliced_duns_list = [str(duns) for duns in list(models.keys())]
         if sliced_duns_list:
-            duns_parent_df = get_name_from_sams(client, sliced_duns_list)
+            duns_parent_df = get_name_from_sam(client, sliced_duns_list)
             duns_parent_df = duns_parent_df.rename(columns={'awardee_or_recipient_uniqu': 'ultimate_parent_unique_ide',
                                                             'legal_business_name': 'ultimate_parent_legal_enti'})
             for _, row in duns_parent_df.iterrows():
