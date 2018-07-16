@@ -6,7 +6,7 @@ import argparse
 from datetime import datetime
 
 from dataactcore.models.domainModels import DUNS
-from dataactcore.utils.parentDuns import get_location_business_from_sams, sams_config_is_valid
+from dataactcore.utils.parentDuns import get_location_business_from_sam, sam_config_is_valid
 from dataactcore.utils.duns import load_duns_by_row
 from dataactvalidator.scripts.loaderUtils import clean_data
 from dataactvalidator.health_check import create_app
@@ -72,7 +72,7 @@ def update_duns_props(df, client):
     duns_props_df = pd.DataFrame(columns=columns)
     # SAM service only takes in batches of 100
     for duns_list in batch(all_duns, 100):
-        duns_props_df = duns_props_df.append(get_location_business_from_sams(client, duns_list))
+        duns_props_df = duns_props_df.append(get_location_business_from_sam(client, duns_list))
         empty_duns_rows = []
         for duns in duns_list:
             if duns not in duns_props_df['awardee_or_recipient_uniqu']:
@@ -125,7 +125,7 @@ def main():
     args = parser.parse_args()
 
     sess = GlobalDB.db().session
-    client = sams_config_is_valid()
+    client = sam_config_is_valid()
 
     logger.info('Retrieving historical DUNS file')
     start = datetime.now()

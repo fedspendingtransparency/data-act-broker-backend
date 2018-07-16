@@ -16,7 +16,7 @@ from dataactcore.models.userModel import User # noqa
 logger = logging.getLogger(__name__)
 
 
-def sams_config_is_valid():
+def sam_config_is_valid():
     """Check if config is valid and should be only run once per load. Returns client obj used to acces SAM API"""
     if config_valid():
         return Client(CONFIG_BROKER['sam']['wsdl'])
@@ -28,7 +28,7 @@ def sams_config_is_valid():
         sys.exit(1)
 
 
-def get_name_from_sams(client, duns_list):
+def get_name_from_sam(client, duns_list):
     """Calls SAM API to retrieve DUNS name by DUNS number. Returns DUNS info as Data Frame"""
     duns_name = [{
         'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
@@ -41,7 +41,7 @@ def get_name_from_sams(client, duns_list):
     return pd.DataFrame(duns_name)
 
 
-def get_location_business_from_sams(client, duns_list):
+def get_location_business_from_sam(client, duns_list):
     """Calls SAM API to retrieve DUNS name by DUNS number. Returns DUNS info as Data Frame"""
     duns_name = [{
         'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
@@ -64,7 +64,7 @@ def get_location_business_from_sams(client, duns_list):
     return pd.DataFrame(duns_name)
 
 
-def get_parent_from_sams(client, duns_list):
+def get_parent_from_sam(client, duns_list):
     """Calls SAM API to retrieve parent DUNS data by DUNS number. Returns DUNS info as Data Frame"""
     duns_parent = [{
         'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
@@ -180,7 +180,7 @@ def get_duns_batches(client, sess, batch_start=None, batch_end=None, updated_dat
         duns_list = list(models.keys())
 
         # Gets parent duns data from SAM API
-        duns_parent_df = get_parent_from_sams(client, duns_list)
+        duns_parent_df = get_parent_from_sam(client, duns_list)
 
         load_duns_by_row(duns_parent_df, sess, models, None, benchmarks=False)
 
