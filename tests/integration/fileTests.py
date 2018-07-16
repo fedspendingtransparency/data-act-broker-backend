@@ -607,17 +607,17 @@ class FileTests(BaseTestAPI):
         self.assertEqual({"appropriations"}, response_keys)
 
     def test_get_obligations(self):
+        """ Test submission obligations with an existing Submission """
         submission = SubmissionFactory()
         self.session.add(submission)
         self.session.commit()
-        response = self.app.post_json("/v1/get_obligations/", {"submission_id": submission.submission_id},
-                                      headers={"x-session-id": self.session_id})
+        response = self.app.get("/v1/get_obligations/", {"submission_id": submission.submission_id},
+                                headers={"x-session-id": self.session_id})
         assert response.status_code == 200
         assert "total_obligations" in response.json
 
     def test_get_protected_files(self):
         """ Check get_protected_files route """
-
         if CONFIG_BROKER["use_aws"]:
             response = self.app.get("/v1/get_protected_files/", headers={"x-session-id": self.session_id})
             self.assertEqual(response.status_code, 200, msg=str(response.json))
@@ -955,6 +955,15 @@ class FileTests(BaseTestAPI):
         response = self.app.post_json("/v1/restart_validation/", post_json,
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(response.json['message'], "Success")
+
+    def test_submission_report_url(self):
+        """ Test that the submission's report is successfully generated """
+        params = {"warning": False,
+                  "file_type": "appropriations"}
+        response = self.app.get("/v1/submission/{}/report_url".format(self.row_error_submission_id), params,
+                                headers={"x-session-id": self.session_id}, expect_errors=False)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("url", response.json)
 
     @staticmethod
     def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
