@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def sam_config_is_valid():
-    """ Check if config is valid and should be only run once per load. Returns client obj used to acces SAM API
+    """ Check if config is valid and should be only run once per load. Returns client obj used to acces SAM API.
 
         Returns:
             client object representing the SAM service
