@@ -3,20 +3,23 @@ from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import use_kwargs
 
 from dataactbroker.handlers.fileHandler import (
-    FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler,
+    FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler, get_upload_file_url,
     narratives_for_submission, submission_report_url, update_narratives, list_certifications, file_history_url)
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
     certify_dabs_submission, find_existing_submissions_in_period, get_submission_metadata, get_submission_data,
     get_revalidation_threshold)
-
 from dataactbroker.decorators import convert_to_submission_id
-from dataactbroker.permissions import current_user_can, requires_login, requires_submission_perms
+from dataactbroker.permissions import (requires_login, requires_submission_perms, requires_agency_perms,
+                                       requires_sub_agency_perms)
 
 from dataactcore.interfaces.function_bag import get_fabs_meta
 from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER
 from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.statusCode import StatusCode
+
+DATE_REGEX = '^\d{2}\/\d{2}\/\d{4}$'
 
 
 # Add the file submission route
@@ -25,10 +28,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     # Keys for the post route will correspond to the four types of files
     @app.route("/v1/submit_files/", methods=["POST"])
-    @requires_login
+    @requires_agency_perms('writer')
     def submit_files():
-        current_user_can('writer', cgac_code=request.json.get('cgac_code', None),
-                         frec_code=request.json.get('frec_code', None))
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.validate_submit_files(create_credentials)
 
@@ -129,14 +130,22 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/generate_file/", methods=["POST"])
     @convert_to_submission_id
-    @use_kwargs({'file_type': webargs_fields.String(
-        required=True,
-        validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.values())
-    )})
-    def generate_file(submission_id, file_type):
+    @requires_submission_perms('writer')
+    @use_kwargs({
+        'file_type': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.OneOf(('D1', 'D2', 'E', 'F'), error="Must be either D1, D2, E or F")),
+        'start': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.Regexp(DATE_REGEX, error="Must be in the format MM/DD/YYYY")),
+        'end': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.Regexp(DATE_REGEX, error="Must be in the format MM/DD/YYYY"))
+    })
+    def generate_file(submission_id, file_type, start, end):
         """ Generate file from external API """
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.generate_file(submission_id, file_type)
+        return file_manager.generate_file(submission_id, file_type, start, end)
 
     @app.route("/v1/generate_detached_file/", methods=["POST"])
     @requires_login
@@ -166,7 +175,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @requires_submission_perms('reader')
     @use_kwargs({'file_type': webargs_fields.String(
         required=True,
-        validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.values()))
+        validate=webargs_validate.OneOf(('D1', 'D2', 'E', 'F'), error="Must be either D1, D2, E or F"))
     })
     def check_generation_status(submission, file_type):
         """ Return status of file generation job """
@@ -180,24 +189,24 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         """ Return metadata of FABS submission """
         return JsonResponse.create(StatusCode.OK, get_fabs_meta(submission.submission_id))
 
+
     @app.route("/v1/upload_detached_file/", methods=["POST"])
-    @requires_login
+    @requires_sub_agency_perms('edit_fabs')
     def upload_detached_file():
-        if "fabs" in request.files:
-            file = request.files['fabs']
-        else:
-            file = None
+        params = RequestDictionary.derive(request)
+        api_triggered = params.get('files', {}).get('fabs', None)
+        fabs_filename = params.get('fabs', None)
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.upload_fabs_file(create_credentials, file)
+        return file_manager.upload_fabs_file(create_credentials, fabs_filename, api_triggered)
 
     @app.route("/v1/submit_detached_file/", methods=["POST"])
     @convert_to_submission_id
-    @requires_submission_perms('fabs')
+    @requires_submission_perms('fabs', check_owner=False)
     def submit_detached_file(submission):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.publish_fabs_submission(submission)
 
-    @app.route("/v1/get_obligations/", methods=["POST"])
+    @app.route("/v1/get_obligations/", methods=["GET"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
     def get_obligations(submission):
@@ -213,7 +222,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     def post_submission_narratives(submission):
         return update_narratives(submission, request.json)
 
-    @app.route("/v1/submission/<int:submission_id>/report_url", methods=['POST'])
+    @app.route("/v1/submission/<int:submission_id>/report_url", methods=['GET'])
     @requires_submission_perms('reader')
     @use_kwargs({
         'warning': webargs_fields.Bool(),
@@ -225,6 +234,18 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     })
     def post_submission_report_url(submission, warning, file_type, cross_type):
         return submission_report_url(submission, bool(warning), file_type, cross_type)
+
+    @app.route("/v1/get_file_url", methods=['GET'])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    @use_kwargs({
+        'file_type': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.values())
+        )
+    })
+    def get_file_url(submission, file_type):
+        return get_upload_file_url(submission, file_type)
 
     @app.route("/v1/delete_submission/", methods=['POST'])
     @convert_to_submission_id
