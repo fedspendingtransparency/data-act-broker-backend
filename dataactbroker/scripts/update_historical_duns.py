@@ -25,19 +25,19 @@ column_headers = [
     "activation_date",  # Activation_Date
     "legal_business_name"  # Legal_Business_Name
 ]
-props_columns = [
-    'address_line_1',
-    'address_line_2',
-    'city',
-    'state',
-    'zip',
-    'zip4',
-    'country_code',
-    'congressional_district',
-    'business_types_codes'
-]
+props_columns = {
+    'address_line_1': None,
+    'address_line_2': None,
+    'city': None,
+    'state': None,
+    'zip': None,
+    'zip4': None,
+    'country_code': None,
+    'congressional_district': None,
+    'business_types_codes': []
+}
 
-column_mappings = {x: x for x in column_headers + props_columns}
+column_mappings = {x: x for x in column_headers + list(props_columns.keys())}
 
 
 def remove_existing_duns(data, sess):
@@ -67,12 +67,19 @@ def batch(iterable, n=1):
 
 def update_duns_props(df, client):
     """Returns same dataframe with address data updated"""
-    duns = df['awardee_or_recipient_uniqu'].tolist()
-    columns = ['awardee_or_recipient_uniqu'] + props_columns
+    all_duns = df['awardee_or_recipient_uniqu'].tolist()
+    columns = ['awardee_or_recipient_uniqu'] + list(props_columns.keys())
     duns_props_df = pd.DataFrame(columns=columns)
     # SAM service only takes in batches of 100
-    for duns_list in batch(duns, 100):
+    for duns_list in batch(all_duns, 100):
         duns_props_df = duns_props_df.append(get_location_business_from_sams(client, duns_list))
+        empty_duns_rows = []
+        for duns in duns_list:
+            if duns not in duns_props_df['awardee_or_recipient_uniqu']:
+                empty_duns_row = props_columns.copy()
+                empty_duns_row['awardee_or_recipient_uniqu'] = duns
+                empty_duns_rows.append(empty_duns_row)
+        duns_props_df = duns_props_df.append(pd.DataFrame(empty_duns_rows))
     return pd.merge(df, duns_props_df, on=['awardee_or_recipient_uniqu'])
 
 
@@ -138,7 +145,8 @@ def main():
 
     try:
         run_duns_batches(duns_file, sess, client, args.block_size)
-    except:
+    except Exception as e:
+        logger.exception(e)
         sess.rollback()
 
     logger.info("Updating historical DUNS complete")
