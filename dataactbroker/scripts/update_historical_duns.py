@@ -134,7 +134,10 @@ def main():
 
     logger.info("Retrieved historical DUNS file in {} s".format((datetime.now()-start).total_seconds()))
 
-    run_duns_batches(duns_file, sess, client, args.block_size)
+    try:
+        run_duns_batches(duns_file, sess, client, args.block_size)
+    except:
+        sess.rollback()
 
     logger.info("Updating historical DUNS complete")
     sess.close()
