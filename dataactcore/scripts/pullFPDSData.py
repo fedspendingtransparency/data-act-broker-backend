@@ -1312,7 +1312,6 @@ def get_total_expected_records(base_url):
 def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
              country_list, last_run=None, threaded=False, start_date=None, end_date=None):
     """ get the data from the atom feed based on contract/award type and the last time the script was run """
-    return
     data = []
     yesterday = now - datetime.timedelta(days=1)
     utcnow = datetime.datetime.utcnow()
