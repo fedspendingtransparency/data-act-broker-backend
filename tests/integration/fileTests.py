@@ -679,15 +679,55 @@ class FileTests(BaseTestAPI):
         self.check_metrics(self.test_metrics_submission_id, True, "appropriations")
 
     def test_bad_file_type_check_generation_status(self):
-        """ Test that an error comes back if an invalid file status is included for check_generation_status. """
+        """ Test that an error comes back if an invalid file type is provided for check_generation_status. """
         post_json = {"submission_id": self.generation_submission_id, "file_type": "A"}
         response = self.app.post_json("/v1/check_generation_status/", post_json,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json["message"], "file_type: Not a valid choice.")
+        self.assertEqual(response.json["message"], "file_type: Must be either D1, D2, E or F")
 
-    def test_file_generation(self):
-        """ Test the generate and check routes for external files """
+    def test_check_generation_status_finished(self):
+        """ Test the check generation status route for finished generation """
+        # Then call check generation route for D2, E and F and check results
+        post_json = {"submission_id": self.generation_submission_id, "file_type": "E"}
+        response = self.app.post_json("/v1/check_generation_status/", post_json,
+                                      headers={"x-session-id": self.session_id})
+
+        self.assertEqual(response.status_code, 200)
+        json = response.json
+        self.assertEqual(json["status"], "finished")
+        self.assertEqual(json["file_type"], "E")
+        self.assertEqual(json["url"], "#")
+        self.assertEqual(json["message"], "")
+
+    def test_check_generation_status_failed_file_level_errors(self):
+        """ Test the check generation status route for a failed generation because of file level errors """
+        post_json = {"submission_id": self.generation_submission_id, "file_type": "D2"}
+        response = self.app.post_json("/v1/check_generation_status/", post_json,
+                                      headers={"x-session-id": self.session_id})
+
+        self.assertEqual(response.status_code, 200)
+        json = response.json
+        self.assertEqual(json["status"], "failed")
+        self.assertEqual(json["file_type"], "D2")
+        self.assertEqual(json["url"], "#")
+        self.assertEqual(json["message"], "Generated file had file-level errors")
+
+    def test_check_generation_status_failed_invalid_file(self):
+        """ Test the check generation status route for a failed generation because of an invalid file """
+        post_json = {"submission_id": self.generation_submission_id, "file_type": "F"}
+        response = self.app.post_json("/v1/check_generation_status/", post_json,
+                                      headers={"x-session-id": self.session_id})
+
+        self.assertEqual(response.status_code, 200)
+        json = response.json
+        self.assertEqual(json["status"], "failed")
+        self.assertEqual(json["file_type"], "F")
+        self.assertEqual(json["url"], "#")
+        self.assertEqual(json["message"], "File was invalid")
+
+    def test_file_generation_d1(self):
+        """ Test the generate route for D1 file """
         # For file generation submission, call generate route for D1 and check results
         post_json = {"submission_id": self.generation_submission_id, "file_type": "D1",
                      "start": "01/02/2016", "end": "02/03/2016"}
@@ -707,41 +747,52 @@ class FileTests(BaseTestAPI):
         # this is to accommodate for checking for the "failed" status
         self.assertIn(json["message"], ["", "D1 data unavailable for the specified date range"])
 
-        # Then call check generation route for D2, E and F and check results
-        post_json = {"submission_id": self.generation_submission_id, "file_type": "E"}
-        response = self.app.post_json("/v1/check_generation_status/", post_json,
-                                      headers={"x-session-id": self.session_id})
+    def test_generate_file_invalid_file_type(self):
+        """ Test invalid file type passed to generate file """
+        post_json = {"submission_id": self.generation_submission_id, "file_type": "A",
+                     "start": "01/02/2016", "end": "02/03/2016"}
+        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         json = response.json
-        self.assertEqual(json["status"], "finished")
-        self.assertEqual(json["file_type"], "E")
-        self.assertEqual(json["url"], "#")
-        self.assertEqual(json["message"], "")
+        self.assertEqual(json["message"], "file_type: Must be either D1, D2, E or F")
 
-        post_json = {"submission_id": self.generation_submission_id, "file_type": "D2"}
-        response = self.app.post_json("/v1/check_generation_status/", post_json,
-                                      headers={"x-session-id": self.session_id})
+    def test_generate_file_bad_start_date_format(self):
+        """ Test bad format on start date """
+        post_json = {"submission_id": self.generation_submission_id, "file_type": "D1",
+                     "start": "ab/02/2016", "end": "02/03/2016"}
+        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         json = response.json
-        self.assertEqual(json["status"], "failed")
-        self.assertEqual(json["file_type"], "D2")
-        self.assertEqual(json["url"], "#")
-        self.assertEqual(json["message"], "Generated file had file-level errors")
+        self.assertEqual(json["message"], "start: Must be in the format MM/DD/YYYY")
 
-        post_json = {"submission_id": self.generation_submission_id, "file_type": "F"}
-        response = self.app.post_json("/v1/check_generation_status/", post_json,
-                                      headers={"x-session-id": self.session_id})
+    def test_generate_file_bad_end_date_format(self):
+        """ Test bad format on start date """
+        post_json = {"submission_id": self.generation_submission_id, "file_type": "D1",
+                     "start": "01/02/2016", "end": "ab/03/2016"}
+        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         json = response.json
-        self.assertEqual(json["status"], "failed")
-        self.assertEqual(json["file_type"], "F")
-        self.assertEqual(json["url"], "#")
-        self.assertEqual(json["message"], "File was invalid")
+        self.assertEqual(json["message"], "end: Must be in the format MM/DD/YYYY")
 
-        # Test permission error
+    def test_generate_file_fabs(self):
+        """ Test failure while calling generate_file for a FABS submission """
+        post_json = {"submission_id": self.test_fabs_submission_id, "file_type": "D1",
+                     "start": "01/02/2016", "end": "02/03/2016"}
+        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+
+        self.assertEqual(response.status_code, 400)
+        json = response.json
+        self.assertEqual(json["message"], "Cannot generate files for FABS submissions")
+
+    def test_generate_file_permission_error(self):
+        """ Test permission error for generate submission """
         self.login_user()
         post_json = {"submission_id": self.generation_submission_id, "file_type": "D1",
                      "start": "01/02/2016", "end": "02/03/2016"}
@@ -750,12 +801,7 @@ class FileTests(BaseTestAPI):
 
         self.assertEqual(response.status_code, 403)
         json = response.json
-        self.assertEqual(json["status"], "failed")
-        self.assertEqual(json["file_type"], "D1")
-        self.assertEqual(json["url"], "#")
-        self.assertEqual(json["start"], "")
-        self.assertEqual(json["end"], "")
-        self.assertEqual(json["message"], "User does not have permission to view that submission")
+        self.assertEqual(json["message"], "User does not have permission to access that submission")
 
     def test_detached_file_generation(self):
         """ Test the generate and check routes for external files """

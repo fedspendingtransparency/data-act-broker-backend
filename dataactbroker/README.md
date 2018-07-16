@@ -517,7 +517,7 @@ Possible HTTP Status Codes:
 - 403: Permission denied, user does not have permission to view this submission
 
 
-#### GET "/v1/check_status/"
+#### GET "/v1/check\_status/"
 This endpoint returns the status of each file type, including whether each has errors or warnings and a message if one exists.
 
 ##### Sample Request
@@ -1095,15 +1095,13 @@ Example output:
 ```
 
 ## Generate Files
-**Route:** `/v1/generate_file`
+### POST "/v1/generate\_file"
 
-**Method:** `POST`
-
-This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted.
+This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted. This route is used for file generation **within** a submission.
 
 **Deprecation Notice:** This route replaces `/v1/generate_d1_file` and `/v1/generate_d2_file`.
 
-### Body (JSON)
+#### Sample Request Body (JSON)
 
 ```
 {
@@ -1114,141 +1112,26 @@ This route sends a request to the backend to utilize the relevant external APIs 
 }
 ```
 
-### Body Description
+#### Body Parameters
 
-* `submission_id` - **required** - an integer representing the ID of the current submission
-* `file_type` - **required** - a string indicating the file type to generate. Allowable values are:
-	* `D1` - generate a D1 file
-	* `D2` - generate a D2 file
-	* `E` - generate a E file
-	* `F` - generate a F file
-* `start` - **required for D1/D2 only** - the start date of the requested date range, in `MM/DD/YYYY` string format
-* `end` - **required for D1/D2 only** - the end date of the requested date range, in `MM/DD/YYYY` string format
-
-### Response (JSON)
-Response will be the same format as those which are returned in the `/v1/check_generation_status` endpoint
-
-
-## File Status
-**Route:** `/v1/check_generation_status`
-
-**Method:** `POST`
-
-This route returns either a signed S3 URL to the generated file or, if the file is not yet ready or have failed to generate for other reasons, returns a status indicating that.
-
-**Deprecation Notice:** This route replaces `/v1/check_d1_file` and `/v1/check_d2_file`.
-
-### Body (JSON)
-
-```
-{
-    "submission_id": 123,
-    "file_type": "D1",
-    "size": 123
-}
-```
-
-### Body Description
-
-* `submission_id` - An integer representing the ID of the current submission
-* `file_type` - **required** - a string indicating the file type whose status we are checking. Allowable values are:
-	* `D1` - generate a D1 file
-	* `D2` - generate a D2 file
-	* `E` - generate a E file
-	* `F` - generate a F file
-
+- `submission_id` - **required** - an integer representing the ID of the current submission
+- `file_type` - **required** - a string indicating the file type to generate. Allowable values are:
+    - `D1` - generate a D1 file
+    - `D2` - generate a D2 file
+    - `E` - generate a E file
+    - `F` - generate a F file
+- `start` - **required for D1/D2 only** - the start date of the requested date range, in `MM/DD/YYYY` string format
+- `end` - **required for D1/D2 only** - the end date of the requested date range, in `MM/DD/YYYY` string format
 
 ### Response (JSON)
-
-*State:* The file has successfully generated
-
-```
-{
-	"status": "finished",
-	"file_type": "D1",
-	"url": "https://........",
-	"start": "01/01/2016",
-	"end": "03/31/2016",
-	"message": ""
-}
-```
-
-*State:* The file is not yet ready
-
-```
-{
-	"status": "waiting",
-	"file_type": "D1",
-	"url": "",
-    "start": "01/01/2016",
-    "end": "03/31/2016",
-    "message": ""
-}
-```
-
-*State:* File generation has failed
-
-```
-{
-	"status": "failed",
-	"file_type": "D1",
-	"url": "",
-    "start": "01/01/2016",
-    "end": "03/31/2016",
-	"message": "The server could not reach the Federal Procurement Data System. Try again later."
-}
-```
-
-*State:* No file generation request has been made for this submission ID before
-
-```
-{
-	"status": "invalid",
-	"file_type": "D1",
-	"url": "",
-	"start": "",
-	"end": "",
-	"message": ""
-}
-```
+Response will be the same format as those which are returned in the `/v1/check_detached_generation_status` endpoint.
 
 
-### Response Description
+### POST "/v1/generate\_detached\_file"
 
-The response is an object that represents that file's state.
+This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted. This route is used for file generation **independent** from a submission.
 
-* `status` - a string constant indicating the file's status.
-	* Possible values are:
-		* `finished` - file has been generated and is available for download
-		* `waiting` - file has either not started/finished generating or has finished generating but is not yet uploaded to S3
-		* `failed` - an error occurred and the file generation or S3 upload failed, the generated file is invalid, or any other error
-		* `invalid` - no generation request has ever been made for this submission ID before
-
-* `file_type` - a string indicating the file that the status data refers to. Possible values are:
-	* `D1` - D1 file
-	* `D2` - D2 file
-	* `E` - E file
-	* `F` - F file
-
-* `url` - a signed S3 URL from which the generated file can be downloaded
-	* Blank string when the file is not `finished`
-
-* `start` - **expected for D1/D2 only** - the file start date, in `MM/DD/YYYY` format
-	* If the file is not a D1/D2 file type, return a blank string
-* `end` - **expected for D1/D2 only** - the file end date, in `MM/DD/YYYY` format
-	* If the file is not a D1/D2 file type, return a blank string
-
-* `message` - returns a user-readable error message when the file is `failed`, otherwise returns a blank string
-
-
-## Generate Detached Files (independent from a submission)
-**Route:** `/v1/generate_detached_file`
-
-**Method:** `POST`
-
-This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted.
-
-### Body (JSON)
+#### Body (JSON)
 
 ```
 {
@@ -1259,122 +1142,115 @@ This route sends a request to the backend to utilize the relevant external APIs 
 }
 ```
 
-### Body Description
+#### Body Description
 
-* `file_type` - **required** - a string indicating the file type to generate. Allowable values are:
-	* `D1` - generate a D1 file
-	* `D2` - generate a D2 file
-* `cgac_code` - **required for D1/D2 only** - the cgac of the agency for which to generate the files for
-* `start` - **required for D1/D2 only** - the start date of the requested date range, in `MM/DD/YYYY` string format
-* `end` - **required for D1/D2 only** - the end date of the requested date range, in `MM/DD/YYYY` string format
+- `file_type` - **required** - a string indicating the file type to generate. Allowable values are:
+    - `D1` - generate a D1 file
+    - `D2` - generate a D2 file
+- `cgac_code` - **required** - the cgac of the agency for which to generate the files for
+- `start` - **required** - the start date of the requested date range, in `MM/DD/YYYY` string format
+- `end` - **required** - the end date of the requested date range, in `MM/DD/YYYY` string format
 
-### Response (JSON)
-Response will be the same format as those which are returned in the `/v1/check_detached_generation_status` endpoint
+#### Response (JSON)
+Response will be the same format as those returned from `/v1/check_generation_status` endpoint with the exception that only D1 and D2 files will ever be present, never E or F.
 
 
 ## File Status
-**Route:** `/v1/check_detached_generation_status`
+### POST "/v1/check\_generation\_status"
 
-**Method:** `POST`
+This route returns either a signed S3 URL to the generated file or, if the file is not yet ready or have failed to generate for other reasons, returns a status indicating that. This route is used for file generation **within** a submission.
 
-This route returns either a signed S3 URL to the generated file or, if the file is not yet ready or have failed to generate for other reasons, returns a status indicating that.
-
-### Body (JSON)
+#### Sample Request Body (JSON)
 
 ```
 {
-    "job_id": "1
+    "submission_id": 123,
+    "file_type": "D1"
+}
+```
+
+#### Body Params
+
+- `submission_id` - An integer representing the ID of the current submission
+- `file_type` - **required** - a string indicating the file type whose status we are checking. Allowable values are:
+    - `D1` - generate a D1 file
+    - `D2` - generate a D2 file
+    - `E` - generate a E file
+    - `F` - generate a F file
+
+
+#### Response (JSON)
+
+```
+{
+    "job_id": 1234,
+    "status": "finished",
+    "file_type": "D1",
+    "url": "https://........",
+    "size": null,
+    "start": "01/01/2016",
+    "end": "03/31/2016",
+    "message": ""
+}
+```
+
+#### Response Attributes
+
+The response is an object that represents that file's state.
+
+- `job_id` - an integer, job ID of the generation job in question
+- `status` - a string constant indicating the file's status. Possible values are:
+    - `finished` - file has been generated and is available for download
+    - `waiting` - file has either not started/finished generating or has finished generating but is not yet uploaded to S3
+    - `failed` - an error occurred and the file generation or S3 upload failed, the generated file is invalid, or any other error
+    - `invalid` - no generation request has ever been made for this submission ID before
+- `file_type` - a string indicating the file that the status data refers to. Possible values are:
+    - `D1` - D1 file
+    - `D2` - D2 file
+    - `E` - E file
+    - `F` - F file
+- `url` - a string containing a signed S3 URL from which the generated file can be downloaded. This will be the string `"#"` if the file is not in the `finished` state.
+- `size` - always null, should be the size of the created file
+- `start` - **expected for D1/D2 only** - the file start date, in `MM/DD/YYYY` format. If not a D1/D2 file, this will be a blank string.
+- `end` - **expected for D1/D2 only** - the file end date, in `MM/DD/YYYY` format. If not a D1/D2 file, this will be a blank string.
+- `message` - a string of a user-readable error message when the file is `failed`, otherwise returns a blank string
+
+#### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Missing `submission_id` parameter
+    - Submission does not exist
+    - Invalid `file_type` parameter
+- 403: Permission denied, user does not have permission to view this submission
+
+
+### POST "/v1/check\_detached\_generation\_status"
+
+This route returns either a signed S3 URL to the generated file or, if the file is not yet ready or have failed to generate for other reasons, returns a status indicating that. This route is used for file generation **independent** from a submission.
+
+#### Sample Request Body (JSON)
+
+```
+{
+    "job_id": 1
 }
 ```
 
 ### Body Description
 
-* `job_id` - **required** - an integer corresponding the job_id for the generation. Provided in the response of the call to `generate_detached_file`
+- `job_id` - **required** - an integer corresponding the job_id for the generation. Provided in the response of the call to `generate_detached_file`
 
-### Response (JSON)
+#### Response (JSON)
+Response will be the same format as those returned from `/v1/check_generation_status` endpoint with the exception that only D1 and D2 files will ever be present, never E or F.
 
-*State:* The file has successfully generated
+#### Errors
+Possible HTTP Status Codes:
 
-```
-{
-	"status": "finished",
-	"file_type": "D1",
-	"url": "https://........",
-	"start": "01/01/2016",
-	"end": "03/31/2016",
-	"message": "",
-	"job_id": 1
-}
-```
-
-*State:* The file is not yet ready
-
-```
-{
-	"status": "waiting",
-	"file_type": "D1",
-	"url": "",
-    "start": "01/01/2016",
-    "end": "03/31/2016",
-    "message": "",
-	"job_id": 1
-}
-```
-
-*State:* File generation has failed
-
-```
-{
-	"status": "failed",
-	"file_type": "D1",
-	"url": "",
-	"start": "01/01/2016",
-	"end": "03/31/2016",
-	"message": "The server could not reach the Federal Procurement Data System. Try again later.",
-	"job_id": 1
-}
-```
-
-*State:* No file generation request has been made for this submission ID before
-
-```
-{
-	"status": "invalid",
-	"file_type": "D1",
-	"url": "",
-	"start": "",
-	"end": "",
-	"message": "",
-	"job_id": 1
-}
-```
-
-
-### Response Description
-
-The response is an object that represents that file's state.
-
-* `status` - a string constant indicating the file's status.
-	* Possible values are:
-		* `finished` - file has been generated and is available for download
-		* `failed` - an error occurred and the file generation or S3 upload failed, the generated file is invalid, or any other error
-		* `invalid` - no generation request has ever been made for this submission ID before
-
-* `file_type` - a string indicating the file that the status data refers to. Possible values are:
-	* `D1` - D1 file
-	* `D2` - D2 file
-
-* `url` - a signed S3 URL from which the generated file can be downloaded
-	* Blank string when the file is not `finished`
-
-* `start` - **expected for D1/D2 only** - the file start date, in `MM/DD/YYYY` format
-	* If the file is not a D1/D2 file type, return a blank string
-* `end` - **expected for D1/D2 only** - the file end date, in `MM/DD/YYYY` format
-	* If the file is not a D1/D2 file type, return a blank string
-
-* `message` - returns a user-readable error message when the file is `failed`, otherwise returns a blank string
-
-* `job_id` - job ID of the generation job in question
+- 400:
+    - Missing `job_id` parameter
+    - Submission does not exist
+- 401: Login required
 
 
 ## Test Cases

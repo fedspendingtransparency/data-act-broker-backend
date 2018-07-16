@@ -355,7 +355,8 @@ def start_generation_job(job, start_date, end_date, agency_code=None):
         if file_type in ['D1', 'D2']:
             # Validate and set Job's start and end dates
             if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
-                raise ResponseException("Start or end date cannot be parsed into a date", StatusCode.CLIENT_ERROR)
+                raise ResponseException("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
+                                        StatusCode.CLIENT_ERROR)
             job.start_date = start_date
             job.end_date = end_date
             sess.commit()
