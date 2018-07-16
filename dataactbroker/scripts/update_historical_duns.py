@@ -175,12 +175,10 @@ def main():
         s3bucket = s3connection.lookup(CONFIG_BROKER["archive_bucket"])
         duns_file = s3bucket.get_key("DUNS_export_deduped.csv").generate_url(expires_in=10000)
     else:
-        duns_file = os.path.join(
-            CONFIG_BROKER["broker_files"],
-            "DUNS_export_deduped.csv")
+        duns_file = os.path.join(CONFIG_BROKER["broker_files"], "DUNS_export_deduped.csv")
 
-    if not duns_file:
-        logger.error("No DUNS_export_deduped.csv found.")
+    if not os.path.exists(duns_file):
+        raise OSError("No DUNS_export_deduped.csv found.")
 
     logger.info("Retrieved historical DUNS file in {} s".format((datetime.now()-start).total_seconds()))
 

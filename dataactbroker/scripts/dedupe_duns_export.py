@@ -48,8 +48,8 @@ def main():
     else:
         duns_file = os.path.join(CONFIG_BROKER["broker_files"], "DUNS_export.csv")
 
-    if not duns_file:
-        logger.error("No DUNS_export.csv found.")
+    if not os.path.exists(duns_file):
+        raise OSError("No DUNS_export.csv found.")
 
     logger.info("Retrieved historical DUNS file in {} s".format((datetime.now()-start).total_seconds()))
 
