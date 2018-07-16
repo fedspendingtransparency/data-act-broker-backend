@@ -10,7 +10,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import DUNS, HistoricParentDUNS
-from dataactcore.utils.parentDuns import sams_config_is_valid, get_duns_batches, update_missing_parent_names
+from dataactcore.utils.parentDuns import sam_config_is_valid, update_missing_parent_names
 from dataactcore.utils.duns import get_config, parse_sam_file, process_from_dir
 from dataactvalidator.health_check import create_app
 
@@ -20,6 +20,11 @@ REMOTE_SAM_DIR = '/current/SAM/2_FOUO/UTF-8/'
 
 
 def get_client():
+    """ Connects to the SAM client and returns a usable object for interaction
+
+        Returns:
+            client object to interact with the SAM service
+    """
     username, password, host, port = get_config()
 
     if None in (username, password):
@@ -39,6 +44,11 @@ def get_client():
 
 
 def get_parser():
+    """ Generates list of command-line arguments
+
+        Returns:
+            argument parser to be used for commandline
+    """
     duns_parser = argparse.ArgumentParser(description='Get the latest data from SAM and update '
                                                       'duns table. By default, it loads the latest daily file.')
     duns_parser.add_argument("--historic", "-i", action="store_true", help='load the oldest monthly zip and all the '
@@ -73,7 +83,7 @@ if __name__ == '__main__':
         sess = GlobalDB.db().session
         sftp = None
 
-        wdsl_client = sams_config_is_valid()
+        wdsl_client = sam_config_is_valid()
         updated_date = datetime.date.today()
 
         if historic_parent_duns and any([historic, local, monthly, daily, update]):
@@ -116,8 +126,6 @@ if __name__ == '__main__':
                     if sorted_monthly_file_names:
                         process_from_dir(root_dir, sorted_monthly_file_names[0],
                                          sess, local, sftp, monthly=True, benchmarks=benchmarks)
-
-                        get_duns_batches(wdsl_client, sess, updated_date=updated_date)
                         update_missing_parent_names(sess, updated_date=updated_date)
                     else:
                         logger.info("No monthly file found.")
@@ -144,7 +152,6 @@ if __name__ == '__main__':
                     for daily_file in daily_files_after:
                         process_from_dir(root_dir, daily_file, sess, local, sftp, benchmarks=benchmarks)
 
-                    get_duns_batches(wdsl_client, sess, updated_date=updated_date)
                     update_missing_parent_names(sess, updated_date=updated_date)
                 else:
                     logger.info("No daily file found.")
@@ -165,15 +172,8 @@ if __name__ == '__main__':
                                      table=HistoricParentDUNS, year=year)
             else:
                 if sorted_daily_file_names:
-
-                    if sftp.sock.closed:
-                        # Reconnect if channel is closed
-                        ssh_client = get_client()
-                        sftp = ssh_client.open_sftp()
-
                     process_from_dir(root_dir, sorted_daily_file_names[-1], sess, local, sftp, benchmarks=benchmarks)
 
-                    get_duns_batches(wdsl_client, sess, updated_date=updated_date)
                     update_missing_parent_names(sess, updated_date=updated_date)
                 else:
                     logger.info("No daily file found.")
