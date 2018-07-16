@@ -280,6 +280,47 @@ class FileTests(BaseTestAPI):
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.json['message'], "A submission with the same period already exists.")
 
+    def test_submit_file_fabs_dabs_route(self):
+        """ Test trying to update a FABS submission via the DABS route """
+        update_json = {
+            "existing_submission_id": self.test_fabs_submission_id,
+            "is_quarter": True,
+            "appropriations": "appropriations.csv",
+            "award_financial": "award_financial.csv",
+            "program_activity": "program_activity.csv",
+            "reporting_period_start_date": "07/2015",
+            "reporting_period_end_date": "09/2015"}
+        response = self.app.post_json("/v1/submit_files/", update_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "Existing submission must be a DABS submission")
+
+    def test_submit_file_new_missing_params(self):
+        """ Test file submission for a new submission while missing any of the parameters """
+        update_json = {
+            "cgac_code": "TEST",
+            "is_quarter": True,
+            "appropriations": "appropriations.csv",
+            "award_financial": "award_financial.csv",
+            "reporting_period_start_date": "07/2015",
+            "reporting_period_end_date": "09/2015"}
+        response = self.app.post_json("/v1/submit_files/", update_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "Must include all files for a new submission")
+
+    def test_submit_file_old_no_params(self):
+        """ Test file submission for an existing submission while not providing any file parameters """
+        update_json = {
+            "existing_submission_id": self.status_check_submission_id,
+            "is_quarter": True,
+            "reporting_period_start_date": "07/2015",
+            "reporting_period_end_date": "09/2015"}
+        response = self.app.post_json("/v1/submit_files/", update_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "Must include at least one file for an existing submission")
+
     def test_submit_file_wrong_permissions_wrong_user(self):
         self.login_user()
         new_submission_json = {
