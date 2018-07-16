@@ -1459,7 +1459,7 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
         if processed_deletions % 100 == 0:
             logger.info("On line %s of %s delete feed", str(processed_deletions), contract_type)
 
-        # if we got less than the full set of records, we can stop calling the feed
+        # if we got less than the full set of records we can stop calling the feed
         if len(listed_data) < 10:
             # ensure we loaded the number of records we expected to, otherwise we'll need to reload
             if processed_deletions != total_expected_records:
