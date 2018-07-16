@@ -1248,9 +1248,71 @@ def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, co
                 sess.commit()
 
 
+def get_with_exception_hand(url_string):
+    """ Retrieve data from FPDS, allow for multiple retries and timeouts """
+    exception_retries = -1
+    retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
+    request_timeout = 60
+
+    while exception_retries < len(retry_sleep_times):
+        try:
+            resp = requests.get(url_string, timeout=request_timeout)
+            break
+        except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError,
+                requests.exceptions.ReadTimeout) as e:
+            exception_retries += 1
+            request_timeout += 60
+            if exception_retries < len(retry_sleep_times):
+                logger.info('Connection exception. Sleeping {}s and then retrying with a max wait of {}s...'
+                            .format(retry_sleep_times[exception_retries], request_timeout))
+                time.sleep(retry_sleep_times[exception_retries])
+            else:
+                logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
+                raise e
+    return resp
+
+
+def get_total_expected_records(base_url):
+    """ Retrieve the total number of expected records based on the last paginated URL """
+    # get a single call so we can find the last page
+    initial_request = get_with_exception_hand(base_url)
+    initial_request_xml = xmltodict.parse(initial_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
+
+    # retrieve all URLs
+    try:
+        urls_list = list_data(initial_request_xml['feed']['link'])
+    except KeyError:
+        urls_list = []
+
+    # retrieve the "last" URL from the list
+    final_request_url = None
+    for url in urls_list:
+        if url['@rel'] == 'last':
+            final_request_url = url['@href']
+            continue
+
+    # retrieve the count from the URL of the last page
+    if not final_request_url:
+        try:
+            return len(list_data(initial_request_xml['feed']['entry']))
+        except KeyError:
+            return 0
+
+    # retrieve the page from the final_request_url
+    final_request_count = int(final_request_url.split('&start=')[-1])
+
+    # retrieve the last page of data
+    final_request = get_with_exception_hand(final_request_url)
+    final_request_xml = xmltodict.parse(final_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
+    entries_list = list_data(final_request_xml['feed']['entry'])
+
+    return final_request_count + len(entries_list)
+
+
 def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
              country_list, last_run=None, threaded=False, start_date=None, end_date=None):
     """ get the data from the atom feed based on contract/award type and the last time the script was run """
+    return
     data = []
     yesterday = now - datetime.timedelta(days=1)
     utcnow = datetime.datetime.utcnow()
@@ -1264,14 +1326,12 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
         if start_date and end_date:
             params = 'LAST_MOD_DATE:[' + start_date + ',' + end_date + '] '
 
-    logger.info('Starting get feed: %s%sCONTRACT_TYPE:"%s" AWARD_TYPE:"%s"', feed_url, params, contract_type.upper(),
-                award_type)
-
     base_url = feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"'
+    logger.info('Starting get feed: %s', base_url)
 
     # retrieve the total count of expected records for this pull
     total_expected_records = get_total_expected_records(base_url)
-    logger.info('{} records expected from this feed'.format(total_expected_records))
+    logger.info('{} record(s) expected from this feed'.format(total_expected_records))
 
     entries_processed = 0
     while True:
@@ -1334,7 +1394,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             # ensure we loaded the number of records we expected to, otherwise we'll need to reload
             if entries_processed != total_expected_records:
                 raise Exception("Records retrieved != Total expected records\nExpected: {}\nRetrieved: {}"
-                                .format(total_expected_records, len(data)))
+                                .format(total_expected_records, len(entries_processed)))
             else:
                 break
         else:
@@ -1343,57 +1403,6 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
     logger.info("Total entries in %s: %s feed: %s", contract_type, award_type, entries_processed)
 
     logger.info("Processed %s: %s data", contract_type, award_type)
-
-
-def get_with_exception_hand(url_string):
-    """ Retrieve data from FPDS, allow for multiple retries and timeouts """
-    exception_retries = -1
-    retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
-    request_timeout = 60
-
-    while exception_retries < len(retry_sleep_times):
-        try:
-            resp = requests.get(url_string, timeout=request_timeout)
-            break
-        except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError,
-                requests.exceptions.ReadTimeout) as e:
-            exception_retries += 1
-            request_timeout += 60
-            if exception_retries < len(retry_sleep_times):
-                logger.info('Connection exception. Sleeping {}s and then retrying with a max wait of {}s...'
-                            .format(retry_sleep_times[exception_retries], request_timeout))
-                time.sleep(retry_sleep_times[exception_retries])
-            else:
-                logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
-                raise e
-    return resp
-
-
-def get_total_expected_records(base_url):
-    """ Retrieve the total number of expected records based on the last paginated URL """
-    # get a single call so we can find the last page
-    initial_request = get_with_exception_hand(base_url)
-    initial_request_xml = xmltodict.parse(initial_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
-
-    # pull the count from the URL of the last page
-    urls_list = list_data(initial_request_xml['feed']['link'])
-    final_request_url = None
-    for url in urls_list:
-        if url['@rel'] == 'last':
-            final_request_url = url['@href']
-            continue
-    if not final_request_url:
-        return len(list_data(initial_request_xml['feed']['entry']))
-
-    # pull the count from the final_request_url
-    final_request_count = int(final_request_url.split('&start=')[-1])
-
-    # retrieve the last page of data
-    final_request = get_with_exception_hand(final_request_url)
-    final_request_xml = xmltodict.parse(final_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
-    entries_list = list_data(final_request_xml['feed']['entry'])
-
-    return final_request_count + len(entries_list)
 
 
 def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_date=None):
@@ -1405,16 +1414,21 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
     if start_date and end_date:
         params = 'LAST_MOD_DATE:[' + start_date + ',' + end_date + '] '
 
-    i = 0
-    logger.info('Starting delete feed: %sCONTRACT_TYPE:"%s"', delete_url + params, contract_type.upper())
+    base_url = delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"'
+    logger.info('Starting delete feed: %s', base_url)
+
+    # retrieve the total count of expected records for this pull
+    total_expected_records = get_total_expected_records(base_url)
+    logger.info('{} record(s) expected from this feed'.format(total_expected_records))
+
+    processed_deletions = 0
     while True:
         exception_retries = -1
         retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
         request_timeout = 60
 
         try:
-            resp = requests.get(delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"&start=' + str(i),
-                                timeout=request_timeout)
+            resp = requests.get(base_url + '&start=' + str(processed_deletions), timeout=request_timeout)
             resp_data = xmltodict.parse(resp.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
         except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError) as e:
             exception_retries += 1
@@ -1433,19 +1447,30 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
         except KeyError:
             listed_data = []
 
+        if len(listed_data) % SPOT_CHECK_COUNT == 0 and processed_deletions > total_expected_records:
+            raise Exception("Total number of expected records has changed\nExpected: {}\nRetrieved so far: {}"
+                            .format(total_expected_records, len(processed_deletions)))
+
         for ld in listed_data:
             data.append(ld)
-            i += 1
+            processed_deletions += 1
 
         # Every 100 lines, log which one we're on so we can keep track of how far we are
-        if i % 100 == 0:
-            logger.info("On line %s of %s delete feed", str(i), contract_type)
+        if processed_deletions % 100 == 0:
+            logger.info("On line %s of %s delete feed", str(processed_deletions), contract_type)
 
-        # if we got less than 10 records, we can stop calling the feed
+        # if we got less than the full set of records, we can stop calling the feed
         if len(listed_data) < 10:
-            break
+            # ensure we loaded the number of records we expected to, otherwise we'll need to reload
+            if processed_deletions != total_expected_records:
+                raise Exception("Records retrieved != Total expected records\nExpected: {}\nRetrieved: {}"
+                                .format(total_expected_records, len(listed_data)))
+            else:
+                break
+        else:
+            listed_data = []
 
-    logger.info("Total entries in %s delete feed: %s", contract_type, str(i))
+    logger.info("Total entries in %s delete feed: %s", contract_type, str(processed_deletions))
 
     delete_list = []
     delete_dict = {}
