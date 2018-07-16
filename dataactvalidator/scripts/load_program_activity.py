@@ -120,13 +120,13 @@ def load_program_activity_data(base_path):
             data = pd.read_csv(program_activity_file, dtype=str)
         except pd.io.common.EmptyDataError as e:
             log_blank_file()
-            exit_if_nonlocal(4):  # exit code chosen arbitrarily, to indicate distinct failure states
+            exit_if_nonlocal(4)  # exit code chosen arbitrarily, to indicate distinct failure states
             return
         headers = set([header.upper() for header in list(data)])
 
         if not VALID_HEADERS.issubset(headers):
             logger.error("Missing required headers. Required headers include: %s" % str(VALID_HEADERS))
-            exit_if_nonlocal(4):
+            exit_if_nonlocal(4)
             return
 
         try:
@@ -145,12 +145,12 @@ def load_program_activity_data(base_path):
         except FailureThresholdExceededException as e:
             if e.count == 0:
                 log_blank_file()
-                exit_if_nonlocal(4):
+                exit_if_nonlocal(4)
                 return
             else:
                 count_str = "Application tried to drop {} rows".format(e.count)
                 logger.error("Loading of program activity file failed due to exceeded failure threshold. " + count_str)
-                exit_if_nonlocal(5):
+                exit_if_nonlocal(5)
                 return
 
         sess.query(ProgramActivity).delete()
@@ -174,7 +174,7 @@ def load_program_activity_data(base_path):
     logger.info('{} records inserted to {}'.format(num, table_name))
 
     if dropped_count > 0:
-        exit_if_nonlocal(3):
+        exit_if_nonlocal(3)
         return
 
 
