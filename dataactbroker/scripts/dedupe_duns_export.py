@@ -22,14 +22,14 @@ column_headers = [
 ]
 
 
-def generate_dedup_export(duns_file, dedup_export_path):
-    """Generate dedup duns export"""
+def generate_dedupe_export(duns_file, dedupe_export_path):
+    """Generate dedupe duns export"""
 
     duns_df = pd.read_csv(duns_file, skipinitialspace=True, header=None, encoding='latin1', quotechar='"',
                           dtype=str, names=column_headers, skiprows=1)
     duns_modified_df = duns_df.drop_duplicates(subset=['DUNS'], keep='last')
 
-    duns_modified_df.to_csv(dedup_export_path, columns=column_headers, index=False, quoting=csv.QUOTE_ALL)
+    duns_modified_df.to_csv(dedupe_export_path, columns=column_headers, index=False, quoting=csv.QUOTE_ALL)
 
 
 def main():
@@ -47,10 +47,10 @@ def main():
 
     logger.info("Retrieved historical DUNS file in {} s".format((datetime.now()-start).total_seconds()))
 
-    dedup_duns_export = os.path.join(CONFIG_BROKER["broker_files"], 'DUNS_export_deduped.csv')
-    generate_dedup_export(duns_file, dedup_duns_export)
+    dedupe_duns_export = os.path.join(CONFIG_BROKER["broker_files"], 'DUNS_export_deduped.csv')
+    generate_dedupe_export(duns_file, dedupe_duns_export)
 
-    logger.info("{} generated".format(dedup_duns_export))
+    logger.info("{} generated".format(dedupe_duns_export))
 
 
 if __name__ == '__main__':
