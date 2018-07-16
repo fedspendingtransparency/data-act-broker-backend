@@ -1156,20 +1156,15 @@ Response will be the same format as those returned from `/v1/check_generation_st
 
 
 ## File Status
-### POST "/v1/check\_generation\_status"
+### GET "/v1/check\_generation\_status"
 
 This route returns either a signed S3 URL to the generated file or, if the file is not yet ready or have failed to generate for other reasons, returns a status indicating that. This route is used for file generation **within** a submission.
 
-#### Sample Request Body (JSON)
+#### Sample Request
 
-```
-{
-    "submission_id": 123,
-    "file_type": "D1"
-}
-```
+`/v1/check_generation_status/?submission_id=123&file_type=D1`
 
-#### Body Params
+#### Request Params
 
 - `submission_id` - An integer representing the ID of the current submission
 - `file_type` - **required** - a string indicating the file type whose status we are checking. Allowable values are:
@@ -1177,7 +1172,6 @@ This route returns either a signed S3 URL to the generated file or, if the file 
     - `D2` - generate a D2 file
     - `E` - generate a E file
     - `F` - generate a F file
-
 
 #### Response (JSON)
 
@@ -1225,19 +1219,15 @@ Possible HTTP Status Codes:
 - 403: Permission denied, user does not have permission to view this submission
 
 
-### POST "/v1/check\_detached\_generation\_status"
+### GET "/v1/check\_detached\_generation\_status"
 
 This route returns either a signed S3 URL to the generated file or, if the file is not yet ready or have failed to generate for other reasons, returns a status indicating that. This route is used for file generation **independent** from a submission.
 
-#### Sample Request Body (JSON)
+#### Sample Request (JSON)
 
-```
-{
-    "job_id": 1
-}
-```
+`/v1/check_detached_generation_status/job_id=1`
 
-### Body Description
+### Request Params
 
 - `job_id` - **required** - an integer corresponding the job_id for the generation. Provided in the response of the call to `generate_detached_file`
 
