@@ -139,6 +139,31 @@ class FileHandler:
 
         return self.submit(sess, create_credentials)
 
+    @staticmethod
+    def validate_submit_file_params(request_params):
+        """ Makes sure that the request params for DABS submissions are valid for a file upload call.
+
+            Args:
+                request_params: the object containing the request params for the API call
+
+            Raises:
+                ResponseException: if not all required params are present in a new submission or none of the params
+                    are present in a re-upload for an existing submission
+        """
+        existing_submission_id = request_params.get('existing_submission_id')
+        param_count = 0
+
+        for file_type in FileHandler.FILE_TYPES:
+            if request_params.get(file_type):
+                param_count += 1
+
+        if not existing_submission_id and param_count != len(FileHandler.FILE_TYPES):
+            raise ResponseException("Must include all files for a new submission", StatusCode.CLIENT_ERROR)
+
+        if existing_submission_id and param_count == 0:
+            raise ResponseException("Must include at least one file for an existing submission",
+                                    StatusCode.CLIENT_ERROR)
+
     def submit(self, sess, create_credentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
 
@@ -159,6 +184,8 @@ class FileHandler:
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
 
+            self.validate_submit_file_params(request_params)
+
             # unfortunately, field names in the request don't match
             # field names in the db/response. create a mapping here.
             request_submission_mapping = {
@@ -173,6 +200,9 @@ class FileHandler:
             if existing_submission_id:
                 existing_submission = True
                 existing_submission_obj = sess.query(Submission).filter_by(submission_id=existing_submission_id).one()
+                # If the existing submission is a FABS submission, stop everything
+                if existing_submission_obj.d2_submission:
+                    raise ResponseException("Existing submission must be a DABS submission", StatusCode.CLIENT_ERROR)
             else:
                 existing_submission = None
                 existing_submission_obj = None
@@ -198,12 +228,8 @@ class FileHandler:
             sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files, submission,
-                                existing_submission)
+            self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files, submission)
 
-            if not upload_files and existing_submission:
-                raise ResponseException("Must include at least one file for an existing submission",
-                                        StatusCode.CLIENT_ERROR)
             if not existing_submission:
                 # don't add external files to existing submission
                 for ext_file_type in FileHandler.EXTERNAL_FILE_TYPES:
@@ -540,6 +566,7 @@ class FileHandler:
 
             Args:
                 create_credentials: If True, will create temporary credentials for S3 uploads
+                fabs: the name of the FABS file being uploaded
 
             Returns:
                 JsonResponse with the response dictionary from create_response_dict_for_submission or the details
@@ -569,6 +596,9 @@ class FileHandler:
                 existing_submission_obj = sess.query(Submission).\
                     filter_by(submission_id=existing_submission_id).\
                     one()
+                # If the existing submission is a DABS submission, stop everything
+                if not existing_submission_obj.d2_submission:
+                    raise ResponseException("Existing submission must be a FABS submission", StatusCode.CLIENT_ERROR)
                 jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
                 # set all jobs to their initial status of "waiting"
                 jobs[0].job_status_id = JOB_STATUS_DICT['waiting']
@@ -907,8 +937,7 @@ class FileHandler:
 
         return job
 
-    def build_file_map(self, request_params, file_type_list, response_dict, upload_files, submission,
-                       existing_submission=False):
+    def build_file_map(self, request_params, file_type_list, response_dict, upload_files, submission):
         """ Build fileNameMap to be used in creating jobs
 
             Args:
@@ -918,20 +947,15 @@ class FileHandler:
                     information in this function
                 upload_files: files that need to be uploaded
                 submission: submission this file map is for
-                existing_submission: boolean indicating if this is an existing submission the files are being
-                    reuploaded for or a new one (true for existing)
 
             Raises:
                 ResponseException: If a new submission is being made but not all the file types in the file_type_list
                     are included in the request_params
         """
         for file_type in file_type_list:
-            # if file_type not included in request, and this is an update to an existing submission, skip it
+            # if file_type not included in request, skip it, checks for validity are done before calling this
             if not request_params.get(file_type):
-                if existing_submission:
-                    continue
-                # this is a new submission, all files are required
-                raise ResponseException("Must include all required files for new submission", StatusCode.CLIENT_ERROR)
+                continue
 
             file_name = request_params.get(file_type)
             if file_name:
