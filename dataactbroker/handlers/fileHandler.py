@@ -580,7 +580,7 @@ class FileHandler:
                 key_id is the job id to be passed to the finalize_submission route
         """
         if fabs_filename is None and api_triggered is None:
-            return JsonResponse.error(Exception('fabs is a required field'), StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(Exception('fabs: Missing data for required field.'), StatusCode.CLIENT_ERROR)
         else:
             fabs = fabs_filename or api_triggered
         sess = GlobalDB.db().session
@@ -969,17 +969,9 @@ class FileHandler:
                     are included in the request_params
         """
         for file_type in file_type_list:
-            # if file_type not included in request, and this is an update to an existing submission, skip it
-            if not file_dict.get(file_type):
-                if submission:
-                    continue
-                # this is a new submission, all files are required
-                raise ResponseException("Must include all required files for new submission", StatusCode.CLIENT_ERROR)
-
             # if file_type not included in request, skip it, checks for validity are done before calling this
             if not file_dict.get(file_type):
                 continue
-
             file = file_dict.get(file_type)
             if not isinstance(file, str):
                 file_name = file.filename
