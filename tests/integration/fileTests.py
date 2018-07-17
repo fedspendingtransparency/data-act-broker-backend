@@ -821,6 +821,23 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["message"], "end: Must be in the format MM/DD/YYYY")
 
+    def test_generate_d_file_no_start(self):
+        """ Test bad format on start date """
+        post_json = {"submission_id": self.generation_submission_id, "file_type": "D1", "end": "02/03/2016"}
+        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+
+        self.assertEqual(response.status_code, 400)
+        json = response.json
+        self.assertEqual(json["message"], "Must have a start and end date for D file generation")
+
+    def test_generate_ef_file_no_start(self):
+        """ Test bad format on start date """
+        post_json = {"submission_id": self.generation_submission_id, "file_type": "E", "end": "02/03/2016"}
+        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id})
+
+        self.assertEqual(response.status_code, 200)
+
     def test_generate_file_fabs(self):
         """ Test failure while calling generate_file for a FABS submission """
         post_json = {"submission_id": self.test_fabs_submission_id, "file_type": "D1",
