@@ -135,10 +135,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             required=True,
             validate=webargs_validate.OneOf(('D1', 'D2', 'E', 'F'), error="Must be either D1, D2, E or F")),
         'start': webargs_fields.String(
-            required=True,
             validate=webargs_validate.Regexp(DATE_REGEX, error="Must be in the format MM/DD/YYYY")),
         'end': webargs_fields.String(
-            required=True,
             validate=webargs_validate.Regexp(DATE_REGEX, error="Must be in the format MM/DD/YYYY"))
     })
     def generate_file(submission_id, file_type, start, end):
