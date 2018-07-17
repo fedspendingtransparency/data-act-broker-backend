@@ -650,7 +650,7 @@ class FileHandler:
             if api_triggered:
                 if CONFIG_BROKER['use_aws']:
                     s3 = boto3.client('s3')
-                    key = [x["upload_name"] for x in upload_files if x["file_type"] == "fabs"][0]
+                    key = [x.upload_name for x in upload_files if x.file_type == "fabs"][0]
                     s3.upload_fileobj(fabs, response_dict["bucket_name"], key)
                 else:
                     fabs.save(os.path.join(self.UPLOAD_FOLDER, fabs.filename))
