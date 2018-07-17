@@ -189,7 +189,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         """ Return metadata of FABS submission """
         return JsonResponse.create(StatusCode.OK, get_fabs_meta(submission.submission_id))
 
-
     @app.route("/v1/upload_detached_file/", methods=["POST"])
     @requires_sub_agency_perms('edit_fabs')
     def upload_detached_file():

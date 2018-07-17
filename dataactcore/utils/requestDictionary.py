@@ -46,9 +46,9 @@ class RequestDictionary:
                 return request.form
             # This is not common and is a one-off solution for inbound API
             elif "multipart/form-data" in content_type:
-                 request_data = json.loads(request.form.to_dict()["data"])
-                 request_data['_files'] = request.files
-                 return request_data
+                request_data = json.loads(request.form.to_dict()["data"])
+                request_data['_files'] = request.files
+                return request_data
             else:
                 raise ValueError("Invalid Content-Type : " + content_type)
         except BadRequest as br:

@@ -224,9 +224,9 @@ def requires_sub_agency_perms(perm):
             if req_args['agency_code'] is None and req_args['existing_submission_id'] is None:
                 raise ResponseException('Missing required parameter: agency_code or existing_submission_id',
                                         StatusCode.CLIENT_ERROR)
-            if  not isinstance(req_args['agency_code'], str) and not isinstance(req_args['existing_submission_id'], str):
-                raise ResponseException('Bad request: agency_code or existing_submission_id required and must be strings',
-                                        StatusCode.CLIENT_ERROR)
+            if not isinstance(req_args['agency_code'], str) and not isinstance(req_args['existing_submission_id'], str):
+                raise ResponseException('Bad request: agency_code or existing_submission_id' +
+                                        'required and must be strings', StatusCode.CLIENT_ERROR)
             if req_args['existing_submission_id'] is not None:
                 check_existing_submission_perms(perm, req_args['existing_submission_id'])
             else:

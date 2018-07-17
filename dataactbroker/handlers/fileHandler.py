@@ -971,7 +971,7 @@ class FileHandler:
         for file_type in file_type_list:
             # if file_type not included in request, and this is an update to an existing submission, skip it
             if not file_dict.get(file_type):
-                if existing_submission:
+                if submission:
                     continue
                 # this is a new submission, all files are required
                 raise ResponseException("Must include all required files for new submission", StatusCode.CLIENT_ERROR)
