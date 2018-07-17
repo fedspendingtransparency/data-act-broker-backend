@@ -722,8 +722,8 @@ class FileTests(BaseTestAPI):
     def test_bad_file_type_check_generation_status(self):
         """ Test that an error comes back if an invalid file type is provided for check_generation_status. """
         post_json = {"submission_id": self.generation_submission_id, "file_type": "A"}
-        response = self.app.post_json("/v1/check_generation_status/", post_json,
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        response = self.app.get("/v1/check_generation_status/", post_json, headers={"x-session-id": self.session_id},
+                                expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "file_type: Must be either D1, D2, E or F")
 
@@ -731,8 +731,7 @@ class FileTests(BaseTestAPI):
         """ Test the check generation status route for finished generation """
         # Then call check generation route for D2, E and F and check results
         post_json = {"submission_id": self.generation_submission_id, "file_type": "E"}
-        response = self.app.post_json("/v1/check_generation_status/", post_json,
-                                      headers={"x-session-id": self.session_id})
+        response = self.app.get("/v1/check_generation_status/", post_json, headers={"x-session-id": self.session_id})
 
         self.assertEqual(response.status_code, 200)
         json = response.json
@@ -744,8 +743,7 @@ class FileTests(BaseTestAPI):
     def test_check_generation_status_failed_file_level_errors(self):
         """ Test the check generation status route for a failed generation because of file level errors """
         post_json = {"submission_id": self.generation_submission_id, "file_type": "D2"}
-        response = self.app.post_json("/v1/check_generation_status/", post_json,
-                                      headers={"x-session-id": self.session_id})
+        response = self.app.get("/v1/check_generation_status/", post_json, headers={"x-session-id": self.session_id})
 
         self.assertEqual(response.status_code, 200)
         json = response.json
@@ -757,8 +755,7 @@ class FileTests(BaseTestAPI):
     def test_check_generation_status_failed_invalid_file(self):
         """ Test the check generation status route for a failed generation because of an invalid file """
         post_json = {"submission_id": self.generation_submission_id, "file_type": "F"}
-        response = self.app.post_json("/v1/check_generation_status/", post_json,
-                                      headers={"x-session-id": self.session_id})
+        response = self.app.get("/v1/check_generation_status/", post_json, headers={"x-session-id": self.session_id})
 
         self.assertEqual(response.status_code, 200)
         json = response.json
@@ -880,13 +877,13 @@ class FileTests(BaseTestAPI):
 
         # call check generation status route for D2 and check results
         post_json = {}
-        response = self.app.post_json("/v1/check_detached_generation_status/", post_json,
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        response = self.app.get("/v1/check_detached_generation_status/", post_json,
+                                headers={"x-session-id": self.session_id}, expect_errors=True)
         assert response.json['message'] == ('job_id: Missing data for required field.')
 
         post_json = {'job_id': -1}
-        response = self.app.post_json("/v1/check_detached_generation_status/", post_json,
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        response = self.app.get("/v1/check_detached_generation_status/", post_json,
+                                headers={"x-session-id": self.session_id}, expect_errors=True)
         json = response.json
         self.assertEqual(json["message"], 'No generation job found with the specified ID')
 
