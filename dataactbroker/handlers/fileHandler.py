@@ -649,7 +649,7 @@ class FileHandler:
                                                      response_dict, create_credentials)
             if api_triggered:
                 if CONFIG_BROKER['use_aws']:
-                    s3 = boto3.client('s3')
+                    s3 = boto3.client('s3', region_name='us-gov-west-1')
                     key = [x.upload_name for x in upload_files if x.file_type == "fabs"][0]
                     s3.upload_fileobj(fabs, response_dict["bucket_name"], key)
                 else:
