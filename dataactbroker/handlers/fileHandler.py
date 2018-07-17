@@ -1197,9 +1197,7 @@ def check_generation_prereqs(submission_id, file_type):
     if file_type in ['E', 'F']:
         unfinished_prereqs = prereq_query.filter(Job.job_type_id == JOB_TYPE_DICT['validation']).count()
 
-    if unfinished_prereqs > 0:
-        return False
-    return True
+    return unfinished_prereqs == 0
 
 
 def narratives_for_submission(submission):
