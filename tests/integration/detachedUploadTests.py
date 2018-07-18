@@ -1,3 +1,5 @@
+from io import BytesIO
+
 from datetime import datetime
 
 from tests.integration.baseTestAPI import BaseTestAPI
@@ -200,3 +202,13 @@ class DetachedUploadTests(BaseTestAPI):
         sub = SubTierAgency(sub_tier_agency_code="WRONG", cgac_id=cgac.cgac_id, frec_id=frec.frec_id, is_frec=False)
         sess.add(sub)
         sess.commit()
+
+
+    def test_file_upload_via_api(self):
+        resp = self.app.post( "/v1/upload_detached_file/", 
+                                {"agency_code":"WRONG"},
+                                upload_files=[('fabs', 'fabs.csv', open('tests/integration/data/awardMixed.csv', 'rb').read()), ],
+                                headers={"x-session-id": self.session_id },
+                            )
+        self.assertEqual(resp.status_code, 200)
+
