@@ -107,7 +107,9 @@ def update_duns_props(df, client):
     for duns_list in batch(all_duns, 100):
         duns_props_batch = get_location_business_from_sam(client, duns_list)
         # Adding in blank rows for DUNS where location data was not found
-        added_duns_list = [str(duns) for duns in duns_props_batch['awardee_or_recipient_uniqu'].tolist()]
+        added_duns_list = []
+        if not duns_props_batch.empty:
+            added_duns_list = [str(duns) for duns in duns_props_batch['awardee_or_recipient_uniqu'].tolist()]
         empty_duns_rows = []
         for duns in (set(added_duns_list) ^ set(duns_list)):
             empty_duns_row = props_columns.copy()
