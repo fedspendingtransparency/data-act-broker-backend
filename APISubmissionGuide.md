@@ -142,29 +142,30 @@
 ## FABS Submission Process
 
 ### Upload FABS File
-- Step 1: Call `/v1/upload_detached_file/` (POST) (Note, this is NOT the file upload)
+- Step 1: Call `/v1/upload_detached_file/` (POST)
     - Header:
         - `X-Session-ID`: string, session token id
+        - `Content-Type`: "multipart/form-data"
     - Payload:
         - `agency_code`: string, sub tier agency code
         - `cgac_code`: null
         - `frec_code`: null
-        - `fabs`: string, name of the file being uploaded (e.g. "sample_file.csv")
+        - `fabs`: local path to file using `@` notation
         - `is_quarter`: boolean, false for FABS submissions
         - `reporting_period_start_date`: null
         - `reporting_period_end_date`: null
     - Response:
-        - `fabs_id`: int, ID of FABS upload
-        - `fabs_key`: string, path to FABS within S3 bucket
-        - `bucket_name`: string, name of bucket on S3 that files are stored in
-        - `credentials`: object, the credentials to S3 (AccessKeyId, Expiration, SecretAccessKey, SessionToken)
+        - `success`: boolean indicating whether the file went through
         - `submission_id`: int, ID of the submission that was created
-- Step 2: Upload FABS file (Process to be defined)
-- Step 3: Call `/v1/finalize_job/` (POST) for the FABS file
-    - Payload:
-        - `upload_id`: int, ID of the file upload received from the `submit_files` response
-    - Response:
-        - `success`: boolean, successful or failed progression of the jobs
+
+    - Example cUrl request:
+        curl -i -X POST /
+            -H "x-session-id: abcdefg-1234567-hijklmno-89101112"
+            -H "Content-Type: multipart/form-data"
+            -F 'agency_code=2000'
+            -F "fabs=@/local/path/to/fabs.csv"
+        /v1/upload_detached_file/
+
 
 ### Validate FABS File
 - Validations are automatically started by `finalize_job`
