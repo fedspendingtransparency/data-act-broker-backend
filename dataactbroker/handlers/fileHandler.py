@@ -973,7 +973,7 @@ class FileHandler:
             if not file_dict.get(file_type):
                 continue
             file_reference = file_dict.get(file_type)
-            if not isinstance(file, str):
+            if not isinstance(file_reference, str):
                 file_name = file_reference.filename
             else:
                 file_name = file_reference
