@@ -972,11 +972,11 @@ class FileHandler:
             # if file_type not included in request, skip it, checks for validity are done before calling this
             if not file_dict.get(file_type):
                 continue
-            file = file_dict.get(file_type)
+            file_reference = file_dict.get(file_type)
             if not isinstance(file, str):
-                file_name = file.filename
+                file_name = file_reference.filename
             else:
-                file_name = file
+                file_name = file_reference
             if file_name:
                 if not self.is_local:
                     upload_name = "{}/{}".format(
