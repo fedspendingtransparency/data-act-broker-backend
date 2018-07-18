@@ -105,15 +105,16 @@ def update_duns_props(df, client):
     duns_props_df = pd.DataFrame(columns=columns)
     # SAM service only takes in batches of 100
     for duns_list in batch(all_duns, 100):
-        duns_props_df = duns_props_df.append(get_location_business_from_sam(client, duns_list))
-        added_duns = [str(duns) for duns in duns_props_df['awardee_or_recipient_uniqu'].tolist()]
+        duns_props_batch = get_location_business_from_sam(client, duns_list)
+        # Adding in blank rows for DUNS where location data was not found
+        added_duns_list = [str(duns) for duns in duns_props_batch['awardee_or_recipient_uniqu'].tolist()]
         empty_duns_rows = []
-        for duns in duns_list:
-            if duns not in added_duns:
-                empty_duns_row = props_columns.copy()
-                empty_duns_row['awardee_or_recipient_uniqu'] = duns
-                empty_duns_rows.append(empty_duns_row)
-        duns_props_df = duns_props_df.append(pd.DataFrame(empty_duns_rows))
+        for duns in (set(added_duns_list) ^ set(duns_list)):
+            empty_duns_row = props_columns.copy()
+            empty_duns_row['awardee_or_recipient_uniqu'] = duns
+            empty_duns_rows.append(empty_duns_row)
+        duns_props_batch = duns_props_batch.append(pd.DataFrame(empty_duns_rows))
+        duns_props_df = duns_props_df.append(duns_props_batch)
     return pd.merge(df, duns_props_df, on=['awardee_or_recipient_uniqu'])
 
 
