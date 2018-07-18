@@ -10,11 +10,11 @@ import numpy as np
 import pandas as pd
 import csv
 import io
+import asyncio
 
 import datetime
 import time
 import re
-import threading
 
 from sqlalchemy import func
 
@@ -47,6 +47,15 @@ delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&template
 country_code_map = {'USA': 'US', 'ASM': 'AS', 'GUM': 'GU', 'MNP': 'MP', 'PRI': 'PR', 'VIR': 'VI', 'FSM': 'FM',
                     'MHL': 'MH', 'PLW': 'PW', 'XBK': 'UM', 'XHO': 'UM', 'XJV': 'UM', 'XJA': 'UM', 'XKR': 'UM',
                     'XPL': 'UM', 'XMW': 'UM', 'XWK': 'UM'}
+
+FPDS_NAMESPACES = {'http://www.fpdsng.com/FPDS': None,
+                   'http://www.w3.org/2005/Atom': None,
+                   'https://www.fpds.gov/FPDS': None}
+
+# Used for asyncio get requests against the ATOM feed
+MAX_ENTRIES = 10
+REQUESTS_AT_ONCE = 100
+SPOT_CHECK_COUNT = 10000
 
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -1239,6 +1248,67 @@ def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, co
                 sess.commit()
 
 
+def get_with_exception_hand(url_string):
+    """ Retrieve data from FPDS, allow for multiple retries and timeouts """
+    exception_retries = -1
+    retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
+    request_timeout = 60
+
+    while exception_retries < len(retry_sleep_times):
+        try:
+            resp = requests.get(url_string, timeout=request_timeout)
+            break
+        except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError,
+                requests.exceptions.ReadTimeout) as e:
+            exception_retries += 1
+            request_timeout += 60
+            if exception_retries < len(retry_sleep_times):
+                logger.info('Connection exception. Sleeping {}s and then retrying with a max wait of {}s...'
+                            .format(retry_sleep_times[exception_retries], request_timeout))
+                time.sleep(retry_sleep_times[exception_retries])
+            else:
+                logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
+                raise e
+    return resp
+
+
+def get_total_expected_records(base_url):
+    """ Retrieve the total number of expected records based on the last paginated URL """
+    # get a single call so we can find the last page
+    initial_request = get_with_exception_hand(base_url)
+    initial_request_xml = xmltodict.parse(initial_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
+
+    # retrieve all URLs
+    try:
+        urls_list = list_data(initial_request_xml['feed']['link'])
+    except KeyError:
+        urls_list = []
+
+    # retrieve the "last" URL from the list
+    final_request_url = None
+    for url in urls_list:
+        if url['@rel'] == 'last':
+            final_request_url = url['@href']
+            continue
+
+    # retrieve the count from the URL of the last page
+    if not final_request_url:
+        try:
+            return len(list_data(initial_request_xml['feed']['entry']))
+        except KeyError:
+            return 0
+
+    # retrieve the page from the final_request_url
+    final_request_count = int(final_request_url.split('&start=')[-1])
+
+    # retrieve the last page of data
+    final_request = get_with_exception_hand(final_request_url)
+    final_request_xml = xmltodict.parse(final_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
+    entries_list = list_data(final_request_xml['feed']['entry'])
+
+    return final_request_count + len(entries_list)
+
+
 def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
              country_list, last_run=None, threaded=False, start_date=None, end_date=None):
     """ get the data from the atom feed based on contract/award type and the last time the script was run """
@@ -1255,83 +1325,81 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
         if start_date and end_date:
             params = 'LAST_MOD_DATE:[' + start_date + ',' + end_date + '] '
 
-    # TODO remove this later, this is just for testing
-    # params += 'CONTRACTING_AGENCY_ID:1542 '
-    # params = 'VENDOR_ADDRESS_COUNTRY_CODE:"GBR"'
-    # params = 'PIID:"0046"+REF_IDV_PIID:"W56KGZ15A6000"'
+    base_url = feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"'
+    logger.info('Starting get feed: %s', base_url)
 
-    i = 0
-    loops = 0
-    logger.info('Starting get feed: %s%sCONTRACT_TYPE:"%s" AWARD_TYPE:"%s"', feed_url, params, contract_type.upper(),
-                award_type)
+    # retrieve the total count of expected records for this pull
+    total_expected_records = get_total_expected_records(base_url)
+    logger.info('{} record(s) expected from this feed'.format(total_expected_records))
+
+    entries_processed = 0
     while True:
-        loops += 1
-        exception_retries = -1
-        retry_sleep_times = [5, 30, 60, 180, 300]
-        # looping in case feed breaks
-        while True:
+        async def atom_async_get(entries_already_processed):
+            response_list = []
+            loop = asyncio.get_event_loop()
+            futures = [
+                loop.run_in_executor(
+                    None,
+                    get_with_exception_hand,
+                    base_url + "&start=" + str(entries_already_processed + (start_offset * MAX_ENTRIES))
+                )
+                for start_offset in range(REQUESTS_AT_ONCE)
+            ]
+            for response in await asyncio.gather(*futures):
+                response_list.append(response.text)
+                pass
+            return response_list
+        # End async get requests def
+
+        loop = asyncio.get_event_loop()
+        full_response = loop.run_until_complete(atom_async_get(entries_processed))
+
+        for next_resp in full_response:
+            response_dict = xmltodict.parse(next_resp, process_namespaces=True, namespaces=FPDS_NAMESPACES)
             try:
-                resp = requests.get(feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' +
-                                    award_type + '"&start=' + str(i), timeout=60)
-                resp_data = xmltodict.parse(resp.text, process_namespaces=True,
-                                            namespaces={'http://www.fpdsng.com/FPDS': None,
-                                                        'http://www.w3.org/2005/Atom': None,
-                                                        'https://www.fpds.gov/FPDS': None})
-                break
-            except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError) as e:
-                exception_retries += 1
-                if exception_retries < len(retry_sleep_times):
-                    logger.info('Connection exception caught. Sleeping {}s and then retrying...'.format(
-                        retry_sleep_times[exception_retries]))
-                    time.sleep(retry_sleep_times[exception_retries])
-                else:
-                    logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
-                    raise e
+                entries_per_response = list_data(response_dict['feed']['entry'])
+            except KeyError:
+                continue
 
-        # only list the data if there's data to list
-        try:
-            listed_data = list_data(resp_data['feed']['entry'])
-        except KeyError:
-            listed_data = []
+            if last_run:
+                for entry in entries_per_response:
+                    data.append(entry)
+                    entries_processed += 1
+            else:
+                data.extend(create_processed_data_list(entries_per_response, contract_type, sess, sub_tier_list,
+                                                       county_by_name, county_by_code, state_code_list, country_list))
+                entries_processed += len(entries_per_response)
 
-        # if we're calling threads, we want to just add to the list, otherwise we want to process the data now
-        if last_run:
-            for ld in listed_data:
-                data.append(ld)
-                i += 1
-        else:
-            data.extend(create_processed_data_list(listed_data, contract_type, sess, sub_tier_list, county_by_name,
-                                                   county_by_code, state_code_list, country_list))
-            i += len(listed_data)
+        if len(data) % SPOT_CHECK_COUNT == 0 and entries_processed > total_expected_records:
+            raise Exception("Total number of expected records has changed\nExpected: {}\nRetrieved so far: {}"
+                            .format(total_expected_records, len(data)))
 
-        # Log which one we're on so we can keep track of how far we are, insert into DB ever 1k lines
-        if loops % 100 == 0 and loops != 0:
-            logger.info("Retrieved %s lines of get %s: %s feed, writing next 1,000 to DB", i, contract_type, award_type)
-            # if we're calling threads, we want process_and_add, otherwise we want add_processed_data_list
+        if data:
+            # Log which one we're on so we can keep track of how far we are, insert into DB ever 1k lines
+            logger.info("Retrieved %s lines of get %s: %s feed, writing next %s to DB",
+                        entries_processed, contract_type, award_type, len(data))
+
             if last_run:
                 process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code,
                                 state_code_list, country_list, utcnow, threaded)
             else:
                 add_processed_data_list(data, sess)
+
+            logger.info("Successfully inserted %s lines of get %s: %s feed, continuing feed retrieval",
+                        len(data), contract_type, award_type)
+
+        # if we got less than the full set of records, we can stop calling the feed
+        if len(data) < (MAX_ENTRIES * REQUESTS_AT_ONCE):
+            # ensure we loaded the number of records we expected to, otherwise we'll need to reload
+            if entries_processed != total_expected_records:
+                raise Exception("Records retrieved != Total expected records\nExpected: {}\nRetrieved: {}"
+                                .format(total_expected_records, len(entries_processed)))
+            else:
+                break
+        else:
             data = []
 
-            logger.info("Successfully inserted 1,000 lines of get %s: %s feed, continuing feed retrieval",
-                        contract_type, award_type)
-
-        # if we got less than 10 records, we can stop calling the feed
-        if len(listed_data) < 10:
-            break
-
-    logger.info("Total entries in %s: %s feed: %s", contract_type, award_type, str(i))
-
-    # insert whatever is left
-    logger.info("Processing remaining lines for %s: %s feed", contract_type, award_type)
-    # if we're calling threads, we want process_and_add, otherwise we want add_processed_data_list
-    if last_run:
-        process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-                        country_list, utcnow, threaded)
-    else:
-        add_processed_data_list(data, sess)
+    logger.info("Total entries in %s: %s feed: %s", contract_type, award_type, entries_processed)
 
     logger.info("Processed %s: %s data", contract_type, award_type)
 
@@ -1345,24 +1413,28 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
     if start_date and end_date:
         params = 'LAST_MOD_DATE:[' + start_date + ',' + end_date + '] '
 
-    i = 0
-    logger.info('Starting delete feed: %sCONTRACT_TYPE:"%s"', delete_url + params, contract_type.upper())
+    base_url = delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"'
+    logger.info('Starting delete feed: %s', base_url)
+
+    # retrieve the total count of expected records for this pull
+    total_expected_records = get_total_expected_records(base_url)
+    logger.info('{} record(s) expected from this feed'.format(total_expected_records))
+
+    processed_deletions = 0
     while True:
         exception_retries = -1
-        retry_sleep_times = [5, 30, 60, 180, 300]
+        retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
+        request_timeout = 60
 
         try:
-            resp = requests.get(delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"&start=' + str(i),
-                                timeout=60)
-            resp_data = xmltodict.parse(resp.text, process_namespaces=True,
-                                        namespaces={'http://www.fpdsng.com/FPDS': None,
-                                                    'http://www.w3.org/2005/Atom': None,
-                                                    'https://www.fpds.gov/FPDS': None})
+            resp = requests.get(base_url + '&start=' + str(processed_deletions), timeout=request_timeout)
+            resp_data = xmltodict.parse(resp.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
         except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError) as e:
             exception_retries += 1
+            request_timeout += 60
             if exception_retries < len(retry_sleep_times):
-                logger.info('Connection exception caught. Sleeping {}s and then retrying...'.format(
-                    retry_sleep_times[exception_retries]))
+                logger.info('Connection exception caught. Sleeping {}s and then retrying with a max wait of {}s...'
+                            .format(retry_sleep_times[exception_retries], request_timeout))
                 time.sleep(retry_sleep_times[exception_retries])
             else:
                 logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
@@ -1374,19 +1446,30 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
         except KeyError:
             listed_data = []
 
+        if len(listed_data) % SPOT_CHECK_COUNT == 0 and processed_deletions > total_expected_records:
+            raise Exception("Total number of expected records has changed\nExpected: {}\nRetrieved so far: {}"
+                            .format(total_expected_records, len(processed_deletions)))
+
         for ld in listed_data:
             data.append(ld)
-            i += 1
+            processed_deletions += 1
 
         # Every 100 lines, log which one we're on so we can keep track of how far we are
-        if i % 100 == 0:
-            logger.info("On line %s of %s delete feed", str(i), contract_type)
+        if processed_deletions % 100 == 0:
+            logger.info("On line %s of %s delete feed", str(processed_deletions), contract_type)
 
-        # if we got less than 10 records, we can stop calling the feed
+        # if we got less than the full set of records we can stop calling the feed
         if len(listed_data) < 10:
-            break
+            # ensure we loaded the number of records we expected to, otherwise we'll need to reload
+            if processed_deletions != total_expected_records:
+                raise Exception("Records retrieved != Total expected records\nExpected: {}\nRetrieved: {}"
+                                .format(total_expected_records, len(listed_data)))
+            else:
+                break
+        else:
+            listed_data = []
 
-    logger.info("Total entries in %s delete feed: %s", contract_type, str(i))
+    logger.info("Total entries in %s delete feed: %s", contract_type, str(processed_deletions))
 
     delete_list = []
     delete_dict = {}
@@ -2207,7 +2290,6 @@ def main():
     parser.add_argument('-sf', '--subfolder',
                         help='Used in conjunction with -f to indicate which Subfolder to load files from',
                         nargs="+", type=str)
-    parser.add_argument('-t', '--threaded', help='Multithread nightly load', action='store_true')
     parser.add_argument('-da', '--dates', help='Used in conjunction with -l to specify dates to gather updates from.'
                                                'Should have 2 arguments, first and last day, formatted YYYY/mm/dd',
                         nargs=2, type=str)
@@ -2285,9 +2367,9 @@ def main():
         else:
             sess.add(FPDSUpdate(update_date=now))
 
+        sess.commit()
         logger.info("Ending at: %s", str(datetime.datetime.now()))
 
-        sess.commit()
     elif args.latest:
         logger.info("Starting at: %s", str(datetime.datetime.now()))
 
@@ -2303,48 +2385,18 @@ def main():
         last_update = last_update_obj.update_date
         start_date = None
         end_date = None
+
         if args.dates:
             start_date = args.dates[0]
             end_date = args.dates[1]
-        # determining if we're doing a threaded call or not
-        if args.threaded:
-            thread_list = []
-            # loop through and check all award types, check IDV stuff first because it generally has less content
-            # so the threads will actually leave earlier and can be terminated in the loop
-            for award_type in award_types_idv:
-                t = threading.Thread(target=get_data,
-                                     args=("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code,
-                                           state_code_list, country_list, last_update, True, start_date, end_date),
-                                     name=award_type)
-                thread_list.append(t)
-                t.start()
 
-            # join the threads between types and then start with a fresh set of threads. We don't want to overtax
-            # the CPU
-            for t in thread_list:
-                t.join()
+        for award_type in award_types_idv:
+            get_data("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+                     country_list, last_update, start_date=start_date, end_date=end_date)
 
-            thread_list = []
-            for award_type in award_types_award:
-                t = threading.Thread(target=get_data,
-                                     args=("award", award_type, now, sess, sub_tier_list, county_by_name,
-                                           county_by_code, state_code_list, country_list, last_update, True, start_date,
-                                           end_date),
-                                     name=award_type)
-                thread_list.append(t)
-                t.start()
-
-            for t in thread_list:
-                t.join()
-            sess.commit()
-        else:
-            for award_type in award_types_idv:
-                get_data("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-                         country_list, last_update, start_date=start_date, end_date=end_date)
-
-            for award_type in award_types_award:
-                get_data("award", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-                         country_list, last_update, start_date=start_date, end_date=end_date)
+        for award_type in award_types_award:
+            get_data("award", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
+                     country_list, last_update, start_date=start_date, end_date=end_date)
 
         # We also need to process the delete feed
         get_delete_data("IDV", now, sess, last_update, start_date, end_date)
@@ -2352,8 +2404,8 @@ def main():
         if not start_date and not end_date:
             sess.query(FPDSUpdate).update({"update_date": now}, synchronize_session=False)
 
-        logger.info("Ending at: %s", str(datetime.datetime.now()))
         sess.commit()
+        logger.info("Ending at: %s", str(datetime.datetime.now()))
     elif args.files:
         logger.info("Starting file loads at: %s", str(datetime.datetime.now()))
         max_year = 2015
@@ -2409,10 +2461,12 @@ def main():
                     if int(file[:4]) <= max_year:
                         parse_fpds_file(open(os.path.join(base_path, file)).name, sess, sub_tier_list, naics_dict)
 
-        logger.info("Ending at: %s", str(datetime.datetime.now()))
         sess.commit()
+        logger.info("Ending at: %s", str(datetime.datetime.now()))
+
     # TODO add a correct start date for "all" so we don't get ALL the data or too little of the data
     # TODO fine-tune indexing
+
 
 if __name__ == '__main__':
     with create_app().app_context():
