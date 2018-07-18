@@ -1196,6 +1196,13 @@ def check_generation_prereqs(submission_id, file_type):
     # Check cross-file validation if generating E or F
     if file_type in ['E', 'F']:
         unfinished_prereqs = prereq_query.filter(Job.job_type_id == JOB_TYPE_DICT['validation']).count()
+    # Check A, B, C files if generating a D file
+    elif file_type in ['D1', 'D2']:
+        unfinished_prereqs = prereq_query.filter(Job.file_type_id.in_([FILE_TYPE_DICT['appropriations'],
+                                                                       FILE_TYPE_DICT['program_activity'],
+                                                                       FILE_TYPE_DICT['award_financial']])).count()
+    else:
+        raise ResponseException('Invalid type for file generation', StatusCode.CLIENT_ERROR)
 
     return unfinished_prereqs == 0
 
