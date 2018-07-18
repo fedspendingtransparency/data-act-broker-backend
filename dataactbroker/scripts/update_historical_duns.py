@@ -106,9 +106,10 @@ def update_duns_props(df, client):
     # SAM service only takes in batches of 100
     for duns_list in batch(all_duns, 100):
         duns_props_df = duns_props_df.append(get_location_business_from_sam(client, duns_list))
+        added_duns = [str(duns) for duns in duns_props_df['awardee_or_recipient_uniqu'].tolist()]
         empty_duns_rows = []
         for duns in duns_list:
-            if duns not in duns_props_df['awardee_or_recipient_uniqu']:
+            if duns not in added_duns:
                 empty_duns_row = props_columns.copy()
                 empty_duns_row['awardee_or_recipient_uniqu'] = duns
                 empty_duns_rows.append(empty_duns_row)
