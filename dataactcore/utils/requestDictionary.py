@@ -1,4 +1,3 @@
-import json
 from werkzeug.exceptions import BadRequest
 
 
@@ -46,7 +45,7 @@ class RequestDictionary:
                 return request.form
             # This is not common and is a one-off solution for inbound API
             elif "multipart/form-data" in content_type:
-                request_data = json.loads(request.form.to_dict()["data"])
+                request_data = request.form.to_dict()
                 request_data['_files'] = request.files
                 return request_data
             else:
