@@ -261,8 +261,9 @@ class FileHandler:
 
             self.create_response_dict_for_submission(upload_files, submission, existing_submission, response_dict,
                                                      create_credentials)
-            if api_triggered:  
+            if api_triggered:
                 import threading
+
                 def upload(file_ref, file_type):
                     if CONFIG_BROKER['use_aws']:
                         s3 = boto3.client('s3', region_name='us-gov-west-1')
@@ -270,8 +271,9 @@ class FileHandler:
                         s3.upload_fileobj(file_ref, response_dict["bucket_name"], key)
                     else:
                         file_ref.save(os.path.join(self.serverPath, file_ref.filename))
+
                 for file_type, file_ref in request_params["_files"].items():
-                    t = threading.Thread(target = upload, args=(file_ref, file_type))
+                    t = threading.Thread(target=upload, args=(file_ref, file_type))
                     t.start()
                     t.join()
 
@@ -998,7 +1000,8 @@ class FileHandler:
                 try:
                     file_name = file_reference.filename
                 except:
-                    return JsonResponse.error(Exception("message: {} parameter must be a file in binary form".format(file_type)), StatusCode.CLIENT_ERROR)
+                    return JsonResponse.error(Exception("{} parameter must be a file in binary form".format(file_type)),
+                                              StatusCode.CLIENT_ERROR)
             else:
                 file_name = file_reference
             if file_name:
