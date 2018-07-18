@@ -895,3 +895,57 @@ def test_process_job_status():
     assert resp['has_errors'] is False
     assert resp['has_warnings'] is True
     assert resp['message'] == ''
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_check_generation_prereqs_ef_valid(database):
+    """ Tests a set of conditions that passes the prerequisite checks to allow E/F files to be generated. """
+    sess = database.session
+
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    cross_val = JobFactory(submission_id=sub.submission_id,
+                           job_type=sess.query(JobType).filter_by(name='validation').one(),
+                           file_type=sess.query(FileType).filter_by(name='appropriations').one(),
+                           job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                           number_of_errors=0, number_of_warnings=0, error_message=None)
+    sess.add_all([sub, cross_val])
+    sess.commit()
+
+    can_generate = fileHandler.check_generation_prereqs(sub.submission_id, 'E')
+    assert can_generate is True
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_check_generation_prereqs_ef_not_finished(database):
+    """ Tests a set of conditions that passes the prerequisite checks to allow E/F files to be generated. """
+    sess = database.session
+
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    cross_val = JobFactory(submission_id=sub.submission_id,
+                           job_type=sess.query(JobType).filter_by(name='validation').one(),
+                           file_type=sess.query(FileType).filter_by(name='appropriations').one(),
+                           job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
+                           number_of_errors=0, number_of_warnings=0, error_message=None)
+    sess.add_all([sub, cross_val])
+    sess.commit()
+
+    can_generate = fileHandler.check_generation_prereqs(sub.submission_id, 'E')
+    assert can_generate is False
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_check_generation_prereqs_ef_has_errors(database):
+    """ Tests a set of conditions that passes the prerequisite checks to allow E/F files to be generated. """
+    sess = database.session
+
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    cross_val = JobFactory(submission_id=sub.submission_id,
+                           job_type=sess.query(JobType).filter_by(name='validation').one(),
+                           file_type=sess.query(FileType).filter_by(name='appropriations').one(),
+                           job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                           number_of_errors=1, number_of_warnings=0, error_message=None)
+    sess.add_all([sub, cross_val])
+    sess.commit()
+
+    can_generate = fileHandler.check_generation_prereqs(sub.submission_id, 'E')
+    assert can_generate is False

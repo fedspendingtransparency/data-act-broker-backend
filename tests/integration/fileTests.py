@@ -818,6 +818,23 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["message"], "end: Must be in the format MM/DD/YYYY")
 
+    def test_generate_d_file_no_start(self):
+        """ Test bad format on start date """
+        post_json = {"submission_id": self.generation_submission_id, "file_type": "D1", "end": "02/03/2016"}
+        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+
+        self.assertEqual(response.status_code, 400)
+        json = response.json
+        self.assertEqual(json["message"], "Must have a start and end date for D file generation")
+
+    def test_generate_ef_file_no_start(self):
+        """ Test bad format on start date """
+        post_json = {"submission_id": self.generation_submission_id, "file_type": "E", "end": "02/03/2016"}
+        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id})
+
+        self.assertEqual(response.status_code, 200)
+
     def test_generate_file_fabs(self):
         """ Test failure while calling generate_file for a FABS submission """
         post_json = {"submission_id": self.test_fabs_submission_id, "file_type": "D1",
@@ -862,7 +879,7 @@ class FileTests(BaseTestAPI):
         post_json = {}
         response = self.app.get("/v1/check_detached_generation_status/", post_json,
                                 headers={"x-session-id": self.session_id}, expect_errors=True)
-        assert response.json['message'] == ('job_id: Missing data for required field.')
+        assert response.json['message'] == 'job_id: Missing data for required field.'
 
         post_json = {'job_id': -1}
         response = self.app.get("/v1/check_detached_generation_status/", post_json,
@@ -1049,6 +1066,103 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 200)
         self.assertIn("url", response.json)
 
+    def test_cross_file_status_reset_generate(self):
+        """ Test that cross-file resets when D file generation is called. """
+        submission = SubmissionFactory()
+        self.session.add(submission)
+        self.session.commit()
+
+        job_1 = self.insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['finished'],
+                                JOB_TYPE_DICT['csv_record_validation'], submission.submission_id, num_errors=1)
+        job_2 = self.insert_job(self.session, FILE_TYPE_DICT['award_procurement'], JOB_STATUS_DICT['finished'],
+                                JOB_TYPE_DICT['file_upload'], submission.submission_id)
+        job_3 = self.insert_job(self.session, FILE_TYPE_DICT['award_procurement'], JOB_STATUS_DICT['finished'],
+                                JOB_TYPE_DICT['csv_record_validation'], submission.submission_id)
+        job_4 = self.insert_job(self.session, None, JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['validation'],
+                                submission.submission_id)
+
+        dep_1 = JobDependency(
+            job_id=job_3.job_id,
+            prerequisite_id=job_2.job_id
+        )
+        dep_2 = JobDependency(
+            job_id=job_4.job_id,
+            prerequisite_id=job_3.job_id
+        )
+        dep_3 = JobDependency(
+            job_id=job_4.job_id,
+            prerequisite_id=job_1.job_id
+        )
+        self.session.add_all([dep_1, dep_2, dep_3])
+        self.session.commit()
+
+        # Make sure the cross-file job is finished for real first
+        cross_job = self.session.query(Job).filter(Job.job_id == job_4.job_id).one()
+        self.assertEqual(cross_job.job_status_id, JOB_STATUS_DICT['finished'])
+
+        # Call a generation to test resetting the status, make sure the call succeeded
+        post_json = {"submission_id": submission.submission_id, "file_type": "D1",
+                     "start": "01/02/2016", "end": "02/03/2016"}
+        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id})
+        # Need to commit for it to take within this session for some reason
+        self.session.commit()
+        self.assertEqual(response.status_code, 200)
+
+        # Check to make sure the status changed and didn't change back (because the appropriation job isn't done, no
+        # good way to make sure D file generation fails so we have to use a different job)
+        cross_job = self.session.query(Job).filter(Job.job_id == job_4.job_id).one()
+        self.assertEqual(cross_job.job_status_id, JOB_STATUS_DICT['waiting'])
+
+    def test_cross_file_status_reset_new_upload(self):
+        """ Test that cross-file resets when D file generation is called. """
+        submission = SubmissionFactory()
+        self.session.add(submission)
+        self.session.commit()
+
+        job_1 = self.insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['waiting'],
+                                JOB_TYPE_DICT['file_upload'], submission.submission_id)
+        job_2 = self.insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['waiting'],
+                                JOB_TYPE_DICT['csv_record_validation'], submission.submission_id)
+        job_3 = self.insert_job(self.session, FILE_TYPE_DICT['award_financial'], JOB_STATUS_DICT['waiting'],
+                                JOB_TYPE_DICT['csv_record_validation'], submission.submission_id)
+        job_4 = self.insert_job(self.session, None, JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['validation'],
+                                submission.submission_id)
+
+        dep_1 = JobDependency(
+            job_id=job_2.job_id,
+            prerequisite_id=job_1.job_id
+        )
+        dep_2 = JobDependency(
+            job_id=job_4.job_id,
+            prerequisite_id=job_3.job_id
+        )
+        dep_3 = JobDependency(
+            job_id=job_4.job_id,
+            prerequisite_id=job_2.job_id
+        )
+        self.session.add_all([dep_1, dep_2, dep_3])
+        self.session.commit()
+
+        # Make sure the cross-file job is finished for real first
+        cross_job = self.session.query(Job).filter(Job.job_id == job_4.job_id).one()
+        self.assertEqual(cross_job.job_status_id, JOB_STATUS_DICT['finished'])
+
+        # Call a generation to test resetting the status, make sure the call succeeded
+        update_json = {"existing_submission_id": submission.submission_id,
+                       "appropriations": 'test_path',
+                       "reporting_period_start_date": "04/2016",
+                       "reporting_period_end_date": "06/2016"}
+        update_response = self.app.post_json("/v1/submit_files/", update_json,
+                                             headers={"x-session-id": self.session_id})
+        # Need to commit for it to take within this session for some reason
+        self.session.commit()
+        self.assertEqual(update_response.status_code, 200)
+
+        # Check to make sure the status changed and didn't change back (because the appropriation job isn't done, no
+        # good way to make sure D file generation fails so we have to use a different job)
+        cross_job = self.session.query(Job).filter(Job.job_id == job_4.job_id).one()
+        self.assertEqual(cross_job.job_status_id, JOB_STATUS_DICT['waiting'])
+
     @staticmethod
     def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
                           is_quarter=False, number_of_errors=0, publish_status_id=1, is_fabs=False):
@@ -1077,7 +1191,7 @@ class FileTests(BaseTestAPI):
 
     @staticmethod
     def insert_job(sess, filetype, status, type_id, submission, job_id=None, filename=None,
-                   file_size=None, num_rows=None):
+                   file_size=None, num_rows=None, num_errors=0):
         """Insert one job into job tracker and get ID back."""
         job = Job(
             file_type_id=filetype,
@@ -1086,7 +1200,8 @@ class FileTests(BaseTestAPI):
             submission_id=submission,
             original_filename=filename,
             file_size=file_size,
-            number_of_rows=num_rows
+            number_of_rows=num_rows,
+            number_of_errors=num_errors
         )
         if job_id:
             job.job_id = job_id
