@@ -173,33 +173,44 @@ class DetachedUploadTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "fabs: Missing data for required field.")
 
-
-    def test_upload_detached_file_missing_parameters(self):
+    def test_api_upload_detached_file_missing_parameters(self):
         self.login_user(username=self.agency_user_email)
         update_submission_json = {
             "is_quarter": True,
             "reporting_period_start_date": "10/2015",
             "reporting_period_end_date": "12/2015"}
-        response = self.app.post_json("/v1/upload_detached_file/", update_submission_json,
-                                      upload_files=[('fabs', 'fabs.csv',
-                                                     open('tests/integration/data/fabs.csv', 'rb').read())],
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        response = self.app.post("/v1/upload_detached_file/", update_submission_json,
+                                 upload_files=[('fabs', 'fabs.csv',
+                                                open('tests/integration/data/fabs.csv', 'rb').read())],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'Missing required parameter: agency_code or existing_submission_id')
 
-    def test_upload_detached_file_incorrect_parameters(self):
+    def test_api_upload_detached_file_incorrect_parameters(self):
         self.login_user(username=self.agency_user_email)
         update_submission_json = {
             "existing_submission_id": "-99",
             "is_quarter": True,
             "reporting_period_start_date": "10/2015",
             "reporting_period_end_date": "12/2015"}
-        response = self.app.post_json("/v1/upload_detached_file/", update_submission_json,
-                                      upload_files=[('fabs', 'fabs.csv',
-                                                     open('tests/integration/data/fabs.csv', 'rb').read())],
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        response = self.app.post("/v1/upload_detached_file/", update_submission_json,
+                                 upload_files=[('fabs', 'fabs.csv',
+                                                open('tests/integration/data/fabs.csv', 'rb').read())],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'existing_submission_id must be a valid submission_id')
+
+    def test_api_upload_detached_file_dabs_submission(self):
+        new_submission_json = {
+            "existing_submission_id": str(self.other_submission),
+            "is_quarter": False,
+            "fabs": "test_file.csv"}
+        response = self.app.post("/v1/upload_detached_file/", new_submission_json,
+                                 upload_files=[('fabs', 'fabs.csv',
+                                                open('tests/integration/data/fabs.csv', 'rb').read())],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "Existing submission must be a FABS submission")
 
     @staticmethod
     def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
