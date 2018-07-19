@@ -11,7 +11,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import DUNS, HistoricParentDUNS
 from dataactcore.utils.parentDuns import sam_config_is_valid, update_missing_parent_names
-from dataactcore.utils.duns import get_config, parse_sam_file, process_from_dir
+from dataactcore.utils.duns import get_config, parse_sam_file
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -41,6 +41,35 @@ def get_client():
     )
 
     return client
+
+
+def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False, benchmarks=False, table=DUNS,
+                     year=None):
+    """ Process the SAM file found locally or remotely
+
+        Args:
+            root_dir: the folder containing the SAM file
+            file_name: the name of the SAM file
+            sess: the database connection
+            local: whether it's local or not
+            sftp: the sftp client to pull the CSV from
+            monthly: whether it's a monthly file
+            benchmarks: whether to log times
+            table: the table to work from (could be DUNS/HistoricParentDuns)
+            year: the year associated with the data (primarily for  HistoricParentDUNS loads)
+    """
+    file_path = os.path.join(root_dir, file_name)
+    if not local:
+        if sftp.sock.closed:
+            # Reconnect if channel is closed
+            ssh_client = get_client()
+            sftp = ssh_client.open_sftp()
+        logger.info("Pulling {}".format(file_name))
+        with open(file_path, "wb") as zip_file:
+            sftp.getfo(''.join([REMOTE_SAM_DIR, '/', file_name]), zip_file)
+    parse_sam_file(file_path, sess, monthly=monthly, benchmarks=benchmarks, table=table, year=year)
+    if not local:
+        os.remove(file_path)
 
 
 def get_parser():
@@ -164,10 +193,6 @@ if __name__ == '__main__':
                     yearly_files.append(sorted_monthly_file_names[-1])
                 for yearly_file in yearly_files:
                     year = re.findall(".*MONTHLY_(\d{4})\d{4}\.ZIP", yearly_file)[0]
-                    if sftp.sock.closed:
-                        # Reconnect if channel is closed
-                        ssh_client = get_client()
-                        sftp = ssh_client.open_sftp()
                     process_from_dir(root_dir, yearly_file, sess, local, sftp, monthly=True, benchmarks=benchmarks,
                                      table=HistoricParentDUNS, year=year)
             else:
