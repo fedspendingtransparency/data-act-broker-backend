@@ -5,7 +5,7 @@
 
 ### Login to Max
 - Step 1: Authenticate with MAX directly to obtain the `ticket` value for Step 2
-    - Please refer to documentation provided by MAX.gov
+    - Please refer to documentation provided by MAX.gov [here](./Using_Digital_Certificates_for_MAX_Authentication.pdf).
 - Step 2: call `/v1/max_login/` (POST) current broker login endpoint for logging into broker using MAX login. For details on its use, click [here](./dataactbroker/README.md#post-v1max_login)
 
 ## DABS Submission Process
