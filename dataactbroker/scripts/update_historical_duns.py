@@ -6,13 +6,14 @@ import argparse
 from datetime import datetime
 
 from dataactcore.models.domainModels import DUNS
-from dataactcore.utils.parentDuns import get_location_business_from_sam, sam_config_is_valid
+from dataactcore.utils.parentDuns import sam_config_is_valid
 from dataactcore.utils.duns import load_duns_by_row
 from dataactvalidator.scripts.loaderUtils import clean_data
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
+import dataactcore.utils.parentDuns
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +106,7 @@ def update_duns_props(df, client):
     duns_props_df = pd.DataFrame(columns=columns)
     # SAM service only takes in batches of 100
     for duns_list in batch(all_duns, 100):
-        duns_props_batch = get_location_business_from_sam(client, duns_list)
+        duns_props_batch = dataactcore.utils.parentDuns.get_location_business_from_sam(client, duns_list)
         # Adding in blank rows for DUNS where location data was not found
         added_duns_list = []
         if not duns_props_batch.empty:
