@@ -24,6 +24,7 @@ def test_remove_existing_duns(database):
 
 
 def test_clean_duns_csv_data():
+    """ Testing the function clean_duns_csv_data """
     dirty_data = {
         'awardee_or_recipient_uniqu': [None, '000000000'],
         'registration_date': [None, '2007-10-01'],
