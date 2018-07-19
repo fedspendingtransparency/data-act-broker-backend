@@ -95,10 +95,7 @@
 ## FABS Submission Process
 
 ### Upload FABS File
-- Step 1: Call `/v1/upload_detached_file/` (POST) 
-    - Header:
-        - `X-Session-ID`: string, session token id
-        - `Content-Type`: "multipart/form-data"
+- Call `/v1/upload_detached_file/`
     - Payload:
         - `agency_code`: string, sub tier agency code
         - `cgac_code`: null
@@ -107,9 +104,6 @@
         - `is_quarter`: boolean, false for FABS submissions
         - `reporting_period_start_date`: null
         - `reporting_period_end_date`: null
-    - Response:
-        - `success`: boolean indicating whether the file went through
-        - `submission_id`: int, ID of the submission that was created
 - For details on its use, click [here](./dataactbroker/README.md#post-v1upload_detached_file)
 
 ### Validate FABS File
@@ -128,6 +122,3 @@
 
 ### Publish Submission
 - Publishing must be done through the broker website
-
-## Pending Enahncements
-- API File upload
