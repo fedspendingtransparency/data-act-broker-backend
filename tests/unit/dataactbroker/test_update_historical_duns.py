@@ -7,7 +7,9 @@ from dataactcore.models.domainModels import DUNS
 
 
 def test_remove_existing_duns(database):
+    """ Testing the removing existing duns function"""
     sess = database.session
+    # of the duns 000000001-000000009, half of them are in the database
     all_duns = ['00000000{}'.format(x) for x in range(0, 10)]
     existing_duns = all_duns[: 4]
     data = pd.DataFrame.from_dict({'awardee_or_recipient_uniqu': all_duns})
@@ -15,6 +17,7 @@ def test_remove_existing_duns(database):
         sess.add(DUNS(awardee_or_recipient_uniqu=duns))
     sess.commit()
 
+    # confirm that the dataframe returned only has half the duns
     expected_duns = list(set(existing_duns) ^ set(all_duns))
     new_df = update_historical_duns.remove_existing_duns(data, sess)
     assert sorted(expected_duns) == sorted(new_df['awardee_or_recipient_uniqu'].tolist())
@@ -38,6 +41,7 @@ def test_clean_duns_csv_data():
         'congressional_district': [None, 'Test congressional district'],
         'business_types_codes': [None, ['A', 'B', 'C']]
     }
+    # to_dict() returns the index followed by the duns
     clean_data = {
         'awardee_or_recipient_uniqu': {1: '000000000'},
         'registration_date': {1: '2007-10-01'},
@@ -57,6 +61,7 @@ def test_clean_duns_csv_data():
     }
     data = pd.DataFrame.from_dict(dirty_data)
     cleaned_data = update_historical_duns.clean_duns_csv_data(data).to_dict()
+    # can't predict what the created_at, updated_at, can just test whether it has those columns
     assert 'created_at' in cleaned_data
     del cleaned_data['created_at']
     assert 'updated_at' in cleaned_data
@@ -65,7 +70,7 @@ def test_clean_duns_csv_data():
 
 
 def test_batch():
-    """ Testing the batch function into chunks of 100"""
+    """ Testing the batch function into chunks of 100 """
     full_list = list(range(0, 1000))
     initial_batch = list(range(0, 100))
     iteration = 0
@@ -77,7 +82,8 @@ def test_batch():
     assert iteration == 10
 
 
-def mock_test(client, duns_list):
+def mock_get_location_business_from_sam(client, duns_list):
+    """ Mock function for location_business data as we can't connect to the SAM service """
     columns = ['awardee_or_recipient_uniqu'] + list(update_historical_duns.props_columns.keys())
     results = pd.DataFrame(columns=columns)
     duns_mappings = {
@@ -113,8 +119,9 @@ def mock_test(client, duns_list):
 
 
 def test_update_duns_props(monkeypatch):
+    """ Testing updating the duns props with both populated/blank location/business data """
     monkeypatch.setattr('dataactcore.utils.parentDuns.get_location_business_from_sam',
-                        mock_test)
+                        mock_get_location_business_from_sam)
     duns_df = pd.DataFrame.from_dict({
         'awardee_or_recipient_uniqu': ['000000001', '000000002', '000000003']
     })
@@ -137,8 +144,9 @@ def test_update_duns_props(monkeypatch):
 
 
 def test_update_duns_props_empty(monkeypatch):
+    """ Special case where no location/business data is returned """
     monkeypatch.setattr('dataactcore.utils.parentDuns.get_location_business_from_sam',
-                        mock_test)
+                        mock_get_location_business_from_sam)
     duns_df = pd.DataFrame.from_dict({
             'awardee_or_recipient_uniqu': ['000000003']
         })
@@ -160,8 +168,9 @@ def test_update_duns_props_empty(monkeypatch):
 
 
 def test_run_duns_batches(database, monkeypatch):
+    """ Overall test of the update_historical_duns script testing most of the functionality """
     monkeypatch.setattr('dataactcore.utils.parentDuns.get_location_business_from_sam',
-                        mock_test)
+                        mock_get_location_business_from_sam)
     sess = database.session
     all_duns = ['00000000{}'.format(x) for x in range(1, 5)]
     existing_duns = all_duns[2:]
