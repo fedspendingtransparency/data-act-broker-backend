@@ -203,8 +203,7 @@ class DetachedUploadTests(BaseTestAPI):
     def test_api_upload_detached_file_dabs_submission(self):
         new_submission_json = {
             "existing_submission_id": str(self.other_submission),
-            "is_quarter": False,
-            "fabs": "test_file.csv"}
+            "is_quarter": False}
         response = self.app.post("/v1/upload_detached_file/", new_submission_json,
                                  upload_files=[('fabs', 'fabs.csv',
                                                 open('tests/integration/data/fabs.csv', 'rb').read())],
