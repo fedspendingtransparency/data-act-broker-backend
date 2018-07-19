@@ -8,7 +8,7 @@ import pytest
 import calendar
 
 from dataactbroker.handlers import fileHandler
-from dataactcore.models.jobModels import FileType, CertifiedFilesHistory
+from dataactcore.models.jobModels import CertifiedFilesHistory
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactbroker.utils import add_models, delete_models
@@ -509,7 +509,7 @@ def test_move_certified_files(database, monkeypatch):
                                job_status_id=finished_job)
 
     award_fin_narr = SubmissionNarrativeFactory(submission=sub, narrative="Test narrative",
-                                                file_type=sess.query(FileType).filter_by(name='award_financial').one())
+                                                file_type_id=FILE_TYPE_DICT['award_financial'])
     database.session.add_all([cert_hist_local, cert_hist_remote, appropriations_job, prog_act_job, award_fin_job,
                               award_proc_job, award_job, exec_comp_job, sub_award_job, award_fin_narr])
     database.session.commit()
@@ -571,22 +571,21 @@ def test_list_certifications(database):
     database.session.commit()
 
     # add some data to certified_files_history for the cert_history ID
-    sess = database.session
     history_id = cert_hist.certify_history_id
     sub_id = sub.submission_id
     file_hist_1 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
                                                filename="/path/to/file_a.csv",
                                                warning_filename="/path/to/warning_file_a.csv",
                                                narrative="A has a narrative",
-                                               file_type=sess.query(FileType).filter_by(name='appropriations').one())
+                                               file_type_id=FILE_TYPE_DICT['appropriations'])
     file_hist_2 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
                                                filename="/path/to/file_d2.csv",
                                                warning_filename=None,
-                                               file_type=sess.query(FileType).filter_by(name='award').one())
+                                               file_type_id=FILE_TYPE_DICT['award'])
     file_hist_3 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
                                                filename=None,
                                                warning_filename="/path/to/warning_file_cross_test.csv",
-                                               file_type=None)
+                                               file_type_id=None)
     database.session.add_all([file_hist_1, file_hist_2, file_hist_3])
     database.session.commit()
 
@@ -623,7 +622,7 @@ def test_file_history_url(database, monkeypatch):
     file_hist = CertifiedFilesHistoryFactory(certify_history_id=cert_hist.certify_history_id,
                                              submission_id=sub.submission_id, filename="/path/to/file_d2.csv",
                                              warning_filename="/path/to/warning_file_cross.csv",
-                                             narrative=None, file_type=None)
+                                             narrative=None, file_type_id=None)
     database.session.add(file_hist)
     database.session.commit()
 
