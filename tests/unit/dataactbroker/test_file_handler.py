@@ -895,3 +895,157 @@ def test_process_job_status():
     assert resp['has_errors'] is False
     assert resp['has_warnings'] is True
     assert resp['message'] == ''
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_check_generation_prereqs_ef_valid(database):
+    """ Tests a set of conditions that passes the prerequisite checks to allow E/F files to be generated. Show that
+        warnings do not prevent generation.
+    """
+    sess = database.session
+
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    cross_val = JobFactory(submission_id=sub.submission_id,
+                           job_type=sess.query(JobType).filter_by(name='validation').one(),
+                           file_type=None,
+                           job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                           number_of_errors=0, number_of_warnings=1, error_message=None)
+    sess.add_all([sub, cross_val])
+    sess.commit()
+
+    can_generate = fileHandler.check_generation_prereqs(sub.submission_id, 'E')
+    assert can_generate is True
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_check_generation_prereqs_ef_not_finished(database):
+    """ Tests a set of conditions that has cross-file still waiting, fail the generation check for E/F files. """
+    sess = database.session
+
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    cross_val = JobFactory(submission_id=sub.submission_id,
+                           job_type=sess.query(JobType).filter_by(name='validation').one(),
+                           file_type=None,
+                           job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
+                           number_of_errors=0, number_of_warnings=0, error_message=None)
+    sess.add_all([sub, cross_val])
+    sess.commit()
+
+    can_generate = fileHandler.check_generation_prereqs(sub.submission_id, 'E')
+    assert can_generate is False
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_check_generation_prereqs_ef_has_errors(database):
+    """ Tests a set of conditions that has an error in cross-file, fail the generation check for E/F files. """
+    sess = database.session
+
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    cross_val = JobFactory(submission_id=sub.submission_id,
+                           job_type=sess.query(JobType).filter_by(name='validation').one(),
+                           file_type=None,
+                           job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                           number_of_errors=1, number_of_warnings=0, error_message=None)
+    sess.add_all([sub, cross_val])
+    sess.commit()
+
+    can_generate = fileHandler.check_generation_prereqs(sub.submission_id, 'E')
+    assert can_generate is False
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_check_generation_prereqs_d_valid(database):
+    """ Tests a set of conditions that passes the prerequisite checks to allow D files to be generated. Show that
+        warnings do not prevent generation.
+    """
+    sess = database.session
+
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    job_1 = JobFactory(submission_id=sub.submission_id,
+                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
+                       file_type=sess.query(FileType).filter_by(name='appropriations').one(),
+                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                       number_of_errors=0, number_of_warnings=0, error_message=None)
+    job_2 = JobFactory(submission_id=sub.submission_id,
+                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
+                       file_type=sess.query(FileType).filter_by(name='program_activity').one(),
+                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                       number_of_errors=0, number_of_warnings=0, error_message=None)
+    job_3 = JobFactory(submission_id=sub.submission_id,
+                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
+                       file_type=sess.query(FileType).filter_by(name='award_financial').one(),
+                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                       number_of_errors=0, number_of_warnings=1, error_message=None)
+    sess.add_all([sub, job_1, job_2, job_3])
+    sess.commit()
+
+    can_generate = fileHandler.check_generation_prereqs(sub.submission_id, 'D1')
+    assert can_generate is True
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_check_generation_prereqs_d_not_finished(database):
+    """ Tests a set of conditions that has one of the A,B,C files incomplete, prevent D file generation. """
+    sess = database.session
+
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    job_1 = JobFactory(submission_id=sub.submission_id,
+                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
+                       file_type=sess.query(FileType).filter_by(name='appropriations').one(),
+                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                       number_of_errors=0, number_of_warnings=0, error_message=None)
+    job_2 = JobFactory(submission_id=sub.submission_id,
+                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
+                       file_type=sess.query(FileType).filter_by(name='program_activity').one(),
+                       job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
+                       number_of_errors=0, number_of_warnings=0, error_message=None)
+    job_3 = JobFactory(submission_id=sub.submission_id,
+                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
+                       file_type=sess.query(FileType).filter_by(name='award_financial').one(),
+                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                       number_of_errors=0, number_of_warnings=0, error_message=None)
+    sess.add_all([sub, job_1, job_2, job_3])
+    sess.commit()
+
+    can_generate = fileHandler.check_generation_prereqs(sub.submission_id, 'D1')
+    assert can_generate is False
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_check_generation_prereqs_d_has_errors(database):
+    """ Tests a set of conditions that has an error in one of the A,B,C files, prevent D file generation. """
+    sess = database.session
+
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    job_1 = JobFactory(submission_id=sub.submission_id,
+                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
+                       file_type=sess.query(FileType).filter_by(name='appropriations').one(),
+                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                       number_of_errors=1, number_of_warnings=0, error_message=None)
+    job_2 = JobFactory(submission_id=sub.submission_id,
+                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
+                       file_type=sess.query(FileType).filter_by(name='program_activity').one(),
+                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                       number_of_errors=0, number_of_warnings=0, error_message=None)
+    job_3 = JobFactory(submission_id=sub.submission_id,
+                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
+                       file_type=sess.query(FileType).filter_by(name='award_financial').one(),
+                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+                       number_of_errors=0, number_of_warnings=0, error_message=None)
+    sess.add_all([sub, job_1, job_2, job_3])
+    sess.commit()
+
+    can_generate = fileHandler.check_generation_prereqs(sub.submission_id, 'D1')
+    assert can_generate is False
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_check_generation_prereqs_bad_type(database):
+    """ Tests that check_generation_prereqs raises an error if an invalid type is provided. """
+    sess = database.session
+    sub = SubmissionFactory()
+    sess.add(sub)
+    sess.commit()
+
+    with pytest.raises(ResponseException):
+        fileHandler.check_generation_prereqs(sub.submission_id, 'A')

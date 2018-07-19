@@ -11,7 +11,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from flask import g, request
 from shutil import copyfile
-from sqlalchemy import func, and_, desc
+from sqlalchemy import func, and_, desc, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import case
 from werkzeug.utils import secure_filename
@@ -26,8 +26,8 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (
-    create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, run_job_checks,
-    get_last_validated_date, get_lastest_certified_date)
+    create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, get_last_validated_date,
+    get_lastest_certified_date)
 
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
@@ -483,7 +483,12 @@ class FileHandler:
         """
         # if submission is a FABS submission, throw an error
         if submission.d2_submission:
-            raise ResponseException("Cannot generate files for FABS submissions", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(ValueError("Cannot generate files for FABS submissions"), StatusCode.CLIENT_ERROR)
+
+        # if the file is D1 or D2 and we don't have start or end, raise an error
+        if file_type in ['D1', 'D2'] and (not start or not end):
+            return JsonResponse.error(ValueError("Must have a start and end date for D file generation"),
+                                      StatusCode.CLIENT_ERROR)
 
         submission_id = submission.submission_id
         sess = GlobalDB.db().session
@@ -502,8 +507,8 @@ class FileHandler:
 
         try:
             # Check prerequisites on upload job
-            if not run_job_checks(job.job_id):
-                raise ResponseException("Must wait for completion of prerequisite validation job",
+            if not check_generation_prereqs(submission_id, file_type):
+                raise ResponseException("Must wait for successful completion of prerequisite validation job",
                                         StatusCode.CLIENT_ERROR)
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
@@ -1215,6 +1220,37 @@ class FileHandler:
 
         log_data['message'] = 'Completed move_certified_files'
         logger.debug(log_data)
+
+
+def check_generation_prereqs(submission_id, file_type):
+    """ Make sure the prerequisite jobs for this file type are complete without errors.
+
+        Args:
+            submission_id: the submission id for which we're checking file generation prerequisites
+            file_type: the type of file being generated
+
+        Returns:
+            A boolean indicating if the job has no incomplete prerequisites (True if the job is clear to start)
+    """
+
+    sess = GlobalDB.db().session
+    unfinished_prereqs = 0
+    prereq_query = sess.query(Job).filter(Job.submission_id == submission_id,
+                                          or_(Job.job_status_id != JOB_STATUS_DICT['finished'],
+                                              Job.number_of_errors > 0))
+
+    # Check cross-file validation if generating E or F
+    if file_type in ['E', 'F']:
+        unfinished_prereqs = prereq_query.filter(Job.job_type_id == JOB_TYPE_DICT['validation']).count()
+    # Check A, B, C files if generating a D file
+    elif file_type in ['D1', 'D2']:
+        unfinished_prereqs = prereq_query.filter(Job.file_type_id.in_([FILE_TYPE_DICT['appropriations'],
+                                                                       FILE_TYPE_DICT['program_activity'],
+                                                                       FILE_TYPE_DICT['award_financial']])).count()
+    else:
+        raise ResponseException('Invalid type for file generation', StatusCode.CLIENT_ERROR)
+
+    return unfinished_prereqs == 0
 
 
 def narratives_for_submission(submission):

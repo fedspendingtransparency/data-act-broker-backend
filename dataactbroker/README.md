@@ -1120,11 +1120,18 @@ This route sends a request to the backend to utilize the relevant external APIs 
     - `D2` - generate a D2 file
     - `E` - generate a E file
     - `F` - generate a F file
-- `start` - **required for D1/D2 only** - the start date of the requested date range, in `MM/DD/YYYY` string format
-- `end` - **required for D1/D2 only** - the end date of the requested date range, in `MM/DD/YYYY` string format
+- `start` - **required for D1/D2 only** - the start date of the requested date range, in `MM/DD/YYYY` string format, should not be passed for E/F generation
+- `end` - **required for D1/D2 only** - the end date of the requested date range, in `MM/DD/YYYY` string format, should not be passed for E/F generation
 
-### Response (JSON)
-Response will be the same format as those which are returned in the `/v1/check_detached_generation_status` endpoint.
+#### Response (JSON)
+Response will be the same format as those which are returned in the `/v1/check_generation_status` endpoint.
+
+#### Errors
+Possible HTTP Status Codes not covered by `check_generation_status` documentation:
+
+- 400:
+    - Start and end date not provided for D1/D2 generation
+    - Start and end date not formatted properly
 
 
 ### POST "/v1/generate\_detached\_file"
@@ -1153,6 +1160,11 @@ This route sends a request to the backend to utilize the relevant external APIs 
 
 #### Response (JSON)
 Response will be the same format as those returned from `/v1/check_generation_status` endpoint with the exception that only D1 and D2 files will ever be present, never E or F.
+
+#### Errors
+Possible HTTP Status Codes not covered by `check_generation_status` documentation:
+
+- 400: Start and end date not formatted properly
 
 
 ## File Status
