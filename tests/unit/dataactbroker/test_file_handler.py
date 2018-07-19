@@ -8,8 +8,8 @@ import pytest
 import calendar
 
 from dataactbroker.handlers import fileHandler
-from dataactcore.models.jobModels import JobStatus, JobType, FileType, CertifiedFilesHistory
-from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT
+from dataactcore.models.jobModels import FileType, CertifiedFilesHistory
+from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactbroker.utils import add_models, delete_models
 from tests.unit.dataactcore.factories.domain import CGACFactory
@@ -91,12 +91,10 @@ def test_list_submissions_success(database, monkeypatch):
     assert result['submissions'][0]['status'] == "validation_successful_warnings"
     delete_models(database, [user, sub])
 
-    sess = database.session
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
-    job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-                     job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                     file_type=sess.query(FileType).filter_by(name='award').one())
+    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
     result = list_submissions_result()
@@ -104,12 +102,10 @@ def test_list_submissions_success(database, monkeypatch):
     assert result['submissions'][0]['status'] == "validation_successful"
     delete_models(database, [user, sub, job])
 
-    sess = database.session
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
-    job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='running').one(),
-                     job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                     file_type=sess.query(FileType).filter_by(name='award').one())
+    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['running'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
     result = list_submissions_result()
@@ -117,12 +113,10 @@ def test_list_submissions_success(database, monkeypatch):
     assert result['submissions'][0]['status'] == "running"
     delete_models(database, [user, sub, job])
 
-    sess = database.session
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
-    job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
-                     job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                     file_type=sess.query(FileType).filter_by(name='award').one())
+    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['waiting'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
     result = list_submissions_result()
@@ -130,12 +124,10 @@ def test_list_submissions_success(database, monkeypatch):
     assert result['submissions'][0]['status'] == "waiting"
     delete_models(database, [user, sub, job])
 
-    sess = database.session
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
-    job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='ready').one(),
-                     job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                     file_type=sess.query(FileType).filter_by(name='award').one())
+    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['ready'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
     result = list_submissions_result()
@@ -143,12 +135,10 @@ def test_list_submissions_success(database, monkeypatch):
     assert result['submissions'][0]['status'] == "ready"
     delete_models(database, [user, sub, job])
 
-    sess = database.session
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1, d2_submission=True)
-    job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='ready').one(),
-                     job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                     file_type=sess.query(FileType).filter_by(name='award').one())
+    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['ready'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
     result = list_submissions_result(d2_submission=True)
@@ -169,12 +159,10 @@ def test_list_submissions_failure(database, monkeypatch):
     assert result['submissions'][0]['status'] == "validation_errors"
     delete_models(database, [user, sub])
 
-    sess = database.session
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
-    job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='failed').one(),
-                     job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                     file_type=sess.query(FileType).filter_by(name='award').one())
+    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['failed'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
     result = list_submissions_result()
@@ -182,12 +170,10 @@ def test_list_submissions_failure(database, monkeypatch):
     assert result['submissions'][0]['status'] == "failed"
     delete_models(database, [user, sub, job])
 
-    sess = database.session
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
-    job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='invalid').one(),
-                     job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                     file_type=sess.query(FileType).filter_by(name='award').one())
+    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['invalid'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
     result = list_submissions_result()
@@ -411,11 +397,9 @@ def test_get_upload_file_url_local(database, monkeypatch, tmpdir):
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': True, 'broker_files': file_path})
 
     # create and insert submission/job
-    sess = database.session
     sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-                     job_type=sess.query(JobType).filter_by(name='file_upload').one(),
-                     file_type=sess.query(FileType).filter_by(name='appropriations').one(),
+    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+                     job_type_id=JOB_TYPE_DICT['file_upload'], file_type_id=FILE_TYPE_DICT['appropriations'],
                      filename='a/path/to/some_file.csv')
     add_models(database, [sub, job])
 
@@ -450,11 +434,9 @@ def test_get_upload_file_url_no_file(database):
     """ Test that a proper error is thrown when an upload job doesn't have a file associated with it
         get_upload_file_url.
     """
-    sess = database.session
     sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-                     job_type=sess.query(JobType).filter_by(name='file_upload').one(),
-                     file_type=sess.query(FileType).filter_by(name='appropriations').one(),
+    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+                     job_type_id=JOB_TYPE_DICT['file_upload'], file_type_id=FILE_TYPE_DICT['appropriations'],
                      filename=None)
     add_models(database, [sub, job])
 
@@ -473,11 +455,9 @@ def test_get_upload_file_url_s3(database, monkeypatch):
     monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
 
     # create and insert submission/job
-    sess = database.session
     sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-                     job_type=sess.query(JobType).filter_by(name='file_upload').one(),
-                     file_type=sess.query(FileType).filter_by(name='appropriations').one(),
+    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+                     job_type_id=JOB_TYPE_DICT['file_upload'], file_type_id=FILE_TYPE_DICT['appropriations'],
                      filename='1/some_file.csv')
     add_models(database, [sub, job])
 
@@ -504,29 +484,29 @@ def test_move_certified_files(database, monkeypatch):
     cert_hist_local = CertifyHistoryFactory(submission_id=sub.submission_id)
     cert_hist_remote = CertifyHistoryFactory(submission_id=sub.submission_id)
 
-    finished_job = sess.query(JobStatus).filter_by(name='finished').one()
-    upload_job = sess.query(JobType).filter_by(name='file_upload').one()
+    finished_job = JOB_STATUS_DICT['finished']
+    upload_job = JOB_TYPE_DICT['file_upload']
     appropriations_job = JobFactory(submission=sub, filename="/path/to/appropriations/file_a.csv",
-                                    file_type=sess.query(FileType).filter_by(name='appropriations').one(),
-                                    job_type=upload_job, job_status=finished_job)
+                                    file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=upload_job,
+                                    job_status_id=finished_job)
     prog_act_job = JobFactory(submission=sub, filename="/path/to/prog/act/file_b.csv",
-                              file_type=sess.query(FileType).filter_by(name='program_activity').one(),
-                              job_type=upload_job, job_status=finished_job)
+                              file_type_id=FILE_TYPE_DICT['program_activity'], job_type_id=upload_job,
+                              job_status_id=finished_job)
     award_fin_job = JobFactory(submission=sub, filename="/path/to/award/fin/file_c.csv",
-                               file_type=sess.query(FileType).filter_by(name='award_financial').one(),
-                               job_type=upload_job, job_status=finished_job)
+                               file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=upload_job,
+                               job_status_id=finished_job)
     award_proc_job = JobFactory(submission=sub, filename="/path/to/award/proc/file_d1.csv",
-                                file_type=sess.query(FileType).filter_by(name='award_procurement').one(),
-                                job_type=upload_job, job_status=finished_job)
+                                file_type_id=FILE_TYPE_DICT['award_procurement'], job_type_id=upload_job,
+                                job_status_id=finished_job)
     award_job = JobFactory(submission=sub, filename="/path/to/award/file_d2.csv",
-                           file_type=sess.query(FileType).filter_by(name='award').one(),
-                           job_type=upload_job, job_status=finished_job)
+                           file_type_id=FILE_TYPE_DICT['award'], job_type_id=upload_job,
+                           job_status_id=finished_job)
     exec_comp_job = JobFactory(submission=sub, filename="/path/to/exec/comp/file_e.csv",
-                               file_type=sess.query(FileType).filter_by(name='executive_compensation').one(),
-                               job_type=upload_job, job_status=finished_job)
+                               file_type_id=FILE_TYPE_DICT['executive_compensation'], job_type_id=upload_job,
+                               job_status_id=finished_job)
     sub_award_job = JobFactory(submission=sub, filename="/path/to/sub/award/file_f.csv",
-                               file_type=sess.query(FileType).filter_by(name='sub_award').one(),
-                               job_type=upload_job, job_status=finished_job)
+                               file_type_id=FILE_TYPE_DICT['sub_award'], job_type_id=upload_job,
+                               job_status_id=finished_job)
 
     award_fin_narr = SubmissionNarrativeFactory(submission=sub, narrative="Test narrative",
                                                 file_type=sess.query(FileType).filter_by(name='award_financial').one())
@@ -551,8 +531,7 @@ def test_move_certified_files(database, monkeypatch):
     assert len(all_local_certs) == 11
 
     c_cert_hist = sess.query(CertifiedFilesHistory).\
-        filter_by(certify_history_id=local_id,
-                  file_type_id=sess.query(FileType).filter_by(name='award_financial').one().file_type_id).one()
+        filter_by(certify_history_id=local_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
     assert c_cert_hist.filename == "/path/to/award/fin/file_c.csv"
     assert c_cert_hist.warning_filename == "/path/to/error/reports/submission_{}_award_financial_warning_report.csv".\
         format(sub.submission_id)
@@ -572,8 +551,7 @@ def test_move_certified_files(database, monkeypatch):
     remote_id = cert_hist_remote.certify_history_id
 
     c_cert_hist = sess.query(CertifiedFilesHistory). \
-        filter_by(certify_history_id=remote_id,
-                  file_type_id=sess.query(FileType).filter_by(name='award_financial').one().file_type_id).one()
+        filter_by(certify_history_id=remote_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
     assert c_cert_hist.filename == "zyxwv/2017/2/{}/file_c.csv".format(remote_id)
     assert c_cert_hist.warning_filename == "zyxwv/2017/2/{}/submission_{}_award_financial_warning_report.csv". \
         format(remote_id, sub.submission_id)
@@ -702,15 +680,11 @@ def test_get_status_fabs(database):
     sess = database.session
 
     sub = SubmissionFactory(submission_id=1, d2_submission=True)
-    job_up = JobFactory(submission_id=sub.submission_id,
-                        job_type=sess.query(JobType).filter_by(name='file_upload').one(),
-                        file_type=sess.query(FileType).filter_by(name='fabs').one(),
-                        job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+    job_up = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['file_upload'],
+                        file_type_id=FILE_TYPE_DICT['fabs'], job_status_id=JOB_STATUS_DICT['finished'],
                         number_of_errors=0, number_of_warnings=0)
-    job_val = JobFactory(submission_id=sub.submission_id,
-                         job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                         file_type=sess.query(FileType).filter_by(name='fabs').one(),
-                         job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+    job_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                         file_type_id=FILE_TYPE_DICT['fabs'], job_status_id=JOB_STATUS_DICT['finished'],
                          number_of_errors=0, number_of_warnings=4)
 
     sess.add_all([sub, job_up, job_val])
@@ -728,67 +702,58 @@ def test_get_status_dabs(database):
     sess = database.session
 
     sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    upload_job = sess.query(JobType).filter_by(name='file_upload').one()
-    validation_job = sess.query(JobType).filter_by(name='csv_record_validation').one()
-    finished_status = sess.query(JobStatus).filter_by(name='finished').one()
+    upload_job = JOB_TYPE_DICT['file_upload']
+    validation_job = JOB_TYPE_DICT['csv_record_validation']
+    finished_status = JOB_STATUS_DICT['finished']
 
     # Completed, warnings, errors
-    job_1_up = JobFactory(submission_id=sub.submission_id, job_type=upload_job,
-                          file_type=sess.query(FileType).filter_by(name='appropriations').one(),
-                          job_status=finished_status, number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_1_val = JobFactory(submission_id=sub.submission_id, job_type=validation_job,
-                           file_type=sess.query(FileType).filter_by(name='appropriations').one(),
-                           job_status=finished_status, number_of_errors=10, number_of_warnings=4, error_message=None)
-    # Invalid upload
-    job_2_up = JobFactory(submission_id=sub.submission_id, job_type=upload_job,
-                          file_type=sess.query(FileType).filter_by(name='program_activity').one(),
-                          job_status=sess.query(JobStatus).filter_by(name='invalid').one(),
+    job_1_up = JobFactory(submission_id=sub.submission_id, job_type_id=upload_job,
+                          file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=finished_status,
                           number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_2_val = JobFactory(submission_id=sub.submission_id, job_type=validation_job,
-                           file_type=sess.query(FileType).filter_by(name='program_activity').one(),
-                           job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
+    job_1_val = JobFactory(submission_id=sub.submission_id, job_type_id=validation_job,
+                           file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=finished_status,
+                           number_of_errors=10, number_of_warnings=4, error_message=None)
+    # Invalid upload
+    job_2_up = JobFactory(submission_id=sub.submission_id, job_type_id=upload_job,
+                          file_type_id=FILE_TYPE_DICT['program_activity'], job_status_id=JOB_STATUS_DICT['invalid'],
+                          number_of_errors=0, number_of_warnings=0, error_message=None)
+    job_2_val = JobFactory(submission_id=sub.submission_id, job_type_id=validation_job,
+                           file_type_id=FILE_TYPE_DICT['program_activity'], job_status_id=JOB_STATUS_DICT['waiting'],
                            number_of_errors=0, number_of_warnings=0, error_message=None)
     # Validating
-    job_3_up = JobFactory(submission_id=sub.submission_id, job_type=upload_job,
-                          file_type=sess.query(FileType).filter_by(name='award_financial').one(),
-                          job_status=finished_status, number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_3_val = JobFactory(submission_id=sub.submission_id, job_type=validation_job,
-                           file_type=sess.query(FileType).filter_by(name='award_financial').one(),
-                           job_status=sess.query(JobStatus).filter_by(name='running').one(),
+    job_3_up = JobFactory(submission_id=sub.submission_id, job_type_id=upload_job,
+                          file_type_id=FILE_TYPE_DICT['award_financial'], job_status_id=finished_status,
+                          number_of_errors=0, number_of_warnings=0, error_message=None)
+    job_3_val = JobFactory(submission_id=sub.submission_id, job_type_id=validation_job,
+                           file_type_id=FILE_TYPE_DICT['award_financial'], job_status_id=JOB_STATUS_DICT['running'],
                            number_of_errors=0, number_of_warnings=0, error_message=None)
     # Uploading
-    job_4_up = JobFactory(submission_id=sub.submission_id, job_type=upload_job,
-                          file_type=sess.query(FileType).filter_by(name='award').one(),
-                          job_status=sess.query(JobStatus).filter_by(name='running').one(),
+    job_4_up = JobFactory(submission_id=sub.submission_id, job_type_id=upload_job,
+                          file_type_id=FILE_TYPE_DICT['award'], job_status_id=JOB_STATUS_DICT['running'],
                           number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_4_val = JobFactory(submission_id=sub.submission_id, job_type=validation_job,
-                           file_type=sess.query(FileType).filter_by(name='award').one(),
-                           job_status=sess.query(JobStatus).filter_by(name='ready').one(),
+    job_4_val = JobFactory(submission_id=sub.submission_id, job_type_id=validation_job,
+                           file_type_id=FILE_TYPE_DICT['award'], job_status_id=JOB_STATUS_DICT['ready'],
                            number_of_errors=0, number_of_warnings=0, error_message=None)
     # Invalid on validation
-    job_5_up = JobFactory(submission_id=sub.submission_id, job_type=upload_job,
-                          file_type=sess.query(FileType).filter_by(name='award_procurement').one(),
-                          job_status=finished_status, number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_5_val = JobFactory(submission_id=sub.submission_id, job_type=validation_job,
-                           file_type=sess.query(FileType).filter_by(name='award_procurement').one(),
-                           job_status=sess.query(JobStatus).filter_by(name='invalid').one(),
+    job_5_up = JobFactory(submission_id=sub.submission_id, job_type_id=upload_job,
+                          file_type_id=FILE_TYPE_DICT['award_procurement'], job_status_id=finished_status,
+                          number_of_errors=0, number_of_warnings=0, error_message=None)
+    job_5_val = JobFactory(submission_id=sub.submission_id, job_type_id=validation_job,
+                           file_type_id=FILE_TYPE_DICT['award_procurement'], job_status_id=JOB_STATUS_DICT['invalid'],
                            number_of_errors=0, number_of_warnings=0, error_message=None)
     # Failed
-    job_6_up = JobFactory(submission_id=sub.submission_id, job_type=upload_job,
-                          file_type=sess.query(FileType).filter_by(name='executive_compensation').one(),
-                          job_status=sess.query(JobStatus).filter_by(name='failed').one(),
-                          number_of_errors=0, number_of_warnings=0, error_message='test message')
+    job_6_up = JobFactory(submission_id=sub.submission_id, job_type_id=upload_job,
+                          file_type_id=FILE_TYPE_DICT['executive_compensation'],
+                          job_status_id=JOB_STATUS_DICT['failed'], number_of_errors=0, number_of_warnings=0,
+                          error_message='test message')
     # Ready
-    job_7_up = JobFactory(submission_id=sub.submission_id, job_type=upload_job,
-                          file_type=sess.query(FileType).filter_by(name='sub_award').one(),
-                          job_status=sess.query(JobStatus).filter_by(name='ready').one(),
+    job_7_up = JobFactory(submission_id=sub.submission_id, job_type_id=upload_job,
+                          file_type_id=FILE_TYPE_DICT['sub_award'], job_status_id=JOB_STATUS_DICT['ready'],
                           number_of_errors=0, number_of_warnings=0, error_message=None)
     # Waiting
-    job_8_val = JobFactory(submission_id=sub.submission_id,
-                           job_type=sess.query(JobType).filter_by(name='validation').one(),
-                           file_type=None,
-                           job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
-                           number_of_errors=0, number_of_warnings=5, error_message=None)
+    job_8_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
+                           job_status_id=JOB_STATUS_DICT['waiting'], number_of_errors=0, number_of_warnings=5,
+                           error_message=None)
 
     sess.add_all([sub, job_1_up, job_1_val, job_2_up, job_2_val, job_3_up, job_3_val, job_4_up, job_4_val, job_5_up,
                   job_5_val, job_6_up, job_7_up, job_8_val])
@@ -905,11 +870,9 @@ def test_check_generation_prereqs_ef_valid(database):
     sess = database.session
 
     sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    cross_val = JobFactory(submission_id=sub.submission_id,
-                           job_type=sess.query(JobType).filter_by(name='validation').one(),
-                           file_type=None,
-                           job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-                           number_of_errors=0, number_of_warnings=1, error_message=None)
+    cross_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'],
+                           file_type_id=None, job_status_id=JOB_STATUS_DICT['finished'], number_of_errors=0,
+                           number_of_warnings=1, error_message=None)
     sess.add_all([sub, cross_val])
     sess.commit()
 
@@ -923,11 +886,9 @@ def test_check_generation_prereqs_ef_not_finished(database):
     sess = database.session
 
     sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    cross_val = JobFactory(submission_id=sub.submission_id,
-                           job_type=sess.query(JobType).filter_by(name='validation').one(),
-                           file_type=None,
-                           job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
-                           number_of_errors=0, number_of_warnings=0, error_message=None)
+    cross_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
+                           job_status_id=JOB_STATUS_DICT['waiting'], number_of_errors=0, number_of_warnings=0,
+                           error_message=None)
     sess.add_all([sub, cross_val])
     sess.commit()
 
@@ -941,11 +902,9 @@ def test_check_generation_prereqs_ef_has_errors(database):
     sess = database.session
 
     sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    cross_val = JobFactory(submission_id=sub.submission_id,
-                           job_type=sess.query(JobType).filter_by(name='validation').one(),
-                           file_type=None,
-                           job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-                           number_of_errors=1, number_of_warnings=0, error_message=None)
+    cross_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
+                           job_status_id=JOB_STATUS_DICT['finished'], number_of_errors=1, number_of_warnings=0,
+                           error_message=None)
     sess.add_all([sub, cross_val])
     sess.commit()
 
@@ -961,20 +920,14 @@ def test_check_generation_prereqs_d_valid(database):
     sess = database.session
 
     sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    job_1 = JobFactory(submission_id=sub.submission_id,
-                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                       file_type=sess.query(FileType).filter_by(name='appropriations').one(),
-                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+    job_1 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                       file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_2 = JobFactory(submission_id=sub.submission_id,
-                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                       file_type=sess.query(FileType).filter_by(name='program_activity').one(),
-                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+    job_2 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                       file_type_id=FILE_TYPE_DICT['program_activity'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_3 = JobFactory(submission_id=sub.submission_id,
-                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                       file_type=sess.query(FileType).filter_by(name='award_financial').one(),
-                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+    job_3 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                       file_type_id=FILE_TYPE_DICT['award_financial'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=1, error_message=None)
     sess.add_all([sub, job_1, job_2, job_3])
     sess.commit()
@@ -989,20 +942,14 @@ def test_check_generation_prereqs_d_not_finished(database):
     sess = database.session
 
     sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    job_1 = JobFactory(submission_id=sub.submission_id,
-                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                       file_type=sess.query(FileType).filter_by(name='appropriations').one(),
-                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+    job_1 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                       file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_2 = JobFactory(submission_id=sub.submission_id,
-                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                       file_type=sess.query(FileType).filter_by(name='program_activity').one(),
-                       job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
+    job_2 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                       file_type_id=FILE_TYPE_DICT['program_activity'], job_status_id=JOB_STATUS_DICT['waiting'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_3 = JobFactory(submission_id=sub.submission_id,
-                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                       file_type=sess.query(FileType).filter_by(name='award_financial').one(),
-                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+    job_3 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                       file_type_id=FILE_TYPE_DICT['award_financial'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
     sess.add_all([sub, job_1, job_2, job_3])
     sess.commit()
@@ -1017,20 +964,14 @@ def test_check_generation_prereqs_d_has_errors(database):
     sess = database.session
 
     sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    job_1 = JobFactory(submission_id=sub.submission_id,
-                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                       file_type=sess.query(FileType).filter_by(name='appropriations').one(),
-                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+    job_1 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                       file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=1, number_of_warnings=0, error_message=None)
-    job_2 = JobFactory(submission_id=sub.submission_id,
-                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                       file_type=sess.query(FileType).filter_by(name='program_activity').one(),
-                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+    job_2 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                       file_type_id=FILE_TYPE_DICT['program_activity'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_3 = JobFactory(submission_id=sub.submission_id,
-                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                       file_type=sess.query(FileType).filter_by(name='award_financial').one(),
-                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
+    job_3 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                       file_type_id=FILE_TYPE_DICT['award_financial'], job_status_id=JOB_STATUS_DICT['finished'],
                        number_of_errors=0, number_of_warnings=0, error_message=None)
     sess.add_all([sub, job_1, job_2, job_3])
     sess.commit()

@@ -1,10 +1,14 @@
+import pytest
+
 from unittest.mock import Mock
 
+from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.stagingModels import FlexField
 from dataactvalidator.validation_handlers import validator
 from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
 
 
+@pytest.mark.usefixtures("job_constants")
 def test_relevant_flex_data(database):
     """Verify that we can retrieve multiple flex fields from our data"""
     sess = database.session
@@ -12,7 +16,9 @@ def test_relevant_flex_data(database):
     sess.add_all(subs)
     sess.commit()
     # Three jobs per submission
-    jobs = [JobFactory(submission_id=sub.submission_id) for sub in subs for _ in range(3)]
+    jobs = [JobFactory(submission_id=sub.submission_id, file_type_id=FILE_TYPE_DICT['appropriations'],
+                       job_type_id=JOB_TYPE_DICT['csv_record_validation'], job_status_id=JOB_STATUS_DICT['finished'])
+            for sub in subs for _ in range(3)]
     sess.add_all(jobs)
     sess.commit()
     # Set up ten rows of three fields per job
