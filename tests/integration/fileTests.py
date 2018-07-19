@@ -819,7 +819,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["message"], "end: Must be in the format MM/DD/YYYY")
 
     def test_generate_d_file_no_start(self):
-        """ Test bad format on start date """
+        """ Test that there is an error if no start date is provided for D file generation. """
         post_json = {"submission_id": self.generation_submission_id, "file_type": "D1", "end": "02/03/2016"}
         response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id},
                                       expect_errors=True)
@@ -829,7 +829,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["message"], "Must have a start and end date for D file generation")
 
     def test_generate_ef_file_no_start(self):
-        """ Test bad format on start date """
+        """ Test that there is no error when no start date is provided for E/F file generation """
         post_json = {"submission_id": self.generation_submission_id, "file_type": "E", "end": "02/03/2016"}
         response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id})
 
@@ -1072,7 +1072,7 @@ class FileTests(BaseTestAPI):
         self.session.add(submission)
         self.session.commit()
 
-        job_1 = self.insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['finished'],
+        job_1 = self.insert_job(self.session, FILE_TYPE_DICT['award'], JOB_STATUS_DICT['finished'],
                                 JOB_TYPE_DICT['csv_record_validation'], submission.submission_id, num_errors=1)
         job_2 = self.insert_job(self.session, FILE_TYPE_DICT['award_procurement'], JOB_STATUS_DICT['finished'],
                                 JOB_TYPE_DICT['file_upload'], submission.submission_id)
