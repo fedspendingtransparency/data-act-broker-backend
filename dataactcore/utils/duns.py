@@ -272,31 +272,3 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
         if benchmarks:
             logger.info("Parsing {} took {} seconds with {} rows".format(dat_file_name, time.time()-parse_start_time,
                                                                          added_rows))
-
-
-def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False, benchmarks=False, table=DUNS,
-                     year=None):
-    """ Process the SAM file found locally or remotely
-
-        Args:
-            root_dir: the folder containing the SAM file
-            file_name: the name of the SAM file
-            sess: the database connection
-            local: whether it's local or not
-            sftp: the sftp client to pull the CSV from
-            monthly: whether it's a monthly file
-            benchmarks: whether to log times
-            table: the table to work from (could be DUNS/HistoricParentDuns)
-            year: the year associated with the data (primarily for  HistoricParentDUNS loads)
-    """
-    file_path = os.path.join(root_dir, file_name)
-    if not local:
-        if sftp.sock.closed:
-            # Reconnect if channel is closed
-            sftp = sftp.open_sftp()
-        logger.info("Pulling {}".format(file_name))
-        with open(file_path, "wb") as zip_file:
-            sftp.getfo(''.join([REMOTE_SAM_DIR, '/', file_name]), zip_file)
-    parse_sam_file(file_path, sess, monthly=monthly, benchmarks=benchmarks, table=table, year=year)
-    if not local:
-        os.remove(file_path)
