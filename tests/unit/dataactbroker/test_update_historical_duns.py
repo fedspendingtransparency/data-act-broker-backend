@@ -5,11 +5,12 @@ from dataactcore.config import CONFIG_BROKER
 from dataactbroker.scripts import update_historical_duns
 from dataactcore.models.domainModels import DUNS
 
+
 def test_remove_existing_duns(database):
     sess = database.session
-    all_duns = ['00000000{}'.format(x) for x in range(0,10)]
-    existing_duns = all_duns[:4]
-    data = pd.DataFrame.from_dict({'awardee_or_recipient_uniqu':all_duns})
+    all_duns = ['00000000{}'.format(x) for x in range(0, 10)]
+    existing_duns = all_duns[: 4]
+    data = pd.DataFrame.from_dict({'awardee_or_recipient_uniqu': all_duns})
     for duns in existing_duns:
         sess.add(DUNS(awardee_or_recipient_uniqu=duns))
     sess.commit()
@@ -17,6 +18,7 @@ def test_remove_existing_duns(database):
     expected_duns = list(set(existing_duns) ^ set(all_duns))
     new_df = update_historical_duns.remove_existing_duns(data, sess)
     assert sorted(expected_duns) == sorted(new_df['awardee_or_recipient_uniqu'].tolist())
+
 
 def test_clean_duns_csv_data():
     dirty_data = {
@@ -64,8 +66,8 @@ def test_clean_duns_csv_data():
 
 def test_batch():
     """ Testing the batch function into chunks of 100"""
-    full_list = list(range(0,1000))
-    initial_batch = list(range(0,100))
+    full_list = list(range(0, 1000))
+    initial_batch = list(range(0, 100))
     iteration = 0
     batch_size = 100
     for batch in update_historical_duns.batch(full_list, batch_size):
@@ -73,6 +75,7 @@ def test_batch():
         assert expected_batch == batch
         iteration += 1
     assert iteration == 10
+
 
 def mock_test(client, duns_list):
     columns = ['awardee_or_recipient_uniqu'] + list(update_historical_duns.props_columns.keys())
@@ -108,6 +111,7 @@ def mock_test(client, duns_list):
             results = results.append(pd.DataFrame(duns_mappings[duns]))
     return results
 
+
 def test_update_duns_props(monkeypatch):
     monkeypatch.setattr('dataactcore.utils.parentDuns.get_location_business_from_sam',
                         mock_test)
@@ -128,7 +132,9 @@ def test_update_duns_props(monkeypatch):
         'business_types_codes': [['A', 'B', 'C'], ['D', 'E', 'F'], []]
     })
 
-    assert expected_df.sort_index(inplace=True) == update_historical_duns.update_duns_props(duns_df, None).sort_index(inplace=True)
+    assert expected_df.sort_index(inplace=True) == update_historical_duns.update_duns_props(duns_df, None)\
+        .sort_index(inplace=True)
+
 
 def test_update_duns_props_empty(monkeypatch):
     monkeypatch.setattr('dataactcore.utils.parentDuns.get_location_business_from_sam',
@@ -152,11 +158,12 @@ def test_update_duns_props_empty(monkeypatch):
 
     assert expected_df.to_dict() == update_historical_duns.update_duns_props(duns_df, None).to_dict()
 
+
 def test_run_duns_batches(database, monkeypatch):
     monkeypatch.setattr('dataactcore.utils.parentDuns.get_location_business_from_sam',
                         mock_test)
     sess = database.session
-    all_duns = ['00000000{}'.format(x) for x in range(1,5)]
+    all_duns = ['00000000{}'.format(x) for x in range(1, 5)]
     existing_duns = all_duns[2:]
     for duns in existing_duns:
         sess.add(DUNS(awardee_or_recipient_uniqu=duns))
