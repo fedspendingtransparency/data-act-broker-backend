@@ -142,7 +142,7 @@
 ## FABS Submission Process
 
 ### Upload FABS File
-- Step 1: Call `/v1/upload_detached_file/` (POST)
+- Step 1: Call `/v1/upload_detached_file/` (POST) 
     - Header:
         - `X-Session-ID`: string, session token id
         - `Content-Type`: "multipart/form-data"
@@ -157,18 +157,10 @@
     - Response:
         - `success`: boolean indicating whether the file went through
         - `submission_id`: int, ID of the submission that was created
-
-    - Example cUrl request:
-        curl -i -X POST /
-            -H "x-session-id: abcdefg-1234567-hijklmno-89101112"
-            -H "Content-Type: multipart/form-data"
-            -F 'agency_code=2000'
-            -F "fabs=@/local/path/to/fabs.csv"
-        /v1/upload_detached_file/
-
+- For details on its use, click [here](./dataactbroker/README.md#post-v1upload_detached_file)
 
 ### Validate FABS File
-- Validations are automatically started by `finalize_job`
+- Validations are automatically started once the upload completes.
 - Check status of validations using `/v1/check_status/`. For details on its use, click [here](./dataactbroker/README.md#get-v1check_status)
 - Continue polling with `check_status` until the `fabs` key has a `status` of `finished` or `failed`.
     - **NOTE**: If it has a status of `ready` that means it was never started.
