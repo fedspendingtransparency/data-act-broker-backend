@@ -410,6 +410,7 @@ Possible HTTP Status Codes:
 - 400:
     - Missing `submission_id` parameter
     - Submission does not exist
+- 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
 
@@ -520,6 +521,7 @@ Possible HTTP Status Codes:
     - Missing `submission_id` parameter
     - Submission does not exist
     - Invalid type parameter
+- 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
 
@@ -527,7 +529,6 @@ Possible HTTP Status Codes:
 This endpoint returns the status of each file type, including whether each has errors or warnings and a message if one exists.
 
 ##### Sample Request
-
 `/v1/check_status/?submission_id=123&type=appropriations`
 
 ##### Request Params
@@ -578,6 +579,7 @@ Possible HTTP Status Codes:
     - Missing `submission_id` parameter
     - Submission does not exist
     - Invalid type parameter
+- 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
 
@@ -604,10 +606,9 @@ Example output if there are no files available:
 ```
 
 #### GET "/v1/get\_obligations/"
-Get total obligations and specific obligations. Calls to this route should include the key "submission_id" to specify which submission we are calculating obligations from.
+This endpoint gets total obligations and specific obligations.
 
 ##### Sample Request
-
 `/v1/get_obligations/?submission_id=123`
 
 ##### Request Params
@@ -624,7 +625,6 @@ Get total obligations and specific obligations. Calls to this route should inclu
 ```
 
 ##### Reponse Attributes
-The contents of each attribute are an object containing the following keys:
 - `total_obligations` - value representing the total obligations for the requested submission
 - `total_procurement_obligations` - value representing the total procurement obligations for the requested submission
 - `total_assistance_obligations` - value representing the total assistance obligations for the requested submission
@@ -635,15 +635,18 @@ Possible HTTP Status Codes:
 - 400:
     - Missing `submission_id` parameter
     - Submission does not exist
-    - Invalid type parameter
+- 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
 
 #### GET "/v1/submission/\<int:submission\_id\>/narrative"
-Retrieve existing submission narratives (explanations/notes for particular
-files). Submission id should be the integer id associated with the submission
-in question. Users must have appropriate permissions to access these
-narratives (write access for the agency of the submission or SYS).
+This endpoint retrieves existing submission narratives (explanations/notes for particular files).
+
+##### Sample Request
+`/v1/submission/123/narrative`
+
+##### Request Params
+- `submission_id` - **required** - an integer representing the ID of the submission to get obligations for. This is found within the url itself, not at the end as an explicit param.
 
 ##### Response (JSON)
 
@@ -656,14 +659,29 @@ narratives (write access for the agency of the submission or SYS).
   "D2": "",
   "E": "",
   "F": "",
+  "FABS": ""
 }
 ```
 
+##### Reponse Attributes
+- `A` - narrative for file A (Appropriations)
+- `B` - narrative for file B (Program Activity)
+- `C` - narrative for file C (Award Financial)
+- `D1` - narrative for file D1 (Award Procurement)
+- `D2` - narrative for file D2 (Award Financial Assistance)
+- `E` - narrative for file E (Executive Compensation)
+- `F` - narrative for file F (Sub Award)
+- `FABS` - narrative for FABS file (FABS) (should not be used, does not apply to DABS submissions)
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400: Submission does not exist
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
 #### POST "/v1/submission/\<int:submission\_id\>/narrative"
-Set the file narratives for a given submission. The input should mirror the
-above output, i.e. an object keyed by file types mapping to strings. Keys may
-be absent. Unexpected keys will be ignored. Users must have appropriate
-permissions (write access for the agency of the submission or SYS).
+This endpoint sets the file narratives for a given submission.
 
 ##### Body (JSON)
 
@@ -677,14 +695,38 @@ permissions (write access for the agency of the submission or SYS).
 }
 ```
 
+##### Body Description
+All content passed in the body is updated in the database. If an attribute is left out, it will be treated as if it's an empty string.
+
+**Important:** All narratives must be included every time in order to be kept. An attribute with an empty string will result in that narrative being deleted. (e.g. A narrative for file A already exists. A narrative for file B is being added. Narratives for both files A and B must be sent).
+
+- `A` - narrative for file A (Appropriations)
+- `B` - narrative for file B (Program Activity)
+- `C` - narrative for file C (Award Financial)
+- `D1` - narrative for file D1 (Award Procurement)
+- `D2` - narrative for file D2 (Award Financial Assistance)
+- `E` - narrative for file E (Executive Compensation)
+- `F` - narrative for file F (Sub Award)
+- `FABS` - narrative for FABS file (FABS) (should not be used, does not apply to DABS submissions)
+
 ##### Response (JSON)
 
 ```
 {}
 ```
 
+##### Response Attributes
+N/A
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400: Submission does not exist
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
 #### GET "/v1/submission/\<int:submission\_id\>/report\_url"
-This route requests the URL associated with a particular type of submission report. The provided URL will expire after roughly half an hour.
+This endpoint requests the URL associated with a particular type of submission report. The provided URL will expire after roughly half an hour.
 
 ##### Sample Request
 `/v1/submission/<int:submission_id>/report_url?warning=True&file_type=appropriations&cross_type=award_financial`
@@ -700,7 +742,12 @@ This route requests the URL associated with a particular type of submission repo
     - `award` - D2
     - `executive_compensation` - E
     - `sub_award` - F
-- `cross_type` - **optional** - if present, indicates that we're looking for a cross-validation report between `file_type` and this parameter. It accepts the same values as `file_type`
+    - `fabs` - FABS
+- `cross_type` - **optional** - if present, indicates that we're looking for a cross-validation report between `file_type` and this parameter. The following are the only valid pairings, all other combinations of `file_type` and `cross_type` will result in invalid urls:
+    - `file_type`: "appropriations", `cross_type`: "program\_activity"
+    - `file_type`: "program\_activity", `cross_type`: "award\_financial"
+    - `file_type`: "award\_financial", `cross_type`: "award\_procurement"
+    - `file_type`: "award\_financial", `cross_type`: "award" 
 
 ##### Response (JSON)
 
@@ -719,8 +766,8 @@ Possible HTTP Status Codes:
 - 400:
     - Missing `submission_id` or `file_type` parameter
     - Submission does not exist
-    - Invalid `file_type` or `cross_type`
-    - Invalid type parameter
+    - Invalid `file_type`, `cross_type`, or `warning` parameter
+- 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
 
@@ -755,7 +802,10 @@ This endpoint returns the signed url for the uploaded/generated file of the requ
 ##### Errors
 Possible HTTP Status Codes:
 
-- 400: No such submission, invalid file type (overall or for the submission specifically), missing parameter
+- 400:
+    - No such submission
+    - Invalid file type (overall or for the submission specifically)
+    - Missing parameter
 - 401: Login required
 - 403: Do not have permission to access that submission
 
@@ -1102,13 +1152,9 @@ Example output:
 
 ## Generate Files
 ### POST "/v1/generate\_file"
-
 This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted. This route is used for file generation **within** a submission.
 
-**Deprecation Notice:** This route replaces `/v1/generate_d1_file` and `/v1/generate_d2_file`.
-
 #### Sample Request Body (JSON)
-
 ```
 {
     "submission_id": 123,
@@ -1170,7 +1216,9 @@ Response will be the same format as those returned from `/v1/check_generation_st
 #### Errors
 Possible HTTP Status Codes not covered by `check_generation_status` documentation:
 
-- 400: Start and end date not formatted properly
+- 400:
+    - Missing cgac or frec code
+    - Missing start or end date
 
 
 ## File Status
@@ -1179,11 +1227,9 @@ Possible HTTP Status Codes not covered by `check_generation_status` documentatio
 This route returns either a signed S3 URL to the generated file or, if the file is not yet ready or have failed to generate for other reasons, returns a status indicating that. This route is used for file generation **within** a submission.
 
 #### Sample Request
-
 `/v1/check_generation_status/?submission_id=123&file_type=D1`
 
 #### Request Params
-
 - `submission_id` - An integer representing the ID of the current submission
 - `file_type` - **required** - a string indicating the file type whose status we are checking. Allowable values are:
     - `D1` - generate a D1 file
@@ -1207,7 +1253,6 @@ This route returns either a signed S3 URL to the generated file or, if the file 
 ```
 
 #### Response Attributes
-
 The response is an object that represents that file's state.
 
 - `job_id` - an integer, job ID of the generation job in question
@@ -1234,6 +1279,7 @@ Possible HTTP Status Codes:
     - Missing `submission_id` parameter
     - Submission does not exist
     - Invalid `file_type` parameter
+- 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
 
@@ -1242,11 +1288,9 @@ Possible HTTP Status Codes:
 This route returns either a signed S3 URL to the generated file or, if the file is not yet ready or have failed to generate for other reasons, returns a status indicating that. This route is used for file generation **independent** from a submission.
 
 #### Sample Request (JSON)
-
 `/v1/check_detached_generation_status/job_id=1`
 
 ### Request Params
-
 - `job_id` - **required** - an integer corresponding the job_id for the generation. Provided in the response of the call to `generate_detached_file`
 
 #### Response (JSON)
