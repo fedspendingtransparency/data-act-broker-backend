@@ -173,6 +173,34 @@ class DetachedUploadTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "fabs: Missing data for required field.")
 
+
+    def test_upload_detached_file_missing_parameters(self):
+        self.login_user(username=self.agency_user_email)
+        update_submission_json = {
+            "is_quarter": True,
+            "reporting_period_start_date": "10/2015",
+            "reporting_period_end_date": "12/2015"}
+        response = self.app.post_json("/v1/upload_detached_file/", update_submission_json,
+                                      upload_files=[('fabs', 'fabs.csv',
+                                                     open('tests/integration/data/fabs.csv', 'rb').read())],
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'Missing required parameter: agency_code or existing_submission_id')
+
+    def test_upload_detached_file_incorrect_parameters(self):
+        self.login_user(username=self.agency_user_email)
+        update_submission_json = {
+            "existing_submission_id": "-99",
+            "is_quarter": True,
+            "reporting_period_start_date": "10/2015",
+            "reporting_period_end_date": "12/2015"}
+        response = self.app.post_json("/v1/upload_detached_file/", update_submission_json,
+                                      upload_files=[('fabs', 'fabs.csv',
+                                                     open('tests/integration/data/fabs.csv', 'rb').read())],
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'existing_submission_id must be a valid submission_id')
+
     @staticmethod
     def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
                           is_quarter=False, publish_status_id=1, d2_submission=True):
