@@ -156,7 +156,7 @@ class DetachedUploadTests(BaseTestAPI):
         resp = self.app.post("/v1/upload_detached_file/",
                              {"agency_code": "WRONG"},
                              upload_files=[('fabs', 'fabs.csv',
-                                    open('tests/integration/data/fabs.csv', 'rb').read())],
+                                            open('tests/integration/data/fabs.csv', 'rb').read())],
                              headers={"x-session-id": self.session_id})
         self.assertEqual(resp.status_code, 200)
         self.assertIn("submission_id", resp.json)
@@ -166,13 +166,12 @@ class DetachedUploadTests(BaseTestAPI):
             "agency_code": "WRONG",
             "is_quarter": False}
         response = self.app.post("/v1/upload_detached_file/", new_submission_json,
-                                upload_files=[('not_fabs', 'not_fabs.csv',
-                                    open('tests/integration/data/fabs.csv', 'rb').read())],
-                                headers={"x-session-id": self.session_id},
-                                expect_errors=True)
+                                 upload_files=[('not_fabs', 'not_fabs.csv',
+                                               open('tests/integration/data/fabs.csv', 'rb').read())],
+                                 headers={"x-session-id": self.session_id},
+                                 expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "fabs: Missing data for required field.")
-
 
     @staticmethod
     def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
