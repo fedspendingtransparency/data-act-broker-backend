@@ -294,7 +294,7 @@ Example output:
 }
 ```
 
-### POST "/v1/upload_detached_file/"
+#### POST "/v1/upload_detached_file/"
 A call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the value of the "fabs" key, to indicate the local path to the file to be uploaded.
 
 This route will upload the file, then kick off the validation jobs. It will return the submission id, which can be used for the `/v1/check_status/` route to poll for validation completion. 
