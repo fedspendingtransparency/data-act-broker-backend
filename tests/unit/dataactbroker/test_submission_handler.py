@@ -9,8 +9,8 @@ from dataactbroker.handlers import fileHandler
 from dataactbroker.handlers.submission_handler import (certify_dabs_submission, get_submission_metadata,
                                                        get_revalidation_threshold, get_submission_data)
 
-from dataactcore.models.lookups import PUBLISH_STATUS_DICT
-from dataactcore.models.jobModels import CertifyHistory, FileType, JobStatus, JobType
+from dataactcore.models.lookups import PUBLISH_STATUS_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
+from dataactcore.models.jobModels import CertifyHistory
 
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import (SubmissionFactory, JobFactory, CertifyHistoryFactory,
@@ -36,17 +36,11 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
                             number_of_warnings=200)
     # Job for submission
     job = JobFactory(submission_id=sub.submission_id, last_validated=now_plus_10,
-                     job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                     job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-                     file_type=sess.query(FileType).filter_by(name='appropriations').one(),
-                     number_of_rows=3,
-                     file_size=7655)
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], job_status_id=JOB_STATUS_DICT['finished'],
+                     file_type_id=FILE_TYPE_DICT['appropriations'], number_of_rows=3, file_size=7655)
     job_2 = JobFactory(submission_id=sub.submission_id, last_validated=now_plus_10,
-                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-                       file_type=sess.query(FileType).filter_by(name='program_activity').one(),
-                       number_of_rows=7,
-                       file_size=12345)
+                       job_type_id=JOB_TYPE_DICT['csv_record_validation'], job_status_id=JOB_STATUS_DICT['finished'],
+                       file_type_id=FILE_TYPE_DICT['program_activity'], number_of_rows=7, file_size=12345)
 
     sess.add_all([cgac, frec_cgac, frec, sub, job, job_2])
     sess.commit()
@@ -276,46 +270,21 @@ def test_get_submission_data_dabs(database):
     sub_2 = SubmissionFactory(submission_id=2, d2_submission=False)
 
     # Job for submission
-    job = JobFactory(job_id=1,
-                     submission_id=sub.submission_id,
-                     job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                     job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-                     file_type=sess.query(FileType).filter_by(name='appropriations').one(),
-                     number_of_rows=3,
-                     file_size=7655,
-                     original_filename='file_1')
-    job_2 = JobFactory(job_id=2,
-                       submission_id=sub.submission_id,
-                       job_type=sess.query(JobType).filter_by(name='file_upload').one(),
-                       job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-                       file_type=sess.query(FileType).filter_by(name='program_activity').one(),
-                       number_of_rows=None,
-                       file_size=None,
-                       original_filename='file_2')
-    job_3 = JobFactory(job_id=3,
-                       submission_id=sub.submission_id,
-                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                       job_status=sess.query(JobStatus).filter_by(name='running').one(),
-                       file_type=sess.query(FileType).filter_by(name='program_activity').one(),
-                       number_of_rows=7,
-                       file_size=12345,
-                       original_filename='file_2')
-    job_4 = JobFactory(job_id=4,
-                       submission_id=sub.submission_id,
-                       job_type=sess.query(JobType).filter_by(name='validation').one(),
-                       job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
-                       file_type=None,
-                       number_of_rows=None,
-                       file_size=None,
-                       original_filename=None)
-    job_5 = JobFactory(job_id=5,
-                       submission_id=sub_2.submission_id,
-                       job_type=sess.query(JobType).filter_by(name='validation').one(),
-                       job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
-                       file_type=None,
-                       number_of_rows=None,
-                       file_size=None,
-                       original_filename=None)
+    job = JobFactory(job_id=1, submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                     job_status_id=JOB_STATUS_DICT['finished'], file_type_id=FILE_TYPE_DICT['appropriations'],
+                     number_of_rows=3, file_size=7655, original_filename='file_1')
+    job_2 = JobFactory(job_id=2, submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['file_upload'],
+                       job_status_id=JOB_STATUS_DICT['finished'], file_type_id=FILE_TYPE_DICT['program_activity'],
+                       number_of_rows=None, file_size=None, original_filename='file_2')
+    job_3 = JobFactory(job_id=3, submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                       job_status_id=JOB_STATUS_DICT['running'], file_type_id=FILE_TYPE_DICT['program_activity'],
+                       number_of_rows=7, file_size=12345, original_filename='file_2')
+    job_4 = JobFactory(job_id=4, submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'],
+                       job_status_id=JOB_STATUS_DICT['waiting'], file_type_id=None, number_of_rows=None,
+                       file_size=None, original_filename=None)
+    job_5 = JobFactory(job_id=5, submission_id=sub_2.submission_id, job_type_id=JOB_TYPE_DICT['validation'],
+                       job_status_id=JOB_STATUS_DICT['waiting'], file_type_id=None, number_of_rows=None,
+                       file_size=None, original_filename=None)
 
     sess.add_all([cgac, sub, sub_2, job, job_2, job_3, job_4, job_5])
     sess.commit()
