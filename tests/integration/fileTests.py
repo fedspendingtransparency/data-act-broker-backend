@@ -388,8 +388,8 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'existing_submission_id must be a valid submission_id')
 
-    def test_api_bad_quarter_or_month(self):
-        """ Test file submissions for Q5, 13, and AB, and year of ABCD """
+    def test_api_bad_quarter(self):
+        """ Test file submissions for Q5 """
         update_json = {
             "cgac_code": "020",
             "is_quarter": True,
@@ -401,6 +401,8 @@ class FileTests(BaseTestAPI):
         self.assertEqual(update_response.status_code, 400)
         self.assertIn("Date must be provided as", update_response.json["message"])
 
+    def test_api_bad_month(self):
+        """ Test file submissions for alphabet months """
         update_json = {
             # make sure date checks work as expected for an existing submission
             "existing_submission_id": self.status_check_submission_id,
@@ -412,6 +414,8 @@ class FileTests(BaseTestAPI):
         self.assertEqual(update_response.status_code, 400)
         self.assertIn("Date must be provided as", update_response.json["message"])
 
+    def test_api_bad_year(self):
+        """ Test file submissions for alphabet year """
         update_json = {
             "cgac_code": "020",
             "is_quarter": True,
