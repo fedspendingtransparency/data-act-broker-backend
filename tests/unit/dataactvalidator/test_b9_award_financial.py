@@ -28,7 +28,7 @@ def test_success(database):
     af_2 = AwardFinancialFactory(row_number=2, agency_identifier='test', submission_id=1,  main_account_code='test',
                                  program_activity_name='test', program_activity_code='test')
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY2017Q1', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY17Q1', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=3,
@@ -45,7 +45,7 @@ def test_success_null(database):
     af = AwardFinancialFactory(row_number=1, agency_identifier='test', main_account_code='test',
                                program_activity_name=None, program_activity_code=None)
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY2017Q2', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY17Q2', agency_id='test', allocation_transfer_id='test',
                                 account_number='test')
 
     assert number_of_errors(_FILE, database, models=[af, pa]) == 0
@@ -59,7 +59,7 @@ def test_success_fiscal_year_quarter(database):
     af = AwardFinancialFactory(row_number=1, submission_id=1, agency_identifier='test',
                                main_account_code='test', program_activity_name='test', program_activity_code='test')
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY2016Q1', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY16Q1', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2016', reporting_fiscal_period=3,
@@ -80,7 +80,7 @@ def test_failure_fiscal_year_quarter(database):
     pa_1 = ProgramActivityFactory(fiscal_year_quarter='FQY', agency_id='test', allocation_transfer_id='test',
                                   account_number='test', program_activity_name='test', program_activity_code='test')
 
-    pa_2 = ProgramActivityFactory(fiscal_year_quarter='FY2016Q1', agency_id='test2', allocation_transfer_id='test2',
+    pa_2 = ProgramActivityFactory(fiscal_year_quarter='FY16Q1', agency_id='test2', allocation_transfer_id='test2',
                                   account_number='test2', program_activity_name='test2', program_activity_code='test2')
 
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2016', reporting_fiscal_period=3,
@@ -97,7 +97,7 @@ def test_success_ignore_recertification(database):
     af = AwardFinancialFactory(row_number=1, submission_id=1, agency_identifier='test',
                                main_account_code='test', program_activity_name='test', program_activity_code='test')
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY2017Q3', agency_id='test2', allocation_transfer_id='test2',
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY17Q3', agency_id='test2', allocation_transfer_id='test2',
                                 account_number='test2', program_activity_name='test2', program_activity_code='test2')
 
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=9,
@@ -114,7 +114,7 @@ def test_failure_recertification(database):
     af = AwardFinancialFactory(row_number=1, submission_id=1, agency_identifier='test',
                                main_account_code='test', program_activity_name='test', program_activity_code='test')
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY2017Q3', agency_id='test2', allocation_transfer_id='test2',
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY17Q3', agency_id='test2', allocation_transfer_id='test2',
                                 account_number='test2', program_activity_name='test2', program_activity_code='test2')
 
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=9,
@@ -131,7 +131,7 @@ def test_success_ignore_case(database):
     af = AwardFinancialFactory(row_number=1, submission_id=1, agency_identifier='test', main_account_code='test',
                                program_activity_name='TEST', program_activity_code='test')
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY2016Q4', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY16Q4', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2016', reporting_fiscal_period=12,
@@ -155,7 +155,7 @@ def test_failure_program_activity_name(database):
                                  main_account_code='test', program_activity_name='test_wrong',
                                  program_activity_code='0000')
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY2015Q5', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY15Q5', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2015', reporting_fiscal_period=15,
@@ -176,7 +176,7 @@ def test_failure_program_activity_code(database):
     af_2 = AwardFinancialFactory(row_number=1, submission_id=1, agency_identifier='test', main_account_code='test',
                                  program_activity_name='Unknown/Other', program_activity_code='12345')
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY2016Q4', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY16Q4', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2016', reporting_fiscal_period=12,

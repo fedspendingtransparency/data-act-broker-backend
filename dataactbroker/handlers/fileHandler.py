@@ -1267,7 +1267,7 @@ def narratives_for_submission(submission):
             JsonResponse object with the contents of the narratives in a key/value pair of letter/narrative
     """
     sess = GlobalDB.db().session
-    result = {letter: '' for letter in FILE_TYPE_DICT_LETTER.values()}
+    result = {letter: '' for letter in FILE_TYPE_DICT_LETTER.values() if letter != 'FABS'}
     narratives = sess.query(SubmissionNarrative).filter_by(submission_id=submission.submission_id)
     for narrative in narratives:
         letter = FILE_TYPE_DICT_LETTER[narrative.file_type_id]
@@ -1294,7 +1294,7 @@ def update_narratives(submission, narrative_request):
 
     narratives = []
     for file_type_id, letter in FILE_TYPE_DICT_LETTER.items():
-        if letter in narratives_json:
+        if letter in narratives_json and letter != 'FABS':
             narratives.append(SubmissionNarrative(
                 submission_id=submission.submission_id,
                 file_type_id=file_type_id,

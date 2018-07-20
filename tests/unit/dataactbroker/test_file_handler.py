@@ -246,7 +246,7 @@ def test_narratives(database):
     database.session.commit()
 
     # Write some narratives
-    result = fileHandler.update_narratives(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE'})
+    result = fileHandler.update_narratives(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE', 'FABS': 'This wont show up'})
     assert result.status_code == 200
     result = fileHandler.update_narratives(sub2, {'A': 'Submission2'})
     assert result.status_code == 200
@@ -261,8 +261,7 @@ def test_narratives(database):
         'D1': '',
         'D2': '',
         'E': 'EEEEEE',
-        'F': '',
-        'FABS': ''
+        'F': ''
     }
 
     # Replace the narratives
@@ -279,8 +278,7 @@ def test_narratives(database):
         'D1': '',
         'D2': '',
         'E': 'E2E2E2',
-        'F': '',
-        'FABS': ''
+        'F': ''
     }
 
 good_dates = [
