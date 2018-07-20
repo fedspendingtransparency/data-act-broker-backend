@@ -275,10 +275,11 @@ class FileHandler:
                             g.user = current_user
                             self.finalize(response_dict[file_type + "_id"])
                 for file_type, file_ref in request_params["_files"].items():
-                    t = threading.Thread(target=upload, args=(file_ref, file_type, current_app._get_current_object(), g.user))
+                    t = threading.Thread(target=upload, args=(file_ref, file_type,
+                                                              current_app._get_current_object(), g.user))
                     t.start()
                     t.join()
-                api_response = {"success":"true", "submission_id": submission.submission_id}
+                api_response = {"success": "true", "submission_id": submission.submission_id}
                 return JsonResponse.create(StatusCode.OK, api_response)
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:

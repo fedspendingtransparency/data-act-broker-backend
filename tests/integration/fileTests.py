@@ -23,6 +23,13 @@ from sqlalchemy import or_
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.integration.baseTestAPI import BaseTestAPI
 
+AWARD_FILE_T = ('award_financial', 'award_financial.csv',
+                open('tests/integration/data/awardFinancialValid.csv', 'rb').read())
+APPROP_FILE_T = ('appropriations', 'appropriations.csv',
+                 open('tests/integration/data/appropValid.csv', 'rb').read())
+PA_FILE_T = ('program_activity', 'program_activity.csv',
+             open('tests/integration/data/programActivityValid.csv', 'rb').read())
+
 
 class FileTests(BaseTestAPI):
     """Test file submission routes."""
@@ -389,8 +396,7 @@ class FileTests(BaseTestAPI):
             "reporting_period_start_date": "12/2016",
             "reporting_period_end_date": "13/2016"}
         update_response = self.app.post("/v1/submit_files/", update_json,
-                                        upload_files=[('award_financial', 'updated.csv',
-                                                       open('tests/integration/data/awardFinancialValid.csv', 'rb').read())],
+                                        upload_files=[AWARD_FILE_T],
                                         headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(update_response.status_code, 400)
         self.assertIn("Date must be provided as", update_response.json["message"])
@@ -401,9 +407,8 @@ class FileTests(BaseTestAPI):
             "reporting_period_start_date": "AB/2016",
             "reporting_period_end_date": "CD/2016"}
         update_response = self.app.post("/v1/submit_files/", update_json,
-                                             upload_files=[('award_financial', 'updated.csv',
-                                                            open('tests/integration/data/awardFinancialValid.csv', 'rb').read())],
-                                             headers={"x-session-id": self.session_id}, expect_errors=True)
+                                        upload_files=[AWARD_FILE_T],
+                                        headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(update_response.status_code, 400)
         self.assertIn("Date must be provided as", update_response.json["message"])
 
@@ -413,9 +418,8 @@ class FileTests(BaseTestAPI):
             "reporting_period_start_date": "Q1/ABCD",
             "reporting_period_end_date": "Q2/2016"}
         update_response = self.app.post("/v1/submit_files/", update_json,
-                                             upload_files=[('award_financial', 'updated.csv',
-                                                            open('tests/integration/data/awardFinancialValid.csv', 'rb').read())],
-                                             headers={"x-session-id": self.session_id}, expect_errors=True)
+                                        upload_files=[AWARD_FILE_T],
+                                        headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(update_response.status_code, 400)
         self.assertIn("Date must be provided as", update_response.json["message"])
 
@@ -427,14 +431,8 @@ class FileTests(BaseTestAPI):
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
         response = self.app.post("/v1/submit_files/", update_json,
-                                      upload_files=[('award_financial', 'award_financial.csv',
-                                                     open('tests/integration/data/awardFinancialValid.csv', 'rb').read()),
-                                                    ('appropriations', 'appropriations.csv',
-                                                     open('tests/integration/data/appropValid.csv', 'rb').read()),
-                                                    ('program_activity', 'program_activity.csv',
-                                                     open('tests/integration/data/programActivityValid.csv', 'rb').read())
-                                                    ],
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.json['message'], "A submission with the same period already exists.")
 
     def test_api_submit_file_fabs_dabs_route(self):
@@ -442,18 +440,11 @@ class FileTests(BaseTestAPI):
         update_json = {
             "existing_submission_id": self.test_fabs_submission_id,
             "is_quarter": True,
-            
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
         response = self.app.post("/v1/submit_files/", update_json,
-                                      upload_files=[('award_financial', 'award_financial.csv',
-                                                     open('tests/integration/data/awardFinancialValid.csv', 'rb').read()),
-                                                    ('appropriations', 'appropriations.csv',
-                                                     open('tests/integration/data/appropValid.csv', 'rb').read()),
-                                                    ('program_activity', 'program_activity.csv',
-                                                     open('tests/integration/data/programActivityValid.csv', 'rb').read())
-                                                    ],
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "Existing submission must be a DABS submission")
 
@@ -465,12 +456,8 @@ class FileTests(BaseTestAPI):
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
         response = self.app.post("/v1/submit_files/", update_json,
-                                      upload_files=[('award_financial', 'award_financial.csv',
-                                                     open('tests/integration/data/awardFinancialValid.csv', 'rb').read()),
-                                                    ('appropriations', 'appropriations.csv',
-                                                     open('tests/integration/data/appropValid.csv', 'rb').read())
-                                                    ],
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "Must include all files for a new submission")
 
@@ -482,7 +469,7 @@ class FileTests(BaseTestAPI):
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
         response = self.app.post("/v1/submit_files/", update_json,
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "Must include at least one file for an existing submission")
 
@@ -495,14 +482,8 @@ class FileTests(BaseTestAPI):
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
         response = self.app.post("/v1/submit_files/", new_submission_json,
-                                      upload_files=[('award_financial', 'award_financial.csv',
-                                                     open('tests/integration/data/awardFinancialValid.csv', 'rb').read()),
-                                                    ('appropriations', 'appropriations.csv',
-                                                     open('tests/integration/data/appropValid.csv', 'rb').read()),
-                                                    ('program_activity', 'program_activity.csv',
-                                                     open('tests/integration/data/programActivityValid.csv', 'rb').read())
-                                                    ],
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json['message'], "User does not have permissions to write to that agency")
 
@@ -514,14 +495,8 @@ class FileTests(BaseTestAPI):
             "reporting_period_start_date": "10/2015",
             "reporting_period_end_date": "12/2015"}
         response = self.app.post("/v1/submit_files/", update_submission_json,
-                                      upload_files=[('award_financial', 'award_financial.csv',
-                                                     open('tests/integration/data/awardFinancialValid.csv', 'rb').read()),
-                                                    ('appropriations', 'appropriations.csv',
-                                                     open('tests/integration/data/appropValid.csv', 'rb').read()),
-                                                    ('program_activity', 'program_activity.csv',
-                                                     open('tests/integration/data/programActivityValid.csv', 'rb').read())
-                                                    ],
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 200)
 
     def test_api_submit_file_missing_parameters(self):
@@ -531,14 +506,8 @@ class FileTests(BaseTestAPI):
             "reporting_period_start_date": "10/2015",
             "reporting_period_end_date": "12/2015"}
         response = self.app.post("/v1/submit_files/", update_submission_json,
-                                      upload_files=[('award_financial', 'award_financial.csv',
-                                                     open('tests/integration/data/awardFinancialValid.csv', 'rb').read()),
-                                                    ('appropriations', 'appropriations.csv',
-                                                     open('tests/integration/data/appropValid.csv', 'rb').read()),
-                                                    ('program_activity', 'program_activity.csv',
-                                                     open('tests/integration/data/programActivityValid.csv', 'rb').read())
-                                                    ],
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'],
                          "Missing required parameter: cgac_code, frec_code, or existing_submission_id")
@@ -551,14 +520,8 @@ class FileTests(BaseTestAPI):
             "reporting_period_start_date": "10/2015",
             "reporting_period_end_date": "12/2015"}
         response = self.app.post("/v1/submit_files/", update_submission_json,
-                                      upload_files=[('award_financial', 'award_financial.csv',
-                                                     open('tests/integration/data/awardFinancialValid.csv', 'rb').read()),
-                                                    ('appropriations', 'appropriations.csv',
-                                                     open('tests/integration/data/appropValid.csv', 'rb').read()),
-                                                    ('program_activity', 'program_activity.csv',
-                                                     open('tests/integration/data/programActivityValid.csv', 'rb').read())
-                                                    ],
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'existing_submission_id must be a valid submission_id')
 
