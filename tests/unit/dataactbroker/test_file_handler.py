@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 import json
 import os.path
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 
 import pytest
 
@@ -409,7 +409,8 @@ def test_build_file_map_string(monkeypatch):
     upload_files = []
     response_dict = {}
     file_type_list = ["fabs"]
-    file_dict = {"fabs":"fabs_file.csv"}
+    file_dict = {"fabs": "fabs_file.csv"}
+
     def side_effect(filename):
         return "123_"+filename
     s3_url_handler = Mock()
