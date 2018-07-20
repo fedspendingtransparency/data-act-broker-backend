@@ -127,7 +127,7 @@ class FileHandler:
 
             if 'existing_submission_id' in submission_request:
                 submissions.filter(Submission.submission_id !=
-                                   submission_request.json['existing_submission_id'])
+                                   submission_request['existing_submission_id'])
 
             submissions = submissions.order_by(desc(Submission.created_at))
 
@@ -157,7 +157,7 @@ class FileHandler:
         for file_type in FileHandler.FILE_TYPES:
             if request_params.get(file_type):
                 param_count += 1
-            elif request_params['_files'].get(file_type):
+            elif "_files" in request_params and request_params['_files'].get(file_type):
                 param_count += 1
                 api_triggered = True
 
