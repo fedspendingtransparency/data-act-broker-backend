@@ -9,7 +9,7 @@ import sqlalchemy as sa
 from collections import namedtuple
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from flask import g, request
+from flask import g, request, current_app
 from shutil import copyfile
 from sqlalchemy import func, and_, desc, or_
 from sqlalchemy.orm import aliased
@@ -264,19 +264,22 @@ class FileHandler:
             if api_triggered:
                 import threading
 
-                def upload(file_ref, file_type):
+                def upload(file_ref, file_type, app, current_user):
                     if CONFIG_BROKER['use_aws']:
                         s3 = boto3.client('s3', region_name='us-gov-west-1')
                         key = [x.upload_name for x in upload_files if x.file_type == file_type][0]
                         s3.upload_fileobj(file_ref, response_dict["bucket_name"], key)
                     else:
                         file_ref.save(os.path.join(self.serverPath, file_ref.filename))
-
+                    with app.app_context():
+                            g.user = current_user
+                            self.finalize(response_dict[file_type + "_id"])
                 for file_type, file_ref in request_params["_files"].items():
-                    t = threading.Thread(target=upload, args=(file_ref, file_type))
+                    t = threading.Thread(target=upload, args=(file_ref, file_type, current_app._get_current_object(), g.user))
                     t.start()
                     t.join()
-
+                api_response = {"success":"true", "submission_id": submission.submission_id}
+                return JsonResponse.create(StatusCode.OK, api_response)
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
