@@ -4,6 +4,7 @@ from factory import fuzzy
 from datetime import date
 
 from dataactcore.models import jobModels
+from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
@@ -58,10 +59,10 @@ class JobFactory(factory.Factory):
 
     job_id = None
     filename = fuzzy.FuzzyText()
-    job_status_id = fuzzy.FuzzyInteger(99)
-    job_type_id = fuzzy.FuzzyInteger(99)
+    job_status_id = fuzzy.FuzzyInteger(1, len(JOB_STATUS_DICT))
+    job_type_id = fuzzy.FuzzyInteger(1, 2)
     submission = factory.SubFactory(SubmissionFactory)
-    file_type_id = fuzzy.FuzzyInteger(99)
+    file_type_id = fuzzy.FuzzyInteger(1, len(FILE_TYPE_DICT))
     original_filename = fuzzy.FuzzyText()
     file_size = fuzzy.FuzzyInteger(9999)
     number_of_rows = fuzzy.FuzzyInteger(9999)
