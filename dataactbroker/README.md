@@ -678,8 +678,7 @@ This endpoint retrieves existing submission narratives (explanations/notes for p
   "D1": "",
   "D2": "",
   "E": "",
-  "F": "",
-  "FABS": ""
+  "F": ""
 }
 ```
 
@@ -691,7 +690,6 @@ This endpoint retrieves existing submission narratives (explanations/notes for p
 - `D2` - narrative for file D2 (Award Financial Assistance)
 - `E` - narrative for file E (Executive Compensation)
 - `F` - narrative for file F (Sub Award)
-- `FABS` - narrative for FABS file (FABS) (should not be used, does not apply to DABS submissions)
 
 ##### Errors
 Possible HTTP Status Codes:
@@ -727,7 +725,6 @@ All content passed in the body is updated in the database. If an attribute is le
 - `D2` - narrative for file D2 (Award Financial Assistance)
 - `E` - narrative for file E (Executive Compensation)
 - `F` - narrative for file F (Sub Award)
-- `FABS` - narrative for FABS file (FABS) (should not be used, does not apply to DABS submissions)
 
 ##### Response (JSON)
 
