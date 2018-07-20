@@ -59,10 +59,10 @@ class JobFactory(factory.Factory):
 
     job_id = None
     filename = fuzzy.FuzzyText()
-    job_status_id = fuzzy.FuzzyInteger(1, len(JOB_STATUS_DICT))
-    job_type_id = fuzzy.FuzzyInteger(1, 2)
+    job_status_id = fuzzy.FuzzyChoice(JOB_STATUS_DICT.values())
+    job_type_id = fuzzy.FuzzyChoice(JOB_TYPE_DICT.values())
     submission = factory.SubFactory(SubmissionFactory)
-    file_type_id = fuzzy.FuzzyInteger(1, len(FILE_TYPE_DICT))
+    file_type_id = fuzzy.FuzzyChoice(FILE_TYPE_DICT.values())
     original_filename = fuzzy.FuzzyText()
     file_size = fuzzy.FuzzyInteger(9999)
     number_of_rows = fuzzy.FuzzyInteger(9999)
