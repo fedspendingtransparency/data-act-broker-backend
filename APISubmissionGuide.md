@@ -96,18 +96,12 @@
 
 ### Upload FABS File
 - Call `/v1/upload_detached_file/`
-    - Payload:
-        - `agency_code`: string, sub tier agency code
-        - `cgac_code`: null
-        - `frec_code`: null
-        - `fabs`: local path to file using `@` notation
-        - `is_quarter`: boolean, false for FABS submissions
-        - `reporting_period_start_date`: null
-        - `reporting_period_end_date`: null
 - For details on its use, click [here](./dataactbroker/README.md#post-v1upload_detached_file)
 
 ### Validate FABS File
-- Validations are automatically started once the upload completes.
+- Validations are automatically started:
+    - by calling `finalize_job` if using the frontend
+    - once the upload completes if using the backend.
 - Check status of validations using `/v1/check_status/`. For details on its use, click [here](./dataactbroker/README.md#get-v1check_status)
 - Continue polling with `check_status` until the `fabs` key has a `status` of `finished` or `failed`.
     - **NOTE**: If it has a status of `ready` that means it was never started.
