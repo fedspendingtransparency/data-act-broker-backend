@@ -255,19 +255,19 @@ This route will upload the files, then kick off the validation jobs. It will ret
 
 #### Additional Required Headers:
 
-      -`Content-Type`: `"multipart/form-data"`
+-`Content-Type`: `"multipart/form-data"`
 
 #### Request Parameters:
 
-        -`appropriations`: local path to file using @ notation
-        -`program_activity`: local path to file using @ notation
-        -`award_financial`: local path to file using @ notation
-        -`cgac_code`: string, CGAC of agency (null if FREC agency)
-        -`frec_code`: string, FREC of agency (null if CGAC agency)
-        -`is_quarter`: boolean (true for quarterly submissions)
-        -`reporting_period_start_date`: string, starting date of submission (MM/YYYY)
-        -`reporting_period_end_date`: string, ending date of submission (MM/YYYY)
-     **NOTE**: for monthly submissions, start/end date are the same
+- `appropriations`- local path to file using @ notation
+- `program_activity`- local path to file using @ notation
+- `award_financial`- local path to file using @ notation
+- `cgac_code`- **required if not FREC** string, CGAC of agency (null if FREC agency)
+- `frec_code`- **required if not CGAC** string, FREC of agency (null if CGAC agency)
+- `is_quarter`- boolean (true for quarterly submissions)
+- `reporting_period_start_date`- string, starting date of submission (MM/YYYY)
+- `reporting_period_end_date`- string, ending date of submission (MM/YYYY)
+**NOTE**: for monthly submissions, start/end date are the same
 
 #### Example curl request:
 ```
