@@ -2,6 +2,8 @@ from functools import wraps
 from flask import g
 from flask import request
 
+from werkzeug.exceptions import BadRequest
+
 from webargs import fields as webargs_fields
 from webargs.flaskparser import parser as webargs_parser
 
@@ -217,7 +219,7 @@ def requires_sub_agency_perms(perm):
                     'agency_code': RequestDictionary.derive(request).get('agency_code', None),
                     'existing_submission_id': RequestDictionary.derive(request).get('existing_submission_id', None)
                     }
-            except (ValueError, TypeError)  as e:
+            except (ValueError, TypeError) as e:
                 raise ResponseException(e, StatusCode.CLIENT_ERROR)
             except BadRequest as e:
                 raise ResponseException('Bad request: agency_code or existing_submission_id not included properly',

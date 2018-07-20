@@ -419,6 +419,7 @@ def test_build_file_map_string(monkeypatch):
     for file in upload_files:
         assert file.upload_name == "3/123_"+file.file_name
 
+
 def test_build_file_map_file(monkeypatch):
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
     upload_files = []
