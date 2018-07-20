@@ -95,32 +95,13 @@
 ## FABS Submission Process
 
 ### Upload FABS File
-- Step 1: Call `/v1/upload_detached_file/` (POST) (Note, this is NOT the file upload)
-    - Header:
-        - `X-Session-ID`: string, session token id
-    - Payload:
-        - `agency_code`: string, sub tier agency code
-        - `cgac_code`: null
-        - `frec_code`: null
-        - `fabs`: string, name of the file being uploaded (e.g. "sample_file.csv")
-        - `is_quarter`: boolean, false for FABS submissions
-        - `reporting_period_start_date`: null
-        - `reporting_period_end_date`: null
-    - Response:
-        - `fabs_id`: int, ID of FABS upload
-        - `fabs_key`: string, path to FABS within S3 bucket
-        - `bucket_name`: string, name of bucket on S3 that files are stored in
-        - `credentials`: object, the credentials to S3 (AccessKeyId, Expiration, SecretAccessKey, SessionToken)
-        - `submission_id`: int, ID of the submission that was created
-- Step 2: Upload FABS file (Process to be defined)
-- Step 3: Call `/v1/finalize_job/` (POST) for the FABS file
-    - Payload:
-        - `upload_id`: int, ID of the file upload received from the `submit_files` response
-    - Response:
-        - `success`: boolean, successful or failed progression of the jobs
+- Call `/v1/upload_detached_file/`
+- For details on its use, click [here](./dataactbroker/README.md#post-v1upload_detached_file)
 
 ### Validate FABS File
-- Validations are automatically started by `finalize_job`
+- Validations are automatically started:
+    - by calling `finalize_job` if using the frontend
+    - once the upload completes if using the backend.
 - Check status of validations using `/v1/check_status/`. For details on its use, click [here](./dataactbroker/README.md#get-v1check_status)
 - Continue polling with `check_status` until the `fabs` key has a `status` of `finished` or `failed`.
     - **NOTE**: If it has a status of `ready` that means it was never started.
@@ -135,6 +116,3 @@
 
 ### Publish Submission
 - Publishing must be done through the broker website
-
-## Pending Enahncements
-- API File upload

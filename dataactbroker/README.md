@@ -294,6 +294,31 @@ Example output:
 }
 ```
 
+#### POST "/v1/upload_detached_file/"
+A call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the value of the "fabs" key, to indicate the local path to the file to be uploaded.
+
+This route will upload the file, then kick off the validation jobs. It will return the submission id, which can be used for the `/v1/check_status/` route to poll for validation completion. 
+
+
+Example curl request:
+```
+        curl -i -X POST /
+            -H "x-session-id: abcdefg-1234567-hijklmno-89101112"
+            -H "Content-Type: multipart/form-data"
+            -F 'agency_code=2000'
+            -F "fabs=@/local/path/to/fabs.csv"
+        /v1/upload_detached_file/
+```
+
+Example output:
+
+```json
+{
+  "success":true,
+  "submission_id":12
+}
+```
+
 #### POST "/v1/finalize_job/"
 A call to this route should have JSON or form-urlencoded with a key of "upload_id" and value of the job id received from the submit_files route. This will change the status of the upload job to finished so that dependent jobs can be started.
 
@@ -309,7 +334,8 @@ Example output:
 
 ```json
 {
-  "success": true
+  "success": true,
+  "submission_id": 123
 }
 ```
 
