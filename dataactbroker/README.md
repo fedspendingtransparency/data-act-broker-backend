@@ -240,65 +240,74 @@ Example Output:
 ```
 
 #### POST "/v1/submit_files/"
-This route is used to retrieve S3 URLs to upload files. Data should be JSON with keys: ["appropriations", "award_financial", "award", "program_activity"], each with a filename as a value, and submission metadata keys: ["agency_name","reporting_period_start_date","reporting_period_end_date","is_quarter","existing_submission_id"].  If an existing submission ID is provided, all other keys are optional and any data provided will be used to correct information in the existing submission.
 
-This route will also add jobs to the job tracker DB and return conflict free S3 URLs for uploading. Each key put in the request comes back with an url_key containing the S3 URL and a key_id containing the job id. A returning submission_id will also exist which acts as identifier for the submission.
 
-A credentials object is also part of the returning request. This object provides temporarily access to upload S3 Files using an AWS SDK. It contains the following: SecretAccessKey, SessionToken, Expiration, and AccessKeyId.
-It is important to note that the role used to create the credentials should be limited to just S3 access.
+A call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the values of the "appropriations", "program_activity" and "award_financial" keys, to indicate the local path to the files to be uploaded.
+If an existing submission ID is provided, all other keys are optional and any data provided will be used to correct information in the existing submission.
 
-When upload is complete, the finalize_submission route should be called with the job_id.
+This route will upload the files, then kick off the validation jobs. It will return the submission id, which can be used for the `/v1/check_status/` route to poll for validation completion. 
 
-Example input:
 
-```json
-{
-  "appropriations":"appropriations.csv",
-  "award_financial":"award_financial.csv",
-  "award":"award.csv",
-  "program_activity":"program_activity.csv",
-  "agency_name":"Name of the agency",
-  "reporting_period_start_date":"03/31/2016",
-  "reporting_period_end_date":"03/31/2016",
-  "is_quarter":False,
-  "existing_submission_id: 7 (leave out if not correcting an existing submission)
-}
+Required Headers:
+        `X-Session-ID`: string, session token id
+        `Content-Type`: `"multipart/form-data"`
+
+Request Parameters:
+        `appropriations`: local path to file using @ notation
+        `program_activity`: local path to file using @ notation
+        `award_financial`: local path to file using @ notation
+        `cgac_code`: string, CGAC of agency (null if FREC agency)
+        `frec_code`: string, FREC of agency (null if CGAC agency)
+        `is_quarter`: boolean (true for quarterly submissions)
+        `reporting_period_start_date`: string, starting date of submission (MM/YYYY)
+        `reporting_period_end_date`: string, ending date of submission (MM/YYYY)
+     **NOTE**: for monthly submissions, start/end date are the same
+
+Example curl request:
+```
+    curl -i -X POST 
+        -H "x-session-id: abcdefg-1234567-hijklmno-89101112"  
+        -H "Content-Type: multipart/form-data" 
+        -F 'cgac_code=020' 
+        -F 'frec_code=null' 
+        -F 'is_quarter=true' 
+        -F 'reporting_period_start_date=04/2018' 
+        -F 'reporting_period_end_date=06/2018' 
+        -F "appropriations=@/local/path/to/a.csv" 
+        -F "award_financial=@/local/path/to/c.csv"  
+        -F "program_activity=@/local/path/to/b.csv"
+    /v1/submit_files/
+
+
 ```
 
 Example output:
 
 ```json
 {
-  "submission_id": 12345,
-
-  "bucket_name": "S3-bucket",
-
-  "award_id": 100,
-  "award_key": "2/1453474323_awards.csv",
-
-  "appropriations_id": 101,
-  "appropriations_key": "2/1453474324_appropriations.csv",
-
-  "award_financial_id": 102,
-  "award_financial_key": "2/1453474327_award_financial.csv",
-
-  "program_activity_id": 103,
-  "program_activity_key": "2/1453474333_program_activity.csv",
-
-  "credentials": {
-    "SecretAccessKey": "ABCDEFG",
-    "SessionToken": "ABCDEFG",
-    "Expiration": "2016-01-22T15:25:23Z",
-    "AccessKeyId": "ABCDEFG"
-  }
+  "success":"true",
+  "submission_id": 123
 }
 ```
 
 #### POST "/v1/upload_detached_file/"
-A call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the value of the "fabs" key, to indicate the local path to the file to be uploaded.
+A call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the value of the "fabs" key, to indicate the local path to the file to be uploaded. If an existing submission ID is provided, all other keys are optional and any data provided will be used to correct information in the existing submission.
 
 This route will upload the file, then kick off the validation jobs. It will return the submission id, which can be used for the `/v1/check_status/` route to poll for validation completion. 
 
+Required Headers:
+        `X-Session-ID`: string, session token id
+        `Content-Type`: `"multipart/form-data"`
+
+Request Parameters:
+         `agency_code`: string, sub tier agency code. Required if existing_submission_id is not included
+         `cgac_code`: null, optional
+         `frec_code`: null, optional
+         `fabs`: local path to file using @ notation
+         `is_quarter`: boolean, false for FABS submissions
+         `reporting_period_start_date`: null, optional
+         `reporting_period_end_date`: null, optional
+         `existing_submission_id` : integer, id of previous submission, use only if submitting an update.
 
 Example curl request:
 ```
