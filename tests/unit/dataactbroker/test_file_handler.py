@@ -8,6 +8,7 @@ import pytest
 
 import calendar
 
+from dataactcore.aws.s3Handler import S3Handler
 from dataactbroker.handlers import fileHandler
 from dataactcore.models.jobModels import JobStatus, JobType, FileType, CertifiedFilesHistory
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT
@@ -411,12 +412,7 @@ def test_build_file_map_string(monkeypatch):
     response_dict = {}
     file_type_list = ["fabs"]
     file_dict = {"fabs": "fabs_file.csv"}
-
-    def side_effect(filename):
-        return "123_"+filename
-    s3_url_handler = Mock()
-    s3_url_handler.get_timestamped_filename = Mock(side_effect=side_effect)
-    monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
+    monkeypatch.setattr(S3Handler, 'get_timestamped_filename', Mock(side_effect=lambda x: "123_" + x))
     submission = SubmissionFactory(submission_id=3)
     fh = fileHandler.FileHandler({})
     fh.build_file_map(file_dict, file_type_list, response_dict, upload_files, submission)
@@ -431,12 +427,7 @@ def test_build_file_map_file(monkeypatch):
     the_file = io.BytesIO(b"something")
     the_file.filename = 'fabs.csv'
     file_dict = {"fabs": the_file}
-
-    def side_effect(filename):
-        return "123_"+filename
-    s3_url_handler = Mock()
-    s3_url_handler.get_timestamped_filename = Mock(side_effect=side_effect)
-    monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
+    monkeypatch.setattr(S3Handler, 'get_timestamped_filename', Mock(side_effect=lambda x: "123_" + x))
     submission = SubmissionFactory(submission_id=3)
     fh = fileHandler.FileHandler({})
     fh.build_file_map(file_dict, file_type_list, response_dict, upload_files, submission)
