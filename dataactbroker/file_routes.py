@@ -16,6 +16,7 @@ from dataactbroker.permissions import (requires_login, requires_submission_perms
 from dataactcore.interfaces.function_bag import get_fabs_meta
 from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER
 from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.statusCode import StatusCode
 
 DATE_REGEX = '^\d{2}\/\d{2}\/\d{4}$'
@@ -188,12 +189,12 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/upload_detached_file/", methods=["POST"])
     @requires_sub_agency_perms('edit_fabs')
-    @use_kwargs({
-        'fabs': webargs_fields.String(required=True)
-    })
-    def upload_detached_file(fabs):
+    def upload_detached_file():
+        params = RequestDictionary.derive(request)
+        api_triggered = params.get('_files', {}).get('fabs', None)
+        fabs_filename = params.get('fabs', None)
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.upload_fabs_file(create_credentials, fabs)
+        return file_manager.upload_fabs_file(create_credentials, fabs_filename, api_triggered)
 
     @app.route("/v1/submit_detached_file/", methods=["POST"])
     @convert_to_submission_id

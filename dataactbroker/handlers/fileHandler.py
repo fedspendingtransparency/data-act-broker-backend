@@ -1,3 +1,4 @@
+import boto3
 import calendar
 import logging
 import os
@@ -77,6 +78,7 @@ class FileHandler:
     FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
     EXTERNAL_FILE_TYPES = ["award", "award_procurement", "executive_compensation", "sub_award"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
+    UPLOAD_FOLDER = '/data-act/backend/tmp'
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
 
@@ -359,6 +361,7 @@ class FileHandler:
             if job.job_type_id == JOB_TYPE_DICT["file_upload"]:
                 mark_job_status(job_id, 'finished')
                 response_dict["success"] = True
+                response_dict["submission_id"] = job.submission_id
                 return JsonResponse.create(StatusCode.OK, response_dict)
             else:
                 raise ResponseException("Wrong job type for finalize route", StatusCode.CLIENT_ERROR)
@@ -564,7 +567,8 @@ class FileHandler:
         # Return same response as check generation route
         return self.check_detached_generation(new_job.job_id)
 
-    def upload_fabs_file(self, create_credentials, fabs):
+    def upload_fabs_file(self, create_credentials, fabs_filename, api_triggered):
+
         """ Builds S3 URLs for a set of FABS files and adds all related jobs to job tracker database
 
             Flask request should include keys from FILE_TYPES class variable above
@@ -580,6 +584,10 @@ class FileHandler:
                 key_url is the S3 URL for uploading
                 key_id is the job id to be passed to the finalize_submission route
         """
+        if fabs_filename is None and api_triggered is None:
+            return JsonResponse.error(Exception('fabs: Missing data for required field.'), StatusCode.CLIENT_ERROR)
+        else:
+            fabs = fabs_filename or api_triggered
         sess = GlobalDB.db().session
         try:
             response_dict = {}
@@ -644,6 +652,14 @@ class FileHandler:
 
             self.create_response_dict_for_submission(upload_files, submission, existing_submission,
                                                      response_dict, create_credentials)
+            if api_triggered:
+                if CONFIG_BROKER['use_aws']:
+                    s3 = boto3.client('s3', region_name='us-gov-west-1')
+                    key = [x.upload_name for x in upload_files if x.file_type == "fabs"][0]
+                    s3.upload_fileobj(fabs, response_dict["bucket_name"], key)
+                else:
+                    fabs.save(os.path.join(self.UPLOAD_FOLDER, fabs.filename))
+                return self.finalize(response_dict["fabs_id"])
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
@@ -942,7 +958,7 @@ class FileHandler:
 
         return job
 
-    def build_file_map(self, request_params, file_type_list, response_dict, upload_files, submission):
+    def build_file_map(self, file_dict, file_type_list, response_dict, upload_files, submission):
         """ Build fileNameMap to be used in creating jobs
 
             Args:
@@ -959,10 +975,13 @@ class FileHandler:
         """
         for file_type in file_type_list:
             # if file_type not included in request, skip it, checks for validity are done before calling this
-            if not request_params.get(file_type):
+            if not file_dict.get(file_type):
                 continue
-
-            file_name = request_params.get(file_type)
+            file_reference = file_dict.get(file_type)
+            if not isinstance(file_reference, str):
+                file_name = file_reference.filename
+            else:
+                file_name = file_reference
             if file_name:
                 if not self.is_local:
                     upload_name = "{}/{}".format(
@@ -970,7 +989,7 @@ class FileHandler:
                         S3Handler.get_timestamped_filename(file_name)
                     )
                 else:
-                    upload_name = file_name
+                    upload_name = os.path.join(self.UPLOAD_FOLDER, file_name)
 
                 response_dict[file_type + "_key"] = upload_name
                 upload_files.append(FileHandler.UploadFile(
