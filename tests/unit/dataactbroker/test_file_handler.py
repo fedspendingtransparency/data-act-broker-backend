@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+import io
 import json
 import os.path
 from unittest.mock import Mock
@@ -410,6 +411,26 @@ def test_build_file_map_string(monkeypatch):
     response_dict = {}
     file_type_list = ["fabs"]
     file_dict = {"fabs": "fabs_file.csv"}
+
+    def side_effect(filename):
+        return "123_"+filename
+    s3_url_handler = Mock()
+    s3_url_handler.get_timestamped_filename = Mock(side_effect=side_effect)
+    monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
+    submission = SubmissionFactory(submission_id=3)
+    fh = fileHandler.FileHandler({})
+    fh.build_file_map(file_dict, file_type_list, response_dict, upload_files, submission)
+    for file in upload_files:
+        assert file.upload_name == "3/123_"+file.file_name
+
+def test_build_file_map_file(monkeypatch):
+    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
+    upload_files = []
+    response_dict = {}
+    file_type_list = ["fabs"]
+    the_file = io.BytesIO(b"something")
+    the_file.filename = 'fabs.csv'
+    file_dict = {"fabs": the_file}
 
     def side_effect(filename):
         return "123_"+filename
