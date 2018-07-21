@@ -1,17 +1,22 @@
-import pytest
-
 import datetime
+import pytest
+import json
 
-from dataactbroker.handlers.submission_handler import (get_submission_metadata, get_revalidation_threshold,
-                                                       get_submission_data)
+from flask import Flask, g
+from unittest.mock import Mock
+
+from dataactbroker.handlers import fileHandler
+from dataactbroker.handlers.submission_handler import (certify_dabs_submission, get_submission_metadata,
+                                                       get_revalidation_threshold, get_submission_data)
 
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
-from dataactcore.models.jobModels import FileType, JobStatus, JobType
+from dataactcore.models.jobModels import CertifyHistory, FileType, JobStatus, JobType
 
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import (SubmissionFactory, JobFactory, CertifyHistoryFactory,
                                                   RevalidationThresholdFactory)
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
+from tests.unit.dataactcore.factories.user import UserFactory
 
 
 @pytest.mark.usefixtures("job_constants")
@@ -267,8 +272,8 @@ def test_get_submission_data_dabs(database):
 
     cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
 
-    sub = SubmissionFactory(submission_id=1)
-    sub_2 = SubmissionFactory(submission_id=2)
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    sub_2 = SubmissionFactory(submission_id=2, d2_submission=False)
 
     # Job for submission
     job = JobFactory(job_id=1,
@@ -384,9 +389,47 @@ def test_get_submission_data_dabs(database):
     }
 
     response = get_submission_data(sub)
+    response = json.loads(response.data.decode('UTF-8'))
     results = response['jobs']
     assert len(results) == 3
     assert correct_job in results
     assert correct_cross_job in results
     assert upload_job not in results
     assert different_sub_job not in results
+
+    response = get_submission_data(sub, 'appropriations')
+    response = json.loads(response.data.decode('UTF-8'))
+    results = response['jobs']
+    assert len(results) == 1
+    assert results[0] == correct_job
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_certify_dabs_submission(database, monkeypatch):
+    """ Tests the certify_dabs_submission function """
+    with Flask('test-app').app_context():
+        now = datetime.datetime.utcnow()
+        sess = database.session
+
+        user = UserFactory()
+        cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
+        submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
+                                       reporting_fiscal_period=3, reporting_fiscal_year=2017, is_quarter_format=True,
+                                       publishable=True, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                       d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                       certifying_user_id=None)
+        sess.add_all([user, cgac, submission])
+        sess.commit()
+
+        g.user = user
+        file_handler = fileHandler.FileHandler({}, is_local=True)
+        monkeypatch.setattr(file_handler, 'move_certified_files', Mock(return_value=True))
+        monkeypatch.setattr(fileHandler.GlobalDB, 'db', Mock(return_value=database))
+
+        certify_dabs_submission(submission, file_handler)
+
+        sess.refresh(submission)
+        certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).one_or_none()
+        assert certify_history is not None
+        assert submission.certifying_user_id == user.user_id
+        assert submission.publish_status_id == PUBLISH_STATUS_DICT['published']

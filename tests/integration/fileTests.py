@@ -333,6 +333,22 @@ class FileTests(BaseTestAPI):
                                 headers={"x-session-id": self.session_id})
         self.assertEqual(response.status_code, 401)
 
+    def test_submission_data_invalid_file_type(self):
+        """ Test response with a completely invalid file type """
+        self.logout()
+        params = {"submission_id": self.status_check_submission_id, "type": 'approp'}
+        response = self.app.get("/v1/submission_data/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
+        self.assertEqual(response.status_code, 401)
+
+    def test_submission_data_bad_file_type(self):
+        """ Test response with a real file type requested but invalid for this submission """
+        self.logout()
+        params = {"submission_id": self.status_check_submission_id, "type": 'fabs'}
+        response = self.app.get("/v1/submission_data/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
+        self.assertEqual(response.status_code, 401)
+
     def test_submission_data_permission(self):
         """ Test that other users do not have access to status check submission """
         params = {"submission_id": self.status_check_submission_id}
@@ -350,6 +366,28 @@ class FileTests(BaseTestAPI):
         response = self.app.get("/v1/submission_data/", params, expect_errors=True,
                                 headers={"x-session-id": self.session_id})
         self.assertEqual(response.status_code, 200)
+
+    def test_submission_data_invalid_type(self):
+        """ Test that an invalid file type to check status returns an error """
+        params = {"submission_id": self.status_check_submission_id, "type": "approp"}
+        response = self.app.get("/v1/submission_data/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
+        # Assert 400 status
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "approp is not a valid file type")
+
+    def test_submission_data_type_param(self):
+        """ Test broker status route response with case-ignored type argument. """
+        params = {"submission_id": self.status_check_submission_id, "type": "apPropriations"}
+        response = self.app.get("/v1/submission_data/", params, headers={"x-session-id": self.session_id})
+
+        self.assertEqual(response.status_code, 200, msg=str(response.json))
+        self.assertEqual(response.headers.get("Content-Type"), "application/json")
+        json = response.json
+
+        # create list of all file types including cross other than fabs
+        self.assertEqual(len(json["jobs"]), 1)
+        self.assertEqual(json["jobs"][0]["file_type"], "appropriations")
 
     def test_submission_data(self):
         """ Test submission_data route response. """
@@ -429,138 +467,77 @@ class FileTests(BaseTestAPI):
     def test_check_status_no_login(self):
         """ Test response with no login """
         self.logout()
-        post_json = {"submission_id": self.status_check_submission_id}
-        response = self.app.post_json("/v1/check_status/", post_json, expect_errors=True,
-                                      headers={"x-session-id": self.session_id})
+        params = {"submission_id": self.status_check_submission_id}
+        response = self.app.get("/v1/check_status/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
         # Assert 401 status
         self.assertEqual(response.status_code, 401)
 
     def test_check_status_no_session_id(self):
         """ Test response with no session ID """
-        post_json = {"submission_id": self.status_check_submission_id}
-        response = self.app.post_json("/v1/check_status/", post_json, expect_errors=True)
+        params = {"submission_id": self.status_check_submission_id}
+        response = self.app.get("/v1/check_status/", params, expect_errors=True)
         # Assert 401 status
         self.assertEqual(response.status_code, 401)
 
     def test_check_status_permission(self):
         """ Test that other users do not have access to status check submission """
-        post_json = {"submission_id": self.status_check_submission_id}
+        params = {"submission_id": self.status_check_submission_id}
         # Log in as non-admin user
         self.login_user()
         # Call check status route
-        response = self.app.post_json("/v1/check_status/", post_json, expect_errors=True,
-                                      headers={"x-session-id": self.session_id})
+        response = self.app.get("/v1/check_status/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
         # Assert 400 status
         self.assertEqual(response.status_code, 403)
 
     def test_check_status_admin(self):
         """ Test that admins have access to other user's submissions """
-        post_json = {"submission_id": self.status_check_submission_id}
+        params = {"submission_id": self.status_check_submission_id}
         # Log in as admin user
         self.login_admin_user()
         # Call check status route (also checking case insensitivity of header here)
-        response = self.app.post_json("/v1/check_status/", post_json, expect_errors=True,
-                                      headers={"x-SESSION-id": self.session_id})
+        response = self.app.get("/v1/check_status/", params, expect_errors=True,
+                                headers={"x-SESSION-id": self.session_id})
         # Assert 200 status
         self.assertEqual(response.status_code, 200)
 
     def test_check_status(self):
-        """Test broker status route response."""
-        post_json = {"submission_id": self.status_check_submission_id}
-        # Populating error info before calling route to avoid changing last update time
+        """ Test broker status route response. """
+        params = {"submission_id": self.status_check_submission_id}
+        response = self.app.get("/v1/check_status/", params, headers={"x-session-id": self.session_id})
 
-        with create_app().app_context():
-            sess = GlobalDB.db().session
-            populate_submission_error_info(self.status_check_submission_id)
+        self.assertEqual(response.status_code, 200, msg=str(response.json))
+        self.assertEqual(response.headers.get("Content-Type"), "application/json")
+        json = response.json
 
-            response = self.app.post_json("/v1/check_status/", post_json, headers={"x-session-id": self.session_id})
+        # create list of all file types including cross other than fabs
+        file_type_keys = {k if k != 'fabs' else 'cross' for k in FILE_TYPE_DICT}
+        response_keys = {k for k in json.keys()}
+        self.assertEqual(file_type_keys, response_keys)
 
-            self.assertEqual(response.status_code, 200, msg=str(response.json))
-            self.assertEqual(response.headers.get("Content-Type"), "application/json")
-            json = response.json
-            # response ids are coming back as string, so patch the jobIdDict
-            job_id_dict = {k: str(self.jobIdDict[k]) for k in self.jobIdDict.keys()}
-            job_list = json["jobs"]
-            approp_job = None
-            cross_job = None
-            for job in job_list:
-                if str(job["job_id"]) == str(job_id_dict["appropriations"]):
-                    # Found the job to be checked
-                    approp_job = job
-                elif str(job["job_id"]) == str(job_id_dict["cross_file"]):
-                    # Found cross file job
-                    cross_job = job
+    def test_check_status_invalid_type(self):
+        """ Test that an invalid file type to check status returns an error """
+        params = {"submission_id": self.status_check_submission_id, "type": "approp"}
+        response = self.app.get("/v1/check_status/", params, expect_errors=True,
+                                headers={"x-session-id": self.session_id})
+        # Assert 400 status
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "approp is not a valid file type")
 
-            # Must have an approp job and cross-file job
-            self.assertNotEqual(approp_job, None)
-            self.assertNotEqual(cross_job, None)
-            # And that job must have the following
-            self.assertEqual(approp_job["job_status"], "ready")
-            self.assertEqual(approp_job["job_type"], "csv_record_validation")
-            self.assertEqual(approp_job["file_type"], "appropriations")
-            self.assertEqual(approp_job["filename"], "approp.csv")
-            self.assertEqual(approp_job["file_status"], "complete")
-            self.assertIn("missing_header_one", approp_job["missing_headers"])
-            self.assertIn("missing_header_two", approp_job["missing_headers"])
-            self.assertIn("duplicated_header_one", approp_job["duplicated_headers"])
-            self.assertIn("duplicated_header_two", approp_job["duplicated_headers"])
-            # Check file size and number of rows
-            self.assertEqual(approp_job["file_size"], 2345)
-            self.assertEqual(approp_job["number_of_rows"], 567)
+    def test_check_status_type_param(self):
+        """ Test broker status route response with case-ignored type argument. """
+        params = {"submission_id": self.status_check_submission_id, "type": "apPropriations"}
+        response = self.app.get("/v1/check_status/", params, headers={"x-session-id": self.session_id})
 
-            # Check error metadata for specified error
-            rule_error_data = None
-            for data in approp_job["error_data"]:
-                if data["field_name"] == "header_three":
-                    rule_error_data = data
-            self.assertIsNotNone(rule_error_data)
-            self.assertEqual(rule_error_data["field_name"], "header_three")
-            self.assertEqual(rule_error_data["error_name"], "rule_failed")
-            self.assertEqual(rule_error_data["error_description"], "A rule failed for this value.")
-            self.assertEqual(rule_error_data["occurrences"], "7")
-            self.assertEqual(rule_error_data["rule_failed"], "Header three value must be real")
-            self.assertEqual(rule_error_data["original_label"], "A1")
-            # Check warning metadata for specified warning
-            warning_error_data = None
-            for data in approp_job["warning_data"]:
-                if data["field_name"] == "header_three":
-                    warning_error_data = data
-            self.assertIsNotNone(warning_error_data)
-            self.assertEqual(warning_error_data["field_name"], "header_three")
-            self.assertEqual(warning_error_data["error_name"], "rule_failed")
-            self.assertEqual(warning_error_data["error_description"], "A rule failed for this value.")
-            self.assertEqual(warning_error_data["occurrences"], "7")
-            self.assertEqual(warning_error_data["rule_failed"], "Header three value looks odd")
-            self.assertEqual(warning_error_data["original_label"], "A2")
+        self.assertEqual(response.status_code, 200, msg=str(response.json))
+        self.assertEqual(response.headers.get("Content-Type"), "application/json")
+        json = response.json
 
-            rule_error_data = None
-            for data in cross_job["error_data"]:
-                if data["field_name"] == "header_four":
-                    rule_error_data = data
-
-            self.assertEqual(rule_error_data["source_file"], "appropriations")
-            self.assertEqual(rule_error_data["target_file"], "award")
-
-            # Check submission metadata
-            self.assertEqual(json["cgac_code"], "SYS")
-            self.assertEqual(json["reporting_period_start_date"], "Q1/2016")
-            self.assertEqual(json["reporting_period_end_date"], "Q1/2016")
-
-            # Check submission level info
-            self.assertEqual(json["number_of_errors"], 17)
-            self.assertEqual(json["number_of_rows"], 667)
-
-            # Get submission from db for attribute checks
-            submission = sess.query(Submission).filter(
-                Submission.submission_id == self.status_check_submission_id).one()
-
-            # Check number of errors and warnings in submission table
-            self.assertEqual(submission.number_of_errors, 17)
-            self.assertEqual(submission.number_of_warnings, 7)
-
-            # Check that submission was created today, this test may fail if run right at midnight UTC
-            self.assertEqual(json["created_on"], datetime.utcnow().strftime("%m/%d/%Y"))
-            self.assertEqual(json["last_updated"], submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"))
+        # create list of all file types including cross other than fabs
+        response_keys = {k for k in json.keys()}
+        self.assertEqual(len(response_keys), 1)
+        self.assertEqual({"appropriations"}, response_keys)
 
     def test_get_obligations(self):
         submission = SubmissionFactory()
@@ -633,6 +610,14 @@ class FileTests(BaseTestAPI):
         self.check_metrics(self.test_metrics_submission_id, False, "award")
         self.check_metrics(self.test_metrics_submission_id, True, "award_financial")
         self.check_metrics(self.test_metrics_submission_id, True, "appropriations")
+
+    def test_bad_file_type_check_generation_status(self):
+        """ Test that an error comes back if an invalid file status is included for check_generation_status. """
+        post_json = {"submission_id": self.generation_submission_id, "file_type": "A"}
+        response = self.app.post_json("/v1/check_generation_status/", post_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "file_type: Not a valid choice.")
 
     def test_file_generation(self):
         """ Test the generate and check routes for external files """
@@ -743,8 +728,8 @@ class FileTests(BaseTestAPI):
         response = self.app.post_json("/v1/delete_submission/", post_json, headers={"x-session-id": self.session_id})
         self.assertEqual(response.json["message"], "Success")
 
-        response = self.app.post_json("/v1/check_status/", post_json, headers={"x-session-id": self.session_id},
-                                      expect_errors=True)
+        response = self.app.get("/v1/check_status/", post_json, headers={"x-session-id": self.session_id},
+                                expect_errors=True)
         self.assertEqual(response.json["message"], "No such submission")
 
         # check if models were actually delete (verifying cascading worked)

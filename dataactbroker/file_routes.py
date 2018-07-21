@@ -3,7 +3,7 @@ from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import use_kwargs
 
 from dataactbroker.handlers.fileHandler import (
-    FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler,
+    FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler, get_upload_file_url,
     narratives_for_submission, submission_report_url, update_narratives, list_certifications, file_history_url)
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
@@ -11,12 +11,10 @@ from dataactbroker.handlers.submission_handler import (
     get_revalidation_threshold)
 
 from dataactbroker.decorators import convert_to_submission_id
-from dataactbroker.permissions import requires_login, requires_submission_perms
+from dataactbroker.permissions import current_user_can, requires_login, requires_submission_perms
 
 from dataactcore.interfaces.function_bag import get_fabs_meta
-
 from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER
-
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 
@@ -29,6 +27,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @app.route("/v1/submit_files/", methods=["POST"])
     @requires_login
     def submit_files():
+        current_user_can('writer', cgac_code=request.json.get('cgac_code', None),
+                         frec_code=request.json.get('frec_code', None))
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.validate_submit_files(create_credentials)
 
@@ -39,11 +39,12 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.finalize(upload_id)
 
-    @app.route("/v1/check_status/", methods=["POST"])
+    @app.route("/v1/check_status/", methods=["GET"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
-    def check_status(submission):
-        return get_status(submission)
+    @use_kwargs({'type': webargs_fields.String(missing='')})
+    def check_status(submission, type):
+        return get_status(submission, type)
 
     @app.route("/v1/submission_metadata/", methods=["GET"])
     @convert_to_submission_id
@@ -54,8 +55,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @app.route("/v1/submission_data/", methods=["GET"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
-    def submission_data(submission):
-        return JsonResponse.create(StatusCode.OK, get_submission_data(submission))
+    @use_kwargs({'type': webargs_fields.String(missing='')})
+    def submission_data(submission, type):
+        return get_submission_data(submission, type)
 
     @app.route("/v1/revalidation_threshold/", methods=["GET"])
     @requires_login
@@ -164,7 +166,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @requires_submission_perms('reader')
     @use_kwargs({'file_type': webargs_fields.String(
         required=True,
-        validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.values()))
+        validate=webargs_validate.OneOf(('D1', 'D2', 'E', 'F')))
     })
     def check_generation_status(submission, file_type):
         """ Return status of file generation job """
@@ -179,16 +181,19 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         return JsonResponse.create(StatusCode.OK, get_fabs_meta(submission.submission_id))
 
     @app.route("/v1/upload_detached_file/", methods=["POST"])
+    @requires_login
     def upload_detached_file():
+        current_user_can('editfabs', cgac_code=request.json.get('cgac_code', None),
+                         frec_code=request.json.get('frec_code', None))
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.upload_detached_file(create_credentials)
+        return file_manager.upload_fabs_file(create_credentials)
 
     @app.route("/v1/submit_detached_file/", methods=["POST"])
     @convert_to_submission_id
-    @requires_submission_perms('writer')
+    @requires_submission_perms('fabs', check_owner=False)
     def submit_detached_file(submission):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.submit_detached_file(submission)
+        return file_manager.publish_fabs_submission(submission)
 
     @app.route("/v1/get_obligations/", methods=["POST"])
     @convert_to_submission_id
@@ -219,12 +224,25 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     def post_submission_report_url(submission, warning, file_type, cross_type):
         return submission_report_url(submission, bool(warning), file_type, cross_type)
 
+    @app.route("/v1/get_file_url", methods=['GET'])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    @use_kwargs({
+        'file_type': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.values())
+        )
+    })
+    def get_file_url(submission, file_type):
+        return get_upload_file_url(submission, file_type)
+
     @app.route("/v1/delete_submission/", methods=['POST'])
     @convert_to_submission_id
-    @requires_submission_perms('writer')
+    @requires_submission_perms('writer', check_fabs='editfabs')
     def delete_submission(submission):
         """ Deletes all data associated with the specified submission
-        NOTE: THERE IS NO WAY TO UNDO THIS """
+            NOTE: THERE IS NO WAY TO UNDO THIS
+        """
         return delete_all_submission_data(submission)
 
     @app.route("/v1/check_year_quarter/", methods=["GET"])
@@ -246,7 +264,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/restart_validation/", methods=['POST'])
     @convert_to_submission_id
-    @requires_submission_perms('writer')
+    @requires_submission_perms('writer', check_fabs='editfabs')
     @use_kwargs({'d2_submission': webargs_fields.Bool(missing=False)})
     def restart_validation(submission, d2_submission):
         return FileHandler.restart_validation(submission, d2_submission)

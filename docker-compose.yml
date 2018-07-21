@@ -2,7 +2,7 @@ version: '3'
 services:
   dataact-postgres:
     container_name: dataact-postgres
-    image: postgres:9.4.7
+    image: postgres:10.3-alpine
     restart: always
     environment:
       POSTGRES_USER: admin
@@ -16,6 +16,8 @@ services:
     image: broker-backend
     build:
       context: ./
+    depends_on:
+      - dataact-postgres
     restart: always
     command: /bin/sh -c "cd ./dataactcore; sleep 9s; alembic upgrade head; python ../dataactbroker/app.py"
     ports:

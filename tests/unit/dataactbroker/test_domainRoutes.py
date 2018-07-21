@@ -4,6 +4,7 @@ from flask import g
 import pytest
 
 from dataactbroker import domainRoutes
+from dataactcore.models.lookups import PERMISSION_SHORT_DICT
 from dataactcore.models.userModel import UserAffiliation
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory, SubTierAgencyFactory
 from tests.unit.dataactcore.factories.user import UserFactory
@@ -26,8 +27,8 @@ def test_list_agencies_limits(domain_app, database):
                                       sub_tier_agency_name="Test Subtier Agency 0"),
                  SubTierAgencyFactory(sub_tier_agency_code='1', cgac=frec_cgac, frec=frec, is_frec=True,
                                       sub_tier_agency_name="Test Subtier Agency 1")]
-    user.affiliations = [UserAffiliation(cgac=cgac, frec=None, permission_type_id=2),
-                         UserAffiliation(cgac=None, frec=frec, permission_type_id=2)]
+    user.affiliations = [UserAffiliation(cgac=cgac, frec=None, permission_type_id=PERMISSION_SHORT_DICT['w']),
+                         UserAffiliation(cgac=None, frec=frec, permission_type_id=PERMISSION_SHORT_DICT['w'])]
     database.session.add_all([cgac] + [frec_cgac] + [frec] + sub_tiers + [user])
     database.session.commit()
 
@@ -75,7 +76,7 @@ def test_list_agencies_all(domain_app, database):
                                            sub_tier_agency_name="Test Subtier Agency "+str(i)) for i in range(3)]
     frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3+i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
                                            sub_tier_agency_name="Test Subtier Agency "+str(3+i)) for i in range(3)]
-    user.affiliations = [UserAffiliation(cgac=cgacs[0], frec=frecs[0], permission_type_id=2)]
+    user.affiliations = [UserAffiliation(cgac=cgacs[0], frec=frecs[0], permission_type_id=PERMISSION_SHORT_DICT['w'])]
     database.session.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers + [user])
     database.session.commit()
 
@@ -99,8 +100,8 @@ def test_list_sub_tier_agencies(domain_app, database):
                                            sub_tier_agency_name="Test Subtier Agency " + str(i)) for i in range(3)]
     frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3 + i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
                                            sub_tier_agency_name="Test Subtier Agency " + str(3 + i)) for i in range(3)]
-    user.affiliations = [UserAffiliation(cgac=cgacs[0], frec=None, permission_type_id=5),
-                         UserAffiliation(cgac=None, frec=frecs[2], permission_type_id=5)]
+    user.affiliations = [UserAffiliation(cgac=cgacs[0], frec=None, permission_type_id=PERMISSION_SHORT_DICT['f']),
+                         UserAffiliation(cgac=None, frec=frecs[2], permission_type_id=PERMISSION_SHORT_DICT['f'])]
     database.session.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers + [user])
     database.session.commit()
 
@@ -123,8 +124,8 @@ def test_list_sub_tier_agencies_admin(domain_app, database):
                                            sub_tier_agency_name="Test Subtier Agency " + str(i)) for i in range(3)]
     frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3 + i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
                                            sub_tier_agency_name="Test Subtier Agency " + str(3 + i)) for i in range(3)]
-    user.affiliations = [UserAffiliation(cgac=cgacs[0], frec=None, permission_type_id=5),
-                         UserAffiliation(cgac=None, frec=frecs[2], permission_type_id=5)]
+    user.affiliations = [UserAffiliation(cgac=cgacs[0], frec=None, permission_type_id=PERMISSION_SHORT_DICT['f']),
+                         UserAffiliation(cgac=None, frec=frecs[2], permission_type_id=PERMISSION_SHORT_DICT['f'])]
     database.session.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers + [user])
     database.session.commit()
 

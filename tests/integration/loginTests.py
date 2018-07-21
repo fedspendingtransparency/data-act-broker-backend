@@ -20,6 +20,7 @@ class LoginTests(BaseTestAPI):
         self.assertIn("title", json)
         self.assertIn("name", json)
         self.assertIn("affiliations", json)
+        self.assertIn("session_id", json)
 
     def test_logout(self):
         """Test broker logout."""
