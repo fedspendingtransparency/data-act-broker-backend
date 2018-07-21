@@ -1,5 +1,6 @@
 .idea/*
 .cache/*
+.DS_Store
 dataactcore/.idea/*
 dataactcore/dbErrors.log
 *config.yml

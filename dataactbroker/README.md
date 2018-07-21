@@ -1415,7 +1415,7 @@ The response is an object that represents that file's state.
 * `job_id` - job ID of the generation job in question
 
 
-## Test Cases
+## Automated Tests
 
 ### Integration Tests
 
