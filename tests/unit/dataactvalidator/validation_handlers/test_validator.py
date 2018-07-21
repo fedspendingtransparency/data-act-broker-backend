@@ -1,3 +1,5 @@
+import pytest
+
 from unittest.mock import Mock
 
 from dataactcore.models.stagingModels import FlexField
@@ -5,6 +7,7 @@ from dataactvalidator.validation_handlers import validator
 from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
 
 
+@pytest.mark.usefixtures("job_constants")
 def test_relevant_flex_data(database):
     """Verify that we can retrieve multiple flex fields from our data"""
     sess = database.session

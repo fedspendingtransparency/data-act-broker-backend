@@ -3,7 +3,7 @@ from datetime import timedelta
 import sqlalchemy as sa
 
 from sqlalchemy import (Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, Text, Float, UniqueConstraint,
-                        Boolean)
+                        Boolean, ARRAY)
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
@@ -228,6 +228,15 @@ class DUNS(Base):
     registration_date = Column(Date, index=True)
     expiration_date = Column(Date, index=True)
     last_sam_mod_date = Column(Date)
+    address_line_1 = Column(Text)
+    address_line_2 = Column(Text)
+    city = Column(Text)
+    state = Column(Text)
+    zip = Column(Text)
+    zip4 = Column(Text)
+    country_code = Column(Text)
+    congressional_district = Column(Text)
+    business_types_codes = Column(ARRAY(Text))
     ultimate_parent_unique_ide = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
 

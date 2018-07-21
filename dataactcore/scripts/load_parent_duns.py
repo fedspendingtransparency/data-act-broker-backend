@@ -3,7 +3,7 @@ import logging
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.utils.parentDuns import sams_config_is_valid, get_duns_batches, update_missing_parent_names
+from dataactcore.utils.parentDuns import sam_config_is_valid, get_duns_batches, update_missing_parent_names
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ if __name__ == '__main__':
             logger.info('Begin loading parents duns to DUNS table')
 
             # Check to make sure config is valid
-            client = sams_config_is_valid()
+            client = sam_config_is_valid()
 
             # Run updates on DUNS table to retrieve parent DUNS data
             get_duns_batches(client, sess, args.batch_start, args.batch_end)
