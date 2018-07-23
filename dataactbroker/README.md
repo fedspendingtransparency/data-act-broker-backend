@@ -310,6 +310,35 @@ If using the frontend, you will need to call /v1/finalize_job/ to kick off valid
 }
 ```
 
+
+#### Example Output Using the Frontend:
+```json
+{
+  "submission_id": 12345,
+
+  "bucket_name": "S3-bucket",
+
+  "award_id": 100,
+  "award_key": "2/1453474323_awards.csv",
+
+  "appropriations_id": 101,
+  "appropriations_key": "2/1453474324_appropriations.csv",
+
+  "award_financial_id": 102,
+  "award_financial_key": "2/1453474327_award_financial.csv",
+
+  "program_activity_id": 103,
+  "program_activity_key": "2/1453474333_program_activity.csv",
+
+  "credentials": {
+    "SecretAccessKey": "ABCDEFG",
+    "SessionToken": "ABCDEFG",
+    "Expiration": "2016-01-22T15:25:23Z",
+    "AccessKeyId": "ABCDEFG"
+  }
+}
+```
+
 #### POST "/v1/upload_detached_file/"
 A call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the value of the "fabs" key, to indicate the local path to the file to be uploaded. 
 
