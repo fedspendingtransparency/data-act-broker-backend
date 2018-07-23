@@ -60,7 +60,7 @@ class FileHandler:
         Attributes:
             request: A Flask object containing the route request
             is_local: A boolean flag indicating whether the application is being run locally or not
-            serverPath: A string containing the path to the server files (only applicable when run locally)
+            server_path: A string containing the path to the server files (only applicable when run locally)
             s3manager: An instance of S3Handler that can be used for all interactions with S3
 
         Class Attributes:
@@ -91,7 +91,7 @@ class FileHandler:
         """
         self.request = route_request
         self.is_local = is_local
-        self.serverPath = server_path
+        self.server_path = server_path
         self.s3manager = S3Handler()
 
     def validate_submit_files(self, create_credentials):
@@ -270,7 +270,7 @@ class FileHandler:
                         key = [x.upload_name for x in upload_files if x.file_type == file_type][0]
                         s3.upload_fileobj(file_ref, response_dict["bucket_name"], key)
                     else:
-                        file_ref.save(os.path.join(self.serverPath, file_ref.filename))
+                        file_ref.save(os.path.join(self.server_path, file_ref.filename))
                     with app.app_context():
                             g.user = current_user
                             self.finalize(response_dict[file_type + "_id"])
@@ -413,7 +413,7 @@ class FileHandler:
                 if uploaded_file:
                     seconds = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
                     filename = "".join([str(seconds), "_", secure_filename(uploaded_file.filename)])
-                    path = os.path.join(self.serverPath, filename)
+                    path = os.path.join(self.server_path, filename)
                     uploaded_file.save(path)
                     return_dict = {"path": path}
                     return JsonResponse.create(StatusCode.OK, return_dict)
@@ -685,7 +685,7 @@ class FileHandler:
                     key = [x.upload_name for x in upload_files if x.file_type == "fabs"][0]
                     s3.upload_fileobj(fabs, response_dict["bucket_name"], key)
                 else:
-                    fabs.save(os.path.join(self.serverPath, fabs.filename))
+                    fabs.save(os.path.join(self.server_path, fabs.filename))
                 return self.finalize(response_dict["fabs_id"])
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
@@ -1020,7 +1020,7 @@ class FileHandler:
                         S3Handler.get_timestamped_filename(file_name)
                     )
                 else:
-                    upload_name = os.path.join(self.serverPath, file_name)
+                    upload_name = os.path.join(self.server_path, file_name)
 
                 response_dict[file_type + "_key"] = upload_name
                 upload_files.append(FileHandler.UploadFile(
