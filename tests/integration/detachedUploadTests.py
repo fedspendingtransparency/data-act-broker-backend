@@ -90,9 +90,7 @@ class DetachedUploadTests(BaseTestAPI):
 
     def test_upload_detached_file_wrong_permissions_wrong_user(self):
         self.login_user()
-        new_submission_json = {
-            "agency_code": "WRONG"}
-        response = self.app.post_json("/v1/upload_detached_file/", new_submission_json,
+        response = self.app.post_json("/v1/upload_detached_file/", {"agency_code": "WRONG"},
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json['message'], "User does not have permissions to write to that subtier agency")
@@ -117,25 +115,20 @@ class DetachedUploadTests(BaseTestAPI):
 
     def test_upload_detached_file_missing_parameters(self):
         self.login_user(username=self.agency_user_email)
-        update_submission_json = {}
-        response = self.app.post_json("/v1/upload_detached_file/", update_submission_json,
+        response = self.app.post_json("/v1/upload_detached_file/", {},
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'Missing required parameter: agency_code or existing_submission_id')
 
     def test_upload_detached_file_incorrect_parameters(self):
         self.login_user(username=self.agency_user_email)
-        update_submission_json = {
-            "existing_submission_id": "-99"}
-        response = self.app.post_json("/v1/upload_detached_file/", update_submission_json,
+        response = self.app.post_json("/v1/upload_detached_file/", {"existing_submission_id": "-99"},
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'existing_submission_id must be a valid submission_id')
 
     def test_upload_detached_file_missing_fabs(self):
-        new_submission_json = {
-            "agency_code": "WRONG"}
-        response = self.app.post_json("/v1/upload_detached_file/", new_submission_json,
+        response = self.app.post_json("/v1/upload_detached_file/", {"agency_code": "WRONG"},
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "fabs: Missing data for required field.")
