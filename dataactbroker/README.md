@@ -240,7 +240,6 @@ Example Output:
 ```
 
 #### POST "/v1/submit_files/"
-
 If submitting files directly via the API and backend, a call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the values of the "appropriations", "program_activity" and "award_financial" keys, to indicate the local path to the files to be uploaded.
 
 If using the frontend and passing filename strings rather than files, this route will return conflict free S3 URLs for uploading. Each key put in the request comes back with a url_key containing the S3 URL and a key_id containing the job id. A returning submission_id will also exist which acts as identifier for the submission.
@@ -253,7 +252,6 @@ If using the frontend, you will need to call /v1/finalize_job/ to kick off valid
 
 
 #### Additional Required Headers (Backend only):
-
 - `Content-Type` - `"multipart/form-data"`
 
 #### Request Parameters:
@@ -302,14 +300,12 @@ If using the frontend, you will need to call /v1/finalize_job/ to kick off valid
 ```
 
 #### Example Output Using the Backend API:
-
 ```json
 {
   "success":"true",
   "submission_id": 123
 }
 ```
-
 
 #### Example Output Using the Frontend:
 ```json
@@ -345,11 +341,9 @@ A call to this route should be of content type `"multipart/form-data"`, and shou
 This route will upload the file, then kick off the validation jobs. It will return the submission id, which can be used for the `/v1/check_status/` route to poll for validation completion. 
 
 #### Additional Required Headers:
-
        - `Content-Type`: `"multipart/form-data"`
 
 #### Request Parameters:
-
        - `agency_code`: string, sub tier agency code. Required if existing_submission_id is not included
        - `cgac_code`: null, optional
        - `frec_code`: null, optional
@@ -360,7 +354,6 @@ This route will upload the file, then kick off the validation jobs. It will retu
        - `existing_submission_id` : integer, id of previous submission, use only if submitting an update.
 
 #### Example curl request:
-
 ```
         curl -i -X POST /
             -H "x-session-id: abcdefg-1234567-hijklmno-89101112"
@@ -371,7 +364,6 @@ This route will upload the file, then kick off the validation jobs. It will retu
 ```
 
 #### Example output:
-
 ```json
 {
   "success":true,
