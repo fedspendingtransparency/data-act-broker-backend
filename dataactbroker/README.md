@@ -336,11 +336,11 @@ If using the frontend, you will need to call /v1/finalize_job/ to kick off valid
 ```
 
 #### POST "/v1/upload_detached_file/"
-A call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the value of the "fabs" key, to indicate the local path to the file to be uploaded. 
+If using the backend, a call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the value of the "fabs" key, to indicate the local path to the file to be uploaded. 
 
 This route will upload the file, then kick off the validation jobs. It will return the submission id, which can be used for the `/v1/check_status/` route to poll for validation completion. 
 
-#### Additional Required Headers:
+#### Additional Required Headers (Backend Only):
        - `Content-Type`: `"multipart/form-data"`
 
 #### Request Parameters:
