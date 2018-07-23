@@ -241,19 +241,18 @@ Example Output:
 
 #### POST "/v1/submit_files/"
 
-
-A call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the values of the "appropriations", "program_activity" and "award_financial" keys, to indicate the local path to the files to be uploaded.
+If submitting files directly via the API and backend, a call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the values of the "appropriations", "program_activity" and "award_financial" keys, to indicate the local path to the files to be uploaded.
 
 If using the frontend and passing filename strings rather than files, this route will return conflict free S3 URLs for uploading. Each key put in the request comes back with a url_key containing the S3 URL and a key_id containing the job id. A returning submission_id will also exist which acts as identifier for the submission.
 
 In addition, with frontend use, a credentials object is also part of the returning request. This object provides temporary access to upload S3 Files using an AWS SDK. It contains the following: SecretAccessKey, SessionToken, Expiration, and AccessKeyId. It is important to note that the role used to create the credentials should be limited to just S3 access.
 
-This route will upload the files, then kick off the validation jobs. It will return the submission id, which can be used for the `/v1/check_status/` route to poll for validation completion. 
+If using the backend API,this route will upload the files, then kick off the validation jobs. It will return the submission id, which can be used for the `/v1/check_status/` route to poll for validation completion. 
 
-**NOTE: If using the frontend, you will need to call /v1/finalize_job/ to kick off validation once upload is complete**
+If using the frontend, you will need to call /v1/finalize_job/ to kick off validation once upload is complete.
 
 
-#### Additional Required Headers:
+#### Additional Required Headers (Backend only):
 
 - `Content-Type` - `"multipart/form-data"`
 
@@ -269,7 +268,22 @@ This route will upload the files, then kick off the validation jobs. It will ret
 
 **NOTE**: for monthly submissions, start/end date are the same
 
-#### Example curl request:
+#### Example Frontend Request Using Filenames:
+```json
+{
+  "appropriations":"appropriations.csv",
+  "award_financial":"award_financial.csv",
+  "award":"award.csv",
+  "program_activity":"program_activity.csv",
+  "agency_name":"Name of the agency",
+  "reporting_period_start_date":"03/31/2016",
+  "reporting_period_end_date":"03/31/2016",
+  "is_quarter":False,
+  "existing_submission_id: 7 (leave out if not correcting an existing submission)
+}
+```
+
+#### Example Curl Request Using the API Method:
 ```
     curl -i -X POST 
         -H "x-session-id: abcdefg-1234567-hijklmno-89101112"  
@@ -287,7 +301,7 @@ This route will upload the files, then kick off the validation jobs. It will ret
 
 ```
 
-#### Example output:
+#### Example Output Using the Backend API:
 
 ```json
 {
