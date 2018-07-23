@@ -188,7 +188,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         return JsonResponse.create(StatusCode.OK, get_fabs_meta(submission.submission_id))
 
     @app.route("/v1/upload_detached_file/", methods=["POST"])
-    @requires_sub_agency_perms('edit_fabs')
+    @requires_sub_agency_perms('editfabs')
     def upload_detached_file():
         params = RequestDictionary.derive(request)
         api_triggered = params.get('_files', {}).get('fabs', None)
