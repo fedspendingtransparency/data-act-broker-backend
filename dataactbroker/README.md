@@ -284,16 +284,16 @@ If using the frontend, you will need to call /v1/finalize_job/ to kick off valid
 #### Example Curl Request Using the API Method:
 ```
 curl -i -X POST 
-        -H "x-session-id: abcdefg-1234567-hijklmno-89101112"  
-        -H "Content-Type: multipart/form-data" 
-        -F 'cgac_code=020' 
-        -F 'frec_code=null' 
-        -F 'is_quarter=true' 
-        -F 'reporting_period_start_date=04/2018' 
-        -F 'reporting_period_end_date=06/2018' 
-        -F "appropriations=@/local/path/to/a.csv" 
-        -F "award_financial=@/local/path/to/c.csv"  
-        -F "program_activity=@/local/path/to/b.csv"
+      -H "x-session-id: abcdefg-1234567-hijklmno-89101112"  
+      -H "Content-Type: multipart/form-data" 
+      -F 'cgac_code=020' 
+      -F 'frec_code=null' 
+      -F 'is_quarter=true' 
+      -F 'reporting_period_start_date=04/2018' 
+      -F 'reporting_period_end_date=06/2018' 
+      -F "appropriations=@/local/path/to/a.csv" 
+      -F "award_financial=@/local/path/to/c.csv"  
+      -F "program_activity=@/local/path/to/b.csv"
     /v1/submit_files/
 ```
 
@@ -353,12 +353,12 @@ This route will upload the file, then kick off the validation jobs. It will retu
 
 #### Example curl request:
 ```
-        curl -i -X POST /
-            -H "x-session-id: abcdefg-1234567-hijklmno-89101112"
-            -H "Content-Type: multipart/form-data"
-            -F 'agency_code=2000'
-            -F "fabs=@/local/path/to/fabs.csv"
-        /v1/upload_detached_file/
+  curl -i -X POST /
+      -H "x-session-id: abcdefg-1234567-hijklmno-89101112"
+      -H "Content-Type: multipart/form-data"
+      -F 'agency_code=2000'
+      -F "fabs=@/local/path/to/fabs.csv"
+    /v1/upload_detached_file/
 ```
 
 #### Example output:
