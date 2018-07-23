@@ -809,7 +809,7 @@ This endpoint requests the URL associated with a particular type of submission r
     - `executive_compensation` - E
     - `sub_award` - F
     - `fabs` - FABS
-- `cross_type` - **optional** - if present, indicates that we're looking for a cross-validation report between `file_type` and this parameter. The following are the only valid pairings, all other combinations of `file_type` and `cross_type` will result in invalid urls:
+- `cross_type` - **optional** - if present, indicates that we're looking for a cross-validation report between `file_type` and this parameter. The following are the only valid pairings, all other combinations of `file_type` and `cross_type` will result in an error:
     - `file_type`: "appropriations", `cross_type`: "program\_activity"
     - `file_type`: "program\_activity", `cross_type`: "award\_financial"
     - `file_type`: "award\_financial", `cross_type`: "award\_procurement"
@@ -833,6 +833,7 @@ Possible HTTP Status Codes:
     - Missing `submission_id` or `file_type` parameter
     - Submission does not exist
     - Invalid `file_type`, `cross_type`, or `warning` parameter
+    - Invalid `file_type`, `cross_type` pairing
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
