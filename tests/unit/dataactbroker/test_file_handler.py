@@ -394,8 +394,11 @@ def test_build_file_map_string(monkeypatch):
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
     upload_files = []
     response_dict = {}
-    file_type_list = ["fabs"]
-    file_dict = {"fabs": "fabs_file.csv"}
+    file_type_list = ["fabs", "appropriations", "award_financial", "program_activity"]
+    file_dict = {"fabs": "fabs_file.csv",
+                 "appropriations": "appropriations.csv",
+                 "award_financial": "award_financial.csv",
+                 "program_activity": "program_activity.csv"}
     monkeypatch.setattr(S3Handler, 'get_timestamped_filename', Mock(side_effect=lambda x: "123_" + x))
     submission = SubmissionFactory(submission_id=3)
     fh = fileHandler.FileHandler({})
@@ -408,10 +411,17 @@ def test_build_file_map_file(monkeypatch):
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
     upload_files = []
     response_dict = {}
-    file_type_list = ["fabs"]
-    the_file = io.BytesIO(b"something")
-    the_file.filename = 'fabs.csv'
-    file_dict = {"fabs": the_file}
+    file_type_list = ["fabs", "appropriations", "award_financial", "program_activity"]
+    fabs_file = io.BytesIO(b"something")
+    fabs_file.filename = 'fabs.csv'
+    approp_file = io.BytesIO(b"something")
+    approp_file.filename = 'approp.csv'
+    pa_file = io.BytesIO(b"something")
+    pa_file.filename = 'pa.csv'
+    award_file = io.BytesIO(b"something")
+    award_file.filename = 'award.csv'
+    file_dict = {"fabs": fabs_file, "award_financial": award_file, "program_activity": pa_file,
+                 "appropriations": approp_file}
     monkeypatch.setattr(S3Handler, 'get_timestamped_filename', Mock(side_effect=lambda x: "123_" + x))
     submission = SubmissionFactory(submission_id=3)
     fh = fileHandler.FileHandler({})

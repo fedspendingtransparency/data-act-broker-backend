@@ -23,6 +23,13 @@ from sqlalchemy import or_
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.integration.baseTestAPI import BaseTestAPI
 
+AWARD_FILE_T = ('award_financial', 'award_financial.csv',
+                open('tests/integration/data/awardFinancialValid.csv', 'rb').read())
+APPROP_FILE_T = ('appropriations', 'appropriations.csv',
+                 open('tests/integration/data/appropValid.csv', 'rb').read())
+PA_FILE_T = ('program_activity', 'program_activity.csv',
+             open('tests/integration/data/programActivityValid.csv', 'rb').read())
+
 
 class FileTests(BaseTestAPI):
     """Test file submission routes."""
@@ -378,6 +385,147 @@ class FileTests(BaseTestAPI):
             "reporting_period_end_date": "12/2015"}
         response = self.app.post_json("/v1/submit_files/", update_submission_json,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'existing_submission_id must be a valid submission_id')
+
+    def test_api_bad_quarter(self):
+        """ Test file submissions for Q5 """
+        update_json = {
+            "cgac_code": "020",
+            "is_quarter": True,
+            "reporting_period_start_date": "12/2016",
+            "reporting_period_end_date": "13/2016"}
+        update_response = self.app.post("/v1/submit_files/", update_json,
+                                        upload_files=[AWARD_FILE_T],
+                                        headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(update_response.status_code, 400)
+        self.assertIn("Date must be provided as", update_response.json["message"])
+
+    def test_api_bad_month(self):
+        """ Test file submissions for alphabet months """
+        update_json = {
+            # make sure date checks work as expected for an existing submission
+            "existing_submission_id": self.status_check_submission_id,
+            "reporting_period_start_date": "AB/2016",
+            "reporting_period_end_date": "CD/2016"}
+        update_response = self.app.post("/v1/submit_files/", update_json,
+                                        upload_files=[AWARD_FILE_T],
+                                        headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(update_response.status_code, 400)
+        self.assertIn("Date must be provided as", update_response.json["message"])
+
+    def test_api_bad_year(self):
+        """ Test file submissions for alphabet year """
+        update_json = {
+            "cgac_code": "020",
+            "is_quarter": True,
+            "reporting_period_start_date": "Q1/ABCD",
+            "reporting_period_end_date": "Q2/2016"}
+        update_response = self.app.post("/v1/submit_files/", update_json,
+                                        upload_files=[AWARD_FILE_T],
+                                        headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(update_response.status_code, 400)
+        self.assertIn("Date must be provided as", update_response.json["message"])
+
+    def test_api_submit_file_certified_period(self):
+        """ Test file submissions for Q4, 2015, submission w same period already been certified """
+        update_json = {
+            "cgac_code": "SYS",
+            "is_quarter": True,
+            "reporting_period_start_date": "07/2015",
+            "reporting_period_end_date": "09/2015"}
+        response = self.app.post("/v1/submit_files/", update_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], "A submission with the same period already exists.")
+
+    def test_api_submit_file_fabs_dabs_route(self):
+        """ Test trying to update a FABS submission via the DABS route """
+        update_json = {
+            "existing_submission_id": self.test_fabs_submission_id,
+            "is_quarter": True,
+            "reporting_period_start_date": "07/2015",
+            "reporting_period_end_date": "09/2015"}
+        response = self.app.post("/v1/submit_files/", update_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "Existing submission must be a DABS submission")
+
+    def test_api_submit_file_new_missing_params(self):
+        """ Test file submission for a new submission while missing any of the parameters """
+        update_json = {
+            "cgac_code": "TEST",
+            "is_quarter": True,
+            "reporting_period_start_date": "07/2015",
+            "reporting_period_end_date": "09/2015"}
+        response = self.app.post("/v1/submit_files/", update_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "Must include all files for a new submission")
+
+    def test_api_submit_file_old_no_params(self):
+        """ Test file submission for an existing submission while not providing any file parameters """
+        update_json = {
+            "existing_submission_id": self.status_check_submission_id,
+            "is_quarter": True,
+            "reporting_period_start_date": "07/2015",
+            "reporting_period_end_date": "09/2015"}
+        response = self.app.post("/v1/submit_files/", update_json,
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "Must include at least one file for an existing submission")
+
+    def test_api_submit_file_wrong_permissions_wrong_user(self):
+        self.login_user()
+        new_submission_json = {
+            "cgac_code": "NOT",
+            "frec_code": None,
+            "is_quarter": True,
+            "reporting_period_start_date": "07/2015",
+            "reporting_period_end_date": "09/2015"}
+        response = self.app.post("/v1/submit_files/", new_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json['message'], "User does not have permissions to write to that agency")
+
+    def test_api_submit_file_wrong_permissions_right_user(self):
+        self.login_user(username=self.other_user_email)
+        update_submission_json = {
+            "existing_submission_id": self.test_other_user_submission_id,
+            "is_quarter": True,
+            "reporting_period_start_date": "10/2015",
+            "reporting_period_end_date": "12/2015"}
+        response = self.app.post("/v1/submit_files/", update_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 200)
+
+    def test_api_submit_file_missing_parameters(self):
+        self.login_user(username=self.other_user_email)
+        update_submission_json = {
+            "is_quarter": True,
+            "reporting_period_start_date": "10/2015",
+            "reporting_period_end_date": "12/2015"}
+        response = self.app.post("/v1/submit_files/", update_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'],
+                         "Missing required parameter: cgac_code, frec_code, or existing_submission_id")
+
+    def test_api_submit_file_incorrect_parameters(self):
+        self.login_user(username=self.other_user_email)
+        update_submission_json = {
+            "existing_submission_id": -99,
+            "is_quarter": True,
+            "reporting_period_start_date": "10/2015",
+            "reporting_period_end_date": "12/2015"}
+        response = self.app.post("/v1/submit_files/", update_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'existing_submission_id must be a valid submission_id')
 

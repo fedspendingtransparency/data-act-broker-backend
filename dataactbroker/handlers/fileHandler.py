@@ -9,7 +9,7 @@ import sqlalchemy as sa
 from collections import namedtuple
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from flask import g, request
+from flask import g, request, current_app
 from shutil import copyfile
 from sqlalchemy import func, and_, desc, or_
 from sqlalchemy.orm import aliased
@@ -60,7 +60,7 @@ class FileHandler:
         Attributes:
             request: A Flask object containing the route request
             is_local: A boolean flag indicating whether the application is being run locally or not
-            serverPath: A string containing the path to the server files (only applicable when run locally)
+            server_path: A string containing the path to the server files (only applicable when run locally)
             s3manager: An instance of S3Handler that can be used for all interactions with S3
 
         Class Attributes:
@@ -78,7 +78,6 @@ class FileHandler:
     FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
     EXTERNAL_FILE_TYPES = ["award", "award_procurement", "executive_compensation", "sub_award"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
-    UPLOAD_FOLDER = '/data-act/backend/tmp'
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
 
@@ -92,7 +91,7 @@ class FileHandler:
         """
         self.request = route_request
         self.is_local = is_local
-        self.serverPath = server_path
+        self.server_path = server_path
         self.s3manager = S3Handler()
 
     def validate_submit_files(self, create_credentials):
@@ -106,11 +105,11 @@ class FileHandler:
                 Results of submit function or a JsonResponse object containing a failure message
         """
         sess = GlobalDB.db().session
-        submission_request = self.request
+        submission_request = RequestDictionary.derive(self.request)
 
-        start_date = submission_request.json.get('reporting_period_start_date')
-        end_date = submission_request.json.get('reporting_period_end_date')
-        is_quarter = submission_request.json.get('is_quarter_format', False)
+        start_date = submission_request.get('reporting_period_start_date')
+        end_date = submission_request.get('reporting_period_end_date')
+        is_quarter = submission_request.get('is_quarter_format', False)
 
         # If both start and end date are provided, make sure no other submission is already published for that period
         if not (start_date is None or end_date is None):
@@ -118,17 +117,17 @@ class FileHandler:
                                                                                           end_date, is_quarter)
 
             submissions = sess.query(Submission).filter(
-                Submission.cgac_code == submission_request.json.get('cgac_code'),
-                Submission.frec_code == submission_request.json.get('frec_code'),
+                Submission.cgac_code == submission_request.get('cgac_code'),
+                Submission.frec_code == submission_request.get('frec_code'),
                 Submission.reporting_start_date == formatted_start_date,
                 Submission.reporting_end_date == formatted_end_date,
-                Submission.is_quarter_format == submission_request.json.get('is_quarter'),
+                Submission.is_quarter_format == submission_request.get('is_quarter'),
                 Submission.d2_submission.is_(False),
                 Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
 
-            if 'existing_submission_id' in submission_request.json:
+            if 'existing_submission_id' in submission_request:
                 submissions.filter(Submission.submission_id !=
-                                   submission_request.json['existing_submission_id'])
+                                   submission_request['existing_submission_id'])
 
             submissions = submissions.order_by(desc(Submission.created_at))
 
@@ -154,10 +153,13 @@ class FileHandler:
         """
         existing_submission_id = request_params.get('existing_submission_id')
         param_count = 0
-
+        api_triggered = False
         for file_type in FileHandler.FILE_TYPES:
             if request_params.get(file_type):
                 param_count += 1
+            elif "_files" in request_params and request_params['_files'].get(file_type):
+                param_count += 1
+                api_triggered = True
 
         if not existing_submission_id and param_count != len(FileHandler.FILE_TYPES):
             raise ResponseException("Must include all files for a new submission", StatusCode.CLIENT_ERROR)
@@ -165,6 +167,7 @@ class FileHandler:
         if existing_submission_id and param_count == 0:
             raise ResponseException("Must include at least one file for an existing submission",
                                     StatusCode.CLIENT_ERROR)
+        return api_triggered
 
     def submit(self, sess, create_credentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
@@ -186,7 +189,7 @@ class FileHandler:
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
 
-            self.validate_submit_file_params(request_params)
+            api_triggered = self.validate_submit_file_params(request_params)
 
             # unfortunately, field names in the request don't match
             # field names in the db/response. create a mapping here.
@@ -230,7 +233,11 @@ class FileHandler:
             sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files, submission)
+            if api_triggered:
+                file_dict = request_params["_files"]
+            else:
+                file_dict = request_params
+            self.build_file_map(file_dict, FileHandler.FILE_TYPES, response_dict, upload_files, submission)
 
             if not existing_submission:
                 # don't add external files to existing submission
@@ -254,6 +261,26 @@ class FileHandler:
 
             self.create_response_dict_for_submission(upload_files, submission, existing_submission, response_dict,
                                                      create_credentials)
+            if api_triggered:
+                import threading
+
+                def upload(file_ref, file_type, app, current_user):
+                    if CONFIG_BROKER['use_aws']:
+                        s3 = boto3.client('s3', region_name='us-gov-west-1')
+                        key = [x.upload_name for x in upload_files if x.file_type == file_type][0]
+                        s3.upload_fileobj(file_ref, response_dict["bucket_name"], key)
+                    else:
+                        file_ref.save(os.path.join(self.server_path, file_ref.filename))
+                    with app.app_context():
+                            g.user = current_user
+                            self.finalize(response_dict[file_type + "_id"])
+                for file_type, file_ref in request_params["_files"].items():
+                    t = threading.Thread(target=upload, args=(file_ref, file_type,
+                                                              current_app._get_current_object(), g.user))
+                    t.start()
+                    t.join()
+                api_response = {"success": "true", "submission_id": submission.submission_id}
+                return JsonResponse.create(StatusCode.OK, api_response)
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
@@ -386,7 +413,7 @@ class FileHandler:
                 if uploaded_file:
                     seconds = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
                     filename = "".join([str(seconds), "_", secure_filename(uploaded_file.filename)])
-                    path = os.path.join(self.serverPath, filename)
+                    path = os.path.join(self.server_path, filename)
                     uploaded_file.save(path)
                     return_dict = {"path": path}
                     return JsonResponse.create(StatusCode.OK, return_dict)
@@ -658,7 +685,7 @@ class FileHandler:
                     key = [x.upload_name for x in upload_files if x.file_type == "fabs"][0]
                     s3.upload_fileobj(fabs, response_dict["bucket_name"], key)
                 else:
-                    fabs.save(os.path.join(self.UPLOAD_FOLDER, fabs.filename))
+                    fabs.save(os.path.join(self.server_path, fabs.filename))
                 return self.finalize(response_dict["fabs_id"])
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
@@ -979,7 +1006,11 @@ class FileHandler:
                 continue
             file_reference = file_dict.get(file_type)
             if not isinstance(file_reference, str):
-                file_name = file_reference.filename
+                try:
+                    file_name = file_reference.filename
+                except:
+                    return JsonResponse.error(Exception("{} parameter must be a file in binary form".format(file_type)),
+                                              StatusCode.CLIENT_ERROR)
             else:
                 file_name = file_reference
             if file_name:
@@ -989,7 +1020,7 @@ class FileHandler:
                         S3Handler.get_timestamped_filename(file_name)
                     )
                 else:
-                    upload_name = os.path.join(self.UPLOAD_FOLDER, file_name)
+                    upload_name = os.path.join(self.server_path, file_name)
 
                 response_dict[file_type + "_key"] = upload_name
                 upload_files.append(FileHandler.UploadFile(

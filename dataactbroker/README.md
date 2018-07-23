@@ -240,17 +240,33 @@ Example Output:
 ```
 
 #### POST "/v1/submit_files/"
-This route is used to retrieve S3 URLs to upload files. Data should be JSON with keys: ["appropriations", "award_financial", "award", "program_activity"], each with a filename as a value, and submission metadata keys: ["agency_name","reporting_period_start_date","reporting_period_end_date","is_quarter","existing_submission_id"].  If an existing submission ID is provided, all other keys are optional and any data provided will be used to correct information in the existing submission.
+If submitting files directly via the API, a call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the values of the "appropriations", "program_activity" and "award_financial" keys, to indicate the local path to the files to be uploaded.
 
-This route will also add jobs to the job tracker DB and return conflict free S3 URLs for uploading. Each key put in the request comes back with an url_key containing the S3 URL and a key_id containing the job id. A returning submission_id will also exist which acts as identifier for the submission.
+If using the frontend and passing filename strings rather than files, this route will return conflict free S3 URLs for uploading. Each key put in the request comes back with a url_key containing the S3 URL and a key_id containing the job id. A returning submission_id will also exist which acts as identifier for the submission.
 
-A credentials object is also part of the returning request. This object provides temporarily access to upload S3 Files using an AWS SDK. It contains the following: SecretAccessKey, SessionToken, Expiration, and AccessKeyId.
-It is important to note that the role used to create the credentials should be limited to just S3 access.
+In addition, with frontend use, a credentials object is also part of the returning request. This object provides temporary access to upload S3 Files using an AWS SDK. It contains the following: SecretAccessKey, SessionToken, Expiration, and AccessKeyId. It is important to note that the role used to create the credentials should be limited to just S3 access.
 
-When upload is complete, the finalize_submission route should be called with the job_id.
+If using the API, this route will upload the files, then kick off the validation jobs. It will return the submission_id, which can be used for the `/v1/check_status/` route to poll for validation completion. 
 
-Example input:
+If using the frontend, you will need to call /v1/finalize_job/ to kick off validation once upload is complete.
 
+
+#### Additional Required Headers (Backend only):
+- `Content-Type` - `"multipart/form-data"`
+
+#### Request Parameters:
+- `appropriations` - local path to file using @ notation
+- `program_activity` - local path to file using @ notation
+- `award_financial` - local path to file using @ notation
+- `cgac_code` - **required if not FREC** string, CGAC of agency (null if FREC agency)
+- `frec_code` - **required if not CGAC** string, FREC of agency (null if CGAC agency)
+- `is_quarter` - boolean (true for quarterly submissions)
+- `reporting_period_start_date` - string, starting date of submission (MM/YYYY)
+- `reporting_period_end_date` - string, ending date of submission (MM/YYYY)
+
+**NOTE**: for monthly submissions, start/end date are the same
+
+#### Example Frontend Request Using Filenames:
 ```json
 {
   "appropriations":"appropriations.csv",
@@ -265,8 +281,30 @@ Example input:
 }
 ```
 
-Example output:
+#### Example Curl Request Using the API Method:
+```curl -i -X POST 
+        -H "x-session-id: abcdefg-1234567-hijklmno-89101112"  
+        -H "Content-Type: multipart/form-data" 
+        -F 'cgac_code=020' 
+        -F 'frec_code=null' 
+        -F 'is_quarter=true' 
+        -F 'reporting_period_start_date=04/2018' 
+        -F 'reporting_period_end_date=06/2018' 
+        -F "appropriations=@/local/path/to/a.csv" 
+        -F "award_financial=@/local/path/to/c.csv"  
+        -F "program_activity=@/local/path/to/b.csv"
+    /v1/submit_files/
+```
 
+#### Example Output Using the Backend API:
+```json
+{
+  "success":"true",
+  "submission_id": 123
+}
+```
+
+#### Example Output Using the Frontend:
 ```json
 {
   "submission_id": 12345,
@@ -295,12 +333,24 @@ Example output:
 ```
 
 #### POST "/v1/upload_detached_file/"
-A call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the value of the "fabs" key, to indicate the local path to the file to be uploaded.
+If using the API, a call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the value of the "fabs" key, to indicate the local path to the file to be uploaded.
 
-This route will upload the file, then kick off the validation jobs. It will return the submission id, which can be used for the `/v1/check_status/` route to poll for validation completion. 
+This route will upload the file, then kick off the validation jobs. It will return the submission id, which can be used for the `/v1/check_status/` route to poll for validation completion.
 
+#### Additional Required Headers (API Only):
+       - `Content-Type`: `"multipart/form-data"`
 
-Example curl request:
+#### Request Parameters:
+       - `agency_code`: string, sub tier agency code. Required if existing_submission_id is not included
+       - `cgac_code`: null, optional
+       - `frec_code`: null, optional
+       - `fabs`: local path to file using @ notation
+       - `is_quarter`: boolean, false for FABS submissions
+       - `reporting_period_start_date`: null, optional
+       - `reporting_period_end_date`: null, optional
+       - `existing_submission_id` : integer, id of previous submission, use only if submitting an update.
+
+#### Example curl request:
 ```
         curl -i -X POST /
             -H "x-session-id: abcdefg-1234567-hijklmno-89101112"
@@ -310,8 +360,7 @@ Example curl request:
         /v1/upload_detached_file/
 ```
 
-Example output:
-
+#### Example output:
 ```json
 {
   "success":true,
