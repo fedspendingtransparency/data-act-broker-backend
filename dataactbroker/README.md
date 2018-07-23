@@ -282,17 +282,18 @@ If using the frontend, you will need to call /v1/finalize_job/ to kick off valid
 ```
 
 #### Example Curl Request Using the API Method:
-```curl -i -X POST 
-        -H "x-session-id: abcdefg-1234567-hijklmno-89101112"  
-        -H "Content-Type: multipart/form-data" 
-        -F 'cgac_code=020' 
-        -F 'frec_code=null' 
-        -F 'is_quarter=true' 
-        -F 'reporting_period_start_date=04/2018' 
-        -F 'reporting_period_end_date=06/2018' 
-        -F "appropriations=@/local/path/to/a.csv" 
-        -F "award_financial=@/local/path/to/c.csv"  
-        -F "program_activity=@/local/path/to/b.csv"
+```
+curl -i -X POST 
+      -H "x-session-id: abcdefg-1234567-hijklmno-89101112"  
+      -H "Content-Type: multipart/form-data" 
+      -F 'cgac_code=020' 
+      -F 'frec_code=null' 
+      -F 'is_quarter=true' 
+      -F 'reporting_period_start_date=04/2018' 
+      -F 'reporting_period_end_date=06/2018' 
+      -F "appropriations=@/local/path/to/a.csv" 
+      -F "award_financial=@/local/path/to/c.csv"  
+      -F "program_activity=@/local/path/to/b.csv"
     /v1/submit_files/
 ```
 
@@ -338,26 +339,26 @@ If using the API, a call to this route should be of content type `"multipart/for
 This route will upload the file, then kick off the validation jobs. It will return the submission id, which can be used for the `/v1/check_status/` route to poll for validation completion.
 
 #### Additional Required Headers (API Only):
-       - `Content-Type`: `"multipart/form-data"`
+- `Content-Type`: `"multipart/form-data"`
 
 #### Request Parameters:
-       - `agency_code`: string, sub tier agency code. Required if existing_submission_id is not included
-       - `cgac_code`: null, optional
-       - `frec_code`: null, optional
-       - `fabs`: local path to file using @ notation
-       - `is_quarter`: boolean, false for FABS submissions
-       - `reporting_period_start_date`: null, optional
-       - `reporting_period_end_date`: null, optional
-       - `existing_submission_id` : integer, id of previous submission, use only if submitting an update.
+- `agency_code`: string, sub tier agency code. Required if existing_submission_id is not included
+- `cgac_code`: null, optional
+- `frec_code`: null, optional
+- `fabs`: local path to file using @ notation
+- `is_quarter`: boolean, false for FABS submissions
+- `reporting_period_start_date`: null, optional
+- `reporting_period_end_date`: null, optional
+- `existing_submission_id` : integer, id of previous submission, use only if submitting an update.
 
 #### Example curl request:
 ```
-        curl -i -X POST /
-            -H "x-session-id: abcdefg-1234567-hijklmno-89101112"
-            -H "Content-Type: multipart/form-data"
-            -F 'agency_code=2000'
-            -F "fabs=@/local/path/to/fabs.csv"
-        /v1/upload_detached_file/
+  curl -i -X POST /
+      -H "x-session-id: abcdefg-1234567-hijklmno-89101112"
+      -H "Content-Type: multipart/form-data"
+      -F 'agency_code=2000'
+      -F "fabs=@/local/path/to/fabs.csv"
+    /v1/upload_detached_file/
 ```
 
 #### Example output:
