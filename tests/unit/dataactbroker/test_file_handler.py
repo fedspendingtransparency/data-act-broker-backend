@@ -370,9 +370,9 @@ def test_submission_report_url_local(monkeypatch, tmpdir):
     file_path = str(tmpdir) + os.path.sep
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': True, 'broker_files': file_path})
     json_response = fileHandler.submission_report_url(
-        SubmissionFactory(submission_id=4), True, 'some_file', 'another_file')
+        SubmissionFactory(submission_id=4), True, 'award_financial', 'award')
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
-    assert url == os.path.join(file_path, 'submission_4_cross_warning_some_file_another_file.csv')
+    assert url == os.path.join(file_path, 'submission_4_cross_warning_award_financial_award.csv')
 
 
 def test_submission_report_url_s3(monkeypatch):

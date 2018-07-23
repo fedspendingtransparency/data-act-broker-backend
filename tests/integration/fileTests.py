@@ -1214,6 +1214,26 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 200)
         self.assertIn("url", response.json)
 
+    def test_submission_report_url_invalid_cross(self):
+        """ Test that invalid cross_types cause an error """
+        params = {"warning": False,
+                  "file_type": "appropriations",
+                  "cross_type": "appropriations"}
+        response = self.app.get("/v1/submission/{}/report_url".format(self.row_error_submission_id), params,
+                                headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "cross_type: Not a valid choice.")
+
+    def test_submission_report_url_valid_type_invalid_pair(self):
+        """ Test that valid cross_type but invalid pair causes an error """
+        params = {"warning": False,
+                  "file_type": "appropriations",
+                  "cross_type": "award"}
+        response = self.app.get("/v1/submission/{}/report_url".format(self.row_error_submission_id), params,
+                                headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "appropriations and award is not a valid cross-pair.")
+
     def test_cross_file_status_reset_generate(self):
         """ Test that cross-file resets when D file generation is called. """
         submission = SubmissionFactory()

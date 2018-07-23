@@ -227,7 +227,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             required=True,
             validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys())
         ),
-        'cross_type': webargs_fields.String(validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys()))
+        'cross_type': webargs_fields.String(validate=webargs_validate.OneOf(['program_activity', 'award_financial',
+                                                                             'award_procurement', 'award']))
     })
     def post_submission_report_url(submission, warning, file_type, cross_type):
         return submission_report_url(submission, bool(warning), file_type, cross_type)
