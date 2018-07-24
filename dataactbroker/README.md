@@ -807,8 +807,6 @@ This endpoint requests the URL associated with a particular type of submission r
     - `award_financial` - C
     - `award_procurement` - D1
     - `award` - D2
-    - `executive_compensation` - E
-    - `sub_award` - F
     - `fabs` - FABS
 - `cross_type` - **optional** - if present, indicates that we're looking for a cross-validation report between `file_type` and this parameter. The following are the only valid pairings, all other combinations of `file_type` and `cross_type` will result in an error:
     - `file_type`: "appropriations", `cross_type`: "program\_activity"

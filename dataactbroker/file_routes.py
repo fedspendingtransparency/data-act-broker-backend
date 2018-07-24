@@ -225,7 +225,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         'warning': webargs_fields.Bool(),
         'file_type': webargs_fields.String(
             required=True,
-            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys())
+            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys() - {'executive_compensation', 'sub_award'})
         ),
         'cross_type': webargs_fields.String(validate=webargs_validate.OneOf(['program_activity', 'award_financial',
                                                                              'award_procurement', 'award']))
