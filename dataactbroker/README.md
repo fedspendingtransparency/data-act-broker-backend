@@ -239,7 +239,7 @@ Example Output:
 }
 ```
 
-#### POST "/v1/submit_files/"
+#### POST "/v1/submit\_files/"
 If submitting files directly via the API, a call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the values of the "appropriations", "program_activity" and "award_financial" keys, to indicate the local path to the files to be uploaded.
 
 If using the frontend and passing filename strings rather than files, this route will return conflict free S3 URLs for uploading. Each key put in the request comes back with a url_key containing the S3 URL and a key_id containing the job id. A returning submission_id will also exist which acts as identifier for the submission.
@@ -333,7 +333,7 @@ curl -i -X POST
 }
 ```
 
-#### POST "/v1/upload_detached_file/"
+#### POST "/v1/upload\_detached\_file/"
 If using the API, a call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the value of the "fabs" key, to indicate the local path to the file to be uploaded.
 
 This route will upload the file, then kick off the validation jobs. It will return the submission id, which can be used for the `/v1/check_status/` route to poll for validation completion.
@@ -343,12 +343,7 @@ This route will upload the file, then kick off the validation jobs. It will retu
 
 #### Request Parameters:
 - `agency_code`: string, sub tier agency code. Required if existing_submission_id is not included
-- `cgac_code`: null, optional
-- `frec_code`: null, optional
 - `fabs`: local path to file using @ notation
-- `is_quarter`: boolean, false for FABS submissions
-- `reporting_period_start_date`: null, optional
-- `reporting_period_end_date`: null, optional
 - `existing_submission_id` : integer, id of previous submission, use only if submitting an update.
 
 #### Example curl request:
