@@ -1814,7 +1814,21 @@ def submission_report_url(submission, warning, file_type, cross_type):
 
         Returns:
             A signed URL to S3 of the specified file when not run locally. The path to the file when run locally.
+            If a cross file is requested and the pairing isn't valid, return a JsonResponse containing an error.
     """
+    # If we're doing a cross-file url, make sure it's a valid pairing
+    if cross_type:
+        cross_pairs = {
+            'program_activity': 'appropriations',
+            'award_financial': 'program_activity',
+            'award_procurement': 'award_financial',
+            'award': 'award_financial'
+        }
+        if file_type != cross_pairs[cross_type]:
+            return JsonResponse.error(ValueError("{} and {} is not a valid cross-pair.".format(file_type, cross_type)),
+                                      StatusCode.CLIENT_ERROR)
+
+    # Get the url
     file_name = report_file_name(submission.submission_id, warning, file_type, cross_type)
     if CONFIG_BROKER['local']:
         url = os.path.join(CONFIG_BROKER['broker_files'], file_name)
