@@ -265,12 +265,12 @@ class FileHandler:
                 import threading
 
                 def upload(file_ref, file_type, app, current_user):
+                    filename_key = [x.upload_name for x in upload_files if x.file_type == file_type][0]
                     if CONFIG_BROKER['use_aws']:
                         s3 = boto3.client('s3', region_name='us-gov-west-1')
-                        key = [x.upload_name for x in upload_files if x.file_type == file_type][0]
-                        s3.upload_fileobj(file_ref, response_dict["bucket_name"], key)
+                        s3.upload_fileobj(file_ref, response_dict["bucket_name"], filename_key)
                     else:
-                        file_ref.save(os.path.join(self.server_path, file_ref.filename))
+                        file_ref.save(filename_key)
                     with app.app_context():
                             g.user = current_user
                             self.finalize(response_dict[file_type + "_id"])
@@ -680,12 +680,12 @@ class FileHandler:
             self.create_response_dict_for_submission(upload_files, submission, existing_submission,
                                                      response_dict, create_credentials)
             if api_triggered:
+                filename_key = [x.upload_name for x in upload_files if x.file_type == "fabs"][0]
                 if CONFIG_BROKER['use_aws']:
                     s3 = boto3.client('s3', region_name='us-gov-west-1')
-                    key = [x.upload_name for x in upload_files if x.file_type == "fabs"][0]
-                    s3.upload_fileobj(fabs, response_dict["bucket_name"], key)
+                    s3.upload_fileobj(fabs, response_dict["bucket_name"], filename_key)
                 else:
-                    fabs.save(os.path.join(self.server_path, fabs.filename))
+                    fabs.save(filename_key)
                 return self.finalize(response_dict["fabs_id"])
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
@@ -1020,7 +1020,7 @@ class FileHandler:
                         S3Handler.get_timestamped_filename(file_name)
                     )
                 else:
-                    upload_name = os.path.join(self.server_path, file_name)
+                    upload_name = os.path.join(self.server_path, S3Handler.get_timestamped_filename(file_name))
 
                 response_dict[file_type + "_key"] = upload_name
                 upload_files.append(FileHandler.UploadFile(
