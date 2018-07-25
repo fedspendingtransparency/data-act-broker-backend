@@ -1020,7 +1020,7 @@ class FileHandler:
                         S3Handler.get_timestamped_filename(file_name)
                     )
                 else:
-                    upload_name = os.path.join(self.server_path, file_name)
+                    upload_name = os.path.join(self.server_path, S3Handler.get_timestamped_filename(file_name))
 
                 response_dict[file_type + "_key"] = upload_name
                 upload_files.append(FileHandler.UploadFile(
