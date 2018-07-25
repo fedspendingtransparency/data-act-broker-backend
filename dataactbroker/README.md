@@ -62,14 +62,14 @@ This route sends a request to the backend with the ticket obtained from the MAX 
 ```
 {
     "ticket": ST-123456-abcdefghijklmnopqrst-login.max.gov,
-    "service": http%3A%2F%2Furl.encoded.requesting.url%2F
+    "service": http%3A%2F%2Fbroker.usaspending.gov%2F
 }
 ```
 
 #### Body Description
 
 * `ticket` - ticket string received from MAX from initial login request (pending validation)
-* `service` - URL encoded string that is the source of the initial login request
+* `service` - URL encoded string that is the source of the initial login request. This may vary from the example based on the environment you are in.
 
 #### Response (JSON)
 Response will be somewhat similar to the original `/login` endpoint. More data will be added to the response depending on what we get back from MAX upon validating the ticket.

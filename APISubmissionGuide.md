@@ -6,6 +6,16 @@
 ### Login to Max
 - Step 1: Authenticate with MAX directly to obtain the `ticket` value for Step 2
     - Please refer to documentation provided by MAX.gov [here](./Using_Digital_Certificates_for_MAX_Authentication.pdf).
+    - While we do not control MAX's login process, for simplicity purposes, here is a sample CURL request to the MAX login endpoint:
+    ```
+        curl -L -j -D - -b none 
+            --cert max.crt 
+            --key max.key 
+           https://piv.max.gov/cas/login?service=https://broker.usaspending.gov
+
+    ```
+    - You would locate the `ticket` value in the `Location` header in the first header block returned by this request, i.e.,
+    `Location=https://broker-dev.usaspending.gov?ticket=ST-123456-abcdefghijklmnopqrst-login.max.gov`
 - Step 2: call `/v1/max_login/` (POST) current broker login endpoint for logging into broker using MAX login. For details on its use, click [here](./dataactbroker/README.md#post-v1max_login)
 
 ## DABS Submission Process
