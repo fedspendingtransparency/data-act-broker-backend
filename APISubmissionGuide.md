@@ -14,7 +14,7 @@
         https://piv.test.max.gov/cas/login?service=https://broker-dev.usaspending.gov
 
 ```
-    - You would locate the `ticket` value in the `Location` header in the first header block returned by this request, i.e.,
+- You would locate the `ticket` value in the `Location` header in the first header block returned by this request, i.e.,
      `Location=https://broker-dev.usaspending.gov?ticket=ST-123456-abcdefghijklmnopqrst-login.max.gov`
 - Step 2: call `/v1/max_login/` (POST) current broker login endpoint for logging into broker using MAX login. For details on its use, click [here](./dataactbroker/README.md#post-v1max_login)
 
