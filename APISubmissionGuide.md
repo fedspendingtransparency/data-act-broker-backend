@@ -11,7 +11,7 @@
     curl -L -j -D - -b none 
         --cert max.crt 
         --key max.key 
-        https://piv.test.max.gov/cas/login?service=https://broker-dev.usaspending.gov
+        https://piv.max.gov/cas/login?service=https://broker.usaspending.gov
 
 ```
 - You would locate the `ticket` value in the `Location` header in the first header block returned by this request, i.e.,
