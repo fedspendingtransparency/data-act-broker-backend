@@ -26,7 +26,7 @@ broker:
     # the broker website. The password should contain a combination
     # of letters, numbers, and special characters.
     admin_email: valid.email@domain.com
-    admin_password: password123
+    admin_password: password
 
     # The path where the broker will store submitted files and emails
     # when the broker is not using an AWS S3 bucket.
@@ -213,4 +213,3 @@ logging:
     # Logstash EC2 port. 514 is the port typically used with logstash,
     # so you can mostly likely keep this as is.
     logstash_port: port
-    

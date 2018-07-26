@@ -50,7 +50,7 @@ Next step is to refer to the `Create Broker Config Files` section of this docume
 
 After you successfully installed Docker, make sure the docker daemon is running on your local machine by running `docker version` and make sure you have your configs renamed and copied. Run the following command in the root level of this backend repository:
 
-- `docker-compose up -d`  This command will spin up the postgres container `dataact-postgres`, build your backend image `broker-backend` and run the two service `dataact-broker` and `dataact-validator`. This will take longer the first time because it's building the image and installs the requirements. NOTE: remove `-d` option if you want to see docker logs, you can `contrl z` out of the logs anytime.
+- `docker-compose up -d`  This command will spin up the postgres container `dataact-postgres`, build your backend image `broker-backend` and run the two service `dataact-broker` and `dataact-validator`. This will also initialize the user database with username password located in the configs and it will load all the local agencies data into the database with `initialize -a` and `-i` options. This process will take longer the first time because it's building the image and installs the requirements. NOTE: remove `-d` option if you want to see docker logs, you can `contrl z` out of the logs anytime.
 
 These commands are useful for debugging but is optional:
 
