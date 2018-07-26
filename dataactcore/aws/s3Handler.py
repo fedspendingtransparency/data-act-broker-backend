@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime
 import boto
-from boto import sts
 from dataactcore.config import CONFIG_BROKER
 
 

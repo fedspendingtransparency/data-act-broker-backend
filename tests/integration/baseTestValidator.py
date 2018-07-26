@@ -1,11 +1,8 @@
 import unittest
 from datetime import datetime, timedelta
-import os
 from random import randint
 
-import boto.s3
 from webtest import TestApp
-from boto.s3.key import Key
 
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB

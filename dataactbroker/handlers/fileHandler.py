@@ -10,12 +10,11 @@ import threading
 from collections import namedtuple
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from flask import g, request, current_app
+from flask import g, current_app
 from shutil import copyfile
 from sqlalchemy import func, and_, desc, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import case
-from werkzeug.utils import secure_filename
 
 from dataactbroker.handlers.fabsDerivationsHandler import fabs_derivations
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
