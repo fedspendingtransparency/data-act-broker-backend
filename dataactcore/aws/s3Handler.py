@@ -15,8 +15,6 @@ class S3Handler:
     BASE_URL = "https://s3.amazonaws.com/"
     ENABLE_S3 = True
     URL_LIFETIME = 2000
-    STS_LIFETIME = 2000
-    S3_ROLE = ""
 
     def __init__(self, name=None):
         """
@@ -31,7 +29,6 @@ class S3Handler:
         else:
             self.bucketRoute = name
 
-        S3Handler.S3_ROLE = CONFIG_BROKER['aws_role']
         S3Handler.REGION = CONFIG_BROKER['aws_region']
 
     def _sign_url(self, path, file_name, bucket_route, method="PUT"):
@@ -79,22 +76,6 @@ class S3Handler:
         """
         seconds = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
         return str(seconds) + "_" + filename
-
-    @staticmethod
-    def get_temporary_credentials(user):
-        """
-        Gets token that allows for S3 Uploads for seconds set in STS_LIFETIME
-        """
-        sts_connection = sts.connect_to_region(S3Handler.REGION)
-        role = sts_connection.assume_role(S3Handler.S3_ROLE, "FileUpload" + str(user),
-                                          duration_seconds=S3Handler.STS_LIFETIME)
-        credentials = {
-            'AccessKeyId': role.credentials.access_key,
-            'SecretAccessKey': role.credentials.secret_key,
-            'SessionToken': role.credentials.session_token,
-            'Expiration': role.credentials.expiration
-        }
-        return credentials
 
     @staticmethod
     def get_file_size(filename):
