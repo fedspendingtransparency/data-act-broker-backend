@@ -35,13 +35,6 @@ def add_file_routes(app, is_local, server_path):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.validate_submit_files()
 
-    @app.route("/v1/finalize_job/", methods=["POST"])
-    @requires_login
-    @use_kwargs({'upload_id': webargs_fields.Int(required=True)})
-    def finalize_submission(upload_id):
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.finalize(upload_id)
-
     @app.route("/v1/check_status/", methods=["GET"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
@@ -76,12 +69,6 @@ def add_file_routes(app, is_local, server_path):
     @requires_submission_perms('reader')
     def submission_error_metrics(submission):
         return get_error_metrics(submission)
-
-    @app.route("/v1/local_upload/", methods=["POST"])
-    @requires_login
-    def upload_local_file():
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.upload_file()
 
     @app.route("/v1/list_submissions/", methods=["GET"])
     @requires_login

@@ -386,34 +386,6 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def upload_file(self):
-        """ Saves a file and returns the saved path. Should only be used for local installs.
-
-            Returns:
-                JsonResponse object containing the path to the uploaded file or an error message
-        """
-        try:
-            if self.is_local:
-                uploaded_file = request.files['file']
-                if uploaded_file:
-                    seconds = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
-                    filename = "".join([str(seconds), "_", secure_filename(uploaded_file.filename)])
-                    path = os.path.join(self.server_path, filename)
-                    uploaded_file.save(path)
-                    return_dict = {"path": path}
-                    return JsonResponse.create(StatusCode.OK, return_dict)
-                else:
-                    raise ResponseException("Failure to read file", StatusCode.CLIENT_ERROR)
-            else:
-                raise ResponseException("Route Only Valid For Local Installs", StatusCode.CLIENT_ERROR)
-        except (ValueError, TypeError) as e:
-            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
-        except ResponseException as e:
-            return JsonResponse.error(e, e.status)
-        except Exception as e:
-            # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
-
     def download_file(self, local_file_path, file_url, upload_name, response):
         """ Download a file locally from the specified URL.
 

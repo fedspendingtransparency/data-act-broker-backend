@@ -87,31 +87,3 @@ class BaseTestValidator(unittest.TestCase):
         sess.add(sub)
         sess.commit()
         return sub.submission_id
-
-    @classmethod
-    def upload_file(cls, filename, user):
-        """ Upload file to S3 and return S3 filename"""
-        if len(filename.strip()) == 0:
-            return ""
-
-        bucket_name = CONFIG_BROKER['aws_bucket']
-        region_name = CONFIG_BROKER['aws_region']
-
-        full_path = os.path.join(CONFIG_BROKER['path'], "tests", "integration", "data", filename)
-
-        if cls.local:
-            # Local version just stores full path in job tracker
-            return full_path
-        else:
-            # Create file names for S3
-            s3_file_name = str(user) + "/" + filename
-
-            if cls.uploadFiles:
-                # Use boto to put files on S3
-                s3conn = boto.s3.connect_to_region(region_name)
-                key = Key(s3conn.get_bucket(bucket_name))
-                key.key = s3_file_name
-                bytes_written = key.set_contents_from_filename(full_path)
-
-                assert(bytes_written > 0)
-            return s3_file_name
