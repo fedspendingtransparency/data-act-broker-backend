@@ -5,6 +5,7 @@ import os
 import requests
 import smart_open
 import sqlalchemy as sa
+import threading
 
 from collections import namedtuple
 from datetime import datetime
@@ -94,12 +95,9 @@ class FileHandler:
         self.server_path = server_path
         self.s3manager = S3Handler()
 
-    def validate_submit_files(self, create_credentials):
+    def validate_submit_files(self):
         """ Validate whether the submission can be submitted or not (does the submission exist for this date range
             already)
-
-            Args:
-                create_credentials: If True, will create temporary credentials for S3 uploads
 
             Returns:
                 Results of submit function or a JsonResponse object containing a failure message
@@ -138,7 +136,7 @@ class FileHandler:
                 }
                 return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
 
-        return self.submit(sess, create_credentials)
+        return self.submit(sess)
 
     @staticmethod
     def validate_submit_file_params(request_params):
@@ -153,13 +151,9 @@ class FileHandler:
         """
         existing_submission_id = request_params.get('existing_submission_id')
         param_count = 0
-        api_triggered = False
         for file_type in FileHandler.FILE_TYPES:
-            if request_params.get(file_type):
+            if "_files" in request_params and request_params['_files'].get(file_type):
                 param_count += 1
-            elif "_files" in request_params and request_params['_files'].get(file_type):
-                param_count += 1
-                api_triggered = True
 
         if not existing_submission_id and param_count != len(FileHandler.FILE_TYPES):
             raise ResponseException("Must include all files for a new submission", StatusCode.CLIENT_ERROR)
@@ -167,16 +161,14 @@ class FileHandler:
         if existing_submission_id and param_count == 0:
             raise ResponseException("Must include at least one file for an existing submission",
                                     StatusCode.CLIENT_ERROR)
-        return api_triggered
 
-    def submit(self, sess, create_credentials):
+    def submit(self, sess):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
 
             Flask request should include keys from FILE_TYPES class variable above
 
             Args:
                 sess: current DB session
-                create_credentials: If True, will create temporary credentials for S3 uploads
 
             Returns:
                 JsonResponse object that contains the results of create_response_dict or the details of the failure
@@ -185,11 +177,10 @@ class FileHandler:
                 key_id is the job id to be passed to the finalize_submission route
         """
         try:
-            response_dict = {}
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
 
-            api_triggered = self.validate_submit_file_params(request_params)
+            self.validate_submit_file_params(request_params)
 
             # unfortunately, field names in the request don't match
             # field names in the db/response. create a mapping here.
@@ -233,11 +224,8 @@ class FileHandler:
             sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            if api_triggered:
-                file_dict = request_params["_files"]
-            else:
-                file_dict = request_params
-            self.build_file_map(file_dict, FileHandler.FILE_TYPES, response_dict, upload_files, submission)
+            file_dict = request_params["_files"]
+            self.build_file_map(file_dict, FileHandler.FILE_TYPES, upload_files, submission)
 
             if not existing_submission:
                 # don't add external files to existing submission
@@ -251,7 +239,6 @@ class FileHandler:
                         )
                     else:
                         upload_name = filename
-                    response_dict[ext_file_type + "_key"] = upload_name
                     upload_files.append(FileHandler.UploadFile(
                         file_type=ext_file_type,
                         upload_name=upload_name,
@@ -259,29 +246,27 @@ class FileHandler:
                         file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[ext_file_type]]
                     ))
 
-            self.create_response_dict_for_submission(upload_files, submission, existing_submission, response_dict,
-                                                     create_credentials)
-            if api_triggered:
-                import threading
+            # Add jobs or update existing ones
+            job_dict = self.create_jobs_for_submission(upload_files, submission, existing_submission)
 
-                def upload(file_ref, file_type, app, current_user):
-                    filename_key = [x.upload_name for x in upload_files if x.file_type == file_type][0]
-                    if CONFIG_BROKER['use_aws']:
-                        s3 = boto3.client('s3', region_name='us-gov-west-1')
-                        s3.upload_fileobj(file_ref, response_dict["bucket_name"], filename_key)
-                    else:
-                        file_ref.save(filename_key)
-                    with app.app_context():
-                            g.user = current_user
-                            self.finalize(response_dict[file_type + "_id"])
-                for file_type, file_ref in request_params["_files"].items():
-                    t = threading.Thread(target=upload, args=(file_ref, file_type,
-                                                              current_app._get_current_object(), g.user))
-                    t.start()
-                    t.join()
-                api_response = {"success": "true", "submission_id": submission.submission_id}
-                return JsonResponse.create(StatusCode.OK, api_response)
-            return JsonResponse.create(StatusCode.OK, response_dict)
+            def upload(file_ref, file_type, app, current_user):
+                filename_key = [x.upload_name for x in upload_files if x.file_type == file_type][0]
+                bucket_name = CONFIG_BROKER["broker_files"] if self.is_local else CONFIG_BROKER["aws_bucket"]
+                if CONFIG_BROKER['use_aws']:
+                    s3 = boto3.client('s3', region_name='us-gov-west-1')
+                    s3.upload_fileobj(file_ref, bucket_name, filename_key)
+                else:
+                    file_ref.save(filename_key)
+                with app.app_context():
+                        g.user = current_user
+                        self.finalize(job_dict[file_type + "_id"])
+            for file_type, file_ref in request_params["_files"].items():
+                t = threading.Thread(target=upload, args=(file_ref, file_type,
+                                                          current_app._get_current_object(), g.user))
+                t.start()
+                t.join()
+            api_response = {"success": "true", "submission_id": submission.submission_id}
+            return JsonResponse.create(StatusCode.OK, api_response)
         except (ValueError, TypeError, NotImplementedError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ResponseException as e:
@@ -594,30 +579,22 @@ class FileHandler:
         # Return same response as check generation route
         return self.check_detached_generation(new_job.job_id)
 
-    def upload_fabs_file(self, create_credentials, fabs_filename, api_triggered):
-
-        """ Builds S3 URLs for a set of FABS files and adds all related jobs to job tracker database
-
-            Flask request should include keys from FILE_TYPES class variable above
+    def upload_fabs_file(self, fabs):
+        """ Uploads the provided FABS file to S3 and creates a new submission if one doesn't exist or updates the
+            existing submission if one does.
 
             Args:
-                create_credentials: If True, will create temporary credentials for S3 uploads
-                fabs: the name of the FABS file being uploaded
+                fabs: the FABS file being uploaded
 
             Returns:
-                JsonResponse with the response dictionary from create_response_dict_for_submission or the details
-                of what error happened.
-                Flask response returned will have key_url and key_id for each key in the request
-                key_url is the S3 URL for uploading
-                key_id is the job id to be passed to the finalize_submission route
+                A JsonResponse containing the submission ID and a success boolean or a JsonResponse containing the
+                details of the error that occurred.
         """
-        if fabs_filename is None and api_triggered is None:
-            return JsonResponse.error(Exception('fabs: Missing data for required field.'), StatusCode.CLIENT_ERROR)
-        else:
-            fabs = fabs_filename or api_triggered
+        if fabs is None:
+            return JsonResponse.error(Exception('fabs field must be present and contain a file'),
+                                      StatusCode.CLIENT_ERROR)
         sess = GlobalDB.db().session
         try:
-            response_dict = {}
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
             logger.info({
@@ -625,7 +602,7 @@ class FileHandler:
                 'message_type': 'BrokerInfo',
                 'agency_code': request_params.get('agency_code'),
                 'existing_submission_id': request_params.get('existing_submission_id'),
-                'file_name': fabs
+                'file_name': fabs.filename
             })
 
             job_data = {}
@@ -675,19 +652,19 @@ class FileHandler:
                 sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map({'fabs': fabs}, ['fabs'], response_dict, upload_files, submission)
+            self.build_file_map({'fabs': fabs}, ['fabs'], upload_files, submission)
 
-            self.create_response_dict_for_submission(upload_files, submission, existing_submission,
-                                                     response_dict, create_credentials)
-            if api_triggered:
-                filename_key = [x.upload_name for x in upload_files if x.file_type == "fabs"][0]
-                if CONFIG_BROKER['use_aws']:
-                    s3 = boto3.client('s3', region_name='us-gov-west-1')
-                    s3.upload_fileobj(fabs, response_dict["bucket_name"], filename_key)
-                else:
-                    fabs.save(filename_key)
-                return self.finalize(response_dict["fabs_id"])
-            return JsonResponse.create(StatusCode.OK, response_dict)
+            # Add jobs or update existing one
+            job_dict = self.create_jobs_for_submission(upload_files, submission, existing_submission)
+
+            filename_key = upload_files[0].upload_name
+            bucket_name = CONFIG_BROKER["broker_files"] if self.is_local else CONFIG_BROKER["aws_bucket"]
+            if CONFIG_BROKER['use_aws']:
+                s3 = boto3.client('s3', region_name='us-gov-west-1')
+                s3.upload_fileobj(fabs, bucket_name, filename_key)
+            else:
+                fabs.save(filename_key)
+            return self.finalize(job_dict["fabs_id"])
         except (ValueError, TypeError, NotImplementedError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ResponseException as e:
@@ -985,14 +962,12 @@ class FileHandler:
 
         return job
 
-    def build_file_map(self, file_dict, file_type_list, response_dict, upload_files, submission):
+    def build_file_map(self, file_dict, file_type_list, upload_files, submission):
         """ Build fileNameMap to be used in creating jobs
 
             Args:
-                request_params: parameters provided by the API request
+                file_dict: parameters provided by the API request
                 file_type_list: a list of all file types needed by a certain submission type
-                response_dict: the response dictionary from the calling function so it can be updated with relevant
-                    information in this function
                 upload_files: files that need to be uploaded
                 submission: submission this file map is for
 
@@ -1005,14 +980,11 @@ class FileHandler:
             if not file_dict.get(file_type):
                 continue
             file_reference = file_dict.get(file_type)
-            if not isinstance(file_reference, str):
-                try:
-                    file_name = file_reference.filename
-                except:
-                    return JsonResponse.error(Exception("{} parameter must be a file in binary form".format(file_type)),
-                                              StatusCode.CLIENT_ERROR)
-            else:
-                file_name = file_reference
+            try:
+                file_name = file_reference.filename
+            except:
+                return JsonResponse.error(Exception("{} parameter must be a file in binary form".format(file_type)),
+                                          StatusCode.CLIENT_ERROR)
             if file_name:
                 if not self.is_local:
                     upload_name = "{}/{}".format(
@@ -1022,7 +994,6 @@ class FileHandler:
                 else:
                     upload_name = os.path.join(self.server_path, S3Handler.get_timestamped_filename(file_name))
 
-                response_dict[file_type + "_key"] = upload_name
                 upload_files.append(FileHandler.UploadFile(
                     file_type=file_type,
                     upload_name=upload_name,
@@ -1030,35 +1001,24 @@ class FileHandler:
                     file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type]]
                 ))
 
-    def create_response_dict_for_submission(self, upload_files, submission, existing_submission, response_dict,
-                                            create_credentials):
-        """ Creates a response dictionary for a submission to provide credentials and file locations to the user
+    @staticmethod
+    def create_jobs_for_submission(upload_files, submission, existing_submission):
+        """ Create the jobs for a submission or update existing ones.
 
             Args:
                 upload_files: files to be uploaded
                 submission: submission the dictionary is for
                 existing_submission: boolean indicating if the submission is new or an existing one (true for existing)
-                response_dict: the dictionary being modified to provide information to the user
-                create_credentials: if True, will create temporary S3 credentials for the user
+
+            Returns:
+                A dictionary containing the file types and jobs for those file types
         """
         file_job_dict = create_jobs(upload_files, submission, existing_submission)
+        job_dict = {}
         for file_type in file_job_dict.keys():
             if "submission_id" not in file_type:
-                response_dict[file_type + "_id"] = file_job_dict[file_type]
-
-        # Create temporary credentials if specified, otherwise set everything to local
-        if create_credentials and not self.is_local:
-            self.s3manager = S3Handler(CONFIG_BROKER["aws_bucket"])
-            response_dict["credentials"] = self.s3manager.get_temporary_credentials(g.user.user_id)
-        else:
-            response_dict["credentials"] = {"AccessKeyId": "local", "SecretAccessKey": "local",
-                                            "SessionToken": "local", "Expiration": "local"}
-
-        response_dict["submission_id"] = file_job_dict["submission_id"]
-        if self.is_local:
-            response_dict["bucket_name"] = CONFIG_BROKER["broker_files"]
-        else:
-            response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
+                job_dict[file_type + "_id"] = file_job_dict[file_type]
+        return job_dict
 
     @staticmethod
     def restart_validation(submission, fabs):

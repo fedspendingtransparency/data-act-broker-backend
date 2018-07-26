@@ -88,7 +88,7 @@ def create_app():
     # Add routes for modules here
     add_login_routes(flask_app, bcrypt)
 
-    add_file_routes(flask_app, CONFIG_BROKER['aws_create_temp_credentials'], local, broker_file_path)
+    add_file_routes(flask_app, local, broker_file_path)
     add_user_routes(flask_app, flask_app.config['SYSTEM_EMAIL'], bcrypt)
     add_domain_routes(flask_app)
     add_exception_handlers(flask_app)
