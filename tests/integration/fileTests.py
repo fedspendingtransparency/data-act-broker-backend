@@ -146,7 +146,7 @@ class FileTests(BaseTestAPI):
                 self.filenames = {"cgac_code": "SYS", "frec_code": None,
                                   "reporting_period_start_date": "01/2001",
                                   "reporting_period_end_date": "03/2001", "is_quarter": True}
-            self.submitFilesResponse = self.app.post("/v1/submit_files/", self.filenames,
+            self.submitFilesResponse = self.app.post("/v1/upload_dabs_files/", self.filenames,
                                                      upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
                                                      headers={"x-session-id": self.session_id})
             self.updateSubmissionId = self.submitFilesResponse.json["submission_id"]
@@ -160,7 +160,7 @@ class FileTests(BaseTestAPI):
         self.assertIn('submission_id', response.json)
 
     def test_update_submission(self):
-        """ Test submit_files with an existing submission ID """
+        """ Test upload_dabs_files with an existing submission ID """
         self.call_file_submission()
         # note: this is a quarterly test submission, so updated dates must still reflect a quarter
         file_path = "updated.csv" if CONFIG_BROKER["use_aws"] else os.path.join(CONFIG_BROKER["broker_files"],
@@ -176,7 +176,7 @@ class FileTests(BaseTestAPI):
             update_submission = sess.query(Submission).filter(Submission.submission_id == self.updateSubmissionId).one()
             update_submission.publish_status_id = PUBLISH_STATUS_DICT['published']
             sess.commit()
-            update_response = self.app.post("/v1/submit_files/", update_json,
+            update_response = self.app.post("/v1/upload_dabs_files/", update_json,
                                             upload_files=[('award_financial', file_path,
                                                            open('tests/integration/data/awardFinancialValid.csv',
                                                                 'rb').read())],
@@ -198,7 +198,7 @@ class FileTests(BaseTestAPI):
             "is_quarter": True,
             "reporting_period_start_date": "12/2016",
             "reporting_period_end_date": "13/2016"}
-        update_response = self.app.post("/v1/submit_files/", update_json,
+        update_response = self.app.post("/v1/upload_dabs_files/", update_json,
                                         upload_files=[AWARD_FILE_T],
                                         headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(update_response.status_code, 400)
@@ -211,7 +211,7 @@ class FileTests(BaseTestAPI):
             "existing_submission_id": self.status_check_submission_id,
             "reporting_period_start_date": "AB/2016",
             "reporting_period_end_date": "CD/2016"}
-        update_response = self.app.post("/v1/submit_files/", update_json,
+        update_response = self.app.post("/v1/upload_dabs_files/", update_json,
                                         upload_files=[AWARD_FILE_T],
                                         headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(update_response.status_code, 400)
@@ -224,7 +224,7 @@ class FileTests(BaseTestAPI):
             "is_quarter": True,
             "reporting_period_start_date": "Q1/ABCD",
             "reporting_period_end_date": "Q2/2016"}
-        update_response = self.app.post("/v1/submit_files/", update_json,
+        update_response = self.app.post("/v1/upload_dabs_files/", update_json,
                                         upload_files=[AWARD_FILE_T],
                                         headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(update_response.status_code, 400)
@@ -237,7 +237,7 @@ class FileTests(BaseTestAPI):
             "is_quarter": True,
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
-        response = self.app.post("/v1/submit_files/", update_json,
+        response = self.app.post("/v1/upload_dabs_files/", update_json,
                                  upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
                                  headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.json['message'], "A submission with the same period already exists.")
@@ -249,7 +249,7 @@ class FileTests(BaseTestAPI):
             "is_quarter": True,
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
-        response = self.app.post("/v1/submit_files/", update_json,
+        response = self.app.post("/v1/upload_dabs_files/", update_json,
                                  upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
                                  headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
@@ -262,7 +262,7 @@ class FileTests(BaseTestAPI):
             "is_quarter": True,
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
-        response = self.app.post("/v1/submit_files/", update_json,
+        response = self.app.post("/v1/upload_dabs_files/", update_json,
                                  upload_files=[AWARD_FILE_T, APPROP_FILE_T],
                                  headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
@@ -275,7 +275,7 @@ class FileTests(BaseTestAPI):
             "is_quarter": True,
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
-        response = self.app.post("/v1/submit_files/", update_json,
+        response = self.app.post("/v1/upload_dabs_files/", update_json,
                                  headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "Request must be a multipart/form-data type")
@@ -288,7 +288,7 @@ class FileTests(BaseTestAPI):
             "is_quarter": True,
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
-        response = self.app.post("/v1/submit_files/", new_submission_json,
+        response = self.app.post("/v1/upload_dabs_files/", new_submission_json,
                                  upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
                                  headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 403)
@@ -301,7 +301,7 @@ class FileTests(BaseTestAPI):
             "is_quarter": True,
             "reporting_period_start_date": "10/2015",
             "reporting_period_end_date": "12/2015"}
-        response = self.app.post("/v1/submit_files/", update_submission_json,
+        response = self.app.post("/v1/upload_dabs_files/", update_submission_json,
                                  upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
                                  headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 200)
@@ -312,7 +312,7 @@ class FileTests(BaseTestAPI):
             "is_quarter": True,
             "reporting_period_start_date": "10/2015",
             "reporting_period_end_date": "12/2015"}
-        response = self.app.post("/v1/submit_files/", update_submission_json,
+        response = self.app.post("/v1/upload_dabs_files/", update_submission_json,
                                  upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
                                  headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
@@ -326,7 +326,7 @@ class FileTests(BaseTestAPI):
             "is_quarter": True,
             "reporting_period_start_date": "10/2015",
             "reporting_period_end_date": "12/2015"}
-        response = self.app.post("/v1/submit_files/", update_submission_json,
+        response = self.app.post("/v1/upload_dabs_files/", update_submission_json,
                                  upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
                                  headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
@@ -1133,7 +1133,7 @@ class FileTests(BaseTestAPI):
         update_json = {"existing_submission_id": submission.submission_id,
                        "reporting_period_start_date": "04/2016",
                        "reporting_period_end_date": "06/2016"}
-        update_response = self.app.post("/v1/submit_files/", update_json,
+        update_response = self.app.post("/v1/upload_dabs_files/", update_json,
                                         upload_files=[APPROP_FILE_T],
                                         headers={"x-session-id": self.session_id})
         # Need to commit for it to take within this session for some reason
