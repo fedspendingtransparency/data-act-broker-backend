@@ -393,7 +393,6 @@ def test_submission_report_url_s3(monkeypatch):
 def test_build_file_map_string(monkeypatch):
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
     upload_files = []
-    response_dict = {}
     file_type_list = ["fabs", "appropriations", "award_financial", "program_activity"]
     file_dict = {"fabs": "fabs_file.csv",
                  "appropriations": "appropriations.csv",
@@ -402,7 +401,7 @@ def test_build_file_map_string(monkeypatch):
     monkeypatch.setattr(S3Handler, 'get_timestamped_filename', Mock(side_effect=lambda x: "123_" + x))
     submission = SubmissionFactory(submission_id=3)
     fh = fileHandler.FileHandler({})
-    fh.build_file_map(file_dict, file_type_list, response_dict, upload_files, submission)
+    fh.build_file_map(file_dict, file_type_list, upload_files, submission)
     for file in upload_files:
         assert file.upload_name == "3/123_"+file.file_name
 
@@ -410,7 +409,6 @@ def test_build_file_map_string(monkeypatch):
 def test_build_file_map_file(monkeypatch):
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
     upload_files = []
-    response_dict = {}
     file_type_list = ["fabs", "appropriations", "award_financial", "program_activity"]
     fabs_file = io.BytesIO(b"something")
     fabs_file.filename = 'fabs.csv'
@@ -425,7 +423,7 @@ def test_build_file_map_file(monkeypatch):
     monkeypatch.setattr(S3Handler, 'get_timestamped_filename', Mock(side_effect=lambda x: "123_" + x))
     submission = SubmissionFactory(submission_id=3)
     fh = fileHandler.FileHandler({})
-    fh.build_file_map(file_dict, file_type_list, response_dict, upload_files, submission)
+    fh.build_file_map(file_dict, file_type_list, upload_files, submission)
     for file in upload_files:
         assert file.upload_name == "3/123_"+file.file_name
 
