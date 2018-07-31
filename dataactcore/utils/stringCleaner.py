@@ -1,4 +1,4 @@
-from dateutil.parser import parse
+import datetime
 
 
 class StringCleaner:
@@ -46,7 +46,7 @@ class StringCleaner:
     @staticmethod
     def is_date(data):
         try:
-            parse(data)
+            datetime.datetime.strptime(data, '%m/%d/%Y')
             return True
-        except (ValueError, OverflowError):
+        except ValueError:
             return False

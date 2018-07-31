@@ -1,3 +1,4 @@
+import boto3
 import calendar
 import logging
 import os
@@ -8,11 +9,10 @@ import sqlalchemy as sa
 from collections import namedtuple
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from flask import g, request
+from flask import g, request, current_app
 from shutil import copyfile
-from sqlalchemy import func, and_, desc
+from sqlalchemy import func, and_, desc, or_
 from sqlalchemy.orm import aliased
-from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql.expression import case
 from werkzeug.utils import secure_filename
 
@@ -26,8 +26,8 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (
-    create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, run_job_checks,
-    get_last_validated_date, get_lastest_certified_date)
+    create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, get_last_validated_date,
+    get_lastest_certified_date)
 
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
@@ -60,7 +60,7 @@ class FileHandler:
         Attributes:
             request: A Flask object containing the route request
             is_local: A boolean flag indicating whether the application is being run locally or not
-            serverPath: A string containing the path to the server files (only applicable when run locally)
+            server_path: A string containing the path to the server files (only applicable when run locally)
             s3manager: An instance of S3Handler that can be used for all interactions with S3
 
         Class Attributes:
@@ -91,7 +91,7 @@ class FileHandler:
         """
         self.request = route_request
         self.is_local = is_local
-        self.serverPath = server_path
+        self.server_path = server_path
         self.s3manager = S3Handler()
 
     def validate_submit_files(self, create_credentials):
@@ -105,11 +105,11 @@ class FileHandler:
                 Results of submit function or a JsonResponse object containing a failure message
         """
         sess = GlobalDB.db().session
-        submission_request = self.request
+        submission_request = RequestDictionary.derive(self.request)
 
-        start_date = submission_request.json.get('reporting_period_start_date')
-        end_date = submission_request.json.get('reporting_period_end_date')
-        is_quarter = submission_request.json.get('is_quarter_format', False)
+        start_date = submission_request.get('reporting_period_start_date')
+        end_date = submission_request.get('reporting_period_end_date')
+        is_quarter = submission_request.get('is_quarter_format', False)
 
         # If both start and end date are provided, make sure no other submission is already published for that period
         if not (start_date is None or end_date is None):
@@ -117,17 +117,17 @@ class FileHandler:
                                                                                           end_date, is_quarter)
 
             submissions = sess.query(Submission).filter(
-                Submission.cgac_code == submission_request.json.get('cgac_code'),
-                Submission.frec_code == submission_request.json.get('frec_code'),
+                Submission.cgac_code == submission_request.get('cgac_code'),
+                Submission.frec_code == submission_request.get('frec_code'),
                 Submission.reporting_start_date == formatted_start_date,
                 Submission.reporting_end_date == formatted_end_date,
-                Submission.is_quarter_format == submission_request.json.get('is_quarter'),
+                Submission.is_quarter_format == submission_request.get('is_quarter'),
                 Submission.d2_submission.is_(False),
                 Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
 
-            if 'existing_submission_id' in submission_request.json:
+            if 'existing_submission_id' in submission_request:
                 submissions.filter(Submission.submission_id !=
-                                   submission_request.json['existing_submission_id'])
+                                   submission_request['existing_submission_id'])
 
             submissions = submissions.order_by(desc(Submission.created_at))
 
@@ -139,6 +139,35 @@ class FileHandler:
                 return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
 
         return self.submit(sess, create_credentials)
+
+    @staticmethod
+    def validate_submit_file_params(request_params):
+        """ Makes sure that the request params for DABS submissions are valid for a file upload call.
+
+            Args:
+                request_params: the object containing the request params for the API call
+
+            Raises:
+                ResponseException: if not all required params are present in a new submission or none of the params
+                    are present in a re-upload for an existing submission
+        """
+        existing_submission_id = request_params.get('existing_submission_id')
+        param_count = 0
+        api_triggered = False
+        for file_type in FileHandler.FILE_TYPES:
+            if request_params.get(file_type):
+                param_count += 1
+            elif "_files" in request_params and request_params['_files'].get(file_type):
+                param_count += 1
+                api_triggered = True
+
+        if not existing_submission_id and param_count != len(FileHandler.FILE_TYPES):
+            raise ResponseException("Must include all files for a new submission", StatusCode.CLIENT_ERROR)
+
+        if existing_submission_id and param_count == 0:
+            raise ResponseException("Must include at least one file for an existing submission",
+                                    StatusCode.CLIENT_ERROR)
+        return api_triggered
 
     def submit(self, sess, create_credentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
@@ -160,6 +189,8 @@ class FileHandler:
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
 
+            api_triggered = self.validate_submit_file_params(request_params)
+
             # unfortunately, field names in the request don't match
             # field names in the db/response. create a mapping here.
             request_submission_mapping = {
@@ -174,6 +205,9 @@ class FileHandler:
             if existing_submission_id:
                 existing_submission = True
                 existing_submission_obj = sess.query(Submission).filter_by(submission_id=existing_submission_id).one()
+                # If the existing submission is a FABS submission, stop everything
+                if existing_submission_obj.d2_submission:
+                    raise ResponseException("Existing submission must be a DABS submission", StatusCode.CLIENT_ERROR)
             else:
                 existing_submission = None
                 existing_submission_obj = None
@@ -199,12 +233,12 @@ class FileHandler:
             sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files, submission,
-                                existing_submission)
+            if api_triggered:
+                file_dict = request_params["_files"]
+            else:
+                file_dict = request_params
+            self.build_file_map(file_dict, FileHandler.FILE_TYPES, response_dict, upload_files, submission)
 
-            if not upload_files and existing_submission:
-                raise ResponseException("Must include at least one file for an existing submission",
-                                        StatusCode.CLIENT_ERROR)
             if not existing_submission:
                 # don't add external files to existing submission
                 for ext_file_type in FileHandler.EXTERNAL_FILE_TYPES:
@@ -227,6 +261,26 @@ class FileHandler:
 
             self.create_response_dict_for_submission(upload_files, submission, existing_submission, response_dict,
                                                      create_credentials)
+            if api_triggered:
+                import threading
+
+                def upload(file_ref, file_type, app, current_user):
+                    filename_key = [x.upload_name for x in upload_files if x.file_type == file_type][0]
+                    if CONFIG_BROKER['use_aws']:
+                        s3 = boto3.client('s3', region_name='us-gov-west-1')
+                        s3.upload_fileobj(file_ref, response_dict["bucket_name"], filename_key)
+                    else:
+                        file_ref.save(filename_key)
+                    with app.app_context():
+                            g.user = current_user
+                            self.finalize(response_dict[file_type + "_id"])
+                for file_type, file_ref in request_params["_files"].items():
+                    t = threading.Thread(target=upload, args=(file_ref, file_type,
+                                                              current_app._get_current_object(), g.user))
+                    t.start()
+                    t.join()
+                api_response = {"success": "true", "submission_id": submission.submission_id}
+                return JsonResponse.create(StatusCode.OK, api_response)
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
@@ -334,6 +388,7 @@ class FileHandler:
             if job.job_type_id == JOB_TYPE_DICT["file_upload"]:
                 mark_job_status(job_id, 'finished')
                 response_dict["success"] = True
+                response_dict["submission_id"] = job.submission_id
                 return JsonResponse.create(StatusCode.OK, response_dict)
             else:
                 raise ResponseException("Wrong job type for finalize route", StatusCode.CLIENT_ERROR)
@@ -358,7 +413,7 @@ class FileHandler:
                 if uploaded_file:
                     seconds = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
                     filename = "".join([str(seconds), "_", secure_filename(uploaded_file.filename)])
-                    path = os.path.join(self.serverPath, filename)
+                    path = os.path.join(self.server_path, filename)
                     uploaded_file.save(path)
                     return_dict = {"path": path}
                     return JsonResponse.create(StatusCode.OK, return_dict)
@@ -417,23 +472,30 @@ class FileHandler:
             copyfile(file_url, local_file_path)
             return True
 
-    def generate_file(self, submission_id, file_type):
+    def generate_file(self, submission, file_type, start, end):
         """ Start a file generation job for the specified file type within a submission
 
             Args:
-                submission_id: submission for which we're generating the file
+                submission: submission for which we're generating the file
                 file_type: type of file to generate the job for
+                start: the start date for the file to generate
+                end: the end date for the file to generate
 
             Returns:
-                Results of check_generation or JsonResponse object containing an error
+                Results of check_generation or JsonResponse object containing an error if the prerequisite job isn't
+                complete.
         """
+        # if submission is a FABS submission, throw an error
+        if submission.d2_submission:
+            return JsonResponse.error(ValueError("Cannot generate files for FABS submissions"), StatusCode.CLIENT_ERROR)
+
+        # if the file is D1 or D2 and we don't have start or end, raise an error
+        if file_type in ['D1', 'D2'] and (not start or not end):
+            return JsonResponse.error(ValueError("Must have a start and end date for D file generation"),
+                                      StatusCode.CLIENT_ERROR)
+
+        submission_id = submission.submission_id
         sess = GlobalDB.db().session
-
-        # Check permission to submission
-        error = submission_error(submission_id, file_type)
-        if error:
-            return error
-
         job = sess.query(Job).filter(Job.submission_id == submission_id,
                                      Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
                                      Job.job_type_id == JOB_TYPE_DICT['file_upload']).one()
@@ -449,14 +511,13 @@ class FileHandler:
 
         try:
             # Check prerequisites on upload job
-            if not run_job_checks(job.job_id):
-                raise ResponseException("Must wait for completion of prerequisite validation job",
+            if not check_generation_prereqs(submission_id, file_type):
+                raise ResponseException("Must wait for successful completion of prerequisite validation job",
                                         StatusCode.CLIENT_ERROR)
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
-        req_dict = RequestDictionary(self.request)
-        success, error_response = start_generation_job(job, req_dict.get_value("start"), req_dict.get_value("end"))
+        success, error_response = start_generation_job(job, start, end)
 
         log_data['message'] = 'Finished start_generation_job method for submission {}'.format(submission_id)
         logger.debug(log_data)
@@ -533,13 +594,15 @@ class FileHandler:
         # Return same response as check generation route
         return self.check_detached_generation(new_job.job_id)
 
-    def upload_fabs_file(self, create_credentials, fabs):
+    def upload_fabs_file(self, create_credentials, fabs_filename, api_triggered):
+
         """ Builds S3 URLs for a set of FABS files and adds all related jobs to job tracker database
 
             Flask request should include keys from FILE_TYPES class variable above
 
             Args:
                 create_credentials: If True, will create temporary credentials for S3 uploads
+                fabs: the name of the FABS file being uploaded
 
             Returns:
                 JsonResponse with the response dictionary from create_response_dict_for_submission or the details
@@ -548,6 +611,10 @@ class FileHandler:
                 key_url is the S3 URL for uploading
                 key_id is the job id to be passed to the finalize_submission route
         """
+        if fabs_filename is None and api_triggered is None:
+            return JsonResponse.error(Exception('fabs: Missing data for required field.'), StatusCode.CLIENT_ERROR)
+        else:
+            fabs = fabs_filename or api_triggered
         sess = GlobalDB.db().session
         try:
             response_dict = {}
@@ -569,6 +636,9 @@ class FileHandler:
                 existing_submission_obj = sess.query(Submission).\
                     filter_by(submission_id=existing_submission_id).\
                     one()
+                # If the existing submission is a DABS submission, stop everything
+                if not existing_submission_obj.d2_submission:
+                    raise ResponseException("Existing submission must be a FABS submission", StatusCode.CLIENT_ERROR)
                 jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
                 # set all jobs to their initial status of "waiting"
                 jobs[0].job_status_id = JOB_STATUS_DICT['waiting']
@@ -609,6 +679,14 @@ class FileHandler:
 
             self.create_response_dict_for_submission(upload_files, submission, existing_submission,
                                                      response_dict, create_credentials)
+            if api_triggered:
+                filename_key = [x.upload_name for x in upload_files if x.file_type == "fabs"][0]
+                if CONFIG_BROKER['use_aws']:
+                    s3 = boto3.client('s3', region_name='us-gov-west-1')
+                    s3.upload_fileobj(fabs, response_dict["bucket_name"], filename_key)
+                else:
+                    fabs.save(filename_key)
+                return self.finalize(response_dict["fabs_id"])
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
@@ -907,8 +985,7 @@ class FileHandler:
 
         return job
 
-    def build_file_map(self, request_params, file_type_list, response_dict, upload_files, submission,
-                       existing_submission=False):
+    def build_file_map(self, file_dict, file_type_list, response_dict, upload_files, submission):
         """ Build fileNameMap to be used in creating jobs
 
             Args:
@@ -918,22 +995,24 @@ class FileHandler:
                     information in this function
                 upload_files: files that need to be uploaded
                 submission: submission this file map is for
-                existing_submission: boolean indicating if this is an existing submission the files are being
-                    reuploaded for or a new one (true for existing)
 
             Raises:
                 ResponseException: If a new submission is being made but not all the file types in the file_type_list
                     are included in the request_params
         """
         for file_type in file_type_list:
-            # if file_type not included in request, and this is an update to an existing submission, skip it
-            if not request_params.get(file_type):
-                if existing_submission:
-                    continue
-                # this is a new submission, all files are required
-                raise ResponseException("Must include all required files for new submission", StatusCode.CLIENT_ERROR)
-
-            file_name = request_params.get(file_type)
+            # if file_type not included in request, skip it, checks for validity are done before calling this
+            if not file_dict.get(file_type):
+                continue
+            file_reference = file_dict.get(file_type)
+            if not isinstance(file_reference, str):
+                try:
+                    file_name = file_reference.filename
+                except:
+                    return JsonResponse.error(Exception("{} parameter must be a file in binary form".format(file_type)),
+                                              StatusCode.CLIENT_ERROR)
+            else:
+                file_name = file_reference
             if file_name:
                 if not self.is_local:
                     upload_name = "{}/{}".format(
@@ -941,7 +1020,7 @@ class FileHandler:
                         S3Handler.get_timestamped_filename(file_name)
                     )
                 else:
-                    upload_name = file_name
+                    upload_name = os.path.join(self.server_path, S3Handler.get_timestamped_filename(file_name))
 
                 response_dict[file_type + "_key"] = upload_name
                 upload_files.append(FileHandler.UploadFile(
@@ -1147,6 +1226,37 @@ class FileHandler:
         logger.debug(log_data)
 
 
+def check_generation_prereqs(submission_id, file_type):
+    """ Make sure the prerequisite jobs for this file type are complete without errors.
+
+        Args:
+            submission_id: the submission id for which we're checking file generation prerequisites
+            file_type: the type of file being generated
+
+        Returns:
+            A boolean indicating if the job has no incomplete prerequisites (True if the job is clear to start)
+    """
+
+    sess = GlobalDB.db().session
+    unfinished_prereqs = 0
+    prereq_query = sess.query(Job).filter(Job.submission_id == submission_id,
+                                          or_(Job.job_status_id != JOB_STATUS_DICT['finished'],
+                                              Job.number_of_errors > 0))
+
+    # Check cross-file validation if generating E or F
+    if file_type in ['E', 'F']:
+        unfinished_prereqs = prereq_query.filter(Job.job_type_id == JOB_TYPE_DICT['validation']).count()
+    # Check A, B, C files if generating a D file
+    elif file_type in ['D1', 'D2']:
+        unfinished_prereqs = prereq_query.filter(Job.file_type_id.in_([FILE_TYPE_DICT['appropriations'],
+                                                                       FILE_TYPE_DICT['program_activity'],
+                                                                       FILE_TYPE_DICT['award_financial']])).count()
+    else:
+        raise ResponseException('Invalid type for file generation', StatusCode.CLIENT_ERROR)
+
+    return unfinished_prereqs == 0
+
+
 def narratives_for_submission(submission):
     """ Fetch narratives for this submission, indexed by file letter
 
@@ -1157,7 +1267,7 @@ def narratives_for_submission(submission):
             JsonResponse object with the contents of the narratives in a key/value pair of letter/narrative
     """
     sess = GlobalDB.db().session
-    result = {letter: '' for letter in FILE_TYPE_DICT_LETTER.values()}
+    result = {letter: '' for letter in FILE_TYPE_DICT_LETTER.values() if letter != 'FABS'}
     narratives = sess.query(SubmissionNarrative).filter_by(submission_id=submission.submission_id)
     for narrative in narratives:
         letter = FILE_TYPE_DICT_LETTER[narrative.file_type_id]
@@ -1184,7 +1294,7 @@ def update_narratives(submission, narrative_request):
 
     narratives = []
     for file_type_id, letter in FILE_TYPE_DICT_LETTER.items():
-        if letter in narratives_json:
+        if letter in narratives_json and letter != 'FABS':
             narratives.append(SubmissionNarrative(
                 submission_id=submission.submission_id,
                 file_type_id=file_type_id,
@@ -1704,7 +1814,21 @@ def submission_report_url(submission, warning, file_type, cross_type):
 
         Returns:
             A signed URL to S3 of the specified file when not run locally. The path to the file when run locally.
+            If a cross file is requested and the pairing isn't valid, return a JsonResponse containing an error.
     """
+    # If we're doing a cross-file url, make sure it's a valid pairing
+    if cross_type:
+        cross_pairs = {
+            'program_activity': 'appropriations',
+            'award_financial': 'program_activity',
+            'award_procurement': 'award_financial',
+            'award': 'award_financial'
+        }
+        if file_type != cross_pairs[cross_type]:
+            return JsonResponse.error(ValueError("{} and {} is not a valid cross-pair.".format(file_type, cross_type)),
+                                      StatusCode.CLIENT_ERROR)
+
+    # Get the url
     file_name = report_file_name(submission.submission_id, warning, file_type, cross_type)
     if CONFIG_BROKER['local']:
         url = os.path.join(CONFIG_BROKER['broker_files'], file_name)
@@ -1742,47 +1866,6 @@ def get_upload_file_url(submission, file_type):
     else:
         url = S3Handler().get_signed_url(split_name[0], split_name[1], method="GET")
     return JsonResponse.create(StatusCode.OK, {"url": url})
-
-
-def submission_error(submission_id, file_type):
-    """ Check that submission exists and user has permission to it
-
-        Args:
-            submission_id:  ID of submission to check
-            file_type: file type that has been requested
-
-        Returns:
-            A JsonResponse if there's an error, None otherwise
-    """
-    sess = GlobalDB.db().session
-
-    submission = sess.query(Submission).filter_by(submission_id=submission_id).one_or_none()
-    if submission is None:
-        # Submission does not exist, change to 400 in this case since route call specified a bad ID
-        response_dict = {
-            "message": "Submission does not exist",
-            "file_type": file_type,
-            "url": "#",
-            "status": "failed"
-        }
-        if file_type in ('D1', 'D2'):
-            # Add empty start and end dates
-            response_dict["start"] = ""
-            response_dict["end"] = ""
-        return JsonResponse.error(NoResultFound, StatusCode.CLIENT_ERROR, **response_dict)
-
-    if not current_user_can_on_submission('editfabs' if submission.d2_submission else 'writer', submission):
-        response_dict = {
-            "message": "User does not have permission to view that submission",
-            "file_type": file_type,
-            "url": "#",
-            "status": "failed"
-        }
-        if file_type in ('D1', 'D2'):
-            # Add empty start and end dates
-            response_dict["start"] = ""
-            response_dict["end"] = ""
-        return JsonResponse.create(StatusCode.PERMISSION_DENIED, response_dict)
 
 
 # TODO: Do we even use this anymore?
