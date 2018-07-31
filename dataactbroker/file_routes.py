@@ -27,13 +27,13 @@ def add_file_routes(app, is_local, server_path):
     """ Create routes related to file submission for flask app """
 
     # Keys for the post route will correspond to the four types of files
-    @app.route("/v1/submit_files/", methods=["POST"])
+    @app.route("/v1/upload_dabs_files/", methods=["POST"])
     @requires_agency_perms('writer')
-    def submit_files():
+    def upload_dabs_files():
         if "multipart/form-data" not in request.headers['Content-Type']:
             return JsonResponse.error(ValueError("Request must be a multipart/form-data type"), StatusCode.CLIENT_ERROR)
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.validate_submit_files()
+        return file_manager.validate_upload_dabs_files()
 
     @app.route("/v1/check_status/", methods=["GET"])
     @convert_to_submission_id

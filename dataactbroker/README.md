@@ -228,7 +228,7 @@ to security reasons.
 Example Route `/Users/serverdata/test.csv`  for example will return the `test.csv` if the local folder points
 to `/Users/serverdata`.
 
-#### POST "/v1/submit\_files/"
+#### POST "/v1/upload\_dabs\_files/"
 A call to this route should be of content type `"multipart/form-data"`, and, if using curl or a similar service, should use @ notation for the values of the "appropriations", "program_activity" and "award_financial" keys, to indicate the local path to the files to be uploaded. Otherwise, should pass a file-like object.
 
 This route will upload the files, then kick off the validation jobs. It will return the submission_id.
@@ -261,7 +261,7 @@ curl -i -X POST
       -F "appropriations=@/local/path/to/a.csv" 
       -F "award_financial=@/local/path/to/c.csv"  
       -F "program_activity=@/local/path/to/b.csv"
-    /v1/submit_files/
+    /v1/upload_dabs_files/
 ```
 
 #### Example Output:

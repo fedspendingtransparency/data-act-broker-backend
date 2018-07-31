@@ -94,9 +94,9 @@ class FileHandler:
         self.server_path = server_path
         self.s3manager = S3Handler()
 
-    def validate_submit_files(self):
-        """ Validate whether the submission can be submitted or not (does the submission exist for this date range
-            already)
+    def validate_upload_dabs_files(self):
+        """ Validate whether the files can be created (if a new submission is being created) or not (does the
+            submission exist for this date range already)
 
             Returns:
                 Results of submit function or a JsonResponse object containing a failure message
