@@ -70,8 +70,8 @@
 ## FABS Submission Process
 
 ### Upload FABS File
-- Call `/v1/upload_detached_file/`
-- For details on its use, click [here](./dataactbroker/README.md#post-v1upload_detached_file)
+- Call `/v1/upload_fabs_file/`
+- For details on its use, click [here](./dataactbroker/README.md#post-v1upload_fabs_file)
 
 ### Validate FABS File
 - Validations are automatically started once the upload completes.
@@ -81,8 +81,8 @@
 - To get a general overview of the number of errors/warnings in the submission, along with all other metadata, `/v1/submission_metadata/` can be called. For details on its use, click [here](./dataactbroker/README.md#get-v1submission_metadata)
 - To get detailed information on the validation job and the errors that occurred in it, `/v1/submission_data/` can be called. For details on its use, click [here](./dataactbroker/README.md#get-v1submission_data)
 - If there are any errors and more granular detail is needed, get the error reports by calling `/v1/submission/SUBMISSIONID/report_url/`. For details on its use, click [here](./dataactbroker/README.md#get-v1submissionintsubmission_idreport_url). In this case, `cross_type` should not be used.
-- If a reupload is needed, begin again from `upload_detached_file` with these changes:
-    - `upload_detached_file` Payload:
+- If a reupload is needed, begin again from `upload_fabs_file` with these changes:
+    - `upload_fabs_file` Payload:
         - `fabs`: string, name of file being uploaded
         - `existing_submission_id`: string, ID of the submission
 - If for any reason the uploaded file needs to be redownloaded, use the `get_file_url` route to get the signed url for it. For details on its use, click [here](./dataactbroker/README.md#get-v1get_file_url)

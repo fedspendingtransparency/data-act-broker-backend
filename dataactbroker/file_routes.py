@@ -176,9 +176,9 @@ def add_file_routes(app, is_local, server_path):
         """ Return metadata of FABS submission """
         return JsonResponse.create(StatusCode.OK, get_fabs_meta(submission.submission_id))
 
-    @app.route("/v1/upload_detached_file/", methods=["POST"])
+    @app.route("/v1/upload_fabs_file/", methods=["POST"])
     @requires_sub_agency_perms('editfabs')
-    def upload_detached_file():
+    def upload_fabs_file():
         if "multipart/form-data" not in request.headers['Content-Type']:
             return JsonResponse.error(ValueError("Request must be a multipart/form-data type"), StatusCode.CLIENT_ERROR)
         params = RequestDictionary.derive(request)

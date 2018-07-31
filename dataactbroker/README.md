@@ -272,7 +272,7 @@ curl -i -X POST
 }
 ```
 
-#### POST "/v1/upload\_detached\_file/"
+#### POST "/v1/upload\_fabs\_file/"
 A call to this route should be of content type `"multipart/form-data"`, and, if using curl or a similar service, should use @ notation for the value of the "fabs" key, to indicate the local path to the file to be uploaded. Otherwise, should pass a file-like object.
 
 This route will upload the file, then kick off the validation jobs. It will return the submission id.
@@ -292,7 +292,7 @@ This route will upload the file, then kick off the validation jobs. It will retu
       -H "Content-Type: multipart/form-data"
       -F 'agency_code=2000'
       -F "fabs=@/local/path/to/fabs.csv"
-    /v1/upload_detached_file/
+    /v1/upload_fabs_file/
 ```
 
 #### Example output:
