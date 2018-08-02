@@ -62,14 +62,14 @@ This route sends a request to the backend with the ticket obtained from the MAX 
 ```
 {
     "ticket": ST-123456-abcdefghijklmnopqrst-login.max.gov,
-    "service": http%3A%2F%2Furl.encoded.requesting.url%2F
+    "service": http%3A%2F%2Fbroker.usaspending.gov%2F
 }
 ```
 
 #### Body Description
 
 * `ticket` - ticket string received from MAX from initial login request (pending validation)
-* `service` - URL encoded string that is the source of the initial login request
+* `service` - URL encoded string that is the source of the initial login request. This may vary from the example based on the environment you are in.
 
 #### Response (JSON)
 Response will be somewhat similar to the original `/login` endpoint. More data will be added to the response depending on what we get back from MAX upon validating the ticket.
@@ -228,30 +228,12 @@ to security reasons.
 Example Route `/Users/serverdata/test.csv`  for example will return the `test.csv` if the local folder points
 to `/Users/serverdata`.
 
-#### POST "/v1/local_upload/"
-Input for this route should be a post form with the key of `file` where the uploaded file is located. This route **only** will
-return a success for local installs for security reasons. Upon successful upload, file path will be returned.
+#### POST "/v1/upload\_dabs\_files/"
+A call to this route should be of content type `"multipart/form-data"`, and, if using curl or a similar service, should use @ notation for the values of the "appropriations", "program_activity" and "award_financial" keys, to indicate the local path to the files to be uploaded. Otherwise, should pass a file-like object.
 
-Example Output:
-```json
-{
-   "path": "/User/localuser/server/1234_filename.csv"
-}
-```
+This route will upload the files, then kick off the validation jobs. It will return the submission_id.
 
-#### POST "/v1/submit\_files/"
-If submitting files directly via the API, a call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the values of the "appropriations", "program_activity" and "award_financial" keys, to indicate the local path to the files to be uploaded.
-
-If using the frontend and passing filename strings rather than files, this route will return conflict free S3 URLs for uploading. Each key put in the request comes back with a url_key containing the S3 URL and a key_id containing the job id. A returning submission_id will also exist which acts as identifier for the submission.
-
-In addition, with frontend use, a credentials object is also part of the returning request. This object provides temporary access to upload S3 Files using an AWS SDK. It contains the following: SecretAccessKey, SessionToken, Expiration, and AccessKeyId. It is important to note that the role used to create the credentials should be limited to just S3 access.
-
-If using the API, this route will upload the files, then kick off the validation jobs. It will return the submission_id, which can be used for the `/v1/check_status/` route to poll for validation completion. 
-
-If using the frontend, you will need to call /v1/finalize_job/ to kick off validation once upload is complete.
-
-
-#### Additional Required Headers (Backend only):
+#### Additional Required Headers:
 - `Content-Type` - `"multipart/form-data"`
 
 #### Request Parameters:
@@ -266,22 +248,7 @@ If using the frontend, you will need to call /v1/finalize_job/ to kick off valid
 
 **NOTE**: for monthly submissions, start/end date are the same
 
-#### Example Frontend Request Using Filenames:
-```json
-{
-  "appropriations":"appropriations.csv",
-  "award_financial":"award_financial.csv",
-  "award":"award.csv",
-  "program_activity":"program_activity.csv",
-  "agency_name":"Name of the agency",
-  "reporting_period_start_date":"03/31/2016",
-  "reporting_period_end_date":"03/31/2016",
-  "is_quarter":False,
-  "existing_submission_id: 7 (leave out if not correcting an existing submission)
-}
-```
-
-#### Example Curl Request Using the API Method:
+#### Example Curl Request:
 ```
 curl -i -X POST 
       -H "x-session-id: abcdefg-1234567-hijklmno-89101112"  
@@ -294,10 +261,10 @@ curl -i -X POST
       -F "appropriations=@/local/path/to/a.csv" 
       -F "award_financial=@/local/path/to/c.csv"  
       -F "program_activity=@/local/path/to/b.csv"
-    /v1/submit_files/
+    /v1/upload_dabs_files/
 ```
 
-#### Example Output Using the Backend API:
+#### Example Output:
 ```json
 {
   "success":"true",
@@ -305,46 +272,18 @@ curl -i -X POST
 }
 ```
 
-#### Example Output Using the Frontend:
-```json
-{
-  "submission_id": 12345,
+#### POST "/v1/upload\_fabs\_file/"
+A call to this route should be of content type `"multipart/form-data"`, and, if using curl or a similar service, should use @ notation for the value of the "fabs" key, to indicate the local path to the file to be uploaded. Otherwise, should pass a file-like object.
 
-  "bucket_name": "S3-bucket",
+This route will upload the file, then kick off the validation jobs. It will return the submission id.
 
-  "award_id": 100,
-  "award_key": "2/1453474323_awards.csv",
-
-  "appropriations_id": 101,
-  "appropriations_key": "2/1453474324_appropriations.csv",
-
-  "award_financial_id": 102,
-  "award_financial_key": "2/1453474327_award_financial.csv",
-
-  "program_activity_id": 103,
-  "program_activity_key": "2/1453474333_program_activity.csv",
-
-  "credentials": {
-    "SecretAccessKey": "ABCDEFG",
-    "SessionToken": "ABCDEFG",
-    "Expiration": "2016-01-22T15:25:23Z",
-    "AccessKeyId": "ABCDEFG"
-  }
-}
-```
-
-#### POST "/v1/upload\_detached\_file/"
-If using the API, a call to this route should be of content type `"multipart/form-data"`, and should use @ notation for the value of the "fabs" key, to indicate the local path to the file to be uploaded.
-
-This route will upload the file, then kick off the validation jobs. It will return the submission id, which can be used for the `/v1/check_status/` route to poll for validation completion.
-
-#### Additional Required Headers (API Only):
+#### Additional Required Headers:
 - `Content-Type`: `"multipart/form-data"`
 
 #### Request Parameters:
 - `agency_code`: string, sub tier agency code. Required if existing_submission_id is not included
-- `fabs`: local path to file using @ notation
-- `existing_submission_id` : integer, id of previous submission, use only if submitting an update.
+- `fabs`: **required** local path to file using @ notation
+- `existing_submission_id`: integer, id of previous submission, use only if submitting an update.
 
 #### Example curl request:
 ```
@@ -353,7 +292,7 @@ This route will upload the file, then kick off the validation jobs. It will retu
       -H "Content-Type: multipart/form-data"
       -F 'agency_code=2000'
       -F "fabs=@/local/path/to/fabs.csv"
-    /v1/upload_detached_file/
+    /v1/upload_fabs_file/
 ```
 
 #### Example output:
@@ -361,26 +300,6 @@ This route will upload the file, then kick off the validation jobs. It will retu
 {
   "success":true,
   "submission_id":12
-}
-```
-
-#### POST "/v1/finalize_job/"
-A call to this route should have JSON or form-urlencoded with a key of "upload_id" and value of the job id received from the submit_files route. This will change the status of the upload job to finished so that dependent jobs can be started.
-
-Example input:
-
-```json
-{
-  "upload_id":3011
-}
-```
-
-Example output:
-
-```json
-{
-  "success": true,
-  "submission_id": 123
 }
 ```
 

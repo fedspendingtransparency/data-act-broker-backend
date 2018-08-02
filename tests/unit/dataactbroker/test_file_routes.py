@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 
 @pytest.fixture
 def file_app(test_app):
-    file_routes.add_file_routes(test_app.application, Mock(), Mock(), Mock())
+    file_routes.add_file_routes(test_app.application, Mock(), Mock())
     yield test_app
 
 
