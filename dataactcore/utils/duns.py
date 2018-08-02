@@ -17,9 +17,15 @@ from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 logger = logging.getLogger(__name__)
 
 REMOTE_SAM_DIR = '/current/SAM/2_FOUO/UTF-8/'
+BUSINESS_TYPES_SEPARATOR = '~'
 
 
 def get_config():
+    """ Simply retrieves the config data of SAM sftp
+
+        Returns:
+            Username, password, host, and port found in the configu file for the SAM sftp
+    """
     sam_config = CONFIG_BROKER.get('sam_duns')
 
     if sam_config:
@@ -30,7 +36,17 @@ def get_config():
 
 
 def get_relevant_models(data, sess, benchmarks=False, table=DUNS):
-    # Get a list of the duns we're gonna work off of to prevent multiple calls to the database
+    """ Get a list of the duns we're gonna work off of to prevent multiple calls to the database
+
+        Args:
+            data: dataframe representing the original list of duns we have available
+            sess: the database connection
+            benchmarks: whether or not to log times
+            table: the table to work from (could be DUNS/HistoricParentDuns)
+
+        Returns:
+            A list of models, models which have been activatated
+    """
     if benchmarks:
         get_models = time.time()
     logger.info("Getting relevant models")
@@ -45,6 +61,17 @@ def get_relevant_models(data, sess, benchmarks=False, table=DUNS):
 
 
 def load_duns_by_row(data, sess, models, activated_models, benchmarks=False, table=DUNS):
+    """ Updates the DUNS in the database that match to the models provided
+
+        Args:
+            data: dataframe representing the original list of duns we have available
+            sess: the database connection
+            models: the DUNS objects representing the updated data
+            activated_models: the DUNS objects that have been activated
+            benchmarks: whether or not to log times
+            table: the table to work from (could be DUNS/HistoricParentDuns)
+    """
+    # Disabling activation_check as we're using registration_date
     # data = activation_check(data, activated_models, benchmarks).where(pd.notnull(data), None)
     update_duns(models, data, benchmarks=benchmarks, table=table)
     sess.add_all(models.values())
@@ -66,7 +93,14 @@ def load_duns_by_row(data, sess, models, activated_models, benchmarks=False, tab
 #     return data
 
 def update_duns(models, new_data, benchmarks=False, table=DUNS):
-    """Modify existing models or create new ones"""
+    """ Modify existing models or create new ones
+
+        Args:
+            models: the DUNS objects representing the updated data
+            new_data: the new data to update
+            benchmarks: whether or not to log times
+            table: the table to work from (could be DUNS/HistoricParentDuns)
+    """
     logger.info("Updating duns")
     if benchmarks:
         update_duns_start = time.time()
@@ -81,6 +115,15 @@ def update_duns(models, new_data, benchmarks=False, table=DUNS):
 
 
 def clean_sam_data(data, table=DUNS):
+    """ Wrapper around clean_data with the DUNS context
+
+        Args:
+            data: the dataframe to be cleaned
+            table: the table to work from (could be DUNS/HistoricParentDuns)
+
+        Returns:
+            a cleaned/updated dataframe to be imported
+    """
     return clean_data(data, table, {
         "awardee_or_recipient_uniqu": "awardee_or_recipient_uniqu",
         "activation_date": "activation_date",
@@ -90,12 +133,31 @@ def clean_sam_data(data, table=DUNS):
         "last_sam_mod_date": "last_sam_mod_date",
         "sam_extract_code": "sam_extract_code",
         "legal_business_name": "legal_business_name",
+        "address_line_1": "address_line_1",
+        "address_line_2": "address_line_2",
+        "city": "city",
+        "state": "state",
+        "zip": "zip",
+        "zip4": "zip4",
+        "country_code": "country_code",
+        "congressional_district": "congressional_district",
+        "business_types_codes": "business_types_codes",
         "ultimate_parent_legal_enti": "ultimate_parent_legal_enti",
         "ultimate_parent_unique_ide": "ultimate_parent_unique_ide"
     }, {})
 
 
 def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS, year=None):
+    """ Takes in a SAM file and adds the DUNS data to the database
+
+        Args:
+            file_path: the path to the SAM file
+            sess: the database connection
+            monthly: whether it's a monthly file
+            benchmarks: whether to log times
+            table: the table to work from (could be DUNS/HistoricParentDuns)
+            year: the year associated with the data (primarily for  HistoricParentDUNS loads)
+    """
     parse_start_time = time.time()
     logger.info("Starting file " + str(file_path))
 
@@ -113,6 +175,15 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
             "last_sam_mod_date": 8,
             "activation_date": 9,
             "legal_business_name": 10,
+            "address_line_1": 14,
+            "address_line_2": 15,
+            "city": 16,
+            "state": 17,
+            "zip": 18,
+            "zip4": 19,
+            "country_code": 20,
+            "congressional_district": 21,
+            "business_types_raw": 31,
             "ultimate_parent_legal_enti": 186,
             "ultimate_parent_unique_ide": 187
         }
@@ -129,10 +200,10 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
             logger.info("Initial sweep took {} seconds".format(time.time() - initial_sweep))
 
         block_size = 10000
-        batches = nrows//block_size
+        batches = (nrows-1)//block_size
         # skip the first line again if the last batch is also the first batch
         skiplastrows = 2 if batches == 0 else 1
-        last_block_size = (nrows % block_size)-skiplastrows
+        last_block_size = ((nrows % block_size) or block_size)-skiplastrows
         batch = 0
         added_rows = 0
         while batch <= batches:
@@ -150,6 +221,10 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
                     lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
                     csv_data = csv_data.assign(deactivation_date=pd.Series([np.nan], name='deactivation_date')
                                                if monthly else csv_data["sam_extract_code"].apply(lambda_func))
+                    # convert business types string to array
+                    bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~')]]))
+                    csv_data = csv_data.assign(business_types_codes=csv_data["business_types_raw"].apply(bt_func))
+                    del csv_data["business_types_raw"]
                     # removing rows where DUNS number isn't even provided
                     csv_data = csv_data.where(csv_data["awardee_or_recipient_uniqu"].notnull())
                     # cleaning and replacing NaN/NaT with None's
@@ -197,15 +272,3 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
         if benchmarks:
             logger.info("Parsing {} took {} seconds with {} rows".format(dat_file_name, time.time()-parse_start_time,
                                                                          added_rows))
-
-
-def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False, benchmarks=False, table=DUNS,
-                     year=None):
-    file_path = os.path.join(root_dir, file_name)
-    if not local:
-        logger.info("Pulling {}".format(file_name))
-        with open(file_path, "wb") as zip_file:
-            sftp.getfo(''.join([REMOTE_SAM_DIR, '/', file_name]), zip_file)
-    parse_sam_file(file_path, sess, monthly=monthly, benchmarks=benchmarks, table=table, year=year)
-    if not local:
-        os.remove(file_path)

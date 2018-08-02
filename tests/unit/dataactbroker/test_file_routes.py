@@ -5,18 +5,17 @@ from flask import g
 import pytest
 
 from dataactbroker import file_routes
-from dataactcore.models.lookups import PUBLISH_STATUS_DICT
+from dataactcore.models.lookups import PUBLISH_STATUS_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory, SubmissionWindowFactory,
                                                   ApplicationTypeFactory)
 from tests.unit.dataactcore.factories.user import UserFactory
-from dataactcore.models.jobModels import JobStatus, JobType, FileType
 from datetime import datetime, timedelta
 
 
 @pytest.fixture
 def file_app(test_app):
-    file_routes.add_file_routes(test_app.application, Mock(), Mock(), Mock())
+    file_routes.add_file_routes(test_app.application, Mock(), Mock())
     yield test_app
 
 
@@ -141,36 +140,30 @@ def test_current_page(file_app, database):
 
     sub = SubmissionFactory(user_id=1, cgac_code=cgac.cgac_code)
     database.session.add(sub)
+    database.session.commit()
 
-    csv_validation = database.session.query(JobType).filter_by(name='csv_record_validation').one()
-    upload = database.session.query(JobType).filter_by(name='file_upload').one()
-    validation = database.session.query(JobType).filter_by(name='validation').one()
-    finished_job = database.session.query(JobStatus).filter_by(name='finished').one()
-    waiting = database.session.query(JobStatus).filter_by(name='waiting').one()
+    csv_validation = JOB_TYPE_DICT['csv_record_validation']
+    upload = JOB_TYPE_DICT['file_upload']
+    validation = JOB_TYPE_DICT['validation']
+    finished_job = JOB_STATUS_DICT['finished']
+    waiting = JOB_STATUS_DICT['waiting']
 
-    job_a = JobFactory(submission_id=sub.submission_id, file_type=database.session.query(FileType)
-                       .filter_by(name='appropriations').one(), job_type=csv_validation, number_of_errors=0,
-                       file_size=123, job_status=finished_job)
-    job_b = JobFactory(submission_id=sub.submission_id, file_type=database.session.query(FileType)
-                       .filter_by(name='program_activity').one(), job_type=csv_validation, number_of_errors=0,
-                       file_size=123, job_status=finished_job)
-    job_c = JobFactory(submission_id=sub.submission_id, file_type=database.session.query(FileType)
-                       .filter_by(name='award_financial').one(), job_type=csv_validation, number_of_errors=0,
-                       file_size=123, job_status=finished_job)
-    job_d1 = JobFactory(submission_id=sub.submission_id, file_type=database.session.query(FileType)
-                        .filter_by(name='award_procurement').one(), job_type=csv_validation, number_of_errors=0,
-                        file_size=123, job_status=finished_job)
-    job_d2 = JobFactory(submission_id=sub.submission_id, file_type=database.session.query(FileType)
-                        .filter_by(name='award').one(), job_type=csv_validation, number_of_errors=0, file_size=123,
-                        job_status=finished_job)
-    job_e = JobFactory(submission_id=sub.submission_id, file_type=database.session.query(FileType)
-                       .filter_by(name='executive_compensation').one(), job_type=upload, number_of_errors=0,
-                       file_size=123, job_status=finished_job)
-    job_f = JobFactory(submission_id=sub.submission_id, file_type=database.session.query(FileType)
-                       .filter_by(name='sub_award').one(), job_type=upload, number_of_errors=0, file_size=123,
-                       job_status=finished_job)
-    job_cross_file = JobFactory(submission_id=sub.submission_id, file_type=None, job_type=validation,
-                                number_of_errors=0, file_size=123, job_status=finished_job)
+    job_a = JobFactory(submission_id=sub.submission_id, file_type_id=FILE_TYPE_DICT['appropriations'],
+                       job_type_id=csv_validation, number_of_errors=0, file_size=123, job_status_id=finished_job)
+    job_b = JobFactory(submission_id=sub.submission_id, file_type_id=FILE_TYPE_DICT['program_activity'],
+                       job_type_id=csv_validation, number_of_errors=0, file_size=123, job_status_id=finished_job)
+    job_c = JobFactory(submission_id=sub.submission_id, file_type_id=FILE_TYPE_DICT['award_financial'],
+                       job_type_id=csv_validation, number_of_errors=0, file_size=123, job_status_id=finished_job)
+    job_d1 = JobFactory(submission_id=sub.submission_id, file_type_id=FILE_TYPE_DICT['award_procurement'],
+                        job_type_id=csv_validation, number_of_errors=0, file_size=123, job_status_id=finished_job)
+    job_d2 = JobFactory(submission_id=sub.submission_id, file_type_id=FILE_TYPE_DICT['award'],
+                        job_type_id=csv_validation, number_of_errors=0, file_size=123, job_status_id=finished_job)
+    job_e = JobFactory(submission_id=sub.submission_id, file_type_id=FILE_TYPE_DICT['executive_compensation'],
+                       job_type_id=upload, number_of_errors=0, file_size=123, job_status_id=finished_job)
+    job_f = JobFactory(submission_id=sub.submission_id, file_type_id=FILE_TYPE_DICT['sub_award'], job_type_id=upload,
+                       number_of_errors=0, file_size=123, job_status_id=finished_job)
+    job_cross_file = JobFactory(submission_id=sub.submission_id, file_type_id=None, job_type_id=validation,
+                                number_of_errors=0, file_size=123, job_status_id=finished_job)
 
     database.session.add_all([job_a, job_b, job_c, job_d1, job_d2, job_e, job_f, job_cross_file])
     database.session.commit()
@@ -210,7 +203,7 @@ def test_current_page(file_app, database):
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['step'] == '1'
 
-    job_cross_file.job_status = waiting
+    job_cross_file.job_status_id = waiting
     job_d1.number_of_errors = 0
     database.session.commit()
     # E and F generated with C file errors
