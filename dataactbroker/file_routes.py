@@ -70,7 +70,7 @@ def add_file_routes(app, is_local, server_path):
     def submission_error_metrics(submission):
         return get_error_metrics(submission)
 
-    @app.route("/v1/list_submissions/", methods=["GET"])
+    @app.route("/v1/list_submissions/", methods=["POST"])
     @requires_login
     @use_kwargs({
         'page': webargs_fields.Int(missing=1),
@@ -81,10 +81,11 @@ def add_file_routes(app, is_local, server_path):
         'sort': webargs_fields.String(missing='modified'),
         'order': webargs_fields.String(missing='desc'),
         'd2_submission': webargs_fields.Bool(missing=False),
+        'filters': webargs_fields.Dict(keys=webargs_fields.String(), missing={})
     })
-    def list_submissions(page, limit, certified, sort, order, d2_submission):
+    def list_submissions(page, limit, certified, sort, order, d2_submission, filters):
         """ List submission IDs associated with the current user """
-        return list_submissions_handler(page, limit, certified, sort, order, d2_submission)
+        return list_submissions_handler(page, limit, certified, sort, order, d2_submission, filters)
 
     @app.route("/v1/list_certifications/", methods=["POST"])
     @convert_to_submission_id

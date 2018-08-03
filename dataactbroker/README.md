@@ -918,18 +918,47 @@ This route alters a submission's jobs' statuses and then restarts all validation
 ```
 * `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
 
-## File Generation Routes
+#### POST "/v1/list\_submissions"
+This endpoint lists submissions for all agencies for which the current user is a member of. Optional filters allow for more refined lists
 
-#### GET "/v1/list_submissions/"
-List submissions for all agencies for which the current user is a member of. Optional query parameters are `?page=[page #]&limit=[limit #]&certified=[true|false]&d2_submission=[true|false]` which correspond to the current page number and how many submissions to return per page (limit). If the query parameters are not present, the default is `page=1`, `limit=5`, and if `certified` is not provided, all submissions will be returned containing a mix of the two. By default, the list will not include d2_submissions.
+##### Body (JSON)
 
-##### Example input:
+```
+{
+    "page": 2
+    "limit": 5,
+    "certified": "true",
+    "sort": "modified",
+    "order": "desc",
+    "d2_submission": False,
+    "filters": {
+        "submission_ids": [123, 456]
+    }
+}
+```
 
-`/v1/list_submissions?page=1&limit=2
+##### Body Description
 
-##### Example output:
+- `page` - **optional** - an integer representing the page of submissions to view (offsets the list by `limit * (page - 1)`). Defaults to `1` if not provided
+- `limit` - **optional** - an integer representing the total number of results to see from this request. Defaults to `5` if not provided
+- `certified` - **required** - a string denoting the certification/publish status of the submissions listed. Allowed values are:
+    - `true` - only include submissions that have been certified/published
+    - `false` - only include submissions that have never been certified/published
+    - `mixed` - include both certified/published and non-certified/published submissions
+- `sort` - **optional** - a string denoting what value to sort by. Defaults to `modified` if not provided. Valid values are:
+    - `modified` - last modified date
+    - `reporting` - reporting start date
+    - `agency` - agency name
+    - `submitted_by` - name of user that created the submission
+    - `certified_date` - latest certified date
+- `order` - **optional** - a string indicating the sort order. Defaults to `desc` if not provided. Valid values are:
+    - `desc`
+    - `asc`
+- `d2_submission` - **optional** - a boolean indicating if the submissions listed should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
+- `filters` - **optional** - an object containing additional filters to narrow the results returned by the endpoint. Possible filters are:
+    - `submission_ids` - an array of integers or strings that limits the submission IDs returned to only the values listed in the array.
 
-"total" is the total number of submissions available for that user.
+##### Response (JSON)
 
 ```json
 {
@@ -944,9 +973,7 @@ List submissions for all agencies for which the current user is a member of. Opt
       },
       "files": ["file1.csv", "file2.csv"],
       "agency": "Department of the Treasury (TREAS)"
-      "status": "validation_successful" (will be undergoing changes),
-      "size": 0,
-      "errors": 0,
+      "status": "validation_successful",
       "last_modified": "2016-08-31 12:59:37.053424",
       "publish_status": "published",
       "certifying_user": "Certifier",
@@ -962,9 +989,7 @@ List submissions for all agencies for which the current user is a member of. Opt
       },
       "files": ["file1.csv", "file2.csv"],
       "agency": "Department of Defense (DOD)"
-      "status": "file_errors" (will be undergoing changes),
-      "size": 34482,
-      "errors": 582,
+      "status": "file_errors",
       "last_modified": "2016-08-31 15:59:37.053424",
       "publish_status": "unpublished",
       "certifying_user": "",
@@ -974,6 +999,43 @@ List submissions for all agencies for which the current user is a member of. Opt
   "total": 2
 }
 ```
+
+##### Response Attributes
+
+- `total` - An integer indicating the total submissions that match the provided parameters (including those that didn't fit within the limit)
+- `submissions` - An array of objects that contain details about submissions. Contents of each object are:
+    - `submission_id` - an integer indicating ID of the submission
+    - `reporting_start_date` - a string containing the start date of the submission (`YYYY-MM-DD`)
+    - `reporting_end_date` - a string containing the end date of the submission (`YYYY-MM-DD`)
+    - `user` - an object containing details of the user that created the submission:
+        - `name` - a string containing the name of the user
+        - `user_id` - an integer indicating the ID of the user
+    - `files` - an array of file names associated with the submission
+    - `agency` - a string containing the name of the agency the submission is for
+    - `status` - a string containing the current status of the submission. Possible values are:
+        - `failed`
+        - `file_errors`
+        - `running`
+        - `waiting`
+        - `ready`
+        - `validation_successful`
+        - `validation_successful_warnings`
+        - `certified`
+        - `validation_errors`
+    - `last_modified` - a string containing the last time/date the submission was modified in any way (`YYYY-MM-DD HH:mm:ss`)
+    - `publish_status` - a string indicating the publish status of the submission. Possible values are:
+        - `unpublished`
+        - `published`
+        - `updated`
+        - `publishing`
+    - `certifying_user` - a string containing the name of the last user to certify the submission
+    - `certified_on` - a string containing the last time/date the submission was certified. (`YYYY-MM-DD HH:mm:ss`)
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400: Invalid types in a filter, missing required parameter
+- 401: Login required
 
 #### POST "/v1/list_certifications/"
 List certifications for a single submission
