@@ -106,7 +106,7 @@ class FileHandler:
 
         start_date = submission_request.get('reporting_period_start_date')
         end_date = submission_request.get('reporting_period_end_date')
-        is_quarter = submission_request.get('is_quarter_format', False)
+        is_quarter = str(submission_request.get('is_quarter_format')).upper() == 'TRUE'
 
         # If both start and end date are provided, make sure no other submission is already published for that period
         if not (start_date is None or end_date is None):
@@ -118,7 +118,7 @@ class FileHandler:
                 Submission.frec_code == submission_request.get('frec_code'),
                 Submission.reporting_start_date == formatted_start_date,
                 Submission.reporting_end_date == formatted_end_date,
-                Submission.is_quarter_format == submission_request.get('is_quarter'),
+                Submission.is_quarter_format == is_quarter,
                 Submission.d2_submission.is_(False),
                 Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
 
@@ -201,19 +201,20 @@ class FileHandler:
             else:
                 existing_submission = None
                 existing_submission_obj = None
+
             for request_field, submission_field in request_submission_mapping.items():
                 if request_field in request_params:
                     request_value = request_params[request_field]
                     submission_data[submission_field] = request_value
-                # all of those fields are required unless
-                # existing_submission_id is present
+                # all of those fields are required unless existing_submission_id is present
                 elif 'existing_submission_id' not in request_params:
                     raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
+
             # make sure submission dates are valid
             formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(
                 submission_data.get('reporting_start_date'),
                 submission_data.get('reporting_end_date'),
-                submission_data.get('is_quarter_format'),
+                str(submission_request.get('is_quarter_format')).upper() == 'TRUE',
                 existing_submission_obj)
             submission_data['reporting_start_date'] = formatted_start_date
             submission_data['reporting_end_date'] = formatted_end_date
