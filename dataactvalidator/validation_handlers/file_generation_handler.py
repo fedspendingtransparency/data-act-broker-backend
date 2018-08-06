@@ -293,10 +293,6 @@ def copy_parent_file_request_data(sess, child_job, parent_job, is_local):
             parent_job: Job object for the parent FileRequest
             is_local: True if in local development, False otherwise
     """
-    file_type = parent_job.file_type.letter_name
-    log_data = {'message': 'Copying data from parent job with job_id:{}'.format(parent_job.job_id),
-                'message_type': 'ValidatorInfo', 'job_id': child_job.job_id, 'file_type': parent_job.file_type.name}
-
     # Keep path but update file name
     filename = '{}/{}'.format(child_job.filename.rsplit('/', 1)[0], parent_job.original_filename)
 
@@ -332,6 +328,9 @@ def copy_file_from_parent_to_child(child_job, parent_job, is_local):
             is_local: True if in local development, False otherwise
     """
     file_type = parent_job.file_type.letter_name
+    log_data = {'message': 'Copying data from parent job with job_id:{}'.format(parent_job.job_id),
+                'message_type': 'ValidatorInfo', 'job_id': child_job.job_id, 'file_type': parent_job.file_type.name}
+
     if not is_local and parent_job.filename != child_job.filename:
         # Check to see if the same file exists in the child bucket
         s3 = boto3.client('s3', region_name=CONFIG_BROKER["aws_region"])

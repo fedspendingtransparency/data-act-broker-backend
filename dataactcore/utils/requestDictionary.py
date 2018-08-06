@@ -45,7 +45,7 @@ class RequestDictionary:
             elif "multipart/form-data" in content_type:
                 request_data = request.form.to_dict()
                 request_data['_files'] = request.files
-                for key, value in request_data:
+                for key, value in request_data.items():
                     if value == 'null':
                         request_data[key] = None
 
