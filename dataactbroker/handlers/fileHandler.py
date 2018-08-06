@@ -214,7 +214,7 @@ class FileHandler:
             formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(
                 submission_data.get('reporting_start_date'),
                 submission_data.get('reporting_end_date'),
-                str(submission_request.get('is_quarter_format')).upper() == 'TRUE',
+                str(submission_data.get('is_quarter_format')).upper() == 'TRUE',
                 existing_submission_obj)
             submission_data['reporting_start_date'] = formatted_start_date
             submission_data['reporting_end_date'] = formatted_end_date
