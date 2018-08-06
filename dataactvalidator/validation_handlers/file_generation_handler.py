@@ -147,6 +147,10 @@ def generate_d_file(sess, job, agency_code, is_local=True, old_filename=None):
             if val_job:
                 val_job.filename = "".join([filepath, old_filename])
                 val_job.original_filename = old_filename
+
+        logger.info({'message': 'Marking job {} as finished'.format(job.job_id), 'job_id': job.job_id,
+                     'message_type': 'ValidatorInfo'})
+        mark_job_status(job.job_id, "finished")
         sess.commit()
     else:
         # search for potential parent FileRequests
