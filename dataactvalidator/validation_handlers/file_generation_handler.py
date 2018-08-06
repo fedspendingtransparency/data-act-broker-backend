@@ -147,6 +147,7 @@ def generate_d_file(sess, job, agency_code, is_local=True, old_filename=None):
             if val_job:
                 val_job.filename = "".join([filepath, old_filename])
                 val_job.original_filename = old_filename
+
         sess.commit()
     else:
         # search for potential parent FileRequests
@@ -288,14 +289,10 @@ def copy_parent_file_request_data(sess, child_job, parent_job, is_local):
 
         Args:
             sess: current DB session
-            child_job: Job ID for the child FileRequest object
-            parent_job: Job ID for the parent FileRequest object
+            child_job: Job object for the child FileRequest
+            parent_job: Job object for the parent FileRequest
             is_local: True if in local development, False otherwise
     """
-    file_type = parent_job.file_type.letter_name
-    log_data = {'message': 'Copying data from parent job with job_id:{}'.format(parent_job.job_id),
-                'message_type': 'ValidatorInfo', 'job_id': child_job.job_id, 'file_type': parent_job.file_type.name}
-
     # Keep path but update file name
     filename = '{}/{}'.format(child_job.filename.rsplit('/', 1)[0], parent_job.original_filename)
 
@@ -316,6 +313,24 @@ def copy_parent_file_request_data(sess, child_job, parent_job, is_local):
         val_job.original_filename = parent_job.original_filename
     sess.commit()
 
+    copy_file_from_parent_to_child(child_job, parent_job, is_local)
+
+    # Mark job status last so the validation job doesn't start until everything is done
+    mark_job_status(child_job.job_id, JOB_STATUS_DICT_ID[parent_job.job_status_id])
+
+
+def copy_file_from_parent_to_child(child_job, parent_job, is_local):
+    """ Copy the file from the parent job's bucket to the child job's bucket.
+
+        Args:
+            child_job: Job object for the child FileRequest
+            parent_job: Job object for the parent FileRequest
+            is_local: True if in local development, False otherwise
+    """
+    file_type = parent_job.file_type.letter_name
+    log_data = {'message': 'Copying data from parent job with job_id:{}'.format(parent_job.job_id),
+                'message_type': 'ValidatorInfo', 'job_id': child_job.job_id, 'file_type': parent_job.file_type.name}
+
     if not is_local and parent_job.filename != child_job.filename:
         # Check to see if the same file exists in the child bucket
         s3 = boto3.client('s3', region_name=CONFIG_BROKER["aws_region"])
@@ -332,9 +347,6 @@ def copy_parent_file_request_data(sess, child_job, parent_job, is_local):
         logger.info(log_data)
         with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
             stream_file_to_s3(child_job.filename, reader)
-
-    # Mark job status last so the validation job doesn't start until everything is done
-    mark_job_status(child_job.job_id, JOB_STATUS_DICT_ID[parent_job.job_status_id])
 
 
 def start_generation_job(job, start_date, end_date, agency_code=None):
