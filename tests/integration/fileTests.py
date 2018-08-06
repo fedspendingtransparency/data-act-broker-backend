@@ -145,7 +145,7 @@ class FileTests(BaseTestAPI):
                 # If local must use full destination path
                 self.filenames = {"cgac_code": "SYS", "frec_code": None,
                                   "reporting_period_start_date": "01/2001",
-                                  "reporting_period_end_date": "03/2001", "is_quarter": True}
+                                  "reporting_period_end_date": "03/2001", "is_quarter": "true"}
             self.submitFilesResponse = self.app.post("/v1/upload_dabs_files/", self.filenames,
                                                      upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
                                                      headers={"x-session-id": self.session_id})
@@ -221,6 +221,7 @@ class FileTests(BaseTestAPI):
         """ Test file submissions for alphabet year """
         update_json = {
             "cgac_code": "020",
+            "frec_code": None,
             "is_quarter": True,
             "reporting_period_start_date": "Q1/ABCD",
             "reporting_period_end_date": "Q2/2016"}
@@ -234,6 +235,7 @@ class FileTests(BaseTestAPI):
         """ Test file submissions for Q4, 2015, submission w same period already been certified """
         update_json = {
             "cgac_code": "SYS",
+            "frec_code": None,
             "is_quarter": True,
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
@@ -331,6 +333,34 @@ class FileTests(BaseTestAPI):
                                  headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'existing_submission_id must be a valid submission_id')
+
+    def test_submit_file_monthly_submission(self):
+        self.login_user()
+        monthly_submission_json = {
+            "cgac_code": "NOT",
+            "frec_code": None,
+            "is_quarter": False,
+            "reporting_period_start_date": "10/2015",
+            "reporting_period_end_date": "10/2015"}
+        response = self.app.post("/v1/upload_dabs_files/", monthly_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=False)
+        self.assertEqual(response.status_code, 200)
+
+    # TODO: validate that monthly submissions only include one month
+    # def test_submit_file_monthly_submission_wrong_dates(self):
+    #     self.login_user()
+    #     monthly_submission_json = {
+    #         "cgac_code": "NOT",
+    #         "frec_code": None,
+    #         "is_quarter": False,
+    #         "reporting_period_start_date": "10/2015",
+    #         "reporting_period_end_date": "12/2015"}
+    #     response = self.app.post("/v1/upload_dabs_files/", monthly_submission_json,
+    #                              upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+    #                              headers={"x-session-id": self.session_id}, expect_errors=True)
+    #     self.assertEqual(response.status_code, 400)
+    #     self.assertEqual()
 
     def test_revalidation_threshold_no_login(self):
         """ Test response with no login """
