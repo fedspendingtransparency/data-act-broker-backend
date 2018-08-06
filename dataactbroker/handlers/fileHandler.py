@@ -1492,7 +1492,30 @@ def get_error_metrics(submission):
         return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
 
-def list_submissions(page, limit, certified, sort='modified', order='desc', d2_submission=False):
+def add_list_submission_filters(query, filters):
+    """ Add provided filters to the list_submission query
+
+        Args:
+            query: already existing query to add to
+            filters: provided filters
+
+        Returns:
+            The query updated with the valid provided filters
+
+        Raises:
+            ResponseException - invalid type is provided for one of the filters
+    """
+    if 'submission_ids' in filters:
+        sub_list = filters['submission_ids']
+        if sub_list and isinstance(sub_list, list):
+            sub_list = [int(sub_id) for sub_id in sub_list]
+            query = query.filter(Submission.submission_id.in_(sub_list))
+        elif sub_list:
+            raise ResponseException("submission_ids filter must be null or an array", StatusCode.CLIENT_ERROR)
+    return query
+
+
+def list_submissions(page, limit, certified, sort='modified', order='desc', d2_submission=False, filters=None):
     """ List submission based on current page and amount to display. If provided, filter based on certification status
 
         Args:
@@ -1502,6 +1525,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
             sort: the column to order on
             order: order ascending or descending
             d2_submission: boolean indicating whether it is a DABS or FABS submission (True if FABS)
+            filters: an object containing the filters provided by the user
 
         Returns:
             Limited list of submissions and the total number of submissions the user has access to
@@ -1552,6 +1576,13 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
             query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
         else:
             query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
+
+    # Add additional filters where applicable
+    if filters:
+        try:
+            query = add_list_submission_filters(query, filters)
+        except (ResponseException, ValueError) as e:
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
 
     # Determine what to order by, default to "modified"
     options = {
