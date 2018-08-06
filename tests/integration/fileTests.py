@@ -335,7 +335,6 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.json['message'], 'existing_submission_id must be a valid submission_id')
 
     def test_submit_file_monthly_submission(self):
-        self.login_user()
         monthly_submission_json = {
             "cgac_code": "NOT",
             "frec_code": None,
