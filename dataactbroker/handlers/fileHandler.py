@@ -106,7 +106,7 @@ class FileHandler:
 
         start_date = submission_request.get('reporting_period_start_date')
         end_date = submission_request.get('reporting_period_end_date')
-        is_quarter = str(submission_request.get('is_quarter_format')).upper() == 'TRUE'
+        is_quarter = str(submission_request.get('is_quarter')).upper() == 'TRUE'
 
         # If both start and end date are provided, make sure no other submission is already published for that period
         if not (start_date is None or end_date is None):

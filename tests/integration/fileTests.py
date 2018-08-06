@@ -242,6 +242,7 @@ class FileTests(BaseTestAPI):
         response = self.app.post("/v1/upload_dabs_files/", update_json,
                                  upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
                                  headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "A submission with the same period already exists.")
 
     def test_submit_file_fabs_dabs_route(self):
