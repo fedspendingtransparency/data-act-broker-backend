@@ -25,7 +25,6 @@ class ListSubmissionTests(BaseTestAPI):
             cls.admin_user_id = admin_user.user_id
 
             other_user = sess.query(User).filter(User.email == cls.test_users['agency_user']).one()
-            cls.other_user_email = other_user.email
             cls.other_user_id = other_user.user_id
 
             # set up submissions for dabs
@@ -57,14 +56,13 @@ class ListSubmissionTests(BaseTestAPI):
                                                           publish_status_id=PUBLISH_STATUS_DICT['published'])
 
     def setUp(self):
-        """Test set-up."""
+        """ Test set-up. """
         super(ListSubmissionTests, self).setUp()
         self.login_admin_user()
 
     @staticmethod
     def sub_ids(response):
-        """Helper function to parse out the submission ids from an HTTP
-        response"""
+        """ Helper function to parse out the submission ids from an HTTP response. """
         assert response.status_code == 200
         result = response.json
         assert 'submissions' in result
@@ -131,7 +129,7 @@ class ListSubmissionTests(BaseTestAPI):
         assert self.sub_ids(response) == {self.published_fabs_sub_id}
 
     def test_list_submissions_filter_id(self):
-        """ Test listing submissions with a submission_id filter applied """
+        """ Test listing submissions with a submission_id filter applied. """
         # Listing only the relevant submissions, even when an ID is provided that can't be reached
         post_json = {
             "certified": "mixed",

@@ -919,7 +919,7 @@ This route alters a submission's jobs' statuses and then restarts all validation
 * `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
 
 #### POST "/v1/list\_submissions"
-This endpoint lists submissions for all agencies for which the current user is a member of. Optional filters allow for more refined lists
+This endpoint lists submissions for all agencies for which the current user is a member of. Optional filters allow for more refined lists.
 
 ##### Body (JSON)
 
