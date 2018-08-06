@@ -46,9 +46,8 @@ class RequestDictionary:
                 request_data = request.form.to_dict()
                 request_data['_files'] = request.files
                 for key, value in request_data.items():
-                    if value == 'null':
+                    if str(value).upper() in ('NULL', 'NONE'):
                         request_data[key] = None
-
                 return request_data
             else:
                 raise ValueError("Invalid Content-Type : " + content_type)
