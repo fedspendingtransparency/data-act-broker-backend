@@ -8,7 +8,7 @@ import sqlalchemy as sa
 import threading
 
 from collections import namedtuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from flask import g, current_app
 from shutil import copyfile
@@ -1506,6 +1506,7 @@ def add_list_submission_filters(query, filters):
         Raises:
             ResponseException - invalid type is provided for one of the filters
     """
+    # Checking for submission ID filter
     if 'submission_ids' in filters:
         sub_list = filters['submission_ids']
         if sub_list and isinstance(sub_list, list):
@@ -1513,6 +1514,21 @@ def add_list_submission_filters(query, filters):
             query = query.filter(Submission.submission_id.in_(sub_list))
         elif sub_list:
             raise ResponseException("submission_ids filter must be null or an array", StatusCode.CLIENT_ERROR)
+    # Date range filter
+    if 'start_date' in filters or 'end_date' in filters:
+        # Must provide both start and end date
+        if 'start_date' not in filters or 'end_date' not in filters:
+            raise ResponseException("If either start_date or end_date is provided in filters, both must be provided",
+                                    StatusCode.CLIENT_ERROR)
+        start_date = filters['start_date']
+        end_date = filters['end_date']
+        # Start and end dates must be in the format MM/DD/YYYY and be
+        if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
+            raise ResponseException("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
+                                    StatusCode.CLIENT_ERROR)
+        # Need to add a day to the end date to make it actually inclusive
+        end_date = (datetime.strptime(end_date, '%m/%d/%Y') + timedelta(days=1)).strftime('%m/%d/%Y')
+        query = query.filter(Submission.updated_at >= start_date, Submission.updated_at < end_date)
     return query
 
 
