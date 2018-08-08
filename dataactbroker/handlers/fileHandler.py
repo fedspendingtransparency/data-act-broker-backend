@@ -1561,8 +1561,8 @@ def add_list_submission_filters(query, filters):
             # each list (ignoring duplicates) then something included wasn't a valid agency
             cgac_list = set(cgac_list)
             frec_list = set(frec_list)
-            if sess.query(CGAC).filter(CGAC.cgac_code.in_(cgac_list)).count() != len(cgac_list) or \
-                    sess.query(FREC).filter(FREC.frec_code.in_(frec_list)).count() != len(frec_list):
+            if (cgac_list and sess.query(CGAC).filter(CGAC.cgac_code.in_(cgac_list)).count() != len(cgac_list)) or \
+                    (frec_list and sess.query(FREC).filter(FREC.frec_code.in_(frec_list)).count() != len(frec_list)):
                 raise ResponseException("All codes in the agency_codes filter must be valid agency codes",
                                         StatusCode.CLIENT_ERROR)
             # We only want these filters in here if there's at least one CGAC or FREC to filter on
@@ -1628,9 +1628,13 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     if not g.user.website_admin:
         cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
         frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec]
-        query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
-                                    Submission.frec_code.in_(frec_codes),
-                                    Submission.user_id == g.user.user_id))
+
+        affiliation_filters = [Submission.user_id == g.user.user_id]
+        if cgac_codes:
+            affiliation_filters.append(Submission.cgac_code.in_(cgac_codes))
+        if frec_codes:
+            affiliation_filters.append(Submission.frec_code.in_(frec_codes))
+        query = query.filter(sa.or_(*affiliation_filters))
 
     # Determine what types of submissions (published/unpublished/both) to display
     if certified != 'mixed':
