@@ -7,7 +7,7 @@ from collections import OrderedDict
 from flask import Flask
 from unittest.mock import Mock
 
-from dataactcore.models.jobModels import FileType, JobStatus, JobType
+from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.stagingModels import DetachedAwardProcurement, PublishedAwardFinancialAssistance
 from dataactcore.utils import fileE
 from dataactvalidator.validation_handlers import file_generation_handler
@@ -22,11 +22,8 @@ from tests.unit.dataactcore.factories.staging import (
 def test_job_context_success(database):
     """ When a job successfully runs, it should be marked as "finished" """
     sess = database.session
-    job = JobFactory(
-        job_status=sess.query(JobStatus).filter_by(name='running').one(),
-        job_type=sess.query(JobType).filter_by(name='validation').one(),
-        file_type=sess.query(FileType).filter_by(name='sub_award').one(),
-    )
+    job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['validation'],
+                     file_type_id=FILE_TYPE_DICT['sub_award'])
     sess.add(job)
     sess.commit()
 
@@ -41,12 +38,8 @@ def test_job_context_success(database):
 def test_job_context_fail(database):
     """ When a job raises an exception and has no retries left, it should be marked as failed """
     sess = database.session
-    job = JobFactory(
-        job_status=sess.query(JobStatus).filter_by(name='running').one(),
-        job_type=sess.query(JobType).filter_by(name='validation').one(),
-        file_type=sess.query(FileType).filter_by(name='sub_award').one(),
-        error_message=None,
-    )
+    job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['validation'],
+                     file_type_id=FILE_TYPE_DICT['sub_award'], error_message=None)
     sess.add(job)
     sess.commit()
 
@@ -78,12 +71,9 @@ def test_generate_d1_file_query(mock_broker_config_paths, database):
     sess.add_all([dap_1, dap_2, dap_3, dap_4, dap_5])
 
     file_path = str(mock_broker_config_paths['d_file_storage_path'].join('d1_test'))
-    job = JobFactory(
-        job_status=database.session.query(JobStatus).filter_by(name='running').one(),
-        job_type=database.session.query(JobType).filter_by(name='file_upload').one(),
-        file_type=database.session.query(FileType).filter_by(name='award_procurement').one(),
-        filename=file_path, original_filename='d1_test', start_date='01/01/2017', end_date='01/31/2017',
-    )
+    job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                     file_type_id=FILE_TYPE_DICT['award_procurement'], filename=file_path, original_filename='d1_test',
+                     start_date='01/01/2017', end_date='01/31/2017')
     sess.add(job)
     sess.commit()
 
@@ -126,12 +116,9 @@ def test_generate_d2_file_query(mock_broker_config_paths, database):
     sess.add_all([pafa_1, pafa_2, pafa_3, pafa_4, pafa_5, pafa_6])
 
     file_path = str(mock_broker_config_paths['d_file_storage_path'].join('d2_test'))
-    job = JobFactory(
-        job_status=database.session.query(JobStatus).filter_by(name='running').one(),
-        job_type=database.session.query(JobType).filter_by(name='file_upload').one(),
-        file_type=database.session.query(FileType).filter_by(name='award').one(),
-        filename=file_path, original_filename='d2_test', start_date='01/01/2017', end_date='01/31/2017',
-    )
+    job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                     file_type_id=FILE_TYPE_DICT['award'], filename=file_path, original_filename='d2_test',
+                     start_date='01/01/2017', end_date='01/31/2017')
     sess.add(job)
     sess.commit()
 
@@ -163,19 +150,11 @@ def test_generate_d2_file_query(mock_broker_config_paths, database):
 def test_generate_f_file(monkeypatch, mock_broker_config_paths, database):
     """ A CSV with fields in the right order should be written to the file system """
     file_path1 = str(mock_broker_config_paths['broker_files'].join('f_test1'))
-    job1 = JobFactory(
-        job_status=database.session.query(JobStatus).filter_by(name='running').one(),
-        job_type=database.session.query(JobType).filter_by(name='file_upload').one(),
-        file_type=database.session.query(FileType).filter_by(name='sub_award').one(),
-        filename=file_path1, original_filename='f_test1',
-    )
+    job1 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                      file_type_id=FILE_TYPE_DICT['sub_award'], filename=file_path1, original_filename='f_test1')
     file_path2 = str(mock_broker_config_paths['broker_files'].join('f_test2'))
-    job2 = JobFactory(
-        job_status=database.session.query(JobStatus).filter_by(name='running').one(),
-        job_type=database.session.query(JobType).filter_by(name='file_upload').one(),
-        file_type=database.session.query(FileType).filter_by(name='sub_award').one(),
-        filename=file_path2, original_filename='f_test2',
-    )
+    job2 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                      file_type_id=FILE_TYPE_DICT['sub_award'], filename=file_path2, original_filename='f_test2')
     database.session.add(job1, job2)
     database.session.commit()
 
@@ -216,12 +195,9 @@ def test_generate_e_file_query(monkeypatch, mock_broker_config_paths, database):
     sess.commit()
 
     file_path = str(mock_broker_config_paths['broker_files'].join('e_test1'))
-    job = JobFactory(
-        job_status=database.session.query(JobStatus).filter_by(name='running').one(),
-        job_type=database.session.query(JobType).filter_by(name='file_upload').one(),
-        file_type=database.session.query(FileType).filter_by(name='executive_compensation').one(),
-        filename=file_path, original_filename='e_test1', submission_id=sub.submission_id,
-    )
+    job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                     file_type_id=FILE_TYPE_DICT['executive_compensation'], filename=file_path,
+                     original_filename='e_test1', submission_id=sub.submission_id)
     database.session.add(job)
     database.session.commit()
 
@@ -262,12 +238,9 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
     database.session.commit()
 
     file_path = str(mock_broker_config_paths['broker_files'].join('e_test1'))
-    job = JobFactory(
-        job_status=database.session.query(JobStatus).filter_by(name='running').one(),
-        job_type=database.session.query(JobType).filter_by(name='file_upload').one(),
-        file_type=database.session.query(FileType).filter_by(name='executive_compensation').one(),
-        filename=file_path, original_filename='e_test1', submission_id=sub.submission_id,
-    )
+    job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                     file_type_id=FILE_TYPE_DICT['executive_compensation'], filename=file_path,
+                     original_filename='e_test1', submission_id=sub.submission_id)
     database.session.add(job)
     database.session.commit()
 
@@ -305,17 +278,10 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
 def test_copy_parent_file_request_data(database):
     sess = database.session
 
-    job_one = JobFactory(
-        job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-        job_type=sess.query(JobType).filter_by(name='file_upload').one(),
-        file_type=sess.query(FileType).filter_by(name='award').one(),
-    )
-    job_two = JobFactory(
-        job_status=sess.query(JobStatus).filter_by(name='running').one(),
-        job_type=sess.query(JobType).filter_by(name='file_upload').one(),
-        file_type=sess.query(FileType).filter_by(name='award').one(),
-        filename='job_id/new_filename'
-    )
+    job_one = JobFactory(job_status_id=JOB_STATUS_DICT['finished'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                         file_type_id=FILE_TYPE_DICT['award'])
+    job_two = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                         file_type_id=FILE_TYPE_DICT['award'], filename='job_id/new_filename')
     sess.add_all([job_one, job_two])
     sess.commit()
 
@@ -337,32 +303,29 @@ def test_check_detached_d_file_generation(database):
     sess = database.session
 
     # Detached D2 generation waiting to be picked up by the Validator
-    job = JobFactory(
-        job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
-        job_type=sess.query(JobType).filter_by(name='file_upload').one(),
-        file_type=sess.query(FileType).filter_by(name='award').one(),
-        error_message='', filename='job_id/file.csv', original_filename='file.csv'
-    )
+    job = JobFactory(job_status_id=JOB_STATUS_DICT['waiting'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                     file_type_id=FILE_TYPE_DICT['award'], error_message='', filename='job_id/file.csv',
+                     original_filename='file.csv')
     sess.add(job)
     sess.commit()
     response_dict = file_generation_handler.check_file_generation(job.job_id)
     assert response_dict['status'] == 'waiting'
 
     # Detached D2 generation running in the Validator
-    job.job_status = sess.query(JobStatus).filter_by(name='running').one()
+    job.job_status_id = JOB_STATUS_DICT['running']
     sess.commit()
     response_dict = file_generation_handler.check_file_generation(job.job_id)
     assert response_dict['status'] == 'waiting'
 
     # Detached D2 generation completed by the Validator
-    job.job_status = sess.query(JobStatus).filter_by(name='finished').one()
+    job.job_status_id = JOB_STATUS_DICT['finished']
     sess.commit()
     response_dict = file_generation_handler.check_file_generation(job.job_id)
     assert response_dict['status'] == 'finished'
     assert response_dict['message'] == ''
 
     # Detached D2 generation with an unknown error
-    job.job_status = sess.query(JobStatus).filter_by(name='failed').one()
+    job.job_status_id = JOB_STATUS_DICT['failed']
     sess.commit()
     response_dict = file_generation_handler.check_file_generation(job.job_id)
     assert response_dict['status'] == 'failed'
@@ -384,31 +347,25 @@ def test_check_submission_d_file_generation(database):
     sess.add(sub)
 
     # D1 generation waiting to be picked up by the Validator
-    job = JobFactory(
-        job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
-        job_type=sess.query(JobType).filter_by(name='file_upload').one(),
-        file_type=sess.query(FileType).filter_by(name='award_procurement').one(),
-        submission=sub, error_message='', filename='job_id/file.csv', original_filename='file.csv'
-    )
-    val_job = JobFactory(
-        job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
-        job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-        file_type=sess.query(FileType).filter_by(name='award_procurement').one(),
-        submission=sub, error_message='', number_of_errors=0,
-    )
+    job = JobFactory(job_status_id=JOB_STATUS_DICT['waiting'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                     file_type_id=FILE_TYPE_DICT['award_procurement'], submission=sub, error_message='',
+                     filename='job_id/file.csv', original_filename='file.csv')
+    val_job = JobFactory(job_status_id=JOB_STATUS_DICT['waiting'], job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                         file_type_id=FILE_TYPE_DICT['award_procurement'], submission=sub, error_message='',
+                         number_of_errors=0)
     sess.add_all([job, val_job])
     sess.commit()
     response_dict = file_generation_handler.check_file_generation(job.job_id)
     assert response_dict['status'] == 'waiting'
 
     # D1 generation running in the Validator
-    job.job_status = sess.query(JobStatus).filter_by(name='running').one()
+    job.job_status_id = JOB_STATUS_DICT['running']
     sess.commit()
     response_dict = file_generation_handler.check_file_generation(job.job_id)
     assert response_dict['status'] == 'waiting'
 
     # D1 generation with an unknown error
-    job.job_status = sess.query(JobStatus).filter_by(name='failed').one()
+    job.job_status_id = JOB_STATUS_DICT['failed']
     sess.commit()
     response_dict = file_generation_handler.check_file_generation(job.job_id)
     assert response_dict['status'] == 'failed'
@@ -423,19 +380,19 @@ def test_check_submission_d_file_generation(database):
 
     # D1 generation completed by the Validator; validation waiting to be picked up
     job.error_message = ''
-    job.job_status = sess.query(JobStatus).filter_by(name='finished').one()
+    job.job_status_id = JOB_STATUS_DICT['finished']
     sess.commit()
     response_dict = file_generation_handler.check_file_generation(job.job_id)
     assert response_dict['status'] == 'waiting'
 
     # D1 generation completed; validation running in the Validator
-    val_job.job_status = sess.query(JobStatus).filter_by(name='running').one()
+    val_job.job_status_id = JOB_STATUS_DICT['running']
     sess.commit()
     response_dict = file_generation_handler.check_file_generation(job.job_id)
     assert response_dict['status'] == 'waiting'
 
     # D1 generation completed; validation completed by the Validator
-    val_job.job_status = sess.query(JobStatus).filter_by(name='finished').one()
+    val_job.job_status_id = JOB_STATUS_DICT['finished']
     sess.commit()
     response_dict = file_generation_handler.check_file_generation(job.job_id)
     assert response_dict['status'] == 'finished'
@@ -450,7 +407,7 @@ def test_check_submission_d_file_generation(database):
     # D1 generation completed; validation with an unknown error
     job.error_message = ''
     val_job.error_message = ''
-    val_job.job_status = sess.query(JobStatus).filter_by(name='failed').one()
+    val_job.job_status_id = JOB_STATUS_DICT['failed']
     val_job.number_of_errors = 0
     sess.commit()
     response_dict = file_generation_handler.check_file_generation(job.job_id)
@@ -469,7 +426,7 @@ def test_check_submission_d_file_generation(database):
     # D1 generation completed; validation with an unknown error
     job.error_message = ''
     val_job.error_message = ''
-    val_job.job_status = sess.query(JobStatus).filter_by(name='invalid').one()
+    val_job.job_status_id = JOB_STATUS_DICT['invalid']
     sess.commit()
     response_dict = file_generation_handler.check_file_generation(job.job_id)
     assert response_dict['status'] == 'failed'

@@ -3,8 +3,8 @@ import pytest
 from unittest.mock import patch
 
 from dataactcore.aws.sqsHandler import SQSMockQueue
-from dataactcore.models.jobModels import JobStatus, JobType, FileType, JobDependency
-from dataactcore.models.lookups import JOB_STATUS_DICT
+from dataactcore.models.jobModels import JobDependency
+from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.interfaces.function_bag import check_job_dependencies
 
 from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
@@ -15,9 +15,8 @@ def test_check_job_dependencies_not_finished(database):
     """ Tests check_job_dependencies with a job that isn't finished """
     sess = database.session
     sub = SubmissionFactory(submission_id=1)
-    job = JobFactory(submission_id=sub.submission_id, job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
-                     job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                     file_type=sess.query(FileType).filter_by(name='award').one())
+    job = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['waiting'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     sess.add_all([sub, job])
     sess.commit()
 
@@ -30,17 +29,14 @@ def test_check_job_dependencies_has_unfinished_dependencies(database):
     """ Tests check_job_dependencies with a job that isn't finished """
     sess = database.session
     sub = SubmissionFactory(submission_id=1)
-    job = JobFactory(submission_id=sub.submission_id, job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-                     job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                     file_type=sess.query(FileType).filter_by(name='award').one(), number_of_errors=0)
-    job_2 = JobFactory(submission_id=sub.submission_id,
-                       job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
-                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                       file_type=sess.query(FileType).filter_by(name='award').one())
-    job_3 = JobFactory(submission_id=sub.submission_id,
-                       job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
-                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                       file_type=sess.query(FileType).filter_by(name='award').one(), number_of_errors=0)
+    job = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['finished'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'],
+                     number_of_errors=0)
+    job_2 = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['waiting'],
+                       job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
+    job_3 = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['waiting'],
+                       job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'],
+                       number_of_errors=0)
     sess.add_all([sub, job, job_2, job_3])
     sess.commit()
 
@@ -61,13 +57,11 @@ def test_check_job_dependencies_prior_dependency_has_errors(database):
     """ Tests check_job_dependencies with a job that is finished but has errors """
     sess = database.session
     sub = SubmissionFactory(submission_id=1)
-    job = JobFactory(submission_id=sub.submission_id, job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-                     job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                     file_type=sess.query(FileType).filter_by(name='award').one(), number_of_errors=3)
-    job_2 = JobFactory(submission_id=sub.submission_id,
-                       job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
-                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                       file_type=sess.query(FileType).filter_by(name='award').one())
+    job = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['finished'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'],
+                     number_of_errors=3)
+    job_2 = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['waiting'],
+                       job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     sess.add_all([sub, job, job_2])
     sess.commit()
 
@@ -89,13 +83,11 @@ def test_check_job_dependencies_ready(mock_sqs_queue, database):
     mock_sqs_queue.return_value = SQSMockQueue
     sess = database.session
     sub = SubmissionFactory(submission_id=1)
-    job = JobFactory(submission_id=sub.submission_id, job_status=sess.query(JobStatus).filter_by(name='finished').one(),
-                     job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                     file_type=sess.query(FileType).filter_by(name='award').one(), number_of_errors=0)
-    job_2 = JobFactory(submission_id=sub.submission_id,
-                       job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
-                       job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
-                       file_type=sess.query(FileType).filter_by(name='award').one())
+    job = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['finished'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'],
+                     number_of_errors=0)
+    job_2 = JobFactory(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['waiting'],
+                       job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     sess.add_all([sub, job, job_2])
     sess.commit()
 

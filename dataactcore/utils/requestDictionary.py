@@ -32,17 +32,23 @@ class RequestDictionary:
                 raise ValueError("Must include Content-Type header")
             content_type = request.headers['Content-Type']
 
-            # Allowing extra content after application/json for firefox
-            # compatibility
+            # Allowing extra content after application/json for Firefox compatibility
             if request.is_json:
                 result = request.get_json()
                 if not isinstance(result, dict):
                     # @todo: this shouldn't be a type error
-                    raise TypeError(
-                        "Failed to create a dictionary out of json")
+                    raise TypeError("Failed to create a dictionary out of json")
                 return result
             elif content_type == "application/x-www-form-urlencoded":
                 return request.form
+            # This is not common and is a one-off solution for inbound API
+            elif "multipart/form-data" in content_type:
+                request_data = request.form.to_dict()
+                request_data['_files'] = request.files
+                for key, value in request_data.items():
+                    if str(value).upper() in ('NULL', 'NONE'):
+                        request_data[key] = None
+                return request_data
             else:
                 raise ValueError("Invalid Content-Type : " + content_type)
         except BadRequest as br:
