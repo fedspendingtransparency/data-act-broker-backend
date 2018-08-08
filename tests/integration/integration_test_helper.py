@@ -5,7 +5,8 @@ from dataactcore.models.jobModels import Submission
 
 
 def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
-                      is_quarter=False, number_of_errors=0, publish_status_id=1, is_fabs=False):
+                      is_quarter=False, number_of_errors=0, publish_status_id=1, is_fabs=False,
+                      updated_at=datetime.utcnow()):
     """Insert one submission into job tracker and get submission ID back."""
     publishable = True if number_of_errors == 0 else False
     end_date = datetime.strptime(end_date, '%m/%Y')
@@ -16,6 +17,7 @@ def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None,
         '%Y/%m/%d'
     ).date()
     sub = Submission(created_at=datetime.utcnow(),
+                     updated_at=updated_at,
                      user_id=submission_user_id,
                      cgac_code=cgac_code,
                      reporting_start_date=datetime.strptime(start_date, '%m/%Y'),

@@ -31,11 +31,13 @@ class ListSubmissionTests(BaseTestAPI):
             cls.non_admin_dabs_sub_id = insert_submission(sess, cls.other_user_id, cgac_code="SYS",
                                                           start_date="10/2015", end_date="12/2015", is_quarter=True,
                                                           is_fabs=False,
-                                                          publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
+                                                          publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                                          updated_at='01/01/2010')
 
             cls.admin_dabs_sub_id = insert_submission(sess, cls.admin_user_id, cgac_code="000", start_date="10/2015",
                                                       end_date="12/2015", is_quarter=True, is_fabs=False,
-                                                      publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
+                                                      publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                                      updated_at='01/01/2012')
 
             cls.certified_dabs_sub_id = insert_submission(sess, cls.admin_user_id, cgac_code="SYS",
                                                           start_date="10/2015", end_date="12/2015", is_quarter=True,
@@ -60,73 +62,72 @@ class ListSubmissionTests(BaseTestAPI):
         super(ListSubmissionTests, self).setUp()
         self.login_admin_user()
 
-    @staticmethod
-    def sub_ids(response):
+    def sub_ids(self, response):
         """ Helper function to parse out the submission ids from an HTTP response. """
-        assert response.status_code == 200
+        self.assertEqual(response.status_code, 200)
         result = response.json
-        assert 'submissions' in result
+        self.assertIn('submissions', result)
         return {sub['submission_id'] for sub in result['submissions']}
 
     def test_list_submissions_dabs_admin(self):
         """ Test with DABS submissions for an admin user. """
         response = self.app.post_json("/v1/list_submissions/", {"certified": "mixed"},
                                       headers={"x-session-id": self.session_id})
-        assert self.sub_ids(response) == {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id,
-                                          self.certified_dabs_sub_id}
+        self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id,
+                                                  self.certified_dabs_sub_id})
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "false"},
                                       headers={"x-session-id": self.session_id})
-        assert self.sub_ids(response) == {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id}
+        self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id})
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "true"},
                                       headers={"x-session-id": self.session_id})
-        assert self.sub_ids(response) == {self.certified_dabs_sub_id}
+        self.assertEqual(self.sub_ids(response), {self.certified_dabs_sub_id})
 
     def test_list_submissions_dabs_non_admin(self):
         """ Test with DABS submissions for a non admin user. """
         self.login_user()
         response = self.app.post_json("/v1/list_submissions/", {"certified": "mixed"},
                                       headers={"x-session-id": self.session_id})
-        assert self.sub_ids(response) == {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id}
+        self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id})
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "false"},
                                       headers={"x-session-id": self.session_id})
-        assert self.sub_ids(response) == {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id}
+        self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id})
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "true"},
                                       headers={"x-session-id": self.session_id})
-        assert self.sub_ids(response) == set()
+        self.assertEqual(self.sub_ids(response), set())
 
     def test_list_submissions_fabs_admin(self):
         """ Test with FABS submissions for an admin user. """
         response = self.app.post_json("/v1/list_submissions/", {"certified": "mixed", "d2_submission": True},
                                       headers={"x-session-id": self.session_id})
-        assert self.sub_ids(response) == {self.non_admin_fabs_sub_id, self.admin_fabs_sub_id,
-                                          self.published_fabs_sub_id}
+        self.assertEqual(self.sub_ids(response), {self.non_admin_fabs_sub_id, self.admin_fabs_sub_id,
+                                                  self.published_fabs_sub_id})
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "false", "d2_submission": True},
                                       headers={"x-session-id": self.session_id})
-        assert self.sub_ids(response) == {self.non_admin_fabs_sub_id, self.admin_fabs_sub_id}
+        self.assertEqual(self.sub_ids(response), {self.non_admin_fabs_sub_id, self.admin_fabs_sub_id})
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "true", "d2_submission": True},
                                       headers={"x-session-id": self.session_id})
-        assert self.sub_ids(response) == {self.published_fabs_sub_id}
+        self.assertEqual(self.sub_ids(response), {self.published_fabs_sub_id})
 
     def test_list_submissions_fabs_non_admin(self):
         """ Test with FABS submissions for a non admin user. """
         self.login_user()
         response = self.app.post_json("/v1/list_submissions/", {"certified": "mixed", "d2_submission": True},
                                       headers={"x-session-id": self.session_id})
-        assert self.sub_ids(response) == {self.admin_fabs_sub_id, self.published_fabs_sub_id}
+        self.assertEqual(self.sub_ids(response), {self.admin_fabs_sub_id, self.published_fabs_sub_id})
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "false", "d2_submission": True},
                                       headers={"x-session-id": self.session_id})
-        assert self.sub_ids(response) == {self.admin_fabs_sub_id}
+        self.assertEqual(self.sub_ids(response), {self.admin_fabs_sub_id})
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "true", "d2_submission": True},
                                       headers={"x-session-id": self.session_id})
-        assert self.sub_ids(response) == {self.published_fabs_sub_id}
+        self.assertEqual(self.sub_ids(response), {self.published_fabs_sub_id})
 
     def test_list_submissions_filter_id(self):
         """ Test listing submissions with a submission_id filter applied. """
@@ -138,15 +139,92 @@ class ListSubmissionTests(BaseTestAPI):
             }
         }
         response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
-        assert self.sub_ids(response) == {self.non_admin_dabs_sub_id}
+        self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id})
 
         self.login_user()
         # Not returning a result if the user doesn't have access to the submission
+        post_json["filters"] = {
+            "submission_ids": [self.certified_dabs_sub_id]
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
+        self.assertEqual(self.sub_ids(response), set())
+
+    def test_list_submissions_filter_date(self):
+        """ Test listing submissions with a start and end date filter applied. """
+        # Listing only submissions that have been updated in the time frame
         post_json = {
             "certified": "mixed",
             "filters": {
-                "submission_ids": [self.certified_dabs_sub_id]
+                "last_modified_range": {
+                    "start_date": '12/31/2009',
+                    "end_date": '01/30/2010'
+                }
             }
         }
         response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
-        assert self.sub_ids(response) == set()
+        self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id})
+
+        # Time frame with no submission updates
+        post_json["filters"] = {
+            "last_modified_range": {
+                "start_date": '12/31/2010',
+                "end_date": '01/30/2011'
+            }
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
+        self.assertEqual(self.sub_ids(response), set())
+
+        # One day date range (shows inclusivity)
+        post_json["filters"] = {
+            "last_modified_range": {
+                "start_date": '01/01/2010',
+                "end_date": '01/01/2010'
+            }
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
+        self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id})
+
+        # Breaks if one of the date filters isn't provided and the other is
+        post_json["filters"] = {
+            "last_modified_range": {
+                "start_date": '01/01/2010'
+            }
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "Both start_date and end_date must be provided")
+
+        # Breaks if date isn't valid
+        post_json["filters"] = {
+            "last_modified_range": {
+                "start_date": '30/30/2010',
+                "end_date": '01/01/2010'
+            }
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "Start or end date cannot be parsed into a date of format "
+                                                   "MM/DD/YYYY")
+
+        # Breaks if start date is after end date
+        post_json["filters"] = {
+            "last_modified_range": {
+                "start_date": '01/02/2010',
+                "end_date": '01/01/2010'
+            }
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "Last modified start date cannot be greater than the end date")
+
+        # Breaks if last_modified_range isn't an object
+        post_json["filters"] = {
+            "last_modified_range": [123, 456]
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "last_modified_range filter must be null or an object")
