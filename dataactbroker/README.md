@@ -933,8 +933,10 @@ This endpoint lists submissions for all agencies for which the current user is a
     "d2_submission": False,
     "filters": {
         "submission_ids": [123, 456],
-        "start_date": "01/01/2018",
-        "end_date": "01/10/2018"
+        "last_modified_range": {
+            "start_date": "01/01/2018",
+            "end_date": "01/10/2018"
+        }
     }
 }
 ```
@@ -959,8 +961,9 @@ This endpoint lists submissions for all agencies for which the current user is a
 - `d2_submission` - **optional** - a boolean indicating if the submissions listed should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
 - `filters` - **optional** - an object containing additional filters to narrow the results returned by the endpoint. Possible filters are:
     - `submission_ids` - an array of integers or strings that limits the submission IDs returned to only the values listed in the array.
-    - `start_date` - **required if `end_date` is included** - a string indicating the start date for the last modified date range (inclusive) (MM/DD/YYYY)
-    - `end_date` - **required if `start_date` is included** - a string indicating the end date for the last modified date range (inclusive) (MM/DD/YYYY)
+    - `last_modified_range` - an object containing a start and end date for the last modified date range. Both must be provided if this filter is used.
+        - `start_date` - a string indicating the start date for the last modified date range (inclusive) (MM/DD/YYYY)
+        - `end_date` - a string indicating the end date for the last modified date range (inclusive) (MM/DD/YYYY)
 
 ##### Response (JSON)
 

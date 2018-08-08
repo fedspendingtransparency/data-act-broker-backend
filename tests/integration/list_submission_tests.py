@@ -155,8 +155,10 @@ class ListSubmissionTests(BaseTestAPI):
         post_json = {
             "certified": "mixed",
             "filters": {
-                "start_date": '12/31/2009',
-                "end_date": '01/30/2010'
+                "last_modified_range": {
+                    "start_date": '12/31/2009',
+                    "end_date": '01/30/2010'
+                }
             }
         }
         response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
@@ -164,37 +166,65 @@ class ListSubmissionTests(BaseTestAPI):
 
         # Time frame with no submission updates
         post_json["filters"] = {
-            "start_date": '12/31/2010',
-            "end_date": '01/30/2011'
+            "last_modified_range": {
+                "start_date": '12/31/2010',
+                "end_date": '01/30/2011'
+            }
         }
         response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), set())
 
         # One day date range (shows inclusivity)
         post_json["filters"] = {
-            "start_date": '01/01/2010',
-            "end_date": '01/01/2010'
+            "last_modified_range": {
+                "start_date": '01/01/2010',
+                "end_date": '01/01/2010'
+            }
         }
         response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id})
 
         # Breaks if one of the date filters isn't provided and the other is
         post_json["filters"] = {
-            "start_date": '01/01/2010'
+            "last_modified_range": {
+                "start_date": '01/01/2010'
+            }
         }
         response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id},
                                       expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json["message"], "If either start_date or end_date is provided in filters, "
-                                                   "both must be provided")
+        self.assertEqual(response.json["message"], "Both start_date and end_date must be provided")
 
         # Breaks if date isn't valid
         post_json["filters"] = {
-            "start_date": '30/30/2010',
-            "end_date": '01/01/2010'
+            "last_modified_range": {
+                "start_date": '30/30/2010',
+                "end_date": '01/01/2010'
+            }
         }
         response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id},
                                       expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "Start or end date cannot be parsed into a date of format "
                                                    "MM/DD/YYYY")
+
+        # Breaks if start date is after end date
+        post_json["filters"] = {
+            "last_modified_range": {
+                "start_date": '01/02/2010',
+                "end_date": '01/01/2010'
+            }
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "Last modified start date cannot be greater than the end date")
+
+        # Breaks if last_modified_range isn't an object
+        post_json["filters"] = {
+            "last_modified_range": [123, 456]
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "last_modified_range filter must be null or an object")
