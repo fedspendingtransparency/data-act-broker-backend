@@ -936,7 +936,8 @@ This endpoint lists submissions for all agencies for which the current user is a
         "last_modified_range": {
             "start_date": "01/01/2018",
             "end_date": "01/10/2018"
-        }
+        },
+        "agency_codes": ["123", "4567"]
     }
 }
 ```
@@ -964,6 +965,7 @@ This endpoint lists submissions for all agencies for which the current user is a
     - `last_modified_range` - an object containing a start and end date for the last modified date range. Both must be provided if this filter is used.
         - `start_date` - a string indicating the start date for the last modified date range (inclusive) (MM/DD/YYYY)
         - `end_date` - a string indicating the end date for the last modified date range (inclusive) (MM/DD/YYYY)
+    - `agency_codes` - an array of strings containing CGAC and FREC codes
 
 ##### Response (JSON)
 
