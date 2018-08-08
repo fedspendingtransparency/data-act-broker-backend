@@ -1043,7 +1043,7 @@ This endpoint lists submissions for all agencies for which the current user is a
 ##### Errors
 Possible HTTP Status Codes:
 
-- 400: Invalid types in a filter, missing required parameter
+- 400: Invalid types in a filter, invalid values in a filter, missing required parameter
 - 401: Login required
 
 #### POST "/v1/list_certifications/"
