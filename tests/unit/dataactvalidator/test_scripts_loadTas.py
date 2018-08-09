@@ -16,7 +16,9 @@ def write_then_read_tas(tmpdir, *rows):
     with open(str(csv_file), 'w') as f:
         writer = DictWriter(
             f, ['ACCT_NUM', 'ATA', 'AID', 'A', 'BPOA', 'EPOA', 'MAIN', 'SUB', 'FINANCIAL_INDICATOR_TYPE2',
-                'DT_TM_ESTAB', 'DT_END', 'fr_entity_description', 'fr_entity_type']
+                'DT_TM_ESTAB', 'DT_END', 'fr_entity_description', 'fr_entity_type', 'gwa_tas_name', 'agency_aid',
+                'agency_name', 'admin_org', 'admin_org_name', 'function_code', 'function_description',
+                'sub_function_code', 'sub_function_description']
         )
         writer.writeheader()
         for row in rows:
@@ -35,12 +37,16 @@ def test_clean_tas_multiple(tmpdir):
         {'ACCT_NUM': '6', 'ATA': 'aaa', 'AID': 'bbb', 'A': 'ccc',
          'BPOA': 'ddd', 'EPOA': 'eee', 'MAIN': 'ffff', 'SUB': 'ggg',
          'DT_END': '', 'DT_TM_ESTAB': '10/1/1987  12:00:00 AM',
-         'fr_entity_description': 'abcd', 'fr_entity_type': '1234'},
+         'fr_entity_description': 'abcd', 'fr_entity_type': '1234',
+         'gwa_tas_name': 'name_6', 'agency_aid': 'bbb', 'agency_name': 'agency_name_6'},
         {'ACCT_NUM': '12345', 'ATA': '111', 'AID': '222', 'A': '333',
          'BPOA': '444', 'EPOA': '555', 'MAIN': '6666', 'SUB': '777',
          'DT_END': '12/22/2016  12:00:00 AM', 'DT_TM_ESTAB': '10/1/2008  12:00:00 AM',
-         'fr_entity_description': 'xyz', 'fr_entity_type': 'AB12'}
+         'fr_entity_description': 'xyz', 'fr_entity_type': 'AB12', 'admin_org': 'admin_org_12345',
+         'admin_org_name': 'admin_org_name_12345', 'function_code': '800', 'function_description': '800_desc',
+         'sub_function_code': '500', 'sub_function_description': '500_desc'}
     )
+
     assert results['account_num'].tolist() == [6, 12345]
     assert results['allocation_transfer_agency'].tolist() == ['aaa', '111']
     assert results['agency_identifier'].tolist() == ['bbb', '222']
@@ -53,6 +59,15 @@ def test_clean_tas_multiple(tmpdir):
     assert results['internal_end_date'].tolist() == [None, '12/22/2016  12:00:00 AM']
     assert results['fr_entity_description'].tolist() == ['abcd', 'xyz']
     assert results['fr_entity_type'].tolist() == ['1234', 'AB12']
+    assert results['account_title'].tolist() == ['name_6', None]
+    assert results['reporting_agency_aid'].tolist() == ['bbb', None]
+    assert results['reporting_agency_name'].tolist() == ['agency_name_6', None]
+    assert results['budget_bureau_code'].tolist() == [None, 'admin_org_12345']
+    assert results['budget_bureau_name'].tolist() == [None, 'admin_org_name_12345']
+    assert results['budget_function_code'].tolist() == [None, '800']
+    assert results['budget_function_title'].tolist() == [None, '800_desc']
+    assert results['budget_subfunction_code'].tolist() == [None, '500']
+    assert results['budget_subfunction_title'].tolist() == [None, '500_desc']
 
 
 def test_clean_tas_space_nulls(tmpdir):
