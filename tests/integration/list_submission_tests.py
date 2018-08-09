@@ -67,6 +67,11 @@ class ListSubmissionTests(BaseTestAPI):
                                                           start_date="10/2015", end_date="12/2015", is_fabs=True,
                                                           publish_status_id=PUBLISH_STATUS_DICT['published'])
 
+            # Add a job for a FABS submission
+            insert_job(sess, FILE_TYPE_DICT['fabs'], FILE_STATUS_DICT['complete'], JOB_TYPE_DICT['file_upload'],
+                       cls.admin_fabs_sub_id, filename=str(cls.admin_fabs_sub_id) + '/test_file.csv', file_size=123,
+                       num_rows=3)
+
     def setUp(self):
         """ Test set-up. """
         super(ListSubmissionTests, self).setUp()
@@ -337,3 +342,21 @@ class ListSubmissionTests(BaseTestAPI):
                                       expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "file_names filter must be null or an array")
+
+        # non-local style submission
+        post_json = {
+            "certified": "mixed",
+            "d2_submission": True,
+            "filters": {
+                "file_names": ['test']
+            }
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
+        self.assertEqual(self.sub_ids(response), {self.admin_fabs_sub_id})
+
+        # Ignores the ID (despite it being part of the file path, but not the name)
+        post_json["filters"] = {
+            "file_names": [str(self.admin_fabs_sub_id)]
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
+        self.assertEqual(self.sub_ids(response), set())
