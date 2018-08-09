@@ -907,13 +907,15 @@ class FileHandler:
                                                         path=CONFIG_BROKER["help_files_path"])
         return JsonResponse.create(StatusCode.OK, response)
 
-    def add_generation_job_info(self, file_type_name, job=None, start_date=None, end_date=None):
+    @staticmethod
+    def add_generation_job_info(file_type_name, job=None, start_date=None, end_date=None):
         """ Add details to jobs for generating files
 
             Args:
                 file_type_name: the name of the file type being generated
                 job: the generation job, None if it is a detached generation
-                dates: The start and end dates for the generation job, only used for detached files
+                start_date: The start date for the generation job, only used for detached files
+                end_date: The end date for the generation job, only used for detached files
 
             Returns:
                 the file generation job
@@ -1170,7 +1172,6 @@ def check_generation_prereqs(submission_id, file_type):
     """
 
     sess = GlobalDB.db().session
-    unfinished_prereqs = 0
     prereq_query = sess.query(Job).filter(Job.submission_id == submission_id,
                                           or_(Job.job_status_id != JOB_STATUS_DICT['finished'],
                                               Job.number_of_errors > 0))
@@ -1506,6 +1507,7 @@ def add_list_submission_filters(query, filters):
         Raises:
             ResponseException - invalid type is provided for one of the filters or the contents are invalid
     """
+    sess = GlobalDB.db().session
     # Checking for submission ID filter
     if 'submission_ids' in filters:
         sub_list = filters['submission_ids']
@@ -1542,21 +1544,16 @@ def add_list_submission_filters(query, filters):
             raise ResponseException("last_modified_range filter must be null or an object", StatusCode.CLIENT_ERROR)
     # Agency code filter
     if 'agency_codes' in filters:
-        sess = GlobalDB.db().session
         agency_list = filters['agency_codes']
         if agency_list and isinstance(agency_list, list):
-            cgac_list = []
-            frec_list = []
-            # Split agencies into frec and cgac lists. If something isn't a length of 3 or 4, it's not valid and should
-            # instantly raise an exception
-            for agency in agency_list:
-                if isinstance(agency, str) and len(agency) == 3:
-                    cgac_list.append(agency)
-                elif isinstance(agency, str) and len(agency) == 4:
-                    frec_list.append(agency)
-                else:
-                    raise ResponseException("All codes in the agency_codes filter must be valid agency codes",
-                                            StatusCode.CLIENT_ERROR)
+            # Split agencies into frec and cgac lists.
+            cgac_list = [agency for agency in agency_list if isinstance(agency, str) and len(agency) == 3]
+            frec_list = [agency for agency in agency_list if isinstance(agency, str) and len(agency) == 4]
+
+            # If something isn't a length of 3 or 4, it's not valid and should instantly raise an exception
+            if len(cgac_list) + len(frec_list) != len(agency_list):
+                raise ResponseException("All codes in the agency_codes filter must be valid agency codes",
+                                        StatusCode.CLIENT_ERROR)
             # If the number of CGACs or FRECs returned from a query using the codes doesn't match the length of
             # each list (ignoring duplicates) then something included wasn't a valid agency
             cgac_list = set(cgac_list)
@@ -1574,6 +1571,26 @@ def add_list_submission_filters(query, filters):
             query = query.filter(or_(*agency_filters))
         elif agency_list:
             raise ResponseException("agency_codes filter must be null or an array", StatusCode.CLIENT_ERROR)
+    # File name filter
+    if 'file_names' in filters:
+        file_list = filters['file_names']
+        if file_list and isinstance(file_list, list):
+            # Make a list of all the names we're filtering on
+            file_array = []
+            for file_name in file_list:
+                file_regex = '.+\/.*' + str(file_name).upper() + '[^\/]*$'
+                file_array.append(func.upper(Job.filename).op('~')(file_regex))
+
+            # Create a subquery to get all submission IDs related to upload jobs (every type except cross-file has an
+            # upload, just limiting jobs) that contain at least one of the file names listed.
+            sub_query = sess.query(Job.submission_id.label('job_sub_id')).\
+                filter(or_(*file_array)).\
+                filter(Job.job_type_id == JOB_TYPE_DICT['file_upload']).\
+                distinct().subquery()
+            # Use the subquery to filter by those submission IDs.
+            query = query.filter(Submission.submission_id.in_(sub_query))
+        elif file_list:
+            raise ResponseException("file_names filter must be null or an array", StatusCode.CLIENT_ERROR)
     return query
 
 
