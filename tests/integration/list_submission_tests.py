@@ -228,3 +228,67 @@ class ListSubmissionTests(BaseTestAPI):
                                       expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "last_modified_range filter must be null or an object")
+
+    def test_list_submissions_filter_agency(self):
+        """ Test listing submissions with an agency_code filter applied. """
+        # Listing only the relevant submissions
+        post_json = {
+            "certified": "mixed",
+            "filters": {
+                "agency_codes": ['000']
+            }
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
+        self.assertEqual(self.sub_ids(response), {self.admin_dabs_sub_id})
+
+        self.login_user()
+        # Not returning a result if the user doesn't have access to the submission
+        post_json = {
+            "certified": "mixed",
+            "d2_submission": True,
+            "filters": {
+                "agency_codes": ['SYS']
+            }
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
+        self.assertEqual(self.sub_ids(response), set())
+
+        self.login_admin_user()
+        # Invalid agency code, valid length
+        post_json = {
+            "certified": "mixed",
+            "filters": {
+                "agency_codes": ['111']
+            }
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "All codes in the agency_codes filter must be valid agency codes")
+
+        # Invalid agency code, wrong length
+        post_json["filters"] = {
+            "agency_codes": ['12345']
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "All codes in the agency_codes filter must be valid agency codes")
+
+        # Invalid agency code, contains non-string
+        post_json["filters"] = {
+            "agency_codes": [['123', '456', '789'], 'SYS']
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "All codes in the agency_codes filter must be valid agency codes")
+
+        # Non-array being passed over
+        post_json["filters"] = {
+            "agency_codes": 'SYS'
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "agency_codes filter must be null or an array")

@@ -1540,6 +1540,40 @@ def add_list_submission_filters(query, filters):
             query = query.filter(Submission.updated_at >= start_date, Submission.updated_at < end_date)
         elif mod_dates:
             raise ResponseException("last_modified_range filter must be null or an object", StatusCode.CLIENT_ERROR)
+    # Agency code filter
+    if 'agency_codes' in filters:
+        sess = GlobalDB.db().session
+        agency_list = filters['agency_codes']
+        if agency_list and isinstance(agency_list, list):
+            cgac_list = []
+            frec_list = []
+            # Split agencies into frec and cgac lists. If something isn't a length of 3 or 4, it's not valid and should
+            # instantly raise an exception
+            for agency in agency_list:
+                if isinstance(agency, str) and len(agency) == 3:
+                    cgac_list.append(agency)
+                elif isinstance(agency, str) and len(agency) == 4:
+                    frec_list.append(agency)
+                else:
+                    raise ResponseException("All codes in the agency_codes filter must be valid agency codes",
+                                            StatusCode.CLIENT_ERROR)
+            # If the number of CGACs or FRECs returned from a query using the codes doesn't match the length of
+            # each list (ignoring duplicates) then something included wasn't a valid agency
+            cgac_list = set(cgac_list)
+            frec_list = set(frec_list)
+            if (cgac_list and sess.query(CGAC).filter(CGAC.cgac_code.in_(cgac_list)).count() != len(cgac_list)) or \
+                    (frec_list and sess.query(FREC).filter(FREC.frec_code.in_(frec_list)).count() != len(frec_list)):
+                raise ResponseException("All codes in the agency_codes filter must be valid agency codes",
+                                        StatusCode.CLIENT_ERROR)
+            # We only want these filters in here if there's at least one CGAC or FREC to filter on
+            agency_filters = []
+            if len(cgac_list) > 0:
+                agency_filters.append(CGAC.cgac_code.in_(cgac_list))
+            if len(frec_list) > 0:
+                agency_filters.append(FREC.frec_code.in_(frec_list))
+            query = query.filter(or_(*agency_filters))
+        elif agency_list:
+            raise ResponseException("agency_codes filter must be null or an array", StatusCode.CLIENT_ERROR)
     return query
 
 
@@ -1594,9 +1628,13 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     if not g.user.website_admin:
         cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
         frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec]
-        query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
-                                    Submission.frec_code.in_(frec_codes),
-                                    Submission.user_id == g.user.user_id))
+
+        affiliation_filters = [Submission.user_id == g.user.user_id]
+        if cgac_codes:
+            affiliation_filters.append(Submission.cgac_code.in_(cgac_codes))
+        if frec_codes:
+            affiliation_filters.append(Submission.frec_code.in_(frec_codes))
+        query = query.filter(sa.or_(*affiliation_filters))
 
     # Determine what types of submissions (published/unpublished/both) to display
     if certified != 'mixed':
