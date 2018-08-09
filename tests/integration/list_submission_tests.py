@@ -1,11 +1,11 @@
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.userModel import User
-from dataactcore.models.lookups import PUBLISH_STATUS_DICT
+from dataactcore.models.lookups import PUBLISH_STATUS_DICT, FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT
 
 from dataactvalidator.health_check import create_app
 
 from tests.integration.baseTestAPI import BaseTestAPI
-from tests.integration.integration_test_helper import insert_submission
+from tests.integration.integration_test_helper import insert_submission, insert_job
 
 
 class ListSubmissionTests(BaseTestAPI):
@@ -44,7 +44,17 @@ class ListSubmissionTests(BaseTestAPI):
                                                           is_fabs=False,
                                                           publish_status_id=PUBLISH_STATUS_DICT['published'])
 
-            # set up submissions for dabs
+            # Add a couple jobs for dabs files
+            insert_job(sess, FILE_TYPE_DICT['appropriations'], FILE_STATUS_DICT['complete'],
+                       JOB_TYPE_DICT['file_upload'], cls.non_admin_dabs_sub_id, filename='/path/to/test/file_1.csv',
+                       file_size=123, num_rows=3)
+            insert_job(sess, FILE_TYPE_DICT['award'], FILE_STATUS_DICT['complete'], JOB_TYPE_DICT['file_upload'],
+                       cls.non_admin_dabs_sub_id, filename='/path/to/test/file_2.csv', file_size=123, num_rows=3)
+
+            insert_job(sess, FILE_TYPE_DICT['award'], FILE_STATUS_DICT['complete'], JOB_TYPE_DICT['file_upload'],
+                       cls.certified_dabs_sub_id, filename='/path/to/test/file_part_2.csv', file_size=123, num_rows=3)
+
+            # set up submissions for fabs
             cls.non_admin_fabs_sub_id = insert_submission(sess, cls.admin_user_id, cgac_code="SYS",
                                                           start_date="10/2015", end_date="12/2015", is_fabs=True,
                                                           publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
@@ -292,3 +302,38 @@ class ListSubmissionTests(BaseTestAPI):
                                       expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "agency_codes filter must be null or an array")
+
+    def test_list_submissions_filter_filename(self):
+        """ Test listing submissions with an file_names filter applied. """
+        # List only submissions with job files
+        post_json = {
+            "certified": "mixed",
+            "filters": {
+                "file_names": ['file']
+            }
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
+        self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.certified_dabs_sub_id})
+
+        # Not returning a result if the string doesn't exist in a file name (even if it exists in a path to it)
+        post_json["filters"] = {
+            "file_names": ['test']
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
+        self.assertEqual(self.sub_ids(response), set())
+
+        # Returning both submissions if each has even one job that matches one of the given strings (testing multiple)
+        post_json["filters"] = {
+            "file_names": ['part', '_1']
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
+        self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.certified_dabs_sub_id})
+
+        # Non-array being passed over (error)
+        post_json["filters"] = {
+            "file_names": 'part'
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "file_names filter must be null or an array")
