@@ -35,7 +35,16 @@ def clean_tas(csv_path):
          "dt_tm_estab": "internal_start_date",
          "dt_end": "internal_end_date",
          "fr_entity_description": "fr_entity_description",
-         "fr_entity_type": "fr_entity_type"
+         "fr_entity_type": "fr_entity_type",
+         "gwa_tas_name": "account_title",
+         "agency_aid": "reporting_agency_aid",
+         "agency_name": "reporting_agency_name",
+         "admin_org": "budget_bureau_code",
+         "admin_org_name": "budget_bureau_name",
+         "function_code": "budget_function_code",
+         "function_description": "budget_function_title",
+         "sub_function_code": "budget_subfunction_code",
+         "sub_function_description": "budget_subfunction_title"
          },
         {"allocation_transfer_agency": {"pad_to_length": 3, "keep_null": True},
          "agency_identifier": {"pad_to_length": 3},
