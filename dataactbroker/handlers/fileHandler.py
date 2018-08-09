@@ -1546,18 +1546,14 @@ def add_list_submission_filters(query, filters):
     if 'agency_codes' in filters:
         agency_list = filters['agency_codes']
         if agency_list and isinstance(agency_list, list):
-            cgac_list = []
-            frec_list = []
-            # Split agencies into frec and cgac lists. If something isn't a length of 3 or 4, it's not valid and should
-            # instantly raise an exception
-            for agency in agency_list:
-                if isinstance(agency, str) and len(agency) == 3:
-                    cgac_list.append(agency)
-                elif isinstance(agency, str) and len(agency) == 4:
-                    frec_list.append(agency)
-                else:
-                    raise ResponseException("All codes in the agency_codes filter must be valid agency codes",
-                                            StatusCode.CLIENT_ERROR)
+            # Split agencies into frec and cgac lists.
+            cgac_list = [agency for agency in agency_list if isinstance(agency, str) and len(agency) == 3]
+            frec_list = [agency for agency in agency_list if isinstance(agency, str) and len(agency) == 4]
+
+            # If something isn't a length of 3 or 4, it's not valid and should instantly raise an exception
+            if len(cgac_list) + len(frec_list) != len(agency_list):
+                raise ResponseException("All codes in the agency_codes filter must be valid agency codes",
+                                        StatusCode.CLIENT_ERROR)
             # If the number of CGACs or FRECs returned from a query using the codes doesn't match the length of
             # each list (ignoring duplicates) then something included wasn't a valid agency
             cgac_list = set(cgac_list)
