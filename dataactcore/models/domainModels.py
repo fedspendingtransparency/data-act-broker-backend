@@ -53,6 +53,15 @@ class TASLookup(Base):
     financial_indicator2 = Column(Text, nullable=True)
     fr_entity_description = Column(Text, nullable=True)
     fr_entity_type = Column(Text, nullable=True)
+    account_title = Column(Text, nullable=True)
+    reporting_agency_aid = Column(Text, nullable=True)
+    reporting_agency_name = Column(Text, nullable=True)
+    budget_bureau_code = Column(Text, nullable=True)
+    budget_bureau_name = Column(Text, nullable=True)
+    budget_function_code = Column(Text, nullable=True)
+    budget_function_title = Column(Text, nullable=True)
+    budget_subfunction_code = Column(Text, nullable=True)
+    budget_subfunction_title = Column(Text, nullable=True)
 
     def component_dict(self):
         """We'll often want to copy TAS component fields; this method returns

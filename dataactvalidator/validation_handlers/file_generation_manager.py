@@ -68,6 +68,7 @@ class FileGenerationManager:
                 job.filename = "".join([CONFIG_BROKER['broker_files'], job.original_filename])
             else:
                 job.filename = "".join([str(job.submission_id), "/", job.original_filename])
+            sess.commit()
 
             # Generate the file and upload to S3
             if job.file_type.letter_name in ['D1', 'D2']:
