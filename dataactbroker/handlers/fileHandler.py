@@ -1013,7 +1013,7 @@ class FileHandler:
 
         jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id).all()
 
-        # set all jobs to their initial status of "waiting"
+        # set all jobs to their initial status of either "waiting" or "ready"
         for job in jobs:
             if job.job_type_id == JOB_TYPE_DICT["upload"] and \
                job.file_type_id in [FILE_TYPE_DICT["award"], FILE_TYPE_DICT["award_procurement"]]:
