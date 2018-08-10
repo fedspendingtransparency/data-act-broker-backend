@@ -162,7 +162,7 @@ def generate_d_file(sess, job, agency_code, is_local=True, old_filename=None):
             # there will, very rarely, be more than one value in parent_file_requests
             for parent_request in parent_file_requests:
                 valid_cached_job_statuses = [JOB_STATUS_DICT["running"], JOB_STATUS_DICT["finished"]]
-                parent_job = sess.query(Job).filter(job_id=parent_request.job_id).one_or_none()
+                parent_job = sess.query(Job).filter_by(job_id=parent_request.job_id).one_or_none()
 
                 # check that D1 FileRequests are newer than the last FPDS pull
                 invalid_d1 = parent_request.file_type == 'D1' and parent_request.request_date < fpds_date
