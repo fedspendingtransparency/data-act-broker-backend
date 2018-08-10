@@ -187,7 +187,7 @@ def generate_d_file(sess, job, agency_code, is_local=True, old_filename=None):
                 parent_file_request = parent_request
                 file_request.parent_job_id = parent_file_request.job_id
 
-            sess.commit()
+        sess.commit()
 
         if parent_file_request:
             # parent exists; copy parent data to this job
