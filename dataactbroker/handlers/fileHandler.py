@@ -1013,9 +1013,25 @@ class FileHandler:
 
         jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id).all()
 
-        # set all jobs to their initial status of "waiting"
+        # set all jobs to their initial status of either "waiting" or "ready"
         for job in jobs:
-            job.job_status_id = JOB_STATUS_DICT['waiting']
+            if job.job_type_id == JOB_TYPE_DICT["file_upload"] and \
+               job.file_type_id in [FILE_TYPE_DICT["award"], FILE_TYPE_DICT["award_procurement"]]:
+                # file generation handled on backend, mark as ready
+                job.job_status_id = JOB_STATUS_DICT['ready']
+                file_request = sess.query(FileRequest).filter_by(job.job_id).one_or_none()
+
+                # uncache any related D file requests
+                if file_request:
+                    file_request.is_cached_file = False
+                    if file_request.parent_job_id:
+                        parent_file_request = sess.query(FileRequest).filter_by(job_id=file_request.parent_job_id).\
+                            one_or_none()
+                        if parent_file_request:
+                            parent_file_request.is_cached_file = False
+            else:
+                # these are dependent on file D2 validation
+                job.job_status_id = JOB_STATUS_DICT['waiting']
 
         # update upload jobs to "running" for files A, B, and C for DABS submissions or for the upload job in FABS
         upload_jobs = [job for job in jobs if job.job_type_id in [JOB_TYPE_DICT['file_upload']] and
