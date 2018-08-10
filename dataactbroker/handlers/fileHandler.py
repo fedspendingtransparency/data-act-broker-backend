@@ -1015,7 +1015,13 @@ class FileHandler:
 
         # set all jobs to their initial status of "waiting"
         for job in jobs:
-            job.job_status_id = JOB_STATUS_DICT['waiting']
+            if job.job_type_id == JOB_TYPE_DICT["upload"] and \
+               job.file_type_id in [FILE_TYPE_DICT["award"], FILE_TYPE_DICT["award_procurement"]]:
+                # file generation handled on backend, mark as ready
+                job.job_status_id = JOB_STATUS_DICT['ready']
+            else:
+                # these are dependent on file D2 validation
+                job.job_status_id = JOB_STATUS_DICT['waiting']
 
         # update upload jobs to "running" for files A, B, and C for DABS submissions or for the upload job in FABS
         upload_jobs = [job for job in jobs if job.job_type_id in [JOB_TYPE_DICT['file_upload']] and
