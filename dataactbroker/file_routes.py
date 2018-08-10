@@ -23,22 +23,17 @@ DATE_REGEX = '^\d{2}\/\d{2}\/\d{4}$'
 
 
 # Add the file submission route
-def add_file_routes(app, create_credentials, is_local, server_path):
+def add_file_routes(app, is_local, server_path):
     """ Create routes related to file submission for flask app """
 
     # Keys for the post route will correspond to the four types of files
-    @app.route("/v1/submit_files/", methods=["POST"])
+    @app.route("/v1/upload_dabs_files/", methods=["POST"])
     @requires_agency_perms('writer')
-    def submit_files():
+    def upload_dabs_files():
+        if "multipart/form-data" not in request.headers['Content-Type']:
+            return JsonResponse.error(ValueError("Request must be a multipart/form-data type"), StatusCode.CLIENT_ERROR)
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.validate_submit_files(create_credentials)
-
-    @app.route("/v1/finalize_job/", methods=["POST"])
-    @requires_login
-    @use_kwargs({'upload_id': webargs_fields.Int(required=True)})
-    def finalize_submission(upload_id):
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.finalize(upload_id)
+        return file_manager.validate_upload_dabs_files()
 
     @app.route("/v1/check_status/", methods=["GET"])
     @convert_to_submission_id
@@ -75,13 +70,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     def submission_error_metrics(submission):
         return get_error_metrics(submission)
 
-    @app.route("/v1/local_upload/", methods=["POST"])
-    @requires_login
-    def upload_local_file():
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.upload_file()
-
-    @app.route("/v1/list_submissions/", methods=["GET"])
+    @app.route("/v1/list_submissions/", methods=["POST"])
     @requires_login
     @use_kwargs({
         'page': webargs_fields.Int(missing=1),
@@ -92,10 +81,11 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         'sort': webargs_fields.String(missing='modified'),
         'order': webargs_fields.String(missing='desc'),
         'd2_submission': webargs_fields.Bool(missing=False),
+        'filters': webargs_fields.Dict(keys=webargs_fields.String(), missing={})
     })
-    def list_submissions(page, limit, certified, sort, order, d2_submission):
+    def list_submissions(page, limit, certified, sort, order, d2_submission, filters):
         """ List submission IDs associated with the current user """
-        return list_submissions_handler(page, limit, certified, sort, order, d2_submission)
+        return list_submissions_handler(page, limit, certified, sort, order, d2_submission, filters)
 
     @app.route("/v1/list_certifications/", methods=["POST"])
     @convert_to_submission_id
@@ -187,14 +177,15 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         """ Return metadata of FABS submission """
         return JsonResponse.create(StatusCode.OK, get_fabs_meta(submission.submission_id))
 
-    @app.route("/v1/upload_detached_file/", methods=["POST"])
+    @app.route("/v1/upload_fabs_file/", methods=["POST"])
     @requires_sub_agency_perms('editfabs')
-    def upload_detached_file():
+    def upload_fabs_file():
+        if "multipart/form-data" not in request.headers['Content-Type']:
+            return JsonResponse.error(ValueError("Request must be a multipart/form-data type"), StatusCode.CLIENT_ERROR)
         params = RequestDictionary.derive(request)
-        api_triggered = params.get('_files', {}).get('fabs', None)
-        fabs_filename = params.get('fabs', None)
+        fabs = params.get('_files', {}).get('fabs', None)
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.upload_fabs_file(create_credentials, fabs_filename, api_triggered)
+        return file_manager.upload_fabs_file(fabs)
 
     @app.route("/v1/submit_detached_file/", methods=["POST"])
     @convert_to_submission_id
