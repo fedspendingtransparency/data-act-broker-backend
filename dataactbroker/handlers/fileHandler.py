@@ -1019,7 +1019,7 @@ class FileHandler:
                job.file_type_id in [FILE_TYPE_DICT["award"], FILE_TYPE_DICT["award_procurement"]]:
                 # file generation handled on backend, mark as ready
                 job.job_status_id = JOB_STATUS_DICT['ready']
-                file_request = sess.query(FileRequest).filter_by(job.job_id).one_or_none()
+                file_request = sess.query(FileRequest).filter_by(job_id=job.job_id).one_or_none()
 
                 # uncache any related D file requests
                 if file_request:
