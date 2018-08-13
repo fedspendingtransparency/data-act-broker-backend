@@ -588,4 +588,5 @@ def certify_dabs_submission(submission, file_manager):
         submission.certifying_user_id = current_user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['published']
         sess.commit()
-        print(submission.__dict__)
+
+    return response
