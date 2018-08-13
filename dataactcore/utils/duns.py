@@ -222,7 +222,8 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
                     csv_data = csv_data.assign(deactivation_date=pd.Series([np.nan], name='deactivation_date')
                                                if monthly else csv_data["sam_extract_code"].apply(lambda_func))
                     # convert business types string to array
-                    bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~')]]))
+                    bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~')
+                                                          if isinstance(bt_raw, str)]]))
                     csv_data = csv_data.assign(business_types_codes=csv_data["business_types_raw"].apply(bt_func))
                     del csv_data["business_types_raw"]
                     # removing rows where DUNS number isn't even provided
