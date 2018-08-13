@@ -109,7 +109,8 @@ def update_duns(models, new_data, benchmarks=False, table=DUNS):
         if awardee_or_recipient_uniqu not in models:
             models[awardee_or_recipient_uniqu] = table()
         for field, value in row.items():
-            setattr(models[awardee_or_recipient_uniqu], field, value)
+            if value:
+                setattr(models[awardee_or_recipient_uniqu], field, value)
     if benchmarks:
         logger.info("Updating duns took {} seconds".format(time.time() - update_duns_start))
 
