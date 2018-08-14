@@ -13,7 +13,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.models.jobModels import Job, FileRequest, FPDSUpdate
-from dataactcore.models.lookups import JOB_STATUS_DICT_ID, JOB_TYPE_DICT, FILE_TYPE_DICT_LETTER
+from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_STATUS_DICT_ID, JOB_TYPE_DICT, FILE_TYPE_DICT_LETTER
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -154,18 +154,39 @@ def generate_d_file(sess, job, agency_code, is_local=True, old_filename=None):
         parent_file_request = None
         if not exists:
             # attempt to retrieve a parent request
-            parent_query = sess.query(FileRequest).\
+            parent_file_requests = sess.query(FileRequest).\
                 filter(FileRequest.file_type == job.file_type.letter_name, FileRequest.start_date == job.start_date,
                        FileRequest.end_date == job.end_date, FileRequest.agency_code == agency_code,
-                       FileRequest.is_cached_file.is_(True))
+                       FileRequest.is_cached_file.is_(True)).all()
 
-            # filter D1 FileRequests by the date of the last FPDS pull
-            if job.file_type.letter_name == 'D1':
-                parent_query = parent_query.filter(FileRequest.request_date >= fpds_date)
+            # there will, very rarely, be more than one value in parent_file_requests
+            for parent_request in parent_file_requests:
+                valid_cached_job_statuses = [JOB_STATUS_DICT["running"], JOB_STATUS_DICT["finished"]]
+                parent_job = sess.query(Job).filter_by(job_id=parent_request.job_id).one_or_none()
 
-            # mark FileRequest with parent job_id
-            parent_file_request = parent_query.one_or_none()
-            file_request.parent_job_id = parent_file_request.job_id if parent_file_request else None
+                # check that D1 FileRequests are newer than the last FPDS pull
+                invalid_d1 = parent_request.file_type == 'D1' and parent_request.request_date < fpds_date
+
+                # check FileRequest hasn't expired and Job status is valid
+                invalid_job = not parent_job or parent_job.job_status_id not in valid_cached_job_statuses
+
+                # check that this parent_request is newer than any previous valid requests
+                is_older_request = parent_file_request and parent_request.updated_at <= parent_file_request.updated_at
+
+                # if this parent_request is not a valid cached FileRequest
+                if invalid_d1 or invalid_job or is_older_request:
+                    # uncache FileRequest
+                    parent_request.is_cached_file = False
+                    continue
+
+                # uncache outdated parent FileRequests
+                if parent_file_request:
+                    parent_file_request.is_cached_file = False
+
+                # mark FileRequest with parent job_id
+                parent_file_request = parent_request
+                file_request.parent_job_id = parent_file_request.job_id
+
         sess.commit()
 
         if parent_file_request:
