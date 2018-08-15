@@ -8,7 +8,7 @@ import sqlalchemy as sa
 import threading
 
 from collections import namedtuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from flask import g, current_app
 from shutil import copyfile
@@ -907,13 +907,15 @@ class FileHandler:
                                                         path=CONFIG_BROKER["help_files_path"])
         return JsonResponse.create(StatusCode.OK, response)
 
-    def add_generation_job_info(self, file_type_name, job=None, start_date=None, end_date=None):
+    @staticmethod
+    def add_generation_job_info(file_type_name, job=None, start_date=None, end_date=None):
         """ Add details to jobs for generating files
 
             Args:
                 file_type_name: the name of the file type being generated
                 job: the generation job, None if it is a detached generation
-                dates: The start and end dates for the generation job, only used for detached files
+                start_date: The start date for the generation job, only used for detached files
+                end_date: The end date for the generation job, only used for detached files
 
             Returns:
                 the file generation job
@@ -1186,7 +1188,6 @@ def check_generation_prereqs(submission_id, file_type):
     """
 
     sess = GlobalDB.db().session
-    unfinished_prereqs = 0
     prereq_query = sess.query(Job).filter(Job.submission_id == submission_id,
                                           or_(Job.job_status_id != JOB_STATUS_DICT['finished'],
                                               Job.number_of_errors > 0))
@@ -1509,7 +1510,107 @@ def get_error_metrics(submission):
         return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
 
-def list_submissions(page, limit, certified, sort='modified', order='desc', d2_submission=False):
+def add_list_submission_filters(query, filters):
+    """ Add provided filters to the list_submission query
+
+        Args:
+            query: already existing query to add to
+            filters: provided filters
+
+        Returns:
+            The query updated with the valid provided filters
+
+        Raises:
+            ResponseException - invalid type is provided for one of the filters or the contents are invalid
+    """
+    sess = GlobalDB.db().session
+    # Checking for submission ID filter
+    if 'submission_ids' in filters:
+        sub_list = filters['submission_ids']
+        if sub_list and isinstance(sub_list, list):
+            sub_list = [int(sub_id) for sub_id in sub_list]
+            query = query.filter(Submission.submission_id.in_(sub_list))
+        elif sub_list:
+            raise ResponseException("submission_ids filter must be null or an array", StatusCode.CLIENT_ERROR)
+    # Date range filter
+    if 'last_modified_range' in filters:
+        mod_dates = filters['last_modified_range']
+        # last_modified_range must be a dict
+        if mod_dates and isinstance(mod_dates, dict):
+            start_date = mod_dates.get('start_date')
+            end_date = mod_dates.get('end_date')
+
+            # Make sure that, if it has content, start_date and end_date are both part of this filter
+            if not start_date or not end_date:
+                raise ResponseException("Both start_date and end_date must be provided", StatusCode.CLIENT_ERROR)
+
+            # Start and end dates must be in the format MM/DD/YYYY and be
+            if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
+                raise ResponseException("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
+                                        StatusCode.CLIENT_ERROR)
+            # Make sure start date is not greater than end date (checking for >= because we add a day)
+            start_date = datetime.strptime(start_date, '%m/%d/%Y')
+            end_date = datetime.strptime(end_date, '%m/%d/%Y') + timedelta(days=1)
+            if start_date >= end_date:
+                raise ResponseException("Last modified start date cannot be greater than the end date",
+                                        StatusCode.CLIENT_ERROR)
+
+            query = query.filter(Submission.updated_at >= start_date, Submission.updated_at < end_date)
+        elif mod_dates:
+            raise ResponseException("last_modified_range filter must be null or an object", StatusCode.CLIENT_ERROR)
+    # Agency code filter
+    if 'agency_codes' in filters:
+        agency_list = filters['agency_codes']
+        if agency_list and isinstance(agency_list, list):
+            # Split agencies into frec and cgac lists.
+            cgac_list = [agency for agency in agency_list if isinstance(agency, str) and len(agency) == 3]
+            frec_list = [agency for agency in agency_list if isinstance(agency, str) and len(agency) == 4]
+
+            # If something isn't a length of 3 or 4, it's not valid and should instantly raise an exception
+            if len(cgac_list) + len(frec_list) != len(agency_list):
+                raise ResponseException("All codes in the agency_codes filter must be valid agency codes",
+                                        StatusCode.CLIENT_ERROR)
+            # If the number of CGACs or FRECs returned from a query using the codes doesn't match the length of
+            # each list (ignoring duplicates) then something included wasn't a valid agency
+            cgac_list = set(cgac_list)
+            frec_list = set(frec_list)
+            if (cgac_list and sess.query(CGAC).filter(CGAC.cgac_code.in_(cgac_list)).count() != len(cgac_list)) or \
+                    (frec_list and sess.query(FREC).filter(FREC.frec_code.in_(frec_list)).count() != len(frec_list)):
+                raise ResponseException("All codes in the agency_codes filter must be valid agency codes",
+                                        StatusCode.CLIENT_ERROR)
+            # We only want these filters in here if there's at least one CGAC or FREC to filter on
+            agency_filters = []
+            if len(cgac_list) > 0:
+                agency_filters.append(CGAC.cgac_code.in_(cgac_list))
+            if len(frec_list) > 0:
+                agency_filters.append(FREC.frec_code.in_(frec_list))
+            query = query.filter(or_(*agency_filters))
+        elif agency_list:
+            raise ResponseException("agency_codes filter must be null or an array", StatusCode.CLIENT_ERROR)
+    # File name filter
+    if 'file_names' in filters:
+        file_list = filters['file_names']
+        if file_list and isinstance(file_list, list):
+            # Make a list of all the names we're filtering on
+            file_array = []
+            for file_name in file_list:
+                file_regex = '.+\/.*' + str(file_name).upper() + '[^\/]*$'
+                file_array.append(func.upper(Job.filename).op('~')(file_regex))
+
+            # Create a subquery to get all submission IDs related to upload jobs (every type except cross-file has an
+            # upload, just limiting jobs) that contain at least one of the file names listed.
+            sub_query = sess.query(Job.submission_id.label('job_sub_id')).\
+                filter(or_(*file_array)).\
+                filter(Job.job_type_id == JOB_TYPE_DICT['file_upload']).\
+                distinct().subquery()
+            # Use the subquery to filter by those submission IDs.
+            query = query.filter(Submission.submission_id.in_(sub_query))
+        elif file_list:
+            raise ResponseException("file_names filter must be null or an array", StatusCode.CLIENT_ERROR)
+    return query
+
+
+def list_submissions(page, limit, certified, sort='modified', order='desc', d2_submission=False, filters=None):
     """ List submission based on current page and amount to display. If provided, filter based on certification status
 
         Args:
@@ -1519,6 +1620,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
             sort: the column to order on
             order: order ascending or descending
             d2_submission: boolean indicating whether it is a DABS or FABS submission (True if FABS)
+            filters: an object containing the filters provided by the user
 
         Returns:
             Limited list of submissions and the total number of submissions the user has access to
@@ -1559,9 +1661,13 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     if not g.user.website_admin:
         cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
         frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec]
-        query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
-                                    Submission.frec_code.in_(frec_codes),
-                                    Submission.user_id == g.user.user_id))
+
+        affiliation_filters = [Submission.user_id == g.user.user_id]
+        if cgac_codes:
+            affiliation_filters.append(Submission.cgac_code.in_(cgac_codes))
+        if frec_codes:
+            affiliation_filters.append(Submission.frec_code.in_(frec_codes))
+        query = query.filter(sa.or_(*affiliation_filters))
 
     # Determine what types of submissions (published/unpublished/both) to display
     if certified != 'mixed':
@@ -1569,6 +1675,13 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
             query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
         else:
             query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
+
+    # Add additional filters where applicable
+    if filters:
+        try:
+            query = add_list_submission_filters(query, filters)
+        except (ResponseException, ValueError) as e:
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
 
     # Determine what to order by, default to "modified"
     options = {
