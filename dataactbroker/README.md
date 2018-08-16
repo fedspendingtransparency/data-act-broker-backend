@@ -1048,6 +1048,45 @@ Possible HTTP Status Codes:
 - 400: Invalid types in a filter, invalid values in a filter, missing required parameter
 - 401: Login required
 
+
+#### GET "/v1/list\_submission\_users"
+This endpoint lists all users with submissions that the requesting user can view, sorted by user name.
+
+##### Sample Request
+`/v1/list_submission_users?d2_submission=False`
+
+##### Request Params
+- `d2_submission` - **optional** - a boolean indicating if the submissions checked should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
+
+##### Response (JSON)
+
+```json
+{
+  "users": [
+    {
+      "user_id": 4,
+      "name": "Another User"
+    },
+    {
+      "user_id": 1,
+      "name": "User One"
+    }
+  ]
+}
+```
+
+##### Response Attributes
+
+- `users` - An array of objects that contain the user's ID and name:
+    - `user_id` - an integer indicating ID of the user
+    - `name` - a string containing the name of the user
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 401: Login required
+
+
 #### POST "/v1/list_certifications/"
 List certifications for a single submission
 
