@@ -12,7 +12,7 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.interfaces.db import GlobalDB
 from sqlalchemy.orm.exc import MultipleResultsFound
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 from dataactcore.models.userModel import User, UserAffiliation
 from dataactcore.models.domainModels import CGAC, FREC
@@ -470,3 +470,57 @@ def list_user_emails():
 
     user_info = [{"id": user.user_id, "name": user.name, "email": user.email} for user in users]
     return JsonResponse.create(StatusCode.OK, {"users": user_info})
+
+
+def list_submission_users(d2_submission):
+    """ List user IDs and names that have submissions that the requesting user can see.
+
+        Arguments:
+            d2_submission: boolean indicating whether it is a DABS or FABS submission (True if FABS)
+        
+        Returns:
+            A JsonResponse containing a list of users that have submissions that the requesting user can see
+    """
+
+    # print(sess.query(Submission).filter(Submission.user_id == 2).exists())
+    sess = GlobalDB.db().session
+    # subquery to create the EXISTS portion of the query
+    exists_query = sess.query(Submission).filter(Submission.user_id == User.user_id,
+                                                 Submission.d2_submission.is_(d2_submission))
+
+    # if user is not an admin, we have to adjust the exists query to limit submissions
+    if not g.user.website_admin:
+        # split affiliations into frec and cgac
+        cgac_affiliations = [aff for aff in g.user.affiliations if aff.cgac]
+        frec_affiliations = [aff for aff in g.user.affiliations if aff.frec]
+
+        # Don't list FABS permissions users if the user only has DABS permissions
+        if not d2_submission:
+            cgac_affiliations = [aff for aff in cgac_affiliations if aff.permission_type_id in DABS_PERMISSION_ID_LIST]
+            frec_affiliations = [aff for aff in frec_affiliations if aff.permission_type_id in DABS_PERMISSION_ID_LIST]
+
+        # Make a list of cgac and frec codes
+        cgac_list = [aff.cgac.cgac_code for aff in cgac_affiliations]
+        frec_list = [aff.frec.frec_code for aff in frec_affiliations]
+
+        # Add filters where applicable
+        affiliation_filters = [Submission.user_id == g.user.user_id]
+        if cgac_list:
+            affiliation_filters.append(Submission.cgac_code.in_(cgac_list))
+        if frec_list:
+            affiliation_filters.append(Submission.frec_code.in_(frec_list))
+
+        exists_query = exists_query.filter(or_(*affiliation_filters))
+
+    # Add an exists onto the query, couldn't do this earlier because then the filters couldn't get added in the if
+    exists_query = exists_query.exists()
+
+    # Get all the relevant users
+    user_results = sess.query(User.user_id, User.name).filter(exists_query).order_by(User.name).all()
+
+    # Create an array containing relevant users in a readable format
+    user_list = []
+    for user in user_results:
+        user_list.append({'user_id': user[0], 'name': user[1]})
+
+    return JsonResponse.create(StatusCode.OK, {"users": user_list})
