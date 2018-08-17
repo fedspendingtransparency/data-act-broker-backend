@@ -24,7 +24,7 @@ def add_user_routes(app, system_email, bcrypt):
         """ list all users """
         return list_user_emails()
 
-    @app.route("/v1/list_submission_users", methods=["GET"])
+    @app.route("/v1/list_submission_users/", methods=["GET"])
     @requires_login
     @use_kwargs({
         'd2_submission': webargs_fields.Bool(missing=False)

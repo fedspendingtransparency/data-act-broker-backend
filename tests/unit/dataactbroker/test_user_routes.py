@@ -4,18 +4,20 @@ from unittest.mock import Mock
 from flask import g
 import pytest
 
-from dataactbroker import userRoutes
+from dataactbroker import user_routes
 from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
 @pytest.fixture
 def user_app(test_app):
-    userRoutes.add_user_routes(test_app.application, Mock(), Mock())
+    user_routes.add_user_routes(test_app.application, Mock(), Mock())
     yield test_app
 
 
-def test_list_user_emails(database, user_constants, user_app):
+@pytest.mark.usefixtures("user_constants")
+def test_list_user_emails(database, user_app):
+    """ Test listing user emails """
     cgacs = [CGACFactory() for _ in range(3)]
     users = [UserFactory.with_cgacs(cgacs[0]),
              UserFactory.with_cgacs(cgacs[0], cgacs[1]),
