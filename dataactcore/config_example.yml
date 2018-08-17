@@ -95,11 +95,6 @@ broker:
     # value if use_aws is true.
     certified_bucket: s3-bucket
 
-    # Name of the AWS role you're using to upload broker files. Ignored if
-    # use_aws is false. NOTE: the dummy value below MUST be changed to the
-    # correct value if use_aws is true.
-    aws_role: arn:aws-us-gov:iam::id:role/awsrole
-
     # S3 filenames for SF-133 file, only required if planning to load SF-133 table
     sf_133_folder: config
     sf_133_file: sf_133.csv
