@@ -482,7 +482,6 @@ def list_submission_users(d2_submission):
             A JsonResponse containing a list of users that have submissions that the requesting user can see
     """
 
-    # print(sess.query(Submission).filter(Submission.user_id == 2).exists())
     sess = GlobalDB.db().session
     # subquery to create the EXISTS portion of the query
     exists_query = sess.query(Submission).filter(Submission.user_id == User.user_id,
