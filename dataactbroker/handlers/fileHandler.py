@@ -277,13 +277,18 @@ class FileHandler:
             # handle unexpected exception as a 500 server error
             json_response = JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
         finally:
+            # handle a missing JSON response
+            if json_response is None:
+                json_response = JsonResponse.error(Exception("Failed to catch exception"), StatusCode.INTERNAL_ERROR)
+
             # handle errors within upload jobs
             if json_response.status_code != StatusCode.OK and submission:
                 jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
                                               Job.job_type_id == JOB_TYPE_DICT['file_upload'],
                                               Job.job_status_id == JOB_STATUS_DICT['running'],
-                                              Job.in_(FILE_TYPE_DICT_LETTER_ID['A'], FILE_TYPE_DICT_LETTER_ID['B'],
-                                                      FILE_TYPE_DICT_LETTER_ID['C'])).all()
+                                              Job.file_type_id.in_(FILE_TYPE_DICT_LETTER_ID['A'],
+                                                                   FILE_TYPE_DICT_LETTER_ID['B'],
+                                                                   FILE_TYPE_DICT_LETTER_ID['C'])).all()
                 for job in jobs:
                     job.job_status_id = JOB_STATUS_DICT['failed']
                 sess.commit()
@@ -580,6 +585,7 @@ class FileHandler:
             return JsonResponse.error(Exception('fabs field must be present and contain a file'),
                                       StatusCode.CLIENT_ERROR)
         sess = GlobalDB.db().session
+        json_response, submission = None, None
         try:
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
@@ -650,17 +656,30 @@ class FileHandler:
                 s3.upload_fileobj(fabs, bucket_name, filename_key)
             else:
                 fabs.save(filename_key)
-            return self.finalize(job_dict["fabs_id"])
+            json_response = self.finalize(job_dict["fabs_id"])
         except (ValueError, TypeError, NotImplementedError) as e:
-            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
+            json_response = JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ResponseException as e:
             # call error route directly, status code depends on exception
-            return JsonResponse.error(e, e.status)
+            json_response = JsonResponse.error(e, e.status)
         except Exception as e:
             # unexpected exception, this is a 500 server error
-            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
-        except:
-            return JsonResponse.error(Exception("Failed to catch exception"), StatusCode.INTERNAL_ERROR)
+            json_response = JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
+        finally:
+            # handle a missing JSON response
+            if json_response is None:
+                json_response = JsonResponse.error(Exception("Failed to catch exception"), StatusCode.INTERNAL_ERROR)
+
+            if json_response.status_code != StatusCode.OK and submission:
+                jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                              Job.job_type_id == JOB_TYPE_DICT['file_upload'],
+                                              Job.job_status_id == JOB_STATUS_DICT['running'],
+                                              Job.file_type_id == FILE_TYPE_DICT_LETTER_ID['FABS']).all()
+                for job in jobs:
+                    job.job_status_id = JOB_STATUS_DICT['failed']
+                sess.commit()
+
+            return json_response
 
     @staticmethod
     def check_detached_generation(job_id):
