@@ -175,6 +175,7 @@ class FileHandler:
                 key_url is the S3 URL for uploading
                 key_id is the job id to be passed to the finalize_submission route
         """
+        json_response, submission = None, None
         try:
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
@@ -266,15 +267,28 @@ class FileHandler:
                 t.start()
                 t.join()
             api_response = {"success": "true", "submission_id": submission.submission_id}
-            return JsonResponse.create(StatusCode.OK, api_response)
+            json_response = JsonResponse.create(StatusCode.OK, api_response)
         except (ValueError, TypeError, NotImplementedError) as e:
-            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
+            json_response = JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ResponseException as e:
             # call error route directly, status code depends on exception
-            return JsonResponse.error(e, e.status)
+            json_response = JsonResponse.error(e, e.status)
         except Exception as e:
-            # unexpected exception, this is a 500 server error
-            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
+            # handle unexpected exception as a 500 server error
+            json_response = JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
+        finally:
+            # handle errors within upload jobs
+            if json_response.status_code != StatusCode.OK and submission:
+                jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                              Job.job_type_id == JOB_TYPE_DICT['file_upload'],
+                                              Job.job_status_id == JOB_STATUS_DICT['running'],
+                                              Job.in_(FILE_TYPE_DICT_LETTER_ID['A'], FILE_TYPE_DICT_LETTER_ID['B'],
+                                                      FILE_TYPE_DICT_LETTER_ID['C'])).all()
+                for job in jobs:
+                    job.job_status_id = JOB_STATUS_DICT['failed']
+                sess.commit()
+
+            return json_response
 
     @staticmethod
     def check_submission_dates(start_date, end_date, is_quarter, existing_submission=None):
