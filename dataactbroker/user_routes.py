@@ -1,6 +1,9 @@
 from flask import g, request, session
+from webargs import fields as webargs_fields
+from webargs.flaskparser import use_kwargs
 
-from dataactbroker.handlers.account_handler import AccountHandler, json_for_user, list_user_emails
+from dataactbroker.handlers.account_handler import (AccountHandler, json_for_user, list_user_emails,
+                                                    list_submission_users)
 from dataactbroker.permissions import requires_login
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
@@ -20,6 +23,15 @@ def add_user_routes(app, system_email, bcrypt):
     def list_user_emails_route():
         """ list all users """
         return list_user_emails()
+
+    @app.route("/v1/list_submission_users/", methods=["GET"])
+    @requires_login
+    @use_kwargs({
+        'd2_submission': webargs_fields.Bool(missing=False)
+    })
+    def list_submission_users_route(d2_submission):
+        """ List all users with submissions that the requesting user has permissions for """
+        return list_submission_users(d2_submission)
 
     @app.route("/v1/current_user/", methods=["GET"])
     @requires_login
