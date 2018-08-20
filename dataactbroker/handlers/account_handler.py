@@ -477,7 +477,7 @@ def list_submission_users(d2_submission):
 
         Arguments:
             d2_submission: boolean indicating whether it is a DABS or FABS submission (True if FABS)
-        
+
         Returns:
             A JsonResponse containing a list of users that have submissions that the requesting user can see
     """

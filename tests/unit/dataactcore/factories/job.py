@@ -23,6 +23,7 @@ class SubmissionFactory(factory.Factory):
     publishable = False
     number_of_errors = 0
     number_of_warnings = 0
+    d2_submission = False
 
 
 class JobStatusFactory(factory.Factory):

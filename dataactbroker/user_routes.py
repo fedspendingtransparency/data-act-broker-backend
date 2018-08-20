@@ -1,5 +1,5 @@
 from flask import g, request, session
-from webargs import fields as webargs_fields, validate as webargs_validate
+from webargs import fields as webargs_fields
 from webargs.flaskparser import use_kwargs
 
 from dataactbroker.handlers.account_handler import (AccountHandler, json_for_user, list_user_emails,
