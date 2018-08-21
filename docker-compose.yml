@@ -19,7 +19,16 @@ services:
     depends_on:
       - dataact-postgres
     restart: always
-    command: /bin/sh -c "cd ./dataactcore; sleep 9s; alembic upgrade head; python ../dataactbroker/app.py"
+    command: |
+          /bin/sh -c " \
+            cd ./dataactcore
+            sleep 9s
+            alembic upgrade head
+            cd scripts
+            python initialize.py -i
+            python initialize.py -a
+            python ../../dataactbroker/app.py
+          "
     ports:
       - "9999:9999"
     volumes:
@@ -29,7 +38,7 @@ services:
     container_name: dataact-validator
     image: broker-backend
     restart: always
-    command: /bin/sh -c "sleep 17s; python dataactvalidator/app.py"
+    command: /bin/sh -c "sleep 25s; python dataactvalidator/app.py"
     ports:
       - "8889:8889"
     volumes:
