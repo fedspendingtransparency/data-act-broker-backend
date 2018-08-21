@@ -12,7 +12,7 @@ from dataactbroker.handlers.account_handler import AccountHandler
 from dataactbroker.handlers.aws.sesEmail import SesEmail
 from dataactbroker.handlers.aws.session import UserSessionInterface
 from dataactbroker.loginRoutes import add_login_routes
-from dataactbroker.userRoutes import add_user_routes
+from dataactbroker.user_routes import add_user_routes
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
