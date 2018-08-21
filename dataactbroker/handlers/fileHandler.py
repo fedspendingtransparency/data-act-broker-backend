@@ -1528,7 +1528,10 @@ def add_list_submission_filters(query, filters):
     if 'submission_ids' in filters:
         sub_list = filters['submission_ids']
         if sub_list and isinstance(sub_list, list):
-            sub_list = [int(sub_id) for sub_id in sub_list]
+            try:
+                sub_list = [int(sub_id) for sub_id in sub_list]
+            except ValueError:
+                raise ResponseException("All submission_ids must be valid submission IDs", StatusCode.CLIENT_ERROR)
             query = query.filter(Submission.submission_id.in_(sub_list))
         elif sub_list:
             raise ResponseException("submission_ids filter must be null or an array", StatusCode.CLIENT_ERROR)
@@ -1611,7 +1614,10 @@ def add_list_submission_filters(query, filters):
     if 'user_ids' in filters:
         user_list = filters['user_ids']
         if user_list and isinstance(user_list, list):
-            user_list = [int(user_id) for user_id in user_list]
+            try:
+                user_list = [int(user_id) for user_id in user_list]
+            except ValueError:
+                raise ResponseException("All user_ids must be valid user IDs", StatusCode.CLIENT_ERROR)
             query = query.filter(Submission.user_id.in_(user_list))
         elif user_list:
             raise ResponseException("user_ids filter must be null or an array", StatusCode.CLIENT_ERROR)
