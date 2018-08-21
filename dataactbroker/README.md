@@ -938,7 +938,8 @@ This endpoint lists submissions for all agencies for which the current user is a
             "end_date": "01/10/2018"
         },
         "agency_codes": ["123", "4567"],
-        "file_names": ["file_a", "test"]
+        "file_names": ["file_a", "test"],
+        "user_ids: [1, 2]
     }
 }
 ```
@@ -968,6 +969,7 @@ This endpoint lists submissions for all agencies for which the current user is a
         - `end_date` - a string indicating the end date for the last modified date range (inclusive) (MM/DD/YYYY)
     - `agency_codes` - an array of strings containing CGAC and FREC codes
     - `file_names` - an array of strings containing total or partial matches to file names (including timestamps), will match any file name including generated ones
+    - `user_ids` - an array of integers or strings that limits the list of submissions to only ones created by users within the array.
 
 ##### Response (JSON)
 
