@@ -360,3 +360,15 @@ class ListSubmissionTests(BaseTestAPI):
         }
         response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), set())
+
+    def test_list_submissions_filter_user_id(self):
+        """ Test listing submissions with a user_id filter applied. """
+        # Listing only the relevant submissions, even when an ID is provided that can't be reached
+        post_json = {
+            "certified": "mixed",
+            "filters": {
+                "user_ids": [self.other_user_id, -1]
+            }
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
+        self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id})
