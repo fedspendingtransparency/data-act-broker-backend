@@ -148,12 +148,17 @@ def add_file_routes(app, is_local, server_path):
         'cgac_code': webargs_fields.String(),
         'frec_code': webargs_fields.String(),
         'start': webargs_fields.String(required=True),
-        'end': webargs_fields.String(required=True)
+        'end': webargs_fields.String(required=True),
+        'agency_type': webargs_fields.String(
+            missing='awarding',
+            validate=webargs_validate.OneOf(('awarding', 'funding'),
+                                            error="Must be either awarding or funding if provided")
+        )
     })
-    def generate_detached_file(file_type, cgac_code, frec_code, start, end):
+    def generate_detached_file(file_type, cgac_code, frec_code, start, end, agency_type):
         """ Generate a file from external API, independent from a submission """
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.generate_detached_file(file_type, cgac_code, frec_code, start, end)
+        return file_manager.generate_detached_file(file_type, cgac_code, frec_code, start, end, agency_type)
 
     @app.route("/v1/check_detached_generation_status/", methods=["GET"])
     @requires_login

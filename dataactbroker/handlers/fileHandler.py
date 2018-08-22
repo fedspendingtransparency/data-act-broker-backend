@@ -513,7 +513,7 @@ class FileHandler:
         # Return same response as check generation route
         return self.check_generation(submission, file_type)
 
-    def generate_detached_file(self, file_type, cgac_code, frec_code, start, end):
+    def generate_detached_file(self, file_type, cgac_code, frec_code, start, end, agency_type):
         """ Start a file generation job for the specified file type not connected to a submission
 
             Args:
@@ -522,6 +522,7 @@ class FileHandler:
                 frec_code: the code of a FREC agency if generating for a FREC agency
                 start: start date in a string, formatted MM/DD/YYYY
                 end: end date in a string, formatted MM/DD/YYYY
+                agency_type: The type of agency (awarding or funding) to generate the file for
 
             Returns:
                 JSONResponse object with keys job_id, status, file_type, url, message, start, and end.
@@ -538,6 +539,10 @@ class FileHandler:
         if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
             raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
 
+        if agency_type not in ('awarding', 'funding'):
+            return JsonResponse.error(ValueError("agency_type must be either awarding or funding."),
+                                      StatusCode.CLIENT_ERROR)
+
         # Add job info
         file_type_name = FILE_TYPE_DICT_ID[FILE_TYPE_DICT_LETTER_ID[file_type]]
         new_job = self.add_generation_job_info(file_type_name=file_type_name, start_date=start, end_date=end)
@@ -553,7 +558,7 @@ class FileHandler:
             'end_date': end
         })
 
-        start_generation_job(new_job, start, end, agency_code)
+        start_generation_job(new_job, start, end, agency_type, agency_code)
 
         # Return same response as check generation route
         return self.check_detached_generation(new_job.job_id)
