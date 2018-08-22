@@ -1254,7 +1254,8 @@ This route sends a request to the backend to utilize the relevant external APIs 
     "submission_id": 123,
     "file_type": "D1"
     "start": "01/01/2016",
-    "end": "03/31/2016"
+    "end": "03/31/2016",
+    "agency_type": "awarding"
 }
 ```
 
@@ -1268,6 +1269,9 @@ This route sends a request to the backend to utilize the relevant external APIs 
     - `F` - generate a F file
 - `start` - **required for D1/D2 only** - the start date of the requested date range, in `MM/DD/YYYY` string format, should not be passed for E/F generation
 - `end` - **required for D1/D2 only** - the end date of the requested date range, in `MM/DD/YYYY` string format, should not be passed for E/F generation
+- `agency_type` - **optional, used only in D1/D2** - a string indicating if the file generated should be based on awarding or funding agency. Defaults to `awarding` if not provided. Only allowed values are:
+    - `awarding`
+    - `funding`
 
 #### Response (JSON)
 Response will be the same format as those which are returned in the `/v1/check_generation_status` endpoint.
@@ -1291,7 +1295,8 @@ This route sends a request to the backend to utilize the relevant external APIs 
     "file_type": "D1",
     "cgac_code": "020",
     "start": "01/01/2016",
-    "end": "03/31/2016"
+    "end": "03/31/2016",
+    "agency_type": "awarding"
 }
 ```
 
@@ -1303,6 +1308,9 @@ This route sends a request to the backend to utilize the relevant external APIs 
 - `cgac_code` - **required** - the cgac of the agency for which to generate the files for
 - `start` - **required** - the start date of the requested date range, in `MM/DD/YYYY` string format
 - `end` - **required** - the end date of the requested date range, in `MM/DD/YYYY` string format
+- `agency_type` - **optional** - a string indicating if the file generated should be based on awarding or funding agency. Defaults to `awarding` if not provided. Only allowed values are:
+    - `awarding`
+    - `funding`
 
 #### Response (JSON)
 Response will be the same format as those returned from `/v1/check_generation_status` endpoint with the exception that only D1 and D2 files will ever be present, never E or F.
