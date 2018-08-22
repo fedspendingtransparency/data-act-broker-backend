@@ -32,11 +32,12 @@ VALIDATION_STATUS_MAP = {"waiting": "waiting", "ready": "waiting", "running": "w
 
 
 @contextmanager
-def job_context(job_id, is_local=True):
+def job_context(job_id, agency_type, is_local=True):
     """ Common context for files D1, D2, E, and F generation. Handles marking the job finished and/or failed
 
         Args:
             job_id: the ID of the submission job
+            agency_type: The type of agency (awarding or funding) to generate the file for
             is_local: a boolean indicating whether this is being run in a local environment or not
 
         Yields:
@@ -62,17 +63,18 @@ def job_context(job_id, is_local=True):
             mark_job_status(job.job_id, "failed")
 
             # ensure FileRequest from failed job is not cached
-            file_request = sess.query(FileRequest).filter_by(job_id=job.job_id).one_or_none()
+            file_request = sess.query(FileRequest).filter_by(job_id=job.job_id, agency_type=agency_type).one_or_none()
             if file_request and file_request.is_cached_file:
                 file_request.is_cached_file = False
 
             sess.commit()
 
         finally:
-            file_request = sess.query(FileRequest).filter_by(job_id=job.job_id).one_or_none()
+            file_request = sess.query(FileRequest).filter_by(job_id=job.job_id, agency_type=agency_type).one_or_none()
             if file_request and file_request.is_cached_file:
                 # copy job data to all child FileRequests
-                child_requests = sess.query(FileRequest).filter_by(parent_job_id=job.job_id).all()
+                child_requests = sess.query(FileRequest).filter_by(parent_job_id=job.job_id, agency_type=agency_type).\
+                    all()
                 if len(child_requests) > 0:
                     logger.info({'message': 'Copying file data from job {} to its children'.format(job.job_id),
                                  'message_type': 'ValidatorInfo', 'job_id': job.job_id})
@@ -98,13 +100,15 @@ def retrieve_job_context_data(job_id):
     return sess, job
 
 
-def generate_d_file(sess, job, agency_code, is_local=True, old_filename=None):
+def generate_d_file(sess, job, agency_code, agency_type, is_local=True, old_filename=None):
     """ Write file D1 or D2 to an appropriate CSV.
 
         Args:
             sess: Current database session
             job: Upload Job
             agency_code: FREC or CGAC code for generation
+            agency_type: The type of agency (awarding or funding) to generate the file for (only used for D file
+                    generation)
             is_local: True if in local development, False otherwise
             old_filename: Previous version of filename, in cases where reverting to old file is necessary
     """
@@ -119,11 +123,12 @@ def generate_d_file(sess, job, agency_code, is_local=True, old_filename=None):
     fpds_date = last_update.update_date if last_update else current_date
 
     # check if FileRequest already exists with this job_id, if not, create one
-    file_request = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id).one_or_none()
+    file_request = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id,
+                                                  FileRequest.agency_type == agency_type).one_or_none()
     if not file_request:
         file_request = FileRequest(request_date=current_date, job_id=job.job_id, start_date=job.start_date,
-                                   end_date=job.end_date, agency_code=agency_code, is_cached_file=False,
-                                   file_type=job.file_type.letter_name)
+                                   end_date=job.end_date, agency_code=agency_code, agency_type=agency_type,
+                                   is_cached_file=False, file_type=job.file_type.letter_name)
         sess.add(file_request)
 
     # determine if anything needs to be done at all
@@ -157,7 +162,7 @@ def generate_d_file(sess, job, agency_code, is_local=True, old_filename=None):
             parent_file_requests = sess.query(FileRequest).\
                 filter(FileRequest.file_type == job.file_type.letter_name, FileRequest.start_date == job.start_date,
                        FileRequest.end_date == job.end_date, FileRequest.agency_code == agency_code,
-                       FileRequest.is_cached_file.is_(True)).all()
+                       FileRequest.agency_type == agency_type, FileRequest.is_cached_file.is_(True)).all()
 
             # there will, very rarely, be more than one value in parent_file_requests
             for parent_request in parent_file_requests:
@@ -208,8 +213,8 @@ def generate_d_file(sess, job, agency_code, is_local=True, old_filename=None):
             file_utils = fileD1 if job.file_type.letter_name == 'D1' else fileD2
             local_file = "".join([CONFIG_BROKER['d_file_storage_path'], job.original_filename])
             headers = [key for key in file_utils.mapping]
-            query_utils = {"file_utils": file_utils, "agency_code": agency_code, "start": job.start_date,
-                           "end": job.end_date, "sess": sess}
+            query_utils = {"file_utils": file_utils, "agency_code": agency_code, "agency_type": agency_type,
+                           "start": job.start_date, "end": job.end_date, "sess": sess}
             write_query_to_file(local_file, job.filename, headers, job.file_type.letter_name, is_local, d_file_query,
                                 query_utils)
             log_data['message'] = 'Finished writing to file: {}'.format(job.original_filename)
@@ -295,13 +300,14 @@ def d_file_query(query_utils, page_start, page_end):
                 start: beginning of period for D file
                 end: end of period for D file
             page_start: beginning of pagination
-            page_stop: end of pagination
+            page_end: end of pagination
 
         Return:
             paginated D1 or D2 query results
     """
-    rows = query_utils["file_utils"].query_data(query_utils["sess"], query_utils["agency_code"], query_utils["start"],
-                                                query_utils["end"], page_start, page_end)
+    rows = query_utils["file_utils"].query_data(query_utils["sess"], query_utils["agency_code"],
+                                                query_utils["agency_type"], query_utils["start"], query_utils["end"],
+                                                page_start, page_end)
     return rows.all()
 
 
@@ -370,13 +376,15 @@ def copy_file_from_parent_to_child(child_job, parent_job, is_local):
             stream_file_to_s3(child_job.filename, reader)
 
 
-def start_generation_job(job, start_date, end_date, agency_code=None):
+def start_generation_job(job, start_date, end_date, agency_type, agency_code=None):
     """ Validates the dates for a D file generation job and passes the Job ID to SQS
 
         Args:
             job: File generation job to start
             start_date: Start date of the file generation
             end_date: End date of the file generation
+            agency_type: The type of agency (awarding or funding) to generate the file for (only used for D file
+                    generation)
             agency_code: Agency code for detached D file generations
 
         Returns:
@@ -407,6 +415,8 @@ def start_generation_job(job, start_date, end_date, agency_code=None):
     queue = sqs_queue()
 
     message_attr = {'agency_code': {'DataType': 'String', 'StringValue': agency_code}} if agency_code else {}
+    if file_type in ['D1', 'D2']:
+        message_attr['agency_type'] = {'DataType': 'String', 'StringValue': agency_type}
     response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes=message_attr)
     logger.debug({'message_type': 'ValidatorInfo', 'job_id': job.job_id,
                   'message': 'Send message response: {}'.format(response)})
