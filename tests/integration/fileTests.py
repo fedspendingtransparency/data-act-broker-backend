@@ -1,9 +1,7 @@
-import calendar
 import boto
 import os
 
 from boto.s3.key import Key
-from datetime import datetime
 from shutil import copy
 
 from dataactbroker.handlers.submission_handler import populate_submission_error_info
@@ -22,6 +20,7 @@ from dataactvalidator.health_check import create_app
 from sqlalchemy import or_
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.integration.baseTestAPI import BaseTestAPI
+from tests.integration.integration_test_helper import insert_submission, insert_job
 
 AWARD_FILE_T = ('award_financial', 'award_financial.csv',
                 open('tests/integration/data/awardFinancialValid.csv', 'rb').read())
@@ -56,76 +55,71 @@ class FileTests(BaseTestAPI):
             cls.other_user_id = other_user.user_id
 
             # setup submission/jobs data for test_check_status
-            cls.status_check_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                   start_date="10/2015", end_date="12/2015",
-                                                                   is_quarter=True)
+            cls.status_check_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                               start_date="10/2015", end_date="12/2015",
+                                                               is_quarter=True)
 
-            cls.generation_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                 start_date="07/2015", end_date="09/2015",
-                                                                 is_quarter=True)
+            cls.generation_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                             start_date="07/2015", end_date="09/2015", is_quarter=True)
 
             cls.setup_file_generation_submission(sess)
 
             cls.jobIdDict = cls.setup_jobs_for_status_check(sess, cls.status_check_submission_id)
 
             # setup submission/jobs data for test_error_report
-            cls.error_report_submission_id = cls.insert_submission(
-                sess, cls.submission_user_id, cgac_code="SYS", start_date="10/2015", end_date="10/2015")
+            cls.error_report_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                               start_date="10/2015", end_date="10/2015")
             cls.setup_jobs_for_reports(sess, cls.error_report_submission_id)
 
             # setup file status data for test_metrics
-            cls.test_metrics_submission_id = cls.insert_submission(
-                sess, cls.submission_user_id, cgac_code="SYS", start_date="08/2015", end_date="08/2015")
+            cls.test_metrics_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                               start_date="08/2015", end_date="08/2015")
             cls.setup_file_data(sess, cls.test_metrics_submission_id)
 
-            cls.row_error_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                start_date="10/2015", end_date="12/2015",
-                                                                is_quarter=True, number_of_errors=1)
+            cls.row_error_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                            start_date="10/2015", end_date="12/2015", is_quarter=True,
+                                                            number_of_errors=1)
             cls.setup_submission_with_error(sess, cls.row_error_submission_id)
 
-            cls.test_delete_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                  start_date="07/2015", end_date="09/2015",
-                                                                  is_quarter=True)
+            cls.test_delete_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                              start_date="07/2015", end_date="09/2015", is_quarter=True)
             cls.setup_file_generation_submission(sess, submission_id=cls.test_delete_submission_id)
 
-            cls.test_certified_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                     start_date="07/2015", end_date="09/2015",
-                                                                     is_quarter=True, number_of_errors=0,
-                                                                     publish_status_id=2)
+            cls.test_certified_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                                 start_date="07/2015", end_date="09/2015",
+                                                                 is_quarter=True, number_of_errors=0,
+                                                                 publish_status_id=2)
 
-            cls.test_updated_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                   start_date="07/2016", end_date="09/2016",
-                                                                   is_quarter=True, number_of_errors=0,
-                                                                   publish_status_id=3)
+            cls.test_updated_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                               start_date="07/2016", end_date="09/2016",
+                                                               is_quarter=True, number_of_errors=0,
+                                                               publish_status_id=3)
 
-            cls.test_uncertified_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                       start_date="04/2015", end_date="06/2015",
-                                                                       is_quarter=True, number_of_errors=0)
+            cls.test_uncertified_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                                   start_date="04/2015", end_date="06/2015",
+                                                                   is_quarter=True, number_of_errors=0)
 
-            cls.test_revalidate_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                      start_date="10/2015", end_date="12/2015",
-                                                                      is_quarter=True, number_of_errors=0)
+            cls.test_revalidate_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                                  start_date="10/2015", end_date="12/2015",
+                                                                  is_quarter=True, number_of_errors=0)
 
-            cls.test_monthly_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                   start_date="10/2015", end_date="12/2015",
-                                                                   is_quarter=False, number_of_errors=0)
+            cls.test_monthly_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                               start_date="10/2015", end_date="12/2015",
+                                                               is_quarter=False, number_of_errors=0)
 
-            cls.test_fabs_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                start_date="10/2015", end_date="12/2015",
-                                                                is_quarter=False, number_of_errors=0,
-                                                                is_fabs=True)
+            cls.test_fabs_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                            start_date="10/2015", end_date="12/2015", is_quarter=False,
+                                                            number_of_errors=0, is_fabs=True)
 
-            cls.test_other_user_submission_id = cls.insert_submission(sess, cls.other_user_id, cgac_code="NOT",
-                                                                      start_date="10/2015", end_date="12/2015",
-                                                                      is_quarter=True, number_of_errors=0)
+            cls.test_other_user_submission_id = insert_submission(sess, cls.other_user_id, cgac_code="NOT",
+                                                                  start_date="10/2015", end_date="12/2015",
+                                                                  is_quarter=True, number_of_errors=0)
             for job_type in ['file_upload', 'csv_record_validation']:
                 for file_type in ['appropriations', 'program_activity', 'award_financial']:
-                    cls.insert_job(sess, FILE_TYPE_DICT[file_type], FILE_STATUS_DICT['complete'],
-                                   JOB_TYPE_DICT[job_type], cls.test_other_user_submission_id, job_id=None,
-                                   filename=None, file_size=None, num_rows=None)
-            cls.insert_job(sess, None, FILE_STATUS_DICT['complete'],
-                           JOB_TYPE_DICT['validation'], cls.test_other_user_submission_id, job_id=None,
-                           filename=None, file_size=None, num_rows=None)
+                    insert_job(sess, FILE_TYPE_DICT[file_type], FILE_STATUS_DICT['complete'], JOB_TYPE_DICT[job_type],
+                               cls.test_other_user_submission_id)
+            insert_job(sess, None, FILE_STATUS_DICT['complete'], JOB_TYPE_DICT['validation'],
+                       cls.test_other_user_submission_id)
 
             cls.test_certify_history_id = cls.setup_certification_history(sess)
 
@@ -1084,14 +1078,14 @@ class FileTests(BaseTestAPI):
         self.session.add(submission)
         self.session.commit()
 
-        job_1 = self.insert_job(self.session, FILE_TYPE_DICT['award'], JOB_STATUS_DICT['finished'],
-                                JOB_TYPE_DICT['csv_record_validation'], submission.submission_id, num_errors=1)
-        job_2 = self.insert_job(self.session, FILE_TYPE_DICT['award_procurement'], JOB_STATUS_DICT['finished'],
-                                JOB_TYPE_DICT['file_upload'], submission.submission_id)
-        job_3 = self.insert_job(self.session, FILE_TYPE_DICT['award_procurement'], JOB_STATUS_DICT['finished'],
-                                JOB_TYPE_DICT['csv_record_validation'], submission.submission_id)
-        job_4 = self.insert_job(self.session, None, JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['validation'],
-                                submission.submission_id)
+        job_1 = insert_job(self.session, FILE_TYPE_DICT['award'], JOB_STATUS_DICT['finished'],
+                           JOB_TYPE_DICT['csv_record_validation'], submission.submission_id, num_errors=1)
+        job_2 = insert_job(self.session, FILE_TYPE_DICT['award_procurement'], JOB_STATUS_DICT['finished'],
+                           JOB_TYPE_DICT['file_upload'], submission.submission_id)
+        job_3 = insert_job(self.session, FILE_TYPE_DICT['award_procurement'], JOB_STATUS_DICT['finished'],
+                           JOB_TYPE_DICT['csv_record_validation'], submission.submission_id)
+        job_4 = insert_job(self.session, None, JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['validation'],
+                           submission.submission_id)
 
         dep_1 = JobDependency(
             job_id=job_3.job_id,
@@ -1131,14 +1125,14 @@ class FileTests(BaseTestAPI):
         self.session.add(submission)
         self.session.commit()
 
-        job_1 = self.insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['waiting'],
-                                JOB_TYPE_DICT['file_upload'], submission.submission_id)
-        job_2 = self.insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['waiting'],
-                                JOB_TYPE_DICT['csv_record_validation'], submission.submission_id)
-        job_3 = self.insert_job(self.session, FILE_TYPE_DICT['award_financial'], JOB_STATUS_DICT['waiting'],
-                                JOB_TYPE_DICT['csv_record_validation'], submission.submission_id)
-        job_4 = self.insert_job(self.session, None, JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['validation'],
-                                submission.submission_id)
+        job_1 = insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['waiting'],
+                           JOB_TYPE_DICT['file_upload'], submission.submission_id)
+        job_2 = insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['waiting'],
+                           JOB_TYPE_DICT['csv_record_validation'], submission.submission_id)
+        job_3 = insert_job(self.session, FILE_TYPE_DICT['award_financial'], JOB_STATUS_DICT['waiting'],
+                           JOB_TYPE_DICT['csv_record_validation'], submission.submission_id)
+        job_4 = insert_job(self.session, None, JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['validation'],
+                           submission.submission_id)
 
         dep_1 = JobDependency(
             job_id=job_2.job_id,
@@ -1174,52 +1168,6 @@ class FileTests(BaseTestAPI):
         # good way to make sure D file generation fails so we have to use a different job)
         cross_job = self.session.query(Job).filter(Job.job_id == job_4.job_id).one()
         self.assertEqual(cross_job.job_status_id, JOB_STATUS_DICT['waiting'])
-
-    @staticmethod
-    def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
-                          is_quarter=False, number_of_errors=0, publish_status_id=1, is_fabs=False):
-        """Insert one submission into job tracker and get submission ID back."""
-        publishable = True if number_of_errors == 0 else False
-        end_date = datetime.strptime(end_date, '%m/%Y')
-        end_date = datetime.strptime(
-                        str(end_date.year) + '/' +
-                        str(end_date.month) + '/' +
-                        str(calendar.monthrange(end_date.year, end_date.month)[1]),
-                        '%Y/%m/%d'
-                    ).date()
-        sub = Submission(created_at=datetime.utcnow(),
-                         user_id=submission_user_id,
-                         cgac_code=cgac_code,
-                         reporting_start_date=datetime.strptime(start_date, '%m/%Y'),
-                         reporting_end_date=end_date,
-                         is_quarter_format=is_quarter,
-                         number_of_errors=number_of_errors,
-                         publish_status_id=publish_status_id,
-                         publishable=publishable,
-                         d2_submission=is_fabs)
-        sess.add(sub)
-        sess.commit()
-        return sub.submission_id
-
-    @staticmethod
-    def insert_job(sess, filetype, status, type_id, submission, job_id=None, filename=None,
-                   file_size=None, num_rows=None, num_errors=0):
-        """Insert one job into job tracker and get ID back."""
-        job = Job(
-            file_type_id=filetype,
-            job_status_id=status,
-            job_type_id=type_id,
-            submission_id=submission,
-            original_filename=filename,
-            file_size=file_size,
-            number_of_rows=num_rows,
-            number_of_errors=num_errors
-        )
-        if job_id:
-            job.job_id = job_id
-        sess.add(job)
-        sess.commit()
-        return job
 
     @staticmethod
     def insert_file(sess, job_id, status):
@@ -1309,14 +1257,14 @@ class FileTests(BaseTestAPI):
         submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
 
         # Create D1 jobs ready for generation route to be called
-        cls.insert_job(
+        insert_job(
             sess,
             FILE_TYPE_DICT['award_procurement'],
             JOB_STATUS_DICT['ready'],
             JOB_TYPE_DICT['file_upload'],
             submission.submission_id
         )
-        award_roc_val_job = cls.insert_job(
+        award_roc_val_job = insert_job(
             sess,
             FILE_TYPE_DICT['award_procurement'],
             JOB_STATUS_DICT['waiting'],
@@ -1324,14 +1272,14 @@ class FileTests(BaseTestAPI):
             submission.submission_id
         )
         # Create E and F jobs ready for check route
-        exec_comp_job = cls.insert_job(
+        exec_comp_job = insert_job(
             sess,
             FILE_TYPE_DICT['executive_compensation'],
             JOB_STATUS_DICT['finished'],
             JOB_TYPE_DICT['file_upload'],
             submission.submission_id
         )
-        sub_award_job = cls.insert_job(
+        sub_award_job = insert_job(
             sess,
             FILE_TYPE_DICT['sub_award'],
             JOB_STATUS_DICT['invalid'],
@@ -1341,14 +1289,14 @@ class FileTests(BaseTestAPI):
         sub_award_job.error_message = "File was invalid"
 
         # Create D2 jobs
-        cls.insert_job(
+        insert_job(
             sess,
             FILE_TYPE_DICT['award'],
             JOB_STATUS_DICT['finished'],
             JOB_TYPE_DICT['file_upload'],
             submission.submission_id
         )
-        cls.insert_job(
+        insert_job(
             sess,
             FILE_TYPE_DICT['award'],
             JOB_STATUS_DICT['invalid'],
@@ -1374,13 +1322,13 @@ class FileTests(BaseTestAPI):
         }
 
         for job_key, values in job_values.items():
-            job = FileTests.insert_job(
+            job = insert_job(
                 sess,
                 filetype=values[0],
                 status=values[1],
                 type_id=values[2],
                 submission=row_error_submission_id,
-                filename=values[3],
+                original_filename=values[3],
                 file_size=values[4],
                 num_rows=values[5]
             )
@@ -1413,13 +1361,13 @@ class FileTests(BaseTestAPI):
         approp_job = None
 
         for job_key, values in job_values.items():
-            job = FileTests.insert_job(
+            job = insert_job(
                 sess,
                 filetype=values[0],
                 status=values[1],
                 type_id=values[2],
                 submission=submission_id,
-                filename=values[3],
+                original_filename=values[3],
                 file_size=values[4],
                 num_rows=values[5]
             )
@@ -1511,14 +1459,14 @@ class FileTests(BaseTestAPI):
         """Setup jobs table for checking validator unit test error reports."""
         finished = JOB_STATUS_DICT['finished']
         csv_validation = JOB_TYPE_DICT['csv_record_validation']
-        FileTests.insert_job(sess, filetype=FILE_TYPE_DICT['award'], status=finished, type_id=csv_validation,
-                             submission=error_report_submission_id)
-        FileTests.insert_job(sess, filetype=FILE_TYPE_DICT['award_financial'], status=finished, type_id=csv_validation,
-                             submission=error_report_submission_id)
-        FileTests.insert_job(sess, filetype=FILE_TYPE_DICT['appropriations'], status=finished, type_id=csv_validation,
-                             submission=error_report_submission_id)
-        FileTests.insert_job(sess, filetype=FILE_TYPE_DICT['program_activity'], status=finished, type_id=csv_validation,
-                             submission=error_report_submission_id)
+        insert_job(sess, filetype=FILE_TYPE_DICT['award'], status=finished, type_id=csv_validation,
+                   submission=error_report_submission_id)
+        insert_job(sess, filetype=FILE_TYPE_DICT['award_financial'], status=finished, type_id=csv_validation,
+                   submission=error_report_submission_id)
+        insert_job(sess, filetype=FILE_TYPE_DICT['appropriations'], status=finished, type_id=csv_validation,
+                   submission=error_report_submission_id)
+        insert_job(sess, filetype=FILE_TYPE_DICT['program_activity'], status=finished, type_id=csv_validation,
+                   submission=error_report_submission_id)
 
     @classmethod
     def setup_file_data(cls, sess, submission_id):
@@ -1526,7 +1474,7 @@ class FileTests(BaseTestAPI):
         ready = JOB_STATUS_DICT['ready']
         csv_validation = JOB_TYPE_DICT['csv_record_validation']
 
-        job = FileTests.insert_job(
+        job = insert_job(
             sess,
             filetype=FILE_TYPE_DICT['award'],
             status=ready,
@@ -1536,7 +1484,7 @@ class FileTests(BaseTestAPI):
         # everything is fine
         FileTests.insert_file(sess, job.job_id, FILE_STATUS_DICT['complete'])
 
-        job = FileTests.insert_job(
+        job = insert_job(
             sess,
             filetype=FILE_TYPE_DICT['award_financial'],
             status=ready,
@@ -1546,7 +1494,7 @@ class FileTests(BaseTestAPI):
         # bad header
         FileTests.insert_file(sess, job.job_id, FILE_STATUS_DICT['unknown_error'])
 
-        job = FileTests.insert_job(
+        job = insert_job(
             sess,
             filetype=FILE_TYPE_DICT['appropriations'],
             status=ready,
