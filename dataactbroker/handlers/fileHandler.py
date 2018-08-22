@@ -429,7 +429,7 @@ class FileHandler:
             copyfile(file_url, local_file_path)
             return True
 
-    def generate_file(self, submission, file_type, start, end):
+    def generate_file(self, submission, file_type, start, end, agency_type):
         """ Start a file generation job for the specified file type within a submission
 
             Args:
@@ -437,6 +437,8 @@ class FileHandler:
                 file_type: type of file to generate the job for
                 start: the start date for the file to generate
                 end: the end date for the file to generate
+                agency_type: The type of agency (awarding or funding) to generate the file for (only used for D file
+                    generation)
 
             Returns:
                 Results of check_generation or JsonResponse object containing an error if the prerequisite job isn't
@@ -447,9 +449,14 @@ class FileHandler:
             return JsonResponse.error(ValueError("Cannot generate files for FABS submissions"), StatusCode.CLIENT_ERROR)
 
         # if the file is D1 or D2 and we don't have start or end, raise an error
-        if file_type in ['D1', 'D2'] and (not start or not end):
-            return JsonResponse.error(ValueError("Must have a start and end date for D file generation"),
-                                      StatusCode.CLIENT_ERROR)
+        if file_type in ['D1', 'D2']:
+            if not start or not end:
+                return JsonResponse.error(ValueError("Must have a start and end date for D file generation"),
+                                          StatusCode.CLIENT_ERROR)
+            if agency_type not in ['awarding', 'funding']:
+                return JsonResponse.error(ValueError("agency_type must be either awarding or funding for D file "
+                                                     "generation."),
+                                          StatusCode.CLIENT_ERROR)
 
         submission_id = submission.submission_id
         sess = GlobalDB.db().session
@@ -474,7 +481,7 @@ class FileHandler:
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
-        success, error_response = start_generation_job(job, start, end)
+        success, error_response = start_generation_job(job, start, end, agency_type)
 
         log_data['message'] = 'Finished start_generation_job method for submission {}'.format(submission_id)
         logger.debug(log_data)

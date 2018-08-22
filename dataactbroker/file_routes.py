@@ -128,12 +128,17 @@ def add_file_routes(app, is_local, server_path):
         'start': webargs_fields.String(
             validate=webargs_validate.Regexp(DATE_REGEX, error="Must be in the format MM/DD/YYYY")),
         'end': webargs_fields.String(
-            validate=webargs_validate.Regexp(DATE_REGEX, error="Must be in the format MM/DD/YYYY"))
+            validate=webargs_validate.Regexp(DATE_REGEX, error="Must be in the format MM/DD/YYYY")),
+        'agency_type': webargs_fields.String(
+            missing='awarding',
+            validate=webargs_validate.OneOf(('awarding', 'funding'),
+                                            error="Must be either awarding or funding if provided")
+        )
     })
-    def generate_file(submission_id, file_type, start, end):
+    def generate_file(submission_id, file_type, start, end, agency_type):
         """ Generate file from external API """
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.generate_file(submission_id, file_type, start, end)
+        return file_manager.generate_file(submission_id, file_type, start, end, agency_type)
 
     @app.route("/v1/generate_detached_file/", methods=["POST"])
     @requires_login
