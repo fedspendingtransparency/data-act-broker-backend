@@ -297,10 +297,6 @@ def query_data(session, agency_code, agency_type, start, end, page_start, page_s
     else:
         rows = rows.filter(file_model.awarding_agency_code == agency_code)
 
-    print(rows)
-    print(start)
-    print(end)
-    print(agency_code)
     # Slice the final query
     rows = rows.slice(page_start, page_stop)
 
