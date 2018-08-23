@@ -286,11 +286,12 @@ class FileHandler:
                 jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
                                               Job.job_type_id == JOB_TYPE_DICT['file_upload'],
                                               Job.job_status_id == JOB_STATUS_DICT['running'],
-                                              Job.file_type_id.in_(FILE_TYPE_DICT_LETTER_ID['A'],
-                                                                   FILE_TYPE_DICT_LETTER_ID['B'],
-                                                                   FILE_TYPE_DICT_LETTER_ID['C'])).all()
+                                              Job.file_type_id.in_([FILE_TYPE_DICT_LETTER_ID['A'],
+                                                                    FILE_TYPE_DICT_LETTER_ID['B'],
+                                                                    FILE_TYPE_DICT_LETTER_ID['C']])).all()
                 for job in jobs:
                     job.job_status_id = JOB_STATUS_DICT['failed']
+                    job.error_message = json_response.response[0].decode("utf-8")
                 sess.commit()
 
             return json_response
@@ -677,6 +678,7 @@ class FileHandler:
                                               Job.file_type_id == FILE_TYPE_DICT_LETTER_ID['FABS']).all()
                 for job in jobs:
                     job.job_status_id = JOB_STATUS_DICT['failed']
+                    job.error_message = json_response.get('json', {}).get('message', '')
                 sess.commit()
 
             return json_response
