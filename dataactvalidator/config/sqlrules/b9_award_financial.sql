@@ -21,8 +21,7 @@ FROM award_financial_b9_{0} AS af
         ON af.submission_id = sub.submission_id
 WHERE af.program_activity_code <> '0000'
     AND UPPER(af.program_activity_name) <> 'UNKNOWN/OTHER'
-    AND NOT ((sub.reporting_fiscal_year, sub.reporting_fiscal_period) IN (('2017', 6), ('2017', 9))
-        AND sub.publish_status_id <> 1)
+    AND (sub.reporting_fiscal_year, sub.reporting_fiscal_period) NOT IN (('2017', 6), ('2017', 9))
     AND NOT EXISTS (
         SELECT 1
         FROM program_activity AS pa
