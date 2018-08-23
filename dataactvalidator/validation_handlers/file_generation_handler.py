@@ -123,8 +123,16 @@ def generate_d_file(sess, job, agency_code, agency_type, is_local=True, old_file
     fpds_date = last_update.update_date if last_update else current_date
 
     # check if FileRequest already exists with this job_id, if not, create one
-    file_request = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id,
-                                                  FileRequest.agency_type == agency_type).one_or_none()
+    file_request = None
+    file_request_list = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id).all()
+
+    for fr in file_request_list:
+        if fr.agency_type == agency_type:
+            file_request = fr
+        else:
+            fr.is_cached_file = False
+    sess.commit()
+
     if not file_request:
         file_request = FileRequest(request_date=current_date, job_id=job.job_id, start_date=job.start_date,
                                    end_date=job.end_date, agency_code=agency_code, agency_type=agency_type,
