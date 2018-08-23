@@ -27,7 +27,7 @@ def test_job_context_success(database):
     sess.add(job)
     sess.commit()
 
-    with file_generation_handler.job_context(job.job_id, is_local=True):
+    with file_generation_handler.job_context(job.job_id, 'awarding', is_local=True):
         pass    # i.e. be successful
 
     sess.refresh(job)
@@ -43,7 +43,7 @@ def test_job_context_fail(database):
     sess.add(job)
     sess.commit()
 
-    with file_generation_handler.job_context(job.job_id, is_local=True):
+    with file_generation_handler.job_context(job.job_id, 'awarding', is_local=True):
         raise Exception('This failed!')
 
     sess.refresh(job)
@@ -78,7 +78,7 @@ def test_generate_d1_file_query(mock_broker_config_paths, database):
     sess.commit()
 
     with Flask(__name__).app_context():
-        file_generation_handler.generate_d_file(database.session, job, '123', is_local=True)
+        file_generation_handler.generate_d_file(database.session, job, '123', 'awarding', is_local=True)
 
     # check headers
     file_rows = read_file_rows(file_path)
@@ -123,7 +123,7 @@ def test_generate_d2_file_query(mock_broker_config_paths, database):
     sess.commit()
 
     with Flask(__name__).app_context():
-        file_generation_handler.generate_d_file(database.session, job, '123', is_local=True)
+        file_generation_handler.generate_d_file(database.session, job, '123', 'awarding', is_local=True)
 
     # check headers
     file_rows = read_file_rows(file_path)

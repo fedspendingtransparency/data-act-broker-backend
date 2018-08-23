@@ -23,7 +23,7 @@ def test_generate_new_d1_file_success(monkeypatch, mock_broker_config_paths, dat
     sess.commit()
 
     monkeypatch.setattr(file_generation_handler, 'retrieve_job_context_data', Mock(return_value=(sess, job)))
-    FileGenerationManager().generate_from_job(job.job_id, '123')
+    FileGenerationManager().generate_from_job(job.job_id, '123', 'awarding')
 
     sess.refresh(job)
     file_request = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id).one_or_none()
@@ -51,7 +51,7 @@ def test_generate_new_d2_file_success(monkeypatch, mock_broker_config_paths, dat
     sess.commit()
 
     monkeypatch.setattr(file_generation_handler, 'retrieve_job_context_data', Mock(return_value=(sess, job)))
-    FileGenerationManager().generate_from_job(job.job_id, '123')
+    FileGenerationManager().generate_from_job(job.job_id, '123', 'awarding')
 
     sess.refresh(job)
     file_request = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id).one_or_none()
@@ -90,21 +90,21 @@ def test_generate_noncached_d1_file_success(monkeypatch, mock_broker_config_path
     sess.commit()
 
     file_request1 = FileRequestFactory(
-        job=job1, is_cached_file=True, agency_code='124', start_date='01/01/2017', end_date='01/31/2017',
-        file_type='D1', request_date=datetime.now().date())
+        job=job1, is_cached_file=True, agency_code='124', agency_type='awarding', start_date='01/01/2017',
+        end_date='01/31/2017', file_type='D1', request_date=datetime.now().date())
     file_request2 = FileRequestFactory(
-        job=job1, is_cached_file=True, agency_code='123', start_date='01/02/2017', end_date='01/31/2017',
-        file_type='D1', request_date=datetime.now().date())
+        job=job1, is_cached_file=True, agency_code='123', agency_type='awarding', start_date='01/02/2017',
+        end_date='01/31/2017', file_type='D1', request_date=datetime.now().date())
     file_request3 = FileRequestFactory(
-        job=job1, is_cached_file=True, agency_code='123', start_date='01/01/2017', end_date='01/30/2017',
-        file_type='D1', request_date=datetime.now().date())
+        job=job1, is_cached_file=True, agency_code='123', agency_type='awarding', start_date='01/01/2017',
+        end_date='01/30/2017', file_type='D1', request_date=datetime.now().date())
     job = JobFactory(job_status_id=JOB_STATUS_DICT['waiting'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['award_procurement'], start_date='01/01/2017', end_date='01/31/2017')
     sess.add_all([job, file_request1, file_request2, file_request3])
     sess.commit()
 
     monkeypatch.setattr(file_generation_handler, 'retrieve_job_context_data', Mock(return_value=(sess, job)))
-    FileGenerationManager().generate_from_job(job.job_id, '123')
+    FileGenerationManager().generate_from_job(job.job_id, '123', 'awarding')
 
     sess.refresh(job)
     file_request = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id).one_or_none()
@@ -145,21 +145,21 @@ def test_generate_noncached_d2_file_success(monkeypatch, mock_broker_config_path
     sess.commit()
 
     file_request1 = FileRequestFactory(
-        job=job1, is_cached_file=True, agency_code='124', start_date='01/01/2017', end_date='01/31/2017',
-        file_type='D2', request_date=datetime.now().date())
+        job=job1, is_cached_file=True, agency_code='124', agency_type='awarding', start_date='01/01/2017',
+        end_date='01/31/2017', file_type='D2', request_date=datetime.now().date())
     file_request2 = FileRequestFactory(
-        job=job1, is_cached_file=True, agency_code='123', start_date='01/02/2017', end_date='01/31/2017',
-        file_type='D2', request_date=datetime.now().date())
+        job=job1, is_cached_file=True, agency_code='123', agency_type='awarding', start_date='01/02/2017',
+        end_date='01/31/2017', file_type='D2', request_date=datetime.now().date())
     file_request3 = FileRequestFactory(
-        job=job1, is_cached_file=True, agency_code='123', start_date='01/01/2017', end_date='01/30/2017',
-        file_type='D2', request_date=datetime.now().date())
+        job=job1, is_cached_file=True, agency_code='123', agency_type='awarding', start_date='01/01/2017',
+        end_date='01/30/2017', file_type='D2', request_date=datetime.now().date())
     job = JobFactory(job_status_id=JOB_STATUS_DICT['waiting'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['award_procurement'], start_date='01/01/2017', end_date='01/31/2017')
     sess.add_all([job, file_request1, file_request2, file_request3])
     sess.commit()
 
     monkeypatch.setattr(file_generation_handler, 'retrieve_job_context_data', Mock(return_value=(sess, job)))
-    FileGenerationManager().generate_from_job(job.job_id, '123')
+    FileGenerationManager().generate_from_job(job.job_id, '123', 'awarding')
 
     sess.refresh(job)
     file_request = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id).one_or_none()
@@ -189,13 +189,13 @@ def test_regenerate_same_d1_file_success(monkeypatch, mock_broker_config_paths, 
     sess.commit()
 
     file_request = FileRequestFactory(
-        job=job, is_cached_file=True, agency_code='123', start_date='01/01/2017', end_date='01/31/2017',
-        file_type='d1', request_date=datetime.now().date(),)
+        job=job, is_cached_file=True, agency_code='123', agency_type='awarding', start_date='01/01/2017',
+        end_date='01/31/2017', file_type='d1', request_date=datetime.now().date())
     sess.add(file_request)
     sess.commit()
 
     monkeypatch.setattr(file_generation_handler, 'retrieve_job_context_data', Mock(return_value=(sess, job)))
-    FileGenerationManager().generate_from_job(job.job_id, '123')
+    FileGenerationManager().generate_from_job(job.job_id, '123', 'awarding')
 
     sess.refresh(job)
     file_request = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id).one_or_none()
@@ -223,13 +223,13 @@ def test_regenerate_same_d2_file_success(monkeypatch, mock_broker_config_paths, 
     sess.commit()
 
     file_request = FileRequestFactory(
-        job=job, is_cached_file=True, agency_code='123', start_date='01/01/2017', end_date='01/31/2017',
-        file_type='d2', request_date=datetime.now().date(),)
+        job=job, is_cached_file=True, agency_code='123', agency_type='awarding', start_date='01/01/2017',
+        end_date='01/31/2017', file_type='d2', request_date=datetime.now().date())
     sess.add(file_request)
     sess.commit()
 
     monkeypatch.setattr(file_generation_handler, 'retrieve_job_context_data', Mock(return_value=(sess, job)))
-    FileGenerationManager().generate_from_job(job.job_id, '123')
+    FileGenerationManager().generate_from_job(job.job_id, '123', 'awarding')
 
     sess.refresh(job)
     file_request = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id).one_or_none()
@@ -258,8 +258,8 @@ def test_regenerate_new_d1_file_success(monkeypatch, mock_broker_config_paths, d
     sess.commit()
 
     file_request = FileRequestFactory(
-        job=original_job, is_cached_file=True, agency_code='123', start_date='01/01/2017', end_date='01/31/2017',
-        file_type='D1', request_date=datetime.now().date(),)
+        job=original_job, is_cached_file=True, agency_code='123', agency_type='awarding', start_date='01/01/2017',
+        end_date='01/31/2017', file_type='D1', request_date=datetime.now().date())
     new_job = JobFactory(job_status_id=JOB_STATUS_DICT['waiting'], job_type_id=JOB_TYPE_DICT['file_upload'],
                          file_type_id=FILE_TYPE_DICT['award_procurement'], start_date='01/01/2017',
                          end_date='01/31/2017')
@@ -267,7 +267,7 @@ def test_regenerate_new_d1_file_success(monkeypatch, mock_broker_config_paths, d
     sess.commit()
 
     monkeypatch.setattr(file_generation_handler, 'retrieve_job_context_data', Mock(return_value=(sess, new_job)))
-    FileGenerationManager().generate_from_job(new_job.job_id, '123')
+    FileGenerationManager().generate_from_job(new_job.job_id, '123', 'awarding')
 
     sess.refresh(new_job)
     file_request = sess.query(FileRequest).filter(FileRequest.job_id == new_job.job_id).one_or_none()
@@ -296,15 +296,15 @@ def test_regenerate_new_d2_file_success(monkeypatch, mock_broker_config_paths, d
     sess.commit()
 
     file_request = FileRequestFactory(
-        job=original_job, is_cached_file=True, agency_code='123', start_date='01/01/2017', end_date='01/31/2017',
-        file_type='D2', request_date=datetime.now().date(),)
+        job=original_job, is_cached_file=True, agency_code='123', agency_type='awarding', start_date='01/01/2017',
+        end_date='01/31/2017', file_type='D2', request_date=datetime.now().date())
     new_job = JobFactory(job_status_id=JOB_STATUS_DICT['waiting'], job_type_id=JOB_TYPE_DICT['file_upload'],
                          file_type_id=FILE_TYPE_DICT['award'], start_date='01/01/2017', end_date='01/31/2017')
     sess.add_all([file_request, new_job])
     sess.commit()
 
     monkeypatch.setattr(file_generation_handler, 'retrieve_job_context_data', Mock(return_value=(sess, new_job)))
-    FileGenerationManager().generate_from_job(new_job.job_id, '123')
+    FileGenerationManager().generate_from_job(new_job.job_id, '123', 'awarding')
 
     sess.refresh(new_job)
     file_request = sess.query(FileRequest).filter(FileRequest.job_id == new_job.job_id).one_or_none()
@@ -332,13 +332,13 @@ def test_uncache_same_d1_file_fpds_success(monkeypatch, mock_broker_config_paths
     sess.commit()
 
     file_request = FileRequestFactory(
-        job=job, is_cached_file=True, agency_code='123', start_date='01/01/2017', end_date='01/31/2017',
-        file_type='d1', request_date=(datetime.now().date() - timedelta(1)),)
+        job=job, is_cached_file=True, agency_code='123', agency_type='awarding', start_date='01/01/2017',
+        end_date='01/31/2017', file_type='d1', request_date=(datetime.now().date() - timedelta(1)))
     sess.add(file_request)
     sess.commit()
 
     monkeypatch.setattr(file_generation_handler, 'retrieve_job_context_data', Mock(return_value=(sess, job)))
-    FileGenerationManager().generate_from_job(job.job_id, '123')
+    FileGenerationManager().generate_from_job(job.job_id, '123', 'awarding')
 
     sess.refresh(job)
     file_request = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id).one_or_none()
@@ -367,8 +367,8 @@ def test_uncache_new_d1_file_fpds_success(monkeypatch, mock_broker_config_paths,
     sess.commit()
 
     file_request = FileRequestFactory(
-        job=original_job, is_cached_file=True, agency_code='123', start_date='01/01/2017', end_date='01/31/2017',
-        file_type='D1', request_date=(datetime.now().date() - timedelta(1)),)
+        job=original_job, is_cached_file=True, agency_code='123', agency_type='awarding', start_date='01/01/2017',
+        end_date='01/31/2017', file_type='D1', request_date=(datetime.now().date() - timedelta(1)))
     new_job = JobFactory(job_status_id=JOB_STATUS_DICT['waiting'], job_type_id=JOB_TYPE_DICT['file_upload'],
                          file_type_id=FILE_TYPE_DICT['award_procurement'], start_date='01/01/2017',
                          end_date='01/31/2017')
@@ -376,7 +376,7 @@ def test_uncache_new_d1_file_fpds_success(monkeypatch, mock_broker_config_paths,
     sess.commit()
 
     monkeypatch.setattr(file_generation_handler, 'retrieve_job_context_data', Mock(return_value=(sess, new_job)))
-    FileGenerationManager().generate_from_job(new_job.job_id, '123')
+    FileGenerationManager().generate_from_job(new_job.job_id, '123', 'awarding')
 
     sess.refresh(new_job)
     file_request = sess.query(FileRequest).filter(FileRequest.job_id == new_job.job_id).one_or_none()

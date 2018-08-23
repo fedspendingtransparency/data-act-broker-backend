@@ -142,6 +142,7 @@ class FileRequestFactory(factory.Factory):
     start_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     end_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     agency_code = fuzzy.FuzzyText()
+    agency_type=fuzzy.FuzzyChoice({'awarding', 'funding'})
     file_type = fuzzy.FuzzyText()
     is_cached_file = fuzzy.FuzzyChoice((False, True))
 
