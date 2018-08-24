@@ -449,7 +449,7 @@ class FileHandler:
             copyfile(file_url, local_file_path)
             return True
 
-    def generate_file(self, submission, file_type, start, end):
+    def generate_file(self, submission, file_type, start, end, agency_type):
         """ Start a file generation job for the specified file type within a submission
 
             Args:
@@ -457,6 +457,8 @@ class FileHandler:
                 file_type: type of file to generate the job for
                 start: the start date for the file to generate
                 end: the end date for the file to generate
+                agency_type: The type of agency (awarding or funding) to generate the file for (only used for D file
+                    generation)
 
             Returns:
                 Results of check_generation or JsonResponse object containing an error if the prerequisite job isn't
@@ -467,9 +469,14 @@ class FileHandler:
             return JsonResponse.error(ValueError("Cannot generate files for FABS submissions"), StatusCode.CLIENT_ERROR)
 
         # if the file is D1 or D2 and we don't have start or end, raise an error
-        if file_type in ['D1', 'D2'] and (not start or not end):
-            return JsonResponse.error(ValueError("Must have a start and end date for D file generation"),
-                                      StatusCode.CLIENT_ERROR)
+        if file_type in ['D1', 'D2']:
+            if not start or not end:
+                return JsonResponse.error(ValueError("Must have a start and end date for D file generation"),
+                                          StatusCode.CLIENT_ERROR)
+            if agency_type not in ['awarding', 'funding']:
+                return JsonResponse.error(ValueError("agency_type must be either awarding or funding for D file "
+                                                     "generation."),
+                                          StatusCode.CLIENT_ERROR)
 
         submission_id = submission.submission_id
         sess = GlobalDB.db().session
@@ -494,7 +501,7 @@ class FileHandler:
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
-        success, error_response = start_generation_job(job, start, end)
+        success, error_response = start_generation_job(job, start, end, agency_type)
 
         log_data['message'] = 'Finished start_generation_job method for submission {}'.format(submission_id)
         logger.debug(log_data)
@@ -526,7 +533,7 @@ class FileHandler:
         # Return same response as check generation route
         return self.check_generation(submission, file_type)
 
-    def generate_detached_file(self, file_type, cgac_code, frec_code, start, end):
+    def generate_detached_file(self, file_type, cgac_code, frec_code, start, end, agency_type):
         """ Start a file generation job for the specified file type not connected to a submission
 
             Args:
@@ -535,6 +542,7 @@ class FileHandler:
                 frec_code: the code of a FREC agency if generating for a FREC agency
                 start: start date in a string, formatted MM/DD/YYYY
                 end: end date in a string, formatted MM/DD/YYYY
+                agency_type: The type of agency (awarding or funding) to generate the file for
 
             Returns:
                 JSONResponse object with keys job_id, status, file_type, url, message, start, and end.
@@ -551,6 +559,10 @@ class FileHandler:
         if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
             raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
 
+        if agency_type not in ('awarding', 'funding'):
+            return JsonResponse.error(ValueError("agency_type must be either awarding or funding."),
+                                      StatusCode.CLIENT_ERROR)
+
         # Add job info
         file_type_name = FILE_TYPE_DICT_ID[FILE_TYPE_DICT_LETTER_ID[file_type]]
         new_job = self.add_generation_job_info(file_type_name=file_type_name, start_date=start, end_date=end)
@@ -566,7 +578,7 @@ class FileHandler:
             'end_date': end
         })
 
-        start_generation_job(new_job, start, end, agency_code)
+        start_generation_job(new_job, start, end, agency_type, agency_code)
 
         # Return same response as check generation route
         return self.check_detached_generation(new_job.job_id)
