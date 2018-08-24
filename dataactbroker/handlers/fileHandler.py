@@ -672,13 +672,13 @@ class FileHandler:
                 json_response = JsonResponse.error(Exception("Failed to catch exception"), StatusCode.INTERNAL_ERROR)
 
             if json_response.status_code != StatusCode.OK and submission:
-                jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
-                                              Job.job_type_id == JOB_TYPE_DICT['file_upload'],
-                                              Job.job_status_id == JOB_STATUS_DICT['running'],
-                                              Job.file_type_id == FILE_TYPE_DICT_LETTER_ID['FABS']).all()
-                for job in jobs:
-                    job.job_status_id = JOB_STATUS_DICT['failed']
-                    job.error_message = json_response.get('json', {}).get('message', '')
+                fabs_job = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                                  Job.job_type_id == JOB_TYPE_DICT['file_upload'],
+                                                  Job.job_status_id == JOB_STATUS_DICT['running'],
+                                                  Job.file_type_id == FILE_TYPE_DICT_LETTER_ID['FABS']).one_or_none()
+                if fabs_job:
+                    fabs_job.job_status_id = JOB_STATUS_DICT['failed']
+                    fabs_job.error_message = json_response.get('json', {}).get('message', '')
                 sess.commit()
 
             return json_response
