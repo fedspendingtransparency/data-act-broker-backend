@@ -21,7 +21,6 @@ from dataactvalidator.validation_handlers.validationManager import ValidationMan
 USE_DATADOG = False
 
 if USE_DATADOG:
-    import blinker as _
     from ddtrace import tracer
     from ddtrace.contrib.flask import TraceMiddleware
 

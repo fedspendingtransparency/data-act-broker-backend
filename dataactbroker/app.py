@@ -25,7 +25,6 @@ from dataactcore.utils.statusCode import StatusCode
 USE_DATADOG = False
 
 if USE_DATADOG:
-    import blinker as _
     from ddtrace import tracer
     from ddtrace.contrib.flask import TraceMiddleware
 
