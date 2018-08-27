@@ -333,6 +333,10 @@ def copy_parent_file_request_data(sess, child_job, parent_job, is_local):
             parent_job: Job object for the parent FileRequest
             is_local: True if in local development, False otherwise
     """
+    # Do not edit submissions that have successfully completed
+    if child_job.job_status_id == JOB_STATUS_DICT['finished']:
+        return
+
     # Keep path but update file name
     filename = '{}/{}'.format(child_job.filename.rsplit('/', 1)[0], parent_job.original_filename)
 
