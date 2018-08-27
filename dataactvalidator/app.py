@@ -17,6 +17,15 @@ from dataactvalidator.validation_handlers.file_generation_manager import FileGen
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 
+    """Datadog import"""
+USE_DATADOG = False
+
+if USE_DATADOG:
+    import blinker as _
+    from flask import Flask
+    from ddtrace import tracer
+    from ddtrace.contrib.flask import TraceMiddleware
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,6 +36,10 @@ def create_app():
 def run_app():
     """Run the application."""
     app = create_app()
+
+    """This is for DataDog"""
+    if USE_DATADOG:
+        traced_app = TraceMiddleware(flask_app, tracer, service="broker", distributed_tracing=False)
 
     with app.app_context():
         current_app.debug = CONFIG_SERVICES['debug']

@@ -4,6 +4,15 @@ from dataactcore.config import CONFIG_SERVICES
 from dataactcore.logging import configure_logging
 from dataactcore.utils.jsonResponse import JsonResponse
 
+    """Datadog import"""
+USE_DATADOG = False
+
+if USE_DATADOG:
+    import blinker as _
+    from flask import Flask
+    from ddtrace import tracer
+    from ddtrace.contrib.flask import TraceMiddleware
+
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +36,11 @@ def create_app():
 def run_app():
     """Run the application."""
     flask_app = create_app()
+
+    """This is for DataDog"""
+    if USE_DATADOG:
+        traced_app = TraceMiddleware(flask_app, tracer, service="broker", distributed_tracing=False)
+        
     flask_app.run(
         threaded=True,
         host=CONFIG_SERVICES['validator_host'],
