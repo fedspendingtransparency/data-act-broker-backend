@@ -33,16 +33,18 @@ class FileGenerationManager:
         self.is_local = is_local
         self.sess = GlobalDB.db().session
 
-    def generate_from_job(self, job_id, agency_code):
+    def generate_from_job(self, job_id, agency_code, agency_type):
         """ Generates a file for a specified job
 
             Args:
                 job_id: ID of the upload Job
                 agency_code: FREC or CGAC code to generate data from
+                agency_type: The type of agency (awarding or funding) to generate the file for (only used for D file
+                    generation)
         """
         mark_job_status(job_id, 'running')
 
-        with job_context(job_id, self.is_local) as context:
+        with job_context(job_id, agency_type, self.is_local) as context:
             sess, job = context
 
             # Ensure this is a file generation job
@@ -68,6 +70,7 @@ class FileGenerationManager:
                 job.filename = "".join([CONFIG_BROKER['broker_files'], job.original_filename])
             else:
                 job.filename = "".join([str(job.submission_id), "/", job.original_filename])
+            sess.commit()
 
             # Generate the file and upload to S3
             if job.file_type.letter_name in ['D1', 'D2']:
@@ -75,7 +78,7 @@ class FileGenerationManager:
                 if job.submission_id:
                     self.update_validation_job_info(job)
 
-                generate_d_file(sess, job, agency_code, self.is_local, old_filename)
+                generate_d_file(sess, job, agency_code, agency_type, self.is_local, old_filename)
             elif job.file_type.letter_name == 'E':
                 generate_e_file(sess, job, self.is_local)
             else:

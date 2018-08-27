@@ -429,7 +429,7 @@ class FileHandler:
             copyfile(file_url, local_file_path)
             return True
 
-    def generate_file(self, submission, file_type, start, end):
+    def generate_file(self, submission, file_type, start, end, agency_type):
         """ Start a file generation job for the specified file type within a submission
 
             Args:
@@ -437,6 +437,8 @@ class FileHandler:
                 file_type: type of file to generate the job for
                 start: the start date for the file to generate
                 end: the end date for the file to generate
+                agency_type: The type of agency (awarding or funding) to generate the file for (only used for D file
+                    generation)
 
             Returns:
                 Results of check_generation or JsonResponse object containing an error if the prerequisite job isn't
@@ -447,9 +449,14 @@ class FileHandler:
             return JsonResponse.error(ValueError("Cannot generate files for FABS submissions"), StatusCode.CLIENT_ERROR)
 
         # if the file is D1 or D2 and we don't have start or end, raise an error
-        if file_type in ['D1', 'D2'] and (not start or not end):
-            return JsonResponse.error(ValueError("Must have a start and end date for D file generation"),
-                                      StatusCode.CLIENT_ERROR)
+        if file_type in ['D1', 'D2']:
+            if not start or not end:
+                return JsonResponse.error(ValueError("Must have a start and end date for D file generation"),
+                                          StatusCode.CLIENT_ERROR)
+            if agency_type not in ['awarding', 'funding']:
+                return JsonResponse.error(ValueError("agency_type must be either awarding or funding for D file "
+                                                     "generation."),
+                                          StatusCode.CLIENT_ERROR)
 
         submission_id = submission.submission_id
         sess = GlobalDB.db().session
@@ -474,7 +481,7 @@ class FileHandler:
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
-        success, error_response = start_generation_job(job, start, end)
+        success, error_response = start_generation_job(job, start, end, agency_type)
 
         log_data['message'] = 'Finished start_generation_job method for submission {}'.format(submission_id)
         logger.debug(log_data)
@@ -506,7 +513,7 @@ class FileHandler:
         # Return same response as check generation route
         return self.check_generation(submission, file_type)
 
-    def generate_detached_file(self, file_type, cgac_code, frec_code, start, end):
+    def generate_detached_file(self, file_type, cgac_code, frec_code, start, end, agency_type):
         """ Start a file generation job for the specified file type not connected to a submission
 
             Args:
@@ -515,6 +522,7 @@ class FileHandler:
                 frec_code: the code of a FREC agency if generating for a FREC agency
                 start: start date in a string, formatted MM/DD/YYYY
                 end: end date in a string, formatted MM/DD/YYYY
+                agency_type: The type of agency (awarding or funding) to generate the file for
 
             Returns:
                 JSONResponse object with keys job_id, status, file_type, url, message, start, and end.
@@ -531,6 +539,10 @@ class FileHandler:
         if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
             raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
 
+        if agency_type not in ('awarding', 'funding'):
+            return JsonResponse.error(ValueError("agency_type must be either awarding or funding."),
+                                      StatusCode.CLIENT_ERROR)
+
         # Add job info
         file_type_name = FILE_TYPE_DICT_ID[FILE_TYPE_DICT_LETTER_ID[file_type]]
         new_job = self.add_generation_job_info(file_type_name=file_type_name, start_date=start, end_date=end)
@@ -546,7 +558,7 @@ class FileHandler:
             'end_date': end
         })
 
-        start_generation_job(new_job, start, end, agency_code)
+        start_generation_job(new_job, start, end, agency_type, agency_code)
 
         # Return same response as check generation route
         return self.check_detached_generation(new_job.job_id)
@@ -1015,9 +1027,25 @@ class FileHandler:
 
         jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id).all()
 
-        # set all jobs to their initial status of "waiting"
+        # set all jobs to their initial status of either "waiting" or "ready"
         for job in jobs:
-            job.job_status_id = JOB_STATUS_DICT['waiting']
+            if job.job_type_id == JOB_TYPE_DICT["file_upload"] and \
+               job.file_type_id in [FILE_TYPE_DICT["award"], FILE_TYPE_DICT["award_procurement"]]:
+                # file generation handled on backend, mark as ready
+                job.job_status_id = JOB_STATUS_DICT['ready']
+                file_request = sess.query(FileRequest).filter_by(job_id=job.job_id).one_or_none()
+
+                # uncache any related D file requests
+                if file_request:
+                    file_request.is_cached_file = False
+                    if file_request.parent_job_id:
+                        parent_file_request = sess.query(FileRequest).filter_by(job_id=file_request.parent_job_id).\
+                            one_or_none()
+                        if parent_file_request:
+                            parent_file_request.is_cached_file = False
+            else:
+                # these are dependent on file D2 validation
+                job.job_status_id = JOB_STATUS_DICT['waiting']
 
         # update upload jobs to "running" for files A, B, and C for DABS submissions or for the upload job in FABS
         upload_jobs = [job for job in jobs if job.job_type_id in [JOB_TYPE_DICT['file_upload']] and
@@ -1512,7 +1540,10 @@ def add_list_submission_filters(query, filters):
     if 'submission_ids' in filters:
         sub_list = filters['submission_ids']
         if sub_list and isinstance(sub_list, list):
-            sub_list = [int(sub_id) for sub_id in sub_list]
+            try:
+                sub_list = [int(sub_id) for sub_id in sub_list]
+            except ValueError:
+                raise ResponseException("All submission_ids must be valid submission IDs", StatusCode.CLIENT_ERROR)
             query = query.filter(Submission.submission_id.in_(sub_list))
         elif sub_list:
             raise ResponseException("submission_ids filter must be null or an array", StatusCode.CLIENT_ERROR)
@@ -1591,6 +1622,17 @@ def add_list_submission_filters(query, filters):
             query = query.filter(Submission.submission_id.in_(sub_query))
         elif file_list:
             raise ResponseException("file_names filter must be null or an array", StatusCode.CLIENT_ERROR)
+    # User ID filter
+    if 'user_ids' in filters:
+        user_list = filters['user_ids']
+        if user_list and isinstance(user_list, list):
+            try:
+                user_list = [int(user_id) for user_id in user_list]
+            except ValueError:
+                raise ResponseException("All user_ids must be valid user IDs", StatusCode.CLIENT_ERROR)
+            query = query.filter(Submission.user_id.in_(user_list))
+        elif user_list:
+            raise ResponseException("user_ids filter must be null or an array", StatusCode.CLIENT_ERROR)
     return query
 
 

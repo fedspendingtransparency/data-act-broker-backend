@@ -22,7 +22,7 @@ dataactbroker/
 The `/dataactbroker/scripts` folder contains the install scripts needed to setup the broker API for a local install. For complete instructions on running your own copy of the API and other DATA Act broker components, please refer to the [documentation in the DATA Act core responsitory](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md "DATA Act broker installation guide").
 
 ### Handlers
-The `dataactbroker/handlers` folder contains the logic to handle requests that are dispatched from the `domainRoutes.py`, `fileRoutes.py`, `loginRoutes.py`, and `userRoutes.py` files. Routes defined in these files may include the `@requires_login` and `@requires_submission_perms` tags to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in, as well as checking the user's permissions to determine if the user has access to this route. If user is not logged in to the system or does not have access to the route, a 401 HTTP error will be returned. This tags are defined in `dataactbroker/permissions.py`.
+The `dataactbroker/handlers` folder contains the logic to handle requests that are dispatched from the `domainRoutes.py`, `file_routes.py`, `loginRoutes.py`, and `user_routes.py` files. Routes defined in these files may include the `@requires_login` and `@requires_submission_perms` tags to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in, as well as checking the user's permissions to determine if the user has access to this route. If user is not logged in to the system or does not have access to the route, a 401 HTTP error will be returned. This tags are defined in `dataactbroker/permissions.py`.
 
 `account_handler.py` contains the functions to check logins and to log users out.
 
@@ -938,7 +938,8 @@ This endpoint lists submissions for all agencies for which the current user is a
             "end_date": "01/10/2018"
         },
         "agency_codes": ["123", "4567"],
-        "file_names": ["file_a", "test"]
+        "file_names": ["file_a", "test"],
+        "user_ids: [1, 2]
     }
 }
 ```
@@ -968,6 +969,7 @@ This endpoint lists submissions for all agencies for which the current user is a
         - `end_date` - a string indicating the end date for the last modified date range (inclusive) (MM/DD/YYYY)
     - `agency_codes` - an array of strings containing CGAC and FREC codes
     - `file_names` - an array of strings containing total or partial matches to file names (including timestamps), will match any file name including generated ones
+    - `user_ids` - an array of integers or strings that limits the list of submissions to only ones created by users within the array.
 
 ##### Response (JSON)
 
@@ -1047,6 +1049,45 @@ Possible HTTP Status Codes:
 
 - 400: Invalid types in a filter, invalid values in a filter, missing required parameter
 - 401: Login required
+
+
+#### GET "/v1/list\_submission\_users"
+This endpoint lists all users with submissions that the requesting user can view, sorted by user name.
+
+##### Sample Request
+`/v1/list_submission_users?d2_submission=False`
+
+##### Request Params
+- `d2_submission` - **optional** - a boolean indicating if the submissions checked should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
+
+##### Response (JSON)
+
+```json
+{
+  "users": [
+    {
+      "user_id": 4,
+      "name": "Another User"
+    },
+    {
+      "user_id": 1,
+      "name": "User One"
+    }
+  ]
+}
+```
+
+##### Response Attributes
+
+- `users` - An array of objects that contain the user's ID and name:
+    - `user_id` - an integer indicating ID of the user
+    - `name` - a string containing the name of the user
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 401: Login required
+
 
 #### POST "/v1/list_certifications/"
 List certifications for a single submission
@@ -1213,7 +1254,8 @@ This route sends a request to the backend to utilize the relevant external APIs 
     "submission_id": 123,
     "file_type": "D1"
     "start": "01/01/2016",
-    "end": "03/31/2016"
+    "end": "03/31/2016",
+    "agency_type": "awarding"
 }
 ```
 
@@ -1227,6 +1269,9 @@ This route sends a request to the backend to utilize the relevant external APIs 
     - `F` - generate a F file
 - `start` - **required for D1/D2 only** - the start date of the requested date range, in `MM/DD/YYYY` string format, should not be passed for E/F generation
 - `end` - **required for D1/D2 only** - the end date of the requested date range, in `MM/DD/YYYY` string format, should not be passed for E/F generation
+- `agency_type` - **optional, used only in D1/D2** - a string indicating if the file generated should be based on awarding or funding agency. Defaults to `awarding` if not provided. Only allowed values are:
+    - `awarding`
+    - `funding`
 
 #### Response (JSON)
 Response will be the same format as those which are returned in the `/v1/check_generation_status` endpoint.
@@ -1250,7 +1295,8 @@ This route sends a request to the backend to utilize the relevant external APIs 
     "file_type": "D1",
     "cgac_code": "020",
     "start": "01/01/2016",
-    "end": "03/31/2016"
+    "end": "03/31/2016",
+    "agency_type": "awarding"
 }
 ```
 
@@ -1262,6 +1308,9 @@ This route sends a request to the backend to utilize the relevant external APIs 
 - `cgac_code` - **required** - the cgac of the agency for which to generate the files for
 - `start` - **required** - the start date of the requested date range, in `MM/DD/YYYY` string format
 - `end` - **required** - the end date of the requested date range, in `MM/DD/YYYY` string format
+- `agency_type` - **optional** - a string indicating if the file generated should be based on awarding or funding agency. Defaults to `awarding` if not provided. Only allowed values are:
+    - `awarding`
+    - `funding`
 
 #### Response (JSON)
 Response will be the same format as those returned from `/v1/check_generation_status` endpoint with the exception that only D1 and D2 files will ever be present, never E or F.
