@@ -76,10 +76,13 @@ def run_app():
                     else:
                         # Retrieve the agency code data from the message attributes
                         msg_attr = current_message.message_attributes
-                        agency_code = msg_attr['agency_code']['StringValue'] if msg_attr else None
+                        agency_code = msg_attr['agency_code']['StringValue'] if msg_attr and \
+                            msg_attr.get('agency_code') else None
+                        agency_type = msg_attr['agency_type']['StringValue'] if msg_attr and \
+                            msg_attr.get('agency_type') else None
 
                         file_generation_manager = FileGenerationManager(local)
-                        file_generation_manager.generate_from_job(job.job_id, agency_code)
+                        file_generation_manager.generate_from_job(job.job_id, agency_code, agency_type)
 
                     # Delete from SQS once processed
                     message.delete()

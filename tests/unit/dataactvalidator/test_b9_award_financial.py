@@ -45,7 +45,7 @@ def test_success_null(database):
     af = AwardFinancialFactory(row_number=1, agency_identifier='test', main_account_code='test',
                                program_activity_name=None, program_activity_code=None)
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY17Q2', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_quarter='FY17Q4', agency_id='test', allocation_transfer_id='test',
                                 account_number='test')
 
     assert number_of_errors(_FILE, database, models=[af, pa]) == 0
@@ -90,7 +90,7 @@ def test_failure_fiscal_year_quarter(database):
 
 
 def test_success_ignore_recertification(database):
-    """ Testing invalid program_activity, ignored since recertification for FY2017Q2 or FY2017Q3 """
+    """ Testing invalid program_activity, ignored since FY2017Q2 or FY2017Q3 """
 
     populate_publish_status(database)
 
@@ -100,27 +100,17 @@ def test_success_ignore_recertification(database):
     pa = ProgramActivityFactory(fiscal_year_quarter='FY17Q3', agency_id='test2', allocation_transfer_id='test2',
                                 account_number='test2', program_activity_name='test2', program_activity_code='test2')
 
+    # Test with published submission
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=9,
                                    publish_status_id=PUBLISH_STATUS_DICT['published'])
 
     assert number_of_errors(_FILE, database, models=[af, pa], submission=submission) == 0
 
-
-def test_failure_recertification(database):
-    """ Testing invalid program_activity, not ignored since not recertification for FY2017Q2 or FY2017Q3 """
-
-    populate_publish_status(database)
-
-    af = AwardFinancialFactory(row_number=1, submission_id=1, agency_identifier='test',
-                               main_account_code='test', program_activity_name='test', program_activity_code='test')
-
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY17Q3', agency_id='test2', allocation_transfer_id='test2',
-                                account_number='test2', program_activity_name='test2', program_activity_code='test2')
-
-    submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=9,
+    # Test with unpublished submission
+    submission = SubmissionFactory(submission_id=2, reporting_fiscal_year='2017', reporting_fiscal_period=9,
                                    publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
 
-    assert number_of_errors(_FILE, database, models=[af, pa], submission=submission) == 1
+    assert number_of_errors(_FILE, database, models=[af, pa], submission=submission) == 0
 
 
 def test_success_ignore_case(database):
