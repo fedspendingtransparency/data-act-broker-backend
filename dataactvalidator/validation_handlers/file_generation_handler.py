@@ -63,17 +63,22 @@ def job_context(job_id, agency_type, is_local=True):
             mark_job_status(job.job_id, "failed")
 
             # ensure FileRequest from failed job is not cached
-            file_request = sess.query(FileRequest).filter_by(job_id=job.job_id, agency_type=agency_type).one_or_none()
+            file_request = sess.query(FileRequest).filter_by(job_id=job.job_id, agency_type=agency_type,
+                                                             start_date=job.start_date, end_date=job.end_date).\
+                one_or_none()
             if file_request and file_request.is_cached_file:
                 file_request.is_cached_file = False
 
             sess.commit()
 
         finally:
-            file_request = sess.query(FileRequest).filter_by(job_id=job.job_id, agency_type=agency_type).one_or_none()
+            file_request = sess.query(FileRequest).filter_by(job_id=job.job_id, agency_type=agency_type,
+                                                             start_date=job.start_date, end_date=job.end_date).\
+                one_or_none()
             if file_request and file_request.is_cached_file:
                 # copy job data to all child FileRequests
-                child_requests = sess.query(FileRequest).filter_by(parent_job_id=job.job_id, agency_type=agency_type).\
+                child_requests = sess.query(FileRequest).filter_by(parent_job_id=job.job_id, agency_type=agency_type,
+                                                                   start_date=job.start_date, end_date=job.end_date).\
                     all()
                 if len(child_requests) > 0:
                     logger.info({'message': 'Copying file data from job {} to its children'.format(job.job_id),
@@ -127,7 +132,7 @@ def generate_d_file(sess, job, agency_code, agency_type, is_local=True, old_file
     file_request_list = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id).all()
 
     for fr in file_request_list:
-        if fr.agency_type == agency_type:
+        if fr.agency_type == agency_type and fr.start_date == job.start_date and fr.end_date == job.end_date:
             file_request = fr
         else:
             fr.is_cached_file = False
@@ -328,6 +333,10 @@ def copy_parent_file_request_data(sess, child_job, parent_job, is_local):
             parent_job: Job object for the parent FileRequest
             is_local: True if in local development, False otherwise
     """
+    # Do not edit submissions that have successfully completed
+    if child_job.job_status_id == JOB_STATUS_DICT['finished']:
+        return
+
     # Keep path but update file name
     filename = '{}/{}'.format(child_job.filename.rsplit('/', 1)[0], parent_job.original_filename)
 
