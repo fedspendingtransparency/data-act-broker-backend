@@ -38,7 +38,7 @@ def run_app():
 # This is for DataDog
     if USE_DATADOG:
         traced_app = TraceMiddleware(flask_app, tracer, service="broker-dd", distributed_tracing=False)
-        
+
     flask_app.run(
         threaded=True,
         host=CONFIG_SERVICES['validator_host'],
