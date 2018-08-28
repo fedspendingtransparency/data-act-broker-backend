@@ -122,15 +122,15 @@ def test_ignored_and_failed_federal_action_obligation_values(database):
     afa = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=0,
                                           original_loan_subsidy_cost='1', assistance_type='08')
     afa_2 = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=2,
-                                            original_loan_subsidy_cost='1', assistance_type='07')
+                                            original_loan_subsidy_cost='1', assistance_type='09')
     af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=None, uri=None)
 
     errors = number_of_errors(_FILE, database, models=[afa, af, afa_2])
     assert errors == 2
 
-    # Test that this is ignored if assistance type is 07
+    # Test that this is ignored if assistance type is 09
     afa = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=0,
-                                          original_loan_subsidy_cost='1', assistance_type='07')
+                                          original_loan_subsidy_cost='1', assistance_type='09')
     af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=None, uri=None)
 
     errors = number_of_errors(_FILE, database, models=[afa, af])
@@ -143,9 +143,9 @@ def test_ignored_and_failed_original_loan_subsidy_cost_values(database):
 
     tas = _TAS
     afa = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=1,
-                                          original_loan_subsidy_cost='0', assistance_type='07')
+                                          original_loan_subsidy_cost='0', assistance_type='09')
     afa_2 = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=1,
-                                            original_loan_subsidy_cost='-2.3', assistance_type='07')
+                                            original_loan_subsidy_cost='-2.3', assistance_type='09')
     afa_3 = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=1,
                                             original_loan_subsidy_cost='2.3', assistance_type='08')
     af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=None, uri=None)
