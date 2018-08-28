@@ -28,6 +28,7 @@ if USE_DATADOG:
     from ddtrace import tracer
     from ddtrace.contrib.flask import TraceMiddleware
 
+
 def create_app():
     """Set up the application."""
     flask_app = Flask(__name__.split('.')[0])
@@ -107,7 +108,7 @@ def run_app():
 
 # This is for DataDog
     if USE_DATADOG:
-        traced_app = TraceMiddleware(flask_app, tracer, service="broker-dd", distributed_tracing=False)
+        TraceMiddleware(flask_app, tracer, service="broker-dd", distributed_tracing=False)
 
     flask_app.run(
         threaded=True,

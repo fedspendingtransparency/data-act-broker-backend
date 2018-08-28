@@ -37,7 +37,7 @@ def run_app():
 
 # This is for DataDog
     if USE_DATADOG:
-        traced_app = TraceMiddleware(flask_app, tracer, service="broker-dd", distributed_tracing=False)
+        TraceMiddleware(app, tracer, service="broker-dd", distributed_tracing=False)
 
     with app.app_context():
         current_app.debug = CONFIG_SERVICES['debug']
