@@ -17,6 +17,13 @@ from dataactvalidator.validation_handlers.file_generation_manager import FileGen
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 
+# DataDog Import (the below value gets changed via Ansible during deployment. DO NOT DELETE)
+USE_DATADOG = False
+
+if USE_DATADOG:
+    from ddtrace import tracer
+    from ddtrace.contrib.flask import TraceMiddleware
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,6 +34,10 @@ def create_app():
 def run_app():
     """Run the application."""
     app = create_app()
+
+    # This is for DataDog (Do Not Delete)
+    if USE_DATADOG:
+        TraceMiddleware(app, tracer, service="broker-dd", distributed_tracing=False)
 
     with app.app_context():
         current_app.debug = CONFIG_SERVICES['debug']
