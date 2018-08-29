@@ -35,7 +35,7 @@ def run_app():
     """Run the application."""
     app = create_app()
 
-# This is for DataDog (Do Not Delete)
+    # This is for DataDog (Do Not Delete)
     if USE_DATADOG:
         TraceMiddleware(app, tracer, service="broker-dd", distributed_tracing=False)
 

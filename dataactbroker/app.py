@@ -106,7 +106,7 @@ def run_app():
     """runs the application"""
     flask_app = create_app()
 
-# This is for DataDog (Do not delete)
+    # This is for DataDog (Do Not Delete)
     if USE_DATADOG:
         TraceMiddleware(flask_app, tracer, service="broker-dd", distributed_tracing=False)
 
