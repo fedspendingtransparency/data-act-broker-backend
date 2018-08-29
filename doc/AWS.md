@@ -29,33 +29,6 @@ Assumptions:
 
 ## Set Up AWS Permissions and Credentials
 
-### Create S3 Only Role
-
-When storing files on S3, it is a best practice to use AWS roles with the DATA Act broker. AWS roles provide a safe, automated key management mechanism to access and use AWS resources. At a minimum, this role should be granted Full S3 access permissions.
-
-The DATA Act broker supports the creation of Security Token Service (STS) tokens that limit a user's permissions to only file uploads. To set this up, create an IAM Role on the targeted AWS account. This role should have the following permission JSON, where the `s3-bucket-name` is the name of the S3 bucket created above.
-
-    {
-        "Version": "2016-01-29",
-        "Statement": [
-            {
-                "Sid": "Stmt123456",
-                "Effect": "Allow",
-                "Action": [
-                    "s3:PutObjectAcl"
-                ],
-                "Resource": [
-                    "arn:aws:s3:::s3-bucket-name",
-                    "arn:aws:s3:::s3-bucket-name/*",
-                ]
-            }
-        ]
-    }
-
-In addition to the permission JSON, create a Trust Relationship for the IAM role, allowing the broker to assume the S3 uploading role during token creation.
-
-The `REGION` should be replaced with region of the AWS account and the `ACCOUNT_ID` should be replaced with the AWS account ID.
-
 ### AWS Command Line Interface (CLI) Tools
 
 AWS credentials should be managed by the AWS CLI.

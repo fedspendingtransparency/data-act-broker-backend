@@ -78,7 +78,7 @@ def test_failure_fiscal_year_quarter(database):
 
 
 def test_failure_success_ignore_recertification(database):
-    """ Testing invalid program activity, ingored since recertification FY2017 Q2 or Q3 """
+    """ Testing invalid program activity, ingored since FY2017 Q2 or Q3 """
 
     populate_publish_status(database)
 
@@ -91,28 +91,17 @@ def test_failure_success_ignore_recertification(database):
     pa = ProgramActivityFactory(fiscal_year_quarter='FY14Q1', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
+    # Test with published submission
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=6,
                                    publish_status_id=PUBLISH_STATUS_DICT['updated'])
 
     assert number_of_errors(_FILE, database, models=[op, pa], submission=submission) == 0
 
-
-def test_failure_not_recertification(database):
-    """ Testing invalid program activity, ingored since not recertification FY2017 Q2 or Q3 """
-
-    populate_publish_status(database)
-
-    op = ObjectClassProgramActivityFactory(row_number=1, submission_id=1, agency_identifier='test2',
-                                           main_account_code='test2', program_activity_name='test2',
-                                           program_activity_code='test2')
-
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY14Q1', agency_id='test', allocation_transfer_id='test',
-                                account_number='test', program_activity_name='test', program_activity_code='test')
-
-    submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=6,
+    # Test with unpublished submission
+    submission = SubmissionFactory(submission_id=2, reporting_fiscal_year='2017', reporting_fiscal_period=6,
                                    publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
 
-    assert number_of_errors(_FILE, database, models=[op, pa], submission=submission) == 1
+    assert number_of_errors(_FILE, database, models=[op, pa], submission=submission) == 0
 
 
 def test_success_unknown_value(database):

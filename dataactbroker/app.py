@@ -12,7 +12,7 @@ from dataactbroker.handlers.account_handler import AccountHandler
 from dataactbroker.handlers.aws.sesEmail import SesEmail
 from dataactbroker.handlers.aws.session import UserSessionInterface
 from dataactbroker.loginRoutes import add_login_routes
-from dataactbroker.userRoutes import add_user_routes
+from dataactbroker.user_routes import add_user_routes
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
@@ -20,6 +20,13 @@ from dataactcore.models.userModel import User
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+
+# DataDog Import (the below value gets changed via Ansible during deployment. DO NOT DELETE)
+USE_DATADOG = False
+
+if USE_DATADOG:
+    from ddtrace import tracer
+    from ddtrace.contrib.flask import TraceMiddleware
 
 
 def create_app():
@@ -98,6 +105,11 @@ def create_app():
 def run_app():
     """runs the application"""
     flask_app = create_app()
+
+    # This is for DataDog (Do Not Delete)
+    if USE_DATADOG:
+        TraceMiddleware(flask_app, tracer, service="broker-dd", distributed_tracing=False)
+
     flask_app.run(
         threaded=True,
         host=CONFIG_SERVICES['broker_api_host'],

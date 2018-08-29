@@ -17,6 +17,13 @@ from dataactvalidator.validation_handlers.file_generation_manager import FileGen
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 
+# DataDog Import (the below value gets changed via Ansible during deployment. DO NOT DELETE)
+USE_DATADOG = False
+
+if USE_DATADOG:
+    from ddtrace import tracer
+    from ddtrace.contrib.flask import TraceMiddleware
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,6 +34,10 @@ def create_app():
 def run_app():
     """Run the application."""
     app = create_app()
+
+    # This is for DataDog (Do Not Delete)
+    if USE_DATADOG:
+        TraceMiddleware(app, tracer, service="broker-dd", distributed_tracing=False)
 
     with app.app_context():
         current_app.debug = CONFIG_SERVICES['debug']
@@ -76,10 +87,13 @@ def run_app():
                     else:
                         # Retrieve the agency code data from the message attributes
                         msg_attr = current_message.message_attributes
-                        agency_code = msg_attr['agency_code']['StringValue'] if msg_attr else None
+                        agency_code = msg_attr['agency_code']['StringValue'] if msg_attr and \
+                            msg_attr.get('agency_code') else None
+                        agency_type = msg_attr['agency_type']['StringValue'] if msg_attr and \
+                            msg_attr.get('agency_type') else None
 
                         file_generation_manager = FileGenerationManager(local)
-                        file_generation_manager.generate_from_job(job.job_id, agency_code)
+                        file_generation_manager.generate_from_job(job.job_id, agency_code, agency_type)
 
                     # Delete from SQS once processed
                     message.delete()
