@@ -21,7 +21,7 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
-# Datadog import
+# DataDog Import (the below value gets changed via Ansible during deployment. DO NOT DELETE)
 USE_DATADOG = False
 
 if USE_DATADOG:
@@ -106,7 +106,7 @@ def run_app():
     """runs the application"""
     flask_app = create_app()
 
-# This is for DataDog
+# This is for DataDog (Do not delete)
     if USE_DATADOG:
         TraceMiddleware(flask_app, tracer, service="broker-dd", distributed_tracing=False)
 
