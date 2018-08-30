@@ -271,7 +271,7 @@ class HistoricParentDUNS(Base):
 class CFDAProgram(Base):
     __tablename__ = "cfda_program"
     cfda_program_id = Column(Integer, primary_key=True)
-    program_number = Column(Float, nullable=False, index=True)
+    program_number = Column(Float, nullable=False, index=True, unique=True)
     program_title = Column(Text)
     popular_name = Column(Text)
     federal_agency = Column(Text)
