@@ -12,11 +12,11 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.domainModels import ExecutiveCompensation
-from dataactcore.models.jobModels import Job, FileRequest, FPDSUpdate
-from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_STATUS_DICT_ID, JOB_TYPE_DICT, FILE_TYPE_DICT_LETTER
+from dataactcore.models.jobModels import Job, FileRequest, FPDSUpdate, Submission
+from dataactcore.models.lookups import (
+    PUBLISH_STATUS_DICT, JOB_STATUS_DICT, JOB_STATUS_DICT_ID, JOB_TYPE_DICT, FILE_TYPE_DICT_LETTER)
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
-from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
@@ -303,7 +303,7 @@ def generate_e_file(sess, job, is_local):
 
 
 def d_file_query(query_utils, page_start, page_end):
-    """Retrieve D1 or D2 data.
+    """ Retrieve D1 or D2 data.
 
         Args:
             query_utils: object containing:
@@ -325,7 +325,7 @@ def d_file_query(query_utils, page_start, page_end):
 
 
 def copy_parent_file_request_data(sess, child_job, parent_job, is_local):
-    """Parent FileRequest job data to the child FileRequest job data.
+    """ Parent FileRequest job data to the child FileRequest job data.
 
         Args:
             sess: current DB session
@@ -393,52 +393,90 @@ def copy_file_from_parent_to_child(child_job, parent_job, is_local):
             stream_file_to_s3(child_job.filename, reader)
 
 
-def start_generation_job(job, start_date, end_date, agency_type, agency_code=None):
-    """ Validates the dates for a D file generation job and passes the Job ID to SQS
+def start_d_generation(job, start_date, end_date, agency_type, agency_code=None):
+    """ Validates the start and end dates of the generation, updates the submission's publish status and progress (if
+        its not detached generation), and sends the job information to SQS.
 
         Args:
             job: File generation job to start
-            start_date: Start date of the file generation
-            end_date: End date of the file generation
-            agency_type: The type of agency (awarding or funding) to generate the file for (only used for D file
-                    generation)
-            agency_code: Agency code for detached D file generations
-
-        Returns:
-            Tuple of boolean indicating successful start, and error response if False
+            start_date: String to parse as the start date of the generation
+            end_date: String to parse as the end date of the generation
+            agency_type: Type of Agency to generate files by: "awarding" or "funding"
     """
-    sess = GlobalDB.db().session
-    file_type = job.file_type.letter_name
-    try:
-        if file_type in ['D1', 'D2']:
-            # Validate and set Job's start and end dates
-            if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
-                raise ResponseException("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
-                                        StatusCode.CLIENT_ERROR)
-            job.start_date = start_date
-            job.end_date = end_date
-            sess.commit()
-        elif file_type not in ["E", "F"]:
-            raise ResponseException("File type must be either D1, D2, E or F", StatusCode.CLIENT_ERROR)
+    if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
+        raise ResponseException("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
+                                StatusCode.CLIENT_ERROR)
 
-    except ResponseException as e:
-        return False, JsonResponse.error(e, e.status, file_type=file_type, status='failed')
+    # Update the Job's start and end dates
+    sess = GlobalDB.db().session
+    job.start_date = start_date
+    job.end_date = end_date
+    sess.commit()
+
+    # Update submission
+    if job.submission_id:
+        submission = sess.query(Submission).filter(Submission.submission_id == job.submission_id).one()
+
+        # Change the publish status back to updated if certified
+        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+            submission.publishable = False
+            submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
+            submission.updated_at = datetime.utcnow()
+            sess.commit()
+
+        # Set cross-file validation status to waiting if it's not already
+        cross_file_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
+                                                Job.job_type_id == JOB_TYPE_DICT['validation'],
+                                                Job.job_status_id != JOB_STATUS_DICT['waiting']).one_or_none()
+
+        # No need to update it for each type of D file generation job, just do it once
+        if cross_file_job:
+            cross_file_job.job_status_id = JOB_STATUS_DICT['waiting']
+            sess.commit()
 
     mark_job_status(job.job_id, "waiting")
 
+    file_type = job.file_type.letter_name
+    log_data = {
+        'message': 'Sending {} file generation job {} to Validator in SQS'.format(file_type, job.job_id),
+        'message_type': 'BrokerInfo',
+        'submission_id': job.submission_id,
+        'job_id': job.job_id,
+        'file_type': file_type
+    }
+    logger.info(log_data)
+
+    # Set SQS message attributes
+    message_attr = {'agency_type': {'DataType': 'String', 'StringValue': agency_type}}
+    if agency_code:
+        message_attr['agency_code'] = {'DataType': 'String', 'StringValue': agency_code}
+
     # Add job_id to the SQS job queue
-    logger.info({'message_type': 'ValidatorInfo', 'job_id': job.job_id,
-                 'message': 'Sending file generation job {} to Validator in SQS'.format(job.job_id)})
     queue = sqs_queue()
+    return queue.send_message(MessageBody=str(job.job_id), MessageAttributes=message_attr)
 
-    message_attr = {'agency_code': {'DataType': 'String', 'StringValue': agency_code}} if agency_code else {}
-    if file_type in ['D1', 'D2']:
-        message_attr['agency_type'] = {'DataType': 'String', 'StringValue': agency_type}
-    response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes=message_attr)
-    logger.debug({'message_type': 'ValidatorInfo', 'job_id': job.job_id,
-                  'message': 'Send message response: {}'.format(response)})
 
-    return True, None
+def start_e_f_generation(job):
+    """ Passes the Job ID for an E or F generation Job to SQS
+
+        Args:
+            job: File generation job to start
+    """
+    mark_job_status(job.job_id, "waiting")
+
+    file_type = job.file_type.letter_name
+    log_data = {
+        'message': 'Sending {} file generation job {} to Validator in SQS'.format(file_type, job.job_id),
+        'message_type': 'BrokerInfo',
+        'submission_id': job.submission_id,
+        'job_id': job.job_id,
+        'file_type': file_type
+    }
+    logger.info(log_data)
+
+    # Add job_id to the SQS job queue
+    queue = sqs_queue()
+    return queue.send_message(MessageBody=str(job.job_id), MessageAttributes={})
 
 
 def check_file_generation(job_id):
@@ -457,6 +495,7 @@ def check_file_generation(job_id):
     response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '#', 'size': None}
 
     if upload_job is None:
+        print('upload_job is None')
         response_dict['start'] = ''
         response_dict['end'] = ''
         response_dict['status'] = 'invalid'
