@@ -589,6 +589,7 @@ class DetachedAwardProcurement(Base):
     __tablename__ = "detached_award_procurement"
     detached_award_procurement_id = Column(Integer, primary_key=True)
     detached_award_proc_unique = Column(Text, unique=True, nullable=False)
+    idv_delete_key = Column(Text, index=True)
     piid = Column(Text, index=True)
     agency_id = Column(Text)
     awarding_sub_tier_agency_c = Column(Text, index=True)

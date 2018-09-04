@@ -185,7 +185,7 @@ class SQS(Base):
     sqs_id = Column(Integer, primary_key=True)
     job_id = Column(Integer, nullable=False)
     agency_code = Column(Text)
-    agency_type = Column(Enum('awarding', 'funding', name='agency_types'), nullable=True, index=True)
+    agency_type = Column(Enum('awarding', 'funding', name='agency_types'), nullable=True)
 
     __table_args__ = (UniqueConstraint('job_id', name='uniq_job_id'),)
 
