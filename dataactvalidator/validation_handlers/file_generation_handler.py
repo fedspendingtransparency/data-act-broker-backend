@@ -402,6 +402,10 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
             start_date: String to parse as the start date of the generation
             end_date: String to parse as the end date of the generation
             agency_type: Type of Agency to generate files by: "awarding" or "funding"
+            agency_code: Agency code for detached D file generations
+
+        Returns:
+            SQS send_message response
     """
     if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
         raise ResponseException("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
@@ -436,13 +440,12 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
 
     mark_job_status(job.job_id, "waiting")
 
-    file_type = job.file_type.letter_name
     log_data = {
-        'message': 'Sending {} file generation job {} to Validator in SQS'.format(file_type, job.job_id),
+        'message': 'Sending {} file generation job {} to SQS'.format(job.file_type.letter_name, job.job_id),
         'message_type': 'BrokerInfo',
         'submission_id': job.submission_id,
         'job_id': job.job_id,
-        'file_type': file_type
+        'file_type': job.file_type.letter_name
     }
     logger.info(log_data)
 
@@ -495,7 +498,6 @@ def check_file_generation(job_id):
     response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '#', 'size': None}
 
     if upload_job is None:
-        print('upload_job is None')
         response_dict['start'] = ''
         response_dict['end'] = ''
         response_dict['status'] = 'invalid'
