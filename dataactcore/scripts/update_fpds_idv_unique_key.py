@@ -9,10 +9,9 @@ logger = logging.getLogger(__name__)
 
 FPDS_IDV_DELETE_KEY_SQL = """
     UPDATE detached_award_procurement
-    SET idv_delete_key = CONCAT(COALESCE(agency_id, '-none-'), '_', COALESCE(piid, '-none-'), '_',
-                                COALESCE(award_modification_amendme, '-none-'))
+    SET detached_award_proc_unique = CONCAT(COALESCE(agency_id, '-none-'), '_-none-_', COALESCE(piid, '-none-'), '_',
+                                            COALESCE(award_modification_amendme, '-none-'), '_-none-_-none-')
     WHERE pulled_from = 'IDV'
-        AND idv_delete_key IS NULL
 """
 
 if __name__ == '__main__':
@@ -22,10 +21,10 @@ if __name__ == '__main__':
         sess = GlobalDB.db().session
 
         start = time.time()
-        logger.info("Updating existing FPDS IDV records to have a idv_delete_key")
+        logger.info("Updating existing FPDS IDV records to have the proper unique key")
         sess.execute(FPDS_IDV_DELETE_KEY_SQL)
         sess.commit()
-        logger.info("Updated existing FPDS IDV records to have a idv_delete_key, took {} seconds"
+        logger.info("Updated existing FPDS IDV records to have the proper unique key, took {} seconds"
                     .format(time.time()-start))
 
         sess.close()

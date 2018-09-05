@@ -589,7 +589,6 @@ class DetachedAwardProcurement(Base):
     __tablename__ = "detached_award_procurement"
     detached_award_procurement_id = Column(Integer, primary_key=True)
     detached_award_proc_unique = Column(Text, unique=True, nullable=False)
-    idv_delete_key = Column(Text, index=True)
     piid = Column(Text, index=True)
     agency_id = Column(Text)
     awarding_sub_tier_agency_c = Column(Text, index=True)
@@ -863,7 +862,7 @@ class DetachedAwardProcurement(Base):
     vendor_legal_org_name = Column(Text)
     vendor_location_disabled_f = Column(Text)
     vendor_site_code = Column(Text)
-    pulled_from = Column(Text)
+    pulled_from = Column(Text, index=True)
     last_modified = Column(Text)
     initial_report_date = Column(Text)
     referenced_idv_agency_name = Column(Text)
