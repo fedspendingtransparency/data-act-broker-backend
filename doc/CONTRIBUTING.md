@@ -5,30 +5,11 @@ This project is in the public domain within the United States, and copyright and
 All contributions to this project will be released under the CC0 dedication. By submitting a pull request, you are agreeing to comply with this waiver of copyright interest.
 
 ## Git Workflow
-
-We use three main branches:
-
-* `staging` - Stable code deployed to a staging version of the data broker
-* `development` - Code in development that is released to `staging` at the close of each sprint
-* `master` - Code on the production site. Code gets merged to this branch by the product owner once it has been tested on staging.
-
-Only non-breaking, stable code should be merged into `development`, `staging`, and `master` to prevent disruptions to users and team members.
-
-All code to be merged should be submitted to `development` via a pull request. Team members should _not_ merge their own pull requests but should instead request a code review first. The reviewing team member should merge the pull request after completing the review and ensuring it passes all continuous integration tests.
-
-## Code Reviews
-
-The Consumer Financial Protection Bureau has an excellent [code review guide](https://github.com/cfpb/front-end/blob/master/code-reviews.md).
+All code to be merged should be submitted to `development` via a pull request. 
 
 ## Continuous Integration
+Pull requests must pass Travis CI tests. See travis.yml.
 
-Our project uses Jenkins to run test suites and builds. Pull requests to master will automatically trigger jenkins to run the tests.
-
-## Concluding a Sprint
-
-At the conclusion of a sprint, all code for completed stories should be merged into `master` and deployed to staging.
-
-The DATA Act broker contains several individual projects. The section below will walk you through the process of getting the entire code base up and running.
 
 ## DATA Act Broker Setup for Developers
 
