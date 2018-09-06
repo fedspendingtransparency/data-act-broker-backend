@@ -3,7 +3,7 @@ import json
 from flask import g
 import pytest
 
-from dataactbroker import domainRoutes
+from dataactbroker.routes import domain_routes
 from dataactcore.models.lookups import PERMISSION_SHORT_DICT
 from dataactcore.models.userModel import UserAffiliation
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory, SubTierAgencyFactory
@@ -12,7 +12,7 @@ from tests.unit.dataactcore.factories.user import UserFactory
 
 @pytest.fixture
 def domain_app(test_app):
-    domainRoutes.add_domain_routes(test_app.application)
+    domain_routes.add_domain_routes(test_app.application)
     yield test_app
 
 
