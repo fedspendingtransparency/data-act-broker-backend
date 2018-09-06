@@ -801,7 +801,7 @@ class FileTests(BaseTestAPI):
 
         self.assertEqual(response.status_code, 400)
         json = response.json
-        self.assertEqual(json["message"], "Must have a start and end date for D file generation")
+        self.assertEqual(json["message"], "Must have a start and end date for D file generation.")
 
     def test_generate_ef_file_no_start(self):
         """ Test that there is no error when no start date is provided for E/F file generation """
@@ -819,7 +819,7 @@ class FileTests(BaseTestAPI):
 
         self.assertEqual(response.status_code, 400)
         json = response.json
-        self.assertEqual(json["message"], "Cannot generate files for FABS submissions")
+        self.assertEqual(json["message"], "Cannot generate files for FABS submissions.")
 
     def test_generate_file_permission_error(self):
         """ Test permission error for generate submission """
