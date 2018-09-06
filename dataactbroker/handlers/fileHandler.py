@@ -16,9 +16,9 @@ from sqlalchemy import func, and_, desc, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import case
 
-from dataactbroker.handlers.fabsDerivationsHandler import fabs_derivations
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
                                                        reporting_date, job_to_dict)
+from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations
 from dataactbroker.permissions import current_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
