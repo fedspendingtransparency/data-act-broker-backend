@@ -1,22 +1,21 @@
-import boto3
 import logging
-import smart_open
 
 from contextlib import contextmanager
 from datetime import datetime
 from flask import Flask
 
-from dataactcore.aws.s3Handler import S3Handler
+from dataactbroker.helpers.generation_helper import copy_parent_file_request_data
+
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.models.jobModels import Job, FileRequest, FPDSUpdate
-from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_STATUS_DICT_ID, JOB_TYPE_DICT
+from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
 
-from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file, stream_file_to_s3
+from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file
 
 logger = logging.getLogger(__name__)
 
@@ -232,30 +231,26 @@ def generate_d_file(sess, job, agency_code, agency_type, is_local=True, old_file
     logger.info(log_data)
 
 
-def generate_f_file(sess, job, is_local):
-    """Write rows from fileF.generate_f_rows to an appropriate CSV.
+def d_file_query(query_utils, page_start, page_end):
+    """ Retrieve D1 or D2 data.
 
         Args:
-            sess: database session
-            job: upload Job
-            is_local: True if in local development, False otherwise
+            query_utils: object containing:
+                file_utils: fileD1 or fileD2 utils
+                sess: database session
+                agency_code: FREC or CGAC code for generation
+                start: beginning of period for D file
+                end: end of period for D file
+            page_start: beginning of pagination
+            page_end: end of pagination
+
+        Return:
+            paginated D1 or D2 query results
     """
-    log_data = {'message': 'Starting file F generation', 'message_type': 'ValidatorInfo', 'job_id': job.job_id,
-                'submission_id': job.submission_id, 'file_type': 'sub_award'}
-    logger.info(log_data)
-
-    rows_of_dicts = fileF.generate_f_rows(job.submission_id)
-    header = [key for key in fileF.mappings]    # keep order
-    body = []
-    for row in rows_of_dicts:
-        body.append([row[key] for key in header])
-
-    log_data['message'] = 'Writing file F CSV'
-    logger.info(log_data)
-    write_csv(job.original_filename, job.filename, is_local, header, body)
-
-    log_data['message'] = 'Finished file F generation'
-    logger.info(log_data)
+    rows = query_utils["file_utils"].query_data(query_utils["sess"], query_utils["agency_code"],
+                                                query_utils["agency_type"], query_utils["start"], query_utils["end"],
+                                                page_start, page_end)
+    return rows.all()
 
 
 def generate_e_file(sess, job, is_local):
@@ -297,92 +292,27 @@ def generate_e_file(sess, job, is_local):
     logger.info(log_data)
 
 
-def d_file_query(query_utils, page_start, page_end):
-    """ Retrieve D1 or D2 data.
+def generate_f_file(sess, job, is_local):
+    """Write rows from fileF.generate_f_rows to an appropriate CSV.
 
         Args:
-            query_utils: object containing:
-                file_utils: fileD1 or fileD2 utils
-                sess: database session
-                agency_code: FREC or CGAC code for generation
-                start: beginning of period for D file
-                end: end of period for D file
-            page_start: beginning of pagination
-            page_end: end of pagination
-
-        Return:
-            paginated D1 or D2 query results
-    """
-    rows = query_utils["file_utils"].query_data(query_utils["sess"], query_utils["agency_code"],
-                                                query_utils["agency_type"], query_utils["start"], query_utils["end"],
-                                                page_start, page_end)
-    return rows.all()
-
-
-def copy_parent_file_request_data(sess, child_job, parent_job, is_local):
-    """ Parent FileRequest job data to the child FileRequest job data.
-
-        Args:
-            sess: current DB session
-            child_job: Job object for the child FileRequest
-            parent_job: Job object for the parent FileRequest
+            sess: database session
+            job: upload Job
             is_local: True if in local development, False otherwise
     """
-    # Do not edit submissions that have successfully completed
-    if child_job.job_status_id == JOB_STATUS_DICT['finished']:
-        return
+    log_data = {'message': 'Starting file F generation', 'message_type': 'ValidatorInfo', 'job_id': job.job_id,
+                'submission_id': job.submission_id, 'file_type': 'sub_award'}
+    logger.info(log_data)
 
-    # Keep path but update file name
-    filename = '{}/{}'.format(child_job.filename.rsplit('/', 1)[0], parent_job.original_filename)
+    rows_of_dicts = fileF.generate_f_rows(job.submission_id)
+    header = [key for key in fileF.mappings]    # keep order
+    body = []
+    for row in rows_of_dicts:
+        body.append([row[key] for key in header])
 
-    # Copy parent job's data
-    child_job.from_cached = True
-    child_job.filename = filename
-    child_job.original_filename = parent_job.original_filename
-    child_job.number_of_errors = parent_job.number_of_errors
-    child_job.number_of_warnings = parent_job.number_of_warnings
-    child_job.error_message = parent_job.error_message
+    log_data['message'] = 'Writing file F CSV'
+    logger.info(log_data)
+    write_csv(job.original_filename, job.filename, is_local, header, body)
 
-    # Change the validation job's file data when within a submission
-    if child_job.submission_id is not None:
-        val_job = sess.query(Job).filter(Job.submission_id == child_job.submission_id,
-                                         Job.file_type_id == parent_job.file_type_id,
-                                         Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).one()
-        val_job.filename = filename
-        val_job.original_filename = parent_job.original_filename
-    sess.commit()
-
-    copy_file_from_parent_to_child(child_job, parent_job, is_local)
-
-    # Mark job status last so the validation job doesn't start until everything is done
-    mark_job_status(child_job.job_id, JOB_STATUS_DICT_ID[parent_job.job_status_id])
-
-
-def copy_file_from_parent_to_child(child_job, parent_job, is_local):
-    """ Copy the file from the parent job's bucket to the child job's bucket.
-
-        Args:
-            child_job: Job object for the child FileRequest
-            parent_job: Job object for the parent FileRequest
-            is_local: True if in local development, False otherwise
-    """
-    file_type = parent_job.file_type.letter_name
-    log_data = {'message': 'Copying data from parent job with job_id:{}'.format(parent_job.job_id),
-                'message_type': 'ValidatorInfo', 'job_id': child_job.job_id, 'file_type': parent_job.file_type.name}
-
-    if not is_local and parent_job.filename != child_job.filename:
-        # Check to see if the same file exists in the child bucket
-        s3 = boto3.client('s3', region_name=CONFIG_BROKER["aws_region"])
-        response = s3.list_objects_v2(Bucket=CONFIG_BROKER['aws_bucket'], Prefix=child_job.filename)
-        for obj in response.get('Contents', []):
-            if obj['Key'] == child_job.filename:
-                # The file already exists in this location
-                log_data['message'] = 'Cached {} file CSV already exists in this location'.format(file_type)
-                logger.info(log_data)
-                return
-
-        # Copy the parent file into the child's S3 location
-        log_data['message'] = 'Copying the cached {} file from job {}'.format(file_type, parent_job.job_id)
-        logger.info(log_data)
-        with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
-            stream_file_to_s3(child_job.filename, reader)
+    log_data['message'] = 'Finished file F generation'
+    logger.info(log_data)

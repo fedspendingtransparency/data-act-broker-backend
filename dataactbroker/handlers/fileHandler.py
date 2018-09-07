@@ -784,35 +784,6 @@ class FileHandler:
                                                         path=CONFIG_BROKER["help_files_path"])
         return JsonResponse.create(StatusCode.OK, response)
 
-    @staticmethod
-    def add_generation_job_info(file_type_name, job=None, start_date=None, end_date=None):
-        """ Add details to jobs for generating files
-
-            Args:
-                file_type_name: the name of the file type being generated
-                job: the generation job, None if it is a detached generation
-                start_date: The start date for the generation job, only used for detached files
-                end_date: The end date for the generation job, only used for detached files
-
-            Returns:
-                the file generation job
-        """
-        sess = GlobalDB.db().session
-
-        # Create a new job for a detached generation
-        if job is None:
-            job = Job(job_type_id=JOB_TYPE_DICT['file_upload'], user_id=g.user.user_id,
-                      file_type_id=FILE_TYPE_DICT[file_type_name], start_date=start_date, end_date=end_date)
-            sess.add(job)
-
-        # Update the job details
-        job.message = None
-        job.job_status_id = JOB_STATUS_DICT["ready"]
-        sess.commit()
-        sess.refresh(job)
-
-        return job
-
     def build_file_map(self, file_dict, file_type_list, upload_files, submission):
         """ Build fileNameMap to be used in creating jobs
 
@@ -1051,36 +1022,6 @@ class FileHandler:
 
         log_data['message'] = 'Completed move_certified_files'
         logger.debug(log_data)
-
-
-def check_generation_prereqs(submission_id, file_type):
-    """ Make sure the prerequisite jobs for this file type are complete without errors.
-
-        Args:
-            submission_id: the submission id for which we're checking file generation prerequisites
-            file_type: the type of file being generated
-
-        Returns:
-            A boolean indicating if the job has no incomplete prerequisites (True if the job is clear to start)
-    """
-
-    sess = GlobalDB.db().session
-    prereq_query = sess.query(Job).filter(Job.submission_id == submission_id,
-                                          or_(Job.job_status_id != JOB_STATUS_DICT['finished'],
-                                              Job.number_of_errors > 0))
-
-    # Check cross-file validation if generating E or F
-    if file_type in ['E', 'F']:
-        unfinished_prereqs = prereq_query.filter(Job.job_type_id == JOB_TYPE_DICT['validation']).count()
-    # Check A, B, C files if generating a D file
-    elif file_type in ['D1', 'D2']:
-        unfinished_prereqs = prereq_query.filter(Job.file_type_id.in_([FILE_TYPE_DICT['appropriations'],
-                                                                       FILE_TYPE_DICT['program_activity'],
-                                                                       FILE_TYPE_DICT['award_financial']])).count()
-    else:
-        raise ResponseException('Invalid type for file generation', StatusCode.CLIENT_ERROR)
-
-    return unfinished_prereqs == 0
 
 
 def narratives_for_submission(submission):

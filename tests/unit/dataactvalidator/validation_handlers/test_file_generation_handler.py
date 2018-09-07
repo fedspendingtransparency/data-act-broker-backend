@@ -272,26 +272,3 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
         ['A', 'B', 'C', 'D', '1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B']
     ]
     assert read_file_rows(file_path) == expected
-
-
-@pytest.mark.usefixtures("job_constants")
-def test_copy_parent_file_request_data(database):
-    sess = database.session
-
-    job_one = JobFactory(job_status_id=JOB_STATUS_DICT['finished'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                         file_type_id=FILE_TYPE_DICT['award'])
-    job_two = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                         file_type_id=FILE_TYPE_DICT['award'], filename='job_id/new_filename')
-    sess.add_all([job_one, job_two])
-    sess.commit()
-
-    file_generation_handler.copy_parent_file_request_data(sess, job_two, job_one, True)
-    sess.refresh(job_one)
-    sess.refresh(job_two)
-
-    assert job_two.job_status_id == job_one.job_status_id
-    assert job_two.filename == 'job_id/{}'.format(job_one.original_filename)
-    assert job_two.original_filename == job_one.original_filename
-    assert job_two.number_of_errors == job_one.number_of_errors
-    assert job_two.number_of_warnings == job_one.number_of_warnings
-    assert job_two.from_cached is True

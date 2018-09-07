@@ -3,9 +3,8 @@ import logging
 from dataactbroker.helpers import generation_helper
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.jobModels import Job
 from dataactcore.models import lookups
-
+from dataactcore.models.jobModels import Job
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -70,12 +69,9 @@ def generate_file(submission, file_type, start, end, agency_type):
                                                     StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
     try:
         if file_type in ['D1', 'D2']:
-            response = generation_helper.start_d_generation(job, start, end, agency_type)
+            generation_helper.start_d_generation(job, start, end, agency_type)
         else:
-            response = generation_helper.start_e_f_generation(job)
-
-        log_data['message'] = 'SQS message response: {}'.format(response)
-        logger.debug(log_data)
+            generation_helper.start_e_f_generation(job)
     except Exception as e:
         job.job_status_id = lookups.JOB_STATUS_DICT['failed']
         job.error_message = str(e)
