@@ -163,13 +163,14 @@ def check_file_generation(job_id):
     return response_dict
 
 
-def retrieve_cached_file_request(job, agency_type, agency_code):
+def retrieve_cached_file_request(job, agency_type, agency_code, is_local=None):
     """ Retrieves a cached FileRequest for the D file generation, if there is one.
 
         Args:
             job: the upload job for the generation file
             agency_type: Type of Agency to generate files by: "awarding" or "funding"
             agency_code: Agency code for detached D file generations
+            is_local: A boolean flag indicating whether the application is being run locally or not
 
         Returns:
             FileRequest object matching the criteria, or None
@@ -190,7 +191,7 @@ def retrieve_cached_file_request(job, agency_type, agency_code):
 
     for fr in file_request_list:
         if (fr.file_type == 'D1' and fr.request_date < fpds_date) or fr.agency_type != agency_type or \
-           fr.start_date != job.start_date or fr.end_date == job.end_date:
+           fr.start_date != job.start_date or fr.end_date != job.end_date:
             # Uncache if D1 file is expired or old generation does not match current generation
             fr.is_cached_file = False
         else:
@@ -203,6 +204,10 @@ def retrieve_cached_file_request(job, agency_type, agency_code):
         # reset the file names on the upload Job
         log_data['message'] = '{} file has already been generated for this job'.format(file_request.file_type)
         logger.info(log_data)
+        job.from_cached = False
+        sess.commit()
+
+        mark_job_status(job.job_id, 'finished')
     else:
         # search for potential parent FileRequests
         file_request = None
@@ -243,8 +248,8 @@ def retrieve_cached_file_request(job, agency_type, agency_code):
 
         if parent_file_request:
             # parent exists; copy parent data to this job
-            log_data.message = 'Copying data for job_id:{} from parent job_id:{}'.format(job.job_id,
-                                                                                         parent_file_request.job_id)
+            log_data['message'] = 'Copying data for job_id:{} from parent job_id:{}'.format(job.job_id,
+                                                                                            parent_file_request.job_id)
             logger.info(log_data)
 
             file_request = FileRequest(request_date=current_date, job_id=job.job_id, start_date=job.start_date,
@@ -252,7 +257,9 @@ def retrieve_cached_file_request(job, agency_type, agency_code):
                                        is_cached_file=False, file_type=job.file_type.letter_name,
                                        parent_job_id=parent_file_request.job_id)
             sess.add(file_request)
-            copy_parent_file_request_data(sess, file_request.job, parent_file_request.job)
+            sess.commit()
+
+            copy_parent_file_request_data(job, parent_file_request.job, is_local)
 
     return file_request
 
@@ -371,14 +378,16 @@ def check_generation_prereqs(submission_id, file_type):
     return unfinished_prereqs == 0
 
 
-def copy_parent_file_request_data(sess, child_job, parent_job, is_local=None):
+def copy_parent_file_request_data(child_job, parent_job, is_local=None):
     """ Parent FileRequest job data to the child FileRequest job data.
 
         Args:
-            sess: current DB session
             child_job: Job object for the child FileRequest
             parent_job: Job object for the parent FileRequest
+            is_local: A boolean flag indicating whether the application is being run locally or not
     """
+    sess = GlobalDB.db().session
+
     # Do not edit submissions that have successfully completed
     if child_job.job_status_id == lookups.JOB_STATUS_DICT['finished']:
         return
@@ -415,7 +424,7 @@ def copy_file_from_parent_to_child(child_job, parent_job, is_local):
         Args:
             child_job: Job object for the child FileRequest
             parent_job: Job object for the parent FileRequest
-            is_local: True if in local development, False otherwise
+            is_local: A boolean flag indicating whether the application is being run locally or not
 
     """
     file_type = parent_job.file_type.letter_name
@@ -440,3 +449,46 @@ def copy_file_from_parent_to_child(child_job, parent_job, is_local):
         logger.info(log_data)
         with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
             stream_file_to_s3(child_job.filename, reader)
+
+
+def update_validation_job_info(sess, job):
+    """ Populates validation job objects with start and end dates, filenames, and status.
+        Assumes the upload Job's start and end dates have been validated.
+    """
+    # Retrieve and update the validation Job
+    val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
+                                     Job.file_type_id == job.file_type_id,
+                                     Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
+    val_job.start_date = job.start_date
+    val_job.end_date = job.end_date
+    val_job.filename = job.filename
+    val_job.original_filename = job.original_filename
+    val_job.job_status_id = lookups.JOB_STATUS_DICT["waiting"]
+
+    # Clear out error messages to prevent stale messages
+    job.error_message = None
+    val_job.error_message = None
+
+    sess.commit()
+
+
+def d_file_query(query_utils, page_start, page_end):
+    """ Retrieve D1 or D2 data.
+
+        Args:
+            query_utils: object containing:
+                file_utils: fileD1 or fileD2 utils
+                sess: database session
+                agency_code: FREC or CGAC code for generation
+                start: beginning of period for D file
+                end: end of period for D file
+            page_start: beginning of pagination
+            page_end: end of pagination
+
+        Return:
+            paginated D1 or D2 query results
+    """
+    rows = query_utils["file_utils"].query_data(query_utils["sess"], query_utils["agency_code"],
+                                                query_utils["agency_type"], query_utils["start"], query_utils["end"],
+                                                page_start, page_end)
+    return rows.all()
