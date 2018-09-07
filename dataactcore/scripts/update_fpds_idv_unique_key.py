@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 FPDS_DELETE_DUPLICATE_NEW_KEY = """
     WITH duplicate_count AS (SELECT
-            CONCAT(COALESCE(agency_id, '-none-'), '_', COALESCE(piid, '-none-'), '_', 
+            CONCAT(COALESCE(agency_id, '-none-'), '_', COALESCE(piid, '-none-'), '_',
                 COALESCE(award_modification_amendme, '-none-')) AS idv_delete_key,
             last_modified
         FROM detached_award_procurement
