@@ -156,7 +156,7 @@ def test_copy_parent_file_request_data(database):
     sess.add_all([job_one, job_two])
     sess.commit()
 
-    copy_parent_file_request_data(sess, job_two, job_one, True)
+    copy_parent_file_request_data(job_two, job_one, True)
     sess.refresh(job_one)
     sess.refresh(job_two)
 
