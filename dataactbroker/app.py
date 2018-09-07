@@ -5,18 +5,22 @@ from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask import Flask, g, session
 
-from dataactbroker.domainRoutes import add_domain_routes
 from dataactbroker.exception_handler import add_exception_handlers
-from dataactbroker.file_routes import add_file_routes
 from dataactbroker.handlers.account_handler import AccountHandler
 from dataactbroker.handlers.aws.sesEmail import SesEmail
 from dataactbroker.handlers.aws.session import UserSessionInterface
-from dataactbroker.loginRoutes import add_login_routes
-from dataactbroker.user_routes import add_user_routes
+
+from dataactbroker.routes.domain_routes import add_domain_routes
+from dataactbroker.routes.file_routes import add_file_routes
+from dataactbroker.routes.generation_routes import add_generation_routes
+from dataactbroker.routes.login_routes import add_login_routes
+from dataactbroker.routes.user_routes import add_user_routes
+
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.userModel import User
+
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -96,6 +100,7 @@ def create_app():
     add_login_routes(flask_app, bcrypt)
 
     add_file_routes(flask_app, local, broker_file_path)
+    add_generation_routes(flask_app, local, broker_file_path)
     add_user_routes(flask_app, flask_app.config['SYSTEM_EMAIL'], bcrypt)
     add_domain_routes(flask_app)
     add_exception_handlers(flask_app)
