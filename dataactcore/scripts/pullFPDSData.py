@@ -2282,6 +2282,10 @@ def main():
     parser.add_argument('-da', '--dates', help='Used in conjunction with -l to specify dates to gather updates from.'
                                                'Should have 2 arguments, first and last day, formatted YYYY/mm/dd',
                         nargs=2, type=str)
+    parser.add_argument('-del', '--delete', help='Used to only run the delete feed. First argument must be "both", '
+                                                 '"idv", or "award". The second and third arguments must be the first '
+                                                 'and last day to run the feeds for, formatted YYYY/mm/dd',
+                        nargs=3, type=str)
     args = parser.parse_args()
 
     award_types_award = ["BPA Call", "Definitive Contract", "Purchase Order", "Delivery Order"]
@@ -2395,6 +2399,26 @@ def main():
 
         sess.commit()
         logger.info("Ending at: %s", str(datetime.datetime.now()))
+    elif args.delete:
+        del_type = args.delete[0]
+        if del_type == 'award':
+            del_awards = True
+            del_idvs = False
+        elif del_type == 'idv':
+            del_awards = False
+            del_idvs = True
+        elif del_type == 'both':
+            del_awards = True
+            del_idvs = True
+        else:
+            logger.error("Delete argument must be \"idv\", \"award\", or \"both\"")
+            raise ValueError("Delete argument must be \"idv\", \"award\", or \"both\"")
+
+        if del_idvs:
+            get_delete_data("IDV", now, sess, now, args.delete[1], args.delete[2])
+        if del_awards:
+            get_delete_data("award", now, sess, now, args.delete[1], args.delete[2])
+        sess.commit()
     elif args.files:
         logger.info("Starting file loads at: %s", str(datetime.datetime.now()))
         max_year = 2015
