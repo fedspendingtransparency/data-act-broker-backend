@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from flask import g
 import pytest
 
-from dataactbroker import user_routes
+from dataactbroker.routes import user_routes
 from dataactbroker.handlers.account_handler import list_submission_users
 
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT
