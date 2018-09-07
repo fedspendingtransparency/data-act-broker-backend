@@ -231,28 +231,6 @@ def generate_d_file(sess, job, agency_code, agency_type, is_local=True, old_file
     logger.info(log_data)
 
 
-def d_file_query(query_utils, page_start, page_end):
-    """ Retrieve D1 or D2 data.
-
-        Args:
-            query_utils: object containing:
-                file_utils: fileD1 or fileD2 utils
-                sess: database session
-                agency_code: FREC or CGAC code for generation
-                start: beginning of period for D file
-                end: end of period for D file
-            page_start: beginning of pagination
-            page_end: end of pagination
-
-        Return:
-            paginated D1 or D2 query results
-    """
-    rows = query_utils["file_utils"].query_data(query_utils["sess"], query_utils["agency_code"],
-                                                query_utils["agency_type"], query_utils["start"], query_utils["end"],
-                                                page_start, page_end)
-    return rows.all()
-
-
 def generate_e_file(sess, job, is_local):
     """Write file E to an appropriate CSV.
 
@@ -316,3 +294,25 @@ def generate_f_file(sess, job, is_local):
 
     log_data['message'] = 'Finished file F generation'
     logger.info(log_data)
+
+
+def d_file_query(query_utils, page_start, page_end):
+    """ Retrieve D1 or D2 data.
+
+        Args:
+            query_utils: object containing:
+                file_utils: fileD1 or fileD2 utils
+                sess: database session
+                agency_code: FREC or CGAC code for generation
+                start: beginning of period for D file
+                end: end of period for D file
+            page_start: beginning of pagination
+            page_end: end of pagination
+
+        Return:
+            paginated D1 or D2 query results
+    """
+    rows = query_utils["file_utils"].query_data(query_utils["sess"], query_utils["agency_code"],
+                                                query_utils["agency_type"], query_utils["start"], query_utils["end"],
+                                                page_start, page_end)
+    return rows.all()

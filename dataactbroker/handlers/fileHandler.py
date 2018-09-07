@@ -33,7 +33,7 @@ from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, C
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
 from dataactcore.models.lookups import (
-    FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT,
+    FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
 from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
                                               FPDSContractingOffice)
