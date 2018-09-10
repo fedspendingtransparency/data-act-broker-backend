@@ -19,8 +19,6 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.statusCode import StatusCode
 
-DATE_REGEX = '^\d{2}\/\d{2}\/\d{4}$'
-
 
 # Add the file submission route
 def add_file_routes(app, is_local, server_path):
@@ -117,68 +115,6 @@ def add_file_routes(app, is_local, server_path):
     @requires_submission_perms('reader')
     def check_current_page(submission):
         return check_current_submission_page(submission)
-
-    @app.route("/v1/generate_file/", methods=["POST"])
-    @convert_to_submission_id
-    @requires_submission_perms('writer')
-    @use_kwargs({
-        'file_type': webargs_fields.String(
-            required=True,
-            validate=webargs_validate.OneOf(('D1', 'D2', 'E', 'F'), error="Must be either D1, D2, E or F")),
-        'start': webargs_fields.String(
-            validate=webargs_validate.Regexp(DATE_REGEX, error="Must be in the format MM/DD/YYYY")),
-        'end': webargs_fields.String(
-            validate=webargs_validate.Regexp(DATE_REGEX, error="Must be in the format MM/DD/YYYY")),
-        'agency_type': webargs_fields.String(
-            missing='awarding',
-            validate=webargs_validate.OneOf(('awarding', 'funding'),
-                                            error="Must be either awarding or funding if provided")
-        )
-    })
-    def generate_file(submission_id, file_type, start, end, agency_type):
-        """ Generate file from external API """
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.generate_file(submission_id, file_type, start, end, agency_type)
-
-    @app.route("/v1/generate_detached_file/", methods=["POST"])
-    @requires_login
-    @use_kwargs({
-        'file_type': webargs_fields.String(
-            required=True, validate=webargs_validate.OneOf(('D1', 'D2'))),
-        'cgac_code': webargs_fields.String(),
-        'frec_code': webargs_fields.String(),
-        'start': webargs_fields.String(required=True),
-        'end': webargs_fields.String(required=True),
-        'agency_type': webargs_fields.String(
-            missing='awarding',
-            validate=webargs_validate.OneOf(('awarding', 'funding'),
-                                            error="Must be either awarding or funding if provided")
-        )
-    })
-    def generate_detached_file(file_type, cgac_code, frec_code, start, end, agency_type):
-        """ Generate a file from external API, independent from a submission """
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.generate_detached_file(file_type, cgac_code, frec_code, start, end, agency_type)
-
-    @app.route("/v1/check_detached_generation_status/", methods=["GET"])
-    @requires_login
-    @use_kwargs({'job_id': webargs_fields.Int(required=True)})
-    def check_detached_generation_status(job_id):
-        """ Return status of file generation job """
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.check_detached_generation(job_id)
-
-    @app.route("/v1/check_generation_status/", methods=["GET"])
-    @convert_to_submission_id
-    @requires_submission_perms('reader')
-    @use_kwargs({'file_type': webargs_fields.String(
-        required=True,
-        validate=webargs_validate.OneOf(('D1', 'D2', 'E', 'F'), error="Must be either D1, D2, E or F"))
-    })
-    def check_generation_status(submission, file_type):
-        """ Return status of file generation job """
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.check_generation(submission, file_type)
 
     @app.route("/v1/get_fabs_meta/", methods=["POST"])
     @convert_to_submission_id

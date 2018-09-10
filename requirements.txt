@@ -63,6 +63,8 @@ WebTest==2.0.20
 Werkzeug==0.11.11
 xmlrunner==1.7.7
 xmltodict==0.10.2
+blinker==1.4
+ddtrace==0.13.0
 # suds is outdated but more compatible with FSRS than other libs. Pin a
 # version here
 -e git+https://github.com/andersinno/suds-jurko.git@44e27560b328ec6482459ea2d75516849dc209ff#egg=suds
