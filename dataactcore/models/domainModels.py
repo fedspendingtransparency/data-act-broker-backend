@@ -147,8 +147,8 @@ class Office(Base):
     office_id = Column(Integer, primary_key=True)
     office_code = Column(Text, nullable=False, index=True, unique=True)
     office_name = Column(Text)
-    sub_tier_code = Column(Integer, nullable=False, index=True)
-    agency_code = Column(Integer, nullable=False, index=True)
+    sub_tier_code = Column(Text, nullable=False, index=True)
+    agency_code = Column(Text, nullable=False, index=True)
 
 
 class ObjectClass(Base):

@@ -35,8 +35,8 @@ def upgrade_data_broker():
     sa.Column('office_id', sa.Integer(), nullable=False),
     sa.Column('office_code', sa.Text(), nullable=False),
     sa.Column('office_name', sa.Text(), nullable=True),
-    sa.Column('sub_tier_code', sa.Integer(), nullable=False),
-    sa.Column('agency_code', sa.Integer(), nullable=False),
+    sa.Column('sub_tier_code', sa.Text(), nullable=False),
+    sa.Column('agency_code', sa.Text(), nullable=False),
     sa.PrimaryKeyConstraint('office_id')
     )
     op.create_index(op.f('ix_office_agency_code'), 'office', ['agency_code'], unique=False)
