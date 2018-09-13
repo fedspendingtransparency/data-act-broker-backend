@@ -53,25 +53,7 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
 
     # Update submission
     if job.submission_id:
-        submission = sess.query(Submission).filter(Submission.submission_id == job.submission_id).one()
-        agency_code = submission.frec_code if submission.frec_code else submission.cgac_code
-
-        # Change the publish status back to updated if certified
-        if submission.publish_status_id == lookups.PUBLISH_STATUS_DICT['published']:
-            submission.publishable = False
-            submission.publish_status_id = lookups.PUBLISH_STATUS_DICT['updated']
-            submission.updated_at = datetime.utcnow()
-            sess.commit()
-
-        # Set cross-file validation status to waiting if it's not already
-        cross_file_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
-                                                Job.job_type_id == lookups.JOB_TYPE_DICT['validation'],
-                                                Job.job_status_id != lookups.JOB_STATUS_DICT['waiting']).one_or_none()
-
-        # No need to update it for each type of D file generation job, just do it once
-        if cross_file_job:
-            cross_file_job.job_status_id = lookups.JOB_STATUS_DICT['waiting']
-            sess.commit()
+        update_generation_submission(sess, job)
 
     mark_job_status(job.job_id, "waiting")
 
@@ -80,7 +62,7 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
                 'file_type': job.file_type.letter_name}
     logger.info(log_data)
 
-    file_request = retrieve_cached_file_request(job, agency_type, agency_code)
+    file_request = retrieve_cached_file_request(job, agency_type, agency_code, g.is_local)
     if file_request:
         log_data['message'] = 'No new file generated, used FileRequest with ID {}'.format(file_request.file_request_id)
         logger.info(log_data)
@@ -163,7 +145,7 @@ def check_file_generation(job_id):
     return response_dict
 
 
-def retrieve_cached_file_request(job, agency_type, agency_code, is_local=None):
+def retrieve_cached_file_request(job, agency_type, agency_code, is_local):
     """ Retrieves a cached FileRequest for the D file generation, if there is one.
 
         Args:
@@ -320,6 +302,41 @@ def map_generate_status(sess, upload_job):
     return response_status
 
 
+def update_generation_submission(sess, job):
+    """ Updates a submission's publish status, cross-file Job, and the generation's validation Job
+
+        Args:
+            sess: database session
+            job: the generation job
+    """
+    submission = sess.query(Submission).filter(Submission.submission_id == job.submission_id).one()
+    agency_code = submission.frec_code if submission.frec_code else submission.cgac_code
+
+    # Change the publish status back to updated if certified
+    if submission.publish_status_id == lookups.PUBLISH_STATUS_DICT['published']:
+        submission.publishable = False
+        submission.publish_status_id = lookups.PUBLISH_STATUS_DICT['updated']
+        submission.updated_at = datetime.utcnow()
+
+    # Set validation status to waiting if it's not already
+    validation_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
+                                            Job.file_type_id == job.file_type_id,
+                                            Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation'],
+                                            Job.job_status_id != lookups.JOB_STATUS_DICT['waiting']).one_or_none()
+    if validation_job:
+        validation_job.job_status_id = lookups.JOB_STATUS_DICT['waiting']
+
+    # Set cross-file validation status to waiting if it's not already
+    # No need to update it for each type of D file generation job, just do it once
+    cross_file_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
+                                            Job.job_type_id == lookups.JOB_TYPE_DICT['validation'],
+                                            Job.job_status_id != lookups.JOB_STATUS_DICT['waiting']).one_or_none()
+    if cross_file_job:
+        cross_file_job.job_status_id = lookups.JOB_STATUS_DICT['waiting']
+
+    sess.commit()
+
+
 def add_generation_job_info(file_type_name, job=None, start_date=None, end_date=None):
     """ Add details to jobs for generating files
 
@@ -394,7 +411,7 @@ def copy_parent_file_request_data(child_job, parent_job, is_local=None):
 
     # Generate file path for child Job's filaname
     filepath = CONFIG_BROKER['broker_files'] if is_local else "{}/".format(str(child_job.submission_id))
-    filename = '{}/{}'.format(filepath, parent_job.original_filename)
+    filename = '{}{}'.format(filepath, parent_job.original_filename)
 
     # Copy parent job's data
     child_job.from_cached = True
