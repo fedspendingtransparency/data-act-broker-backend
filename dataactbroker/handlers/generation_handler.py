@@ -3,6 +3,7 @@ import logging
 from dataactbroker.helpers import generation_helper
 
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models import lookups
 from dataactcore.models.jobModels import Job
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -73,7 +74,7 @@ def generate_file(submission, file_type, start, end, agency_type):
         else:
             generation_helper.start_e_f_generation(job)
     except Exception as e:
-        job.job_status_id = lookups.JOB_STATUS_DICT['failed']
+        mark_job_status(job.job_id, 'failed')
         job.error_message = str(e)
         sess.commit()
         return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
@@ -150,11 +151,9 @@ def generate_detached_file(file_type, cgac_code, frec_code, start, end, agency_t
     logger.info(log_data)
 
     try:
-        response = generation_helper.start_d_generation(new_job, start, end, agency_type, agency_code=agency_code)
-        log_data['message'] = 'SQS message response: {}'.format(response)
-        logger.debug(log_data)
+        generation_helper.start_d_generation(new_job, start, end, agency_type, agency_code=agency_code)
     except Exception as e:
-        new_job.job_status_id = lookups.JOB_STATUS_DICT['failed']
+        mark_job_status(new_job.job_id, 'failed')
         new_job.error_message = str(e)
         GlobalDB.db().session.commit()
         return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)

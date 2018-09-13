@@ -94,6 +94,7 @@ def run_app():
 
                         file_generation_manager = FileGenerationManager(job, agency_code, agency_type, local)
                         file_generation_manager.generate_from_job()
+                        sess.refresh(job)
 
                     # Delete from SQS once processed
                     message.delete()

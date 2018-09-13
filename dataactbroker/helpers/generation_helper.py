@@ -392,8 +392,9 @@ def copy_parent_file_request_data(child_job, parent_job, is_local=None):
     if child_job.job_status_id == lookups.JOB_STATUS_DICT['finished']:
         return
 
-    # Keep path but update file name
-    filename = '{}/{}'.format(child_job.filename.rsplit('/', 1)[0], parent_job.original_filename)
+    # Generate file path for child Job's filaname
+    filepath = CONFIG_BROKER['broker_files'] if is_local else "{}/".format(str(child_job.submission_id))
+    filename = '{}/{}'.format(filepath, parent_job.original_filename)
 
     # Copy parent job's data
     child_job.from_cached = True
