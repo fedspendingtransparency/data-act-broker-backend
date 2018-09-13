@@ -2,7 +2,6 @@ import logging
 import datetime
 import pandas as pd
 import numpy as np
-import boto3
 import os
 
 from dataactcore.config import CONFIG_BROKER
