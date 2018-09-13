@@ -53,7 +53,7 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
 
     # Update submission
     if job.submission_id:
-        update_generation_submission(sess, job)
+        agency_code = update_generation_submission(sess, job)
 
     mark_job_status(job.job_id, "waiting")
 
@@ -308,6 +308,9 @@ def update_generation_submission(sess, job):
         Args:
             sess: database session
             job: the generation job
+
+        Returns:
+            CGAC or FREC agency code of the Submission
     """
     submission = sess.query(Submission).filter(Submission.submission_id == job.submission_id).one()
     agency_code = submission.frec_code if submission.frec_code else submission.cgac_code
@@ -335,6 +338,8 @@ def update_generation_submission(sess, job):
         cross_file_job.job_status_id = lookups.JOB_STATUS_DICT['waiting']
 
     sess.commit()
+
+    return agency_code
 
 
 def add_generation_job_info(file_type_name, job=None, start_date=None, end_date=None):

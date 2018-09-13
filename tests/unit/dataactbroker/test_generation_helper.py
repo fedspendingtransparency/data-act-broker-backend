@@ -3,6 +3,7 @@ import pytest
 from dataactbroker.helpers.generation_helper import (check_file_generation, check_generation_prereqs,
                                                      copy_parent_file_request_data)
 
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.utils.responseException import ResponseException
 
@@ -152,7 +153,7 @@ def test_copy_parent_file_request_data(database):
     job_one = JobFactory(job_status_id=JOB_STATUS_DICT['finished'], job_type_id=JOB_TYPE_DICT['file_upload'],
                          file_type_id=FILE_TYPE_DICT['award'])
     job_two = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                         file_type_id=FILE_TYPE_DICT['award'], filename='job_id/new_filename')
+                         file_type_id=FILE_TYPE_DICT['award'], filename='None/new_filename.csv')
     sess.add_all([job_one, job_two])
     sess.commit()
 
@@ -161,7 +162,8 @@ def test_copy_parent_file_request_data(database):
     sess.refresh(job_two)
 
     assert job_two.job_status_id == job_one.job_status_id
-    assert job_two.filename == 'job_id/{}'.format(job_one.original_filename)
+    filepath = CONFIG_BROKER['broker_files'] if CONFIG_BROKER['local'] else "{}/".format(str(job_two.submission_id))
+    assert job_two.filename == '{}{}'.format(filepath, job_one.original_filename)
     assert job_two.original_filename == job_one.original_filename
     assert job_two.number_of_errors == job_one.number_of_errors
     assert job_two.number_of_warnings == job_one.number_of_warnings

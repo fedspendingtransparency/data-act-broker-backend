@@ -6,7 +6,7 @@ from dataactcore.interfaces.db import GlobalDB
 
 class SQSMockQueue:
     @staticmethod
-    def send_message(MessageBody, MessageAttributes=None):
+    def send_message(MessageBody, MessageAttributes=None):  # noqa
         sess = GlobalDB.db().session
         sess.add(SQS(job_id=int(MessageBody), agency_code=MessageAttributes['agency_code']['StringValue']
                      if MessageAttributes and MessageAttributes.get('agency_code') else None,
