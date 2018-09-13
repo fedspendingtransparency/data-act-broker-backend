@@ -1,9 +1,10 @@
--- AwardingSubTierAgencyCode must contain a valid four character numeric code.
+-- When provided, AwardingSubTierAgencyCode must be a valid 4-character sub-tier agency code from the Federal Hierarchy.
 SELECT
-    dafa.row_number,
-    dafa.awarding_sub_tier_agency_c
+    row_number,
+    awarding_sub_tier_agency_c
 FROM detached_award_financial_assistance AS dafa
-WHERE dafa.submission_id = {0}
+WHERE submission_id = {0}
+    AND COALESCE(awarding_sub_tier_agency_c, '') <> ''
     AND NOT EXISTS (
         SELECT 1
         FROM sub_tier_agency AS sta
