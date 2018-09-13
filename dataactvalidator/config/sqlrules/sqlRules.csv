@@ -110,7 +110,7 @@ FABS16,"LegalEntityForeignProvinceName must be blank for domestic recipients (Le
 FABS17,"LegalEntityForeignPostalCode must be blank for domestic recipients (LegalEntityCountryCode = USA) and for aggregate records (RecordType = 1).",n,fabs,fatal,,fabs17_detached_award_financial_assistance
 FABS18,"BusinessTypes must be one to three letters in length. BusinessTypes values must be non-repeated letters from A to X.",n,fabs,fatal,,fabs18_detached_award_financial_assistance
 FABS19,"LegalEntityCountryCode Field must contain a valid three character GENC Standard Edition 3.0 (Update 4) country code.",n,fabs,fatal,,fabs19_detached_award_financial_assistance
-FABS21,"FundingSubTierAgencyCode is an optional field, but when provided must be a valid 4-digit sub-tier agency code.",n,fabs,fatal,,fabs21_detached_award_financial_assistance
+FABS21.1,"When provided, FundingSubTierAgencyCode must be a valid 4-character sub-tier agency code from the Federal Hierarchy.",n,fabs,fatal,,fabs21_detached_award_financial_assistance_1
 FABS22,"When provided, CorrectionDeleteIndicator must contain one of the following values: ""C"" or ""D"".",n,fabs,fatal,,fabs22_detached_award_financial_assistance
 FABS23.1,"AwardingSubTierAgencyCode must be a valid 4-digit sub-tier agency code.",n,fabs,fatal,,fabs23_detached_award_financial_assistance_1
 FABS23.3,"AwardingSubTierAgencyCode must be provided when AwardingOfficeCode is not provided.",n,fabs,fatal,,fabs23_detached_award_financial_assistance_3
