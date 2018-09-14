@@ -85,10 +85,10 @@ def delete_duplicate_idvs():
         version of each unique key
     """
     start = time.time()
-    logger.info("Updating existing FPDS IDV records to have the proper unique key")
+    logger.info("Deleting duplicate FPDS IDV records based on new unique key")
     sess.execute(FPDS_DELETE_DUPLICATE_NEW_KEY)
     sess.commit()
-    logger.info("Updated existing FPDS IDV records to have the proper unique key, took {} seconds"
+    logger.info("Deleted duplicate FPDS IDV records based on new unique key, took {} seconds"
                 .format(time.time() - start))
 
 
