@@ -92,8 +92,9 @@ def run_app():
                         agency_type = msg_attr['agency_type']['StringValue'] if msg_attr and \
                             msg_attr.get('agency_type') else None
 
-                        file_generation_manager = FileGenerationManager(local)
-                        file_generation_manager.generate_from_job(job.job_id, agency_code, agency_type)
+                        file_generation_manager = FileGenerationManager(job, agency_code, agency_type, local)
+                        file_generation_manager.generate_from_job()
+                        sess.refresh(job)
 
                     # Delete from SQS once processed
                     message.delete()
