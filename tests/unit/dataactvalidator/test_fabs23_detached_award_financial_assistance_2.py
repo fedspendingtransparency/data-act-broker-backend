@@ -20,7 +20,7 @@ def test_success(database):
     frec = FREC(frec_id=1, cgac_id=1, frec_code='0001', agency_name='test2')
     # sub tier codes are different on these offices to prove that we don't care if the office is under that sub tier
     # as long as the top tier codes match
-    office_1 = OfficeFactory(office_code='123456', sub_tier_code='abcd', agency_code=cgac.cgac_code)
+    office_1 = OfficeFactory(office_code='12345a', sub_tier_code='abcd', agency_code=cgac.cgac_code)
     office_2 = OfficeFactory(office_code='123457', sub_tier_code='efgh', agency_code=frec.frec_code)
     agency_1 = SubTierAgency(sub_tier_agency_code='0000', cgac_id=1, frec_id=1, is_frec=False)
     agency_2 = SubTierAgency(sub_tier_agency_code='0001', cgac_id=1, frec_id=1, is_frec=True)
@@ -28,18 +28,21 @@ def test_success(database):
     # Same agency for cgac
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code,
                                                           awarding_office_code=office_1.office_code)
+    # Same agency for cgac (uppercased)
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code,
+                                                          awarding_office_code=office_1.office_code.upper())
     # Same agency for frec
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_2.sub_tier_agency_code,
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_2.sub_tier_agency_code,
                                                           awarding_office_code=office_2.office_code)
     # Missing sub tier code
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='',
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='',
                                                           awarding_office_code=office_2.office_code)
     # Missing office code
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code,
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code,
                                                           awarding_office_code=None)
 
     errors = number_of_errors(_FILE, database, models=[cgac, frec, office_1, office_2, agency_1, agency_2, det_award_1,
-                                                       det_award_2, det_award_3, det_award_4])
+                                                       det_award_2, det_award_3, det_award_4, det_award_5])
     assert errors == 0
 
 
