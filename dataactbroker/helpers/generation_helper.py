@@ -478,20 +478,21 @@ def update_validation_job_info(sess, job):
     """ Populates validation job objects with start and end dates, filenames, and status.
         Assumes the upload Job's start and end dates have been validated.
     """
-    # Retrieve and update the validation Job
-    val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
-                                     Job.file_type_id == job.file_type_id,
-                                     Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
-    val_job.start_date = job.start_date
-    val_job.end_date = job.end_date
-    val_job.filename = job.filename
-    val_job.original_filename = job.original_filename
-    val_job.job_status_id = lookups.JOB_STATUS_DICT["waiting"]
+    if job.submission_id:
+        # Retrieve and update the validation Job
+        val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
+                                         Job.file_type_id == job.file_type_id,
+                                         Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
+        val_job.start_date = job.start_date
+        val_job.end_date = job.end_date
+        val_job.filename = job.filename
+        val_job.original_filename = job.original_filename
+        val_job.job_status_id = lookups.JOB_STATUS_DICT["waiting"]
 
-    # Clear out error messages to prevent stale messages
+        # Clear out error messages to prevent stale messages
+        val_job.error_message = None
+
     job.error_message = None
-    val_job.error_message = None
-
     sess.commit()
 
 
