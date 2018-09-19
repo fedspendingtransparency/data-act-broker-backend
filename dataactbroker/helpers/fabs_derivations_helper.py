@@ -242,6 +242,25 @@ def derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, p
             obj['legal_entity_congressional'] = obj['place_of_performance_congr']
 
 
+def derive_office_data(obj, office_dict):
+    """ Deriving office data
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+            office_dict: a dictionary containing all the data for Office objects keyed by office code
+    """
+
+    # Deriving awarding_office_name based off awarding_office_code
+    awarding_office_data = office_dict.get(obj['awarding_office_code'])
+    if awarding_office_data:
+        obj['awarding_office_name'] = awarding_office_data.office_name
+
+    # Deriving funding_office_name based off funding_office_code
+    funding_office_data = office_dict.get(obj['funding_office_code'])
+    if funding_office_data:
+        obj['funding_office_name'] = funding_office_data.office_name
+
+
 def derive_le_city_code(obj, sess):
     """ Deriving legal entity city code
 
@@ -424,7 +443,7 @@ def set_active(obj):
         obj['is_active'] = True
 
 
-def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict, county_dict, fpds_office_dict):
+def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict, county_dict, office_dict):
     """ Performs derivations related to publishing a FABS record on a single row
 
         Args:
@@ -435,7 +454,7 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
             sub_tier_dict: a dictionary containing all the data for SubTierAgency objects keyed by sub tier code
             cfda_dict: a dictionary containing data for all CFDA objects keyed by cfda number
             county_dict: a dictionary containing all the data for County objects keyed by state code + county number
-            fpds_office_dict: a dictionary containing all the data for FPDSContractingOffices objects keyed by code
+            office_dict: a dictionary containing all the data for Offices objects keyed by code
 
         Returns:
             The obj dictionary initially passed in but without the job_id or detached_award_financial_assistance_id
@@ -474,11 +493,7 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
 
     derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, ppop_state_name, county_dict)
 
-    # Deriving awarding_office_name based off awarding_office_code
-    obj['awarding_office_name'] = fpds_office_dict.get(obj['awarding_office_code'])
-
-    # Deriving funding_office_name based off funding_office_code
-    obj['funding_office_name'] = fpds_office_dict.get(obj['funding_office_code'])
+    derive_office_data(obj, office_dict)
 
     derive_le_city_code(obj, sess)
 

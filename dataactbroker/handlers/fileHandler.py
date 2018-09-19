@@ -29,14 +29,14 @@ from dataactcore.interfaces.function_bag import (
     create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, get_last_validated_date,
     get_lastest_certified_date)
 
-from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode
+from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
+                                             Office)
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
-from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
-                                              FPDSContractingOffice)
+from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.userModel import User
 from dataactcore.models.views import SubmissionUpdatedView
 
@@ -629,13 +629,14 @@ class FileHandler:
             sub_tier_dict = {}
             cfda_dict = {}
             county_dict = {}
-            fpds_office_dict = {}
+            office_dict = {}
 
             # This table is big enough that we want to only grab 2 columns
-            offices = sess.query(FPDSContractingOffice.contracting_office_code,
-                                 FPDSContractingOffice.contracting_office_name).all()
+            offices = sess.query(Office).all()
             for office in offices:
-                fpds_office_dict[office.contracting_office_code] = office.contracting_office_name
+                office_dict[office.office_code] = {'office_name': office.office_name,
+                                                   'sub_tier_code': office.sub_tier_code,
+                                                   'agency_code': office.agency_code}
             del offices
 
             counties = sess.query(CountyCode).all()
@@ -689,7 +690,7 @@ class FileHandler:
                 temp_obj.pop('_sa_instance_state', None)
 
                 temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict,
-                                            county_dict, fpds_office_dict)
+                                            county_dict, office_dict)
 
                 # if it's a correction or deletion row and an old row is active, update the old row to be inactive
                 if row.correction_delete_indicatr is not None:
