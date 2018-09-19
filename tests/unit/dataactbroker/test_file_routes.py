@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from flask import g
 import pytest
 
-from dataactbroker import file_routes
+from dataactbroker.routes import file_routes
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory, SubmissionWindowFactory,

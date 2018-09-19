@@ -862,7 +862,7 @@ class DetachedAwardProcurement(Base):
     vendor_legal_org_name = Column(Text)
     vendor_location_disabled_f = Column(Text)
     vendor_site_code = Column(Text)
-    pulled_from = Column(Text)
+    pulled_from = Column(Text, index=True)
     last_modified = Column(Text)
     initial_report_date = Column(Text)
     referenced_idv_agency_name = Column(Text)
