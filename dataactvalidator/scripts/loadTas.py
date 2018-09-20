@@ -1,6 +1,7 @@
 from collections import defaultdict
 import os
 import logging
+import argparse
 
 import pandas as pd
 import boto
@@ -17,8 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def clean_tas(csv_path):
-    """Read a CSV into a dataframe, then use a configured `clean_data` and
-    return the results"""
+    """ Read a CSV into a dataframe, then use a configured `clean_data` and return the results """
     data = pd.read_csv(csv_path, dtype=str)
     data = clean_data(
         data,
@@ -60,9 +60,8 @@ def clean_tas(csv_path):
     return data.where(pd.notnull(data), None)
 
 
-def update_tas_lookups(csv_path):
-    """Load TAS data from the provided CSV and replace/insert any
-    TASLookups"""
+def update_tas_lookups(csv_path, only_fill_in=False):
+    """ Load TAS data from the provided CSV and replace/insert any TASLookups """
     sess = GlobalDB.db().session
 
     data = clean_tas(csv_path)
@@ -79,18 +78,32 @@ def update_tas_lookups(csv_path):
     # can load using the orm model (note: toyed with the SQLAlchemy bulk load
     # options but ultimately decided not to go outside the unit of work for
     # the sake of a performance gain)
+    updated_count = 0
     for _, row in old_data.iterrows():
-        sess.query(TASLookup).filter_by(account_num=row['account_num']).update(row, synchronize_session=False)
+        if only_fill_in:
+            fill_in_cols = ['acalcount_title', 'budget_bureau_code', 'budget_bureau_name', 'budget_function_code',
+                            'budget_function_title', 'budget_subfunction_code', 'budget_subfunction_title',
+                            'reporting_agency_aid', 'reporting_agency_name']
+            fill_in_updates = {fill_in_col: row[fill_in_col] for fill_in_col in fill_in_cols}
+            qs = sess.query(TASLookup).filter_by(account_num=row['account_num'], budget_function_code=None)
+            updated_count += qs.count()
+            qs.update(synchronize_session=False, values=fill_in_updates)
+        else:
+            sess.query(TASLookup).filter_by(account_num=row['account_num']).update(row, synchronize_session=False)
 
-    for _, row in new_data.iterrows():
-        sess.add(TASLookup(**row))
+    if not only_fill_in:
+        for _, row in new_data.iterrows():
+            sess.add(TASLookup(**row))
 
     sess.commit()
-    logger.info('%s records in CSV, %s existing', len(data.index), sum(data['existing_id'].notnull()))
+    if not only_fill_in:
+        logger.info('%s records in CSV, %s existing', len(data.index), sum(data['existing_id'].notnull()))
+    else:
+        logger.info('%s records filled in', updated_count)
 
 
-def load_tas(tas_file=None):
-    """Load TAS file into broker database. """
+def load_tas(tas_file=None, only_fill_in=False):
+    """ Load TAS file into broker database. """
     # read TAS file to dataframe, to make sure all is well
     # with the file before firing up a db transaction
     if not tas_file:
@@ -99,19 +112,14 @@ def load_tas(tas_file=None):
             s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
             tas_file = s3bucket.get_key("cars_tas.csv").generate_url(expires_in=600)
         else:
-            tas_file = os.path.join(
-                CONFIG_BROKER["path"],
-                "dataactvalidator",
-                "config",
-                "cars_tas.csv")
+            tas_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "cars_tas.csv")
 
     with create_app().app_context():
-        update_tas_lookups(tas_file)
+        update_tas_lookups(tas_file, only_fill_in=only_fill_in)
 
 
 def add_existing_id(data):
-    """Look up the ids of existing TASes. Use account_num as a non-unique
-    identifier to help filter results"""
+    """ Look up the ids of existing TASes. Use account_num as a non-unique identifier to help filter results """
     existing = defaultdict(list)
     query = GlobalDB.db().session.query(TASLookup).\
         filter(TASLookup.account_num.in_(int(i) for i in data['account_num']))
@@ -130,7 +138,24 @@ def existing_id(row, existing):
     for potential_match in existing[row['account_num']]:
         return potential_match.account_num
 
+def get_parser():
+    """ Generates list of command-line arguments
+
+        Returns:
+            argument parser to be used for commandline
+    """
+    tas_parser = argparse.ArgumentParser(description='Import data from the cars_tas.csv')
+    tas_parser.add_argument('--tas_file', '-f', type=str, default=None, help='Path to specifc cars_tas file to use')
+    tas_parser.add_argument('--only_fill_in', '-o', action='store_true', help='Only fill in records with missing data')
+    return tas_parser
 
 if __name__ == '__main__':
+    parser = get_parser()
+    args = parser.parse_args()
     configure_logging()
-    load_tas()
+
+    tas_file = args.tas_file
+    only_fill_in = args.only_fill_in
+    if tas_file and not os.path.exists(tas_file):
+        logger.error('File does not exist: {}'.format(tas_file))
+    load_tas(tas_file=tas_file, only_fill_in=only_fill_in)
