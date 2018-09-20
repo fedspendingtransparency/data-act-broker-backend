@@ -12,7 +12,7 @@
             --cert max.crt 
             --key max.key 
            https://piv.max.gov/cas/login?service=https://broker-api.usaspending.gov
-```
+   ```
     
 - **NOTE**: Do **NOT** end the above service parameter url with a "/"
 - You would locate the `ticket` value in the `Location` header in the first header block returned by this request, i.e.,
