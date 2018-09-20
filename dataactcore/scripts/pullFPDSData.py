@@ -1381,7 +1381,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             # ensure we loaded the number of records we expected to, otherwise we'll need to reload
             if entries_processed != total_expected_records:
                 raise Exception("Records retrieved != Total expected records\nExpected: {}\nRetrieved: {}"
-                                .format(total_expected_records, len(entries_processed)))
+                                .format(total_expected_records, entries_processed))
             else:
                 break
         else:
