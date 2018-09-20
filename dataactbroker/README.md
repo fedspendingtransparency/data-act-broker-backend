@@ -61,8 +61,8 @@ This route sends a request to the backend with the ticket obtained from the MAX 
 
 ```
 {
-    "ticket": ST-123456-abcdefghijklmnopqrst-login.max.gov,
-    "service": http%3A%2F%2Fbroker.usaspending.gov%2F
+    "ticket": "ST-123456-abcdefghijklmnopqrst-login.max.gov",
+    "service": "https://broker-api.usaspending.gov"
 }
 ```
 
