@@ -2,6 +2,7 @@ import csv
 import os
 import logging
 import smart_open
+import traceback
 from datetime import datetime
 
 from sqlalchemy import and_, or_
@@ -450,6 +451,9 @@ class ValidationManager:
             # Mark validation as finished in job tracker
             mark_job_status(job_id, "finished")
             mark_file_complete(job_id, file_name)
+        except Exception as e:
+            logger.error("An exception occurred during validation:{}".format(str(e)))
+            raise
         finally:
             # Ensure the files always close
             reader.close()
