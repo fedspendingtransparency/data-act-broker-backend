@@ -150,7 +150,6 @@ class AccountHandler:
             except MultipleResultsFound:
                 raise ValueError("An error occurred during login.")
 
-
             return self.create_session_and_response(session, user)
 
         # Catch any specifically raised errors or any other errors that may have happened and return them cleanly
@@ -389,7 +388,6 @@ def set_max_perms(user, max_group_list, service_account_flag=False):
 
     # Each group name that we care about begins with the prefix, but once we have that list, we don't need the
     # prefix anymore, so trim it off.
-
     perms = [group_name[len(prefix):]
              for group_name in max_group_list.split(',')
              if group_name.startswith(prefix)]
