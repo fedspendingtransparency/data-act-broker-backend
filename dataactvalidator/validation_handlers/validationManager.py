@@ -2,7 +2,6 @@ import csv
 import os
 import logging
 import smart_open
-import traceback
 from datetime import datetime
 
 from sqlalchemy import and_, or_
