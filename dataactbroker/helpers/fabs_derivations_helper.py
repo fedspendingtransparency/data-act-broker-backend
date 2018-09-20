@@ -66,7 +66,7 @@ def derive_awarding_agency_data(obj, sub_tier_dict, office_dict):
         Args:
             obj: a dictionary containing the details we need to derive from and to
             sub_tier_dict: a dictionary containing all the data for SubTierAgency objects keyed by sub tier code
-            office_dict: a dictionary containing all the dta for Office objects keyed by office code
+            office_dict: a dictionary containing all the data for Office objects keyed by office code
     """
     obj['awarding_agency_code'] = None
     obj['awarding_agency_name'] = None
@@ -86,23 +86,28 @@ def derive_awarding_agency_data(obj, sub_tier_dict, office_dict):
         obj['awarding_sub_tier_agency_n'] = sub_tier["sub_tier_agency_name"]
 
 
-def derive_funding_agency_data(obj, sub_tier_dict):
+def derive_funding_agency_data(obj, sub_tier_dict, office_dict):
     """ Deriving funding sub tier agency name, funding agency name, and funding agency code
 
         Args:
             obj: a dictionary containing the details we need to derive from and to
             sub_tier_dict: a dictionary containing all the data for SubTierAgency objects keyed by sub tier code
+            office_dict: a dictionary containing all the data for Office objects keyed by office code
     """
+    obj['funding_sub_tier_agency_na'] = None
+    obj['funding_agency_name'] = None
+    obj['funding_agency_code'] = None
+
+    # If we have an office code and no sub tier code, use the office to derive the sub tier
+    if obj['funding_office_code'] and not obj['funding_sub_tier_agency_co']:
+        office = office_dict.get(obj['funding_office_code'])
+        obj['funding_sub_tier_agency_co'] = office['sub_tier_code']
+
     if obj['funding_sub_tier_agency_co']:
         sub_tier = sub_tier_dict.get(obj['funding_sub_tier_agency_co'])
-        use_frec = sub_tier["is_frec"]
-        obj['funding_agency_code'] = sub_tier["frec_code"] if use_frec else sub_tier["cgac_code"]
+        obj['funding_agency_code'] = sub_tier["frec_code"] if sub_tier["is_frec"] else sub_tier["cgac_code"]
         obj['funding_agency_name'] = sub_tier["agency_name"]
         obj['funding_sub_tier_agency_na'] = sub_tier["sub_tier_agency_name"]
-    else:
-        obj['funding_sub_tier_agency_na'] = None
-        obj['funding_agency_name'] = None
-        obj['funding_agency_code'] = None
 
 
 def derive_ppop_state(obj, state_dict):
@@ -259,7 +264,7 @@ def derive_office_data(obj, office_dict, sess):
             sess: the current DB session
     """
     # If we don't have an awarding office code, we need to copy it from the earliest transaction of that award
-    if not obj['awarding_office_code']:
+    if not obj['awarding_office_code'] or not obj['funding_office_code']:
         first_transaction = None
         model = PublishedAwardFinancialAssistance
         if obj['record_type'] == 1:
@@ -287,7 +292,10 @@ def derive_office_data(obj, office_dict, sess):
 
         # If we managed to find a transaction, copy the office codes into it
         if first_transaction:
-            obj['awarding_office_code'] = first_transaction.awarding_office_code
+            if not obj['awarding_office_code']:
+                obj['awarding_office_code'] = first_transaction.awarding_office_code
+            if not obj['funding_office_code']:
+                obj['funding_office_code'] = first_transaction.funding_office_code
 
     # Deriving awarding_office_name based off awarding_office_code
     awarding_office_data = office_dict.get(obj['awarding_office_code'])
@@ -528,7 +536,7 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
 
     derive_awarding_agency_data(obj, sub_tier_dict, office_dict)
 
-    derive_funding_agency_data(obj, sub_tier_dict)
+    derive_funding_agency_data(obj, sub_tier_dict, office_dict)
 
     ppop_code, ppop_state_code, ppop_state_name = derive_ppop_state(obj, state_dict)
 

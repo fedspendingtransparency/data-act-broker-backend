@@ -54,10 +54,10 @@ def initialize_db_values(db):
     duns_3 = DunsFactory(awardee_or_recipient_uniqu='345678901', ultimate_parent_unique_ide=None,
                          ultimate_parent_legal_enti=None)
     pafa_1 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='1234', fain='12345', uri='123456',
-                                                      action_date='04/28/2000', funding_office_code='033103',
+                                                      action_date='04/28/2000', funding_office_code=None,
                                                       awarding_office_code='033103', is_active=True)
     pafa_2 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='1234', fain='123456', uri='1234567',
-                                                      action_date='04/28/2000', funding_office_code=None,
+                                                      action_date='04/28/2000', funding_office_code='033103',
                                                       awarding_office_code=None, is_active=True)
     db.session.add_all([zip_code_1, zip_code_2, zip_code_3, zip_code_4, zip_city, zip_city_2, zip_city_3, city_code,
                         duns_1, duns_2a, duns_2b, duns_3, pafa_1, pafa_2])
@@ -169,21 +169,21 @@ def test_awarding_agency_frec(database):
 def test_funding_sub_tier_agency_na(database):
     initialize_db_values(database)
 
-    # when funding_sub_tier_agency_co is not provided
+    # when funding_sub_tier_agency_co is not provided, it should get derived
     obj = initialize_test_obj()
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT)
-    assert obj['funding_sub_tier_agency_na'] is None
-    assert obj['funding_agency_code'] is None
-    assert obj['funding_agency_name'] is None
-
-    # when funding_sub_tier_agency_co is provided
-    obj = initialize_test_obj(sub_fund_agency_code='1234')
     obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
                            OFFICE_DICT)
     assert obj['funding_sub_tier_agency_na'] == 'Test Subtier Agency'
     assert obj['funding_agency_code'] == '000'
     assert obj['funding_agency_name'] == 'Test CGAC Agency'
+
+    # when funding_sub_tier_agency_co is provided
+    obj = initialize_test_obj(sub_fund_agency_code='4321')
+    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
+                           OFFICE_DICT)
+    assert obj['funding_sub_tier_agency_na'] == 'Test Frec Subtier Agency'
+    assert obj['funding_agency_code'] == '1111'
+    assert obj['funding_agency_name'] == 'Test FREC Agency'
 
 
 def test_ppop_state(database):
@@ -374,19 +374,15 @@ def test_derive_office_data(database):
     assert obj['awarding_office_name'] == 'Office'
     assert obj['funding_office_name'] == 'Office'
 
-    # if office_code is present but is invalid, do nothing
-    obj = initialize_test_obj(awarding_office='111111', funding_office='111111')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT)
-    assert obj['awarding_office_name'] is None
-    assert obj['funding_office_name'] is None
-
     # if office_code is not present, derive it from historical data (record type 2 or 3 uses fain, ignores uri)
+    # In this case, there is no funding office but there is an awarding office
     obj = initialize_test_obj(awarding_office=None, funding_office=None, fain='12345')
     obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
                            OFFICE_DICT)
     assert obj['awarding_office_code'] == '033103'
     assert obj['awarding_office_name'] == 'Office'
+    assert obj['funding_office_code'] is None
+    assert obj['funding_office_name'] is None
 
     # if office_code is not present, and no valid fain is given, office code and name are blank
     obj = initialize_test_obj(awarding_office=None, funding_office=None, fain='54321')
@@ -394,20 +390,28 @@ def test_derive_office_data(database):
                            OFFICE_DICT)
     assert obj['awarding_office_code'] is None
     assert obj['awarding_office_name'] is None
+    assert obj['funding_office_code'] is None
+    assert obj['funding_office_name'] is None
 
     # if office_code is not present, and valid fain is given, with no office codes, office code and name are blank
+    # In this case, funding office is present, awarding office is not
     obj = initialize_test_obj(awarding_office=None, funding_office=None, fain='123456')
     obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
                            OFFICE_DICT)
     assert obj['awarding_office_code'] is None
     assert obj['awarding_office_name'] is None
+    assert obj['funding_office_code'] == '033103'
+    assert obj['funding_office_name'] == 'Office'
 
     # if office_code is not present, derive it from historical data (record type 1 uses uri, ignores fain)
+    # In this case, awarding office is present, funding office is not
     obj = initialize_test_obj(awarding_office=None, funding_office=None, uri='123456', record_type=1)
     obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
                            OFFICE_DICT)
     assert obj['awarding_office_code'] == '033103'
     assert obj['awarding_office_name'] == 'Office'
+    assert obj['funding_office_code'] is None
+    assert obj['funding_office_name'] is None
 
     # if office_code is not present, and no valid uri is given, office code and name are blank
     obj = initialize_test_obj(awarding_office=None, funding_office=None, uri='12345', record_type=1)
@@ -415,13 +419,18 @@ def test_derive_office_data(database):
                            OFFICE_DICT)
     assert obj['awarding_office_code'] is None
     assert obj['awarding_office_name'] is None
+    assert obj['funding_office_code'] is None
+    assert obj['funding_office_name'] is None
 
     # if office_code is not present, and valid uri is given, with no office codes, office code and name are blank
+    # In this case, funding office is present, awarding office is not
     obj = initialize_test_obj(awarding_office=None, funding_office=None, uri='1234567', record_type=1)
     obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
                            OFFICE_DICT)
     assert obj['awarding_office_code'] is None
     assert obj['awarding_office_name'] is None
+    assert obj['funding_office_code'] == '033103'
+    assert obj['funding_office_name'] == 'Office'
 
 
 def test_legal_country(database):
