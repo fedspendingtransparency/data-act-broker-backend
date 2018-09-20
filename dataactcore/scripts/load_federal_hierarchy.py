@@ -68,20 +68,24 @@ def get_with_exception_hand(url_string):
 
 def generate_files():
     logger.info('Starting get feed: %s', API_URL.replace(API_KEY, "[API_KEY]"))
-    headers = [
+    fh_filename = 'fed_hierarchy_20180919.csv'
+    file_headers = [
         "fhorgid", "fhorgname", "fhorgtype", "description", "level", "status", "region", "categoryid",
         "effectivestartdate", "effectiveenddate", "createdby", "createddate", "updatedby", "lastupdateddate",
         "fhdeptindagencyorgid", "fhagencyorgname", "agencycode", "oldfpdsofficecode", "aacofficecode",
         "cgaclist_0_cgac", "fhorgofficetypelist_0_officetype", "fhorgofficetypelist_0_officetypestartdate",
-        "fhorgofficetypelist_0_officetypeenddate", "fhorgaddresslist_0_city", "fhorgaddresslist_0_state",
+        "fhorgofficetypelist_0_officetypeenddate", "fhorgofficetypelist_1_officetype",
+        "fhorgofficetypelist_1_officetypestartdate", "fhorgofficetypelist_1_officetypeenddate",
+        "fhorgofficetypelist_2_officetype", "fhorgofficetypelist_2_officetypestartdate",
+        "fhorgofficetypelist_2_officetypeenddate", "fhorgaddresslist_0_city", "fhorgaddresslist_0_state",
         "fhorgaddresslist_0_country_code", "fhorgaddresslist_0_addresstype", "fhorgnamehistory_0_fhorgname",
         "fhorgnamehistory_0_effectivedate", "fhorgparenthistory_0_fhfullparentpathid",
         "fhorgparenthistory_0_fhfullparentpathname", "fhorgparenthistory_0_effectivedate", "links_0_href",
-        "links_0_rel", "links_1_href", "links_1_rel"]
+        "links_0_rel", "links_1_href", "links_1_rel", "links_2_href", "links_2_rel"]
 
-    with open('fed_hierarchy.csv', 'w') as f:
+    with open(fh_filename, 'w') as f:
         csv_writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        csv_writer.writerow(headers)
+        csv_writer.writerow(file_headers)
 
     # retrieve the total count of expected records for this pull
     total_expected_records = json.loads(requests.get(API_URL, timeout=60).text)['totalRecords']
@@ -124,8 +128,13 @@ def generate_files():
                 entries_processed += 1
 
         df_length = len(dataframe.index)
-        with open('fed_hierarchy.csv', 'a') as f:
-            dataframe.to_csv(f, index=False, header=False, columns=headers)
+        for header in list(dataframe.columns.values):
+            if header not in file_headers:
+                file_headers.append(header)
+                logger.info("Headers missing column: %s", header)
+
+        with open(fh_filename, 'a') as f:
+            dataframe.to_csv(f, index=False, header=False, columns=file_headers)
 
         logger.info("Added rows %s-%s to file", start, entries_processed)
 
