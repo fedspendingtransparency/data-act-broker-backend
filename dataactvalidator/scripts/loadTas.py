@@ -138,6 +138,7 @@ def existing_id(row, existing):
     for potential_match in existing[row['account_num']]:
         return potential_match.account_num
 
+
 def get_parser():
     """ Generates list of command-line arguments
 
