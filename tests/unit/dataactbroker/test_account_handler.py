@@ -77,7 +77,7 @@ def test_max_login_failure_normal_login(monkeypatch):
     max_dict = {'cas:serviceResponse': {}}
     monkeypatch.setattr(account_handler, 'get_max_dict', Mock(return_value=max_dict))
     json_response = ah.max_login(Mock())
-    error_message = ("The Max CAS endpoint was unable to locate your session using ",
+    error_message = ("The Max CAS endpoint was unable to locate your session using "
                      "the ticket/service combination you provided.")
 
     # Did not get a successful response from MAX
@@ -145,7 +145,7 @@ def test_max_login_failure_cert_login(monkeypatch):
     max_dict = {'cas:serviceResponse': {}}
     monkeypatch.setattr(account_handler, 'get_max_dict', Mock(return_value=max_dict))
     json_response = ah.max_login(Mock())
-    error_message = ("The Max CAS endpoint was unable to locate your session using ",
+    error_message = ("The Max CAS endpoint was unable to locate your session using "
                      "the ticket/service combination you provided.")
 
     # Did not get a successful response from MAX

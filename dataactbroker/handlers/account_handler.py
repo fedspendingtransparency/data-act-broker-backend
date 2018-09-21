@@ -120,7 +120,7 @@ class AccountHandler:
             max_dict = get_max_dict(ticket, service)
 
             if 'cas:authenticationSuccess' not in max_dict['cas:serviceResponse']:
-                raise ValueError("The Max CAS endpoint was unable to locate your session",
+                raise ValueError("The Max CAS endpoint was unable to locate your session "
                                  "using the ticket/service combination you provided.")
             cas_attrs = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']
 
