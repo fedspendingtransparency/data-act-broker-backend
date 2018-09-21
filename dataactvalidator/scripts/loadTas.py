@@ -81,7 +81,7 @@ def update_tas_lookups(csv_path, only_fill_in=False):
     updated_count = 0
     for _, row in old_data.iterrows():
         if only_fill_in:
-            fill_in_cols = ['acalcount_title', 'budget_bureau_code', 'budget_bureau_name', 'budget_function_code',
+            fill_in_cols = ['account_title', 'budget_bureau_code', 'budget_bureau_name', 'budget_function_code',
                             'budget_function_title', 'budget_subfunction_code', 'budget_subfunction_title',
                             'reporting_agency_aid', 'reporting_agency_name']
             fill_in_updates = {fill_in_col: row[fill_in_col] for fill_in_col in fill_in_cols}
