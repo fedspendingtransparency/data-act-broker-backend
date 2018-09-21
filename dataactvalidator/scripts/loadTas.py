@@ -2,6 +2,7 @@ from collections import defaultdict
 import os
 import logging
 import argparse
+from datetime import datetime, timezone
 
 import pandas as pd
 import boto
@@ -73,33 +74,36 @@ def update_tas_lookups(csv_path, only_fill_in=False):
     new_data = data[data['existing_id'].isnull()]
     del new_data['existing_id']
 
-    # instead of using the pandas to_sql dataframe method like some of the
-    # other domain load processes, iterate through the dataframe rows so we
-    # can load using the orm model (note: toyed with the SQLAlchemy bulk load
-    # options but ultimately decided not to go outside the unit of work for
-    # the sake of a performance gain)
-    updated_count = 0
-    for _, row in old_data.iterrows():
-        if only_fill_in:
-            fill_in_cols = ['account_title', 'budget_bureau_code', 'budget_bureau_name', 'budget_function_code',
-                            'budget_function_title', 'budget_subfunction_code', 'budget_subfunction_title',
-                            'reporting_agency_aid', 'reporting_agency_name']
+    if only_fill_in:
+        # Pull in the empty records
+        empty_records = sess.query(TASLookup).filter_by(budget_function_code=None).values('account_num')
+        empty_account_nums = [int(empty_record[0]) for empty_record in empty_records]
+        # find which incoming records can fill in the empty records
+        relevant_old_data = old_data[old_data['account_num'].isin(empty_account_nums)]
+        # Fill them in. If budget_function_code is empty, the following columns have also been empty.
+        fill_in_cols = ['account_title', 'budget_bureau_code', 'budget_bureau_name', 'budget_function_code',
+                        'budget_function_title', 'budget_subfunction_code', 'budget_subfunction_title',
+                        'reporting_agency_aid', 'reporting_agency_name']
+        for _, row in relevant_old_data.iterrows():
             fill_in_updates = {fill_in_col: row[fill_in_col] for fill_in_col in fill_in_cols}
-            qs = sess.query(TASLookup).filter_by(account_num=row['account_num'], budget_function_code=None)
-            updated_count += qs.count()
-            qs.update(synchronize_session=False, values=fill_in_updates)
-        else:
+            fill_in_updates['updated_at'] = datetime.now(timezone.utc)
+            sess.query(TASLookup).filter_by(account_num=row['account_num']).update(synchronize_session=False,
+                                                                                      values=fill_in_updates)
+        logger.info('%s records filled in', len(relevant_old_data.index))
+    else:
+        # instead of using the pandas to_sql dataframe method like some of the
+        # other domain load processes, iterate through the dataframe rows so we
+        # can load using the orm model (note: toyed with the SQLAlchemy bulk load
+        # options but ultimately decided not to go outside the unit of work for
+        # the sake of a performance gain)
+        for _, row in old_data.iterrows():
             sess.query(TASLookup).filter_by(account_num=row['account_num']).update(row, synchronize_session=False)
 
-    if not only_fill_in:
         for _, row in new_data.iterrows():
             sess.add(TASLookup(**row))
+        logger.info('%s records in CSV, %s existing', len(data.index), sum(data['existing_id'].notnull()))
 
     sess.commit()
-    if not only_fill_in:
-        logger.info('%s records in CSV, %s existing', len(data.index), sum(data['existing_id'].notnull()))
-    else:
-        logger.info('%s records filled in', updated_count)
 
 
 def load_tas(tas_file=None, only_fill_in=False):
@@ -159,4 +163,5 @@ if __name__ == '__main__':
     only_fill_in = args.only_fill_in
     if tas_file and not os.path.exists(tas_file):
         logger.error('File does not exist: {}'.format(tas_file))
-    load_tas(tas_file=tas_file, only_fill_in=only_fill_in)
+    else:
+        load_tas(tas_file=tas_file, only_fill_in=only_fill_in)
