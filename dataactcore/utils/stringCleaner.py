@@ -5,19 +5,20 @@ class StringCleaner:
     """ Provides basic functionality for sanitizing string inputs """
 
     @staticmethod
-    def clean_string(data, remove_spaces=True):
+    def clean_string(data, remove_extras=True):
         """ Change to lowercase, trim whitespace on ends, and replace internal spaces with underscores if desired
 
         Args:
             data: String to be cleaned
-            remove_spaces: True if spaces should be replaced with underscores
+            remove_extras: True if spaces and "/" should be replaced with underscores
 
         Returns:
             Cleaned version of string
         """
         result = str(data).lower().strip()
-        if remove_spaces:
+        if remove_extras:
             result = result.replace(" ", "_")
+            result = result.replace("/", "_")
         return result
 
     @staticmethod

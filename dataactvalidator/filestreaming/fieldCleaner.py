@@ -55,7 +55,6 @@ class FieldCleaner(StringCleaner):
         # Replace problematic characters with underscores
         name = name.replace(" - ", "_").replace("-", "_")
         name = name.replace(",", "_")
-        name = name.replace("/", "_")
         # Remove duplicate underscores
         name = name.replace("__", "_")
         return name
