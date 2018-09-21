@@ -1,7 +1,11 @@
 import json
 from unittest.mock import patch
 
+
 import dataactbroker.handlers.account_handler as account_handler
+from dataactcore.models.userModel import User
+from dataactcore.interfaces.db import GlobalDB
+from sqlalchemy import func
 
 MAX_RESPONSE_NO_PERMS = {
     "cas:serviceResponse": {
@@ -40,6 +44,9 @@ def test_no_perms_broker_user(create_session_mock, max_dict_mock, database, monk
     ah = max_login_func(create_session_mock, max_dict_mock, monkeypatch, MAX_RESPONSE_NO_PERMS)
     res = ah.max_login({})
     response = json.loads(res.get_data().decode("utf-8"))
+    sess = GlobalDB.db().session
+    user = sess.query(User).filter(func.lower(User.email) == func.lower("something@test.com")).delete()
+    sess.commit()
     assert response['message'] == "There are no permissions assigned to this user!"
 
 
@@ -48,7 +55,11 @@ def test_no_perms_broker_user(create_session_mock, max_dict_mock, database, monk
 def test_w_perms_broker_user(create_session_mock, max_dict_mock, database, monkeypatch):
     ah = max_login_func(create_session_mock, max_dict_mock, monkeypatch, MAX_RESPONSE_W_PERMS)
     res = ah.max_login({})
+    sess = GlobalDB.db().session
+    user = sess.query(User).filter(func.lower(User.email) == func.lower("something@test.com")).delete()
+    sess.commit()               
     assert res is True
+
 
 
 def max_login_func(create_session_mock, max_dict_mock, monkeypatch, max_response):
