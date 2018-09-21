@@ -88,7 +88,7 @@ def update_tas_lookups(csv_path, only_fill_in=False):
             fill_in_updates = {fill_in_col: row[fill_in_col] for fill_in_col in fill_in_cols}
             fill_in_updates['updated_at'] = datetime.now(timezone.utc)
             sess.query(TASLookup).filter_by(account_num=row['account_num']).update(synchronize_session=False,
-                                                                                      values=fill_in_updates)
+                                                                                   values=fill_in_updates)
         logger.info('%s records filled in', len(relevant_old_data.index))
     else:
         # instead of using the pandas to_sql dataframe method like some of the
