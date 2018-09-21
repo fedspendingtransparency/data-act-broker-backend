@@ -52,11 +52,6 @@ class FieldCleaner(StringCleaner):
         name = FieldCleaner.clean_string(name)
         # Remove braces and parentheses
         name = name.replace("{", "").replace("}", "").replace("(", "").replace(")", "")
-        # Replace problematic characters with underscores
-        name = name.replace(" - ", "_").replace("-", "_")
-        name = name.replace(",", "_")
-        # Remove duplicate underscores
-        name = name.replace("__", "_")
         return name
 
     @staticmethod
