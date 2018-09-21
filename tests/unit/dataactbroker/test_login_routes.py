@@ -47,7 +47,7 @@ def test_no_perms_broker_user(create_session_mock, max_dict_mock, database, monk
     sess = GlobalDB.db().session
     user = sess.query(User).filter(func.lower(User.email) == func.lower("something@test.com")).one_or_none()
     if user is not None:
-        user.delete()
+        sess.query(func.lower(User.email) == func.lower("something@test.com")).delete()
     sess.commit()
     assert response['message'] == "There are no permissions assigned to this user!"
 
