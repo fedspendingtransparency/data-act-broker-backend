@@ -6,11 +6,11 @@ All contributions to this project will be released under the CC0 dedication. By 
 
 ## Git Workflow
 
-All code to be merged should be submitted to `development` via a Github pull request. The pull request template is available [here](pull_request_template.md "Pull Request Template").
+All code to be merged should be submitted to `development` via a Github pull request. The pull request template is available [here](/pull_request_template.md "Pull Request Template").
 
 ## Continuous Integration
 
-Pull requests must pass Travis CI tests. See [the Travis configuration file](.travis.yml "Travis Configuration").
+Pull requests must pass Travis CI tests. See [the Travis configuration file](/.travis.yml "Travis Configuration").
 
 ## Load or Update Domain Data
 
