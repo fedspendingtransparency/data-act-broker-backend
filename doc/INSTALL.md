@@ -63,7 +63,7 @@ load_zip_codes()
 load_offices()
 ```
 
-#### Create Local Admin User
+##### Create Local Admin User
 
 The Broker utilizes MAX.gov for login when using a remote server, but locally we cannot recieve on their response so we use a username and password for local development login. To create an administrative user with credentials defined in your `config.yml` file, you should run:
 ```
@@ -74,7 +74,7 @@ python dataactcore/scripts/initialize.py -a
 
 Install docker in your local machine by selecting your OS and hitting install from this [link](https://docs.docker.com/install/) (this installation includes `docker-compose` as well).
 
-The next step is to refer to the `Create Broker Config Files` section of this documentation to copy and rename config files, if you choose to use the default configs.
+The next step is to refer to the [Create Broker Config Files](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/development/doc/INSTALL.md#create-broker-config-files) section of this documentation to copy and rename config files, if you choose to use the default configs.
 
 After you successfully installed Docker, make sure the docker daemon is running on your local machine by running `docker version` and make sure you have your configs renamed and copied. Run the following command in the root level of this backend repository:
 
@@ -98,7 +98,7 @@ Run these commands to login/ssh to the broker and validator containers:
 
 This will take you to the workspace directory within the dataact-broker and dataact-validator containers respectively, that will have your backend repository mounted so local changes in that repository will also be changed within the container.
 
-For the final step before you can use the Broker, 
+For the final step before you can use the Broker, you will need to initialize your database and create a local admin user. View the instructions to do so in the [Load or Update Domain Data](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/development/doc/INSTALL.md#load-or-update-domain-data) section of this document.
 
 ##### Set up with existing postgres
 
