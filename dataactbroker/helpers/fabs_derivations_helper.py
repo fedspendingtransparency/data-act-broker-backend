@@ -2,9 +2,10 @@ import re
 import logging
 
 from datetime import datetime
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, DATE
 
 from dataactcore.models.domainModels import Zips, CityCode, ZipCity, DUNS
+from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
 from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, CORRECTION_DELETE_IND_DICT,
                                         RECORD_TYPE_DICT, BUSINESS_TYPE_DICT, BUSINESS_FUNDS_IND_DICT)
 from dataactcore.utils.business_categories import get_business_categories
@@ -59,23 +60,30 @@ def derive_cfda(obj, cfda_dict, job_id, detached_award_financial_assistance_id):
         })
 
 
-def derive_awarding_agency_data(obj, sub_tier_dict):
+def derive_awarding_agency_data(obj, sub_tier_dict, office_dict):
     """ Deriving awarding sub tier agency name, awarding agency name, and awarding agency code
 
         Args:
             obj: a dictionary containing the details we need to derive from and to
             sub_tier_dict: a dictionary containing all the data for SubTierAgency objects keyed by sub tier code
+            office_dict: a dictionary containing all the dta for Office objects keyed by office code
     """
+    obj['awarding_agency_code'] = None
+    obj['awarding_agency_name'] = None
+    obj['awarding_sub_tier_agency_n'] = None
+
+    # If we have an office code and no sub tier code, use the office to derive the sub tier
+    if obj['awarding_office_code'] and not obj['awarding_sub_tier_agency_c']:
+        office = office_dict.get(obj['awarding_office_code'])
+        obj['awarding_sub_tier_agency_c'] = office['sub_tier_code']
+
+    # If we have an office code (provided or derived), we can use that to get the names for the sub and top tiers and
+    # the code for the top tier
     if obj['awarding_sub_tier_agency_c']:
         sub_tier = sub_tier_dict.get(obj['awarding_sub_tier_agency_c'])
-        use_frec = sub_tier["is_frec"]
-        obj['awarding_agency_code'] = sub_tier["frec_code"] if use_frec else sub_tier["cgac_code"]
+        obj['awarding_agency_code'] = sub_tier["frec_code"] if sub_tier["is_frec"] else sub_tier["cgac_code"]
         obj['awarding_agency_name'] = sub_tier["agency_name"]
         obj['awarding_sub_tier_agency_n'] = sub_tier["sub_tier_agency_name"]
-    else:
-        obj['awarding_agency_code'] = None
-        obj['awarding_agency_name'] = None
-        obj['awarding_sub_tier_agency_n'] = None
 
 
 def derive_funding_agency_data(obj, sub_tier_dict):
@@ -240,6 +248,60 @@ def derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, p
         # legal entity cd data
         if not obj['legal_entity_congressional'] and county_wide_pattern.match(ppop_code):
             obj['legal_entity_congressional'] = obj['place_of_performance_congr']
+
+
+def derive_office_data(obj, office_dict, sess):
+    """ Deriving office data
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+            office_dict: a dictionary containing all the data for Office objects keyed by office code
+            sess: the current DB session
+    """
+    # If we don't have an awarding office code, we need to copy it from the earliest transaction of that award
+    if not obj['awarding_office_code']:
+        first_transaction = None
+        model = PublishedAwardFinancialAssistance
+        if obj['record_type'] == 1:
+            # Get the minimum action date for this uri/AwardingSubTierCode combo
+            min_action_date = sess.query(func.min(model.action_date).label("min_date")). \
+                filter(model.uri == obj['uri'], model.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
+                       model.is_active.is_(True)).one()
+            # If we have a minimum action date, get the office codes for the first entry that matches it
+            if min_action_date.min_date:
+                first_transaction = sess.query(model.awarding_office_code, model.funding_office_code).\
+                    filter(model.uri == obj['uri'], model.is_active.is_(True),
+                           model.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
+                           func.cast_as_date(model.action_date) == min_action_date.min_date).first()
+        else:
+            # Get the minimum action date for this fain/AwardingSubTierCode combo
+            min_action_date = sess.query(func.min(func.cast(model.action_date, DATE)).label("min_date")).\
+                filter(model.fain == obj['fain'], model.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
+                       model.is_active.is_(True)).one()
+            # If we have a minimum action date, get the office codes for the first entry that matches it
+            if min_action_date.min_date:
+                first_transaction = sess.query(model.awarding_office_code, model.funding_office_code).\
+                    filter(model.fain == obj['fain'], model.is_active.is_(True),
+                           model.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
+                           func.cast_as_date(model.action_date) == min_action_date.min_date).first()
+
+        # If we managed to find a transaction, copy the office codes into it
+        if first_transaction:
+            obj['awarding_office_code'] = first_transaction.awarding_office_code
+
+    # Deriving awarding_office_name based off awarding_office_code
+    awarding_office_data = office_dict.get(obj['awarding_office_code'])
+    if awarding_office_data:
+        obj['awarding_office_name'] = awarding_office_data['office_name']
+    else:
+        obj['awarding_office_name'] = None
+
+    # Deriving funding_office_name based off funding_office_code
+    funding_office_data = office_dict.get(obj['funding_office_code'])
+    if funding_office_data:
+        obj['funding_office_name'] = funding_office_data['office_name']
+    else:
+        obj['funding_office_name'] = None
 
 
 def derive_le_city_code(obj, sess):
@@ -424,7 +486,7 @@ def set_active(obj):
         obj['is_active'] = True
 
 
-def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict, county_dict, fpds_office_dict):
+def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict, county_dict, office_dict):
     """ Performs derivations related to publishing a FABS record on a single row
 
         Args:
@@ -435,7 +497,7 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
             sub_tier_dict: a dictionary containing all the data for SubTierAgency objects keyed by sub tier code
             cfda_dict: a dictionary containing data for all CFDA objects keyed by cfda number
             county_dict: a dictionary containing all the data for County objects keyed by state code + county number
-            fpds_office_dict: a dictionary containing all the data for FPDSContractingOffices objects keyed by code
+            office_dict: a dictionary containing all the data for Offices objects keyed by code
 
         Returns:
             The obj dictionary initially passed in but without the job_id or detached_award_financial_assistance_id
@@ -464,7 +526,7 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
 
     derive_cfda(obj, cfda_dict, job_id, detached_award_financial_assistance_id)
 
-    derive_awarding_agency_data(obj, sub_tier_dict)
+    derive_awarding_agency_data(obj, sub_tier_dict, office_dict)
 
     derive_funding_agency_data(obj, sub_tier_dict)
 
@@ -474,11 +536,7 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
 
     derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, ppop_state_name, county_dict)
 
-    # Deriving awarding_office_name based off awarding_office_code
-    obj['awarding_office_name'] = fpds_office_dict.get(obj['awarding_office_code'])
-
-    # Deriving funding_office_name based off funding_office_code
-    obj['funding_office_name'] = fpds_office_dict.get(obj['funding_office_code'])
+    derive_office_data(obj, office_dict, sess)
 
     derive_le_city_code(obj, sess)
 

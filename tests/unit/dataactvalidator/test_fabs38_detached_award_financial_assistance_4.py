@@ -14,11 +14,13 @@ def test_column_headers(database):
 def test_success(database):
     """ Test when provided, AwardingOfficeCode must be a valid value from the Federal Hierarchy. """
 
-    office = OfficeFactory(office_code='123456')
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='123456')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(awarding_office_code=None)
-    errors = number_of_errors(_FILE, database, models=[office, det_award_1, det_award_2, det_award_3])
+    office = OfficeFactory(office_code='12345a')
+    det_award_1 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='12345a')
+    # test ignore case
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='12345A')
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='')
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(awarding_office_code=None)
+    errors = number_of_errors(_FILE, database, models=[office, det_award_1, det_award_2, det_award_3, det_award_4])
     assert errors == 0
 
 

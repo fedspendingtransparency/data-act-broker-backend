@@ -25,5 +25,5 @@ WHERE submission_id = {0}
         ) <>
         (SELECT agency_code
         FROM office
-        WHERE office.office_code = dafa.funding_office_code
+        WHERE UPPER(office.office_code) = UPPER(dafa.funding_office_code)
         );

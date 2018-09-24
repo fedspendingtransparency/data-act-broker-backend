@@ -8,5 +8,5 @@ WHERE submission_id = {0}
     AND NOT EXISTS (
         SELECT 1
         FROM office
-        WHERE office.office_code = dafa.awarding_office_code
+        WHERE UPPER(office.office_code) = UPPER(dafa.awarding_office_code)
     );
