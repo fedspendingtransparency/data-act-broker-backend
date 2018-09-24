@@ -2,7 +2,7 @@
 
 The easiest way to run a local DATA Act Broker is to use our Docker image. Essentially, this image is a packaged version of the broker that is pre-configured and will run in an isolated environment.
 
-If you're a developer who wants to run the broker on your machine and make changes to the code, please see the install directions in the project's contributing guide: [CONTRIBUTING.md](CONTRIBUTING.md "project contributing guide").
+If you're a developer who wants to run the broker on your machine and make changes to the code, please see the project's contributing guide: [CONTRIBUTING.md](CONTRIBUTING.md "project contributing guide").
 
 ### Create Broker Config Files
 
@@ -42,34 +42,6 @@ cp dataactvalidator/config/example_object_class.csv dataactvalidator/config/obje
 cp dataactvalidator/config/example_program_activity.csv dataactvalidator/config/program_activity.csv```
 ```
 
-### Load or Update Domain Data
-
-The DATA Act Broker relies on several tables in the database being populated in order to be fully operational. To initialize this data, you will need to run a script located in the `dataactcore/` directory. From the base directory, you can run this:
-```
-python dataactcore/scripts/initialize.py -i
-```
-
-This initialization combines multiple data population scripts into one. You can view what each function does [here](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/dataactcore/scripts/initialize.py), but the functions called by `initialize.py -i` are as follows:
-```
-setup_db()
-load_sql_rules()
-load_domain_value_files(validator_config_path)
-load_agency_data(validator_config_path)
-load_tas_lookup()
-load_sf133()
-load_validator_schema()
-load_location_codes()
-load_zip_codes()
-load_offices()
-```
-
-##### Create Local Admin User
-
-The Broker utilizes MAX.gov for login when using a remote server, but we cannot recieve their response locally so we use a username and password for local development login. To create an administrative user with credentials defined in your `config.yml` file, you should run:
-```
-python dataactcore/scripts/initialize.py -a
-```
-
 ### Setup with Docker
 
 Install docker in your local machine by selecting your OS and hitting install from this [link](https://docs.docker.com/install/) (this installation includes `docker-compose` as well).
@@ -98,8 +70,9 @@ Run these commands to login/ssh to the broker and validator containers:
 
 This will take you to the workspace directory within the dataact-broker and dataact-validator containers respectively, that will have your backend repository mounted so local changes in that repository will also be changed within the container.
 
-For the final step before you can use the Broker, you will need to initialize your database and create a local admin user. View the instructions to do so in the [`Load or Update Domain Data`](#load-or-update-domain-data) section of this document.
+For the final step before you can use the Broker, you will need to initialize your database and create a local admin user. View the instructions to do so in the [`Load or Update Domain Data`](CONTRIBUTING.md#load-or-update-domain-data) section of CONTRIBUTING.md.
 
 ##### Set up with existing postgres
 
 If you want to use postgres on your local machine, change the config to point to your host IP. If you are using docker version `17.06` and have a mac use `docker.for.mac.localhost` instead of IP. If you are using `17.12.0` substitute `docker.for.mac.host.internal` and for `18.03.0` and higher use `host.docker.internal` for your host IP to connect to your local machine.
+
