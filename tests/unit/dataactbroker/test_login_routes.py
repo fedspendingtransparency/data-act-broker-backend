@@ -45,9 +45,8 @@ def test_no_perms_broker_user(create_session_mock, max_dict_mock, database, monk
     res = ah.max_login({})
     response = json.loads(res.get_data().decode("utf-8"))
     sess = GlobalDB.db().session
-    user = sess.query(User).filter(func.lower(User.email) == func.lower("something@test.com")).one_or_none()
-    if user is not None:
-        sess.query(func.lower(User.email) == func.lower("something@test.com")).delete()
+    # This is to prevent an integrity error with other tests that create users.
+    sess.query(func.lower(User.email) == func.lower("something@test.com")).delete()
     sess.commit()
     assert response['message'] == "There are no permissions assigned to this user!"
 
@@ -58,9 +57,8 @@ def test_w_perms_broker_user(create_session_mock, max_dict_mock, database, monke
     ah = max_login_func(create_session_mock, max_dict_mock, monkeypatch, MAX_RESPONSE_W_PERMS)
     res = ah.max_login({})
     sess = GlobalDB.db().session
-    user = sess.query(User).filter(func.lower(User.email) == func.lower("something@test.com")).one_or_none()
-    if user is not None:
-        sess.query(func.lower(User.email) == func.lower("something@test.com")).delete()
+    # This is to prevent an integrity error with other tests that create users.
+    sess.query(func.lower(User.email) == func.lower("something@test.com")).delete()
     sess.commit()
     assert res is True
 
