@@ -19,7 +19,14 @@ logger = logging.getLogger(__name__)
 
 
 def clean_tas(csv_path):
-    """ Read a CSV into a dataframe, then use a configured `clean_data` and return the results """
+    """ Read a CSV into a dataframe, then use a configured `clean_data` and return the results
+
+        Args:
+            csv_path: path of the car_tas csv to import
+
+        Returns:
+            pandas dataframe of clean data imported from the cars_tas csv
+    """
     data = pd.read_csv(csv_path, dtype=str)
     data = clean_data(
         data,
@@ -62,7 +69,12 @@ def clean_tas(csv_path):
 
 
 def update_tas_lookups(csv_path, only_fill_in=False):
-    """ Load TAS data from the provided CSV and replace/insert any TASLookups """
+    """ Load TAS data from the provided CSV and replace/insert any TASLookups
+
+        Args:
+            csv_path: path of the car_tas csv to import
+            only_fill_in: if set to true, this will only update specific columns if budget_function_code is null/none
+    """
     sess = GlobalDB.db().session
 
     data = clean_tas(csv_path)
@@ -107,7 +119,12 @@ def update_tas_lookups(csv_path, only_fill_in=False):
 
 
 def load_tas(tas_file=None, only_fill_in=False):
-    """ Load TAS file into broker database. """
+    """ Load TAS file into broker database.
+
+        Args:
+            tas_file: path of the car_tas csv to import
+            only_fill_in: if set to true, this will only update specific columns if budget_function_code is null/none
+    """
     # read TAS file to dataframe, to make sure all is well
     # with the file before firing up a db transaction
     if not tas_file:
@@ -123,7 +140,11 @@ def load_tas(tas_file=None, only_fill_in=False):
 
 
 def add_existing_id(data):
-    """ Look up the ids of existing TASes. Use account_num as a non-unique identifier to help filter results """
+    """ Look up the ids of existing TASes. Use account_num as a non-unique identifier to help filter results
+
+        Args:
+            data: dataframe of imported cars_tas
+    """
     existing = defaultdict(list)
     query = GlobalDB.db().session.query(TASLookup).\
         filter(TASLookup.account_num.in_(int(i) for i in data['account_num']))
