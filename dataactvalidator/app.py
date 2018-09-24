@@ -1,5 +1,6 @@
 import logging
 import csv
+import traceback
 
 from botocore.exceptions import ClientError
 from flask import Flask, g, current_app
@@ -102,7 +103,7 @@ def run_app():
 
             except ResponseException as e:
                 # Handle exceptions explicitly raised during validation.
-                logger.error(str(e))
+                logger.error(traceback.print_exc())
 
                 job = get_current_job()
                 if job:
@@ -118,7 +119,7 @@ def run_app():
                                 current_message.delete()
             except Exception as e:
                 # Handle uncaught exceptions in validation process.
-                logger.error(str(e))
+                logger.error(traceback.print_exc())
 
                 # csv-specific errors get a different job status and response code
                 if isinstance(e, ValueError) or isinstance(e, csv.Error) or isinstance(e, UnicodeDecodeError):
