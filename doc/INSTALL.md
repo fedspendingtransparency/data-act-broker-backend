@@ -65,7 +65,7 @@ load_offices()
 
 ##### Create Local Admin User
 
-The Broker utilizes MAX.gov for login when using a remote server, but locally we cannot recieve on their response so we use a username and password for local development login. To create an administrative user with credentials defined in your `config.yml` file, you should run:
+The Broker utilizes MAX.gov for login when using a remote server, but we cannot recieve their response locally so we use a username and password for local development login. To create an administrative user with credentials defined in your `config.yml` file, you should run:
 ```
 python dataactcore/scripts/initialize.py -a
 ```
