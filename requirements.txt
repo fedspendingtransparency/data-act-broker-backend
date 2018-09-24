@@ -18,7 +18,7 @@ docutils==0.12
 factory-boy==2.7.0
 fake-factory==0.7.2
 flake8==3.0.4
-Flask==0.11
+Flask==0.12.4
 Flask-Bcrypt==0.7.1
 Flask-Cors==2.1.2
 Flask-Login==0.3.2
