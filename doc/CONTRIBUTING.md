@@ -10,7 +10,7 @@ All code to be merged should be submitted to `development` via a Github pull req
 
 ## Continuous Integration
 
-Pull requests must pass Travis CI tests. See [the Travis configuration file](/.travis.yml "Travis Configuration").
+Pull requests must pass Travis CI tests. See the [Travis configuration file](/.travis.yml "Travis Configuration").
 
 ## Load or Update Domain Data
 
