@@ -84,7 +84,8 @@ def test_calculate_remaining_fields(database):
                                                       county_by_name,
                                                       county_by_code,
                                                       state_codes,
-                                                      country_list)
+                                                      country_list,
+                                                      "award")
 
     tmp_obj_2_data = {'awarding_sub_tier_agency_c': None,
                       'funding_sub_tier_agency_co': "0001",
@@ -108,7 +109,8 @@ def test_calculate_remaining_fields(database):
                                                         county_by_name,
                                                         county_by_code,
                                                         state_codes,
-                                                        country_list)
+                                                        country_list,
+                                                        "award")
 
     tmp_obj_3_data = {'awarding_sub_tier_agency_c': None,
                       'funding_sub_tier_agency_co': None,
@@ -132,7 +134,8 @@ def test_calculate_remaining_fields(database):
                                                         county_by_name,
                                                         county_by_code,
                                                         state_codes,
-                                                        country_list)
+                                                        country_list,
+                                                        "award")
 
     assert tmp_obj['awarding_agency_code'] == '1700'
     assert tmp_obj['awarding_agency_name'] == 'test name'

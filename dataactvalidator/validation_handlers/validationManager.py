@@ -18,7 +18,7 @@ from dataactcore.interfaces.function_bag import (
     populate_job_error_info, get_action_dates
 )
 
-from dataactcore.models.domainModels import matching_cars_subquery
+from dataactcore.models.domainModels import matching_cars_subquery, Office
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
@@ -267,6 +267,7 @@ class ValidationManager:
 
                 required_list = None
                 type_list = None
+                office_list = {}
                 if file_type == "fabs":
                     # create a list of all required/type labels for FABS
                     labels = sess.query(ValidationLabel).all()
@@ -277,6 +278,14 @@ class ValidationManager:
                             required_list[label.column_name] = label.label
                         else:
                             type_list[label.column_name] = label.label
+
+                    # Create a list of all offices
+                    offices = sess.query(Office.office_code, Office.sub_tier_code).all()
+                    for office in offices:
+                        office_list[office.office_code] = office.sub_tier_code
+
+                    # Clear out office list to save space
+                    del offices
 
                 # write headers to file
                 error_csv.writerow(self.reportHeaders)
@@ -327,9 +336,13 @@ class ValidationManager:
                         valid = True
                     else:
                         if file_type == "fabs":
+                            # Derive awarding sub tier agency code if it wasn't provided
+                            if not record.get('awarding_sub_tier_agency_c'):
+                                office_code = record.get('awarding_office_code')
+                                record['awarding_sub_tier_agency_c'] = office_list.get(office_code)
                             record['afa_generated_unique'] = (record['award_modification_amendme'] or '-none-') + "_" +\
-                                                             (record['awarding_sub_tier_agency_c'] or '-none-') + \
-                                                             "_" + (record['fain'] or '-none-') + "_" + \
+                                                             (record['awarding_sub_tier_agency_c'] or '-none-') + "_" +\
+                                                             (record['fain'] or '-none-') + "_" + \
                                                              (record['uri'] or '-none-')
                         passed_validations, failures, valid = Validator.validate(record, csv_schema,
                                                                                  file_type == "fabs",

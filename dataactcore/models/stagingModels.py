@@ -862,7 +862,7 @@ class DetachedAwardProcurement(Base):
     vendor_legal_org_name = Column(Text)
     vendor_location_disabled_f = Column(Text)
     vendor_site_code = Column(Text)
-    pulled_from = Column(Text)
+    pulled_from = Column(Text, index=True)
     last_modified = Column(Text)
     initial_report_date = Column(Text)
     referenced_idv_agency_name = Column(Text)
@@ -1043,6 +1043,18 @@ Index(
     PublishedAwardFinancialAssistance.is_active,
     postgresql_where=(PublishedAwardFinancialAssistance.is_active.is_(True))
     )
+
+Index("ix_pafa_fain_awarding_sub_tier_is_active",
+      PublishedAwardFinancialAssistance.fain,
+      PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c,
+      PublishedAwardFinancialAssistance.is_active,
+      unique=False)
+
+Index("ix_pafa_uri_awarding_sub_tier_is_active",
+      PublishedAwardFinancialAssistance.uri,
+      PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c,
+      PublishedAwardFinancialAssistance.is_active,
+      unique=False)
 
 
 class FPDSContractingOffice(Base):

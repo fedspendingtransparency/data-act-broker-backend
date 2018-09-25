@@ -110,9 +110,11 @@ FABS16,"LegalEntityForeignProvinceName must be blank for domestic recipients (Le
 FABS17,"LegalEntityForeignPostalCode must be blank for domestic recipients (LegalEntityCountryCode = USA) and for aggregate records (RecordType = 1).",n,fabs,fatal,,fabs17_detached_award_financial_assistance
 FABS18,"BusinessTypes must be one to three letters in length. BusinessTypes values must be non-repeated letters from A to X.",n,fabs,fatal,,fabs18_detached_award_financial_assistance
 FABS19,"LegalEntityCountryCode Field must contain a valid three character GENC Standard Edition 3.0 (Update 4) country code.",n,fabs,fatal,,fabs19_detached_award_financial_assistance
-FABS21,"FundingSubTierAgencyCode is an optional field, but when provided must be a valid 4-digit sub-tier agency code.",n,fabs,fatal,,fabs21_detached_award_financial_assistance
+FABS21.1,"When provided, FundingSubTierAgencyCode must be a valid 4-character sub-tier agency code from the Federal Hierarchy.",n,fabs,fatal,,fabs21_detached_award_financial_assistance_1
+FABS21.2,"If both are submitted, FundingSubTierAgencyCode and FundingOfficeCode must belong to the same FundingAgencyCode (per the Federal Hierarchy).",n,fabs,fatal,,fabs21_detached_award_financial_assistance_2
 FABS22,"When provided, CorrectionDeleteIndicator must contain one of the following values: ""C"" or ""D"".",n,fabs,fatal,,fabs22_detached_award_financial_assistance
-FABS23.1,"AwardingSubTierAgencyCode must be a valid 4-digit sub-tier agency code.",n,fabs,fatal,,fabs23_detached_award_financial_assistance_1
+FABS23.1,"When provided, AwardingSubTierAgencyCode must be a valid 4-character sub-tier agency code from the Federal Hierarchy.",n,fabs,fatal,,fabs23_detached_award_financial_assistance_1
+FABS23.2,"If both are submitted, AwardingSubTierAgencyCode and AwardingOfficeCode must belong to the same AwardingAgencyCode (per the Federal Hierarchy).",n,fabs,fatal,,fabs23_detached_award_financial_assistance_2
 FABS23.3,"AwardingSubTierAgencyCode must be provided when AwardingOfficeCode is not provided.",n,fabs,fatal,,fabs23_detached_award_financial_assistance_3
 FABS24.1,"PrimaryPlaceOfPerformanceCountryCode must be blank for PII-redacted non-aggregate records (RecordType = 3).",n,fabs,fatal,,fabs24_detached_award_financial_assistance_1
 FABS24.2,"PrimaryPlaceOfPerformanceCountryCode must contain a valid three character GENC Standard Edition 3.0 (Update 4) country code for aggregate or non-aggregate records (RecordType = 1 or 2).",n,fabs,fatal,,fabs24_detached_award_financial_assistance_2
@@ -145,8 +147,9 @@ FABS37.1,"For new assistance awards (ActionType = A) specifically, the CFDA_Numb
 FABS37.2,"For non-new assistance awards (ActionType = B, C, or D), the CFDA_Number need not be active as of the ActionDate, but a warning will trigger in this case. This warning will not trigger for correction records (those with CorrectionDeleteIndicator = C).",n,fabs,warning,,fabs37_detached_award_financial_assistance_2
 FABS37.3,"For all records, CFDA_Number must have been registered with CFDA.gov or registered as an Assistance Listing on beta.SAM.gov (post-May 2018) at some point in time. ",n,fabs,fatal,,fabs37_detached_award_financial_assistance_3
 FABS38.1,"FundingOfficeCode must be submitted for new awards (ActionType = A or blank) whose ActionDate is on or after October 1, 2018, and whose CorrectionDeleteIndicator is either Blank or C.",n,fabs,fatal,,fabs38_detached_award_financial_assistance_1
-FABS38.2,"AwardingOfficeCode must be six characters long.",n,fabs,fatal,,fabs38_detached_award_financial_assistance_2
+FABS38.2,"When provided, FundingOfficeCode must be a valid value from the Federal Hierarchy.",n,fabs,fatal,,fabs38_detached_award_financial_assistance_2
 FABS38.3,"AwardingOfficeCode must be submitted for new awards (ActionType = A or blank) whose ActionDate is on or after October 1, 2018, and whose CorrectionDeleteIndicator is either Blank or C.",n,fabs,fatal,,fabs38_detached_award_financial_assistance_3
+FABS38.4,"When provided, AwardingOfficeCode must be a valid value from the Federal Hierarchy.",n,fabs,fatal,,fabs38_detached_award_financial_assistance_4
 FABS39.1,"PrimaryPlaceOfPerformanceCode is a required field for aggregate and non-aggregate records (RecordType = 1 or 2), and must be 00*****, 00FORGN, or start with a valid 2-character state code.",n,fabs,fatal,,fabs39_detached_award_financial_assistance_1
 FABS39.2,"For aggregate or non-aggregate records (RecordType = 1 or 2): PrimaryPlaceOfPerformanceCode must be 00FORGN for foreign places of performance (PrimaryPlaceOfPerformanceCountryCode is not USA) and must not be 00FORGN otherwise.",n,fabs,fatal,,fabs39_detached_award_financial_assistance_2
 FABS39.3,"For aggregate or non-aggregate records (RecordType = 1 or 2): PrimaryPlaceofPerformanceZIP+4 must not be provided for any format of PrimaryPlaceOfPerformanceCode other than XX#####.",n,fabs,fatal,,fabs39_detached_award_financial_assistance_3
