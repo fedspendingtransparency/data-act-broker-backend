@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import csv
 import json
@@ -5,6 +6,7 @@ import logging
 import math
 import pandas as pd
 import requests
+import shutil
 
 from pandas.io.json import json_normalize
 from requests.packages.urllib3.exceptions import ReadTimeoutError
@@ -21,6 +23,111 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 API_KEY = CONFIG_BROKER['sam']['federal_hierarchy_api_key']
 API_URL = "https://api-alpha.sam.gov/prodlike/federalorganizations/v1/orgs?api_key={}".format(API_KEY)
 REQUESTS_AT_ONCE = 100
+
+
+def pull_offices(filename, update_db):
+    """ Pull Office data from the Federal Hierarchy API
+    
+        Args:
+            filename: Name of the file to be generated with the API data. If None, no file will be created.
+            update_db: Boolean; update the DB tables with the new data from the API
+    """
+    logger.info('Starting get feed: %s', API_URL.replace(API_KEY, "[API_KEY]"))
+
+    if filename:
+        # Write headers to file
+        file_headers = [
+            "fhorgid", "fhorgname", "fhorgtype", "description", "level", "status", "region", "categoryid",
+            "effectivestartdate", "effectiveenddate", "createdby", "createddate", "updatedby", "lastupdateddate",
+            "fhdeptindagencyorgid", "fhagencyorgname", "agencycode", "oldfpdsofficecode", "aacofficecode",
+            "cgaclist_0_cgac", "fhorgofficetypelist_0_officetype", "fhorgofficetypelist_0_officetypestartdate",
+            "fhorgofficetypelist_0_officetypeenddate", "fhorgofficetypelist_1_officetype",
+            "fhorgofficetypelist_1_officetypestartdate", "fhorgofficetypelist_1_officetypeenddate",
+            "fhorgofficetypelist_2_officetype", "fhorgofficetypelist_2_officetypestartdate",
+            "fhorgofficetypelist_2_officetypeenddate", "fhorgaddresslist_0_city", "fhorgaddresslist_0_state",
+            "fhorgaddresslist_0_country_code", "fhorgaddresslist_0_addresstype", "fhorgnamehistory_0_fhorgname",
+            "fhorgnamehistory_0_effectivedate", "fhorgparenthistory_0_fhfullparentpathid",
+            "fhorgparenthistory_0_fhfullparentpathname", "fhorgparenthistory_0_effectivedate", "links_0_href",
+            "links_0_rel", "links_1_href", "links_1_rel", "links_2_href", "links_2_rel"]
+        with open(filename, 'w+') as f:
+            csv_writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+            csv_writer.writerow(file_headers)
+
+    for level in ["3", "4", "5", "6", "7"]:
+        # Create URL with the level param
+        url_with_params = "{}&level={}".format(API_URL, level)
+
+        # Retrieve the total count of expected records for this pull
+        total_expected_records = json.loads(requests.get(url_with_params, timeout=60).text)['totalRecords']
+        logger.info('{} record(s) expected from this feed'.format(total_expected_records))
+
+        limit = 100
+        entries_processed = 0
+        while True:
+            async def fed_hierarchy_async_get(entries_already_processed):
+                response_list = []
+                loop = asyncio.get_event_loop()
+                futures = [
+                    loop.run_in_executor(
+                        None,
+                        get_with_exception_hand,
+                        "{}&limit={}&offset={}".format(url_with_params, str(limit),
+                                                       str(entries_already_processed + (start_offset * limit)))
+                    )
+                    for start_offset in range(REQUESTS_AT_ONCE)
+                ]
+                for response in await asyncio.gather(*futures):
+                    response_list.append(response.text)
+                    pass
+                return response_list
+            # End async get requests def
+
+            # Retrieve limit*REQUESTS_AT_ONCE records from the API
+            logger.info("Retrieving rows %s-%s", str(entries_processed), str(entries_processed + limit * REQUESTS_AT_ONCE))
+            loop = asyncio.get_event_loop()
+            full_response = loop.run_until_complete(fed_hierarchy_async_get(entries_processed))
+
+            # Create a dataframe with all the data from the API
+            dataframe = pd.DataFrame()
+            start = entries_processed + 1
+            for next_resp in full_response:
+                response_dict = json.loads(next_resp)
+
+                for org in response_dict.get('orgList', []):
+                    if filename:
+                        row = json_normalize(flatten_json(org))
+                        dataframe = dataframe.append(row)
+                    if update_db:
+                        office_types = []
+                        for office_type in response_dict.get('fhorgofficetypelist', []):
+                            office_types.append(office_type['office_type'])
+                        # new_office = Office()
+
+                    entries_processed += 1
+
+            if filename:
+                # Ensure headers are handled correctly
+                df_length = len(dataframe.index)
+                for header in list(dataframe.columns.values):
+                    if header not in file_headers:
+                        file_headers.append(header)
+                        logger.info("Headers missing column: %s", header)
+
+                # Write to file
+                with open(filename, 'a') as f:
+                    dataframe.to_csv(f, index=False, header=False, columns=file_headers)
+
+            logger.info("Added rows %s-%s to file", start, entries_processed)
+
+            if entries_processed < (start + limit * REQUESTS_AT_ONCE):
+                # Feed has finished
+                if entries_processed != total_expected_records:
+                    # Ensure we have retrieve the planned number of records
+                    raise Exception("Total expected records: {}, Number of records retrieved: {}".format(
+                        total_expected_records, entries_processed))
+                break
+
+    logger.info("Finished")
 
 
 def flatten_json(y):
@@ -66,87 +173,13 @@ def get_with_exception_hand(url_string):
     return resp
 
 
-def generate_files():
-    logger.info('Starting get feed: %s', API_URL.replace(API_KEY, "[API_KEY]"))
-    fh_filename = 'fed_hierarchy_20180919.csv'
-    file_headers = [
-        "fhorgid", "fhorgname", "fhorgtype", "description", "level", "status", "region", "categoryid",
-        "effectivestartdate", "effectiveenddate", "createdby", "createddate", "updatedby", "lastupdateddate",
-        "fhdeptindagencyorgid", "fhagencyorgname", "agencycode", "oldfpdsofficecode", "aacofficecode",
-        "cgaclist_0_cgac", "fhorgofficetypelist_0_officetype", "fhorgofficetypelist_0_officetypestartdate",
-        "fhorgofficetypelist_0_officetypeenddate", "fhorgofficetypelist_1_officetype",
-        "fhorgofficetypelist_1_officetypestartdate", "fhorgofficetypelist_1_officetypeenddate",
-        "fhorgofficetypelist_2_officetype", "fhorgofficetypelist_2_officetypestartdate",
-        "fhorgofficetypelist_2_officetypeenddate", "fhorgaddresslist_0_city", "fhorgaddresslist_0_state",
-        "fhorgaddresslist_0_country_code", "fhorgaddresslist_0_addresstype", "fhorgnamehistory_0_fhorgname",
-        "fhorgnamehistory_0_effectivedate", "fhorgparenthistory_0_fhfullparentpathid",
-        "fhorgparenthistory_0_fhfullparentpathname", "fhorgparenthistory_0_effectivedate", "links_0_href",
-        "links_0_rel", "links_1_href", "links_1_rel", "links_2_href", "links_2_rel"]
-
-    with open(fh_filename, 'w') as f:
-        csv_writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        csv_writer.writerow(file_headers)
-
-    # retrieve the total count of expected records for this pull
-    total_expected_records = json.loads(requests.get(API_URL, timeout=60).text)['totalRecords']
-    logger.info('{} record(s) expected from this feed'.format(total_expected_records))
-    total_expected_records = 3678
-
-    limit = 100
-    entries_processed = 0
-    while True:
-        async def fed_hierarchy_async_get(entries_already_processed):
-            response_list = []
-            loop = asyncio.get_event_loop()
-            futures = [
-                loop.run_in_executor(
-                    None,
-                    get_with_exception_hand,
-                    "{}&limit={}&offset={}".format(API_URL, str(limit),
-                                                   str(entries_already_processed + (start_offset * limit)))
-                )
-                for start_offset in range(REQUESTS_AT_ONCE)
-            ]
-            for response in await asyncio.gather(*futures):
-                response_list.append(response.text)
-                pass
-            return response_list
-        # End async get requests def
-
-        logger.info("Retrieving rows %s-%s", str(entries_processed), str(entries_processed + limit * REQUESTS_AT_ONCE))
-        loop = asyncio.get_event_loop()
-        full_response = loop.run_until_complete(fed_hierarchy_async_get(entries_processed))
-
-        dataframe = pd.DataFrame()
-        start = entries_processed + 1
-        for next_resp in full_response:
-            response_dict = json.loads(next_resp)
-
-            for org in response_dict.get('orgList', []):
-                row = json_normalize(flatten_json(org))
-                dataframe = dataframe.append(row)
-                entries_processed += 1
-
-        df_length = len(dataframe.index)
-        for header in list(dataframe.columns.values):
-            if header not in file_headers:
-                file_headers.append(header)
-                logger.info("Headers missing column: %s", header)
-
-        with open(fh_filename, 'a') as f:
-            dataframe.to_csv(f, index=False, header=False, columns=file_headers)
-
-        logger.info("Added rows %s-%s to file", start, entries_processed)
-
-        if df_length < (limit * REQUESTS_AT_ONCE):
-            break
-
-    logger.info("Complete")
-
-
 def main():
-    # sess = GlobalDB.db().session
-    generate_files()
+    parser = argparse.ArgumentParser(description='Pull data from the Federal Hierarchy API.')
+    parser.add_argument('-f', '--filename', help='Generate a local CSV file from the data.', nargs=1, type=str)
+    parser.add_argument('-d', '--ignore_db', help='Do not update the DB tables', action='store_true')
+    args = parser.parse_args()
+
+    pull_offices(args.filename[0] if args.filename else None, not args.ignore_db)
 
 
 if __name__ == '__main__':
