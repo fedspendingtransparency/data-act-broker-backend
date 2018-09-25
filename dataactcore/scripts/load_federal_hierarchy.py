@@ -12,8 +12,9 @@ from pandas.io.json import json_normalize
 from requests.packages.urllib3.exceptions import ReadTimeoutError
 
 from dataactcore.config import CONFIG_BROKER
-# from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
+from dataactcore.models.domainModels import Office
 
 from dataactvalidator.health_check import create_app
 
@@ -22,7 +23,7 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 
 API_KEY = CONFIG_BROKER['sam']['federal_hierarchy_api_key']
 API_URL = "https://api-alpha.sam.gov/prodlike/federalorganizations/v1/orgs?api_key={}".format(API_KEY)
-REQUESTS_AT_ONCE = 100
+REQUESTS_AT_ONCE = 10
 
 
 def pull_offices(filename, update_db):
@@ -32,6 +33,7 @@ def pull_offices(filename, update_db):
             filename: Name of the file to be generated with the API data. If None, no file will be created.
             update_db: Boolean; update the DB tables with the new data from the API
     """
+    sess = GlobalDB.db().session
     logger.info('Starting get feed: %s', API_URL.replace(API_KEY, "[API_KEY]"))
 
     if filename:
@@ -89,21 +91,29 @@ def pull_offices(filename, update_db):
 
             # Create a dataframe with all the data from the API
             dataframe = pd.DataFrame()
+            offices = []
             start = entries_processed + 1
             for next_resp in full_response:
                 response_dict = json.loads(next_resp)
 
                 for org in response_dict.get('orgList', []):
+                    entries_processed += 1
+
+                    # Add to the file data structure
                     if filename:
                         row = json_normalize(flatten_json(org))
                         dataframe = dataframe.append(row)
+
+                    # Add to the list of DB objects
                     if update_db:
                         office_types = []
-                        for office_type in response_dict.get('fhorgofficetypelist', []):
-                            office_types.append(office_type['office_type'])
-                        # new_office = Office()
-
-                    entries_processed += 1
+                        for office_type in org.get('fhorgofficetypelist', []):
+                            office_types.append(office_type['officetype'].lower())
+                        if org.get('aacofficecode'):
+                            offices.append(Office(office_code=org.get('aacofficecode'),
+                                                  office_name=org.get('fhorgname'),
+                                                  sub_tier_code=org.get('agencycode'),
+                                                  agency_code=org.get('cgaclist', [None])[0]))
 
             if filename:
                 # Ensure headers are handled correctly
@@ -117,15 +127,21 @@ def pull_offices(filename, update_db):
                 with open(filename, 'a') as f:
                     dataframe.to_csv(f, index=False, header=False, columns=file_headers)
 
-            logger.info("Added rows %s-%s to file", start, entries_processed)
+            if update_db:
+                sess.add_all(offices)
 
-            if entries_processed < (start + limit * REQUESTS_AT_ONCE):
+            logger.info("Processed rows %s-%s", start, entries_processed)
+
+            if entries_processed < (start + limit * REQUESTS_AT_ONCE) or entries_processed > 1000:
                 # Feed has finished
-                if entries_processed != total_expected_records:
-                    # Ensure we have retrieve the planned number of records
-                    raise Exception("Total expected records: {}, Number of records retrieved: {}".format(
-                        total_expected_records, entries_processed))
+                # if entries_processed != total_expected_records:
+                #     # Ensure we have retrieve the planned number of records
+                #     raise Exception("Total expected records: {}, Number of records retrieved: {}".format(
+                #         total_expected_records, entries_processed))
                 break
+
+    if update_db:
+        sess.commit()
 
     logger.info("Finished")
 
@@ -178,8 +194,14 @@ def main():
     parser.add_argument('-f', '--filename', help='Generate a local CSV file from the data.', nargs=1, type=str)
     parser.add_argument('-d', '--ignore_db', help='Do not update the DB tables', action='store_true')
     args = parser.parse_args()
+    
+    filename = args.filename[0] if args.filename else None
+    if filename:
+        logger.info("Creating a file ({}) with the data from this pull".format(filename))
+    if not args.ignore_db:
+        logger.info("Updating DB with the data from this pull")
 
-    pull_offices(args.filename[0] if args.filename else None, not args.ignore_db)
+    pull_offices(filename, not args.ignore_db)
 
 
 if __name__ == '__main__':
