@@ -107,7 +107,7 @@ def test_update_tas_lookups(database, monkeypatch):
     # Initial state
     assert sess.query(TASLookup).count() == 4
 
-    loadTas.update_tas_lookups('file-name-ignored-due-to-mock')
+    loadTas.update_tas_lookups(sess, 'file-name-ignored-due-to-mock')
 
     # Post-"import" state
     results = sess.query(TASLookup).order_by(TASLookup.account_num, TASLookup.agency_identifier).all()
@@ -167,7 +167,7 @@ def test_only_fill_missing(database, monkeypatch):
     # Initial state
     assert sess.query(TASLookup).count() == 2
 
-    loadTas.update_tas_lookups('file-name-ignored-due-to-mock', only_fill_in=True)
+    loadTas.update_tas_lookups(sess, 'file-name-ignored-due-to-mock', update_missing=[222])
 
     # Post-"import" state
     results = sess.query(TASLookup).order_by(TASLookup.account_num).all()
