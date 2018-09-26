@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 import boto
+import boto3
 from dataactcore.config import CONFIG_BROKER
 
 
@@ -30,7 +31,7 @@ class S3Handler:
 
         S3Handler.REGION = CONFIG_BROKER['aws_region']
 
-    def _sign_url(self, path, file_name, bucket_route, method="PUT"):
+    def _sign_url(self, path, file_name, bucket_route, method="put_object"):
         """
         Creates the object for signing URLS
 
@@ -42,16 +43,13 @@ class S3Handler:
 
         """
         if S3Handler.ENABLE_S3:
-            s3connection = boto.s3.connect_to_region(S3Handler.REGION)
-            if method == "PUT":
-                return s3connection.generate_url(S3Handler.URL_LIFETIME, method,
-                                                 bucket_route, "/" + path + "/" + file_name,
-                                                 headers={'Content-Type': 'application/octet-stream'})
-            return s3connection.generate_url(S3Handler.URL_LIFETIME, method,
-                                             bucket_route, "/" + path + "/" + file_name)
+            s3 = boto3.client('s3', region_name=S3Handler.REGION)
+            s3_params = {'Bucket': bucket_route,
+                         'Key': path + file_name}
+            return s3.generate_presigned_url(method, s3_params, ExpiresIn=S3Handler.URL_LIFETIME)
         return S3Handler.BASE_URL + "/" + self.bucketRoute + "/" + path + "/" + file_name
 
-    def get_signed_url(self, path, file_name, bucket_route=None, method="PUT"):
+    def get_signed_url(self, path, file_name, bucket_route=None, method="put_object"):
         """
         Signs a URL for PUT requests
 
@@ -62,7 +60,7 @@ class S3Handler:
         """
         bucket_route = self.bucketRoute if bucket_route is None else bucket_route
 
-        if method == "PUT":
+        if method == "put_object":
             self.s3FileName = S3Handler.get_timestamped_filename(file_name)
         else:
             self.s3FileName = file_name
@@ -100,15 +98,14 @@ class S3Handler:
         except AttributeError:
             S3Handler.REGION = CONFIG_BROKER["aws_region"]
 
-        s3connection = boto.s3.connect_to_region(S3Handler.REGION)
-        bucket = s3connection.get_bucket(bucket_name)
-
         urls = {}
 
-        for key in bucket.list(prefix=path):
-            if key.name != path:
-                file_name = key.name[len(path):]
-                url = self.get_signed_url(path=path, file_name=file_name, bucket_route=bucket_name, method="GET")
+        s3 = boto3.client('s3', region_name=S3Handler.REGION)
+        response = s3.list_objects_v2(Bucket=bucket_name, Prefix=path)
+        for obj in response.get('Contents', []):
+            if obj['Key'] != path:
+                file_name = obj['Key'][len(path):]
+                url = self.get_signed_url(path=path, file_name=file_name, bucket_route=bucket_name, method="get_object")
                 urls[file_name] = url
 
         return urls

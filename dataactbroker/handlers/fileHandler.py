@@ -1658,7 +1658,7 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
         filename = file_array.pop()
         file_path = '/'.join(x for x in file_array)
         url = S3Handler().get_signed_url(file_path, filename, bucket_route=CONFIG_BROKER['certified_bucket'],
-                                         method="GET")
+                                         method="get_object")
 
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
@@ -1726,7 +1726,7 @@ def submission_report_url(submission, warning, file_type, cross_type):
     if CONFIG_BROKER['local']:
         url = os.path.join(CONFIG_BROKER['broker_files'], file_name)
     else:
-        url = S3Handler().get_signed_url("errors", file_name, method="GET")
+        url = S3Handler().get_signed_url("errors", file_name, method="get_object")
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 
@@ -1757,7 +1757,7 @@ def get_upload_file_url(submission, file_type):
         # when local, can just grab the filename because it stores the entire path
         url = os.path.join(CONFIG_BROKER['broker_files'], split_name[-1])
     else:
-        url = S3Handler().get_signed_url(split_name[0], split_name[1], method="GET")
+        url = S3Handler().get_signed_url(split_name[0], split_name[1], method="get_object")
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 

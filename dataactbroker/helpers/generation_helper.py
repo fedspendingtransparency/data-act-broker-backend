@@ -133,7 +133,7 @@ def check_file_generation(job_id):
     if CONFIG_BROKER['use_aws'] and response_dict['status'] is 'finished' and upload_job.filename:
         path, file_name = upload_job.filename.split('/')
         response_dict['url'] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
-                                                          method='GET')
+                                                          method='get_object')
     elif response_dict['status'] is 'finished' and upload_job.filename:
         response_dict['url'] = upload_job.filename
 
