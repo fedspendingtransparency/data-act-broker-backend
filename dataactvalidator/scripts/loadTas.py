@@ -141,7 +141,7 @@ def load_tas(tas_file=None, backfill_historic=False):
 
         Args:
             tas_file: path of the car_tas csv to import
-            backfill_historic: if set to true, this will only update specific columns if budget_function_code is null/none
+            backfill_historic: if set to true, this will only update certain columns if budget_function_code is null
     """
     # read TAS file to dataframe, to make sure all is well with the file before firing up a db transaction
     tas_files = []
