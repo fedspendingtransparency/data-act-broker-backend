@@ -151,7 +151,7 @@ class S3Handler:
                 original_bucket: Name of the bucket to copy from
                 new_bucket: Name of the bucket to copy to
                 original_path: Path and filename of the original file
-                original_path: Path and filename for the copied file
+                new_path: Path and filename for the copied file
         """
         s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
         source_info = {
