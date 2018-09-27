@@ -1,4 +1,4 @@
-from dataactbroker.handlers.fabsDerivationsHandler import fabs_derivations
+from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations
 from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, CORRECTION_DELETE_IND_DICT,
                                         RECORD_TYPE_DICT, BUSINESS_TYPE_DICT, BUSINESS_FUNDS_IND_DICT)
 

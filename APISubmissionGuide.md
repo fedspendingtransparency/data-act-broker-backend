@@ -11,11 +11,12 @@
         curl -L -j -D - -b none 
             --cert max.crt 
             --key max.key 
-           https://piv.max.gov/cas/login?service=https://broker.usaspending.gov
-
-    ```
-    - You would locate the `ticket` value in the `Location` header in the first header block returned by this request, i.e.,
-    `Location=https://broker-dev.usaspending.gov?ticket=ST-123456-abcdefghijklmnopqrst-login.max.gov`
+           https://piv.max.gov/cas/login?service=https://broker-api.usaspending.gov
+   ```
+    
+- **NOTE**: Do **NOT** end the above service parameter url with a "/"
+- You would locate the `ticket` value in the `Location` header in the first header block returned by this request, i.e.,
+    `Location=https://broker-api.usaspending.gov?ticket=ST-123456-abcdefghijklmnopqrst-login.max.gov`
 - Step 2: call `/v1/max_login/` (POST) current broker login endpoint for logging into broker using MAX login. For details on its use, click [here](./dataactbroker/README.md#post-v1max_login)
 
 ## DABS Submission Process

@@ -22,7 +22,7 @@ dataactbroker/
 The `/dataactbroker/scripts` folder contains the install scripts needed to setup the broker API for a local install. For complete instructions on running your own copy of the API and other DATA Act broker components, please refer to the [documentation in the DATA Act core responsitory](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md "DATA Act broker installation guide").
 
 ### Handlers
-The `dataactbroker/handlers` folder contains the logic to handle requests that are dispatched from the `domainRoutes.py`, `file_routes.py`, `loginRoutes.py`, and `user_routes.py` files. Routes defined in these files may include the `@requires_login` and `@requires_submission_perms` tags to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in, as well as checking the user's permissions to determine if the user has access to this route. If user is not logged in to the system or does not have access to the route, a 401 HTTP error will be returned. This tags are defined in `dataactbroker/permissions.py`.
+The `dataactbroker/handlers` folder contains the logic to handle requests that are dispatched from the `domain_routes.py`, `file_routes.py`, `login_routes.py`, and `user_routes.py` files. Routes defined in these files may include the `@requires_login` and `@requires_submission_perms` tags to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in, as well as checking the user's permissions to determine if the user has access to this route. If user is not logged in to the system or does not have access to the route, a 401 HTTP error will be returned. This tags are defined in `dataactbroker/permissions.py`.
 
 `account_handler.py` contains the functions to check logins and to log users out.
 
@@ -61,8 +61,8 @@ This route sends a request to the backend with the ticket obtained from the MAX 
 
 ```
 {
-    "ticket": ST-123456-abcdefghijklmnopqrst-login.max.gov,
-    "service": http%3A%2F%2Fbroker.usaspending.gov%2F
+    "ticket": "ST-123456-abcdefghijklmnopqrst-login.max.gov",
+    "service": "https://broker-api.usaspending.gov"
 }
 ```
 

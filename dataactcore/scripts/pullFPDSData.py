@@ -887,7 +887,8 @@ def calculate_legal_entity_fields(obj, sess, county_by_code, state_code_list, co
         obj['legal_entity_country_name'] = country_list[obj['legal_entity_country_code']]
 
 
-def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list, country_list):
+def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list, country_list,
+                               atom_type):
     """ calculate values that aren't in any feed but can be calculated """
     # we want to null out all the calculated columns in case this is an update to the records
     obj['awarding_agency_code'] = None
@@ -945,17 +946,17 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
     # calculate unique key
     key_list = ['agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id',
                 'transaction_number']
+    idv_list = ['agency_id', 'piid', 'award_modification_amendme']
     unique_string = ""
     for item in key_list:
         if len(unique_string) > 0:
             unique_string += "_"
-        try:
-            if obj[item]:
-                unique_string += obj[item]
-            else:
-                unique_string += "-none-"
-        except KeyError:
-            unique_string += "-none-"
+
+        if atom_type == 'award' or item in idv_list:
+            # Get the value in the object or, if the key doesn't exist or value is None, set it to "-none-"
+            unique_string += obj.get(item) or '-none-'
+        else:
+            unique_string += '-none-'
 
     # The order of the unique key is agency_id, referenced_idv_agency_iden, piid, award_modification_amendme,
     # parent_award_id, transaction_number
@@ -1074,7 +1075,7 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
     obj = vendor_values(data['vendor'], obj)
 
     obj = calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-                                     country_list)
+                                     country_list, atom_type)
 
     try:
         obj['last_modified'] = data['transactionInformation']['lastModifiedDate']
@@ -1153,14 +1154,8 @@ def process_delete_data(data, atom_type):
         except (KeyError, TypeError):
             unique_string += "-none-"
 
-        unique_string += "_"
-
-        try:
-            unique_string += extract_text(data['contractID']['referencedIDVID']['agencyID'])
-        except (KeyError, TypeError):
-            unique_string += "-none-"
-
-        unique_string += "_"
+        # referenced_idv_agency_iden not used in IDV identifier, just set it to "-none-"
+        unique_string += "_-none-_"
 
         try:
             unique_string += extract_text(data['contractID']['IDVID']['PIID'])
@@ -1174,15 +1169,8 @@ def process_delete_data(data, atom_type):
         except (KeyError, TypeError):
             unique_string += "-none-"
 
-        unique_string += "_"
-
-        try:
-            unique_string += extract_text(data['contractID']['referencedIDVID']['PIID'])
-        except (KeyError, TypeError):
-            unique_string += "-none-"
-
-        # transaction_number not in IDV feed, just set it to "-none-"
-        unique_string += "_-none-"
+        # parent_award_id not used in IDV identifier and transaction_number not in IDV feed, just set them to "-none-"
+        unique_string += "_-none-_-none-"
 
     return unique_string
 
@@ -1393,7 +1381,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             # ensure we loaded the number of records we expected to, otherwise we'll need to reload
             if entries_processed != total_expected_records:
                 raise Exception("Records retrieved != Total expected records\nExpected: {}\nRetrieved: {}"
-                                .format(total_expected_records, len(entries_processed)))
+                                .format(total_expected_records, entries_processed))
             else:
                 break
         else:
@@ -2262,11 +2250,12 @@ def format_date(row, header):
 
 def create_unique_key(row):
     key_list = ['agencyid', 'idvagencyid', 'piid', 'modnumber', 'idvpiid', 'transactionnumber']
+    idv_list = ['agencyid', 'piid', 'modnumber']
     unique_string = ""
     for item in key_list:
         if len(unique_string) > 0:
             unique_string += "_"
-        if row[item] and str(row[item]) != 'nan':
+        if row[item] and str(row[item]) != 'nan' and (row['pulled_from'] == 'award' or item in idv_list):
             unique_string += str(row[item])
         else:
             unique_string += "-none-"
@@ -2293,6 +2282,10 @@ def main():
     parser.add_argument('-da', '--dates', help='Used in conjunction with -l to specify dates to gather updates from.'
                                                'Should have 2 arguments, first and last day, formatted YYYY/mm/dd',
                         nargs=2, type=str)
+    parser.add_argument('-del', '--delete', help='Used to only run the delete feed. First argument must be "both", '
+                                                 '"idv", or "award". The second and third arguments must be the first '
+                                                 'and last day to run the feeds for, formatted YYYY/mm/dd',
+                        nargs=3, type=str)
     args = parser.parse_args()
 
     award_types_award = ["BPA Call", "Definitive Contract", "Purchase Order", "Delivery Order"]
@@ -2406,6 +2399,26 @@ def main():
 
         sess.commit()
         logger.info("Ending at: %s", str(datetime.datetime.now()))
+    elif args.delete:
+        del_type = args.delete[0]
+        if del_type == 'award':
+            del_awards = True
+            del_idvs = False
+        elif del_type == 'idv':
+            del_awards = False
+            del_idvs = True
+        elif del_type == 'both':
+            del_awards = True
+            del_idvs = True
+        else:
+            logger.error("Delete argument must be \"idv\", \"award\", or \"both\"")
+            raise ValueError("Delete argument must be \"idv\", \"award\", or \"both\"")
+
+        if del_idvs:
+            get_delete_data("IDV", now, sess, now, args.delete[1], args.delete[2])
+        if del_awards:
+            get_delete_data("award", now, sess, now, args.delete[1], args.delete[2])
+        sess.commit()
     elif args.files:
         logger.info("Starting file loads at: %s", str(datetime.datetime.now()))
         max_year = 2015
