@@ -386,7 +386,7 @@ def test_submission_report_url_s3(monkeypatch):
     assert url == 'some/url/here.csv'
     assert s3_url_handler.return_value.get_signed_url.call_args == (
         ('errors', 'submission_2_some_file_error_report.csv'),
-        {'method': 'GET'}
+        {'method': 'get_object'}
     )
 
 
@@ -504,7 +504,7 @@ def test_get_upload_file_url_s3(database, monkeypatch):
     assert url == 'some/url/here.csv'
     assert s3_url_handler.return_value.get_signed_url.call_args == (
         ('1', 'some_file.csv'),
-        {'method': 'GET'}
+        {'method': 'get_object'}
     )
 
 
