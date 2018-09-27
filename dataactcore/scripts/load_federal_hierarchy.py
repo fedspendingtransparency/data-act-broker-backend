@@ -8,13 +8,15 @@ import pandas as pd
 import requests
 import shutil
 
+from datetime import datetime
 from pandas.io.json import json_normalize
 from requests.packages.urllib3.exceptions import ReadTimeoutError
+from sqlalchemy import func
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import Office
+from dataactcore.models.domainModels import Office, SubTierAgency
 
 from dataactvalidator.health_check import create_app
 
@@ -26,14 +28,15 @@ API_URL = "https://api-alpha.sam.gov/prodlike/federalorganizations/v1/orgs?api_k
 REQUESTS_AT_ONCE = 10
 
 
-def pull_offices(filename, update_db):
-    """ Pull Office data from the Federal Hierarchy API
+def pull_offices(sess, filename, update_db, pull_all):
+    """ Pull Office data from the Federal Hierarchy API and update the DB, return it as a file, or both.
     
         Args:
+            sess: Current DB session
             filename: Name of the file to be generated with the API data. If None, no file will be created.
             update_db: Boolean; update the DB tables with the new data from the API
+            pull_all: Boolean; pull all historical data, instead of just the latest
     """
-    sess = GlobalDB.db().session
     logger.info('Starting get feed: %s', API_URL.replace(API_KEY, "[API_KEY]"))
 
     if filename:
@@ -55,13 +58,20 @@ def pull_offices(filename, update_db):
             csv_writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
             csv_writer.writerow(file_headers)
 
+
     for level in ["3", "4", "5", "6", "7"]:
         # Create URL with the level param
         url_with_params = "{}&level={}".format(API_URL, level)
+        if not pull_all:
+            last_pull_date = sess.query(func.max(Office.updated_at)).one_or_none()
+            if last_pull_date:
+                url_with_params += "&updateddatefrom={}".format(last_pull_date[0].date())
 
         # Retrieve the total count of expected records for this pull
         total_expected_records = json.loads(requests.get(url_with_params, timeout=60).text)['totalRecords']
-        logger.info('{} record(s) expected from this feed'.format(total_expected_records))
+        logger.info('{} level-{} record(s) expected'.format(str(total_expected_records), str(level)))
+        if total_expected_records == 0:
+            continue
 
         limit = 100
         entries_processed = 0
@@ -85,13 +95,12 @@ def pull_offices(filename, update_db):
             # End async get requests def
 
             # Retrieve limit*REQUESTS_AT_ONCE records from the API
-            logger.info("Retrieving rows %s-%s", str(entries_processed), str(entries_processed + limit * REQUESTS_AT_ONCE))
             loop = asyncio.get_event_loop()
             full_response = loop.run_until_complete(fed_hierarchy_async_get(entries_processed))
 
             # Create a dataframe with all the data from the API
             dataframe = pd.DataFrame()
-            offices = []
+            offices = {}
             start = entries_processed + 1
             for next_resp in full_response:
                 response_dict = json.loads(next_resp)
@@ -106,18 +115,24 @@ def pull_offices(filename, update_db):
 
                     # Add to the list of DB objects
                     if update_db:
-                        office_types = []
-                        for office_type in org.get('fhorgofficetypelist', []):
-                            office_types.append(office_type['officetype'].lower())
                         if org.get('aacofficecode'):
-                            offices.append(Office(office_code=org.get('aacofficecode'),
-                                                  office_name=org.get('fhorgname'),
-                                                  sub_tier_code=org.get('agencycode'),
-                                                  agency_code=org.get('cgaclist', [None])[0]))
+                            agency_code = get_normalized_agency_code(org.get('cgaclist', [{'cgac': None}])[0]['cgac'],
+                                                                     org.get('agencycode'))
+                            new_office = Office(office_code=org.get('aacofficecode'),
+                                                office_name=org.get('fhorgname'),
+                                                sub_tier_code=org.get('agencycode'),
+                                                agency_code=agency_code)
 
-            if filename:
+                            for off_type in org.get('fhorgofficetypelist', []):
+                                office_type = off_type['officetype'].lower()
+                                if office_type in ['contracting', 'funding', 'grant']:
+                                    setattr(new_office, office_type + '_office_start', off_type['officetypestartdate'])
+                                    setattr(new_office, office_type + '_office_end', off_type['officetypeenddate'])
+
+                            offices[org.get('aacofficecode')] = new_office
+
+            if filename and len(dataframe.index) > 0:
                 # Ensure headers are handled correctly
-                df_length = len(dataframe.index)
                 for header in list(dataframe.columns.values):
                     if header not in file_headers:
                         file_headers.append(header)
@@ -128,17 +143,20 @@ def pull_offices(filename, update_db):
                     dataframe.to_csv(f, index=False, header=False, columns=file_headers)
 
             if update_db:
-                sess.add_all(offices)
+                office_codes = set(offices.keys())
+                sess.query(Office).filter(Office.office_code.in_(office_codes)).delete(synchronize_session=False)
+                sess.add_all(offices.values())
 
             logger.info("Processed rows %s-%s", start, entries_processed)
-
-            if entries_processed < (start + limit * REQUESTS_AT_ONCE) or entries_processed > 1000:
+            if entries_processed == total_expected_records:
                 # Feed has finished
-                # if entries_processed != total_expected_records:
-                #     # Ensure we have retrieve the planned number of records
-                #     raise Exception("Total expected records: {}, Number of records retrieved: {}".format(
-                #         total_expected_records, entries_processed))
                 break
+
+            if entries_processed > total_expected_records:
+                # We have somehow retrieved more records than existed at the beginning of the pull
+                raise Exception("Total expected records: {}, Number of records retrieved: {}".format(
+                    total_expected_records, entries_processed))
+
 
     if update_db:
         sess.commit()
@@ -148,7 +166,6 @@ def pull_offices(filename, update_db):
 
 def flatten_json(y):
     out = {}
-
     def flatten(x, name=''):
         if type(x) is dict:
             for a in x:
@@ -165,8 +182,36 @@ def flatten_json(y):
     return out
 
 
+def get_normalized_agency_code(agency_code, subtier_code):
+    """ Handle the specific set of FREC agencies by matching the Office's SubtierAgency to its FREC
+
+        Args:
+            agency_code: CGAC agency code given to us by the Fed Hierarchy API
+            subtier_code: SubtierAgency code under the selected CGAC agency. May map to a FREC instead
+
+        Returns:
+            FREC or CGAC agency code, depending on whether the speicified CGAC has been replaced with FREC
+    """
+    sess = GlobalDB.db().session
+    if agency_code in ['011', '016', '352', '537', '033']:
+        st_agency = sess.query(SubTierAgency).filter(SubTierAgency.sub_tier_agency_code == subtier_code).one_or_none()
+        if st_agency:
+            agency_code = st_agency.frec.frec_code
+        else:
+            agency_code = None
+
+    return agency_code
+
+
 def get_with_exception_hand(url_string):
-    """ Retrieve data from FPDS, allow for multiple retries and timeouts """
+    """ Retrieve data from FPDS, allow for multiple retries and timeouts
+
+        Args:
+            url_string: URL to make the request to
+
+        Returns:
+            API response from the URL
+    """
     exception_retries = -1
     retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
     request_timeout = 60
@@ -191,6 +236,7 @@ def get_with_exception_hand(url_string):
 
 def main():
     parser = argparse.ArgumentParser(description='Pull data from the Federal Hierarchy API.')
+    parser.add_argument('-a', '--all', help='Clear out the database and get historical data', action='store_true')
     parser.add_argument('-f', '--filename', help='Generate a local CSV file from the data.', nargs=1, type=str)
     parser.add_argument('-d', '--ignore_db', help='Do not update the DB tables', action='store_true')
     args = parser.parse_args()
@@ -198,10 +244,14 @@ def main():
     filename = args.filename[0] if args.filename else None
     if filename:
         logger.info("Creating a file ({}) with the data from this pull".format(filename))
-    if not args.ignore_db:
-        logger.info("Updating DB with the data from this pull")
 
-    pull_offices(filename, not args.ignore_db)
+    sess = GlobalDB.db().session
+    if args.all and not args.ignore_db:
+        logger.info("Emptying out the Office table for a complete reload.")
+        sess.execute('''TRUNCATE TABLE office RESTART IDENTITY''')
+        sess.commit()
+
+    pull_offices(sess, filename, not args.ignore_db, args.all)
 
 
 if __name__ == '__main__':
