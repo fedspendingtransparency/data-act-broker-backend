@@ -136,62 +136,64 @@ def update_tas_lookups(sess, csv_path, update_missing=[]):
     sess.commit()
 
 
-def load_tas(tas_file=None, backfill_historic=False):
+def load_tas(sess, backfill_historic=False):
     """ Load TAS file into broker database.
 
         Args:
-            tas_file: path of the car_tas csv to import
+            sess: connection to database
             backfill_historic: if set to true, this will only update certain columns if budget_function_code is null
     """
     # read TAS file to dataframe, to make sure all is well with the file before firing up a db transaction
     tas_files = []
-    if not tas_file:
-        if CONFIG_BROKER["use_aws"]:
-            # Storing version dictionaries in the list to prevent getting all the links at once and possibly work with
-            # expired AWS links
-            s3connection = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-            # list_object_versions returns the versions in reverse chronological order
+
+    if CONFIG_BROKER["use_aws"]:
+        # Storing version dictionaries in the list to prevent getting all the links at once and possibly work with
+        # expired AWS links
+        s3connection = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        # list_object_versions returns the versions in reverse chronological order
+
+        if not backfill_historic:
+            # get the latest tas_file
+            tas_files = [s3connection.generate_presigned_url(ClientMethod='get_object',
+                                                             Params={'Bucket': CONFIG_BROKER['sf_133_bucket'],
+                                                                     'Key': 'cars_tas.csv'}, ExpiresIn=600)]
+        else:
             tas_files = s3connection.list_object_versions(Bucket=CONFIG_BROKER['sf_133_bucket'],
                                                           Prefix='cars_tas.csv')['Versions']
-            if not backfill_historic:
-                # get the latest tas_file
-                tas_files = [tas_files[-1]]
-            else:
-                # getting the latest file (see the reversed) from each day for performance and accuracy
-                tas_files_grouped = {tas_file['LastModified'].date(): tas_file for tas_file in reversed(tas_files)}
-                # sorting them back to chronological order
-                tas_files = sorted([tas_file for date, tas_file in tas_files_grouped.items()],
-                                   key=lambda k: k['LastModified'])
-        elif backfill_historic:
-            logger.error('Unable to attain historical versions of cars_tas without aws access.')
-            return
+            # getting the latest file (see the reversed) from each day for performance and accuracy
+            tas_files_grouped = {tas_file['LastModified'].date(): tas_file for tas_file in reversed(tas_files)}
+            # sorting them back to chronological order
+            tas_files = sorted([tas_file for date, tas_file in tas_files_grouped.items()],
+                               key=lambda k: k['LastModified'])
+    elif backfill_historic:
+        logger.error('Unable to attain historical versions of cars_tas without aws access.')
+        return
+    else:
+        tas_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "cars_tas.csv")
+        tas_files.append(tas_file)
+
+    for tas_file in reversed(tas_files):
+        update_missing = missing_records(sess) if backfill_historic else []
+        if backfill_historic and not update_missing:
+            # no more missing, we're done here
+            break
+        if CONFIG_BROKER["use_aws"] and backfill_historic:
+            # generate url from the version dict
+            logger.info('Working with remote cars_tas.csv (from {})'.format(tas_file['LastModified']))
+            tas_file = s3connection.generate_presigned_url(
+                ClientMethod='get_object',
+                Params={
+                    'Bucket': CONFIG_BROKER['sf_133_bucket'],
+                    'Key': 'cars_tas.csv',
+                    'VersionId': tas_file['VersionId']
+                },
+                ExpiresIn=600
+            )
+        elif CONFIG_BROKER["use_aws"]:
+            logger.info('Working with latest remote cars_tas.csv')
         else:
-            tas_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "cars_tas.csv")
-            tas_files.append(tas_file)
-
-    with create_app().app_context():
-        sess = GlobalDB.db().session
-
-        for tas_file in reversed(tas_files):
-            update_missing = missing_records(sess) if backfill_historic else []
-            if backfill_historic and not update_missing:
-                # no more missing, we're done here
-                break
-            if CONFIG_BROKER["use_aws"]:
-                # generate url from the version dict
-                logger.info('Working with remote cars_tas.csv (from {})'.format(tas_file['LastModified']))
-                tas_file = s3connection.generate_presigned_url(
-                    ClientMethod='get_object',
-                    Params={
-                        'Bucket': CONFIG_BROKER['sf_133_bucket'],
-                        'Key': 'cars_tas.csv',
-                        'VersionId': tas_file['VersionId']
-                    },
-                    ExpiresIn=600
-                )
-            else:
-                logger.info('Working with local cars_tas.csv')
-            update_tas_lookups(sess, tas_file, update_missing=update_missing)
+            logger.info('Working with local cars_tas.csv')
+        update_tas_lookups(sess, tas_file, update_missing=update_missing)
 
 
 def add_existing_id(data):
@@ -233,19 +235,14 @@ def missing_records(sess):
     return [int(empty_record[0]) for empty_record in empty_records]
 
 
-def get_parser():
-    """ Generates list of command-line arguments
-
-        Returns:
-            argument parser to be used for commandline
-    """
-    tas_parser = argparse.ArgumentParser(description='Import data from the cars_tas.csv')
-    tas_parser.add_argument('--backfill_historic', '-b', action='store_true', help='Backfill tas with historical data')
-    return tas_parser
-
 if __name__ == '__main__':
-    parser = get_parser()
-    args = parser.parse_args()
     configure_logging()
 
-    load_tas(backfill_historic=args.backfill_historic)
+    with create_app().app_context():
+        sess = GlobalDB.db().session
+
+        parser = argparse.ArgumentParser(description='Import data from the cars_tas.csv')
+        parser.add_argument('--backfill_historic', '-b', action='store_true', help='Backfill tas with historical data')
+        args = parser.parse_args()
+
+        load_tas(sess, backfill_historic=args.backfill_historic)
