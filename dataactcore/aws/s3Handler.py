@@ -71,10 +71,8 @@ class S3Handler:
         bucket_route = self.bucketRoute if bucket_route is None else bucket_route
 
         if method == "put_object":
-            self.s3FileName = S3Handler.get_timestamped_filename(file_name)
-        else:
-            self.s3FileName = file_name
-        return self._sign_url(path, self.s3FileName, bucket_route, method)
+            file_name = S3Handler.get_timestamped_filename(file_name)
+        return self._sign_url(path, file_name, bucket_route, method)
 
     @staticmethod
     def get_timestamped_filename(filename):

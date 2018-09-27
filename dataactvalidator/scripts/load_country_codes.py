@@ -1,8 +1,9 @@
 import os
 import logging
+import io
 
 import pandas as pd
-import boto
+import boto3
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -16,14 +17,25 @@ logger = logging.getLogger(__name__)
 def load_country_codes(base_path):
     """ Load Country Codes into the database.
 
-        Args
+        Args:
             base_path: directory that contains the domain values files.
     """
 
     if CONFIG_BROKER["use_aws"]:
-        s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-        s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-        filename = s3bucket.get_key("country_codes.csv").generate_url(expires_in=600)
+        s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        # filename = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
+        #                                                            'Key': "country_codes.csv"}, ExpiresIn=600)
+
+        print("I'm testing stuff")
+        file_list = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['sf_133_bucket'])
+        for obj in file_list.get('Contents', []):
+            if obj['Key'] == "country_codes.csv":
+                s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
+                s3_object = s3.Object(CONFIG_BROKER['sf_133_bucket'], obj['Key'])
+                response = s3_object.get()
+                pa_file = io.BytesIO(response['Body'].read())
+                print(pa_file)
+        exit()
     else:
         filename = os.path.join(base_path, "country_codes.csv")
 
