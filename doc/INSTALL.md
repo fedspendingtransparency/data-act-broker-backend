@@ -1,8 +1,8 @@
 # DATA Act Broker Installation and Setup
 
-The easiest way to run a local DATA Act broker at your agency is to use our Docker image. Essentially, this image is a packaged version of the broker that is pre-configured and will run in an isolated environment.
+The easiest way to run a local DATA Act Broker is to use our Docker image. Essentially, this image is a packaged version of the broker that is pre-configured and will run in an isolated environment.
 
-If you're a developer who wants to run the broker on your machine and make changes to the code, please see the install directions in the project's contributing guide: [CONTRIBUTING.md](CONTRIBUTING.md "project contributing guide").
+If you're a developer who wants to run the broker on your machine and make changes to the code, please see the project's contributing guide: [CONTRIBUTING.md](CONTRIBUTING.md "project contributing guide").
 
 ### Create Broker Config Files
 
@@ -46,7 +46,7 @@ cp dataactvalidator/config/example_program_activity.csv dataactvalidator/config/
 
 Install docker in your local machine by selecting your OS and hitting install from this [link](https://docs.docker.com/install/) (this installation includes `docker-compose` as well).
 
-Next step is to refer to the `Create Broker Config Files` section of this documentation to copy and rename config files, if you choose to use the default configs.
+The next step is to refer to the [`Create Broker Config Files`](#create-broker-config-files) section of this documentation to copy and rename config files, if you choose to use the default configs.
 
 After you successfully installed Docker, make sure the docker daemon is running on your local machine by running `docker version` and make sure you have your configs renamed and copied. Run the following command in the root level of this backend repository:
 
@@ -70,6 +70,9 @@ Run these commands to login/ssh to the broker and validator containers:
 
 This will take you to the workspace directory within the dataact-broker and dataact-validator containers respectively, that will have your backend repository mounted so local changes in that repository will also be changed within the container.
 
-#####set up with existing postgres
+For the final step before you can use the Broker, you will need to initialize your database and create a local admin user. View the instructions to do so in the [`Load or Update Domain Data`](CONTRIBUTING.md#load-or-update-domain-data) section of CONTRIBUTING.md.
+
+##### Set up with existing postgres
 
 If you want to use postgres on your local machine, change the config to point to your host IP. If you are using docker version `17.06` and have a mac use `docker.for.mac.localhost` instead of IP. If you are using `17.12.0` substitute `docker.for.mac.host.internal` and for `18.03.0` and higher use `host.docker.internal` for your host IP to connect to your local machine.
+
