@@ -14,7 +14,7 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Tests that future ActionDate is valid if it occurs within the current fiscal year """
-    today = date.today() + relativedelta(months=1)
+    today = date.today() + relativedelta(days=1)
     det_award_1 = DetachedAwardFinancialAssistanceFactory(action_date=str(today))
     det_award_2 = DetachedAwardFinancialAssistanceFactory(action_date=None)
     det_award_3 = DetachedAwardFinancialAssistanceFactory(action_date="5")
