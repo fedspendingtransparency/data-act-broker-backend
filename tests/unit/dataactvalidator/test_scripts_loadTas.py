@@ -10,8 +10,7 @@ from tests.unit.dataactcore.factories.domain import TASFactory
 
 
 def write_then_read_tas(tmpdir, *rows):
-    """Helper function to write the provided rows to a CSV, then read them in
-    via `loadTas.clean_tas`"""
+    """ Helper function to write the provided rows to a CSV, then read them in ia `loadTas.clean_tas` """
     csv_file = tmpdir.join("cars_tas.csv")
     with open(str(csv_file), 'w') as f:
         writer = DictWriter(
@@ -30,8 +29,7 @@ def write_then_read_tas(tmpdir, *rows):
 
 
 def test_clean_tas_multiple(tmpdir):
-    """Happy path test that clean_tas will correctly read in a written CSV as a
-    pandas dataframe"""
+    """ Happy path test that clean_tas will correctly read in a written CSV as a pandas dataframe """
     results = write_then_read_tas(
         tmpdir,
         {'ACCT_NUM': '6', 'ATA': 'aaa', 'AID': 'bbb', 'A': 'ccc',
@@ -71,7 +69,7 @@ def test_clean_tas_multiple(tmpdir):
 
 
 def test_clean_tas_space_nulls(tmpdir):
-    """Verify that spaces are converted into `None`s"""
+    """ Verify that spaces are converted into `None`s """
     results = write_then_read_tas(tmpdir, {'BPOA': '', 'EPOA': ' ', 'A': '   ', 'DT_END': '',
                                            'DT_TM_ESTAB': '10/1/2008  12:00:00 AM'})
     assert results['beginning_period_of_availa'][0] is None
@@ -80,8 +78,8 @@ def test_clean_tas_space_nulls(tmpdir):
 
 
 def test_update_tas_lookups(database, monkeypatch):
-    """Verify that TAS with the same account_num can be modified, that we
-    "close" any non-present TASes, and that we add new entries"""
+    """ Verify that TAS with the same account_num can be modified, that we "close" any non-present TASes, and that we
+    add new entries """
     sess = database.session
     existing_tas_entries = [
         # TAS present in both csv and db
@@ -109,7 +107,7 @@ def test_update_tas_lookups(database, monkeypatch):
     # Initial state
     assert sess.query(TASLookup).count() == 4
 
-    loadTas.update_tas_lookups('file-name-ignored-due-to-mock')
+    loadTas.update_tas_lookups(sess, 'file-name-ignored-due-to-mock')
 
     # Post-"import" state
     results = sess.query(TASLookup).order_by(TASLookup.account_num, TASLookup.agency_identifier).all()
@@ -135,3 +133,53 @@ def test_update_tas_lookups(database, monkeypatch):
     assert t555.account_num == 555
     assert t555.internal_end_date == date(2015, 2, 2)   # closed previously
     assert t555.agency_identifier == 'already-closed'
+
+
+def test_only_fill_missing(database, monkeypatch):
+    """ Verify that TAS with the same account_num can be modified, that we "close" any non-present TASes, and that we
+        add new entries """
+    sess = database.session
+
+    blank_tas_fields = ['account_title', 'budget_bureau_code', 'budget_bureau_name', 'budget_function_code',
+                        'budget_function_title', 'budget_subfunction_code', 'budget_subfunction_title',
+                        'reporting_agency_aid', 'reporting_agency_name']
+
+    existing_tas_entries = [
+        # TAS to be filled in
+        TASFactory(account_num=222, agency_identifier='to-close-2', **{field: None for field in blank_tas_fields}),
+        # TAS to be untouched
+        TASFactory(account_num=333, agency_identifier='to-close-3',
+                   **{field: 'populated-333' for field in blank_tas_fields}),
+    ]
+    sess.add_all(existing_tas_entries)
+    sess.commit()
+
+    incoming_tas_data = pd.DataFrame(
+        columns=('account_num',) + tuple(blank_tas_fields) + ('agency_identifier',),
+        data=[
+            [111] + ['populated-111'] * len(blank_tas_fields) + ['to-close-4'],
+            [222] + ['populated-222'] * len(blank_tas_fields) + ['to-close-5'],
+            [333] + ['populated-333'] * len(blank_tas_fields) + ['to-close-6'],
+        ]
+    )
+    monkeypatch.setattr(loadTas, 'clean_tas', Mock(return_value=incoming_tas_data))
+
+    # Initial state
+    assert sess.query(TASLookup).count() == 2
+
+    loadTas.update_tas_lookups(sess, 'file-name-ignored-due-to-mock', update_missing=[222])
+
+    # Post-"import" state
+    results = sess.query(TASLookup).order_by(TASLookup.account_num).all()
+    assert len(results) == 2
+    t222, t333 = results
+
+    assert t222.account_num == 222
+    assert t222.agency_identifier == 'to-close-2'
+    for tas_field in blank_tas_fields:
+        assert getattr(t222, tas_field) == 'populated-222'
+
+    assert t333.account_num == 333
+    assert t333.agency_identifier == 'to-close-3'
+    for tas_field in blank_tas_fields:
+        assert getattr(t333, tas_field) == 'populated-333'
