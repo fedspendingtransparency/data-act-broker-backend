@@ -24,10 +24,10 @@ SELECT
     afa.fain,
     afa.uri
 FROM award_financial_assistance_c9_{0} AS afa
-WHERE ((afa.assistance_type NOT IN ('08', '09')
+WHERE ((afa.assistance_type NOT IN ('07', '08')
             AND COALESCE(afa.federal_action_obligation, 0) <> 0
         )
-        OR (afa.assistance_type IN ('08', '09')
+        OR (afa.assistance_type IN ('07', '08')
             AND COALESCE(CAST(afa.original_loan_subsidy_cost AS NUMERIC), 0) > 0
         )
     )

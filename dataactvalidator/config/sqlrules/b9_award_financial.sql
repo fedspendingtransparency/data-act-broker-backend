@@ -19,8 +19,8 @@ SELECT
 FROM award_financial_b9_{0} AS af
      INNER JOIN submission AS sub
         ON af.submission_id = sub.submission_id
-WHERE af.program_activity_code <> '0000'
-    AND UPPER(af.program_activity_name) <> 'UNKNOWN/OTHER'
+WHERE (af.program_activity_code <> '0000'
+        OR UPPER(af.program_activity_name) <> 'UNKNOWN/OTHER')
     AND (sub.reporting_fiscal_year, sub.reporting_fiscal_period) NOT IN (('2017', 6), ('2017', 9))
     AND NOT EXISTS (
         SELECT 1
