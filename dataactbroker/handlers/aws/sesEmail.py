@@ -55,7 +55,7 @@ class SesEmail(object):
 
     def send(self):
         """ Send the email built in the constructor.
-        
+
             Returns:
                 The message identifier created by send_email.
         """
