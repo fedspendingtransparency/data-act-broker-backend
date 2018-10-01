@@ -137,20 +137,6 @@ class S3Handler:
         return urls
 
     @staticmethod
-    def create_file_path(upload_name, bucket_name=CONFIG_BROKER['aws_bucket']):
-        """ Creates a path for the file to be uploaded to.
-
-            Args:
-                upload_name: Name of the file to be created
-                bucket_name: Name of the bucket to add the file to
-
-            Returns:
-                The connection created when creating a new file
-        """
-        conn = boto.s3.connect_to_region(CONFIG_BROKER['aws_region']).get_bucket(bucket_name).new_key(upload_name)
-        return conn
-
-    @staticmethod
     def copy_file(original_bucket, new_bucket, original_path, new_path):
         """ Copies a file from one bucket to another.
 
