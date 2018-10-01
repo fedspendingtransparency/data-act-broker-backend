@@ -3,10 +3,10 @@ import asyncio
 import csv
 import json
 import logging
-import math
 import pandas as pd
 import requests
-import shutil
+import sys
+import time
 
 from datetime import datetime
 from pandas.io.json import json_normalize
@@ -28,16 +28,18 @@ API_URL = "https://api-alpha.sam.gov/prodlike/federalorganizations/v1/orgs?api_k
 REQUESTS_AT_ONCE = 10
 
 
-def pull_offices(sess, filename, update_db, pull_all):
+def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
     """ Pull Office data from the Federal Hierarchy API and update the DB, return it as a file, or both.
-    
+
         Args:
-            sess: Current DB session
+            sess: Current DB session.
             filename: Name of the file to be generated with the API data. If None, no file will be created.
-            update_db: Boolean; update the DB tables with the new data from the API
-            pull_all: Boolean; pull all historical data, instead of just the latest
+            update_db: Boolean; update the DB tables with the new data from the API.
+            pull_all: Boolean; pull all historical data, instead of just the latest.
+            updated_date_from: Date to pull data from. Defaults to the date of the most recently updated Office.
     """
     logger.info('Starting get feed: %s', API_URL.replace(API_KEY, "[API_KEY]"))
+    office_levels = ["3", "4", "5", "6", "7"]
 
     if filename:
         # Write headers to file
@@ -58,19 +60,28 @@ def pull_offices(sess, filename, update_db, pull_all):
             csv_writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
             csv_writer.writerow(file_headers)
 
+    # Get or create the start date
+    if not pull_all and not updated_date_from:
+        last_pull_date = sess.query(func.max(Office.updated_at)).one_or_none()
+        if not last_pull_date:
+            logger.error("The -a or -d flag must be set when there are no Offices present in the database.")
+            sys.exit(1)
+        updated_date_from = last_pull_date[0].date()
 
-    for level in ["3", "4", "5", "6", "7"]:
-        # Create URL with the level param
+    empty_pull_count = 0
+    for level in office_levels:
+        # Create URL with the level parameter
         url_with_params = "{}&level={}".format(API_URL, level)
-        if not pull_all:
-            last_pull_date = sess.query(func.max(Office.updated_at)).one_or_none()
-            if last_pull_date:
-                url_with_params += "&updateddatefrom={}".format(last_pull_date[0].date())
+
+        # Add updateddatefrom parameter to the URL
+        if updated_date_from:
+            url_with_params += "&updateddatefrom={}".format(updated_date_from)
 
         # Retrieve the total count of expected records for this pull
         total_expected_records = json.loads(requests.get(url_with_params, timeout=60).text)['totalRecords']
         logger.info('{} level-{} record(s) expected'.format(str(total_expected_records), str(level)))
         if total_expected_records == 0:
+            empty_pull_count += 1
             continue
 
         limit = 100
@@ -98,7 +109,7 @@ def pull_offices(sess, filename, update_db, pull_all):
             loop = asyncio.get_event_loop()
             full_response = loop.run_until_complete(fed_hierarchy_async_get(entries_processed))
 
-            # Create a dataframe with all the data from the API
+            # Create an object with all the data from the API
             dataframe = pd.DataFrame()
             offices = {}
             start = entries_processed + 1
@@ -115,21 +126,22 @@ def pull_offices(sess, filename, update_db, pull_all):
 
                     # Add to the list of DB objects
                     if update_db:
-                        if org.get('aacofficecode'):
-                            agency_code = get_normalized_agency_code(org.get('cgaclist', [{'cgac': None}])[0]['cgac'],
-                                                                     org.get('agencycode'))
-                            new_office = Office(office_code=org.get('aacofficecode'),
-                                                office_name=org.get('fhorgname'),
-                                                sub_tier_code=org.get('agencycode'),
-                                                agency_code=agency_code)
+                        agency_code = get_normalized_agency_code(org.get('cgaclist', [{'cgac': None}])[0]['cgac'],
+                                                                 org.get('agencycode'))
+                        if not org.get('aacofficecode') or not org.get('agencycode') or not agency_code:
+                            # Item from Fed Hierarchy is missing necessary data, ignore it
+                            continue
 
-                            for off_type in org.get('fhorgofficetypelist', []):
-                                office_type = off_type['officetype'].lower()
-                                if office_type in ['contracting', 'funding', 'grant']:
-                                    setattr(new_office, office_type + '_office_start', off_type['officetypestartdate'])
-                                    setattr(new_office, office_type + '_office_end', off_type['officetypeenddate'])
+                        new_office = Office(office_code=org.get('aacofficecode'), office_name=org.get('fhorgname'),
+                                            sub_tier_code=org.get('agencycode'), agency_code=agency_code,
+                                            funding_office=False, contracting_office=False, grant_office=False)
 
-                            offices[org.get('aacofficecode')] = new_office
+                        for off_type in org.get('fhorgofficetypelist', []):
+                            office_type = off_type['officetype'].lower()
+                            if office_type in ['contracting', 'funding', 'grant']:
+                                setattr(new_office, office_type + '_office', True)
+
+                        offices[org.get('aacofficecode')] = new_office
 
             if filename and len(dataframe.index) > 0:
                 # Ensure headers are handled correctly
@@ -154,18 +166,23 @@ def pull_offices(sess, filename, update_db, pull_all):
 
             if entries_processed > total_expected_records:
                 # We have somehow retrieved more records than existed at the beginning of the pull
-                raise Exception("Total expected records: {}, Number of records retrieved: {}".format(
+                logger.error("Total expected records: {}, Number of records retrieved: {}".format(
                     total_expected_records, entries_processed))
-
+                sys.exit(1)
 
     if update_db:
         sess.commit()
+
+    if empty_pull_count == len(office_levels):
+        logger.error("No records retrieved from the Federal Hierarchy API")
+        sys.exit(3)
 
     logger.info("Finished")
 
 
 def flatten_json(y):
     out = {}
+
     def flatten(x, name=''):
         if type(x) is dict:
             for a in x:
@@ -229,8 +246,8 @@ def get_with_exception_hand(url_string):
                             .format(retry_sleep_times[exception_retries], request_timeout))
                 time.sleep(retry_sleep_times[exception_retries])
             else:
-                logger.info('Connection to FPDS feed lost, maximum retry attempts exceeded.')
-                raise e
+                logger.error('Connection to FPDS feed lost, maximum retry attempts exceeded.')
+                sys.exit(1)
     return resp
 
 
@@ -238,20 +255,41 @@ def main():
     parser = argparse.ArgumentParser(description='Pull data from the Federal Hierarchy API.')
     parser.add_argument('-a', '--all', help='Clear out the database and get historical data', action='store_true')
     parser.add_argument('-f', '--filename', help='Generate a local CSV file from the data.', nargs=1, type=str)
-    parser.add_argument('-d', '--ignore_db', help='Do not update the DB tables', action='store_true')
+    parser.add_argument('-d', '--pull_date', help='Date from which to start the pull', nargs=1, type=str)
+    parser.add_argument('-i', '--ignore_db', help='Do not update the DB tables', action='store_true')
     args = parser.parse_args()
-    
+
+    if args.all and args.pull_date:
+        logger.error("The -a and -d flags conflict, cannot use both at once.")
+        sys.exit(1)
+
+    # Handle the pull_date parameter
+    updated_date_from = None
+    if args.pull_date:
+        try:
+            updated_date_from = args.pull_date[0]
+            datetime.strptime(updated_date_from, "%Y-%m-%d")
+        except ValueError as e:
+            logger.error("The date given to the -d flag was not parseable.")
+            sys.exit(1)
+
+    # Handle the filename parameter
     filename = args.filename[0] if args.filename else None
     if filename:
         logger.info("Creating a file ({}) with the data from this pull".format(filename))
 
+    # Handle a complete data reload
     sess = GlobalDB.db().session
     if args.all and not args.ignore_db:
         logger.info("Emptying out the Office table for a complete reload.")
         sess.execute('''TRUNCATE TABLE office RESTART IDENTITY''')
         sess.commit()
 
-    pull_offices(sess, filename, not args.ignore_db, args.all)
+    try:
+        pull_offices(sess, filename, not args.ignore_db, args.all, updated_date_from)
+    except Exception as e:
+        logger.error(str(e))
+        sys.exit(1)
 
 
 if __name__ == '__main__':
