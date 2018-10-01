@@ -37,13 +37,14 @@ class S3Handler:
         else:
             self.bucketRoute = name
 
-    def _sign_url(self, path, file_name, bucket_route, method="put_object"):
+    def _sign_url(self, path, file_name, bucket_route, url_mapping=None, method="put_object"):
         """ Creates the object for signing URLS
 
             Args:
                 path: Path to folder
                 file_name: Name of file to get signed URL for.
                 bucket_route: Name of the bucket being accessed
+                url_mapping: The mapping to replace the S3 URL before giving it to the user
                 method: method to create signed url for
 
             Returns:
@@ -53,16 +54,21 @@ class S3Handler:
             s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
             s3_params = {'Bucket': bucket_route,
                          'Key': path + "/" + file_name}
-            return s3.generate_presigned_url(method, s3_params, ExpiresIn=S3Handler.URL_LIFETIME)
+            presigned_url = s3.generate_presigned_url(method, s3_params, ExpiresIn=S3Handler.URL_LIFETIME)
+            if url_mapping:
+                presigned_url = presigned_url.replace(presigned_url.split('/')[2], CONFIG_BROKER['proxy_url'])
+                presigned_url = presigned_url.replace(url_mapping[0], url_mapping[1])
+            return presigned_url
         return S3Handler.BASE_URL + "/" + self.bucketRoute + "/" + path + "/" + file_name
 
-    def get_signed_url(self, path, file_name, bucket_route=None, method="put_object"):
+    def get_signed_url(self, path, file_name, bucket_route=None, url_mapping=None, method="put_object"):
         """ Signs a URL
 
             Args:
                 path: Path to folder
                 file_name: Name of file to get signed URL for.
                 bucket_route: Name of the bucket being accessed
+                url_mapping: The mapping to replace the S3 URL before giving it to the user
                 method: method to create signed url for
 
             Returns:
@@ -72,7 +78,7 @@ class S3Handler:
 
         if method == "put_object":
             file_name = S3Handler.get_timestamped_filename(file_name)
-        return self._sign_url(path, file_name, bucket_route, method)
+        return self._sign_url(path, file_name, bucket_route, url_mapping, method)
 
     @staticmethod
     def get_timestamped_filename(filename):
@@ -105,12 +111,13 @@ class S3Handler:
             logger.warning("File doesn't exist on AWS: %s", filename)
             return 0
 
-    def get_file_urls(self, bucket_name, path):
+    def get_file_urls(self, bucket_name, path, url_mapping=None):
         """ Get signed urls for all files in a given bucket prefixed with the provided path
 
             Args:
                 bucket_name: Name of the bucket to get files form
                 path: prefix for all the files so only those that start with that prefix are selected
+                url_mapping: The mapping to replace the S3 URL before giving it to the user
 
             Returns:
                 An array of signed urls keyed by the name of the file
@@ -122,7 +129,9 @@ class S3Handler:
         for obj in response.get('Contents', []):
             if obj['Key'] != path:
                 file_name = obj['Key'][len(path):]
-                url = self.get_signed_url(path=path, file_name=file_name, bucket_route=bucket_name, method="get_object")
+                # Pass path[:-1] to cut off the / from the path for file generation
+                url = self.get_signed_url(path=path[:-1], file_name=file_name, bucket_route=bucket_name,
+                                          url_mapping=url_mapping, method="get_object")
                 urls[file_name] = url
 
         return urls

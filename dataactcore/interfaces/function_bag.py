@@ -605,6 +605,7 @@ def get_fabs_meta(submission_id):
             path, file_name = file_path.rsplit('/', 1)  # split by last instance of /
             published_file = S3Handler().get_signed_url(path=path, file_name=file_name,
                                                         bucket_route=CONFIG_BROKER['certified_bucket'],
+                                                        url_mapping=CONFIG_BROKER["certified_bucket_mapping"],
                                                         method="get_object")
         elif file_path:
             published_file = file_path
