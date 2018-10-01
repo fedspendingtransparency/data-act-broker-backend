@@ -23,19 +23,8 @@ def load_country_codes(base_path):
 
     if CONFIG_BROKER["use_aws"]:
         s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-        # filename = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
-        #                                                            'Key': "country_codes.csv"}, ExpiresIn=600)
-
-        print("I'm testing stuff")
-        file_list = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['sf_133_bucket'])
-        for obj in file_list.get('Contents', []):
-            if obj['Key'] == "country_codes.csv":
-                s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
-                s3_object = s3.Object(CONFIG_BROKER['sf_133_bucket'], obj['Key'])
-                response = s3_object.get()
-                pa_file = io.BytesIO(response['Body'].read())
-                print(pa_file)
-        exit()
+        filename = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
+                                                                   'Key': "country_codes.csv"}, ExpiresIn=600)
     else:
         filename = os.path.join(base_path, "country_codes.csv")
 
