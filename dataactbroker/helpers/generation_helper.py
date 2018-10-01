@@ -1,6 +1,5 @@
 import boto3
 import logging
-import smart_open
 
 from datetime import datetime
 from flask import g

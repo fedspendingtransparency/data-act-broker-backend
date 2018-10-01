@@ -1,7 +1,6 @@
 import csv
 import os
 import logging
-import smart_open
 from datetime import datetime
 import boto3
 

@@ -3,7 +3,6 @@ import calendar
 import logging
 import os
 import requests
-import smart_open
 import sqlalchemy as sa
 import threading
 
@@ -11,7 +10,6 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from flask import g, current_app
-from shutil import copyfile
 from sqlalchemy import func, and_, desc, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import case
