@@ -1,4 +1,4 @@
-import boto
+import boto3
 import datetime
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.function_bag import get_email_template
@@ -19,11 +19,10 @@ class SesEmail(object):
 
         Constants:
             SIGNING_KEY: A string containing the signing key
+            is_local: A boolean determining if the app is running locally or not
+            emailLog: A string containing the name of the local log file to write the email to
     """
 
-    # todo: is SIGNING_KEY something that should live in the config file?
-    # TODO: See if this is even needed and, if not, remove it from here, the config file, and the app file
-    SIGNING_KEY = "1234"
     is_local = False
     emailLog = "Email.log"
 
@@ -55,18 +54,32 @@ class SesEmail(object):
                     self.content = self.content.replace(key, "")
 
     def send(self):
-        """ Send the email built in the constructor """
+        """ Send the email built in the constructor.
+        
+            Returns:
+                The message identifier created by send_email.
+        """
         if not SesEmail.is_local:
             # Use aws creds for ses if possible, otherwise, use aws_key from config
-            connection = boto.connect_ses()
+            s3_client = boto3.client(service_name='ses', region_name=CONFIG_BROKER['ses_aws_region'])
+            email_message = {
+                "Subject": {
+                    "Data": self.subject
+                },
+                "Body": {
+                    "Html": {
+                        "Data": self.content
+                    }
+                }
+            }
+            email_dest = {"ToAddresses": [self.to_address]}
             try:
-                return connection.send_email(self.from_address, self.subject, self.content,
-                                             self.to_address, format='html')
-            except:
-                connection = boto.connect_ses(aws_access_key_id=CONFIG_BROKER['aws_access_key_id'],
-                                              aws_secret_access_key=CONFIG_BROKER['aws_secret_access_key'])
-                return connection.send_email(self.from_address, self.subject, self.content,
-                                             self.to_address, format='html')
+                return s3_client.send_email(Source=self.from_address, Message=email_message, Destination=email_dest)
+            except Exception:
+                s3_client = boto3.client(service_name='ses', region_name=CONFIG_BROKER['ses_aws_region'],
+                                         aws_access_key_id=CONFIG_BROKER['ses_access_key_id'],
+                                         aws_secret_access_key=CONFIG_BROKER['ses_secret_access_key'])
+                return s3_client.send_email(Source=self.from_address, Message=email_message, Destination=email_dest)
         else:
             new_email_text = "\n\n".join(["", "Time", str(datetime.datetime.now()), "Subject", self.subject, "From",
                                          self.from_address, "To", self.to_address, "Content", self.content])
