@@ -113,6 +113,9 @@ broker:
     cas_service_url: https://cas.service.url
     parent_group: sample
 
+    max:
+        federal_hierarchy_api_key: example
+
 services:
     debug: true
 

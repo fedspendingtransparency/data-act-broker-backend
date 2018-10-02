@@ -149,6 +149,9 @@ class Office(Base):
     office_name = Column(Text)
     sub_tier_code = Column(Text, nullable=False, index=True)
     agency_code = Column(Text, nullable=False, index=True)
+    contracting_office = Column(Boolean, nullable=False, default=False, server_default="False")
+    funding_office = Column(Boolean, nullable=False, default=False, server_default="False")
+    grant_office = Column(Boolean, nullable=False, default=False, server_default="False")
 
 
 class ObjectClass(Base):
