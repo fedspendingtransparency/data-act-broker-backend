@@ -1,7 +1,7 @@
 import os
 import re
 import logging
-import boto
+import boto3
 import urllib.request
 import zipfile
 import numpy as np
@@ -547,11 +547,13 @@ def main():
         county_code_list[county_code.county_number + "_" + county_code.state_code] = county_code
 
     if CONFIG_BROKER["use_aws"]:
-        s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-        s3bucket = s3connection.lookup(CONFIG_BROKER['archive_bucket'])
-        for key in s3bucket.list():
-            if re.match('^('+years+')_All_(DirectPayments|Grants|Insurance|Loans|Other)_Full_\d{8}.csv.zip', key.name):
-                file_path = key.generate_url(expires_in=600)
+        s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        file_list = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['archive_bucket'])
+        for obj in file_list.get('Contents', []):
+            if re.match('^('+years+')_All_(DirectPayments|Grants|Insurance|Loans|Other)_Full_\d{8}.csv.zip',
+                        obj['Key']):
+                file_path = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['archive_bucket'],
+                                                                            'Key': obj['Key']}, ExpiresIn=600)
                 parse_fabs_file(urllib.request.urlopen(file_path), sess, fips_state_list, state_code_list,
                                 sub_tier_list, county_code_list)
     else:
