@@ -60,21 +60,13 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
             csv_writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
             csv_writer.writerow(file_headers)
 
-    # Get or create the start date
-    if not pull_all and not updated_date_from:
-        last_pull_date = sess.query(func.max(Office.updated_at)).one_or_none()
-        if not last_pull_date:
-            logger.error("The -a or -d flag must be set when there are no Offices present in the database.")
-            sys.exit(1)
-        updated_date_from = last_pull_date[0].date()
-
     empty_pull_count = 0
     for level in office_levels:
         # Create URL with the level parameter
         url_with_params = "{}&level={}".format(API_URL, level)
 
         # Add updateddatefrom parameter to the URL
-        if updated_date_from:
+        if not pull_all:
             url_with_params += "&updateddatefrom={}".format(updated_date_from)
 
         # Retrieve the total count of expected records for this pull
@@ -87,7 +79,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
         limit = 100
         entries_processed = 0
         while True:
-            async def fed_hierarchy_async_get(entries_already_processed):
+            async def _fed_hierarchy_async_get(entries_already_processed):
                 response_list = []
                 loop = asyncio.get_event_loop()
                 futures = [
@@ -107,7 +99,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
 
             # Retrieve limit*REQUESTS_AT_ONCE records from the API
             loop = asyncio.get_event_loop()
-            full_response = loop.run_until_complete(fed_hierarchy_async_get(entries_processed))
+            full_response = loop.run_until_complete(_fed_hierarchy_async_get(entries_processed))
 
             # Create an object with all the data from the API
             dataframe = pd.DataFrame()
@@ -180,22 +172,30 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
     logger.info("Finished")
 
 
-def flatten_json(y):
+def flatten_json(json_obj):
+    """ Flatten a JSON object into a single row.
+
+        Args:
+            json_obj: JSON object to flatten
+
+        Returns:
+            Single row of values from the json_obj JSON
+    """
     out = {}
 
-    def flatten(x, name=''):
-        if type(x) is dict:
-            for a in x:
-                flatten(x[a], name + a + '_')
-        elif type(x) is list:
-            i = 0
-            for a in x:
-                flatten(a, name + str(i) + '_')
-                i += 1
+    def _flatten(list_item, name=''):
+        if type(list_item) is dict:
+            for item in list_item:
+                _flatten(list_item[item], name + item + '_')
+        elif type(list_item) is list:
+            count = 0
+            for item in list_item:
+                _flatten(item, name + str(count) + '_')
+                count += 1
         else:
-            out[name[:-1]] = x
+            out[name[:-1]] = list_item
 
-    flatten(y)
+    _flatten(json_obj)
     return out
 
 
@@ -273,13 +273,21 @@ def main():
             logger.error("The date given to the -d flag was not parseable.")
             sys.exit(1)
 
+    # Get or create the start date
+    sess = GlobalDB.db().session
+    if not args.all and not updated_date_from:
+        last_pull_date = sess.query(func.max(Office.updated_at)).one_or_none()
+        if not last_pull_date:
+            logger.error("The -a or -d flag must be set when there are no Offices present in the database.")
+            sys.exit(1)
+        updated_date_from = last_pull_date[0].date()
+
     # Handle the filename parameter
     filename = args.filename[0] if args.filename else None
     if filename:
         logger.info("Creating a file ({}) with the data from this pull".format(filename))
 
     # Handle a complete data reload
-    sess = GlobalDB.db().session
     if args.all and not args.ignore_db:
         logger.info("Emptying out the Office table for a complete reload.")
         sess.execute('''TRUNCATE TABLE office RESTART IDENTITY''')
