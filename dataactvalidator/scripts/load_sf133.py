@@ -6,7 +6,7 @@ import os
 import re
 import sys
 
-import boto
+import boto3
 import pandas as pd
 
 from dataactcore.config import CONFIG_BROKER
@@ -94,8 +94,7 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False):
     with create_app().app_context():
         sess = GlobalDB.db().session
 
-        existing_records = sess.query(SF133).filter(
-            SF133.fiscal_year == fiscal_year, SF133.period == fiscal_period)
+        existing_records = sess.query(SF133).filter(SF133.fiscal_year == fiscal_year, SF133.period == fiscal_period)
         if force_sf133_load:
             # force a reload of this period's current data
             logger.info('Force SF 133 load: deleting existing records for %s %s', fiscal_year, fiscal_period)
@@ -219,11 +218,15 @@ def get_sf133_list(sf133_path):
         logger.info("Loading SF-133")
         if CONFIG_BROKER["use_aws"]:
             # get list of SF 133 files in the config bucket on S3
-            s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-            s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-            # get bucketlistresultset with all sf_133 files
-            sf133_files = s3bucket.list(prefix='sf_133')
-            sf133_list = [SF133File(sf133, os.path.basename(sf133.name)) for sf133 in sf133_files]
+            s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+            response = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['sf_133_bucket'], Prefix='sf_133')
+            sf133_list = []
+            for obj in response.get('Contents', []):
+                if obj['Key'] != 'sf_133':
+                    file_url = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
+                                                                               'Key': obj['Key']},
+                                                                ExpiresIn=600)
+                    sf133_list.append(SF133File(file_url, obj['Key']))
         else:
             sf133_list = []
 

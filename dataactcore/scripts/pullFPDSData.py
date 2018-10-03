@@ -1,6 +1,6 @@
 import os
 import urllib.request
-import boto
+import boto3
 import zipfile
 import logging
 import argparse
@@ -1381,7 +1381,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             # ensure we loaded the number of records we expected to, otherwise we'll need to reload
             if entries_processed != total_expected_records:
                 raise Exception("Records retrieved != Total expected records\nExpected: {}\nRetrieved: {}"
-                                .format(total_expected_records, len(entries_processed)))
+                                .format(total_expected_records, entries_processed))
             else:
                 break
         else:
@@ -2430,32 +2430,34 @@ def main():
             subfolder = args.subfolder[0]
 
         if CONFIG_BROKER["use_aws"]:
-            s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-            # get naics dictionary
-            s3bucket_naics = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-            agency_list_path = s3bucket_naics.get_key("naics.csv").generate_url(expires_in=600)
+            # # get naics dictionary
+            s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+            agency_list_path = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
+                                                                               'Key': "naics.csv"}, ExpiresIn=600)
             agency_list_file = urllib.request.urlopen(agency_list_path)
             reader = csv.reader(agency_list_file.read().decode("utf-8").splitlines())
             naics_dict = {rows[0]: rows[1].upper() for rows in reader}
 
-            # parse contracts files
-            s3bucket = s3connection.lookup(CONFIG_BROKER['archive_bucket'])
+            # Gather list of files
             if subfolder:
                 subfolder = subfolder + "/"
-            for key in s3bucket.list(prefix=subfolder):
+                file_list = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['archive_bucket'], Prefix=subfolder)
+            else:
+                file_list = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['archive_bucket'])
+            # Parse files
+            for obj in file_list.get('Contents', []):
                 match_string = '^\d{4}_All_Contracts_Full_\d{8}.csv.zip'
                 if subfolder:
                     match_string = "^" + subfolder + "\d{4}_All_Contracts_Full_\d{8}.csv.zip"
-                if re.match(match_string, key.name):
+                if re.match(match_string, obj['Key']):
                     # we only want up through 2015 for this data unless it’s a subfolder, then do all of them
-                    if subfolder or int(key.name[:4]) <= max_year:
-                        # Create an in-memory bytes IO buffer
-                        with io.BytesIO() as b:
-                            # Read the file into it
-                            key.get_file(b)
-
-                            # Reset the file pointer to the beginning
-                            parse_fpds_file(b, sess, sub_tier_list, naics_dict, filename=key.name)
+                    if subfolder or int(obj['Key'][:4]) <= max_year:
+                        s3_res = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
+                        s3_object = s3_res.Object(CONFIG_BROKER['archive_bucket'], obj['Key'])
+                        response = s3_object.get()
+                        pa_file = io.BytesIO(response['Body'].read())
+                        # Parse the file
+                        parse_fpds_file(pa_file, sess, sub_tier_list, naics_dict, filename=obj['Key'])
         else:
             # get naics dictionary
             naics_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")

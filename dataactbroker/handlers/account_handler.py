@@ -120,7 +120,8 @@ class AccountHandler:
             max_dict = get_max_dict(ticket, service)
 
             if 'cas:authenticationSuccess' not in max_dict['cas:serviceResponse']:
-                raise ValueError("You have failed to login successfully with MAX")
+                raise ValueError("The Max CAS endpoint was unable to locate your session "
+                                 "using the ticket/service combination you provided.")
             cas_attrs = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']
 
             # Grab MAX ID to see if a service account is being logged in
@@ -152,16 +153,18 @@ class AccountHandler:
 
             return self.create_session_and_response(session, user)
 
-        # Catch any specifically raised errors or any other errors that may have happened and return them cleanly
+        # Catch any specifically raised errors or any other errors that may have happened and return them cleanly.
+        # We add the error parameter here because this endpoint needs to provide better feedback, and to avoid changing
+        # the default behavior of the JsonResponse class globally.
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
-            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR, error=str(e))
         except ValueError as e:
             # Return a 401 for login denied
-            return JsonResponse.error(e, StatusCode.LOGIN_REQUIRED)
+            return JsonResponse.error(e, StatusCode.LOGIN_REQUIRED, error=str(e))
         except Exception as e:
             # Return 500
-            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR, error=str(e))
 
     @staticmethod
     def create_session_and_response(session, user):
@@ -388,9 +391,12 @@ def set_max_perms(user, max_group_list, service_account_flag=False):
 
     # Each group name that we care about begins with the prefix, but once we have that list, we don't need the
     # prefix anymore, so trim it off.
-    perms = [group_name[len(prefix):]
-             for group_name in max_group_list.split(',')
-             if group_name.startswith(prefix)]
+    if max_group_list is not None:
+        perms = [group_name[len(prefix):]
+                 for group_name in max_group_list.split(',')
+                 if group_name.startswith(prefix)]
+    else:
+        raise ValueError("There are no permissions assigned to this user!")
 
     if 'SYS' in perms:
         user.affiliations = []
