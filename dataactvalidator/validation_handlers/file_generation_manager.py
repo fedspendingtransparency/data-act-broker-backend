@@ -89,8 +89,7 @@ class FileGenerationManager:
             # Generate the file, and upload to S3
             if self.job.file_type.letter_name in ['D1', 'D2']:
                 # Update the validation Job if necessary
-                if self.job.submission_id:
-                    update_validation_job_info(self.sess, self.job)
+                update_validation_job_info(self.sess, self.job)
 
                 self.generate_d_file()
             elif self.job.file_type.letter_name == 'E':

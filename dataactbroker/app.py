@@ -40,6 +40,7 @@ def create_app():
     flask_app.config.from_object(__name__)
     flask_app.config['LOCAL'] = local
     flask_app.debug = CONFIG_SERVICES['debug']
+    flask_app.env = 'development' if CONFIG_SERVICES['debug'] else 'production'
     flask_app.config['SYSTEM_EMAIL'] = CONFIG_BROKER['reply_to_email']
 
     # Future: Override config w/ environment variable, if set
@@ -48,7 +49,6 @@ def create_app():
     # Set parameters
     broker_file_path = CONFIG_BROKER['broker_files']
     AccountHandler.FRONT_END = CONFIG_BROKER['full_url']
-    SesEmail.SIGNING_KEY = CONFIG_BROKER['email_token_key']
     SesEmail.is_local = local
     if SesEmail.is_local:
         SesEmail.emailLog = os.path.join(broker_file_path, 'email.log')

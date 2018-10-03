@@ -3,7 +3,6 @@ import calendar
 import logging
 import os
 import requests
-import smart_open
 import sqlalchemy as sa
 import threading
 
@@ -11,7 +10,6 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from flask import g, current_app
-from shutil import copyfile
 from sqlalchemy import func, and_, desc, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import case
@@ -405,49 +403,6 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def download_file(self, local_file_path, file_url, upload_name, response):
-        """ Download a file locally from the specified URL.
-
-            Args:
-                local_file_path: path to where the local file will be uploaded
-                file_url: the path to the file including the file name
-                upload_name: name to upload the file as
-                response: the response streamed to the application
-
-            Returns:
-                Boolean indicating if the file could be successfully downloaded
-
-            Raises:
-                ResponseException: Error if the file_url doesn't point to a valid file or the local_file_path is not
-                    a valid directory
-        """
-        if not self.is_local:
-            conn = self.s3manager.create_file_path(upload_name)
-            with smart_open.smart_open(conn, 'w') as writer:
-                # get request if it doesn't already exist
-                if not response:
-                    response = requests.get(file_url, stream=True)
-                    # we only need to run this check if we haven't already
-                    if response.status_code != 200:
-                        # Could not download the file, return False
-                        return False
-                # write (stream) to file
-                response.encoding = "utf-8"
-                for chunk in response.iter_content(chunk_size=FileHandler.CHUNK_SIZE):
-                    if chunk:
-                        writer.write(chunk)
-                return True
-        # Not a valid file
-        elif not os.path.isfile(file_url):
-            raise ResponseException('{} does not exist'.format(file_url), StatusCode.INTERNAL_ERROR)
-        # Not a valid file path
-        elif not os.path.isdir(os.path.dirname(local_file_path)):
-            dirname = os.path.dirname(local_file_path)
-            raise ResponseException('{} folder does not exist'.format(dirname), StatusCode.INTERNAL_ERROR)
-        else:
-            copyfile(file_url, local_file_path)
-            return True
-
     def upload_fabs_file(self, fabs):
         """ Uploads the provided FABS file to S3 and creates a new submission if one doesn't exist or updates the
             existing submission if one does.
@@ -782,7 +737,8 @@ class FileHandler:
             return JsonResponse.create(StatusCode.CLIENT_ERROR, response)
 
         response["urls"] = self.s3manager.get_file_urls(bucket_name=CONFIG_BROKER["static_files_bucket"],
-                                                        path=CONFIG_BROKER["help_files_path"])
+                                                        path=CONFIG_BROKER["help_files_path"],
+                                                        url_mapping=CONFIG_BROKER["help_files_mapping"])
         return JsonResponse.create(StatusCode.OK, response)
 
     def build_file_map(self, file_dict, file_type_list, upload_files, submission):
@@ -1659,7 +1615,8 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
         filename = file_array.pop()
         file_path = '/'.join(x for x in file_array)
         url = S3Handler().get_signed_url(file_path, filename, bucket_route=CONFIG_BROKER['certified_bucket'],
-                                         method="GET")
+                                         url_mapping=CONFIG_BROKER["certified_bucket_mapping"],
+                                         method="get_object")
 
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
@@ -1727,7 +1684,9 @@ def submission_report_url(submission, warning, file_type, cross_type):
     if CONFIG_BROKER['local']:
         url = os.path.join(CONFIG_BROKER['broker_files'], file_name)
     else:
-        url = S3Handler().get_signed_url("errors", file_name, method="GET")
+        url = S3Handler().get_signed_url("errors", file_name,
+                                         url_mapping=CONFIG_BROKER["submission_bucket_mapping"],
+                                         method="get_object")
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 
@@ -1758,7 +1717,8 @@ def get_upload_file_url(submission, file_type):
         # when local, can just grab the filename because it stores the entire path
         url = os.path.join(CONFIG_BROKER['broker_files'], split_name[-1])
     else:
-        url = S3Handler().get_signed_url(split_name[0], split_name[1], method="GET")
+        url = S3Handler().get_signed_url(split_name[0], split_name[1],
+                                         url_mapping=CONFIG_BROKER["submission_bucket_mapping"], method="get_object")
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 

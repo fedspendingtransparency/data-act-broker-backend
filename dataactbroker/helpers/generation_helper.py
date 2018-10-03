@@ -1,6 +1,5 @@
 import boto3
 import logging
-import smart_open
 
 from datetime import datetime
 from flask import g
@@ -133,7 +132,8 @@ def check_file_generation(job_id):
     if CONFIG_BROKER['use_aws'] and response_dict['status'] is 'finished' and upload_job.filename:
         path, file_name = upload_job.filename.split('/')
         response_dict['url'] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
-                                                          method='GET')
+                                                          url_mapping=CONFIG_BROKER["submission_bucket_mapping"],
+                                                          method='get_object')
     elif response_dict['status'] is 'finished' and upload_job.filename:
         response_dict['url'] = upload_job.filename
 
@@ -470,28 +470,28 @@ def copy_file_from_parent_to_child(child_job, parent_job, is_local):
         # Copy the parent file into the child's S3 location
         log_data['message'] = 'Copying the cached {} file from job {}'.format(file_type, parent_job.job_id)
         logger.info(log_data)
-        with smart_open.smart_open(S3Handler.create_file_path(parent_job.filename), 'r') as reader:
-            stream_file_to_s3(child_job.filename, reader)
+        stream_file_to_s3(child_job.filename, open(parent_job.filename, 'rb'))
 
 
 def update_validation_job_info(sess, job):
     """ Populates validation job objects with start and end dates, filenames, and status.
         Assumes the upload Job's start and end dates have been validated.
     """
-    # Retrieve and update the validation Job
-    val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
-                                     Job.file_type_id == job.file_type_id,
-                                     Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
-    val_job.start_date = job.start_date
-    val_job.end_date = job.end_date
-    val_job.filename = job.filename
-    val_job.original_filename = job.original_filename
-    val_job.job_status_id = lookups.JOB_STATUS_DICT["waiting"]
+    if job.submission_id:
+        # Retrieve and update the validation Job
+        val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
+                                         Job.file_type_id == job.file_type_id,
+                                         Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
+        val_job.start_date = job.start_date
+        val_job.end_date = job.end_date
+        val_job.filename = job.filename
+        val_job.original_filename = job.original_filename
+        val_job.job_status_id = lookups.JOB_STATUS_DICT["waiting"]
 
-    # Clear out error messages to prevent stale messages
+        # Clear out error messages to prevent stale messages
+        val_job.error_message = None
+
     job.error_message = None
-    val_job.error_message = None
-
     sess.commit()
 
 
