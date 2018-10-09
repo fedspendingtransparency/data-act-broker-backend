@@ -179,7 +179,7 @@ class FileTests(BaseTestAPI):
             self.assertEqual(submission.publish_status_id, PUBLISH_STATUS_DICT['updated'])
 
     def test_bad_file_type(self):
-        """ Test file submissions for alphabet months """
+        """ Test file submissions for bad file formats (not CSV or TXT) """
         update_json = {"existing_submission_id": self.status_check_submission_id}
         update_response = self.app.post("/v1/upload_dabs_files/", update_json,
                                         upload_files=[INVAL_FILE],

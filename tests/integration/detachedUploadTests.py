@@ -149,6 +149,7 @@ class DetachedUploadTests(BaseTestAPI):
         self.assertEqual(response.json['message'], "Existing submission must be a FABS submission")
 
     def test_upload_fabs_file_invalid_format(self):
+        """ Test file submissions for bad file formats (not CSV or TXT) """
         self.login_user(username=self.agency_user_email)
         response = self.app.post("/v1/upload_fabs_file/",
                                  {"existing_submission_id": str(self.test_agency_user_submission_id)},
