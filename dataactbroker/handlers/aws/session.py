@@ -64,10 +64,6 @@ class UserSession(dict, SessionMixin):
 class UserSessionInterface(SessionInterface):
     """ Class That implements the SessionInterface and uses SessionTable to store data """
 
-    SESSION_CLEAR_COUNT_LIMIT = 10
-
-    CountLimit = 1
-
     def __init__(self):
         """ Initializes the UserSessionInterface """
         return
@@ -122,10 +118,7 @@ class UserSessionInterface(SessionInterface):
         if "_uid" not in session:
             LoginSession.reset_id(session)
         SessionTable.new_session(session["sid"], session, expiration)
-        UserSessionInterface.CountLimit += 1
-        if UserSessionInterface.CountLimit % UserSessionInterface.SESSION_CLEAR_COUNT_LIMIT == 0:
-            SessionTable.clear_sessions()
-            UserSessionInterface.CountLimit = 1
+        SessionTable.clear_sessions()
 
         # Return session ID as header x-session-id
         response.headers["x-session-id"] = session["sid"]
@@ -137,7 +130,7 @@ class SessionTable:
         Constants :
             TIME_OUT_LIMIT: The limit (in seconds) for the session before it times out
     """
-    TIME_OUT_LIMIT = 604800
+    TIME_OUT_LIMIT = 1800
 
     @staticmethod
     def clear_sessions():
