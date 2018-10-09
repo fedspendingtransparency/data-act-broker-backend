@@ -148,6 +148,16 @@ class DetachedUploadTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "Existing submission must be a FABS submission")
 
+    def test_upload_fabs_file_invalid_format(self):
+        self.login_user(username=self.agency_user_email)
+        response = self.app.post("/v1/upload_fabs_file/",
+                                 {"existing_submission_id": str(self.test_agency_user_submission_id)},
+                                 upload_files=[('fabs', 'invalid_file_format.md',
+                                                open('tests/integration/data/invalid_file_format.md', 'rb').read())],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'FABS files must be CSV or TXT format')
+
     @staticmethod
     def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
                           is_quarter=False, publish_status_id=1, d2_submission=True):

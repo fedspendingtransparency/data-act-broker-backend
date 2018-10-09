@@ -24,6 +24,8 @@ APPROP_FILE_T = ('appropriations', 'appropriations.csv',
                  open('tests/integration/data/appropValid.csv', 'rb').read())
 PA_FILE_T = ('program_activity', 'program_activity.csv',
              open('tests/integration/data/programActivityValid.csv', 'rb').read())
+INVAL_FILE = ('program_activity', 'invalid_file_format.md',
+              open('tests/integration/data/invalid_file_format.md', 'rb').read())
 
 
 class FileTests(BaseTestAPI):
@@ -175,6 +177,15 @@ class FileTests(BaseTestAPI):
             self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"), "04/2016")
             self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"), "06/2016")
             self.assertEqual(submission.publish_status_id, PUBLISH_STATUS_DICT['updated'])
+
+    def test_bad_file_type(self):
+        """ Test file submissions for alphabet months """
+        update_json = {"existing_submission_id": self.status_check_submission_id}
+        update_response = self.app.post("/v1/upload_dabs_files/", update_json,
+                                        upload_files=[INVAL_FILE],
+                                        headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(update_response.status_code, 400)
+        self.assertEqual(update_response.json["message"], "All submitted files must be CSV or TXT format")
 
     def test_bad_quarter(self):
         """ Test file submissions for Q5 """
