@@ -8,6 +8,31 @@ The U.S. Department of the Treasury is building a suite of open-source tools to 
 
 For more information about the DATA Act Broker codebase, please visit this repository's [main README](../README.md "DATA Act Broker Backend README").
 
+**A Note on CGAC/FREC**: In the vast majority of cases, top-level agencies identify themselves for purposes of DABS submissions or detached D1/D2 file generation by their 3-digit CGAC code. CGAC are issued and managed by OMB and are updated yearly in the A-11 circular appendix C. The CGAC is equivalent to the treasury concept of the Agency Identifier (AID) embedded in all Treasury Account Symbols (TAS).
+
+In a few cases, legitimately separate (at least for financial reporting purposes) agencies share a CGAC. To allow them to report as separate entities in the DATA Act Broker, we leveraged an internal Treasury element called the Financial Reporting Entity Code (FREC) that Treasury already uses to distinguish between these agencies with shared AID at the TAS level. This field comes from Treasury's CARS system.
+These agencies, listed in the table below, should use this four-digit FREC code for purposes of identifying themselves in DABS instead of the CGAC they share with one or more agencies.
+The following is the complete list of agencies supported under the FREC paradigm in DABS. These agencies should always identify themselves to the Broker with the 4-digit FREC code instead of the 3 digit CGAC they share with other agencies.
+
+|SHARED CGAC|	AGENCY NAME|	AGENCY ABBREVIATION| Financial Reporting Entity Code (FREC)|
+|-----------|-----------|---------------------|--------------------------------------|
+|011|	EOP Office of Administration|	EOPOA|1100|
+|011|	Peace Corps|	Peace Corps|	1125|
+|011|Inter-American Foundation|	IAF|	1130|
+|011|U.S. Trade and Development Agency|	USTDA|1133|
+|011|	African Development Foundation |ADF|1136
+|016|Department of Labor|DOL	|1601|
+|016|	Pension Benefit Guaranty Corporation|PBGC|1602|
+|033|	Smithsonian Institution	|SI|	3300|
+|033|	John F. Kennedy Center For The Performing Arts|Kennedy Center|3301|
+|033|	National Gallery of Art|	National Gallery|3302|
+|033|	Woodrow Wilson International Center For Scholars|Wilson Center|3303|
+|352|	Farm Credit Administration|	FCA|7801|
+|352|	Farm Credit System Insurance Corporation|FCSIC|7802|
+|537|	Federal Housing Finance Agency|	FHFA|9566|
+|537|	Federal Housing Finance Agency Inspector General|FHFAIG|9573|
+
+
 ## Broker API Project Layout
 
 The Broker API has two major directories: scripts and handlers.
@@ -233,6 +258,8 @@ A call to this route should be of content type `"multipart/form-data"`, and, if 
 
 This route will upload the files, then kick off the validation jobs. It will return the submission_id.
 
+For information on the CGAC and FREC parameters, see the note above in the "Background" section.
+
 #### Additional Required Headers:
 - `Content-Type` - `"multipart/form-data"`
 
@@ -247,6 +274,7 @@ This route will upload the files, then kick off the validation jobs. It will ret
 - `reporting_period_end_date` - string, ending date of submission (MM/YYYY)
 
 **NOTE**: for monthly submissions, start/end date are the same
+
 
 #### Example Curl Request:
 ```

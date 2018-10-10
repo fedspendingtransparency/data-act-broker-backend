@@ -13,6 +13,6 @@ ENV PYTHONPATH /data-act/backend
 WORKDIR /data-act/backend
 
 VOLUME /data-act/backend
-ADD . /data-act/backend 
+ADD . /data-act/backend
 
 CMD /bin/sh
