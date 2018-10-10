@@ -233,6 +233,8 @@ A call to this route should be of content type `"multipart/form-data"`, and, if 
 
 This route will upload the files, then kick off the validation jobs. It will return the submission_id.
 
+For a new submission, all three files must be submitted. For corrections to an existing submission, one or more files may be submitted along with the `existing_submission_id` parameter.
+
 #### Additional Required Headers:
 - `Content-Type` - `"multipart/form-data"`
 
@@ -245,6 +247,7 @@ This route will upload the files, then kick off the validation jobs. It will ret
 - `is_quarter` - boolean (true for quarterly submissions)
 - `reporting_period_start_date` - string, starting date of submission (MM/YYYY)
 - `reporting_period_end_date` - string, ending date of submission (MM/YYYY)
+- `existing_submission_id:`- integer, id of previous submission, use only if submitting an update.
 
 **NOTE**: for monthly submissions, start/end date are the same
 
