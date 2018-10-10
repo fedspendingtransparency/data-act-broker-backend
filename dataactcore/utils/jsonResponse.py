@@ -45,8 +45,8 @@ class JsonResponse:
 
         trace = traceback.extract_tb(exception.__traceback__, 10)
         logger.exception('Route Error')
+        response_dict["message"] = str(exception)
         if JsonResponse.debugMode:
-            response_dict["message"] = str(exception)
             response_dict["errorType"] = str(type(exception))
             if isinstance(exception, ResponseException) and exception.wrappedException:
                 response_dict["wrappedType"] = str(type(exception.wrappedException))
@@ -54,5 +54,4 @@ class JsonResponse:
             response_dict["trace"] = [str(entry) for entry in trace]
             return JsonResponse.create(error_code, response_dict)
         else:
-            response_dict["message"] = "An error has occurred"
             return JsonResponse.create(error_code, response_dict)
