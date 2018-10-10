@@ -3,6 +3,8 @@ from uuid import uuid4
 from datetime import datetime, timedelta
 from flask.sessions import SessionInterface, SessionMixin
 from flask_login import _create_identifier
+
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.userModel import SessionMap
 
@@ -64,10 +66,6 @@ class UserSession(dict, SessionMixin):
 class UserSessionInterface(SessionInterface):
     """ Class That implements the SessionInterface and uses SessionTable to store data """
 
-    SESSION_CLEAR_COUNT_LIMIT = 10
-
-    CountLimit = 1
-
     def __init__(self):
         """ Initializes the UserSessionInterface """
         return
@@ -118,27 +116,18 @@ class UserSessionInterface(SessionInterface):
                 # Make sure next route call does not get counted as session check
                 session["session_check"] = False
             else:
-                expiration = datetime.utcnow() + timedelta(seconds=SessionTable.TIME_OUT_LIMIT)
+                expiration = datetime.utcnow() + timedelta(seconds=CONFIG_BROKER['session_timeout'])
         if "_uid" not in session:
             LoginSession.reset_id(session)
         SessionTable.new_session(session["sid"], session, expiration)
-        UserSessionInterface.CountLimit += 1
-        if UserSessionInterface.CountLimit % UserSessionInterface.SESSION_CLEAR_COUNT_LIMIT == 0:
-            SessionTable.clear_sessions()
-            UserSessionInterface.CountLimit = 1
+        SessionTable.clear_sessions()
 
         # Return session ID as header x-session-id
         response.headers["x-session-id"] = session["sid"]
 
 
 class SessionTable:
-    """ Provides helper functions for session management
-
-        Constants :
-            TIME_OUT_LIMIT: The limit (in seconds) for the session before it times out
-    """
-    TIME_OUT_LIMIT = 604800
-
+    """ Provides helper functions for session management """
     @staticmethod
     def clear_sessions():
         """ Removes old sessions that are expired """
