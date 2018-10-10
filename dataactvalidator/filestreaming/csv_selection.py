@@ -12,17 +12,14 @@ QUERY_SIZE = 10000
 
 
 def write_csv(file_name, upload_name, is_local, header, body):
-    """Write a CSV to the relevant location.
+    """ Write a CSV to the relevant location.
 
         Args:
-            file_name - pathless file name
-            upload_name - file name to be used as S3 key
-            is_local - True if in local development, False otherwise
-            header - value to write as the first line of the file
-            body - Iterable to write as the body of the file
-
-        Return:
-            the final file name (complete with prefix)
+            file_name: pathless file name
+            upload_name: file name to be used as S3 key
+            is_local: True if in local development, False otherwise
+            header: value to write as the first line of the file
+            body: Iterable to write as the body of the file
     """
     local_filename = CONFIG_BROKER['broker_files'] + file_name
 
@@ -54,17 +51,17 @@ def write_csv(file_name, upload_name, is_local, header, body):
 
 def write_query_to_file(local_filename, upload_name, header, file_type, is_local, query_func, query_utils,
                         is_certified=False):
-    """Write file locally from a query, then stream it to S3
+    """ Write file locally from a query, then stream it to S3
 
         Args:
-            local_filename - full path for local file
-            upload_name - file name to be used as S3 key
-            header - value to write as the first line of the file
-            file_type - Type of file (for logging purposes only)
-            is_local - True if in local development, False otherwise
-            query_func - function to call to query data
-            query_utils - variables to pass to query function
-            is_certified - True if writing to the certified bucket, False otherwise (default False)
+            local_filename: full path for local file
+            upload_name: file name to be used as S3 key
+            header: value to write as the first line of the file
+            file_type: Type of file (for logging purposes only)
+            is_local: True if in local development, False otherwise
+            query_func: function to call to query data
+            query_utils: variables to pass to query function
+            is_certified: True if writing to the certified bucket, False otherwise (default False)
     """
     # create file locally
     with open(local_filename, 'w', newline='') as csv_file:
@@ -107,12 +104,12 @@ def write_query_to_file(local_filename, upload_name, header, file_type, is_local
 
 
 def stream_file_to_s3(upload_name, reader, is_certified=False):
-    """Stream file to S3
+    """ Stream file to S3
 
         Args:
-            upload_name - file name to be used as S3 key
-            reader - reader object to read data from
-            is_certified - True if writing to the certified bucket, False otherwise (default False)
+            upload_name: file name to be used as S3 key
+            reader: reader object to read data from
+            is_certified: True if writing to the certified bucket, False otherwise (default False)
     """
     path, file_name = upload_name.rsplit('/', 1)
     logger.debug({
