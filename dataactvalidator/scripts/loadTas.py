@@ -136,14 +136,14 @@ def update_tas_lookups(sess, csv_path, update_missing=[]):
     sess.commit()
 
 
-def load_tas(sess, backfill_historic=False):
+def load_tas(backfill_historic=False):
     """ Load TAS file into broker database.
 
         Args:
-            sess: connection to database
             backfill_historic: if set to true, this will only update certain columns if budget_function_code is null
     """
     # read TAS file to dataframe, to make sure all is well with the file before firing up a db transaction
+    sess = GlobalDB.db().session
     tas_files = []
 
     if CONFIG_BROKER["use_aws"]:
@@ -239,10 +239,8 @@ if __name__ == '__main__':
     configure_logging()
 
     with create_app().app_context():
-        sess = GlobalDB.db().session
-
         parser = argparse.ArgumentParser(description='Import data from the cars_tas.csv')
         parser.add_argument('--backfill_historic', '-b', action='store_true', help='Backfill tas with historical data')
         args = parser.parse_args()
 
-        load_tas(sess, backfill_historic=args.backfill_historic)
+        load_tas(backfill_historic=args.backfill_historic)

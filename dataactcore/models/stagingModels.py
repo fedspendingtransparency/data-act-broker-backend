@@ -875,6 +875,7 @@ class DetachedAwardProcurement(Base):
     organizational_type = Column(Text)
     business_categories = Column(ARRAY(Text))
     ignore_updated_at = False
+    unique_award_key = Column(Text, index=True)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -1031,6 +1032,7 @@ class PublishedAwardFinancialAssistance(Base):
     legal_entity_country_name = Column(Text)
     submission_id = Column(Numeric, index=True)
     ignore_updated_at = False
+    unique_award_key = Column(Text, index=True)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

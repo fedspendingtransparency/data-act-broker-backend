@@ -1845,6 +1845,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
 
     # create the unique key
     data['detached_award_proc_unique'] = data.apply(lambda x: create_unique_key(x), axis=1)
+    data['unique_award_key'] = data.apply(lambda x: create_unique_award_key(x), axis=1)
 
     logger.info('Cleaning data and fixing np.nan to None')
     # clean the data
@@ -2101,6 +2102,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
             'typeofsetaside': 'type_set_aside',
             'ultimatecompletiondate': 'period_of_perf_potential_e',
             'undefinitized_action_desc': 'undefinitized_action_desc',
+            'unique_award_key': 'unique_award_key',
             'us_government_entity': 'us_government_entity',
             'useofepadesignatedproducts': 'epa_designated_product',
             'vendor_cd': 'legal_entity_congressional',
@@ -2260,6 +2262,16 @@ def create_unique_key(row):
         else:
             unique_string += "-none-"
     return unique_string
+
+
+def create_unique_award_key(row):
+    key_list = ['piid', 'agencyid', 'idvpiid', 'idvagencyid'] if row['pulled_from'] == 'award' else ['piid', 'agencyid']
+    unique_string_list = [] if row['pulled_from'] == 'award' else [row['pulled_from']]
+
+    for item in key_list:
+        unique_string_list.append(row[item] if row[item] and str(row[item]) != 'nan' else '-none-')
+
+    return '_'.join(unique_string_list)
 
 
 def main():
