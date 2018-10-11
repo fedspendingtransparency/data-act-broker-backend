@@ -458,8 +458,13 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
     obj['place_of_perform_zip_last4'] = None
 
     # deriving unique_award_key
-    identifier = (obj['fain'] if str(obj['record_type']) == '1' else obj['uri']) or '-none-'
-    obj['unique_award_key'] = obj['record_type'] + '_' + identifier + '_' + obj['awarding_sub_tier_agency_c']
+    if str(obj['record_type']) == '1':
+        record_type = 'AGG'
+        identifier = obj['uri']
+    else:
+        record_type = 'NON'
+        identifier = obj['fain']
+    obj['unique_award_key'] = record_type + '_' + identifier + '_' + obj['awarding_sub_tier_agency_c']
 
     # deriving total_funding_amount
     federal_action_obligation = obj['federal_action_obligation'] or 0
