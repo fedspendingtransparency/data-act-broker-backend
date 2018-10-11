@@ -460,11 +460,11 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
     # deriving unique_award_key
     if str(obj['record_type']) == '1':
         record_type = 'AGG'
-        identifier = obj['uri']
+        identifier = obj['uri'] or '-none-'
     else:
         record_type = 'NON'
-        identifier = obj['fain']
-    obj['unique_award_key'] = record_type + '_' + identifier + '_' + obj['awarding_sub_tier_agency_c']
+        identifier = obj['fain'] or '-none-'
+    obj['unique_award_key'] = record_type + '_' + identifier + '_' + (obj['awarding_sub_tier_agency_c'] or '-none-')
 
     # deriving total_funding_amount
     federal_action_obligation = obj['federal_action_obligation'] or 0
