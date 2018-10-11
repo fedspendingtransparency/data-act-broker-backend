@@ -937,6 +937,7 @@ class DetachedAwardFinancialAssistance(Base):
     sai_number = Column(Text)
     uri = Column(Text, index=True)
     is_valid = Column(Boolean, nullable=False, default="False", server_default="False")
+    unique_award_key = Column(Text, index=True)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
