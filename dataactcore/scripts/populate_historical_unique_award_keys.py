@@ -37,16 +37,14 @@ if __name__ == '__main__':
         logger.info('Populating unique_award_key for unpublished FABS aggregate records...')
         dafa = DetachedAwardFinancialAssistance
         sess.query(dafa).filter(dafa.record_type == '1').\
-            update({dafa.unique_award_key: func.concat(dafa.record_type, '_',
-                                                       func.coalesce(dafa.uri, '-none-'), '_',
+            update({dafa.unique_award_key: func.concat('AGG_', func.coalesce(dafa.uri, '-none-'), '_',
                                                        func.coalesce(dafa.awarding_sub_tier_agency_c, '-none-'))},
                    synchronize_session=False)
         logger.info('Unpublished FABS aggregate records populated.\n')
 
         logger.info('Populating unique_award_key for unpublished FPDS non-aggregated records...')
         sess.query(dafa).filter(dafa.record_type != '1').\
-            update({dafa.unique_award_key: func.concat(func.coalesce(dafa.record_type, -1), '_',
-                                                       func.coalesce(dafa.fain, '-none-'), '_',
+            update({dafa.unique_award_key: func.concat('NON_', func.coalesce(dafa.fain, '-none-'), '_',
                                                        func.coalesce(dafa.awarding_sub_tier_agency_c, '-none-'))},
                    synchronize_session=False)
         logger.info('Unpublished FABS non-aggregated records populated.\n')
@@ -54,16 +52,14 @@ if __name__ == '__main__':
         logger.info('Populating unique_award_key for published FABS aggregate records...')
         pafa = PublishedAwardFinancialAssistance
         sess.query(pafa).filter(pafa.record_type == '1').\
-            update({pafa.unique_award_key: func.concat(pafa.record_type, '_',
-                                                       func.coalesce(pafa.uri, '-none-'), '_',
+            update({pafa.unique_award_key: func.concat('AGG_', func.coalesce(pafa.uri, '-none-'), '_',
                                                        func.coalesce(pafa.awarding_sub_tier_agency_c, '-none-'))},
                    synchronize_session=False)
         logger.info('Published FABS aggregate records populated.\n')
 
         logger.info('Populating unique_award_key for published FPDS non-aggregated records...')
         sess.query(pafa).filter(pafa.record_type != '1').\
-            update({pafa.unique_award_key: func.concat(func.coalesce(pafa.record_type, -1), '_',
-                                                       func.coalesce(pafa.fain, '-none-'), '_',
+            update({pafa.unique_award_key: func.concat('NON_', func.coalesce(pafa.fain, '-none-'), '_',
                                                        func.coalesce(pafa.awarding_sub_tier_agency_c, '-none-'))},
                    synchronize_session=False)
         logger.info('Published FABS non-aggregated records populated.\n')
