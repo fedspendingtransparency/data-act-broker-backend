@@ -1,8 +1,8 @@
 import csv
 import os
 import logging
-import smart_open
 from datetime import datetime
+import boto3
 
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
@@ -385,29 +385,16 @@ class ValidationManager:
 
             # stream file to S3 when not local
             if not self.is_local:
+                s3_resource = boto3.resource('s3', region_name=region_name)
                 # stream error file
                 with open(error_file_path, 'rb') as csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(error_file_name)), 'w')\
-                            as writer:
-                        while True:
-                            chunk = csv_file.read(CHUNK_SIZE)
-                            if chunk:
-                                writer.write(chunk)
-                            else:
-                                break
+                    s3_resource.Object(bucket_name, self.get_file_name(error_file_name)).put(Body=csv_file)
                 csv_file.close()
                 os.remove(error_file_path)
 
                 # stream warning file
                 with open(warning_file_path, 'rb') as warning_csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(warning_file_name)), 'w')\
-                            as warning_writer:
-                        while True:
-                            chunk = warning_csv_file.read(CHUNK_SIZE)
-                            if chunk:
-                                warning_writer.write(chunk)
-                            else:
-                                break
+                    s3_resource.Object(bucket_name, self.get_file_name(warning_file_name)).put(Body=warning_csv_file)
                 warning_csv_file.close()
                 os.remove(warning_file_path)
 
@@ -450,6 +437,9 @@ class ValidationManager:
             # Mark validation as finished in job tracker
             mark_job_status(job_id, "finished")
             mark_file_complete(job_id, file_name)
+        except Exception as e:
+            logger.error("An exception occurred during validation:{}".format(str(e)))
+            raise
         finally:
             # Ensure the files always close
             reader.close()
@@ -587,29 +577,18 @@ class ValidationManager:
 
             # stream file to S3 when not local
             if not self.is_local:
+                s3_resource = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
                 # stream error file
                 with open(error_file_path, 'rb') as csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(error_file_name)),
-                                               'w') as writer:
-                        while True:
-                            chunk = csv_file.read(CHUNK_SIZE)
-                            if chunk:
-                                writer.write(chunk)
-                            else:
-                                break
+                    s3_resource.Object(CONFIG_BROKER['aws_bucket'], self.get_file_name(error_file_name)).\
+                        put(Body=csv_file)
                 csv_file.close()
                 os.remove(error_file_path)
 
                 # stream warning file
                 with open(warning_file_path, 'rb') as warning_csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(warning_file_name)),
-                                               'w') as warning_writer:
-                        while True:
-                            chunk = warning_csv_file.read(CHUNK_SIZE)
-                            if chunk:
-                                warning_writer.write(chunk)
-                            else:
-                                break
+                    s3_resource.Object(CONFIG_BROKER['aws_bucket'], self.get_file_name(warning_file_name)).\
+                        put(Body=warning_csv_file)
                 warning_csv_file.close()
                 os.remove(warning_file_path)
 

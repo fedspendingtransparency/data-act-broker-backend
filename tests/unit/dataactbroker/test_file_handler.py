@@ -376,17 +376,16 @@ def test_submission_report_url_local(monkeypatch, tmpdir):
 
 
 def test_submission_report_url_s3(monkeypatch):
-    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
+    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False, 'submission_bucket_mapping': 'test/path'})
     s3_url_handler = Mock()
     s3_url_handler.return_value.get_signed_url.return_value = 'some/url/here.csv'
     monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
-    json_response = fileHandler.submission_report_url(
-        SubmissionFactory(submission_id=2), False, 'some_file', None)
+    json_response = fileHandler.submission_report_url(SubmissionFactory(submission_id=2), False, 'some_file', None)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == 'some/url/here.csv'
     assert s3_url_handler.return_value.get_signed_url.call_args == (
         ('errors', 'submission_2_some_file_error_report.csv'),
-        {'method': 'GET'}
+        {'method': 'get_object', 'url_mapping': 'test/path'}
     )
 
 
@@ -487,7 +486,7 @@ def test_get_upload_file_url_no_file(database):
 @pytest.mark.usefixtures("job_constants")
 def test_get_upload_file_url_s3(database, monkeypatch):
     """ Test getting the url of the uploaded file non-locally. """
-    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
+    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False, 'submission_bucket_mapping': 'test/path'})
     s3_url_handler = Mock()
     s3_url_handler.return_value.get_signed_url.return_value = 'some/url/here.csv'
     monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
@@ -504,7 +503,7 @@ def test_get_upload_file_url_s3(database, monkeypatch):
     assert url == 'some/url/here.csv'
     assert s3_url_handler.return_value.get_signed_url.call_args == (
         ('1', 'some_file.csv'),
-        {'method': 'GET'}
+        {'method': 'get_object', 'url_mapping': 'test/path'}
     )
 
 

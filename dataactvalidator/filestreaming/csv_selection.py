@@ -1,9 +1,8 @@
 import csv
 import logging
 import os
-import smart_open
+import boto3
 
-from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
@@ -132,15 +131,11 @@ def stream_file_to_s3(upload_name, reader, is_certified=False):
         'file_name': file_name if file_name else path
     })
 
-    if is_certified:
-        handler = S3Handler.create_file_path(upload_name, CONFIG_BROKER["certified_bucket"])
-    else:
-        handler = S3Handler.create_file_path(upload_name)
+    s3_resource = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
 
-    with smart_open.smart_open(handler, 'w') as writer:
-        while True:
-            chunk = reader.read(CHUNK_SIZE)
-            if chunk:
-                writer.write(chunk)
-            else:
-                break
+    if is_certified:
+        bucket_name = CONFIG_BROKER["certified_bucket"]
+    else:
+        bucket_name = CONFIG_BROKER["aws_bucket"]
+
+    s3_resource.Object(bucket_name, upload_name).put(Body=reader)

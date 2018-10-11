@@ -1,8 +1,4 @@
-import boto
 import os
-
-from boto.s3.key import Key
-from shutil import copy
 
 from dataactbroker.handlers.submission_handler import populate_submission_error_info
 
@@ -642,32 +638,6 @@ class FileTests(BaseTestAPI):
             self.assertEqual(response.headers.get("Content-Type"), "application/json")
             json = response.json
             self.assertEqual(json["urls"], {})
-
-    def check_upload_complete(self, job_id):
-        """Check status of a broker file submission."""
-        post_json = {"upload_id": job_id}
-        return self.app.post_json("/v1/finalize_job/", post_json, headers={"x-session-id": self.session_id})
-
-    @staticmethod
-    def upload_file_by_url(s3_file_name, filename):
-        """Upload file and return filename and bytes written."""
-        full_path = os.path.join(CONFIG_BROKER['path'], "tests", "integration", "data", filename)
-
-        if CONFIG_BROKER['local']:
-            # If not using AWS, put file submission in location
-            # specified by the config file
-            broker_file_path = CONFIG_BROKER['broker_files']
-            copy(full_path, broker_file_path)
-            submitted_file = os.path.join(broker_file_path, filename)
-            return {'bytesWritten': os.path.getsize(submitted_file), 's3FileName': full_path}
-        else:
-            # Use boto to put files on S3
-            s3conn = boto.s3.connect_to_region(CONFIG_BROKER["aws_region"])
-            bucket_name = CONFIG_BROKER['aws_bucket']
-            key = Key(s3conn.get_bucket(bucket_name))
-            key.key = s3_file_name
-            bytes_written = key.set_contents_from_filename(full_path)
-            return {'bytesWritten': bytes_written, 's3FileName': s3_file_name}
 
     def check_metrics(self, submission_id, exists, type_file):
         """Get error metrics for specified submission."""

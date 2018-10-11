@@ -1,9 +1,9 @@
 fieldname,fieldname_short,required,data_type,field_length
 ActionDate,action_date,ASP: Required,string,8
 ActionType,action_type,ASP: Conditional per Validation Rule,string,1
-ActionTypeDescription,action_type_description,ASP: Optional,string,
+ActionTypeDescriptionTag,action_type_description,ASP: Optional,string,
 AssistanceType,assistance_type,ASP: Required,string,2
-AssistanceTypeDescription,assistance_type_desc,ASP: Optional,string,
+AssistanceTypeDescriptionTag,assistance_type_desc,ASP: Optional,string,
 AwardDescription,award_description,ASP: Conditional per Validation Rule,string,4000
 AwardeeOrRecipientLegalEntityName,awardee_or_recipient_legal,ASP: Required,string,120
 AwardeeOrRecipientUniqueIdentifier,awardee_or_recipient_uniqu,ASP: Conditional per Validation Rule,string,9
@@ -15,13 +15,13 @@ AwardingSubTierAgencyCode,awarding_sub_tier_agency_c,ASP: Required,string,4
 AwardingSubTierAgencyName,awarding_sub_tier_agency_n,ASP: Derived,string,100
 AwardModificationAmendmentNumber,award_modification_amendme,ASP: Optional,string,25
 BusinessFundsIndicator,business_funds_indicator,ASP: Optional,string,3
-BusinessFundsIndicatorDescription,business_funds_ind_desc,ASP: Optional,string,
+BusinessFundsIndicatorDescriptionTag,business_funds_ind_desc,ASP: Optional,string,
 BusinessTypes,business_types,ASP: Optional,string,3
-BusinessTypesDescription,business_types_desc,ASP: Optional,string,
+BusinessTypesDescriptionTag,business_types_desc,ASP: Optional,string,
 CFDA_Number,cfda_number,ASP: Required,string,7
 CFDA_Title,cfda_title,ASP: Derived,string,100
 CorrectionDeleteIndicator,correction_delete_indicatr,ASP: Optional,string,1
-CorrectionDeleteIndicatorDescription,correction_delete_ind_desc,ASP: Optional,string,
+CorrectionDeleteIndicatorDescriptionTag,correction_delete_ind_desc,ASP: Optional,string,
 FaceValueOfDirectLoanOrLoanGuarantee,face_value_loan_guarantee,ASP: Conditional per Validation Rule,numeric,20
 FAIN,fain,ASP: Conditional per Validation Rule,string,30
 FederalActionObligation,federal_action_obligation,ASP: Conditional per Validation Rule,numeric,20
@@ -62,7 +62,7 @@ PrimaryPlaceOfPerformanceForeignLocationDescription,place_of_performance_forei,A
 PrimaryPlaceOfPerformanceStateName,place_of_perform_state_nam,ASP: Derived,string,50
 PrimaryPlaceOfPerformanceZIP+4,place_of_performance_zip4a,ASP: Conditional per Validation Rule,string,10
 RecordType,record_type,ASP: Required,integer,1
-RecordTypeDescription,record_type_description,ASP: Optional,string,
+RecordTypeDescriptionTag,record_type_description,ASP: Optional,string,
 SAI_Number,sai_number,ASP: Optional,string,50
 TotalFundingAmount,total_funding_amount,ASP: Derived,numeric,20
 UltimateParentLegalEntityName,ultimate_parent_legal_enti,FALSE,str,120,
