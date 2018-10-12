@@ -78,6 +78,10 @@ def clean_tas(csv_path):
                  "ending_period_of_availabil": {"pad_to_length": 0, "keep_null": True},
                  "main_account_code": {"pad_to_length": 4},
                  "sub_account_code": {"pad_to_length": 3},
+                 "budget_function_code": {"pad_to_length": 3, "keep_null": True},
+                 "budget_subfunction_code": {"pad_to_length": 3, "keep_null": True},
+                 "budget_bureau_code": {"pad_to_length": 2, "keep_null": True},
+                 "reporting_agency_aid": {"pad_to_length": 3, "keep_null": True}
                  }
             )
             break
@@ -136,11 +140,10 @@ def update_tas_lookups(sess, csv_path, update_missing=[]):
     sess.commit()
 
 
-def load_tas(sess, backfill_historic=False):
+def load_tas(backfill_historic=False):
     """ Load TAS file into broker database.
 
         Args:
-            sess: connection to database
             backfill_historic: if set to true, this will only update certain columns if budget_function_code is null
     """
     # read TAS file to dataframe, to make sure all is well with the file before firing up a db transaction
@@ -172,6 +175,7 @@ def load_tas(sess, backfill_historic=False):
         tas_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "cars_tas.csv")
         tas_files.append(tas_file)
 
+    sess = GlobalDB.db().session
     for tas_file in reversed(tas_files):
         update_missing = missing_records(sess) if backfill_historic else []
         if backfill_historic and not update_missing:
@@ -239,10 +243,8 @@ if __name__ == '__main__':
     configure_logging()
 
     with create_app().app_context():
-        sess = GlobalDB.db().session
-
         parser = argparse.ArgumentParser(description='Import data from the cars_tas.csv')
         parser.add_argument('--backfill_historic', '-b', action='store_true', help='Backfill tas with historical data')
         args = parser.parse_args()
 
-        load_tas(sess, backfill_historic=args.backfill_historic)
+        load_tas(backfill_historic=args.backfill_historic)
