@@ -943,7 +943,7 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
     obj['business_categories'] = get_business_categories(row=obj, data_type='fpds')
 
     # calculate unique award key
-    if obj['pulled_from'] == 'award':
+    if atom_type == 'award':
         unique_award_string_list = []
         key_list = ['piid', 'agency_id', 'parent_award_id', 'referenced_idv_agency_iden']
     else:
