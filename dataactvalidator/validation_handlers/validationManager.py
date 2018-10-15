@@ -318,9 +318,13 @@ class ValidationManager:
                                                              "_" + (record['fain'] or '-none-') + "_" + \
                                                              (record['uri'] or '-none-')
                             # Create unique_award_key
-                            identifier = record['fain'] if str(record['record_type']) == '1' else record['uri']
-                            record['unique_award_key'] = (record['record_type'] or '-none-') + '_' + \
-                                                         (identifier or '-none-') + '_' + \
+                            if str(record['record_type']) == '1':
+                                record_type = 'AGG_'
+                                identifier = record['uri'] or '-none-'
+                            else:
+                                record_type = 'NON_'
+                                identifier = record['fain'] or '-none-'
+                            record['unique_award_key'] = record_type + identifier + '_' + \
                                                          (record['awarding_sub_tier_agency_c'] or '-none-')
 
                         passed_validations, failures, valid = Validator.validate(record, csv_schema,

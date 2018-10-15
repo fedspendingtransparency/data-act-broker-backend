@@ -942,6 +942,18 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
     # calculate business categories
     obj['business_categories'] = get_business_categories(row=obj, data_type='fpds')
 
+    # calculate unique award key
+    if obj['pulled_from'] == 'award':
+        unique_award_string_list = []
+        key_list = ['piid', 'agency_id', 'parent_award_id', 'referenced_idv_agency_iden']
+    else:
+        unique_award_string_list = ['IDV']
+        key_list = ['piid', 'agency_id']
+    for item in key_list:
+        # Get the value in the object or, if the key doesn't exist or value is None, set it to "-none-"
+        unique_award_string_list.append(obj.get(item) or '-none-')
+    obj['unique_award_key'] = '_'.join(unique_award_string_list)
+
     # calculate unique key
     key_list = ['agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id',
                 'transaction_number']

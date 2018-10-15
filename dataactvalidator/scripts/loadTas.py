@@ -147,7 +147,6 @@ def load_tas(backfill_historic=False):
             backfill_historic: if set to true, this will only update certain columns if budget_function_code is null
     """
     # read TAS file to dataframe, to make sure all is well with the file before firing up a db transaction
-    sess = GlobalDB.db().session
     tas_files = []
 
     if CONFIG_BROKER["use_aws"]:
