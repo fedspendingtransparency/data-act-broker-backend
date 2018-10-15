@@ -312,10 +312,20 @@ class ValidationManager:
                         valid = True
                     else:
                         if file_type == "fabs":
+                            # Create afa_generated_unique
                             record['afa_generated_unique'] = (record['award_modification_amendme'] or '-none-') + "_" +\
                                                              (record['awarding_sub_tier_agency_c'] or '-none-') + \
                                                              "_" + (record['fain'] or '-none-') + "_" + \
                                                              (record['uri'] or '-none-')
+                            # Create unique_award_key
+                            if str(record['record_type']) == '1':
+                                unique_award_key_list = ['AGG', record['uri'] or '-none-']
+                            else:
+                                unique_award_key_list = ['NON', record['fain'] or '-none-']
+                            unique_award_key_list.append(record['awarding_sub_tier_agency_c'] or '-none-')
+
+                            record['unique_award_key'] = '_'.join(unique_award_key_list)
+
                         passed_validations, failures, valid = Validator.validate(record, csv_schema,
                                                                                  file_type == "fabs",
                                                                                  required_list, type_list)
