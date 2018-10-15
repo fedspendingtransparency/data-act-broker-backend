@@ -39,7 +39,6 @@ from dataactcore.models.userModel import User  # noqa
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
-from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.5.0&q="
@@ -1474,9 +1473,6 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
             if last_modified > existing_item.last_modified:
                 delete_list.append(existing_item.detached_award_procurement_id)
                 delete_dict[existing_item.detached_award_procurement_id] = existing_item.detached_award_proc_unique
-        # TODO remove this after the first run
-        # else:
-        #     delete_dict[unique_string] = unique_string
 
     # only need to delete values if there's something to delete
     if delete_list:
@@ -1489,11 +1485,12 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
     file_name = now.strftime('%m-%d-%Y') + "_delete_records_" + contract_type + "_" + str(seconds) + ".csv"
     headers = ["detached_award_procurement_id", "detached_award_proc_unique"]
     if CONFIG_BROKER["use_aws"]:
-        with CsvS3Writer(CONFIG_BROKER['aws_region'], CONFIG_BROKER['fpds_delete_bucket'], file_name,
-                         headers) as writer:
-            for key, value in delete_dict.items():
-                writer.write([key, value])
-            writer.finish_batch()
+        s3client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        # add headers
+        contents = bytes((",".join(headers) + "\n").encode())
+        for key, value in delete_dict.items():
+            contents += bytes('{},{}\n'.format(key, value).encode())
+        s3client.put_object(Bucket=CONFIG_BROKER['fpds_delete_bucket'], Key=file_name, Body=contents)
     else:
         with CsvLocalWriter(file_name, headers) as writer:
             for key, value in delete_dict.items():

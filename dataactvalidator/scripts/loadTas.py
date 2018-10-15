@@ -78,6 +78,10 @@ def clean_tas(csv_path):
                  "ending_period_of_availabil": {"pad_to_length": 0, "keep_null": True},
                  "main_account_code": {"pad_to_length": 4},
                  "sub_account_code": {"pad_to_length": 3},
+                 "budget_function_code": {"pad_to_length": 3, "keep_null": True},
+                 "budget_subfunction_code": {"pad_to_length": 3, "keep_null": True},
+                 "budget_bureau_code": {"pad_to_length": 2, "keep_null": True},
+                 "reporting_agency_aid": {"pad_to_length": 3, "keep_null": True}
                  }
             )
             break
@@ -172,6 +176,7 @@ def load_tas(backfill_historic=False):
         tas_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "cars_tas.csv")
         tas_files.append(tas_file)
 
+    sess = GlobalDB.db().session
     for tas_file in reversed(tas_files):
         update_missing = missing_records(sess) if backfill_historic else []
         if backfill_historic and not update_missing:
