@@ -42,7 +42,7 @@ if __name__ == '__main__':
                    synchronize_session=False)
         logger.info('Unpublished FABS aggregate records populated.\n')
 
-        logger.info('Populating unique_award_key for unpublished FPDS non-aggregated records...')
+        logger.info('Populating unique_award_key for unpublished FABS non-aggregated records...')
         sess.query(dafa).filter(dafa.record_type != '1').\
             update({dafa.unique_award_key: func.concat('NON_', func.coalesce(dafa.fain, '-none-'), '_',
                                                        func.coalesce(dafa.awarding_sub_tier_agency_c, '-none-'))},
@@ -57,7 +57,7 @@ if __name__ == '__main__':
                    synchronize_session=False)
         logger.info('Published FABS aggregate records populated.\n')
 
-        logger.info('Populating unique_award_key for published FPDS non-aggregated records...')
+        logger.info('Populating unique_award_key for published FABS non-aggregated records...')
         sess.query(pafa).filter(pafa.record_type != '1').\
             update({pafa.unique_award_key: func.concat('NON_', func.coalesce(pafa.fain, '-none-'), '_',
                                                        func.coalesce(pafa.awarding_sub_tier_agency_c, '-none-'))},
