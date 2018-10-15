@@ -33,8 +33,6 @@ from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactvalidator.filestreaming.csvReader import CsvReader
-from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
-from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 from dataactvalidator.validation_handlers.errorInterface import ErrorInterface
@@ -74,19 +72,6 @@ class ValidationManager:
             if not self.short_to_long_dict.get(col.file_id):
                 self.short_to_long_dict[col.file_id] = {}
             self.short_to_long_dict[col.file_id][col.name_short] = col.name
-
-    def get_writer(self, region_name, bucket_name, file_name, header):
-        """ Gets the write type based on if its a local install or not.
-
-        Args:
-            region_name - AWS region to write to, not used for local
-            bucket_name - AWS bucket to write to, not used for local
-            file_name - File to be written
-            header - Column headers for file to be written
-        """
-        if self.is_local:
-            return CsvLocalWriter(file_name, header)
-        return CsvS3Writer(region_name, bucket_name, file_name, header)
 
     def get_file_name(self, path):
         """ Return full path of error report based on provided name """
