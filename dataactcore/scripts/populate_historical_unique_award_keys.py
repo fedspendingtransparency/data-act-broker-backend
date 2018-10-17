@@ -46,6 +46,11 @@ def update_keys(model, model_type, filter_content, update_years, concat_list):
             update({model.unique_award_key: concat_list}, synchronize_session=False)
         sess.commit()
 
+    logger.info('Starting records after {}...'.format(years[-1]))
+    base_query.filter(func.cast_as_date(model.action_date) > '{}-12-31'.format(years[-1])). \
+        update({model.unique_award_key: concat_list}, synchronize_session=False)
+    sess.commit()
+
     logger.info('{} {} records populated.\n'.format(model_type, filter_content))
 
 if __name__ == '__main__':
