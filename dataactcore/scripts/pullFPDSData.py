@@ -39,7 +39,6 @@ from dataactcore.models.userModel import User  # noqa
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
-from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.5.0&q="
@@ -943,6 +942,18 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
     # calculate business categories
     obj['business_categories'] = get_business_categories(row=obj, data_type='fpds')
 
+    # calculate unique award key
+    if atom_type == 'award':
+        unique_award_string_list = []
+        key_list = ['piid', 'agency_id', 'parent_award_id', 'referenced_idv_agency_iden']
+    else:
+        unique_award_string_list = ['IDV']
+        key_list = ['piid', 'agency_id']
+    for item in key_list:
+        # Get the value in the object or, if the key doesn't exist or value is None, set it to "-none-"
+        unique_award_string_list.append(obj.get(item) or '-none-')
+    obj['unique_award_key'] = '_'.join(unique_award_string_list)
+
     # calculate unique key
     key_list = ['agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id',
                 'transaction_number']
@@ -1474,9 +1485,6 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
             if last_modified > existing_item.last_modified:
                 delete_list.append(existing_item.detached_award_procurement_id)
                 delete_dict[existing_item.detached_award_procurement_id] = existing_item.detached_award_proc_unique
-        # TODO remove this after the first run
-        # else:
-        #     delete_dict[unique_string] = unique_string
 
     # only need to delete values if there's something to delete
     if delete_list:
@@ -1489,11 +1497,12 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
     file_name = now.strftime('%m-%d-%Y') + "_delete_records_" + contract_type + "_" + str(seconds) + ".csv"
     headers = ["detached_award_procurement_id", "detached_award_proc_unique"]
     if CONFIG_BROKER["use_aws"]:
-        with CsvS3Writer(CONFIG_BROKER['aws_region'], CONFIG_BROKER['fpds_delete_bucket'], file_name,
-                         headers) as writer:
-            for key, value in delete_dict.items():
-                writer.write([key, value])
-            writer.finish_batch()
+        s3client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        # add headers
+        contents = bytes((",".join(headers) + "\n").encode())
+        for key, value in delete_dict.items():
+            contents += bytes('{},{}\n'.format(key, value).encode())
+        s3client.put_object(Bucket=CONFIG_BROKER['fpds_delete_bucket'], Key=file_name, Body=contents)
     else:
         with CsvLocalWriter(file_name, headers) as writer:
             for key, value in delete_dict.items():
@@ -1845,6 +1854,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
 
     # create the unique key
     data['detached_award_proc_unique'] = data.apply(lambda x: create_unique_key(x), axis=1)
+    data['unique_award_key'] = data.apply(lambda x: create_unique_award_key(x), axis=1)
 
     logger.info('Cleaning data and fixing np.nan to None')
     # clean the data
@@ -2101,6 +2111,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
             'typeofsetaside': 'type_set_aside',
             'ultimatecompletiondate': 'period_of_perf_potential_e',
             'undefinitized_action_desc': 'undefinitized_action_desc',
+            'unique_award_key': 'unique_award_key',
             'us_government_entity': 'us_government_entity',
             'useofepadesignatedproducts': 'epa_designated_product',
             'vendor_cd': 'legal_entity_congressional',
@@ -2260,6 +2271,16 @@ def create_unique_key(row):
         else:
             unique_string += "-none-"
     return unique_string
+
+
+def create_unique_award_key(row):
+    key_list = ['piid', 'agencyid', 'idvpiid', 'idvagencyid'] if row['pulled_from'] == 'award' else ['piid', 'agencyid']
+    unique_string_list = [] if row['pulled_from'] == 'award' else [row['pulled_from']]
+
+    for item in key_list:
+        unique_string_list.append(row[item] if row[item] and str(row[item]) != 'nan' else '-none-')
+
+    return '_'.join(unique_string_list)
 
 
 def main():

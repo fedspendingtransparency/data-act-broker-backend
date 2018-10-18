@@ -3,6 +3,7 @@ import datetime
 import pandas as pd
 import numpy as np
 import os
+import boto3
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -14,7 +15,6 @@ from dataactcore.models.userModel import User # noqa
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import trim_item
 from dataactvalidator.filestreaming.csvReader import CsvReader
-from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 logger = logging.getLogger(__name__)
@@ -110,11 +110,12 @@ def delete_records(sess, delete_list, delete_dict):
     file_name = now.strftime('%m-%d-%Y') + "_delete_records_IDV_" + str(seconds) + ".csv"
     headers = ["detached_award_procurement_id", "detached_award_proc_unique"]
     if CONFIG_BROKER["use_aws"]:
-        with CsvS3Writer(CONFIG_BROKER['aws_region'], CONFIG_BROKER['fpds_delete_bucket'], file_name,
-                         headers) as writer:
-            for key, value in delete_dict.items():
-                writer.write([key, value])
-            writer.finish_batch()
+        s3client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        # add headers
+        contents = bytes((",".join(headers) + "\n").encode())
+        for key, value in delete_dict.items():
+            contents += bytes('{},{}\n'.format(key, value).encode())
+        s3client.put_object(Bucket=CONFIG_BROKER['fpds_delete_bucket'], Key=file_name, Body=contents)
     else:
         with CsvLocalWriter(file_name, headers) as writer:
             for key, value in delete_dict.items():

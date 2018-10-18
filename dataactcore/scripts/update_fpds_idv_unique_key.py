@@ -1,6 +1,7 @@
 import logging
 import time
 import datetime
+import boto3
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -8,7 +9,6 @@ from dataactcore.logging import configure_logging
 from dataactcore.models.stagingModels import DetachedAwardProcurement
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 logger = logging.getLogger(__name__)
@@ -62,11 +62,13 @@ def write_idvs_to_file():
     headers = ["detached_award_procurement_id", "detached_award_proc_unique"]
     # Writing files
     if CONFIG_BROKER["use_aws"]:
-        with CsvS3Writer(CONFIG_BROKER['aws_region'], CONFIG_BROKER['fpds_delete_bucket'], file_name,
-                         headers) as writer:
-            for idv in all_idvs:
-                writer.write([idv.detached_award_procurement_id, idv.detached_award_proc_unique])
-            writer.finish_batch()
+        s3client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        # add headers
+        contents = bytes((",".join(headers) + "\n").encode())
+        for idv in all_idvs:
+            contents += bytes('{},{}\n'.format(idv.detached_award_procurement_id, idv.detached_award_proc_unique).
+                              encode())
+        s3client.put_object(Bucket=CONFIG_BROKER['fpds_delete_bucket'], Key=file_name, Body=contents)
     else:
         with CsvLocalWriter(file_name, headers) as writer:
             for idv in all_idvs:

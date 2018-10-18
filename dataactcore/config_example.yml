@@ -120,6 +120,9 @@ broker:
     cas_service_url: https://cas.service.url
     parent_group: sample
 
+    # Session timeout, in seconds
+    session_timeout: 1800
+
 services:
     debug: true
 
