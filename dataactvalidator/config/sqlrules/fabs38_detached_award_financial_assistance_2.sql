@@ -1,4 +1,5 @@
--- When provided, FundingOfficeCode must be a valid value from the Federal Hierarchy.
+-- When provided, FundingOfficeCode must be a valid value from the Federal Hierarchy, including being designated
+-- specifically as a Funding Office in the hierarchy.
 SELECT
     row_number,
     funding_office_code
@@ -9,4 +10,5 @@ WHERE submission_id = {0}
         SELECT 1
         FROM office
         WHERE UPPER(office.office_code) = UPPER(dafa.funding_office_code)
+            AND office.funding_office = TRUE
     );
