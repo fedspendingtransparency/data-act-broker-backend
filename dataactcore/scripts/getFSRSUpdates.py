@@ -3,6 +3,7 @@ import re
 import logging
 import os
 import csv
+import boto3
 
 from dataactcore.logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
@@ -10,25 +11,12 @@ from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
 
+BUCKET_NAME = 'da-data-extracts'
+FOLDER_NAME = 'fsrs_award_extracts'
 
 def main():
-    parser = argparse.ArgumentParser(description='Pull data from the FPDS Atom Feed.')
-    parser.add_argument('-d', '--date',
-                        help='Specify modified date in mm/dd/yyyy format. Defaults to 09/20/2017 if none is given.',
-                        nargs=1, type=str)
-    args = parser.parse_args()
-
-    mod_date = '09/20/2017'
-    # allow user to set start date
-    if args.date:
-        arg_date = args.date[0]
-        given_date = arg_date.split('/')
-        # error if it's in the wrong format somehow
-        if not re.match('^\d{2}$', given_date[0]) or not re.match('^\d{2}$', given_date[1])\
-                or not re.match('^\d{4}$', given_date[2]):
-            logger.error("Date " + arg_date + " not in proper mm/dd/yyyy format")
-            return
-        mod_date = arg_date
+    mod_date = str(get_last_modified_date(BUCKET_NAME, FOLDER_NAME))
+    logger.info("Latest modified date in s3: " + mod_date)
 
     logger.info("Starting SQL query")
     sess = GlobalDB.db().session
@@ -105,6 +93,19 @@ def main():
     # close file
     csv_file.close()
     logger.info("Script complete")
+
+# gets last modified date from the given bucket or folder
+def get_last_modified_date(bucket_name, folder_name=""):
+    s3client = boto3.client('s3', region_name='us-gov-west-1')
+    objects = []
+    paginator = s3client.get_paginator('list_objects_v2')
+    pageresponse = paginator.paginate(Bucket=bucket_name, Prefix=folder_name)
+    for response in pageresponse:
+        objects += (response['Contents'])
+    get_last_modified = lambda obj: int(obj['LastModified'].strftime('%s'))
+    last_modified_date = sorted(objects, key=get_last_modified, reverse=True)[0]['LastModified'].date()
+    return last_modified_date
+
 
 if __name__ == '__main__':
     configure_logging()
