@@ -23,8 +23,7 @@ from dataactvalidator.health_check import create_app
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
-API_KEY = CONFIG_BROKER['sam']['federal_hierarchy_api_key']
-API_URL = "https://api-alpha.sam.gov/prodlike/federalorganizations/v1/orgs?api_key={}".format(API_KEY)
+API_URL = CONFIG_BROKER['sam']['federal_hierarchy_api_url'].format(CONFIG_BROKER['sam']['federal_hierarchy_api_key'])
 REQUESTS_AT_ONCE = 10
 
 
@@ -38,7 +37,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
             pull_all: Boolean; pull all historical data, instead of just the latest.
             updated_date_from: Date to pull data from. Defaults to the date of the most recently updated Office.
     """
-    logger.info('Starting get feed: %s', API_URL.replace(API_KEY, "[API_KEY]"))
+    logger.info('Starting feed: %s', API_URL.replace(CONFIG_BROKER['sam']['federal_hierarchy_api_key'], "[API_KEY]"))
     office_levels = ["3", "4", "5", "6", "7"]
 
     if filename:
