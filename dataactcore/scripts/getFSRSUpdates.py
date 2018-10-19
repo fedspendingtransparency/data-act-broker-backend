@@ -79,7 +79,7 @@ def main():
     WHERE modified_at >= '""" + mod_date + "'")
     logger.info("Completed SQL query, starting file writing")
 
-    full_file_path = os.path.join(os.getcwd(), "fsrs_update.csv")
+    full_file_path = os.path.join(os.getcwd(), "FABS_for_FSRS_{}.csv".format(mod_date))
     with open(full_file_path, 'w', newline='') as csv_file:
         out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
         # write headers to file
