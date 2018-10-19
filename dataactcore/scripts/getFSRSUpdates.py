@@ -1,5 +1,3 @@
-import argparse
-import re
 import logging
 import os
 import csv
@@ -13,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 BUCKET_NAME = 'da-data-extracts'
 FOLDER_NAME = 'fsrs_award_extracts'
+
 
 def main():
     mod_date = str(get_last_modified_date(BUCKET_NAME, FOLDER_NAME))
@@ -94,6 +93,7 @@ def main():
     csv_file.close()
     logger.info("Script complete")
 
+
 # gets last modified date from the given bucket or folder
 def get_last_modified_date(bucket_name, folder_name=""):
     s3client = boto3.client('s3', region_name='us-gov-west-1')
@@ -102,7 +102,9 @@ def get_last_modified_date(bucket_name, folder_name=""):
     pageresponse = paginator.paginate(Bucket=bucket_name, Prefix=folder_name)
     for response in pageresponse:
         objects += (response['Contents'])
-    get_last_modified = lambda obj: int(obj['LastModified'].strftime('%s'))
+
+    def get_last_modified(obj):
+        return int(obj['LastModified'].strftime('%s'))
     last_modified_date = sorted(objects, key=get_last_modified, reverse=True)[0]['LastModified'].date()
     return last_modified_date
 
