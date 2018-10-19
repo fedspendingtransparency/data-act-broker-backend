@@ -8,7 +8,6 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.stagingModels import FlexField
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactvalidator.validation_handlers.validationError import ValidationError
@@ -45,16 +44,17 @@ class CsvReader(object):
 
     def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict,
                   is_local=False):
-        """Opens file and prepares to read each record, mapping entries to specified column names
-        Args:
-            region: AWS region where the bucket is located
-            bucket: Optional parameter; if set, file will be retrieved from S3
-            filename: The file path for the CSV file (local or in S3)
-            csv_schema: list of FileColumn objects for this file type
-            bucket_name: bucket to send errors to
-            error_filename: filename for error report
-            long_to_short_dict: mapping of long to short schema column names
-            is_local: Boolean of whether the app is being run locally or not
+        """ Opens file and prepares to read each record, mapping entries to specified column names
+
+            Args:
+                region: AWS region where the bucket is located
+                bucket: Optional parameter; if set, file will be retrieved from S3
+                filename: The file path for the CSV file (local or in S3)
+                csv_schema: list of FileColumn objects for this file type
+                bucket_name: bucket to send errors to
+                error_filename: filename for error report
+                long_to_short_dict: mapping of long to short schema column names
+                is_local: Boolean of whether the app is being run locally or not
         """
 
         if not self.filename:
@@ -74,9 +74,7 @@ class CsvReader(object):
 
         if self.is_finished:
             # Write header error for no header row
-            with self.get_writer(bucket_name, error_filename, ["Error Type"], self.is_local) as writer:
-                writer.write(["No header row"])
-                writer.finish_batch()
+            self.write_file_level_error(bucket_name, error_filename, ["Error Type"], ["No header row"], self.is_local)
             raise ResponseException("CSV file must have a header", StatusCode.CLIENT_ERROR,
                                     ValueError, ValidationError.singleRow)
 
@@ -97,15 +95,34 @@ class CsvReader(object):
         return long_headers
 
     @staticmethod
-    def get_writer(bucket_name, filename, header, is_local, region=None):
-        """
-        Gets the write type based on if its a local install or not.
+    def write_file_level_error(bucket_name, filename, header, error_content, is_local):
+        """ Writes file-level errors to an error file
+
+            Args:
+                bucket_name: Name of the S3 bucket to write to if not local
+                filename: Name (including path) of the file to write
+                header: The header line for the file
+                error_content
+                is_local: boolean indicating if the file is to be written locally or to S3
         """
         if is_local:
-            return CsvLocalWriter(filename, header)
-        if region is None:
-            region = CONFIG_BROKER["aws_region"]
-        return CsvS3Writer(region, bucket_name, filename, header)
+            with CsvLocalWriter(filename, header) as writer:
+                for line in error_content:
+                    if type(line) == str:
+                        writer.write([line])
+                    else:
+                        writer.write(line)
+                writer.finish_batch()
+        else:
+            s3client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+            # add headers
+            contents = bytes((",".join(header) + "\n").encode())
+            for line in error_content:
+                if type(line) == str:
+                    contents += bytes((line + "\n").encode())
+                else:
+                    contents += bytes((",".join(line) + "\n").encode())
+            s3client.put_object(Bucket=bucket_name, Key=filename, Body=contents)
 
     def get_next_record(self):
         """
@@ -153,15 +170,20 @@ class CsvReader(object):
         return line
 
     def set_csv_delimiter(self, header_line, bucket_name, error_filename):
-        """Try to determine the delimiter type, raising exceptions if we cannot figure it out."""
+        """ Try to determine the delimiter type, raising exceptions if we cannot figure it out.
+
+            Args:
+                header_line: the header line to read
+                bucket_name: the name of the S3 bucket to write the error to
+                error_filename: the name of the error (including path) file to write to
+        """
         pipe_count = header_line.count("|")
         comma_count = header_line.count(",")
 
         if pipe_count != 0 and comma_count != 0:
             # Write header error for mixed delimiter use
-            with self.get_writer(bucket_name, error_filename, ["Error Type"], self.is_local) as writer:
-                writer.write(["Cannot use both ',' and '|' as delimiters. Please choose one."])
-                writer.finish_batch()
+            error_text = ['"Cannot use both \',\' and \'|\' as delimiters. Please choose one."']
+            self.write_file_level_error(bucket_name, error_filename, ["Error Type"], error_text, self.is_local)
             raise ResponseException(
                 "Error in header row: CSV file must use only '|' or ',' as the delimiter", StatusCode.CLIENT_ERROR,
                 ValueError, ValidationError.headerError
@@ -170,25 +192,35 @@ class CsvReader(object):
         self.delimiter = "|" if header_line.count("|") != 0 else ","
 
     def handle_missing_duplicate_headers(self, expected_fields, bucket_name, error_filename):
-        """Check for missing or duplicated headers. If present, raise an exception with a meaningful message"""
+        """ Check for missing or duplicated headers. If present, raise an exception with a meaningful message.
+
+            Args:
+                expected_fields: a list of expected column headers
+                bucket_name: the name of the S3 bucket to write the error to
+                error_filename: the name of the error (including path) file to write to
+        """
         missing_headers = [cell for cell, count in expected_fields.items() if count == 0]
         duplicated_headers = [cell for cell, count in expected_fields.items() if count > 1]
 
         if missing_headers or duplicated_headers:
-            self.write_missing_duplicated_headers(
-                missing_headers, duplicated_headers, bucket_name,
-                error_filename
-            )
+            self.write_missing_duplicated_headers(missing_headers, duplicated_headers, bucket_name, error_filename)
             raise_missing_duplicated_exception(missing_headers, duplicated_headers)
 
     def write_missing_duplicated_headers(self, missing_headers, duplicated_headers, bucket_name, error_filename):
-        """Write header errors if any occurred and raise a header_error exception"""
-        with self.get_writer(bucket_name, error_filename, self.header_report_headers, self.is_local) as writer:
-            for header in duplicated_headers:
-                writer.write(["Duplicated header", header])
-            for header in missing_headers:
-                writer.write(["Missing header", header])
-            writer.finish_batch()
+        """ Write duplicate or missing header errors if any occurred and raise a header_error exception.
+
+            Args:
+                missing_headers: an array of the names of the missing headers
+                duplicated_headers: an array of the names of the duplicated headers
+                bucket_name: the name of the S3 bucket to write the error to
+                error_filename: the name of the error (including path) file to write to
+        """
+        error_text = []
+        for header in duplicated_headers:
+            error_text.append(["Duplicated header", header])
+        for header in missing_headers:
+            error_text.append(["Missing header", header])
+        self.write_file_level_error(bucket_name, error_filename, self.header_report_headers, error_text, self.is_local)
 
     def count_and_set_headers(self, csv_schema, header_row):
         """Track how many times we've seen a field we were expecting and set self.expected_headers and

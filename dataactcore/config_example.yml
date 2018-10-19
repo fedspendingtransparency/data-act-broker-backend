@@ -123,6 +123,9 @@ broker:
     max:
         federal_hierarchy_api_key: example
 
+    # Session timeout, in seconds
+    session_timeout: 1800
+
 services:
     debug: true
 

@@ -41,8 +41,25 @@ def get_zip_data(sess, zip_five, zip_four):
     return zip_info, cd_count
 
 
+def derive_unique_award_key(obj):
+    """ Deriving the unique_award_key as AGG_URI_AwardingSubTierAgencyCode for aggregate records and
+        NON_FAIN_AwardingSubTierAgencyCode for non-aggregated records.
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+    """
+    if str(obj['record_type']) == '1':
+        record_type = 'AGG'
+        identifier = obj['uri'] or '-none-'
+    else:
+        record_type = 'NON'
+        identifier = obj['fain'] or '-none-'
+
+    obj['unique_award_key'] = record_type + '_' + identifier + '_' + (obj['awarding_sub_tier_agency_c'] or '-none-')
+
+
 def derive_cfda(obj, cfda_dict, job_id, detached_award_financial_assistance_id):
-    """ Deriving cfda title from cfda number using cfda program table
+    """ Deriving cfda title from cfda number using cfda program table.
 
         Args:
             obj: a dictionary containing the details we need to derive from and to
@@ -526,6 +543,8 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
     obj['legal_entity_city_name'] = None
     obj['place_of_performance_zip5'] = None
     obj['place_of_perform_zip_last4'] = None
+
+    derive_unique_award_key(obj)
 
     # deriving total_funding_amount
     federal_action_obligation = obj['federal_action_obligation'] or 0
