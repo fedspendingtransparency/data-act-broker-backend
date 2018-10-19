@@ -23,8 +23,8 @@ from dataactvalidator.health_check import create_app
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
-API_KEY = CONFIG_BROKER['sam']['federal_hierarchy_api_key']
-API_URL = "https://api-alpha.sam.gov/prodlike/federalorganizations/v1/orgs?api_key={}".format(API_KEY)
+API_URL = "{}orgs?api_key={}".format(CONFIG_BROKER['sam']['federal_hierarchy_api_url'],
+                                     CONFIG_BROKER['sam']['federal_hierarchy_api_key'])
 REQUESTS_AT_ONCE = 10
 
 
