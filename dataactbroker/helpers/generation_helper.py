@@ -470,7 +470,8 @@ def copy_file_from_parent_to_child(child_job, parent_job, is_local):
         # Copy the parent file into the child's S3 location
         log_data['message'] = 'Copying the cached {} file from job {}'.format(file_type, parent_job.job_id)
         logger.info(log_data)
-        stream_file_to_s3(child_job.filename, open(parent_job.filename, 'rb'))
+        S3Handler.copy_file(CONFIG_BROKER['aws_bucket'], CONFIG_BROKER['aws_bucket'], parent_job.filename,
+                            child_job.filename)
 
 
 def update_validation_job_info(sess, job):
