@@ -16,8 +16,6 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 
-from dataactvalidator.filestreaming.csv_selection import stream_file_to_s3
-
 logger = logging.getLogger(__name__)
 
 STATUS_MAP = {"waiting": "waiting", "ready": "invalid", "running": "waiting", "finished": "finished",
