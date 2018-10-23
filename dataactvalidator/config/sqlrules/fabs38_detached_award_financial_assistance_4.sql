@@ -1,4 +1,5 @@
--- When provided, AwardingOfficeCode must be a valid value from the Federal Hierarchy.
+-- When provided, AwardingOfficeCode must be a valid value from the Federal Hierarchy, including being designated
+-- specifically as an Assistance/Grant Office in the hierarchy.
 SELECT
     row_number,
     awarding_office_code
@@ -9,4 +10,5 @@ WHERE submission_id = {0}
         SELECT 1
         FROM office
         WHERE UPPER(office.office_code) = UPPER(dafa.awarding_office_code)
+            AND office.grant_office = TRUE
     );
