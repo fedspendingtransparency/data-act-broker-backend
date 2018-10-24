@@ -38,7 +38,7 @@ from dataactcore.models.jobModels import Submission  # noqa
 from dataactcore.models.userModel import User  # noqa
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
+from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.5.0&q="

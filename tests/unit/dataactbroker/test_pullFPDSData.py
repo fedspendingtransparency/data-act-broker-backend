@@ -5,22 +5,22 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import SubTierAgency, CGAC, Zips
 from dataactcore.models.lookups import BUSINESS_CATEGORY_FIELDS
 
-from dataactcore.scripts import pullFPDSData
+from dataactcore.scripts import pull_fpds_data
 
 
 def test_list_data():
     """ Test that list_data returns a list of data whether passed a list or a dict """
-    assert isinstance(pullFPDSData.list_data([]), list)
-    assert isinstance(pullFPDSData.list_data([1, 23, 3]), list)
-    assert isinstance(pullFPDSData.list_data(["whatever", "will"]), list)
-    assert isinstance(pullFPDSData.list_data({1: 4}), list)
-    assert isinstance(pullFPDSData.list_data({'hello': 1}), list)
+    assert isinstance(pull_fpds_data.list_data([]), list)
+    assert isinstance(pull_fpds_data.list_data([1, 23, 3]), list)
+    assert isinstance(pull_fpds_data.list_data(["whatever", "will"]), list)
+    assert isinstance(pull_fpds_data.list_data({1: 4}), list)
+    assert isinstance(pull_fpds_data.list_data({'hello': 1}), list)
 
 
 def test_extract_text():
     """ Test that extract_text returns the text passed if it's a string or gets #text from it if it's a dict """
-    assert pullFPDSData.extract_text("test") == "test"
-    assert pullFPDSData.extract_text({'#text': "test", '@description': "different content"}) == "test"
+    assert pull_fpds_data.extract_text("test") == "test"
+    assert pull_fpds_data.extract_text({'#text': "test", '@description': "different content"}) == "test"
 
 
 def test_get_county_by_zip(database):
@@ -30,12 +30,12 @@ def test_get_county_by_zip(database):
     sess.add(zip_code)
     sess.commit()
 
-    assert pullFPDSData.get_county_by_zip(sess, 'abcde') is None
-    assert pullFPDSData.get_county_by_zip(sess, '123456789') == '000'
-    assert pullFPDSData.get_county_by_zip(sess, '12345') == '000'
-    assert pullFPDSData.get_county_by_zip(sess, '123459876') == '000'
-    assert pullFPDSData.get_county_by_zip(sess, '12345678') is None
-    assert pullFPDSData.get_county_by_zip(sess, '56789') is None
+    assert pull_fpds_data.get_county_by_zip(sess, 'abcde') is None
+    assert pull_fpds_data.get_county_by_zip(sess, '123456789') == '000'
+    assert pull_fpds_data.get_county_by_zip(sess, '12345') == '000'
+    assert pull_fpds_data.get_county_by_zip(sess, '123459876') == '000'
+    assert pull_fpds_data.get_county_by_zip(sess, '12345678') is None
+    assert pull_fpds_data.get_county_by_zip(sess, '56789') is None
 
 
 def test_calculate_remaining_fields(database):
@@ -78,7 +78,7 @@ def test_calculate_remaining_fields(database):
                     'legal_entity_state_descrip': 'GEORGIA'}
     tmp_obj_data.update(business_category_dict.copy())
     tmp_obj_data['emerging_small_business'] = 'Y'
-    tmp_obj = pullFPDSData.calculate_remaining_fields(tmp_obj_data,
+    tmp_obj = pull_fpds_data.calculate_remaining_fields(tmp_obj_data,
                                                       sess,
                                                       {sub_tier.sub_tier_agency_code: sub_tier},
                                                       county_by_name,
@@ -103,7 +103,7 @@ def test_calculate_remaining_fields(database):
                       'legal_entity_state_descrip': 'GEORGIA'}
     tmp_obj_2_data.update(business_category_dict.copy())
     tmp_obj_2_data['contracting_officers_deter'] = 'O'
-    tmp_obj_2 = pullFPDSData.calculate_remaining_fields(tmp_obj_2_data,
+    tmp_obj_2 = pull_fpds_data.calculate_remaining_fields(tmp_obj_2_data,
                                                         sess,
                                                         {sub_tier.sub_tier_agency_code: sub_tier},
                                                         county_by_name,
@@ -128,7 +128,7 @@ def test_calculate_remaining_fields(database):
                       'legal_entity_state_descrip': 'GEORGIA'}
     tmp_obj_3_data.update(business_category_dict.copy())
     tmp_obj_3_data['alaskan_native_owned_corpo'] = 'True'
-    tmp_obj_3 = pullFPDSData.calculate_remaining_fields(tmp_obj_3_data,
+    tmp_obj_3 = pull_fpds_data.calculate_remaining_fields(tmp_obj_3_data,
                                                         sess,
                                                         {sub_tier.sub_tier_agency_code: sub_tier},
                                                         county_by_name,
@@ -180,12 +180,12 @@ def test_process_data(database):
                                                                            'http://www.w3.org/2005/Atom': None,
                                                                            'https://www.fpds.gov/FPDS': None})
 
-    listed_data = pullFPDSData.list_data(resp_data['feed']['entry'])
+    listed_data = pull_fpds_data.list_data(resp_data['feed']['entry'])
 
-    tmp_obj_award = pullFPDSData.process_data(listed_data[0]['content']['award'], sess=sess, atom_type='award',
+    tmp_obj_award = pull_fpds_data.process_data(listed_data[0]['content']['award'], sess=sess, atom_type='award',
                                               sub_tier_list={}, county_by_name={}, county_by_code={},
                                               state_code_list={}, country_list={})
-    tmp_obj_idv = pullFPDSData.process_data(listed_data[1]['content']['IDV'], sess=sess, atom_type='IDV',
+    tmp_obj_idv = pull_fpds_data.process_data(listed_data[1]['content']['IDV'], sess=sess, atom_type='IDV',
                                             sub_tier_list={}, county_by_name={}, county_by_code={},
                                             state_code_list={}, country_list={})
 

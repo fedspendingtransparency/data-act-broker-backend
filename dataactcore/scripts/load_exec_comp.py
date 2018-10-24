@@ -13,7 +13,7 @@ from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import insert_dataframe
+from dataactvalidator.scripts.loader_utils import insert_dataframe
 from dataactcore.config import CONFIG_BROKER
 
 

@@ -5,12 +5,12 @@ from unittest.mock import Mock
 import pandas as pd
 
 from dataactcore.models.domainModels import TAS_COMPONENTS, TASLookup
-from dataactvalidator.scripts import loadTas
+from dataactvalidator.scripts import load_tas
 from tests.unit.dataactcore.factories.domain import TASFactory
 
 
 def write_then_read_tas(tmpdir, *rows):
-    """ Helper function to write the provided rows to a CSV, then read them in ia `loadTas.clean_tas` """
+    """ Helper function to write the provided rows to a CSV, then read them in ia `load_tas.clean_tas` """
     csv_file = tmpdir.join("cars_tas.csv")
     with open(str(csv_file), 'w') as f:
         writer = DictWriter(
@@ -25,7 +25,7 @@ def write_then_read_tas(tmpdir, *rows):
             data.update(row)
             writer.writerow(data)
 
-    return loadTas.clean_tas(str(csv_file))
+    return load_tas.clean_tas(str(csv_file))
 
 
 def test_clean_tas_multiple(tmpdir):
@@ -102,12 +102,12 @@ def test_update_tas_lookups(database, monkeypatch):
             [333] + ['new-entry-2'] * len(TAS_COMPONENTS)+[date(2015, 2, 2), None],
         ]
     )
-    monkeypatch.setattr(loadTas, 'clean_tas', Mock(return_value=incoming_tas_data))
+    monkeypatch.setattr(load_tas, 'clean_tas', Mock(return_value=incoming_tas_data))
 
     # Initial state
     assert sess.query(TASLookup).count() == 4
 
-    loadTas.update_tas_lookups(sess, 'file-name-ignored-due-to-mock')
+    load_tas.update_tas_lookups(sess, 'file-name-ignored-due-to-mock')
 
     # Post-"import" state
     results = sess.query(TASLookup).order_by(TASLookup.account_num, TASLookup.agency_identifier).all()
@@ -159,15 +159,16 @@ def test_only_fill_missing(database, monkeypatch):
         data=[
             [111] + ['populated-111'] * len(blank_tas_fields) + ['to-close-4'],
             [222] + ['populated-222'] * len(blank_tas_fields) + ['to-close-5'],
+
             [333] + ['populated-333'] * len(blank_tas_fields) + ['to-close-6'],
         ]
     )
-    monkeypatch.setattr(loadTas, 'clean_tas', Mock(return_value=incoming_tas_data))
+    monkeypatch.setattr(load_tas, 'clean_tas', Mock(return_value=incoming_tas_data))
 
     # Initial state
     assert sess.query(TASLookup).count() == 2
 
-    loadTas.update_tas_lookups(sess, 'file-name-ignored-due-to-mock', update_missing=[222])
+    load_tas.update_tas_lookups(sess, 'file-name-ignored-due-to-mock', update_missing=[222])
 
     # Post-"import" state
     results = sess.query(TASLookup).order_by(TASLookup.account_num).all()
