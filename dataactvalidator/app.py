@@ -47,9 +47,6 @@ def run_app():
         error_report_path = CONFIG_SERVICES['error_report_path']
         current_app.config.from_object(__name__)
 
-        # Create connection to job tracker database
-        sess = GlobalDB.db().session
-
         # Future: Override config w/ environment variable, if set
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
@@ -61,82 +58,33 @@ def run_app():
             # Set current_message to None before every loop to ensure it's never set to the previous message
             current_message = None
             try:
+                # Create connection to database
+                sess = GlobalDB.db().session
+
                 # Grabs one (or more) messages from the queue
                 messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
                 for message in messages:
                     logger.info("Message received: %s", message.body)
 
-                    # Retrieve the job_id from the message body
+                    # Retrieve the message body and attributes
                     current_message = message
-                    g.job_id = message.body
-                    mark_job_status(g.job_id, "ready")
+                    msg_attr = current_message.message_attributes
 
-                    # Get the job
-                    job = sess.query(Job).filter_by(job_id=g.job_id).one_or_none()
-                    if job is None:
-                        validation_error_type = ValidationError.jobError
-                        write_file_error(g.job_id, None, validation_error_type)
-                        raise ResponseException('Job ID {} not found in database'.format(g.job_id),
-                                                StatusCode.CLIENT_ERROR, None, validation_error_type)
+                    # Generating a file
+                    if msg_attr and msg_attr.get('validation_type') == 'generation':
+                        generate_file_from_id(sess, message.body)
 
-                    # We have two major functionalities in the Validator: validation and file generation
-                    if not job.file_type or job.file_type.letter_name in ['A', 'B', 'C', 'FABS'] or \
-                       job.job_type.name != 'file_upload':
-                        # Run validations
-                        validation_manager = ValidationManager(local, error_report_path)
-                        validation_manager.validate_job(job.job_id)
+                    # Running validations
                     else:
-                        # Retrieve the agency code data from the message attributes
-                        msg_attr = current_message.message_attributes
-                        agency_code = msg_attr['agency_code']['StringValue'] if msg_attr and \
-                            msg_attr.get('agency_code') else None
-                        agency_type = msg_attr['agency_type']['StringValue'] if msg_attr and \
-                            msg_attr.get('agency_type') else None
-
-                        file_generation_manager = FileGenerationManager(job, agency_code, agency_type, local)
-                        file_generation_manager.generate_from_job()
-                        sess.commit()
-                        sess.refresh(job)
+                        validate_job_from_id(sess, message.body)
 
                     # Delete from SQS once processed
                     message.delete()
 
-            except ResponseException as e:
-                # Handle exceptions explicitly raised during validation.
-                logger.error(traceback.format_exc())
-
-                job = get_current_job()
-                if job:
-                    if job.filename is not None:
-                        # Insert file-level error info to the database
-                        write_file_error(job.job_id, job.filename, e.errorType, e.extraInfo)
-                    if e.errorType != ValidationError.jobError:
-                        # Job passed prerequisites for validation but an error happened somewhere: mark job as 'invalid'
-                        mark_job_status(job.job_id, 'invalid')
-                        if current_message:
-                            if e.errorType in [ValidationError.rowCountError, ValidationError.headerError,
-                                               ValidationError.fileTypeError]:
-                                current_message.delete()
             except Exception as e:
-                # Handle uncaught exceptions in validation process.
+                # Log exceptions
                 logger.error(traceback.format_exc())
 
-                # csv-specific errors get a different job status and response code
-                if isinstance(e, ValueError) or isinstance(e, csv.Error) or isinstance(e, UnicodeDecodeError):
-                    job_status = 'invalid'
-                else:
-                    job_status = 'failed'
-                job = get_current_job()
-                if job:
-                    if job.filename is not None:
-                        error_type = ValidationError.unknownError
-                        if isinstance(e, UnicodeDecodeError):
-                            error_type = ValidationError.encodingError
-                            # TODO Is this really the only case where the message should be deleted?
-                            if current_message:
-                                current_message.delete()
-                        write_file_error(job.job_id, job.filename, error_type)
-                    mark_job_status(job.job_id, job_status)
             finally:
                 GlobalDB.close()
                 # Set visibility to 0 so that another attempt can be made to process in SQS immediately,
@@ -149,14 +97,111 @@ def run_app():
                         pass
 
 
-def get_current_job():
-    """Return the job currently stored in flask.g"""
-    # The job_id is added to flask.g at the beginning of the validate route. We expect it to be here now, since
-    # validate is currently the app's only functional route
-    job_id = g.get('job_id', None)
-    if job_id:
-        sess = GlobalDB.db().session
-        return sess.query(Job).filter(Job.job_id == job_id).one_or_none()
+def generate_file_from_id(sess, file_gen_id):
+    """ Retrieves a FileGeneration object based on its ID, and kicks off a file generation. Handles errors by ensuring
+        the FileGeneration (if exists) is no longer cached.
+
+    Args:
+        sess: Current database session
+        file_gen_id: ID of a FileGeneration object
+
+    Raises:
+        Any Exceptions raised by the FileGenerationManager
+    """
+    file_generation = None
+
+    try:
+        file_generation = sess.query(FileGeneration).filter_by(file_generation_id=file_gen_id).one_or_none()
+        if file_generation is None:
+            raise ResponseException('FileGeneration ID {} not found in database'.format(file_gen_id),
+                                    StatusCode.CLIENT_ERROR, None)
+
+        file_generation_manager = FileGenerationManager(file_generation, local)
+        file_generation_manager.generate_from_job()
+
+    except Exception as e:
+        if file_generation:
+            # Uncache the FileGeneration
+            file_generation.is_cached_file = False
+
+            # Mark all Jobs waiting on this FileGeneration as failed
+            sess.query(Job).filter_by(file_generation_id=file_gen_id).all()
+            for job in generation_jobs:
+                mark_job_status(job.job_id, 'failed')
+                sess.refresh(job)
+                job.update({'file_generation_id': None}, synchronize_session=False)
+
+            sess.commit()
+
+        raise e
+
+
+def validate_job_from_id(sess, job_id):
+    """ Retrieves a Job based on its ID, and kicks off a validation. Handles errors by ensuring the Job (if exists) is
+        no longer running.
+
+    Args:
+        sess: Current database session
+        job_id: ID of a Job
+
+    Raises:
+        Any Exceptions raised by the ValidationManager
+    """
+    job = None
+    try:
+        mark_job_status(g.job_id, 'ready')
+
+        # Get the job
+        job = sess.query(Job).filter_by(job_id=g.job_id).one_or_none()
+        if job is None:
+            validation_error_type = ValidationError.jobError
+            write_file_error(g.job_id, None, validation_error_type)
+            raise ResponseException('Job ID {} not found in database'.format(g.job_id),
+                                    StatusCode.CLIENT_ERROR, None, validation_error_type)
+
+        # Run validations
+        validation_manager = ValidationManager(local, error_report_path)
+        validation_manager.validate_job(job.job_id)
+
+    except ResponseException as e:
+        # Handle exceptions explicitly raised during validation.
+        if job:
+            if job.filename is not None:
+                # Insert file-level error info to the database
+                write_file_error(job.job_id, job.filename, e.errorType, e.extraInfo)
+
+            if e.errorType != ValidationError.jobError:
+                # Job passed prerequisites for validation but an error happened somewhere: mark job as 'invalid'
+                mark_job_status(job.job_id, 'invalid')
+                if current_message:
+                    if e.errorType in [ValidationError.rowCountError, ValidationError.headerError,
+                                       ValidationError.fileTypeError]:
+                        current_message.delete()
+        raise e
+
+    except Exception as e:
+        # Handle uncaught exceptions in validation process.
+        if job:
+            # csv-specific errors get a different job status and response code
+            if isinstance(e, ValueError) or isinstance(e, csv.Error) or isinstance(e, UnicodeDecodeError):
+                job_status = 'invalid'
+            else:
+                job_status = 'failed'
+
+            if job.filename is not None:
+                error_type = ValidationError.unknownError
+
+                # Delete UnicodeDecodeErrors because they're the only legitimate errors caught as exceptions
+                if isinstance(e, UnicodeDecodeError):
+                    error_type = ValidationError.encodingError
+                    if current_message:
+                        current_message.delete()
+
+                write_file_error(job.job_id, job.filename, error_type)
+
+            mark_job_status(job.job_id, job_status)
+
+        raise e
 
 
 if __name__ == "__main__":

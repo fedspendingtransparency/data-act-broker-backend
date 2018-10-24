@@ -35,9 +35,6 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
             end_date: String to parse as the end date of the generation
             agency_type: Type of Agency to generate files by: "awarding" or "funding"
             agency_code: Agency code for detached D file generations
-
-        Returns:
-            SQS send_message response
     """
     if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
         raise ResponseException("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
@@ -90,7 +87,8 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
 
             # Add job_id to the SQS job queue
             queue = sqs_queue()
-            msg_response = queue.send_message(MessageBody=str(file_generation.file_generation_id))
+            message_attr = {'validation_type': {'DataType': 'String', 'StringValue': 'generation'}}
+            queue.send_message(MessageBody=str(file_generation.file_generation_id), MessageAttributes=message_attr)
         except Exception as e:
             mark_job_status(job.job_id, 'failed')
             job.error_message = str(e)
