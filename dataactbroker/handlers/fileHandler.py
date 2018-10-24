@@ -29,7 +29,7 @@ from dataactcore.interfaces.function_bag import (
 
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
-                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
+                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileGeneration)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
@@ -680,14 +680,14 @@ class FileHandler:
                     logger.info(log_data)
                 row_count += 1
 
-            # update all cached D2 FileRequest objects that could have been affected by the publish
+            # update all cached D2 FileGeneration objects that could have been affected by the publish
             for agency_code in agency_codes_list:
-                sess.query(FileRequest).\
-                    filter(FileRequest.agency_code == agency_code,
-                           FileRequest.is_cached_file.is_(True),
-                           FileRequest.file_type == 'D2',
-                           sa.or_(FileRequest.start_date <= submission.reporting_end_date,
-                                  FileRequest.end_date >= submission.reporting_start_date)).\
+                sess.query(FileGeneration).\
+                    filter(FileGeneration.agency_code == agency_code,
+                           FileGeneration.is_cached_file.is_(True),
+                           FileGeneration.file_type == 'D2',
+                           sa.or_(FileGeneration.start_date <= submission.reporting_end_date,
+                                  FileGeneration.end_date >= submission.reporting_start_date)).\
                     update({"is_cached_file": False}, synchronize_session=False)
             sess.commit()
         except Exception as e:
@@ -835,13 +835,13 @@ class FileHandler:
                job.file_type_id in [FILE_TYPE_DICT["award"], FILE_TYPE_DICT["award_procurement"]]:
                 # file generation handled on backend, mark as ready
                 job.job_status_id = JOB_STATUS_DICT['ready']
-                file_request = sess.query(FileRequest).filter_by(job_id=job.job_id).one_or_none()
+                file_request = sess.query(FileGeneration).filter_by(job_id=job.job_id).one_or_none()
 
                 # uncache any related D file requests
                 if file_request:
                     file_request.is_cached_file = False
                     if file_request.parent_job_id:
-                        parent_file_request = sess.query(FileRequest).filter_by(job_id=file_request.parent_job_id).\
+                        parent_file_request = sess.query(FileGeneration).filter_by(job_id=file_request.parent_job_id).\
                             one_or_none()
                         if parent_file_request:
                             parent_file_request.is_cached_file = False

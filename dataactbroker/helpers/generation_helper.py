@@ -11,7 +11,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models import lookups
-from dataactcore.models.jobModels import FileRequest, FPDSUpdate, Job, Submission
+from dataactcore.models.jobModels import FileGeneration, FPDSUpdate, Job, Submission
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
@@ -61,7 +61,8 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
 
     file_request = retrieve_cached_file_request(job, agency_type, agency_code, g.is_local)
     if file_request:
-        log_data['message'] = 'No new file generated, used FileRequest with ID {}'.format(file_request.file_request_id)
+        log_data['message'] = 'No new file generated, used FileGeneration with ID {}'.format(
+            file_request.file_request_id)
         logger.info(log_data)
     else:
         # Set SQS message attributes
@@ -144,7 +145,7 @@ def check_file_generation(job_id):
 
 
 def retrieve_cached_file_request(job, agency_type, agency_code, is_local):
-    """ Retrieves a cached FileRequest for the D file generation, if there is one.
+    """ Retrieves a cached FileGeneration for the D file generation, if there is one.
 
         Args:
             job: the upload job for the generation file
@@ -153,10 +154,10 @@ def retrieve_cached_file_request(job, agency_type, agency_code, is_local):
             is_local: A boolean flag indicating whether the application is being run locally or not
 
         Returns:
-            FileRequest object matching the criteria, or None
+            FileGeneration object matching the criteria, or None
     """
     sess = GlobalDB.db().session
-    log_data = {'message': 'Checking for a cached FileRequest to pull file from', 'message_type': 'BrokerInfo',
+    log_data = {'message': 'Checking for a cached FileGeneration to pull file from', 'message_type': 'BrokerInfo',
                 'submission_id': job.submission_id, 'job_id': job.job_id, 'file_type': job.file_type.letter_name}
     logger.info(log_data)
 
@@ -165,9 +166,9 @@ def retrieve_cached_file_request(job, agency_type, agency_code, is_local):
     last_update = sess.query(FPDSUpdate).one_or_none()
     fpds_date = last_update.update_date if last_update else current_date
 
-    # check if FileRequest already exists with this job_id, if not, create one
+    # check if FileGeneration already exists with this job_id, if not, create one
     file_request = None
-    file_request_list = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id).all()
+    file_request_list = sess.query(FileGeneration).filter(FileGeneration.job_id == job.job_id).all()
 
     for fr in file_request_list:
         if (fr.file_type == 'D1' and fr.request_date < fpds_date) or fr.agency_type != agency_type or \
@@ -189,39 +190,39 @@ def retrieve_cached_file_request(job, agency_type, agency_code, is_local):
 
         mark_job_status(job.job_id, 'finished')
     else:
-        # search for potential parent FileRequests
+        # search for potential parent FileGenerations
         file_request = None
         parent_file_request = None
-        parent_file_requests = sess.query(FileRequest).\
-            filter(FileRequest.file_type == job.file_type.letter_name, FileRequest.start_date == job.start_date,
-                   FileRequest.end_date == job.end_date, FileRequest.agency_code == agency_code,
-                   FileRequest.agency_type == agency_type, FileRequest.is_cached_file.is_(True)).all()
+        parent_file_requests = sess.query(FileGeneration).\
+            filter(FileGeneration.file_type == job.file_type.letter_name, FileGeneration.start_date == job.start_date,
+                   FileGeneration.end_date == job.end_date, FileGeneration.agency_code == agency_code,
+                   FileGeneration.agency_type == agency_type, FileGeneration.is_cached_file.is_(True)).all()
 
         # there will, very rarely, be more than one value in parent_file_requests
         for parent_request in parent_file_requests:
             valid_cached_job_statuses = [lookups.JOB_STATUS_DICT["running"], lookups.JOB_STATUS_DICT["finished"]]
             parent_job = sess.query(Job).filter_by(job_id=parent_request.job_id).one_or_none()
 
-            # check that D1 FileRequests are newer than the last FPDS pull
+            # check that D1 FileGenerations are newer than the last FPDS pull
             invalid_d1 = parent_request.file_type == 'D1' and parent_request.request_date < fpds_date
 
-            # check FileRequest hasn't expired and Job status is valid
+            # check FileGeneration hasn't expired and Job status is valid
             invalid_job = not parent_job or parent_job.job_status_id not in valid_cached_job_statuses
 
             # check that this parent_request is newer than any previous valid requests
             is_older_request = parent_file_request and parent_request.updated_at <= parent_file_request.updated_at
 
-            # if this parent_request is not a valid cached FileRequest
+            # if this parent_request is not a valid cached FileGeneration
             if invalid_d1 or invalid_job or is_older_request:
-                # uncache FileRequest
+                # uncache FileGeneration
                 parent_request.is_cached_file = False
                 continue
 
-            # uncache outdated parent FileRequests
+            # uncache outdated parent FileGenerations
             if parent_file_request:
                 parent_file_request.is_cached_file = False
 
-            # mark FileRequest with parent job_id
+            # mark FileGeneration with parent job_id
             parent_file_request = parent_request
 
         sess.commit()
@@ -232,10 +233,10 @@ def retrieve_cached_file_request(job, agency_type, agency_code, is_local):
                                                                                             parent_file_request.job_id)
             logger.info(log_data)
 
-            file_request = FileRequest(request_date=current_date, job_id=job.job_id, start_date=job.start_date,
-                                       end_date=job.end_date, agency_code=agency_code, agency_type=agency_type,
-                                       is_cached_file=False, file_type=job.file_type.letter_name,
-                                       parent_job_id=parent_file_request.job_id)
+            file_request = FileGeneration(request_date=current_date, job_id=job.job_id, start_date=job.start_date,
+                                          end_date=job.end_date, agency_code=agency_code, agency_type=agency_type,
+                                          is_cached_file=False, file_type=job.file_type.letter_name,
+                                          parent_job_id=parent_file_request.job_id)
             sess.add(file_request)
             sess.commit()
 
@@ -399,11 +400,11 @@ def check_generation_prereqs(submission_id, file_type):
 
 
 def copy_parent_file_request_data(child_job, parent_job, is_local=None):
-    """ Parent FileRequest job data to the child FileRequest job data.
+    """ Parent FileGeneration job data to the child FileGeneration job data.
 
         Args:
-            child_job: Job object for the child FileRequest
-            parent_job: Job object for the parent FileRequest
+            child_job: Job object for the child FileGeneration
+            parent_job: Job object for the parent FileGeneration
             is_local: A boolean flag indicating whether the application is being run locally or not
     """
     sess = GlobalDB.db().session
@@ -443,8 +444,8 @@ def copy_file_from_parent_to_child(child_job, parent_job, is_local):
     """ Copy the file from the parent job's bucket to the child job's bucket.
 
         Args:
-            child_job: Job object for the child FileRequest
-            parent_job: Job object for the parent FileRequest
+            child_job: Job object for the child FileGeneration
+            parent_job: Job object for the parent FileGeneration
             is_local: A boolean flag indicating whether the application is being run locally or not
 
     """

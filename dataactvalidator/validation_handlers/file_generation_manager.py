@@ -10,7 +10,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.domainModels import ExecutiveCompensation
-from dataactcore.models.jobModels import FileRequest, Submission
+from dataactcore.models.jobModels import FileGeneration, Submission
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
 from dataactcore.utils.responseException import ResponseException
@@ -71,7 +71,7 @@ class FileGenerationManager:
                 'An agency_code must be provided to generate a file'.format(self.job.job_id, job_type),
                 StatusCode.CLIENT_ERROR, None, ValidationError.jobError)
 
-        # Retrieve any FileRequest that may have started since the Broker sent the request to SQS
+        # Retrieve any FileGeneration that may have started since the Broker sent the request to SQS
         skip_generation = None
         if self.job.file_type.letter_name in ['D1', 'D2']:
             skip_generation = retrieve_cached_file_request(self.job, self.agency_type, self.agency_code, self.is_local)
@@ -116,7 +116,7 @@ class FileGenerationManager:
             log_data['submission_id'] = self.job.submission_id
         logger.info(log_data)
 
-        # Get or create a FileRequest for this generation
+        # Get or create a FileGeneration for this generation
         current_date = datetime.now().date()
         file_request_params = {
             "job_id": self.job.job_id, "is_cached_file": True, "start_date": self.job.start_date,
@@ -124,14 +124,14 @@ class FileGenerationManager:
             "agency_type": self.agency_type
         }
 
-        file_request = self.sess.query(FileRequest).filter_by(**file_request_params).one_or_none()
+        file_request = self.sess.query(FileGeneration).filter_by(**file_request_params).one_or_none()
         if not file_request:
             file_request_params["request_date"] = current_date
-            file_request = FileRequest(**file_request_params)
+            file_request = FileGeneration(**file_request_params)
             self.sess.add(file_request)
             self.sess.commit()
 
-        # Mark this Job as not from-cache, and mark the FileRequest as the cached version (requested today)
+        # Mark this Job as not from-cache, and mark the FileGeneration as the cached version (requested today)
         self.job.from_cached = False
         file_request.is_cached_file = True
         file_request.request_date = current_date

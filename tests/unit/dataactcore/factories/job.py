@@ -147,6 +147,21 @@ class FileRequestFactory(factory.Factory):
     is_cached_file = fuzzy.FuzzyChoice((False, True))
 
 
+class FileGenerationFactory(factory.Factory):
+    class Meta:
+        model = jobModels.FileGeneration
+
+    file_generation_id = fuzzy.FuzzyInteger(9999)
+    request_date = fuzzy.FuzzyDate(date(2010, 1, 1))
+    start_date = fuzzy.FuzzyDate(date(2010, 1, 1))
+    end_date = fuzzy.FuzzyDate(date(2010, 1, 1))
+    agency_code = fuzzy.FuzzyText()
+    agency_type = fuzzy.FuzzyChoice({'awarding', 'funding'})
+    file_type = fuzzy.FuzzyChoice({'D1', 'D2'})
+    file_path = fuzzy.FuzzyText()
+    is_cached_file = fuzzy.FuzzyChoice((False, True))
+
+
 class RevalidationThresholdFactory(factory.Factory):
     class Meta:
         model = jobModels.RevalidationThreshold
