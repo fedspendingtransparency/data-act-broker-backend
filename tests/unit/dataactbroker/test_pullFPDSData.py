@@ -79,13 +79,13 @@ def test_calculate_remaining_fields(database):
     tmp_obj_data.update(business_category_dict.copy())
     tmp_obj_data['emerging_small_business'] = 'Y'
     tmp_obj = pull_fpds_data.calculate_remaining_fields(tmp_obj_data,
-                                                      sess,
-                                                      {sub_tier.sub_tier_agency_code: sub_tier},
-                                                      county_by_name,
-                                                      county_by_code,
-                                                      state_codes,
-                                                      country_list,
-                                                      "award")
+                                                        sess,
+                                                        {sub_tier.sub_tier_agency_code: sub_tier},
+                                                        county_by_name,
+                                                        county_by_code,
+                                                        state_codes,
+                                                        country_list,
+                                                        "award")
 
     tmp_obj_2_data = {'awarding_sub_tier_agency_c': None,
                       'funding_sub_tier_agency_co': "0001",
@@ -104,13 +104,13 @@ def test_calculate_remaining_fields(database):
     tmp_obj_2_data.update(business_category_dict.copy())
     tmp_obj_2_data['contracting_officers_deter'] = 'O'
     tmp_obj_2 = pull_fpds_data.calculate_remaining_fields(tmp_obj_2_data,
-                                                        sess,
-                                                        {sub_tier.sub_tier_agency_code: sub_tier},
-                                                        county_by_name,
-                                                        county_by_code,
-                                                        state_codes,
-                                                        country_list,
-                                                        "award")
+                                                          sess,
+                                                          {sub_tier.sub_tier_agency_code: sub_tier},
+                                                          county_by_name,
+                                                          county_by_code,
+                                                          state_codes,
+                                                          country_list,
+                                                          "award")
 
     tmp_obj_3_data = {'awarding_sub_tier_agency_c': None,
                       'funding_sub_tier_agency_co': None,
@@ -129,13 +129,13 @@ def test_calculate_remaining_fields(database):
     tmp_obj_3_data.update(business_category_dict.copy())
     tmp_obj_3_data['alaskan_native_owned_corpo'] = 'True'
     tmp_obj_3 = pull_fpds_data.calculate_remaining_fields(tmp_obj_3_data,
-                                                        sess,
-                                                        {sub_tier.sub_tier_agency_code: sub_tier},
-                                                        county_by_name,
-                                                        county_by_code,
-                                                        state_codes,
-                                                        country_list,
-                                                        "award")
+                                                          sess,
+                                                          {sub_tier.sub_tier_agency_code: sub_tier},
+                                                          county_by_name,
+                                                          county_by_code,
+                                                          state_codes,
+                                                          country_list,
+                                                          "award")
 
     assert tmp_obj['awarding_agency_code'] == '1700'
     assert tmp_obj['awarding_agency_name'] == 'test name'
@@ -183,11 +183,11 @@ def test_process_data(database):
     listed_data = pull_fpds_data.list_data(resp_data['feed']['entry'])
 
     tmp_obj_award = pull_fpds_data.process_data(listed_data[0]['content']['award'], sess=sess, atom_type='award',
+                                                sub_tier_list={}, county_by_name={}, county_by_code={},
+                                                state_code_list={}, country_list={})
+    tmp_obj_idv = pull_fpds_data.process_data(listed_data[1]['content']['IDV'], sess=sess, atom_type='IDV',
                                               sub_tier_list={}, county_by_name={}, county_by_code={},
                                               state_code_list={}, country_list={})
-    tmp_obj_idv = pull_fpds_data.process_data(listed_data[1]['content']['IDV'], sess=sess, atom_type='IDV',
-                                            sub_tier_list={}, county_by_name={}, county_by_code={},
-                                            state_code_list={}, country_list={})
 
     assert tmp_obj_award['piid'] == '0001'
     assert tmp_obj_award['major_program'] is None
