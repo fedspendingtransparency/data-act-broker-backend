@@ -271,24 +271,26 @@ def derive_office_data(obj, office_dict, sess):
             # Get the minimum action date for this uri/AwardingSubTierCode combo
             min_action_date = sess.query(func.min(model.action_date).label("min_date")). \
                 filter(model.uri == obj['uri'], model.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
-                       model.is_active.is_(True)).one()
+                       model.is_active.is_(True), model.record_type == 1).one()
             # If we have a minimum action date, get the office codes for the first entry that matches it
             if min_action_date.min_date:
                 first_transaction = sess.query(model.awarding_office_code, model.funding_office_code).\
                     filter(model.uri == obj['uri'], model.is_active.is_(True),
                            model.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
-                           func.cast_as_date(model.action_date) == min_action_date.min_date).first()
+                           func.cast_as_date(model.action_date) == min_action_date.min_date,
+                           model.record_type == 1).first()
         else:
             # Get the minimum action date for this fain/AwardingSubTierCode combo
             min_action_date = sess.query(func.min(func.cast(model.action_date, DATE)).label("min_date")).\
                 filter(model.fain == obj['fain'], model.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
-                       model.is_active.is_(True)).one()
+                       model.is_active.is_(True), model.record_type != 1).one()
             # If we have a minimum action date, get the office codes for the first entry that matches it
             if min_action_date.min_date:
                 first_transaction = sess.query(model.awarding_office_code, model.funding_office_code).\
                     filter(model.fain == obj['fain'], model.is_active.is_(True),
                            model.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
-                           func.cast_as_date(model.action_date) == min_action_date.min_date).first()
+                           func.cast_as_date(model.action_date) == min_action_date.min_date,
+                           model.record_type != 1).first()
 
         # If we managed to find a transaction, copy the office codes into it
         if first_transaction:
