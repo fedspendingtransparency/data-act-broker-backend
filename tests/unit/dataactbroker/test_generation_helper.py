@@ -1,7 +1,7 @@
 import pytest
 
 from dataactbroker.helpers.generation_helper import (check_file_generation, check_generation_prereqs,
-                                                     copy_parent_file_request_data)
+                                                     copy_cached_file_generation_data)
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
@@ -147,7 +147,7 @@ def test_check_submission_d_file_generation(database):
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_copy_parent_file_request_data(database):
+def test_copy_cached_file_generation_data(database):
     sess = database.session
 
     job_one = JobFactory(job_status_id=JOB_STATUS_DICT['finished'], job_type_id=JOB_TYPE_DICT['file_upload'],
@@ -157,7 +157,7 @@ def test_copy_parent_file_request_data(database):
     sess.add_all([job_one, job_two])
     sess.commit()
 
-    copy_parent_file_request_data(job_two, job_one, True)
+    copy_cached_file_generation_data(job_two, job_one, True)
     sess.refresh(job_one)
     sess.refresh(job_two)
 

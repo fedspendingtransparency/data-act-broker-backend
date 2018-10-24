@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 
 from dataactbroker.helpers.generation_helper import (
-    retrieve_cached_file_request, update_validation_job_info, d_file_query)
+    retrieve_cached_file_generation, update_validation_job_info, d_file_query)
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
@@ -74,7 +74,7 @@ class FileGenerationManager:
         # Retrieve any FileGeneration that may have started since the Broker sent the request to SQS
         skip_generation = None
         if self.job.file_type.letter_name in ['D1', 'D2']:
-            skip_generation = retrieve_cached_file_request(self.job, self.agency_type, self.agency_code, self.is_local)
+            skip_generation = retrieve_cached_file_generation(self.job, self.agency_type, self.agency_code)
 
         if not skip_generation:
             # Generate timestamped file names
