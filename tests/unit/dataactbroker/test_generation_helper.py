@@ -1,13 +1,13 @@
 import pytest
 
 from dataactbroker.helpers.generation_helper import (check_file_generation, check_generation_prereqs,
-                                                     copy_cached_file_generation_data)
+                                                     copy_file_generation_to_job)
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.utils.responseException import ResponseException
 
-from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
+from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory, FileGenerationFactory
 
 
 @pytest.mark.usefixtures("job_constants")
@@ -147,27 +147,26 @@ def test_check_submission_d_file_generation(database):
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_copy_cached_file_generation_data(database):
+def test_copy_file_generation_to_job(database):
     sess = database.session
+    file_path = '{}{}'.format(CONFIG_BROKER['broker_files'] if CONFIG_BROKER['local'] else 'None/', 'new_filename.csv')
 
-    job_one = JobFactory(job_status_id=JOB_STATUS_DICT['finished'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                         file_type_id=FILE_TYPE_DICT['award'])
-    job_two = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                         file_type_id=FILE_TYPE_DICT['award'], filename='None/new_filename.csv')
-    sess.add_all([job_one, job_two])
+    job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                     file_type_id=FILE_TYPE_DICT['award'], submission_id=None)
+    file_gen = FileGenerationFactory(file_type='D1', file_path=file_path)
+    sess.add_all([job, file_gen])
     sess.commit()
 
-    copy_cached_file_generation_data(job_two, job_one, True)
-    sess.refresh(job_one)
-    sess.refresh(job_two)
+    copy_file_generation_to_job(job, file_gen, True)
+    sess.refresh(job)
+    sess.refresh(file_gen)
 
-    assert job_two.job_status_id == job_one.job_status_id
-    filepath = CONFIG_BROKER['broker_files'] if CONFIG_BROKER['local'] else "{}/".format(str(job_two.submission_id))
-    assert job_two.filename == '{}{}'.format(filepath, job_one.original_filename)
-    assert job_two.original_filename == job_one.original_filename
-    assert job_two.number_of_errors == job_one.number_of_errors
-    assert job_two.number_of_warnings == job_one.number_of_warnings
-    assert job_two.from_cached is True
+    assert job.job_status.name == 'finished'
+    assert job.filename == file_path
+    assert job.original_filename == file_path.split('/')[-1]
+    assert job.number_of_errors == 0
+    assert job.number_of_warnings == 0
+    assert job.file_generation_id == file_gen.file_generation_id
 
 
 @pytest.mark.usefixtures("job_constants")

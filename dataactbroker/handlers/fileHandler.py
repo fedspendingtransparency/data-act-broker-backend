@@ -835,16 +835,11 @@ class FileHandler:
                job.file_type_id in [FILE_TYPE_DICT["award"], FILE_TYPE_DICT["award_procurement"]]:
                 # file generation handled on backend, mark as ready
                 job.job_status_id = JOB_STATUS_DICT['ready']
-                file_request = sess.query(FileGeneration).filter_by(job_id=job.job_id).one_or_none()
 
-                # uncache any related D file requests
-                if file_request:
-                    file_request.is_cached_file = False
-                    if file_request.parent_job_id:
-                        parent_file_request = sess.query(FileGeneration).filter_by(job_id=file_request.parent_job_id).\
-                            one_or_none()
-                        if parent_file_request:
-                            parent_file_request.is_cached_file = False
+                # forcably uncache any related D file requests
+                file_gen = sess.query(FileGeneration).filter_by(file_generation_id=job.file_generation_id).one_or_none()
+                if file_gen:
+                    file_gen.is_cached_file = False
             else:
                 # these are dependent on file D2 validation
                 job.job_status_id = JOB_STATUS_DICT['waiting']

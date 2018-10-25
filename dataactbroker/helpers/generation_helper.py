@@ -73,7 +73,7 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
         # Create new FileGeneration
         file_generation = FileGeneration(
             request_date=datetime.now().date(), start_date=job.start_date, end_date=job.end_date,
-            file_type=job.file_type, agency_code=agency_code, agency_type=agency_type, is_cached_file=True)
+            file_type=job.file_type.letter_name, agency_code=agency_code, agency_type=agency_type, is_cached_file=True)
         sess.add(file_generation)
         sess.commit()
 
@@ -188,7 +188,7 @@ def retrieve_cached_file_generation(job, agency_type, agency_code):
     # check if a cached FileGeneration already exists using these criteria
     file_generation = None
     file_generation_list = sess.query(FileGeneration).filter(
-        FileGeneration.start_date == job.start_date, FileGeneration.end == job.end,
+        FileGeneration.start_date == job.start_date, FileGeneration.end_date == job.end_date,
         FileGeneration.agency_code == agency_code,  FileGeneration.agency_type == agency_type,
         FileGeneration.is_cached_file.is_(True)).all()
 
@@ -378,13 +378,15 @@ def copy_file_generation_to_job(job, file_generation, is_local):
 
     # Generate file path for child Job's filename
     filepath = CONFIG_BROKER['broker_files'] if is_local else "{}/".format(str(job.submission_id))
-    original_filename = file_generation.file_path.split('/')[-1:]
+    original_filename = file_generation.file_path.split('/')[-1]
     filename = '{}{}'.format(filepath, original_filename)
 
     # Copy parent job's data
     job.file_generation_id = file_generation.file_generation_id
     job.filename = filename
     job.original_filename = original_filename
+    job.number_of_errors = 0
+    job.number_of_warnings = 0
 
     # Change the validation job's file data when within a submission
     if job.submission_id is not None:

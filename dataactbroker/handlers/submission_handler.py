@@ -11,8 +11,8 @@ from dataactcore.interfaces.function_bag import (sum_number_of_errors_for_job_li
 from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT,
                                         FILE_TYPE_DICT)
 from dataactcore.models.domainModels import CGAC, FREC
-from dataactcore.models.jobModels import (FileGeneration, Job, Submission, SubmissionSubTierAffiliation,
-                                          SubmissionWindow, CertifyHistory, RevalidationThreshold)
+from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
+                                          CertifyHistory, RevalidationThreshold)
 from dataactcore.models.stagingModels import AwardFinancial
 from dataactcore.models.errorModels import File
 
@@ -333,10 +333,10 @@ def delete_all_submission_data(submission):
                                   StatusCode.CLIENT_ERROR)
 
     sess = GlobalDB.db().session
-    all_jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id)
 
     # check if the submission has any jobs that are currently running, if so, do not allow deletion
-    running_jobs = all_jobs.filter(Job.job_status_id == JOB_STATUS_DICT['running']).all()
+    running_jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                          Job.job_status_id == JOB_STATUS_DICT['running']).all()
     if running_jobs:
         return JsonResponse.error(ValueError("Submissions with running jobs cannot be deleted"),
                                   StatusCode.CLIENT_ERROR)
@@ -346,14 +346,6 @@ def delete_all_submission_data(submission):
         "message_type": "BrokerInfo",
         "submission_id": submission.submission_id
     })
-
-    for job in all_jobs.all():
-        # check if the submission has any cached D files, if so, disconnect that job from the submission
-        cached_file = sess.query(FileGeneration).filter(FileGeneration.job_id == job.job_id,
-                                                        FileGeneration.is_cached_file.is_(True)).all()
-        if cached_file:
-            job.submission_id = None
-            sess.commit()
 
     sess.query(SubmissionSubTierAffiliation).\
         filter(SubmissionSubTierAffiliation.submission_id == submission.submission_id).\

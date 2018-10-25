@@ -6,6 +6,7 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.models.jobModels import Job
+from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_NAME
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
 
@@ -41,7 +42,7 @@ class FileGenerationManager:
 
     def generate_file(self):
         """ Generates a file based on the FileRequest object and updates any Jobs referencing it """
-        raw_filename = CONFIG_BROKER["".join([str(self.file_type), "_file_name"])]
+        raw_filename = CONFIG_BROKER["".join([FILE_TYPE_DICT_LETTER_NAME[self.file_type], "_file_name"])]
         file_name = S3Handler.get_timestamped_filename(raw_filename)
         if self.is_local:
             file_path = "".join([CONFIG_BROKER['broker_files'], file_name])
@@ -81,7 +82,7 @@ class FileGenerationManager:
         }
         logger.info(log_data)
 
-        original_filename = file_path.split('/')[:-1]
+        original_filename = file_path.split('/')[-1]
         local_file = "".join([CONFIG_BROKER['d_file_storage_path'], original_filename])
 
         # Prepare file data
@@ -98,6 +99,9 @@ class FileGenerationManager:
 
         log_data['message'] = 'Finished writing to file: {}'.format(original_filename)
         logger.info(log_data)
+
+        self.file_generation.file_path = file_path
+        self.sess.commit()
 
         for job in self.sess.query(Job).filter_by(file_generation_id=self.file_generation.file_generation_id).all():
             copy_file_generation_to_job(job, self.file_generation, self.is_local)
