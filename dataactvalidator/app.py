@@ -10,7 +10,8 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status, write_file_error
 from dataactcore.logging import configure_logging
-from dataactcore.models.jobModels import Job
+from dataactcore.models.jobModels import Job, FileGeneration
+from dataactcore.models.lookups import JOB_STATUS_DICT
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
@@ -44,7 +45,6 @@ def run_app():
         current_app.debug = CONFIG_SERVICES['debug']
         local = CONFIG_BROKER['local']
         g.is_local = local
-        error_report_path = CONFIG_SERVICES['error_report_path']
         current_app.config.from_object(__name__)
 
         # Future: Override config w/ environment variable, if set
@@ -76,7 +76,7 @@ def run_app():
 
                     # Running validations
                     else:
-                        validator_process_job(sess, message.body, local)
+                        validator_process_job(sess, message.body, local, current_message)
 
                     # Delete from SQS once processed
                     message.delete()
@@ -119,6 +119,7 @@ def validator_process_file_generation(sess, file_gen_id, is_local):
 
         file_generation_manager = FileGenerationManager(sess, is_local, file_generation=file_generation)
         file_generation_manager.generate_file()
+        sess.commit()
 
     except Exception as e:
         if file_generation:
@@ -126,18 +127,19 @@ def validator_process_file_generation(sess, file_gen_id, is_local):
             file_generation.is_cached_file = False
 
             # Mark all Jobs waiting on this FileGeneration as failed
-            sess.query(Job).filter_by(file_generation_id=file_gen_id).all()
+            generation_jobs = sess.query(Job).filter_by(file_generation_id=file_gen_id).all()
             for job in generation_jobs:
-                mark_job_status(job.job_id, 'failed')
-                sess.refresh(job)
-                job.update({'file_generation_id': None}, synchronize_session=False)
+                if job.job_status in [JOB_STATUS_DICT['waiting'], JOB_STATUS_DICT['ready'], JOB_STATUS_DICT['running']]:
+                    mark_job_status(job.job_id, 'failed')
+                    sess.refresh(job)
+                    job.update({'file_generation_id': None}, synchronize_session=False)
 
             sess.commit()
 
         raise e
 
 
-def validator_process_job(sess, job_id, is_local):
+def validator_process_job(sess, job_id, is_local, current_message):
     """ Retrieves a Job based on its ID, and kicks off a validation. Handles errors by ensuring the Job (if exists) is
         no longer running.
 
@@ -145,6 +147,7 @@ def validator_process_job(sess, job_id, is_local):
         sess: Current database session
         job_id: ID of a Job
         is_local: A boolean flag indicating whether the application is being run locally or not
+        current_message: The currently in-transit SQS message
 
     Raises:
         Any Exceptions raised by the ValidationManager
@@ -164,15 +167,16 @@ def validator_process_job(sess, job_id, is_local):
         # We can either validate or generate a file based on Job ID
         if job.job_type.name == 'file_upload':
             # Generate E or F file
-            file_generation_manager = FileGenerationManager(job, agency_code, agency_type, local)
-            file_generation_manager.generate_from_job()
-            sess.commit()
-            sess.refresh(job)
+            file_generation_manager = FileGenerationManager(sess, is_local, job=job)
+            file_generation_manager.generate_file()
 
         else:
             # Run validations
-            validation_manager = ValidationManager(local, error_report_path)
+            validation_manager = ValidationManager(is_local, CONFIG_SERVICES['error_report_path'])
             validation_manager.validate_job(job.job_id)
+
+        sess.commit()
+        sess.refresh(job)
 
     except ResponseException as e:
         # Handle exceptions explicitly raised during validation.

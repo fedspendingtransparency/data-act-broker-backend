@@ -1,23 +1,15 @@
 import logging
 
-from datetime import datetime
-
-from dataactbroker.helpers.generation_helper import (
-    retrieve_cached_file_generation, update_validation_job_info, d_file_query, copy_file_generation_to_job)
+from dataactbroker.helpers.generation_helper import (d_file_query, copy_file_generation_to_job)
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.domainModels import ExecutiveCompensation
-from dataactcore.models.jobModels import Job, FileGeneration, Submission
+from dataactcore.models.jobModels import Job
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
-from dataactcore.utils.responseException import ResponseException
-from dataactcore.utils.statusCode import StatusCode
 
 from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file
-from dataactvalidator.validation_handlers.validationError import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +60,7 @@ class FileGenerationManager:
             'message': 'Finished file {} generation'.format(self.file_type), 'message_type': 'ValidatorInfo',
             'file_type': self.file_type, 'file_path': file_path
         }
-        if self.file_generation: 
+        if self.file_generation:
             log_data.update({
                 'agency_code': self.file_generation.agency_code, 'agency_type': self.file_generation.agency_type,
                 'start_date': self.file_generation.start_date, 'end_date': self.file_generation.end_date,
@@ -80,13 +72,13 @@ class FileGenerationManager:
 
     def generate_d_file(self, file_path):
         """ Write file D1 or D2 to an appropriate CSV. """
-        logger.info({
+        log_data = {
             'message': 'Starting file {} generation'.format(self.file_type), 'message_type': 'ValidatorInfo',
             'agency_code': self.file_generation.agency_code, 'agency_type': self.file_generation.agency_type,
             'start_date': self.file_generation.start_date, 'end_date': self.file_generation.end_date,
             'file_generation_id': self.file_generation.file_generation_id, 'file_type': self.file_type,
             'file_path': file_path
-        })
+        }
         logger.info(log_data)
 
         original_filename = file_path.split('/')[:-1]
@@ -97,7 +89,7 @@ class FileGenerationManager:
         headers = [key for key in file_utils.mapping]
         query_utils = {
             "sess": self.sess, "file_utils": file_utils, "agency_code": self.file_generation.agency_code,
-            "agency_type": self.file_generation.agency_type, "start": self.file_generation.start_date, 
+            "agency_type": self.file_generation.agency_type, "start": self.file_generation.start_date,
             "end": self.file_generation.end_date}
 
         # Generate the file locally, then place in S3
@@ -107,7 +99,7 @@ class FileGenerationManager:
         log_data['message'] = 'Finished writing to file: {}'.format(original_filename)
         logger.info(log_data)
 
-        for job in sess.query(Job).filter_by(file_generation_id=self.file_generation.file_generation_id).all():
+        for job in self.sess.query(Job).filter_by(file_generation_id=self.file_generation.file_generation_id).all():
             copy_file_generation_to_job(job, self.file_generation, self.is_local)
 
     def generate_e_file(self):
