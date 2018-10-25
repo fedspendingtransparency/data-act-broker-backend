@@ -72,11 +72,11 @@ def run_app():
 
                     # Generating a file
                     if msg_attr and msg_attr.get('validation_type') == 'generation':
-                        generate_file_from_id(sess, message.body)
+                        validator_process_file_generation(sess, message.body, local)
 
                     # Running validations
                     else:
-                        validate_job_from_id(sess, message.body)
+                        validator_process_job(sess, message.body, local)
 
                     # Delete from SQS once processed
                     message.delete()
@@ -97,13 +97,14 @@ def run_app():
                         pass
 
 
-def generate_file_from_id(sess, file_gen_id):
+def validator_process_file_generation(sess, file_gen_id, is_local):
     """ Retrieves a FileGeneration object based on its ID, and kicks off a file generation. Handles errors by ensuring
         the FileGeneration (if exists) is no longer cached.
 
     Args:
         sess: Current database session
         file_gen_id: ID of a FileGeneration object
+        is_local: A boolean flag indicating whether the application is being run locally or not
 
     Raises:
         Any Exceptions raised by the FileGenerationManager
@@ -116,8 +117,8 @@ def generate_file_from_id(sess, file_gen_id):
             raise ResponseException('FileGeneration ID {} not found in database'.format(file_gen_id),
                                     StatusCode.CLIENT_ERROR, None)
 
-        file_generation_manager = FileGenerationManager(file_generation, local)
-        file_generation_manager.generate_from_job()
+        file_generation_manager = FileGenerationManager(sess, is_local, file_generation=file_generation)
+        file_generation_manager.generate_file()
 
     except Exception as e:
         if file_generation:
@@ -136,13 +137,14 @@ def generate_file_from_id(sess, file_gen_id):
         raise e
 
 
-def validate_job_from_id(sess, job_id):
+def validator_process_job(sess, job_id, is_local):
     """ Retrieves a Job based on its ID, and kicks off a validation. Handles errors by ensuring the Job (if exists) is
         no longer running.
 
     Args:
         sess: Current database session
         job_id: ID of a Job
+        is_local: A boolean flag indicating whether the application is being run locally or not
 
     Raises:
         Any Exceptions raised by the ValidationManager
@@ -159,9 +161,18 @@ def validate_job_from_id(sess, job_id):
             raise ResponseException('Job ID {} not found in database'.format(g.job_id),
                                     StatusCode.CLIENT_ERROR, None, validation_error_type)
 
-        # Run validations
-        validation_manager = ValidationManager(local, error_report_path)
-        validation_manager.validate_job(job.job_id)
+        # We can either validate or generate a file based on Job ID
+        if job.job_type.name == 'file_upload':
+            # Generate E or F file
+            file_generation_manager = FileGenerationManager(job, agency_code, agency_type, local)
+            file_generation_manager.generate_from_job()
+            sess.commit()
+            sess.refresh(job)
+
+        else:
+            # Run validations
+            validation_manager = ValidationManager(local, error_report_path)
+            validation_manager.validate_job(job.job_id)
 
     except ResponseException as e:
         # Handle exceptions explicitly raised during validation.
