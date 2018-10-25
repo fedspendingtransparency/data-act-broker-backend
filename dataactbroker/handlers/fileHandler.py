@@ -161,7 +161,8 @@ class FileHandler:
         # Make sure all files are CSV or TXT files and not something else
         for file_type in request_params.get('_files'):
             file = request_params['_files'].get(file_type)
-            if not file.headers['Content-Type'] in ('text/csv', 'text/plain'):
+            extension = file.filename.split('.')[-1]
+            if not extension or extension.lower() not in ['csv', 'txt']:
                 raise ResponseException("All submitted files must be CSV or TXT format", StatusCode.CLIENT_ERROR)
 
     def submit(self, sess):
@@ -428,7 +429,8 @@ class FileHandler:
         json_response, submission = None, None
         try:
             # Make sure they only pass in csv or plain text files
-            if not fabs.headers['Content-Type'] in ('text/csv', 'text/plain'):
+            extension = fabs.filename.split('.')[-1]
+            if not extension or extension.lower() not in ['csv', 'txt']:
                 raise ValueError('FABS files must be CSV or TXT format')
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
