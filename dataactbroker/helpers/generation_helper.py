@@ -67,10 +67,9 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
             mark_job_status(job.job_id, 'failed')
             job.error_message = str(e)
             sess.commit()
-
             logger.error(traceback.format_exc())
     else:
-        # Create new FileGeneration
+        # Create new FileGeneration and reset Jobs
         file_generation = FileGeneration(
             request_date=datetime.now().date(), start_date=job.start_date, end_date=job.end_date,
             file_type=job.file_type.letter_name, agency_code=agency_code, agency_type=agency_type, is_cached_file=True)
@@ -80,6 +79,7 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
         try:
             job.file_generation_id = file_generation.file_generation_id
             sess.commit()
+            reset_generation_jobs(sess, job)
 
             log_data['file_generation_id'] = file_generation.file_generation_id
             log_data['message'] = 'Sending new FileGeneration {} to SQS'.format(file_generation.file_generation_id)
@@ -190,7 +190,7 @@ def retrieve_cached_file_generation(job, agency_type, agency_code):
     file_generation_list = sess.query(FileGeneration).filter(
         FileGeneration.start_date == job.start_date, FileGeneration.end_date == job.end_date,
         FileGeneration.agency_code == agency_code,  FileGeneration.agency_type == agency_type,
-        FileGeneration.is_cached_file.is_(True)).all()
+        FileGeneration.file_type == job.file_type.letter_name, FileGeneration.is_cached_file.is_(True)).all()
 
     for file_gen in file_generation_list:
         if (file_gen.file_type == 'D1' and file_gen.request_date < fpds_date):
@@ -270,7 +270,6 @@ def update_generation_submission(sess, job):
             CGAC or FREC agency code of the Submission
     """
     submission = sess.query(Submission).filter(Submission.submission_id == job.submission_id).one()
-    agency_code = submission.frec_code if submission.frec_code else submission.cgac_code
 
     # Change the publish status back to updated if certified
     if submission.publish_status_id == lookups.PUBLISH_STATUS_DICT['published']:
@@ -278,13 +277,15 @@ def update_generation_submission(sess, job):
         submission.publish_status_id = lookups.PUBLISH_STATUS_DICT['updated']
         submission.updated_at = datetime.utcnow()
 
-    # Set validation status to waiting if it's not already
-    validation_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
-                                            Job.file_type_id == job.file_type_id,
-                                            Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation'],
-                                            Job.job_status_id != lookups.JOB_STATUS_DICT['waiting']).one_or_none()
-    if validation_job:
-        validation_job.job_status_id = lookups.JOB_STATUS_DICT['waiting']
+    # Retrieve and update the validation Job
+    val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
+                                     Job.file_type_id == job.file_type_id,
+                                     Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
+    val_job.start_date = job.start_date
+    val_job.end_date = job.end_date
+    val_job.filename = job.filename
+    val_job.original_filename = job.original_filename
+    val_job.job_status_id = lookups.JOB_STATUS_DICT["waiting"]
 
     # Set cross-file validation status to waiting if it's not already
     # No need to update it for each type of D file generation job, just do it once
@@ -296,7 +297,7 @@ def update_generation_submission(sess, job):
 
     sess.commit()
 
-    return agency_code
+    return submission.frec_code if submission.frec_code else submission.cgac_code
 
 
 def add_generation_job_info(file_type_name, job=None, start_date=None, end_date=None):
@@ -414,40 +415,9 @@ def copy_file_generation_to_job(job, file_generation, is_local):
     sess.commit()
 
     # Mark Job status last so the validation job doesn't start until everything is done
+    print(job.__dict__)
     mark_job_status(job.job_id, 'finished')
-
-
-def copy_file_to_job(job, file_generation, is_local):
-    """ Copy the file from the FileGeneration's bucket to the Job's bucket.
-
-        Args:
-            job: Job object to copy the data to
-            file_generation: Cached FileGeneration object to copy the data from
-            is_local: A boolean flag indicating whether the application is being run locally or not
-
-    """
-
-
-def update_validation_job_info(sess, job):
-    """ Populates validation job objects with start and end dates, filenames, and status.
-        Assumes the upload Job's start and end dates have been validated.
-    """
-    if job.submission_id:
-        # Retrieve and update the validation Job
-        val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
-                                         Job.file_type_id == job.file_type_id,
-                                         Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
-        val_job.start_date = job.start_date
-        val_job.end_date = job.end_date
-        val_job.filename = job.filename
-        val_job.original_filename = job.original_filename
-        val_job.job_status_id = lookups.JOB_STATUS_DICT["waiting"]
-
-        # Clear out error messages to prevent stale messages
-        val_job.error_message = None
-
-    job.error_message = None
-    sess.commit()
+    print(job.__dict__)
 
 
 def d_file_query(query_utils, page_start, page_end):
@@ -470,3 +440,33 @@ def d_file_query(query_utils, page_start, page_end):
                                                 query_utils["agency_type"], query_utils["start"], query_utils["end"],
                                                 page_start, page_end)
     return rows.all()
+
+
+def reset_generation_jobs(sess, job):
+    """ Resets the Job and (if present) its validation Job to pre-generation
+
+        Args:
+            sess: Current database session
+            job: The generation Job
+    """
+    job.filename = None
+    job.original_filename = None
+    job.number_of_errors = 0
+    job.number_of_warnings = 0
+    job.file_size = None
+    job.number_of_rows = None
+    job.number_of_rows_valid = None
+
+    if job.submission_id:
+        val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
+                                         Job.file_type_id == job.file_type_id,
+                                         Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
+        val_job.filename = None
+        val_job.original_filename = None
+        val_job.number_of_errors = 0
+        val_job.number_of_warnings = 0
+        val_job.file_size = None
+        val_job.number_of_rows = None
+        val_job.number_of_rows_valid = None
+
+    sess.commit()

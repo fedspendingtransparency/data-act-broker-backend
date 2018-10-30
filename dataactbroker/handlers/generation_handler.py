@@ -104,22 +104,22 @@ def check_generation(submission, file_type):
     return JsonResponse.create(StatusCode.OK, response_dict)
 
 
-def generate_detached_file(file_type, cgac_code, frec_code, start, end, agency_type):
+def generate_detached_file(file_type, cgac_code, frec_code, start_date, end_date, agency_type):
     """ Start a file generation job for the specified file type not connected to a submission
 
         Args:
             file_type: type of file to be generated
             cgac_code: the code of a CGAC agency if generating for a CGAC agency
             frec_code: the code of a FREC agency if generating for a FREC agency
-            start: start date in a string, formatted MM/DD/YYYY
-            end: end date in a string, formatted MM/DD/YYYY
+            start_date: start date in a string, formatted MM/DD/YYYY
+            end_date: end date in a string, formatted MM/DD/YYYY
             agency_type: The type of agency (awarding or funding) to generate the file for
 
         Returns:
-            JSONResponse object with keys job_id, status, file_type, url, message, start, and end.
+            JSONResponse object with keys job_id, status, file_type, url, message, start_date, and end_date.
 
         Raises:
-            ResponseException: if the start and end Strings cannot be parsed into dates
+            ResponseException: if the start_date and end_date Strings cannot be parsed into dates
     """
     # Make sure it's a valid request
     if not cgac_code and not frec_code:
@@ -127,7 +127,7 @@ def generate_detached_file(file_type, cgac_code, frec_code, start, end, agency_t
                                   StatusCode.CLIENT_ERROR)
 
     # Check if date format is MM/DD/YYYY
-    if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
+    if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
         raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
 
     if agency_type not in ('awarding', 'funding'):
@@ -136,22 +136,16 @@ def generate_detached_file(file_type, cgac_code, frec_code, start, end, agency_t
 
     # Add job info
     file_type_name = lookups.FILE_TYPE_DICT_LETTER_NAME[file_type]
-    new_job = generation_helper.add_generation_job_info(file_type_name=file_type_name, start_date=start, end_date=end)
+    new_job = generation_helper.add_generation_job_info(file_type_name=file_type_name, start_date=start_date,
+                                                        end_date=end_date)
 
     agency_code = frec_code if frec_code else cgac_code
-    log_data = {
-        'message': 'Starting detached {} file generation'.format(file_type),
-        'message_type': 'BrokerInfo',
-        'job_id': new_job.job_id,
-        'file_type': file_type,
-        'agency_code': agency_code,
-        'start_date': start,
-        'end_date': end
-    }
-    logger.info(log_data)
+    logger.info({'message': 'Starting detached {} file generation'.format(file_type), 'message_type': 'BrokerInfo',
+                 'job_id': new_job.job_id, 'file_type': file_type, 'agency_code': agency_code, 'start_date': start_date,
+                 'end_date': end_date})
 
     try:
-        generation_helper.start_d_generation(new_job, start, end, agency_type, agency_code=agency_code)
+        generation_helper.start_d_generation(new_job, start_date, end_date, agency_type, agency_code=agency_code)
     except Exception as e:
         mark_job_status(new_job.job_id, 'failed')
         new_job.error_message = str(e)

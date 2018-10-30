@@ -1,6 +1,6 @@
 import logging
 
-from dataactbroker.helpers.generation_helper import (d_file_query, copy_file_generation_to_job)
+from dataactbroker.helpers.generation_helper import d_file_query, copy_file_generation_to_job
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
@@ -41,7 +41,7 @@ class FileGenerationManager:
         self.file_type = job.file_type.letter_name if job else file_generation.file_type
 
     def generate_file(self):
-        """ Generates a file based on the FileRequest object and updates any Jobs referencing it """
+        """ Generates a file based on the FileGeneration object and updates any Jobs referencing it """
         raw_filename = CONFIG_BROKER["".join([FILE_TYPE_DICT_LETTER_NAME[self.file_type], "_file_name"])]
         file_name = S3Handler.get_timestamped_filename(raw_filename)
         if self.is_local:

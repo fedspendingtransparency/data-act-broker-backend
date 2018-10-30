@@ -1,13 +1,283 @@
 import pytest
 
-from dataactbroker.helpers.generation_helper import (check_file_generation, check_generation_prereqs,
-                                                     copy_file_generation_to_job)
+from datetime import datetime, date
+from unittest.mock import Mock
+
+from dataactbroker.helpers import generation_helper
+from dataactbroker.helpers.generation_helper import (
+    check_file_generation, check_generation_prereqs, copy_file_generation_to_job, start_d_generation,
+    retrieve_cached_file_generation)
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
+from dataactcore.models.jobModels import FileGeneration
 from dataactcore.utils.responseException import ResponseException
 
 from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory, FileGenerationFactory
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_start_d_generation_submission_cached(database, monkeypatch):
+    """  """
+    sess = database.session
+    original_filename = 'D1_test_gen.csv'
+    file_path = gen_file_path_from_submission('None/', original_filename)
+
+    submission = SubmissionFactory(
+        submission_id=1000, reporting_start_date='2017-01-01', reporting_end_date='2017-01-31', frec_code='1234',
+        cgac_code=None, is_quarter_format=False, publishable=False, reporting_fiscal_year='2017')
+    file_gen = FileGenerationFactory(
+        request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D2',
+        agency_code='1234', agency_type='awarding', is_cached_file=True, file_path=file_path)
+    up_job = JobFactory(
+        job_status_id=JOB_STATUS_DICT['waiting'], file_type_id=FILE_TYPE_DICT['award'], error_message=None,
+        job_type_id=JOB_TYPE_DICT['file_upload'], filename=None, original_filename=None,
+        submission_id=submission.submission_id)
+    val_job = JobFactory(
+        job_status_id=JOB_STATUS_DICT['waiting'], error_message=None, file_type_id=FILE_TYPE_DICT['award'],
+        job_type_id=JOB_TYPE_DICT['csv_record_validation'], filename=None, original_filename=None,
+        submission_id=submission.submission_id)
+    sess.add_all([submission, file_gen, up_job, val_job])
+    sess.commit()
+
+    monkeypatch.setattr(generation_helper, 'g', Mock(return_value={'is_local': CONFIG_BROKER['local']}))
+    start_d_generation(up_job, '01/01/2017', '01/31/2017', 'awarding')
+
+    assert up_job.file_generation_id == file_gen.file_generation_id
+    assert up_job.start_date == date(2017, 1, 1)
+    assert up_job.end_date == date(2017, 1, 31)
+    assert up_job.original_filename == original_filename
+    assert up_job.filename == gen_file_path_from_submission(up_job.submission_id, original_filename)
+    assert up_job.job_status_id == JOB_STATUS_DICT['finished']
+
+    assert up_job.start_date == date(2017, 1, 1)
+    assert up_job.end_date == date(2017, 1, 31)
+    assert up_job.original_filename == original_filename
+    assert up_job.filename == gen_file_path_from_submission(up_job.submission_id, original_filename)
+    assert up_job.job_status_id != JOB_STATUS_DICT['waiting']
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_start_d_generation_submission_change_request(database, monkeypatch):
+    """  """
+    sess = database.session
+    original_filename = 'D1_test_gen.csv'
+    file_path = gen_file_path_from_submission('None/', original_filename)
+
+    submission = SubmissionFactory(
+        submission_id=1000, reporting_start_date='2017-01-01', reporting_end_date='2017-01-31', cgac_code='123',
+        frec_code=None, is_quarter_format=False, publishable=False, reporting_fiscal_year='2017')
+    file_gen = FileGenerationFactory(
+        request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D1',
+        agency_code='123', agency_type='awarding', is_cached_file=True, file_path=file_path, file_generation_id=1000)
+    up_job = JobFactory(
+        job_status_id=JOB_STATUS_DICT['waiting'], error_message=None, job_type_id=JOB_TYPE_DICT['file_upload'],
+        file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, submission_id=submission.submission_id,
+        file_generation_id=file_gen.file_generation_id, original_filename=original_filename)
+    val_job = JobFactory(
+        job_status_id=JOB_STATUS_DICT['waiting'], error_message=None, file_type_id=FILE_TYPE_DICT['award_procurement'],
+        job_type_id=JOB_TYPE_DICT['csv_record_validation'], filename=None, submission_id=submission.submission_id,
+        original_filename=original_filename)
+    sess.add_all([submission, file_gen, up_job, val_job])
+    sess.commit()
+
+    monkeypatch.setattr(generation_helper, 'g', Mock(return_value={'is_local': CONFIG_BROKER['local']}))
+    start_d_generation(up_job, '01/01/2017', '01/30/2017', 'funding')
+
+    assert up_job.file_generation_id != file_gen.file_generation_id
+    assert up_job.start_date == date(2017, 1, 1)
+    assert up_job.end_date == date(2017, 1, 30)
+    assert up_job.original_filename != original_filename
+    assert up_job.filename != gen_file_path_from_submission(up_job.submission_id, original_filename)
+
+    assert up_job.start_date == date(2017, 1, 1)
+    assert up_job.end_date == date(2017, 1, 30)
+    assert up_job.original_filename == up_job.original_filename
+    assert up_job.filename == up_job.filename
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_start_d_generation_submission_new(database, monkeypatch):
+    """  """
+    sess = database.session
+    original_filename = 'D2_test_gen.csv'
+
+    submission = SubmissionFactory(
+        submission_id=1000, reporting_start_date='2017-01-01', reporting_end_date='2017-01-31', cgac_code='123',
+        frec_code=None, is_quarter_format=False, publishable=False, reporting_fiscal_year='2017')
+    up_job = JobFactory(
+        job_status_id=JOB_STATUS_DICT['waiting'], error_message=None, file_type_id=FILE_TYPE_DICT['award'],
+        job_type_id=JOB_TYPE_DICT['file_upload'], filename=None, submission_id=submission.submission_id,
+        original_filename=original_filename, file_generation_id=None)
+    val_job = JobFactory(
+        job_status_id=JOB_STATUS_DICT['waiting'], error_message=None, file_type_id=FILE_TYPE_DICT['award'],
+        job_type_id=JOB_TYPE_DICT['csv_record_validation'],  filename=None, submission_id=submission.submission_id,
+        original_filename=original_filename)
+    sess.add_all([submission, up_job, val_job])
+    sess.commit()
+
+    monkeypatch.setattr(generation_helper, 'g', Mock(return_value={'is_local': CONFIG_BROKER['local']}))
+    start_d_generation(up_job, '01/01/2017', '01/31/2017', 'awarding')
+
+    assert up_job.file_generation_id is not None
+    assert up_job.start_date == date(2017, 1, 1)
+    assert up_job.end_date == date(2017, 1, 31)
+    assert up_job.original_filename != original_filename
+    assert up_job.filename != gen_file_path_from_submission(up_job.submission_id, original_filename)
+
+    assert up_job.start_date == date(2017, 1, 1)
+    assert up_job.end_date == date(2017, 1, 31)
+    assert up_job.original_filename == up_job.original_filename
+    assert up_job.filename == up_job.filename
+
+    file_gen = sess.query(FileGeneration).filter_by(file_generation_id=up_job.file_generation_id).one_or_none()
+    assert file_gen is not None
+    assert file_gen.request_date == datetime.now().date()
+    assert file_gen.start_date == date(2017, 1, 1)
+    assert file_gen.end_date == date(2017, 1, 31)
+    assert file_gen.file_type == 'D2'
+    assert file_gen.file_path != gen_file_path_from_submission('None', original_filename)
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_retrieve_cached_file_generation(database):
+    """ Should successfully return the correct cached database """
+    sess = database.session
+    job = JobFactory(
+        start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
+        file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
+        original_filename=None, file_generation_id=None)
+    file_gen = FileGenerationFactory(
+        request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D2',
+        agency_code='123', agency_type='awarding', is_cached_file=True)
+    sess.add_all([job, file_gen])
+    sess.commit()
+
+    file_generation = retrieve_cached_file_generation(job, 'awarding', '123')
+    assert file_generation == file_gen
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_retrieve_cached_file_generation_none(database):
+    """ Should successfully return the correct cached database """
+    sess = database.session
+    job = JobFactory(
+        start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
+        file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
+        original_filename=None, file_generation_id=None)
+    sess.add(job)
+    sess.commit()
+
+    file_generation = retrieve_cached_file_generation(job, 'awarding', '123')
+    assert file_generation is None
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_retrieve_cached_file_generation_end_date_diff(database):
+    """ Should successfully return the correct cached database """
+    sess = database.session
+    job = JobFactory(
+        start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
+        file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
+        original_filename=None, file_generation_id=None)
+    file_gen = FileGenerationFactory(
+        request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-30', file_type='D2',
+        agency_code='123', agency_type='awarding', is_cached_file=True)
+    sess.add_all([job, file_gen])
+    sess.commit()
+
+    file_generation = retrieve_cached_file_generation(job, 'awarding', '123')
+    assert file_generation is None
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_retrieve_cached_file_generation_start_date_diff(database):
+    """ Should successfully return the correct cached database """
+    sess = database.session
+    job = JobFactory(
+        start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
+        file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
+        original_filename=None, file_generation_id=None)
+    file_gen = FileGenerationFactory(
+        request_date=datetime.now().date(), start_date='2017-01-02', end_date='2017-01-31', file_type='D2',
+        agency_code='123', agency_type='awarding', is_cached_file=True)
+    sess.add_all([job, file_gen])
+    sess.commit()
+
+    file_generation = retrieve_cached_file_generation(job, 'awarding', '123')
+    assert file_generation is None
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_retrieve_cached_file_generation_agency_code_diff(database):
+    """ Should successfully return the correct cached database """
+    sess = database.session
+    job = JobFactory(
+        start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
+        file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
+        original_filename=None, file_generation_id=None)
+    file_gen = FileGenerationFactory(
+        request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D2',
+        agency_code='124', agency_type='awarding', is_cached_file=True)
+    sess.add_all([job, file_gen])
+    sess.commit()
+
+    file_generation = retrieve_cached_file_generation(job, 'awarding', '123')
+    assert file_generation is None
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_retrieve_cached_file_generation_agency_type_diff(database):
+    """ Should successfully return the correct cached database """
+    sess = database.session
+    job = JobFactory(
+        start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
+        file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
+        original_filename=None, file_generation_id=None)
+    file_gen = FileGenerationFactory(
+        request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D2',
+        agency_code='123', agency_type='awarding', is_cached_file=True)
+    sess.add_all([job, file_gen])
+    sess.commit()
+
+    file_generation = retrieve_cached_file_generation(job, 'funding', '123')
+    assert file_generation is None
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_retrieve_cached_file_generation_file_type_diff(database):
+    """ Should successfully return the correct cached database """
+    sess = database.session
+    job = JobFactory(
+        start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
+        file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
+        original_filename=None, file_generation_id=None)
+    file_gen = FileGenerationFactory(
+        request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D1',
+        agency_code='123', agency_type='awarding', is_cached_file=True)
+    sess.add_all([job, file_gen])
+    sess.commit()
+
+    file_generation = retrieve_cached_file_generation(job, 'awarding', '123')
+    assert file_generation is None
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_retrieve_cached_file_generation_not_cached(database):
+    """ Should successfully return the correct cached database """
+    sess = database.session
+    job = JobFactory(
+        start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
+        file_type_id=FILE_TYPE_DICT['award'], job_type_id=JOB_TYPE_DICT['file_upload'], filename=None,
+        original_filename=None, file_generation_id=None)
+    file_gen = FileGenerationFactory(
+        request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D2',
+        agency_code='123', agency_type='awarding', is_cached_file=False)
+    sess.add_all([job, file_gen])
+    sess.commit()
+
+    file_generation = retrieve_cached_file_generation(job, 'awarding', '123')
+    assert file_generation is None
 
 
 @pytest.mark.usefixtures("job_constants")
@@ -149,10 +419,11 @@ def test_check_submission_d_file_generation(database):
 @pytest.mark.usefixtures("job_constants")
 def test_copy_file_generation_to_job(database):
     sess = database.session
-    file_path = '{}{}'.format(CONFIG_BROKER['broker_files'] if CONFIG_BROKER['local'] else 'None/', 'new_filename.csv')
+    original_filename = 'new_filename.csv'
+    file_path = gen_file_path_from_submission('None', original_filename)
 
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                     file_type_id=FILE_TYPE_DICT['award'], submission_id=None)
+                     file_type_id=FILE_TYPE_DICT['award'])
     file_gen = FileGenerationFactory(file_type='D1', file_path=file_path)
     sess.add_all([job, file_gen])
     sess.commit()
@@ -162,8 +433,8 @@ def test_copy_file_generation_to_job(database):
     sess.refresh(file_gen)
 
     assert job.job_status.name == 'finished'
-    assert job.filename == file_path
-    assert job.original_filename == file_path.split('/')[-1]
+    assert job.filename == gen_file_path_from_submission(job.submission_id, original_filename)
+    assert job.original_filename == original_filename
     assert job.number_of_errors == 0
     assert job.number_of_warnings == 0
     assert job.file_generation_id == file_gen.file_generation_id
@@ -297,3 +568,9 @@ def test_check_generation_prereqs_bad_type(database):
 
     with pytest.raises(ResponseException):
         check_generation_prereqs(sub.submission_id, 'A')
+
+
+def gen_file_path_from_submission(submission, original_filename):
+    local_filepath = CONFIG_BROKER['broker_files']
+    nonlocal_filepath = '{}/'.format(submission)
+    return '{}{}'.format(local_filepath if CONFIG_BROKER['local'] else nonlocal_filepath, original_filename)
