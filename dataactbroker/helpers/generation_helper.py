@@ -55,8 +55,7 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
     file_generation = retrieve_cached_file_generation(job, agency_type, agency_code)
     if file_generation:
         try:
-            if file_generation.file_path:
-                copy_file_generation_to_job(job, file_generation, g.is_local)
+            copy_file_generation_to_job(job, file_generation, g.is_local)
         except Exception as e:
             mark_job_status(job.job_id, 'failed')
             job.error_message = str(e)
@@ -372,13 +371,20 @@ def copy_file_generation_to_job(job, file_generation, is_local):
     if job.job_status_id == lookups.JOB_STATUS_DICT['finished']:
         return
 
+    job.file_generation_id = file_generation.file_generation_id
+
+    # File is still being generated, just mark the FileGeneration ID in the Job and wait
+    # FileGeneration will update all child Jobs when it finishes
+    if not file_generation.file_path:
+        sess.commit()
+        return
+
     # Generate file path for child Job's filename
     filepath = CONFIG_BROKER['broker_files'] if is_local else "{}/".format(str(job.submission_id))
     original_filename = file_generation.file_path.split('/')[-1]
     filename = '{}{}'.format(filepath, original_filename)
 
     # Copy parent job's data
-    job.file_generation_id = file_generation.file_generation_id
     job.filename = filename
     job.original_filename = original_filename
     job.number_of_errors = 0
