@@ -119,6 +119,9 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
                     if update_db:
                         agency_code = get_normalized_agency_code(org.get('cgaclist', [{'cgac': None}])[0]['cgac'],
                                                                  org.get('agencycode'))
+                        # TEMPORARILY REPLACE Navy, Army, AND Air Force WITH DOD
+                        if agency_code in ['017', '021', '057']:
+                            agency_code = '097'
                         if not org.get('aacofficecode') or not org.get('agencycode') or not agency_code:
                             # Item from Fed Hierarchy is missing necessary data, ignore it
                             continue
