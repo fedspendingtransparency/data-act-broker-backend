@@ -185,11 +185,10 @@ class SQS(Base):
     __tablename__ = "sqs"
 
     sqs_id = Column(Integer, primary_key=True)
-    job_id = Column(Integer, nullable=False)
-    agency_code = Column(Text)
-    agency_type = Column(Enum('awarding', 'funding', name='agency_types'), nullable=True)
+    message = Column(Integer, nullable=False)
+    attributes = Column(Text, nullable=True)
 
-    __table_args__ = (UniqueConstraint('job_id', name='uniq_job_id'),)
+    __table_args__ = (UniqueConstraint('message', name='unique_sqs_message'),)
 
 
 class RevalidationThreshold(Base):

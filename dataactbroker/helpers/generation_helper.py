@@ -52,17 +52,11 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
 
     mark_job_status(job.job_id, 'waiting')
 
-    log_data = {'message_type': 'BrokerInfo', 'submission_id': job.submission_id, 'job_id': job.job_id,
-                'file_type': job.file_type.letter_name}
-
     file_generation = retrieve_cached_file_generation(job, agency_type, agency_code)
     if file_generation:
-        log_data['message'] = 'Copying data from cached FileGeneration {} to Job {}'.format(
-            file_generation.file_generation_id, job.job_id)
-        logger.info(log_data)
-
         try:
-            copy_file_generation_to_job(job, file_generation, g.is_local)
+            if file_generation.file_path:
+                copy_file_generation_to_job(job, file_generation, g.is_local)
         except Exception as e:
             mark_job_status(job.job_id, 'failed')
             job.error_message = str(e)
@@ -81,13 +75,15 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
             sess.commit()
             reset_generation_jobs(sess, job)
 
-            log_data['file_generation_id'] = file_generation.file_generation_id
-            log_data['message'] = 'Sending new FileGeneration {} to SQS'.format(file_generation.file_generation_id)
+
+            log_data = {'message': 'Sending new FileGeneration {} to SQS'.format(file_generation.file_generation_id),
+                        'message_type': 'BrokerInfo', 'file_type': job.file_type.letter_name, 'job_id': job.job_id,
+                        'submission_id': job.submission_id, 'file_generation_id': file_generation.file_generation_id}
             logger.info(log_data)
 
             # Add job_id to the SQS job queue
             queue = sqs_queue()
-            message_attr = {'validation_type': {'DataType': 'String', 'StringValue': 'generation'}}
+            message_attr = {"validation_type": {"DataType": "String", "StringValue": "generation"}}
             queue.send_message(MessageBody=str(file_generation.file_generation_id), MessageAttributes=message_attr)
         except Exception as e:
             mark_job_status(job.job_id, 'failed')
@@ -415,9 +411,7 @@ def copy_file_generation_to_job(job, file_generation, is_local):
     sess.commit()
 
     # Mark Job status last so the validation job doesn't start until everything is done
-    print(job.__dict__)
     mark_job_status(job.job_id, 'finished')
-    print(job.__dict__)
 
 
 def d_file_query(query_utils, page_start, page_end):

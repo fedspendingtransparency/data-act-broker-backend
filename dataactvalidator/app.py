@@ -154,14 +154,14 @@ def validator_process_job(sess, job_id, is_local, current_message):
     """
     job = None
     try:
-        mark_job_status(g.job_id, 'ready')
+        mark_job_status(job_id, 'ready')
 
         # Get the job
-        job = sess.query(Job).filter_by(job_id=g.job_id).one_or_none()
+        job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
         if job is None:
             validation_error_type = ValidationError.jobError
-            write_file_error(g.job_id, None, validation_error_type)
-            raise ResponseException('Job ID {} not found in database'.format(g.job_id),
+            write_file_error(job_id, None, validation_error_type)
+            raise ResponseException('Job ID {} not found in database'.format(job_id),
                                     StatusCode.CLIENT_ERROR, None, validation_error_type)
 
         # We can either validate or generate a file based on Job ID
