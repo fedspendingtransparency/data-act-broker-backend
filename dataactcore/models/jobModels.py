@@ -188,8 +188,6 @@ class SQS(Base):
     message = Column(Integer, nullable=False)
     attributes = Column(Text, nullable=True)
 
-    __table_args__ = (UniqueConstraint('message', name='unique_sqs_message'),)
-
 
 class RevalidationThreshold(Base):
     __tablename__ = "revalidation_threshold"
