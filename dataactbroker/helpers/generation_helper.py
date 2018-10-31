@@ -75,7 +75,6 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
             sess.commit()
             reset_generation_jobs(sess, job)
 
-
             log_data = {'message': 'Sending new FileGeneration {} to SQS'.format(file_generation.file_generation_id),
                         'message_type': 'BrokerInfo', 'file_type': job.file_type.letter_name, 'job_id': job.job_id,
                         'submission_id': job.submission_id, 'file_generation_id': file_generation.file_generation_id}
