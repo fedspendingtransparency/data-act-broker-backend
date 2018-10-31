@@ -158,6 +158,13 @@ class FileHandler:
             raise ResponseException("Must include at least one file for an existing submission",
                                     StatusCode.CLIENT_ERROR)
 
+        # Make sure all files are CSV or TXT files and not something else
+        for file_type in request_params.get('_files'):
+            file = request_params['_files'].get(file_type)
+            extension = file.filename.split('.')[-1]
+            if not extension or extension.lower() not in ['csv', 'txt']:
+                raise ResponseException("All submitted files must be CSV or TXT format", StatusCode.CLIENT_ERROR)
+
     def submit(self, sess):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
 
@@ -417,9 +424,14 @@ class FileHandler:
         if fabs is None:
             return JsonResponse.error(Exception('fabs field must be present and contain a file'),
                                       StatusCode.CLIENT_ERROR)
+
         sess = GlobalDB.db().session
         json_response, submission = None, None
         try:
+            # Make sure they only pass in csv or plain text files
+            extension = fabs.filename.split('.')[-1]
+            if not extension or extension.lower() not in ['csv', 'txt']:
+                raise ValueError('FABS files must be CSV or TXT format')
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
             logger.info({
