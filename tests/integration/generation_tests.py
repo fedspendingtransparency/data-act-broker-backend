@@ -182,8 +182,8 @@ class GenerationTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["message"], "User does not have permission to access that submission")
 
-    def test_detached_file_generation(self):
-        """ Test the generate and check routes for external files """
+    def test_detached_d_file_generation(self):
+        """ Test the generate and check routes for external D files """
         # For file generation submission, call generate route for D1 and check results
         post_json = {'file_type': 'D1', 'start': '01/02/2016', 'end': '02/03/2016', 'cgac_code': '020'}
         response = self.app.post_json("/v1/generate_detached_file/", post_json,
@@ -208,8 +208,60 @@ class GenerationTests(BaseTestAPI):
         post_json = {'job_id': -1}
         response = self.app.get("/v1/check_detached_generation_status/", post_json,
                                 headers={"x-session-id": self.session_id}, expect_errors=True)
-        json = response.json
-        self.assertEqual(json["message"], 'No generation job found with the specified ID')
+        self.assertEqual(response.json["message"], 'No generation job found with the specified ID')
+
+    def test_detached_d_file_generation_quarter_fail(self):
+        """ Test that detached D file generation fails if only the quarter is provided """
+        post_json = {'file_type': 'D1', 'quarter': 'Q1/2018', 'cgac_code': '020'}
+        response = self.app.post_json("/v1/generate_detached_file/", post_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "Must have a start and end date for D file generation.")
+
+    def test_detached_a_file_generation(self):
+        """ Test the generate and check routes for external A files """
+        post_json = {'file_type': 'A', 'quarter': 'Q1/2018', 'cgac_code': '020'}
+        response = self.app.post_json("/v1/generate_detached_file/", post_json,
+                                      headers={"x-session-id": self.session_id})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["message"], "This functionality is in development and coming soon.")
+
+    def test_detached_a_file_generation_quarter_format_fail(self):
+        """ Test that detached A file generation fails for bad quarter format. """
+        # Wrong number
+        post_json = {'file_type': 'A', 'quarter': 'Q5/2345', 'cgac_code': '020'}
+        response = self.app.post_json("/v1/generate_detached_file/", post_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "Quarter must be in Q#/YYYY format, where # is 1-4.")
+
+        # Too many numbers
+        post_json['quarter'] = 'Q11/2345'
+        response = self.app.post_json("/v1/generate_detached_file/", post_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "Quarter must be in Q#/YYYY format, where # is 1-4.")
+
+        # Invalid year
+        post_json['quarter'] = 'Q1/123'
+        response = self.app.post_json("/v1/generate_detached_file/", post_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "Quarter must be in Q#/YYYY format, where # is 1-4.")
+
+    def test_detached_a_file_generation_start_end_fail(self):
+        """ Test that detached A file generation fails if no quarter is provided """
+        post_json = {'file_type': 'A', 'start': '01/02/2016', 'end': '02/03/2016', 'cgac_code': '020'}
+        response = self.app.post_json("/v1/generate_detached_file/", post_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "Must have a quarter for A file generation.")
 
     @classmethod
     def setup_file_generation_submission(cls, sess, submission_id=None):
