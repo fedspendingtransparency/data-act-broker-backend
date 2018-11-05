@@ -187,11 +187,11 @@ def retrieve_cached_file_generation(job, agency_type, agency_code):
         FileGeneration.agency_code == agency_code,  FileGeneration.agency_type == agency_type,
         FileGeneration.file_type == job.file_type.letter_name, FileGeneration.is_cached_file.is_(True)).one_or_none()
 
-    if (file_gen.file_type == 'D1' and file_gen.request_date < fpds_date):
+    if file_gen and (file_gen.file_type == 'D1' and file_gen.request_date < fpds_date):
         # Uncache expired D1 FileGeneration
         file_gen.is_cached_file = False
         sess.commit()
-    else:
+    elif file_gen:
         file_generation = file_gen
 
     return file_generation

@@ -9,7 +9,6 @@ from dataactcore.models.jobModels import Job
 from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_NAME
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
-from dataactcore.utils.responseException import ResponseException
 
 from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file
 
@@ -71,7 +70,7 @@ class FileGenerationManager:
             e = 'No FileGeneration object for D file generation.' if self.file_type in ['D1', 'D2'] else \
                 'Cannot generate file for {} file type.'.format(self.file_type if self.file_type else 'empty')
             raise Exception(e)
-            
+
         logger.info(log_data)
 
     def generate_d_file(self, file_path):
