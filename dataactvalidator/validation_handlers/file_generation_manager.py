@@ -9,6 +9,7 @@ from dataactcore.models.jobModels import Job
 from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_NAME
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileD1, fileD2, fileE, fileF
+from dataactcore.utils.responseException import ResponseException
 
 from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file
 
@@ -50,25 +51,27 @@ class FileGenerationManager:
             file_path = "".join(["None/", file_name])
 
         # Generate the file and upload to S3
+        log_data = {'message': 'Finished file {} generation'.format(self.file_type), 'message_type': 'ValidatorInfo',
+                    'file_type': self.file_type, 'file_path': file_path}
         if self.file_generation:
             self.generate_d_file(file_path)
-        elif self.file_type == 'E':
-            self.generate_e_file()
-        else:
-            self.generate_f_file()
 
-        log_data = {
-            'message': 'Finished file {} generation'.format(self.file_type), 'message_type': 'ValidatorInfo',
-            'file_type': self.file_type, 'file_path': file_path
-        }
-        if self.file_generation:
             log_data.update({
                 'agency_code': self.file_generation.agency_code, 'agency_type': self.file_generation.agency_type,
                 'start_date': self.file_generation.start_date, 'end_date': self.file_generation.end_date,
                 'file_generation_id': self.file_generation.file_generation_id
             })
-        else:
+        elif self.file_type == 'E':
+            self.generate_e_file()
             log_data['job_id'] = self.job.job_id
+        elif self.file_type == 'F':
+            self.generate_f_file()
+            log_data['job_id'] = self.job.job_id
+        else:
+            e = 'No FileGeneration object for D file generation.' if self.file_type in ['D1', 'D2'] else \
+                'Cannot generate file for {} file type.'.format(self.file_type if self.file_type else 'empty')
+            raise Exception(e)
+            
         logger.info(log_data)
 
     def generate_d_file(self, file_path):
@@ -86,7 +89,12 @@ class FileGenerationManager:
         local_file = "".join([CONFIG_BROKER['d_file_storage_path'], original_filename])
 
         # Prepare file data
-        file_utils = fileD1 if self.file_type == 'D1' else fileD2
+        if self.file_type == 'D1':
+            file_utils = fileD1
+        elif self.file_type == 'D2':
+            file_utils = fileD2
+        else:
+            raise Exception('Failed to generate_d_file with file_type:{} (must be D1 or D2).'.format(self.file_type))
         headers = [key for key in file_utils.mapping]
         query_utils = {
             "sess": self.sess, "file_utils": file_utils, "agency_code": self.file_generation.agency_code,

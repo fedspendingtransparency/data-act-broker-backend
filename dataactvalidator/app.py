@@ -2,7 +2,6 @@ import logging
 import csv
 import traceback
 
-from botocore.exceptions import ClientError
 from flask import Flask, g, current_app
 
 from dataactcore.aws.sqsHandler import sqs_queue
@@ -72,14 +71,14 @@ def run_app():
 
                     # Generating a file
                     if msg_attr and msg_attr.get('validation_type') == 'generation':
-                        validator_process_file_generation(sess, message.body, local)
-
+                        handled_error = validator_process_file_generation(sess, message.body, local)
                     # Running validations
                     else:
-                        validator_process_job(sess, message.body, local, current_message)
+                        handled_error = validator_process_job(sess, message.body, local, current_message)
 
                     # Delete from SQS once processed
-                    message.delete()
+                    if not handled_error:
+                        message.delete()
 
             except Exception as e:
                 # Log exceptions
@@ -87,14 +86,6 @@ def run_app():
 
             finally:
                 GlobalDB.close()
-                # Set visibility to 0 so that another attempt can be made to process in SQS immediately,
-                # instead of waiting for the timeout window to expire
-                for message in messages:
-                    try:
-                        message.change_visibility(VisibilityTimeout=0)
-                    except ClientError:
-                        # Deleted messages will throw errors, which is fine because they are handled
-                        pass
 
 
 def validator_process_file_generation(sess, file_gen_id, is_local):
@@ -110,6 +101,7 @@ def validator_process_file_generation(sess, file_gen_id, is_local):
         Any Exceptions raised by the FileGenerationManager
     """
     file_generation = None
+    has_errors = False
 
     try:
         file_generation = sess.query(FileGeneration).filter_by(file_generation_id=file_gen_id).one_or_none()
@@ -119,11 +111,14 @@ def validator_process_file_generation(sess, file_gen_id, is_local):
 
         file_generation_manager = FileGenerationManager(sess, is_local, file_generation=file_generation)
         file_generation_manager.generate_file()
-        sess.commit()
 
     except Exception as e:
+        logger.error(traceback.format_exc())
+        has_errors = True
+
         if file_generation:
             # Uncache the FileGeneration
+            sess.refresh(file_generation)
             file_generation.is_cached_file = False
 
             # Mark all Jobs waiting on this FileGeneration as failed
@@ -136,7 +131,7 @@ def validator_process_file_generation(sess, file_gen_id, is_local):
 
             sess.commit()
 
-        raise e
+    return has_errors
 
 
 def validator_process_job(sess, job_id, is_local, current_message):
@@ -153,6 +148,7 @@ def validator_process_job(sess, job_id, is_local, current_message):
         Any Exceptions raised by the ValidationManager
     """
     job = None
+    has_errors = False
     try:
         mark_job_status(job_id, 'ready')
 
@@ -169,18 +165,18 @@ def validator_process_job(sess, job_id, is_local, current_message):
             # Generate E or F file
             file_generation_manager = FileGenerationManager(sess, is_local, job=job)
             file_generation_manager.generate_file()
-
         else:
             # Run validations
             validation_manager = ValidationManager(is_local, CONFIG_SERVICES['error_report_path'])
             validation_manager.validate_job(job.job_id)
 
-        sess.commit()
-        sess.refresh(job)
-
     except ResponseException as e:
         # Handle exceptions explicitly raised during validation.
+        logger.error(traceback.format_exc())
+        has_errors = True
+
         if job:
+            sess.refresh(job)
             if job.filename is not None:
                 # Insert file-level error info to the database
                 write_file_error(job.job_id, job.filename, e.errorType, e.extraInfo)
@@ -192,12 +188,15 @@ def validator_process_job(sess, job_id, is_local, current_message):
                     if e.errorType in [ValidationError.rowCountError, ValidationError.headerError,
                                        ValidationError.fileTypeError]:
                         current_message.delete()
-        raise e
 
     except Exception as e:
         # Handle uncaught exceptions in validation process.
+        logger.error(traceback.format_exc())
+        has_errors = True
+
         if job:
             # csv-specific errors get a different job status and response code
+            sess.refresh(job)
             if isinstance(e, ValueError) or isinstance(e, csv.Error) or isinstance(e, UnicodeDecodeError):
                 job_status = 'invalid'
             else:
@@ -216,7 +215,7 @@ def validator_process_job(sess, job_id, is_local, current_message):
 
             mark_job_status(job.job_id, job_status)
 
-        raise e
+    return has_errors
 
 
 if __name__ == "__main__":

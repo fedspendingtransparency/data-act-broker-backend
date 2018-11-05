@@ -57,10 +57,11 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
         try:
             copy_file_generation_to_job(job, file_generation, g.is_local)
         except Exception as e:
+            logger.error(traceback.format_exc())
+
             mark_job_status(job.job_id, 'failed')
             job.error_message = str(e)
             sess.commit()
-            logger.error(traceback.format_exc())
     else:
         # Create new FileGeneration and reset Jobs
         file_generation = FileGeneration(
@@ -79,17 +80,17 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
                         'submission_id': job.submission_id, 'file_generation_id': file_generation.file_generation_id}
             logger.info(log_data)
 
-            # Add job_id to the SQS job queue
+            # Add file_generation_id to the SQS job queue
             queue = sqs_queue()
             message_attr = {"validation_type": {"DataType": "String", "StringValue": "generation"}}
             queue.send_message(MessageBody=str(file_generation.file_generation_id), MessageAttributes=message_attr)
         except Exception as e:
+            logger.error(traceback.format_exc())
+
             mark_job_status(job.job_id, 'failed')
             job.error_message = str(e)
             file_generation.is_cached_file = False
             sess.commit()
-
-            logger.error(traceback.format_exc())
 
 
 def start_e_f_generation(job):
@@ -181,18 +182,17 @@ def retrieve_cached_file_generation(job, agency_type, agency_code):
 
     # check if a cached FileGeneration already exists using these criteria
     file_generation = None
-    file_generation_list = sess.query(FileGeneration).filter(
+    file_gen = sess.query(FileGeneration).filter(
         FileGeneration.start_date == job.start_date, FileGeneration.end_date == job.end_date,
         FileGeneration.agency_code == agency_code,  FileGeneration.agency_type == agency_type,
-        FileGeneration.file_type == job.file_type.letter_name, FileGeneration.is_cached_file.is_(True)).all()
+        FileGeneration.file_type == job.file_type.letter_name, FileGeneration.is_cached_file.is_(True)).one_or_none()
 
-    for file_gen in file_generation_list:
-        if (file_gen.file_type == 'D1' and file_gen.request_date < fpds_date):
-            # Uncache expired D1 FileGenerations
-            file_gen.is_cached_file = False
-        else:
-            file_generation = file_gen
-    sess.commit()
+    if (file_gen.file_type == 'D1' and file_gen.request_date < fpds_date):
+        # Uncache expired D1 FileGeneration
+        file_gen.is_cached_file = False
+        sess.commit()
+    else:
+        file_generation = file_gen
 
     return file_generation
 
@@ -209,9 +209,21 @@ def map_generate_status(sess, upload_job):
             The status of the submission based on upload job status and validation job status (where applicable)
     """
     if lookups.FILE_TYPE_DICT_LETTER[upload_job.file_type_id] in ['D1', 'D2'] and upload_job.submission_id:
-        validation_job = sess.query(Job).filter(Job.submission_id == upload_job.submission_id,
-                                                Job.file_type_id == upload_job.file_type_id,
-                                                Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
+        validation_job = sess.query(Job).filter(
+            Job.submission_id == upload_job.submission_id,
+            Job.file_type_id == upload_job.file_type_id,
+            Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one_or_none()
+
+        if not validation_job:
+            # Handle missing validation Job
+            error_text = 'The upload Job {} with submission_id {} is missing its validation Job'.format(
+                upload_job.job_id, upload_job.submission_id)
+            logger.error({
+                'message': error_text, 'message_type': 'BrokerError', 'job_id': upload_job.job_id,
+                'file_type': upload_job.file_type.name, 'submission_id': upload_job.submission_id
+            })
+            raise Exception(error_text)
+
         validation_status = validation_job.job_status.name
         if validation_job.number_of_errors > 0:
             errors_present = True
@@ -368,6 +380,7 @@ def copy_file_generation_to_job(job, file_generation, is_local):
     sess = GlobalDB.db().session
 
     # Do not edit submissions that have already successfully completed
+    sess.refresh(job)
     if job.job_status_id == lookups.JOB_STATUS_DICT['finished']:
         return
 
@@ -407,8 +420,8 @@ def copy_file_generation_to_job(job, file_generation, is_local):
             for obj in response.get('Contents', []):
                 if obj['Key'] == job.filename:
                     # The file already exists in this location
-                    log_data['message'] = '{} file already exists in this location: {}'.format(job.file_type.name,
-                                                                                               job.filename)
+                    log_data['message'] = '{} file already exists in this location: {}; not overwriting.'.format(
+                        job.file_type.name, job.filename)
                     logger.info(log_data)
                     return
 

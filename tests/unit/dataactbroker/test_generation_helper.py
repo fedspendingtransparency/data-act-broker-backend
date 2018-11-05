@@ -18,7 +18,7 @@ from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory, 
 
 @pytest.mark.usefixtures("job_constants")
 def test_start_d_generation_submission_cached(database, monkeypatch):
-    """  """
+    """ Cached D files must update the upload Job with the FileGeneration data. """
     sess = database.session
     original_filename = 'D1_test_gen.csv'
     file_path = gen_file_path_from_submission('None/', original_filename)
@@ -59,7 +59,9 @@ def test_start_d_generation_submission_cached(database, monkeypatch):
 
 @pytest.mark.usefixtures("job_constants")
 def test_start_d_generation_submission_change_request(database, monkeypatch):
-    """  """
+    """ In-submission generations that change their requested start or end dates must actually generate files based on
+        the new dates.
+    """
     sess = database.session
     original_filename = 'D1_test_gen.csv'
     file_path = gen_file_path_from_submission('None/', original_filename)
@@ -98,7 +100,7 @@ def test_start_d_generation_submission_change_request(database, monkeypatch):
 
 @pytest.mark.usefixtures("job_constants")
 def test_start_d_generation_submission_new(database, monkeypatch):
-    """  """
+    """ A new file generation must update the upload Job and create a new FileGeneration object. """
     sess = database.session
     original_filename = 'D2_test_gen.csv'
 
@@ -141,7 +143,7 @@ def test_start_d_generation_submission_new(database, monkeypatch):
 
 @pytest.mark.usefixtures("job_constants")
 def test_retrieve_cached_file_generation(database):
-    """ Should successfully return the correct cached database """
+    """ Should successfully return the correct cached FileGeneration """
     sess = database.session
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
@@ -159,7 +161,7 @@ def test_retrieve_cached_file_generation(database):
 
 @pytest.mark.usefixtures("job_constants")
 def test_retrieve_cached_file_generation_none(database):
-    """ Should successfully return the correct cached database """
+    """ Should return no FileGeneration """
     sess = database.session
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
@@ -174,7 +176,7 @@ def test_retrieve_cached_file_generation_none(database):
 
 @pytest.mark.usefixtures("job_constants")
 def test_retrieve_cached_file_generation_end_date_diff(database):
-    """ Should successfully return the correct cached database """
+    """ Should return no FileGeneration """
     sess = database.session
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
@@ -192,7 +194,7 @@ def test_retrieve_cached_file_generation_end_date_diff(database):
 
 @pytest.mark.usefixtures("job_constants")
 def test_retrieve_cached_file_generation_start_date_diff(database):
-    """ Should successfully return the correct cached database """
+    """ Should return no FileGeneration """
     sess = database.session
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
@@ -210,7 +212,7 @@ def test_retrieve_cached_file_generation_start_date_diff(database):
 
 @pytest.mark.usefixtures("job_constants")
 def test_retrieve_cached_file_generation_agency_code_diff(database):
-    """ Should successfully return the correct cached database """
+    """ Should return no FileGeneration """
     sess = database.session
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
@@ -228,7 +230,7 @@ def test_retrieve_cached_file_generation_agency_code_diff(database):
 
 @pytest.mark.usefixtures("job_constants")
 def test_retrieve_cached_file_generation_agency_type_diff(database):
-    """ Should successfully return the correct cached database """
+    """ Should return no FileGeneration """
     sess = database.session
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
@@ -246,7 +248,7 @@ def test_retrieve_cached_file_generation_agency_type_diff(database):
 
 @pytest.mark.usefixtures("job_constants")
 def test_retrieve_cached_file_generation_file_type_diff(database):
-    """ Should successfully return the correct cached database """
+    """ Should return no FileGeneration """
     sess = database.session
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,
@@ -264,7 +266,7 @@ def test_retrieve_cached_file_generation_file_type_diff(database):
 
 @pytest.mark.usefixtures("job_constants")
 def test_retrieve_cached_file_generation_not_cached(database):
-    """ Should successfully return the correct cached database """
+    """ Should return no FileGeneration """
     sess = database.session
     job = JobFactory(
         start_date='2017-01-01', end_date='2017-01-31', job_status_id=JOB_STATUS_DICT['waiting'], error_message=None,

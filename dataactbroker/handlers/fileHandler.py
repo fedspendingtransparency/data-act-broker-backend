@@ -838,7 +838,7 @@ class FileHandler:
                 # file generation handled on backend, mark as ready
                 job.job_status_id = JOB_STATUS_DICT['ready']
 
-                # forcably uncache any related D file requests
+                # forcibly uncache any related D file requests
                 file_gen = sess.query(FileGeneration).filter_by(file_generation_id=job.file_generation_id).one_or_none()
                 if file_gen:
                     file_gen.is_cached_file = False
