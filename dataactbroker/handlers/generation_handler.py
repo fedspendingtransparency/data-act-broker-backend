@@ -168,7 +168,10 @@ def generate_detached_file(file_type, cgac_code, frec_code, start, end, quarter,
     logger.info(log_data)
 
     try:
-        generation_helper.start_d_generation(new_job, start, end, agency_type, agency_code=agency_code)
+        if file_type in ['D1', 'D2']:
+            generation_helper.start_d_generation(new_job, start, end, agency_type, agency_code=agency_code)
+        else:
+            generation_helper.start_a_generation(new_job, start, end, agency_code)
     except Exception as e:
         mark_job_status(new_job.job_id, 'failed')
         new_job.error_message = str(e)
