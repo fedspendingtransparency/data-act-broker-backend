@@ -7,26 +7,26 @@ file_model = SF133
 staging_model = Appropriation
 
 mapping = OrderedDict([
-    ('AdjustmentsToUnobligatedBalanceBroughtForward_CPE', 'adjustments_to_unobligated_cpe'),
-    ('AgencyIdentifier', 'agency_identifier'),
     ('AllocationTransferAgencyIdentifier', 'allocation_transfer_agency'),
-    ('AvailabilityTypeCode', 'availability_type_code'),
+    ('AgencyIdentifier', 'agency_identifier'),
     ('BeginningPeriodOfAvailability', 'beginning_period_of_availa'),
-    ('BorrowingAuthorityAmountTotal_CPE', 'borrowing_authority_amount_cpe'),
-    ('BudgetAuthorityAppropriatedAmount_CPE', 'budget_authority_appropria_cpe'),
-    ('TotalBudgetaryResources_CPE', 'total_budgetary_resources_cpe'),
-    ('BudgetAuthorityUnobligatedBalanceBroughtForward_FYB', 'budget_authority_unobligat_fyb'),
-    ('ContractAuthorityAmountTotal_CPE', 'contract_authority_amount_cpe'),
-    ('DeobligationsRecoveriesRefundsByTAS_CPE', 'deobligations_recoveries_r_cpe'),
     ('EndingPeriodOfAvailability', 'ending_period_of_availabil'),
-    ('GrossOutlayAmountByTAS_CPE', 'gross_outlay_amount_by_tas_cpe'),
+    ('AvailabilityTypeCode', 'availability_type_code'),
     ('MainAccountCode', 'main_account_code'),
-    ('ObligationsIncurredTotalByTAS_CPE', 'obligations_incurred_total_cpe'),
+    ('SubAccountCode', 'sub_account_code'),
+    ('TotalBudgetaryResources_CPE', 'total_budgetary_resources_cpe'),
+    ('BudgetAuthorityAppropriatedAmount_CPE', 'budget_authority_appropria_cpe'),
+    ('BudgetAuthorityUnobligatedBalanceBroughtForward_FYB', 'budget_authority_unobligat_fyb'),
+    ('AdjustmentsToUnobligatedBalanceBroughtForward_CPE', 'adjustments_to_unobligated_cpe'),
     ('OtherBudgetaryResourcesAmount_CPE', 'other_budgetary_resources_cpe'),
+    ('ContractAuthorityAmountTotal_CPE', 'contract_authority_amount_cpe'),
+    ('BorrowingAuthorityAmountTotal_CPE', 'borrowing_authority_amount_cpe'),
     ('SpendingAuthorityfromOffsettingCollectionsAmountTotal_CPE', 'spending_authority_from_of_cpe'),
     ('StatusOfBudgetaryResourcesTotal_CPE', 'status_of_budgetary_resour_cpe'),
-    ('SubAccountCode', 'sub_account_code'),
-    ('UnobligatedBalance_CPE', 'unobligated_balance_cpe')
+    ('ObligationsIncurredTotalByTAS_CPE', 'obligations_incurred_total_cpe'),
+    ('GrossOutlayAmountByTAS_CPE', 'gross_outlay_amount_by_tas_cpe'),
+    ('UnobligatedBalance_CPE', 'unobligated_balance_cpe'),
+    ('DeobligationsRecoveriesRefundsByTAS_CPE', 'deobligations_recoveries_r_cpe')
 ])
 db_columns = [val for key, val in mapping.items()]
 
@@ -66,23 +66,23 @@ def initial_query(session):
             The base query (a select from the PublishedAwardFinancialAssistance table with the specified columns).
     """
     return session.query(
-        file_model.amount.label('adjustments_to_unobligated_cpe'),
-        file_model.agency_identifier,
         file_model.allocation_transfer_agency,
-        file_model.availability_type_code,
+        file_model.agency_identifier,
         file_model.beginning_period_of_availa,
-        file_model.amount.label('borrowing_authority_amount_cpe'),
-        file_model.amount.label('budget_authority_appropria_cpe'),
-        file_model.amount.label('total_budgetary_resources_cpe'),
-        file_model.amount.label('budget_authority_unobligat_fyb'),
-        file_model.amount.label('contract_authority_amount_cpe'),
-        file_model.amount.label('deobligations_recoveries_r_cpe'),
         file_model.ending_period_of_availabil,
-        file_model.amount.label('gross_outlay_amount_by_tas_cpe'),
+        file_model.availability_type_code,
         file_model.main_account_code,
-        file_model.amount.label('obligations_incurred_total_cpe'),
+        file_model.sub_account_code,
+        file_model.amount.label('total_budgetary_resources_cpe'),
+        file_model.amount.label('budget_authority_appropria_cpe'),
+        file_model.amount.label('budget_authority_unobligat_fyb'),
+        file_model.amount.label('adjustments_to_unobligated_cpe'),
         file_model.amount.label('other_budgetary_resources_cpe'),
+        file_model.amount.label('contract_authority_amount_cpe'),
+        file_model.amount.label('borrowing_authority_amount_cpe'),
         file_model.amount.label('spending_authority_from_of_cpe'),
         file_model.amount.label('status_of_budgetary_resour_cpe'),
-        file_model.sub_account_code,
-        file_model.amount.label('unobligated_balance_cpe'))
+        file_model.amount.label('obligations_incurred_total_cpe'),
+        file_model.amount.label('gross_outlay_amount_by_tas_cpe'),
+        file_model.amount.label('unobligated_balance_cpe'),
+        file_model.amount.label('deobligations_recoveries_r_cpe'))
