@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from sqlalchemy import or_, and_, func
 from sqlalchemy.orm import outerjoin
+from sqlalchemy.sql.expression import case
 
 from dataactcore.models.domainModels import SF133, TASLookup, CGAC, FREC
 from dataactcore.models.stagingModels import Appropriation
@@ -96,7 +97,14 @@ def query_data(session, agency_code, period, year, page_start, page_stop):
 
     rows = initial_query(session, tas_gtas.c).\
         filter(func.coalesce(tas_gtas.c.financial_indicator2, '') != 'F').\
-        filter(or_(*agency_filters))
+        filter(or_(*agency_filters)).\
+        group_by(tas_gtas.c.allocation_transfer_agency,
+                 tas_gtas.c.agency_identifier,
+                 tas_gtas.c.beginning_period_of_availa,
+                 tas_gtas.c.ending_period_of_availabil,
+                 tas_gtas.c.availability_type_code,
+                 tas_gtas.c.main_account_code,
+                 tas_gtas.c.sub_account_code)
 
     # Slice the final query
     rows = rows.slice(page_start, page_stop)
@@ -111,7 +119,7 @@ def tas_gtas_combo(session, period, year):
             session: DB session
             period: The period for which to get GTAS data
             year: The year for which to get GTAS data
-        
+
         Returns:
             A WITH clause to use with other queries
     """
@@ -157,16 +165,19 @@ def initial_query(session, model):
         model.availability_type_code,
         model.main_account_code,
         model.sub_account_code,
-        model.amount.label('total_budgetary_resources_cpe'),
-        model.amount.label('budget_authority_appropria_cpe'),
-        model.amount.label('budget_authority_unobligat_fyb'),
-        model.amount.label('adjustments_to_unobligated_cpe'),
-        model.amount.label('other_budgetary_resources_cpe'),
-        model.amount.label('contract_authority_amount_cpe'),
-        model.amount.label('borrowing_authority_amount_cpe'),
-        model.amount.label('spending_authority_from_of_cpe'),
-        model.amount.label('status_of_budgetary_resour_cpe'),
-        model.amount.label('obligations_incurred_total_cpe'),
-        model.amount.label('gross_outlay_amount_by_tas_cpe'),
-        model.amount.label('unobligated_balance_cpe'),
-        model.amount.label('deobligations_recoveries_r_cpe'))
+        func.sum(case([(model.line == 1910, model.amount)], else_=0)).label('total_budgetary_resources_cpe'),
+        func.sum(case([(model.line.in_([1160, 1180, 1260, 1280]), model.amount)],
+                      else_=0)).label('budget_authority_appropria_cpe'),
+        func.sum(case([(model.line == 1000, model.amount)], else_=0)).label('budget_authority_unobligat_fyb'),
+        func.sum(case([(and_(model.line >= 1010, model.line <= 1042), model.amount)],
+                      else_=0)).label('adjustments_to_unobligated_cpe'),
+        func.sum(case([(model.line.in_([1540, 1640, 1340, 1440, 1750, 1850]), model.amount)],
+                      else_=0)).label('other_budgetary_resources_cpe'),
+        func.sum(case([(model.line.in_([1540, 1640]), model.amount)], else_=0)).label('contract_authority_amount_cpe'),
+        func.sum(case([(model.line.in_([1340, 1440]), model.amount)], else_=0)).label('borrowing_authority_amount_cpe'),
+        func.sum(case([(model.line.in_([1750, 1850]), model.amount)], else_=0)).label('spending_authority_from_of_cpe'),
+        func.sum(case([(model.line == 2500, model.amount)], else_=0)).label('status_of_budgetary_resour_cpe'),
+        func.sum(case([(model.line == 2190, model.amount)], else_=0)).label('obligations_incurred_total_cpe'),
+        func.sum(case([(model.line == 3020, model.amount)], else_=0)).label('gross_outlay_amount_by_tas_cpe'),
+        func.sum(case([(model.line == 2490, model.amount)], else_=0)).label('unobligated_balance_cpe'),
+        func.sum(case([(model.line.in_([1021, 1033]), model.amount)], else_=0)).label('deobligations_recoveries_r_cpe'))

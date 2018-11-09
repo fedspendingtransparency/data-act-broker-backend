@@ -149,8 +149,6 @@ def generate_detached_file(file_type, cgac_code, frec_code, start, end, quarter,
         except ResponseException as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
 
-        return JsonResponse.create(StatusCode.OK, {'message': 'This functionality is in development and coming soon.'})
-
     # Add job info
     file_type_name = lookups.FILE_TYPE_DICT_LETTER_NAME[file_type]
     new_job = generation_helper.add_generation_job_info(file_type_name=file_type_name, start_date=start, end_date=end)

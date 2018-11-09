@@ -226,7 +226,12 @@ class GenerationTests(BaseTestAPI):
                                       headers={"x-session-id": self.session_id})
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json["message"], "This functionality is in development and coming soon.")
+        json = response.json
+        self.assertIn(json["status"], ["waiting", "running", "finished"])
+        self.assertEqual(json["file_type"], "A")
+        self.assertIn("url", json)
+        self.assertEqual(json["message"], "")
+        self.assertIsNotNone(json["job_id"])
 
     def test_detached_a_file_generation_quarter_format_fail(self):
         """ Test that detached A file generation fails for bad quarter format. """
