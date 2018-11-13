@@ -1,7 +1,6 @@
 import logging
-import re
 
-from dataactbroker.helpers import generation_helper
+from dataactbroker.helpers import generation_helper, generic_helper
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
@@ -144,11 +143,11 @@ def generate_detached_file(file_type, cgac_code, frec_code, start, end, quarter,
         # Check if date format is Q#/YYYY
         if not quarter:
             return JsonResponse.error(ValueError("Must have a quarter for A file generation."), StatusCode.CLIENT_ERROR)
-        if not re.match('Q[1-4]/\d{4}', quarter):
-            return JsonResponse.error(ValueError("Quarter must be in Q#/YYYY format, where # is 1-4."),
-                                      StatusCode.CLIENT_ERROR)
 
-        return JsonResponse.create(StatusCode.OK, {'message': 'This functionality is in development and coming soon.'})
+        try:
+            start, end = generic_helper.quarter_to_dates(quarter)
+        except ResponseException as e:
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
 
     # Add job info
     file_type_name = lookups.FILE_TYPE_DICT_LETTER_NAME[file_type]
@@ -167,7 +166,10 @@ def generate_detached_file(file_type, cgac_code, frec_code, start, end, quarter,
     logger.info(log_data)
 
     try:
-        generation_helper.start_d_generation(new_job, start, end, agency_type, agency_code=agency_code)
+        if file_type in ['D1', 'D2']:
+            generation_helper.start_d_generation(new_job, start, end, agency_type, agency_code=agency_code)
+        else:
+            generation_helper.start_a_generation(new_job, start, end, agency_code)
     except Exception as e:
         mark_job_status(new_job.job_id, 'failed')
         new_job.error_message = str(e)
