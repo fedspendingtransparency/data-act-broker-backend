@@ -67,5 +67,11 @@ def downgrade_data_broker():
     op.drop_index(op.f('ix_file_generation_agency_type'), table_name='file_generation')
     op.drop_index(op.f('ix_file_generation_agency_code'), table_name='file_generation')
     op.drop_table('file_generation')
+    op.execute("""
+        DROP TYPE generation_agency_types
+    """)
+    op.execute("""
+        DROP TYPE generation_file_types
+    """)
     # ### end Alembic commands ###
 
