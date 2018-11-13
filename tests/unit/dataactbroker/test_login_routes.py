@@ -48,7 +48,8 @@ def test_no_perms_broker_user(create_session_mock, max_dict_mock, database, monk
     # This is to prevent an integrity error with other tests that create users.
     sess.query(func.lower(User.email) == func.lower("something@test.com")).delete()
     sess.commit()
-    assert response['message'] == "There are no permissions assigned to this user!"
+    assert response['message'] == "There are no DATA Act Broker permissions assigned to this Service Account. You " \
+                                  "may request permissions at https://community.max.gov/x/fJwuRQ"
 
 
 @patch('dataactbroker.handlers.account_handler.get_max_dict')
