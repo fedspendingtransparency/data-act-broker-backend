@@ -65,18 +65,19 @@ def add_generation_routes(app, is_local, server_path):
     @app.route("/v1/generate_detached_file/", methods=["POST"])
     @requires_login
     @use_kwargs({
-        'file_type': webargs_fields.String(required=True, validate=webargs_validate.OneOf(('D1', 'D2'))),
+        'file_type': webargs_fields.String(required=True, validate=webargs_validate.OneOf(('A', 'D1', 'D2'))),
         'cgac_code': webargs_fields.String(),
         'frec_code': webargs_fields.String(),
-        'start': webargs_fields.String(required=True),
-        'end': webargs_fields.String(required=True),
+        'start': webargs_fields.String(),
+        'end': webargs_fields.String(),
+        'quarter': webargs_fields.String(),
         'agency_type': webargs_fields.String(
             missing='awarding',
             validate=webargs_validate.OneOf(('awarding', 'funding'),
                                             error="Must be either awarding or funding if provided")
         )
     })
-    def generate_detached_file(file_type, cgac_code, frec_code, start, end, agency_type):
+    def generate_detached_file(file_type, cgac_code, frec_code, start, end, quarter, agency_type):
         """ Generate a file from external API, independent from a submission
 
             Attributes:
@@ -87,7 +88,8 @@ def add_generation_routes(app, is_local, server_path):
                 end: end date in a string, formatted MM/DD/YYYY
                 agency_type: The type of agency (awarding or funding) to generate the file for
         """
-        return generation_handler.generate_detached_file(file_type, cgac_code, frec_code, start, end, agency_type)
+        return generation_handler.generate_detached_file(file_type, cgac_code, frec_code, start, end, quarter,
+                                                         agency_type)
 
     @app.route("/v1/check_detached_generation_status/", methods=["GET"])
     @requires_login
