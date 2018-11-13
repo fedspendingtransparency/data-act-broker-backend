@@ -6,6 +6,7 @@
 ### Login to Max
 - Step 1: Authenticate with MAX directly to obtain the `ticket` value for Step 2
     - Please refer to documentation provided by MAX.gov [here](./Using_Digital_Certificates_for_MAX_Authentication.pdf).
+    - Information about requesting DATA Act Broker permissions within MAX can be found [here](https://community.max.gov/x/fJwuRQ).
     - While we do not control MAX's login process, for simplicity purposes, here is a sample CURL request to the MAX login endpoint:
     ```
         curl -L -j -D - -b none 
