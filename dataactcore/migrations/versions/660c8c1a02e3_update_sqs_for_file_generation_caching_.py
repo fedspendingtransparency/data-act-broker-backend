@@ -44,7 +44,6 @@ def downgrade_data_broker():
     op.add_column('sqs', sa.Column('job_id', sa.INTEGER(), autoincrement=False, nullable=False))
     op.add_column('sqs', sa.Column('agency_type', postgresql.ENUM('awarding', 'funding', name='agency_types'), autoincrement=False, nullable=True))
     op.create_unique_constraint('uniq_job_id', 'sqs', ['job_id'])
-    op.drop_constraint('unique_sqs_message', 'sqs', type_='unique')
     op.drop_column('sqs', 'attributes')
     op.drop_column('sqs', 'message')
     # ### end Alembic commands ###
