@@ -344,7 +344,7 @@ def update_generation_submission(sess, job):
     return submission.frec_code if submission.frec_code else submission.cgac_code
 
 
-def create_generation_job(file_type_name, job, start_date, end_date):
+def create_generation_job(file_type_name, start_date, end_date):
     """ Add details to jobs for generating files
 
         Args:
@@ -359,10 +359,9 @@ def create_generation_job(file_type_name, job, start_date, end_date):
     sess = GlobalDB.db().session
 
     # Create a new job for a detached generation
-    if job is None:
-        job = Job(job_type_id=lookups.JOB_TYPE_DICT['file_upload'], user_id=g.user.user_id,
-                  file_type_id=lookups.FILE_TYPE_DICT[file_type_name], start_date=start_date, end_date=end_date)
-        sess.add(job)
+    job = Job(job_type_id=lookups.JOB_TYPE_DICT['file_upload'], user_id=g.user.user_id,
+              file_type_id=lookups.FILE_TYPE_DICT[file_type_name], start_date=start_date, end_date=end_date)
+    sess.add(job)
 
     # Update the job details
     job.message = None
