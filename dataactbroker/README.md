@@ -80,7 +80,7 @@ Example output:
 ### User Routes
 
 #### POST "/v1/max_login/"
-This route sends a request to the backend with the ticket obtained from the MAX login endpoint in order to verify authentication and access to the Data Broker. If called by a service account, a certificate is required for authentication.
+This route sends a request to the backend with the ticket obtained from the MAX login endpoint in order to verify authentication and access to the Data Broker. If called by a service account, a certificate is required for authentication. **IMPORTANT**: The ticket has a 30 second expiration window so it must be used immediately after being received in order for it to be valid.
 
 #### Body (JSON)
 
