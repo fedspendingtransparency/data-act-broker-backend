@@ -1,6 +1,7 @@
 import logging
 
-from dataactbroker.helpers.generation_helper import d_file_query, copy_file_generation_to_job
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
@@ -8,7 +9,7 @@ from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.models.jobModels import Job
 from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_NAME
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
-from dataactcore.utils import fileD1, fileD2, fileE, fileF
+from dataactcore.utils import fileA, fileD1, fileD2, fileE, fileF
 
 from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file
 
@@ -60,12 +61,12 @@ class FileGenerationManager:
                 'start_date': self.file_generation.start_date, 'end_date': self.file_generation.end_date,
                 'file_generation_id': self.file_generation.file_generation_id
             })
-        elif self.file_type == 'E':
-            self.generate_e_file()
+        elif self.job.file_type.letter_name in ['A', 'E', 'F']:
             log_data['job_id'] = self.job.job_id
-        elif self.file_type == 'F':
-            self.generate_f_file()
-            log_data['job_id'] = self.job.job_id
+
+            # Call self.generate_%s_file() where %s is a, e, or f based on the Job's file_type
+            file_type_lower = self.job.file_type.letter_name.lower()
+            getattr(self, 'generate_%s_file' % file_type_lower)()
         else:
             e = 'No FileGeneration object for D file generation.' if self.file_type in ['D1', 'D2'] else \
                 'Cannot generate file for {} file type.'.format(self.file_type if self.file_type else 'empty')
@@ -159,3 +160,24 @@ class FileGenerationManager:
         logger.info(log_data)
 
         write_csv(self.job.original_filename, self.job.filename, self.is_local, header, body)
+
+    def generate_a_file(self):
+        """ Write file A to an appropriate CSV. """
+        log_data = {'message': 'Starting file A generation', 'message_type': 'ValidatorInfo', 'job_id': self.job.job_id,
+                    'agency_code': self.agency_code, 'file_type': self.job.file_type.letter_name,
+                    'start_date': self.job.start_date, 'end_date': self.job.end_date,
+                    'filename': self.job.original_filename}
+        logger.info(log_data)
+
+        local_file = "".join([CONFIG_BROKER['d_file_storage_path'], self.job.original_filename])
+        headers = [key for key in fileA.mapping]
+        # add 3 months to account for fiscal year
+        period_date = self.job.end_date + relativedelta(months=3)
+        query_utils = {"agency_code": self.agency_code, "period": period_date.month, "year": period_date.year,
+                       "sess": self.sess}
+
+        # Generate the file and put in S3
+        write_query_to_file(local_file, self.job.filename, headers, self.job.file_type.letter_name, self.is_local,
+                            a_file_query, query_utils)
+        log_data['message'] = 'Finished writing to file: {}'.format(self.job.original_filename)
+        logger.info(log_data)
