@@ -7,6 +7,8 @@ from collections import OrderedDict
 from datetime import datetime
 from unittest.mock import Mock
 
+from dataactbroker.helpers import generation_helper
+
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.stagingModels import DetachedAwardProcurement, PublishedAwardFinancialAssistance
@@ -190,47 +192,48 @@ def test_generate_funding_d2(mock_broker_config_paths, database):
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_generate_file_updates_jobs(mock_broker_config_paths, database):
+def test_generate_file_updates_jobs(monkeypatch, mock_broker_config_paths, database):
     sess = database.session
-    job_one = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                         file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, original_filename=None,
-                         start_date='01/01/2017', end_date='01/31/2017')
-    job_two = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                         file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, original_filename=None,
-                         start_date='01/01/2017', end_date='01/31/2017')
-    job_three = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                           file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, original_filename=None,
-                           start_date='01/01/2017', end_date='01/31/2017')
-    file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
-                                     file_type='D1', agency_code='123', agency_type='awarding', is_cached_file=True,
-                                     file_path=None)
-    sess.add_all([job_one, job_two, job_three, file_gen])
+    job1 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                      file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, original_filename=None,
+                      start_date='01/01/2017', end_date='01/31/2017')
+    job2 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                      file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, original_filename=None,
+                      start_date='01/01/2017', end_date='01/31/2017')
+    job3 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                      file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, original_filename=None,
+                      start_date='01/01/2017', end_date='01/31/2017')
+    file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017',
+                                     end_date='01/31/2017', file_type='D1', agency_code='123',
+                                     agency_type='awarding', is_cached_file=True, file_path=None)
+    sess.add_all([job1, job2, job3, file_gen])
     sess.commit()
-    job_one.file_generation_id = file_gen.file_generation_id
-    job_two.file_generation_id = file_gen.file_generation_id
-    job_three.file_generation_id = file_gen.file_generation_id
+    job1.file_generation_id = file_gen.file_generation_id
+    job2.file_generation_id = file_gen.file_generation_id
+    job3.file_generation_id = file_gen.file_generation_id
     sess.commit()
 
+    monkeypatch.setattr(generation_helper, 'g', Mock(return_value={'is_local': CONFIG_BROKER['local']}))
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], file_generation=file_gen)
     file_gen_manager.generate_file()
     sess.refresh(file_gen)
 
     original_filename = file_gen.file_path.split('/')[-1]
 
-    assert job_one.job_status_id == JOB_STATUS_DICT['finished']
-    assert job_one.original_filename == original_filename
-    assert job_one.filename == '{}{}'.format(
-        CONFIG_BROKER['broker_files'] if CONFIG_BROKER['local'] else job_one.submission_id + '/', original_filename)
+    assert job1.job_status_id == JOB_STATUS_DICT['finished']
+    assert job1.original_filename == original_filename
+    assert job1.filename == '{}{}'.format(
+        CONFIG_BROKER['broker_files'] if CONFIG_BROKER['local'] else job1.submission_id + '/', original_filename)
 
-    assert job_two.job_status_id == JOB_STATUS_DICT['finished']
-    assert job_two.original_filename == original_filename
-    assert job_two.filename == '{}{}'.format(
-        CONFIG_BROKER['broker_files'] if CONFIG_BROKER['local'] else job_two.submission_id + '/', original_filename)
+    assert job2.job_status_id == JOB_STATUS_DICT['finished']
+    assert job2.original_filename == original_filename
+    assert job2.filename == '{}{}'.format(
+        CONFIG_BROKER['broker_files'] if CONFIG_BROKER['local'] else job2.submission_id + '/', original_filename)
 
-    assert job_three.job_status_id == JOB_STATUS_DICT['finished']
-    assert job_three.original_filename == original_filename
-    assert job_three.filename == '{}{}'.format(
-        CONFIG_BROKER['broker_files'] if CONFIG_BROKER['local'] else job_three.submission_id + '/', original_filename)
+    assert job3.job_status_id == JOB_STATUS_DICT['finished']
+    assert job3.original_filename == original_filename
+    assert job3.filename == '{}{}'.format(
+        CONFIG_BROKER['broker_files'] if CONFIG_BROKER['local'] else job3.submission_id + '/', original_filename)
 
 
 @pytest.mark.usefixtures("job_constants")
@@ -297,7 +300,7 @@ def test_generate_e_file_query(monkeypatch, mock_broker_config_paths, database):
     monkeypatch.setattr(file_generation_manager.fileE, 'retrieve_rows', Mock(return_value=[]))
 
     file_gen_manager = FileGenerationManager(database.session, CONFIG_BROKER['local'], job=job)
-    file_gen_manager.generate_e_file()
+    file_gen_manager.generate_file()
 
     # [0][0] gives us the first, non-keyword args
     call_args = file_generation_manager.fileE.retrieve_rows.call_args[0][0]
@@ -336,7 +339,7 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
     ]
 
     file_gen_manager = FileGenerationManager(database.session, CONFIG_BROKER['local'], job=job)
-    file_gen_manager.generate_e_file()
+    file_gen_manager.generate_file()
 
     expected = [
         ['AwardeeOrRecipientUniqueIdentifier', 'AwardeeOrRecipientLegalEntityName', 'UltimateParentUniqueIdentifier',

@@ -409,12 +409,12 @@ def copy_file_generation_to_job(job, file_generation, is_local):
             file_generation: Cached FileGeneration object to copy the data from
             is_local: A boolean flag indicating whether the application is being run locally or not
     """
+    sess = GlobalDB.db().session
     log_data = {
         'message': 'Copying FileGeneration {} data to Job {}'.format(file_generation.file_generation_id, job.job_id),
         'message_type': 'BrokerInfo', 'job_id': job.job_id, 'file_type': job.file_type.name,
         'file_generation_id': file_generation.file_generation_id}
     logger.info(log_data)
-    sess = GlobalDB.db().session
 
     # Do not edit submissions that have already successfully completed
     sess.refresh(job)
@@ -430,7 +430,7 @@ def copy_file_generation_to_job(job, file_generation, is_local):
         return
 
     # Generate file path for child Job's filename
-    filepath = CONFIG_BROKER['broker_files'] if is_local else "{}/".format(str(job.submission_id))
+    filepath = CONFIG_BROKER['broker_files'] if g.is_local else "{}/".format(str(job.submission_id))
     original_filename = file_generation.file_path.split('/')[-1]
     filename = '{}{}'.format(filepath, original_filename)
 
@@ -449,7 +449,7 @@ def copy_file_generation_to_job(job, file_generation, is_local):
         val_job.original_filename = original_filename
 
         # Copy the data to the Submission's bucket
-        if not is_local and file_generation.file_path != job.filename:
+        if not g.is_local and file_generation.file_path != job.filename:
             # Check to see if the same file exists in the child bucket
             s3 = boto3.client('s3', region_name=CONFIG_BROKER["aws_region"])
             bucket = CONFIG_BROKER['aws_bucket']
@@ -497,6 +497,9 @@ def reset_generation_jobs(sess, job):
         Args:
             sess: Current database session
             job: The generation Job
+
+        Raises:
+            Exception: If the job_id is not valid
     """
     job.filename = None
     job.original_filename = None

@@ -419,7 +419,7 @@ def test_check_submission_d_file_generation(database):
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_copy_file_generation_to_job(database):
+def test_copy_file_generation_to_job(monkeypatch, database):
     sess = database.session
     original_filename = 'new_filename.csv'
     file_path = gen_file_path_from_submission('None', original_filename)
@@ -430,6 +430,7 @@ def test_copy_file_generation_to_job(database):
     sess.add_all([job, file_gen])
     sess.commit()
 
+    monkeypatch.setattr(generation_helper, 'g', Mock(return_value={'is_local': CONFIG_BROKER['local']}))
     copy_file_generation_to_job(job, file_gen, True)
     sess.refresh(job)
     sess.refresh(file_gen)

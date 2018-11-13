@@ -57,9 +57,6 @@ def run_app():
             # Set current_message to None before every loop to ensure it's never set to the previous message
             current_message = None
             try:
-                # Create connection to database
-                sess = GlobalDB.db().session
-
                 # Grabs one (or more) messages from the queue
                 messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
                 for message in messages:
@@ -71,10 +68,10 @@ def run_app():
 
                     # Generating a file
                     if msg_attr and msg_attr.get('validation_type') == 'generation':
-                        handled_error = validator_process_file_generation(sess, message.body, local)
+                        handled_error = validator_process_file_generation(message.body, local)
                     # Running validations
                     else:
-                        handled_error = validator_process_job(sess, message.body, local, current_message)
+                        handled_error = validator_process_job(message.body, local, current_message)
 
                     # Delete from SQS once processed
                     if not handled_error:
@@ -84,22 +81,18 @@ def run_app():
                 # Log exceptions
                 logger.error(traceback.format_exc())
 
-            finally:
-                GlobalDB.close()
 
-
-def validator_process_file_generation(sess, file_gen_id, is_local):
+def validator_process_file_generation(file_gen_id):
     """ Retrieves a FileGeneration object based on its ID, and kicks off a file generation. Handles errors by ensuring
         the FileGeneration (if exists) is no longer cached.
 
     Args:
-        sess: Current database session
         file_gen_id: ID of a FileGeneration object
-        is_local: A boolean flag indicating whether the application is being run locally or not
 
     Raises:
         Any Exceptions raised by the FileGenerationManager
     """
+    sess = GlobalDB.db().session
     file_generation = None
     has_errors = False
 
@@ -109,7 +102,7 @@ def validator_process_file_generation(sess, file_gen_id, is_local):
             raise ResponseException('FileGeneration ID {} not found in database'.format(file_gen_id),
                                     StatusCode.CLIENT_ERROR, None)
 
-        file_generation_manager = FileGenerationManager(sess, is_local, file_generation=file_generation)
+        file_generation_manager = FileGenerationManager(sess, g.is_local, file_generation=file_generation)
         file_generation_manager.generate_file()
 
     except Exception as e:
@@ -134,19 +127,18 @@ def validator_process_file_generation(sess, file_gen_id, is_local):
     return has_errors
 
 
-def validator_process_job(sess, job_id, is_local, current_message):
+def validator_process_job(job_id, current_message):
     """ Retrieves a Job based on its ID, and kicks off a validation. Handles errors by ensuring the Job (if exists) is
         no longer running.
 
     Args:
-        sess: Current database session
         job_id: ID of a Job
-        is_local: A boolean flag indicating whether the application is being run locally or not
         current_message: The currently in-transit SQS message
 
     Raises:
         Any Exceptions raised by the ValidationManager
     """
+    sess = GlobalDB.db().session
     job = None
     has_errors = False
     try:
@@ -163,11 +155,11 @@ def validator_process_job(sess, job_id, is_local, current_message):
         # We can either validate or generate a file based on Job ID
         if job.job_type.name == 'file_upload':
             # Generate E or F file
-            file_generation_manager = FileGenerationManager(sess, is_local, job=job)
+            file_generation_manager = FileGenerationManager(sess, g.is_local, job=job)
             file_generation_manager.generate_file()
         else:
             # Run validations
-            validation_manager = ValidationManager(is_local, CONFIG_SERVICES['error_report_path'])
+            validation_manager = ValidationManager(g.is_local, CONFIG_SERVICES['error_report_path'])
             validation_manager.validate_job(job.job_id)
 
     except ResponseException as e:
