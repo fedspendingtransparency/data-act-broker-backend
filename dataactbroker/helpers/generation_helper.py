@@ -344,7 +344,7 @@ def update_generation_submission(sess, job):
     return submission.frec_code if submission.frec_code else submission.cgac_code
 
 
-def add_generation_job_info(file_type_name, job=None, start_date=None, end_date=None):
+def create_generation_job(file_type_name, job, start_date, end_date):
     """ Add details to jobs for generating files
 
         Args:

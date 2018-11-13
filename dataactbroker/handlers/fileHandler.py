@@ -676,6 +676,7 @@ class FileHandler:
                 # update the list of affected agency_codes
                 if temp_obj['awarding_agency_code'] not in agency_codes_list:
                     agency_codes_list.append(temp_obj['awarding_agency_code'])
+                    agency_codes_list.append(temp_obj['funding_agency_code'])
 
                 if row_count % 1000 == 0:
                     log_data['message'] = 'Completed derivations for {} rows'.format(row_count)
@@ -683,14 +684,11 @@ class FileHandler:
                 row_count += 1
 
             # update all cached D2 FileGeneration objects that could have been affected by the publish
-            for agency_code in agency_codes_list:
-                sess.query(FileGeneration).\
-                    filter(FileGeneration.agency_code == agency_code,
-                           FileGeneration.is_cached_file.is_(True),
-                           FileGeneration.file_type == 'D2',
-                           sa.or_(FileGeneration.start_date <= submission.reporting_end_date,
-                                  FileGeneration.end_date >= submission.reporting_start_date)).\
-                    update({"is_cached_file": False}, synchronize_session=False)
+            sess.query(FileGeneration).\
+                filter(FileGeneration.agency_code.in_(set(agency_codes_list)),
+                       FileGeneration.is_cached_file.is_(True),
+                       FileGeneration.file_type == 'D2').\
+                update({"is_cached_file": False}, synchronize_session=False)
             sess.commit()
         except Exception as e:
             log_data['message'] = 'An error occurred while publishing a FABS submission'

@@ -146,14 +146,13 @@ def generate_detached_file(file_type, cgac_code, frec_code, start_date, end_date
             return JsonResponse.error(ValueError("Must have a quarter for A file generation."), StatusCode.CLIENT_ERROR)
 
         try:
-            start, end = generic_helper.quarter_to_dates(quarter)
+            start_date, end_date = generic_helper.quarter_to_dates(quarter)
         except ResponseException as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
 
     # Add job info
     file_type_name = lookups.FILE_TYPE_DICT_LETTER_NAME[file_type]
-    new_job = generation_helper.add_generation_job_info(file_type_name=file_type_name, start_date=start_date,
-                                                        end_date=end_date)
+    new_job = generation_helper.create_generation_job(file_type_name, start_date, end_date)
 
     agency_code = frec_code if frec_code else cgac_code
     logger.info({'message': 'Starting detached {} file generation'.format(file_type), 'message_type': 'BrokerInfo',
