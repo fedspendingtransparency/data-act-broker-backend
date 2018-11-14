@@ -39,6 +39,9 @@ broker:
 
     ## Smartronix API URLs ##
 
+    # File A Generation
+    appropriations_file_name: appropriations_data.csv
+
     # File D1 API
     # Uses "{}" because it requires string formatting to insert query parameters
     # If the URL is provided, the file name provided will be used when uploading to S3
