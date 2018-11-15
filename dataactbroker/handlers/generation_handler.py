@@ -1,6 +1,6 @@
 import logging
 
-from dataactbroker.helpers import generation_helper
+from dataactbroker.helpers import generation_helper, generic_helper
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
@@ -104,7 +104,7 @@ def check_generation(submission, file_type):
     return JsonResponse.create(StatusCode.OK, response_dict)
 
 
-def generate_detached_file(file_type, cgac_code, frec_code, start, end, agency_type):
+def generate_detached_file(file_type, cgac_code, frec_code, start, end, quarter, agency_type):
     """ Start a file generation job for the specified file type not connected to a submission
 
         Args:
@@ -113,6 +113,7 @@ def generate_detached_file(file_type, cgac_code, frec_code, start, end, agency_t
             frec_code: the code of a FREC agency if generating for a FREC agency
             start: start date in a string, formatted MM/DD/YYYY
             end: end date in a string, formatted MM/DD/YYYY
+            quarter: quarter to generate for, formatted Q#/YYYY
             agency_type: The type of agency (awarding or funding) to generate the file for
 
         Returns:
@@ -126,13 +127,27 @@ def generate_detached_file(file_type, cgac_code, frec_code, start, end, agency_t
         return JsonResponse.error(ValueError("Detached file generation requires CGAC or FR Entity Code"),
                                   StatusCode.CLIENT_ERROR)
 
-    # Check if date format is MM/DD/YYYY
-    if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
-        raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
+    if file_type in ['D1', 'D2']:
+        # Make sure we have a start and end date for D1/D2 generation
+        if not start or not end:
+            return JsonResponse.error(ValueError("Must have a start and end date for D file generation."),
+                                      StatusCode.CLIENT_ERROR)
+        # Check if date format is MM/DD/YYYY
+        if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
+            raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
 
-    if agency_type not in ('awarding', 'funding'):
-        return JsonResponse.error(ValueError("agency_type must be either awarding or funding."),
-                                  StatusCode.CLIENT_ERROR)
+        if agency_type not in ('awarding', 'funding'):
+            return JsonResponse.error(ValueError("agency_type must be either awarding or funding."),
+                                      StatusCode.CLIENT_ERROR)
+    else:
+        # Check if date format is Q#/YYYY
+        if not quarter:
+            return JsonResponse.error(ValueError("Must have a quarter for A file generation."), StatusCode.CLIENT_ERROR)
+
+        try:
+            start, end = generic_helper.quarter_to_dates(quarter)
+        except ResponseException as e:
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
 
     # Add job info
     file_type_name = lookups.FILE_TYPE_DICT_LETTER_NAME[file_type]
@@ -151,7 +166,10 @@ def generate_detached_file(file_type, cgac_code, frec_code, start, end, agency_t
     logger.info(log_data)
 
     try:
-        generation_helper.start_d_generation(new_job, start, end, agency_type, agency_code=agency_code)
+        if file_type in ['D1', 'D2']:
+            generation_helper.start_d_generation(new_job, start, end, agency_type, agency_code=agency_code)
+        else:
+            generation_helper.start_a_generation(new_job, start, end, agency_code)
     except Exception as e:
         mark_job_status(new_job.job_id, 'failed')
         new_job.error_message = str(e)

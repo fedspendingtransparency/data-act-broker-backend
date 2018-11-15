@@ -12,6 +12,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models import lookups
 from dataactcore.models.jobModels import FileRequest, FPDSUpdate, Job, Submission
+from dataactcore.utils import fileA
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
@@ -94,6 +95,43 @@ def start_e_f_generation(job):
     # Add job_id to the SQS job queue
     queue = sqs_queue()
     msg_response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes={})
+
+    log_data['message'] = 'SQS message response: {}'.format(msg_response)
+    logger.debug(log_data)
+
+
+def start_a_generation(job, start_date, end_date, agency_code):
+    """ Validates the start and end dates of the generation and sends the job information to SQS.
+
+        Args:
+            job: File generation job to start
+            start_date: String to parse as the start date of the generation
+            end_date: String to parse as the end date of the generation
+            agency_code: Agency code for A file generations
+    """
+    if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
+        raise ResponseException("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
+                                StatusCode.CLIENT_ERROR)
+
+    # Update the Job's start and end dates
+    sess = GlobalDB.db().session
+    job.start_date = start_date
+    job.end_date = end_date
+    sess.commit()
+
+    mark_job_status(job.job_id, "waiting")
+
+    file_type = job.file_type.letter_name
+    log_data = {'message': 'Sending {} file generation job {} to Validator in SQS'.format(file_type, job.job_id),
+                'message_type': 'BrokerInfo', 'job_id': job.job_id, 'file_type': file_type}
+    logger.info(log_data)
+
+    # Set SQS message attributes
+    message_attr = {'agency_code': {'DataType': 'String', 'StringValue': agency_code}}
+
+    # Add job_id to the SQS job queue
+    queue = sqs_queue()
+    msg_response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes=message_attr)
 
     log_data['message'] = 'SQS message response: {}'.format(msg_response)
     logger.debug(log_data)
@@ -513,4 +551,24 @@ def d_file_query(query_utils, page_start, page_end):
     rows = query_utils["file_utils"].query_data(query_utils["sess"], query_utils["agency_code"],
                                                 query_utils["agency_type"], query_utils["start"], query_utils["end"],
                                                 page_start, page_end)
+    return rows.all()
+
+
+def a_file_query(query_utils, page_start, page_end):
+    """ Retrieve D1 or D2 data.
+
+            Args:
+                query_utils: object containing:
+                    sess: database session
+                    agency_code: FREC or CGAC code for generation
+                    start: beginning of period for D file
+                    end: end of period for D file
+                page_start: beginning of pagination
+                page_end: end of pagination
+
+            Return:
+                paginated A query results
+        """
+    rows = fileA.query_data(query_utils["sess"], query_utils["agency_code"], query_utils["period"], query_utils["year"],
+                            page_start, page_end)
     return rows.all()
