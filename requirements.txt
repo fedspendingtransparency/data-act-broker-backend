@@ -48,7 +48,7 @@ python-json-logger==0.1.5   # check production configs before removing
 python-logstash==0.4.6
 pytz==2016.7
 PyYAML==3.11
-requests==2.8.1
+requests==2.20.1
 rsa==3.3
 s3transfer==0.1.10
 six==1.10.0
