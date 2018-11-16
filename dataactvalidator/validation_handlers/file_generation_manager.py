@@ -1,9 +1,10 @@
 import logging
 
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 from dataactbroker.helpers.generation_helper import (
-    retrieve_cached_file_request, update_validation_job_info, d_file_query)
+    retrieve_cached_file_request, update_validation_job_info, d_file_query, a_file_query)
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
@@ -12,7 +13,7 @@ from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.models.jobModels import FileRequest, Submission
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
-from dataactcore.utils import fileD1, fileD2, fileE, fileF
+from dataactcore.utils import fileA, fileD1, fileD2, fileE, fileF
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
@@ -92,6 +93,8 @@ class FileGenerationManager:
                 update_validation_job_info(self.sess, self.job)
 
                 self.generate_d_file()
+            elif self.job.file_type.letter_name == 'A':
+                self.generate_a_file()
             elif self.job.file_type.letter_name == 'E':
                 self.generate_e_file()
             else:
@@ -196,3 +199,24 @@ class FileGenerationManager:
         logger.info(log_data)
 
         write_csv(self.job.original_filename, self.job.filename, self.is_local, header, body)
+
+    def generate_a_file(self):
+        """ Write file A to an appropriate CSV. """
+        log_data = {'message': 'Starting file A generation', 'message_type': 'ValidatorInfo', 'job_id': self.job.job_id,
+                    'agency_code': self.agency_code, 'file_type': self.job.file_type.letter_name,
+                    'start_date': self.job.start_date, 'end_date': self.job.end_date,
+                    'filename': self.job.original_filename}
+        logger.info(log_data)
+
+        local_file = "".join([CONFIG_BROKER['d_file_storage_path'], self.job.original_filename])
+        headers = [key for key in fileA.mapping]
+        # add 3 months to account for fiscal year
+        period_date = self.job.end_date + relativedelta(months=3)
+        query_utils = {"agency_code": self.agency_code, "period": period_date.month, "year": period_date.year,
+                       "sess": self.sess}
+
+        # Generate the file and put in S3
+        write_query_to_file(local_file, self.job.filename, headers, self.job.file_type.letter_name, self.is_local,
+                            a_file_query, query_utils)
+        log_data['message'] = 'Finished writing to file: {}'.format(self.job.original_filename)
+        logger.info(log_data)
