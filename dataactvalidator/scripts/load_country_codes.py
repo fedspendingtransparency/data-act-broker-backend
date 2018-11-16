@@ -8,7 +8,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CountryCode
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
+from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
