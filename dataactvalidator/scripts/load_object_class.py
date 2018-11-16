@@ -9,7 +9,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import ObjectClass
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
+from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 

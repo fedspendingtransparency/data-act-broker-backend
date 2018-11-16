@@ -6,13 +6,13 @@ from webtest import TestApp
 
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.scripts.databaseSetup import drop_database
-from dataactcore.scripts.setupJobTrackerDB import setup_job_tracker_db
-from dataactcore.scripts.setupErrorDB import setup_error_db
-from dataactcore.scripts.setupValidationDB import setup_validation_db
+from dataactcore.scripts.database_setup import drop_database
+from dataactcore.scripts.setup_job_tracker_db import setup_job_tracker_db
+from dataactcore.scripts.setup_error_db import setup_error_db
+from dataactcore.scripts.setup_validation_db import setup_validation_db
 from dataactcore.models.jobModels import Submission
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
-from dataactcore.scripts.databaseSetup import create_database, run_migrations
+from dataactcore.scripts.database_setup import create_database, run_migrations
 import dataactcore.config
 
 

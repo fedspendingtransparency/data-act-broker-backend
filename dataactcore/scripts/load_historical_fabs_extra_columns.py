@@ -15,7 +15,7 @@ from dataactcore.models.userModel import User # noqa
 from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import clean_data
+from dataactvalidator.scripts.loader_utils import clean_data
 
 logger = logging.getLogger(__name__)
 
