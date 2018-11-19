@@ -14,6 +14,7 @@ node_modules
 dataactbroker/venv
 dataactbroker/errorLog
 dataactbroker/responseErrorLog
+.DS_Store
 tests/validatorResponse
 tests/test.json
 dataactbroker/validatorResponse
@@ -37,3 +38,5 @@ dataactvalidator/config/program_activity.csv
 dataactvalidator/config/agency_codes_list.csv
 dataactvalidator/config/zips/zip4mst*
 temp/
+local-configs.yml
+local_configs.yml

@@ -78,7 +78,7 @@ def test_failure_fiscal_year_quarter(database):
 
 
 def test_failure_success_ignore_recertification(database):
-    """ Testing invalid program activity, ingored since recertification FY2017 Q2 or Q3 """
+    """ Testing invalid program activity, ingored since FY2017 Q2 or Q3 """
 
     populate_publish_status(database)
 
@@ -91,44 +91,34 @@ def test_failure_success_ignore_recertification(database):
     pa = ProgramActivityFactory(fiscal_year_quarter='FY14Q1', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
+    # Test with published submission
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=6,
                                    publish_status_id=PUBLISH_STATUS_DICT['updated'])
 
     assert number_of_errors(_FILE, database, models=[op, pa], submission=submission) == 0
 
-
-def test_failure_not_recertification(database):
-    """ Testing invalid program activity, ingored since not recertification FY2017 Q2 or Q3 """
-
-    populate_publish_status(database)
-
-    op = ObjectClassProgramActivityFactory(row_number=1, submission_id=1, agency_identifier='test2',
-                                           main_account_code='test2', program_activity_name='test2',
-                                           program_activity_code='test2')
-
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY14Q1', agency_id='test', allocation_transfer_id='test',
-                                account_number='test', program_activity_name='test', program_activity_code='test')
-
-    submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=6,
+    # Test with unpublished submission
+    submission = SubmissionFactory(submission_id=2, reporting_fiscal_year='2017', reporting_fiscal_period=6,
                                    publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
 
-    assert number_of_errors(_FILE, database, models=[op, pa], submission=submission) == 1
+    assert number_of_errors(_FILE, database, models=[op, pa], submission=submission) == 0
 
 
-def test_success_unknown_value(database):
-    """ Testing valid Unknown/other program activity name with '0000' code """
+def test_fail_unknown_value_0000_code_has_outlays(database):
+    """ Testing invalid Unknown/other program activity name with '0000' code with obligations/outlays """
 
     op = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
-                                           program_activity_name='Unknown/Other', program_activity_code='0000')
+                                           program_activity_name='Unknown/Other', program_activity_code='0000',
+                                           deobligations_recov_by_pro_cpe=10)
 
     pa = ProgramActivityFactory(fiscal_year_quarter='FYQ', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
-    assert number_of_errors(_FILE, database, models=[op, pa]) == 0
+    assert number_of_errors(_FILE, database, models=[op, pa]) == 1
 
 
-def test_success_ignore_blank_program_activity_name(database):
-    """ Testing program activity name validation to ignore blanks if monetary sum is 0 """
+def test_fail_ignore_blank_program_activity_name(database):
+    """ Testing program activity name validation to not ignore blanks """
     op = ObjectClassProgramActivityFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
                                            main_account_code='test', program_activity_name='',
                                            program_activity_code='test',
@@ -152,7 +142,7 @@ def test_success_ignore_blank_program_activity_name(database):
     pa = ProgramActivityFactory(fiscal_year_quarter='FYQ', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
-    assert number_of_errors(_FILE, database, models=[op, pa]) == 0
+    assert number_of_errors(_FILE, database, models=[op, pa]) == 1
 
 
 def test_success_ignore_case(database):
@@ -191,7 +181,7 @@ def test_failure_program_activity_name(database):
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=3,
                                    publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
 
-    assert number_of_errors(_FILE, database, models=[op_1, op_2, pa], submission=submission) == 1
+    assert number_of_errors(_FILE, database, models=[op_1, op_2, pa], submission=submission) == 2
 
 
 def test_failure_program_activity_code(database):
@@ -213,7 +203,7 @@ def test_failure_program_activity_code(database):
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2016', reporting_fiscal_period=3,
                                    publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
 
-    assert number_of_errors(_FILE, database, models=[op_1, op_2, pa], submission=submission) == 1
+    assert number_of_errors(_FILE, database, models=[op_1, op_2, pa], submission=submission) == 2
 
 
 def test_failure_empty_activity_name(database):
@@ -289,3 +279,51 @@ def test_failure_empty_activity_name(database):
                                            ussgl498100_upward_adjustm_cpe=5, ussgl498200_upward_adjustm_cpe=5)
 
     assert number_of_errors(_FILE, database, models=[op, pa]) == 1
+
+
+def test_success_unknown_value(database):
+    """ Testing valid Unknown/other program activity name with '0000' code with no obligations/outlays """
+
+    op_1 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
+                                             program_activity_name='Unknown/Other', program_activity_code='0000',
+                                             deobligations_recov_by_pro_cpe=0, gross_outlay_amount_by_pro_cpe=0,
+                                             gross_outlay_amount_by_pro_fyb=0, gross_outlays_delivered_or_cpe=0,
+                                             gross_outlays_delivered_or_fyb=0, gross_outlays_undelivered_cpe=0,
+                                             gross_outlays_undelivered_fyb=0, obligations_delivered_orde_cpe=0,
+                                             obligations_delivered_orde_fyb=0, obligations_incurred_by_pr_cpe=0,
+                                             obligations_undelivered_or_cpe=0, obligations_undelivered_or_fyb=0,
+                                             ussgl480100_undelivered_or_cpe=0, ussgl480100_undelivered_or_fyb=0,
+                                             ussgl480200_undelivered_or_cpe=0, ussgl480200_undelivered_or_fyb=-0,
+                                             ussgl483100_undelivered_or_cpe=0, ussgl483200_undelivered_or_cpe=0,
+                                             ussgl487100_downward_adjus_cpe=0, ussgl487200_downward_adjus_cpe=0,
+                                             ussgl488100_upward_adjustm_cpe=0, ussgl488200_upward_adjustm_cpe=0,
+                                             ussgl490100_delivered_orde_cpe=0, ussgl490100_delivered_orde_fyb=0,
+                                             ussgl490200_delivered_orde_cpe=0, ussgl490800_authority_outl_cpe=0,
+                                             ussgl490800_authority_outl_fyb=0, ussgl493100_delivered_orde_cpe=0,
+                                             ussgl497100_downward_adjus_cpe=0, ussgl497200_downward_adjus_cpe=0,
+                                             ussgl498100_upward_adjustm_cpe=0, ussgl498200_upward_adjustm_cpe=0)
+
+    # Ignore case
+    op_2 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
+                                             program_activity_name='UnknOwn/OtHer', program_activity_code='0000',
+                                             deobligations_recov_by_pro_cpe=0, gross_outlay_amount_by_pro_cpe=0,
+                                             gross_outlay_amount_by_pro_fyb=0, gross_outlays_delivered_or_cpe=0,
+                                             gross_outlays_delivered_or_fyb=0, gross_outlays_undelivered_cpe=0,
+                                             gross_outlays_undelivered_fyb=0, obligations_delivered_orde_cpe=0,
+                                             obligations_delivered_orde_fyb=0, obligations_incurred_by_pr_cpe=0,
+                                             obligations_undelivered_or_cpe=0, obligations_undelivered_or_fyb=0,
+                                             ussgl480100_undelivered_or_cpe=0, ussgl480100_undelivered_or_fyb=0,
+                                             ussgl480200_undelivered_or_cpe=0, ussgl480200_undelivered_or_fyb=-0,
+                                             ussgl483100_undelivered_or_cpe=0, ussgl483200_undelivered_or_cpe=0,
+                                             ussgl487100_downward_adjus_cpe=0, ussgl487200_downward_adjus_cpe=0,
+                                             ussgl488100_upward_adjustm_cpe=0, ussgl488200_upward_adjustm_cpe=0,
+                                             ussgl490100_delivered_orde_cpe=0, ussgl490100_delivered_orde_fyb=0,
+                                             ussgl490200_delivered_orde_cpe=0, ussgl490800_authority_outl_cpe=0,
+                                             ussgl490800_authority_outl_fyb=0, ussgl493100_delivered_orde_cpe=0,
+                                             ussgl497100_downward_adjus_cpe=0, ussgl497200_downward_adjus_cpe=0,
+                                             ussgl498100_upward_adjustm_cpe=0, ussgl498200_upward_adjustm_cpe=0)
+
+    pa = ProgramActivityFactory(fiscal_year_quarter='FYQ', agency_id='test', allocation_transfer_id='test',
+                                account_number='test', program_activity_name='test', program_activity_code='test')
+
+    assert number_of_errors(_FILE, database, models=[op_1, op_2, pa]) == 0

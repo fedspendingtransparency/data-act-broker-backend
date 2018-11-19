@@ -1,5 +1,6 @@
 import logging
 import csv
+import traceback
 
 from botocore.exceptions import ClientError
 from flask import Flask, g, current_app
@@ -17,6 +18,13 @@ from dataactvalidator.validation_handlers.file_generation_manager import FileGen
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 
+# DataDog Import (the below value gets changed via Ansible during deployment. DO NOT DELETE)
+USE_DATADOG = False
+
+if USE_DATADOG:
+    from ddtrace import tracer
+    from ddtrace.contrib.flask import TraceMiddleware
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,6 +35,10 @@ def create_app():
 def run_app():
     """Run the application."""
     app = create_app()
+
+    # This is for DataDog (Do Not Delete)
+    if USE_DATADOG:
+        TraceMiddleware(app, tracer, service="broker-dd", distributed_tracing=False)
 
     with app.app_context():
         current_app.debug = CONFIG_SERVICES['debug']
@@ -68,25 +80,30 @@ def run_app():
                                                 StatusCode.CLIENT_ERROR, None, validation_error_type)
 
                     # We have two major functionalities in the Validator: validation and file generation
-                    if not job.file_type or job.file_type.letter_name in ['A', 'B', 'C', 'FABS'] or \
-                       job.job_type.name != 'file_upload':
+                    if (not job.file_type or job.file_type.letter_name in ['A', 'B', 'C', 'FABS'] or
+                       job.job_type.name != 'file_upload') and job.submission_id:
                         # Run validations
                         validation_manager = ValidationManager(local, error_report_path)
                         validation_manager.validate_job(job.job_id)
                     else:
                         # Retrieve the agency code data from the message attributes
                         msg_attr = current_message.message_attributes
-                        agency_code = msg_attr['agency_code']['StringValue'] if msg_attr else None
+                        agency_code = msg_attr['agency_code']['StringValue'] if msg_attr and \
+                            msg_attr.get('agency_code') else None
+                        agency_type = msg_attr['agency_type']['StringValue'] if msg_attr and \
+                            msg_attr.get('agency_type') else None
 
-                        file_generation_manager = FileGenerationManager(local)
-                        file_generation_manager.generate_from_job(job.job_id, agency_code)
+                        file_generation_manager = FileGenerationManager(job, agency_code, agency_type, local)
+                        file_generation_manager.generate_from_job()
+                        sess.commit()
+                        sess.refresh(job)
 
                     # Delete from SQS once processed
                     message.delete()
 
             except ResponseException as e:
                 # Handle exceptions explicitly raised during validation.
-                logger.error(str(e))
+                logger.error(traceback.format_exc())
 
                 job = get_current_job()
                 if job:
@@ -102,7 +119,7 @@ def run_app():
                                 current_message.delete()
             except Exception as e:
                 # Handle uncaught exceptions in validation process.
-                logger.error(str(e))
+                logger.error(traceback.format_exc())
 
                 # csv-specific errors get a different job status and response code
                 if isinstance(e, ValueError) or isinstance(e, csv.Error) or isinstance(e, UnicodeDecodeError):

@@ -39,6 +39,9 @@ broker:
 
     ## Smartronix API URLs ##
 
+    # File A Generation
+    appropriations_file_name: appropriations_data.csv
+
     # File D1 API
     # Uses "{}" because it requires string formatting to insert query parameters
     # If the URL is provided, the file name provided will be used when uploading to S3
@@ -95,14 +98,12 @@ broker:
     # value if use_aws is true.
     certified_bucket: s3-bucket
 
-    # Name of the AWS role you're using to upload broker files. Ignored if
-    # use_aws is false. NOTE: the dummy value below MUST be changed to the
-    # correct value if use_aws is true.
-    aws_role: arn:aws-us-gov:iam::id:role/awsrole
+    # Link to replace the amazon portion of the url
+    proxy_url: new-url.com
 
-    # Set the following to true to allow the broker to create temporary
-    # AWS credentials for uploading files. Ignored if use_aws is false.
-    aws_create_temp_credentials: true
+    submission_bucket_mapping: [s3-bucket, proxy/here]
+    certified_bucket_mapping: [s3-bucket, proxy/here]
+    help_files_mapping: [s3-bucket, proxy/here]
 
     # S3 filenames for SF-133 file, only required if planning to load SF-133 table
     sf_133_folder: config
@@ -121,6 +122,9 @@ broker:
     # MAX login
     cas_service_url: https://cas.service.url
     parent_group: sample
+
+    # Session timeout, in seconds
+    session_timeout: 1800
 
 services:
     debug: true

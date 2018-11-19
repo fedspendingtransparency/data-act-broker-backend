@@ -2,29 +2,28 @@ import os
 import logging
 
 import pandas as pd
-import boto
+import boto3
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import CFDAProgram
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe, format_date
+from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe, format_date
 
 logger = logging.getLogger(__name__)
 
 
 def load_cfda_program(base_path):
-    """
-    Load cfda program.
-    Parameters
-    ----------
-        base_path : directory that contains the cfda values files.
+    """ Load cfda program.
+
+        Args:
+            base_path: directory that contains the cfda values files.
     """
     if CONFIG_BROKER["use_aws"]:
-        s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-        s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-        filename = s3bucket.get_key("cfda_program.csv").generate_url(expires_in=600)
+        s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        filename = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
+                                                                   'Key': "cfda_program.csv"}, ExpiresIn=600)
     else:
         filename = os.path.join(base_path, "cfda_program.csv")
 

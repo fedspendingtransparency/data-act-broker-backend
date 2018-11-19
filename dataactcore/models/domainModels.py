@@ -53,6 +53,15 @@ class TASLookup(Base):
     financial_indicator2 = Column(Text, nullable=True)
     fr_entity_description = Column(Text, nullable=True)
     fr_entity_type = Column(Text, nullable=True)
+    account_title = Column(Text, nullable=True)
+    reporting_agency_aid = Column(Text, nullable=True)
+    reporting_agency_name = Column(Text, nullable=True)
+    budget_bureau_code = Column(Text, nullable=True)
+    budget_bureau_name = Column(Text, nullable=True)
+    budget_function_code = Column(Text, nullable=True)
+    budget_function_title = Column(Text, nullable=True)
+    budget_subfunction_code = Column(Text, nullable=True)
+    budget_subfunction_title = Column(Text, nullable=True)
 
     def component_dict(self):
         """We'll often want to copy TAS component fields; this method returns
@@ -223,6 +232,7 @@ class DUNS(Base):
     duns_id = Column(Integer, primary_key=True)
     awardee_or_recipient_uniqu = Column(Text, index=True)
     legal_business_name = Column(Text)
+    dba_name = Column(Text)
     activation_date = Column(Date, index=True)
     deactivation_date = Column(Date, index=True)
     registration_date = Column(Date, index=True)
@@ -261,7 +271,7 @@ class HistoricParentDUNS(Base):
 class CFDAProgram(Base):
     __tablename__ = "cfda_program"
     cfda_program_id = Column(Integer, primary_key=True)
-    program_number = Column(Float, nullable=False, index=True)
+    program_number = Column(Float, nullable=False, index=True, unique=True)
     program_title = Column(Text)
     popular_name = Column(Text)
     federal_agency = Column(Text)

@@ -1,6 +1,6 @@
 import os
 import logging
-import boto
+import boto3
 import urllib.request
 import zipfile
 from collections import OrderedDict
@@ -15,7 +15,7 @@ from dataactcore.models.userModel import User # noqa
 from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import clean_data
+from dataactvalidator.scripts.loader_utils import clean_data
 
 logger = logging.getLogger(__name__)
 
@@ -139,9 +139,10 @@ def main():
     logger.info('Starting updates to FABS data')
 
     if CONFIG_BROKER["use_aws"]:
-        s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-        s3bucket = s3connection.lookup(CONFIG_BROKER['archive_bucket'])
-        new_columns_file = s3bucket.get_key("Assistance_DataActFields_2017.csv").generate_url(expires_in=600)
+        s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        new_columns_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['archive_bucket'],
+                                                                           'Key': "Assistance_DataActFields_2017.csv"},
+                                                            ExpiresIn=600)
         parse_fabs_file_new_columns(urllib.request.urlopen(new_columns_file), sess)
     else:
         new_columns_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "fabs",

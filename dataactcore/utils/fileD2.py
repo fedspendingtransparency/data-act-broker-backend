@@ -7,86 +7,87 @@ file_model = PublishedAwardFinancialAssistance
 staging_model = AwardFinancialAssistance
 
 mapping = OrderedDict([
-    ('fain', 'fain'),
-    ('awardmodificationamendmentnumber', 'award_modification_amendme'),
-    ('uri', 'uri'),
-    ('sai_number', 'sai_number'),
-    ('totalfundingamount', 'total_funding_amount'),
-    ('federalactionobligation', 'federal_action_obligation'),
-    ('nonfederalfundingamount', 'non_federal_funding_amount'),
-    ('facevalueofdirectloanorloanguarantee', 'face_value_loan_guarantee'),
-    ('originalloansubsidycost', 'original_loan_subsidy_cost'),
-    ('actiondate', 'action_date'),
-    ('periodofperformancestartdate', 'period_of_performance_star'),
-    ('periodofperformancecurrentenddate', 'period_of_performance_curr'),
-    ('awardingagencycode', 'awarding_agency_code'),
-    ('awardingagencyname', 'awarding_agency_name'),
-    ('awardingsubtieragencycode', 'awarding_sub_tier_agency_c'),
-    ('awardingsubtieragencyname', 'awarding_sub_tier_agency_n'),
-    ('awardingofficecode', 'awarding_office_code'),
-    ('awardingofficename', 'awarding_office_name'),
-    ('fundingagencycode', 'funding_agency_code'),
-    ('fundingagencyname', 'funding_agency_name'),
-    ('fundingsubtieragencycode', 'funding_sub_tier_agency_co'),
-    ('fundingsubtieragencyname', 'funding_sub_tier_agency_na'),
-    ('fundingofficecode', 'funding_office_code'),
-    ('fundingofficename', 'funding_office_name'),
-    ('awardeeorrecipientuniqueidentifier', 'awardee_or_recipient_uniqu'),
-    ('awardeeorrecipientlegalentityname', 'awardee_or_recipient_legal'),
-    ('ultimateparentuniqueidentifier', 'ultimate_parent_unique_ide'),
-    ('ultimateparentlegalentityname', 'ultimate_parent_legal_enti'),
-    ('legalentitycountrycode', 'legal_entity_country_code'),
-    ('legalentitycountryname', 'legal_entity_country_name'),
-    ('legalentityaddressline1', 'legal_entity_address_line1'),
-    ('legalentityaddressline2', 'legal_entity_address_line2'),
-    ('legalentitycitycode', 'legal_entity_city_code'),
-    ('legalentitycityname', 'legal_entity_city_name'),
-    ('legalentitystatecode', 'legal_entity_state_code'),
-    ('legalentitystatename', 'legal_entity_state_name'),
-    ('legalentityzip5', 'legal_entity_zip5'),
-    ('legalentityziplast4', 'legal_entity_zip_last4'),
-    ('legalentitycountycode', 'legal_entity_county_code'),
-    ('legalentitycountyname', 'legal_entity_county_name'),
-    ('legalentitycongressionaldistrict', 'legal_entity_congressional'),
-    ('legalentityforeigncityname', 'legal_entity_foreign_city'),
-    ('legalentityforeignprovincename', 'legal_entity_foreign_provi'),
-    ('legalentityforeignpostalcode', 'legal_entity_foreign_posta'),
-    ('primaryplaceofperformancecode', 'place_of_performance_code'),
-    ('primaryplaceofperformancecityname', 'place_of_performance_city'),
-    ('primaryplaceofperformancecountycode', 'place_of_perform_county_co'),
-    ('primaryplaceofperformancecountyname', 'place_of_perform_county_na'),
-    ('primaryplaceofperformancestatename', 'place_of_perform_state_nam'),
-    ('primaryplaceofperformancezip+4', 'place_of_performance_zip4a'),
-    ('primaryplaceofperformancecongressionaldistrict', 'place_of_performance_congr'),
-    ('primaryplaceofperformancecountrycode', 'place_of_perform_country_c'),
-    ('primaryplaceofperformancecountryname', 'place_of_perform_country_n'),
-    ('primaryplaceofperformanceforeignlocationdescription', 'place_of_performance_forei'),
-    ('cfda_number', 'cfda_number'),
-    ('cfda_title', 'cfda_title'),
-    ('assistancetype', 'assistance_type'),
-    ('assistancetypedescription', 'assistance_type_desc'),
-    ('awarddescription', 'award_description'),
-    ('businessfundsindicator', 'business_funds_indicator'),
-    ('businessfundsindicatordescription', 'business_funds_ind_desc'),
-    ('businesstypes', 'business_types'),
-    ('businesstypesdescription', 'business_types_desc'),
-    ('correctiondeleteindicator', 'correction_delete_indicatr'),
-    ('correctiondeleteindicatordescription', 'correction_delete_ind_desc'),
-    ('actiontype', 'action_type'),
-    ('actiontypedescription', 'action_type_description'),
-    ('recordtype', 'record_type'),
-    ('recordtypedescription', 'record_type_description'),
-    ('lastmodifieddate', 'modified_at')
+    ('FAIN', 'fain'),
+    ('AwardModificationAmendmentNumber', 'award_modification_amendme'),
+    ('URI', 'uri'),
+    ('SAI_Number', 'sai_number'),
+    ('TotalFundingAmount', 'total_funding_amount'),
+    ('FederalActionObligation', 'federal_action_obligation'),
+    ('NonFederalFundingAmount', 'non_federal_funding_amount'),
+    ('FaceValueOfDirectLoanOrLoanGuarantee', 'face_value_loan_guarantee'),
+    ('OriginalLoanSubsidyCost', 'original_loan_subsidy_cost'),
+    ('ActionDate', 'action_date'),
+    ('PeriodOfPerformanceStartDate', 'period_of_performance_star'),
+    ('PeriodOfPerformanceCurrentEndDate', 'period_of_performance_curr'),
+    ('AwardingAgencyCode', 'awarding_agency_code'),
+    ('AwardingAgencyName', 'awarding_agency_name'),
+    ('AwardingSubTierAgencyCode', 'awarding_sub_tier_agency_c'),
+    ('AwardingSubTierAgencyName', 'awarding_sub_tier_agency_n'),
+    ('AwardingOfficeCode', 'awarding_office_code'),
+    ('AwardingOfficeName', 'awarding_office_name'),
+    ('FundingAgencyCode', 'funding_agency_code'),
+    ('FundingAgencyName', 'funding_agency_name'),
+    ('FundingSubTierAgencyCode', 'funding_sub_tier_agency_co'),
+    ('FundingSubTierAgencyName', 'funding_sub_tier_agency_na'),
+    ('FundingOfficeCode', 'funding_office_code'),
+    ('FundingOfficeName', 'funding_office_name'),
+    ('AwardeeOrRecipientUniqueIdentifier', 'awardee_or_recipient_uniqu'),
+    ('AwardeeOrRecipientLegalEntityName', 'awardee_or_recipient_legal'),
+    ('UltimateParentUniqueIdentifier', 'ultimate_parent_unique_ide'),
+    ('UltimateParentLegalEntityName', 'ultimate_parent_legal_enti'),
+    ('LegalEntityCountryCode', 'legal_entity_country_code'),
+    ('LegalEntityCountryName', 'legal_entity_country_name'),
+    ('LegalEntityAddressLine1', 'legal_entity_address_line1'),
+    ('LegalEntityAddressLine2', 'legal_entity_address_line2'),
+    ('LegalEntityCityCode', 'legal_entity_city_code'),
+    ('LegalEntityCityName', 'legal_entity_city_name'),
+    ('LegalEntityStateCode', 'legal_entity_state_code'),
+    ('LegalEntityStateName', 'legal_entity_state_name'),
+    ('LegalEntityZIP5', 'legal_entity_zip5'),
+    ('LegalEntityZIPLast4', 'legal_entity_zip_last4'),
+    ('LegalEntityCountyCode', 'legal_entity_county_code'),
+    ('LegalEntityCountyName', 'legal_entity_county_name'),
+    ('LegalEntityCongressionalDistrict', 'legal_entity_congressional'),
+    ('LegalEntityForeignCityName', 'legal_entity_foreign_city'),
+    ('LegalEntityForeignProvinceName', 'legal_entity_foreign_provi'),
+    ('LegalEntityForeignPostalCode', 'legal_entity_foreign_posta'),
+    ('PrimaryPlaceOfPerformanceCode', 'place_of_performance_code'),
+    ('PrimaryPlaceOfPerformanceCityName', 'place_of_performance_city'),
+    ('PrimaryPlaceOfPerformanceCountyCode', 'place_of_perform_county_co'),
+    ('PrimaryPlaceOfPerformanceCountyName', 'place_of_perform_county_na'),
+    ('PrimaryPlaceOfPerformanceStateName', 'place_of_perform_state_nam'),
+    ('PrimaryPlaceOfPerformanceZIP+4', 'place_of_performance_zip4a'),
+    ('PrimaryPlaceOfPerformanceCongressionalDistrict', 'place_of_performance_congr'),
+    ('PrimaryPlaceOfPerformanceCountryCode', 'place_of_perform_country_c'),
+    ('PrimaryPlaceOfPerformanceCountryName', 'place_of_perform_country_n'),
+    ('PrimaryPlaceOfPerformanceForeignLocationDescription', 'place_of_performance_forei'),
+    ('CFDA_Number', 'cfda_number'),
+    ('CFDA_Title', 'cfda_title'),
+    ('AssistanceType', 'assistance_type'),
+    ('AssistanceTypeDescriptionTag', 'assistance_type_desc'),
+    ('AwardDescription', 'award_description'),
+    ('BusinessFundsIndicator', 'business_funds_indicator'),
+    ('BusinessFundsIndicatorDescriptionTag', 'business_funds_ind_desc'),
+    ('BusinessTypes', 'business_types'),
+    ('BusinessTypesDescriptionTag', 'business_types_desc'),
+    ('CorrectionDeleteIndicator', 'correction_delete_indicatr'),
+    ('CorrectionDeleteIndicatorDescriptionTag', 'correction_delete_ind_desc'),
+    ('ActionType', 'action_type'),
+    ('ActionTypeDescriptionTag', 'action_type_description'),
+    ('RecordType', 'record_type'),
+    ('RecordTypeDescriptionTag', 'record_type_description'),
+    ('LastModifiedDate', 'modified_at')
 ])
 db_columns = [val for key, val in mapping.items()]
 
 
-def query_data(session, agency_code, start, end, page_start, page_stop):
+def query_data(session, agency_code, agency_type, start, end, page_start, page_stop):
     """ Request D2 file data
 
         Args:
             session: DB session
             agency_code: FREC or CGAC code for generation
+            agency_type: The type of agency (awarding or funding) to generate the file for
             start: Beginning of period for D file
             end: End of period for D file
             page_start: Beginning of pagination
@@ -97,10 +98,18 @@ def query_data(session, agency_code, start, end, page_start, page_stop):
     """
     rows = initial_query(session).\
         filter(file_model.is_active.is_(True)).\
-        filter(file_model.awarding_agency_code == agency_code).\
         filter(func.cast_as_date(file_model.action_date) >= start).\
-        filter(func.cast_as_date(file_model.action_date) <= end).\
-        slice(page_start, page_stop)
+        filter(func.cast_as_date(file_model.action_date) <= end)
+
+    # Funding or awarding agency filtering
+    if agency_type == 'funding':
+        rows = rows.filter(file_model.funding_agency_code == agency_code)
+    else:
+        rows = rows.filter(file_model.awarding_agency_code == agency_code)
+
+    # Slice the final query
+    rows = rows.slice(page_start, page_stop)
+
     return rows
 
 

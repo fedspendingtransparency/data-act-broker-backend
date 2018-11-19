@@ -1,8 +1,8 @@
 import csv
 import os
 import logging
-import smart_open
 from datetime import datetime
+import boto3
 
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
@@ -33,8 +33,6 @@ from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactvalidator.filestreaming.csvReader import CsvReader
-from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
-from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 from dataactvalidator.validation_handlers.errorInterface import ErrorInterface
@@ -74,19 +72,6 @@ class ValidationManager:
             if not self.short_to_long_dict.get(col.file_id):
                 self.short_to_long_dict[col.file_id] = {}
             self.short_to_long_dict[col.file_id][col.name_short] = col.name
-
-    def get_writer(self, region_name, bucket_name, file_name, header):
-        """ Gets the write type based on if its a local install or not.
-
-        Args:
-            region_name - AWS region to write to, not used for local
-            bucket_name - AWS bucket to write to, not used for local
-            file_name - File to be written
-            header - Column headers for file to be written
-        """
-        if self.is_local:
-            return CsvLocalWriter(file_name, header)
-        return CsvS3Writer(region_name, bucket_name, file_name, header)
 
     def get_file_name(self, path):
         """ Return full path of error report based on provided name """
@@ -327,10 +312,20 @@ class ValidationManager:
                         valid = True
                     else:
                         if file_type == "fabs":
+                            # Create afa_generated_unique
                             record['afa_generated_unique'] = (record['award_modification_amendme'] or '-none-') + "_" +\
                                                              (record['awarding_sub_tier_agency_c'] or '-none-') + \
                                                              "_" + (record['fain'] or '-none-') + "_" + \
                                                              (record['uri'] or '-none-')
+                            # Create unique_award_key
+                            if str(record['record_type']) == '1':
+                                unique_award_key_list = ['AGG', record['uri'] or '-none-']
+                            else:
+                                unique_award_key_list = ['NON', record['fain'] or '-none-']
+                            unique_award_key_list.append(record['awarding_sub_tier_agency_c'] or '-none-')
+
+                            record['unique_award_key'] = '_'.join(unique_award_key_list)
+
                         passed_validations, failures, valid = Validator.validate(record, csv_schema,
                                                                                  file_type == "fabs",
                                                                                  required_list, type_list)
@@ -385,29 +380,16 @@ class ValidationManager:
 
             # stream file to S3 when not local
             if not self.is_local:
+                s3_resource = boto3.resource('s3', region_name=region_name)
                 # stream error file
                 with open(error_file_path, 'rb') as csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(error_file_name)), 'w')\
-                            as writer:
-                        while True:
-                            chunk = csv_file.read(CHUNK_SIZE)
-                            if chunk:
-                                writer.write(chunk)
-                            else:
-                                break
+                    s3_resource.Object(bucket_name, self.get_file_name(error_file_name)).put(Body=csv_file)
                 csv_file.close()
                 os.remove(error_file_path)
 
                 # stream warning file
                 with open(warning_file_path, 'rb') as warning_csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(warning_file_name)), 'w')\
-                            as warning_writer:
-                        while True:
-                            chunk = warning_csv_file.read(CHUNK_SIZE)
-                            if chunk:
-                                warning_writer.write(chunk)
-                            else:
-                                break
+                    s3_resource.Object(bucket_name, self.get_file_name(warning_file_name)).put(Body=warning_csv_file)
                 warning_csv_file.close()
                 os.remove(warning_file_path)
 
@@ -450,6 +432,9 @@ class ValidationManager:
             # Mark validation as finished in job tracker
             mark_job_status(job_id, "finished")
             mark_file_complete(job_id, file_name)
+        except Exception as e:
+            logger.error("An exception occurred during validation:{}".format(str(e)))
+            raise
         finally:
             # Ensure the files always close
             reader.close()
@@ -587,29 +572,18 @@ class ValidationManager:
 
             # stream file to S3 when not local
             if not self.is_local:
+                s3_resource = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
                 # stream error file
                 with open(error_file_path, 'rb') as csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(error_file_name)),
-                                               'w') as writer:
-                        while True:
-                            chunk = csv_file.read(CHUNK_SIZE)
-                            if chunk:
-                                writer.write(chunk)
-                            else:
-                                break
+                    s3_resource.Object(CONFIG_BROKER['aws_bucket'], self.get_file_name(error_file_name)).\
+                        put(Body=csv_file)
                 csv_file.close()
                 os.remove(error_file_path)
 
                 # stream warning file
                 with open(warning_file_path, 'rb') as warning_csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(warning_file_name)),
-                                               'w') as warning_writer:
-                        while True:
-                            chunk = warning_csv_file.read(CHUNK_SIZE)
-                            if chunk:
-                                warning_writer.write(chunk)
-                            else:
-                                break
+                    s3_resource.Object(CONFIG_BROKER['aws_bucket'], self.get_file_name(warning_file_name)).\
+                        put(Body=warning_csv_file)
                 warning_csv_file.close()
                 os.remove(warning_file_path)
 

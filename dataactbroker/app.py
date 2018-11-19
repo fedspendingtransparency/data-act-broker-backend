@@ -5,21 +5,32 @@ from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask import Flask, g, session
 
-from dataactbroker.domainRoutes import add_domain_routes
 from dataactbroker.exception_handler import add_exception_handlers
-from dataactbroker.file_routes import add_file_routes
 from dataactbroker.handlers.account_handler import AccountHandler
 from dataactbroker.handlers.aws.sesEmail import SesEmail
 from dataactbroker.handlers.aws.session import UserSessionInterface
-from dataactbroker.loginRoutes import add_login_routes
-from dataactbroker.userRoutes import add_user_routes
+
+from dataactbroker.routes.domain_routes import add_domain_routes
+from dataactbroker.routes.file_routes import add_file_routes
+from dataactbroker.routes.generation_routes import add_generation_routes
+from dataactbroker.routes.login_routes import add_login_routes
+from dataactbroker.routes.user_routes import add_user_routes
+
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.userModel import User
+
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+
+# DataDog Import (the below value gets changed via Ansible during deployment. DO NOT DELETE)
+USE_DATADOG = False
+
+if USE_DATADOG:
+    from ddtrace import tracer
+    from ddtrace.contrib.flask import TraceMiddleware
 
 
 def create_app():
@@ -29,6 +40,7 @@ def create_app():
     flask_app.config.from_object(__name__)
     flask_app.config['LOCAL'] = local
     flask_app.debug = CONFIG_SERVICES['debug']
+    flask_app.env = 'development' if CONFIG_SERVICES['debug'] else 'production'
     flask_app.config['SYSTEM_EMAIL'] = CONFIG_BROKER['reply_to_email']
 
     # Future: Override config w/ environment variable, if set
@@ -37,7 +49,6 @@ def create_app():
     # Set parameters
     broker_file_path = CONFIG_BROKER['broker_files']
     AccountHandler.FRONT_END = CONFIG_BROKER['full_url']
-    SesEmail.SIGNING_KEY = CONFIG_BROKER['email_token_key']
     SesEmail.is_local = local
     if SesEmail.is_local:
         SesEmail.emailLog = os.path.join(broker_file_path, 'email.log')
@@ -88,7 +99,8 @@ def create_app():
     # Add routes for modules here
     add_login_routes(flask_app, bcrypt)
 
-    add_file_routes(flask_app, CONFIG_BROKER['aws_create_temp_credentials'], local, broker_file_path)
+    add_file_routes(flask_app, local, broker_file_path)
+    add_generation_routes(flask_app, local, broker_file_path)
     add_user_routes(flask_app, flask_app.config['SYSTEM_EMAIL'], bcrypt)
     add_domain_routes(flask_app)
     add_exception_handlers(flask_app)
@@ -98,6 +110,11 @@ def create_app():
 def run_app():
     """runs the application"""
     flask_app = create_app()
+
+    # This is for DataDog (Do Not Delete)
+    if USE_DATADOG:
+        TraceMiddleware(flask_app, tracer, service="broker-dd", distributed_tracing=False)
+
     flask_app.run(
         threaded=True,
         host=CONFIG_SERVICES['broker_api_host'],

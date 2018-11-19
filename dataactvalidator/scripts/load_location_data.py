@@ -1,6 +1,6 @@
 import os
 import logging
-import boto
+import boto3
 import pandas as pd
 from datetime import datetime
 import urllib.request
@@ -11,12 +11,19 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import CityCode, CountyCode, States, ZipCity
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import insert_dataframe
+from dataactvalidator.scripts.loader_utils import insert_dataframe
 
 logger = logging.getLogger(__name__)
 
 
 def clean_data(data, field_map):
+    """ Clean up the data by removing columns that aren't relevant and renaming the remaining ones to match what we
+        need.
+
+        Args:
+            data: data to clean
+            field_map: mapping of all relevant columns
+    """
     # toss out any columns from the csv that aren't in the fieldMap parameter
     data = data[list(field_map.keys())]
 
@@ -26,6 +33,12 @@ def clean_data(data, field_map):
 
 
 def parse_city_file(city_file, sess):
+    """ Parse the City file and insert all relevant rows into the database.
+
+        Args:
+            city_file: path/url to file to gather City data from
+            sess: database session
+    """
     # read the data and clean up the column names
     data = pd.read_csv(city_file, dtype=str, sep="|")
     data = clean_data(
@@ -65,6 +78,12 @@ def parse_city_file(city_file, sess):
 
 
 def parse_county_file(county_file, sess):
+    """ Parse the County file and insert all relevant rows into the database.
+
+        Args:
+            county_file: path/url to file to gather County data from
+            sess: database session
+    """
     # read the data and clean up the column names
     data = pd.read_csv(county_file, dtype=str, sep="|")
     data = clean_data(
@@ -90,6 +109,12 @@ def parse_county_file(county_file, sess):
 
 
 def parse_state_file(state_file, sess):
+    """ Parse the State file and insert all relevant rows into the database.
+
+        Args:
+            state_file: path/url to file to gather State data from
+            sess: database session
+    """
     # read the data. Cleaning is in there in case something changes, doesn't really do anything now
     data = pd.read_csv(state_file, dtype=str)
     data = clean_data(
@@ -109,6 +134,12 @@ def parse_state_file(state_file, sess):
 
 
 def parse_zip_city_file(f, sess):
+    """ Parse the ZipCity file and insert all relevant rows into the database.
+
+        Args:
+            f: file to process
+            sess: database session
+    """
     line_size = 129
     chunk_size = 1024 * 10
     f.read(line_size)
@@ -148,57 +179,76 @@ def parse_zip_city_file(f, sess):
 
 
 def load_city_data(city_file):
-    with create_app().app_context():
-        sess = GlobalDB.db().session
+    """ Load data into the CityCode table
 
-        # delete any data in the CityCode table
-        sess.query(CityCode).delete()
+        Args:
+            city_file: path/url to file to gather City data from
+    """
+    sess = GlobalDB.db().session
 
-        # parse the new city code data
-        parse_city_file(city_file, sess)
+    # delete any data in the CityCode table
+    sess.query(CityCode).delete()
+
+    # parse the new city code data
+    parse_city_file(city_file, sess)
 
 
 def load_county_data(county_file):
-    with create_app().app_context():
-        sess = GlobalDB.db().session
+    """ Load data into the CountyCode table
 
-        # delete any data in the CityCode table
-        sess.query(CountyCode).delete()
+        Args:
+            county_file: path/url to file to gather County data from
+    """
+    sess = GlobalDB.db().session
 
-        # parse the new county code data
-        parse_county_file(county_file, sess)
+    # delete any data in the CityCode table
+    sess.query(CountyCode).delete()
+
+    # parse the new county code data
+    parse_county_file(county_file, sess)
 
 
 def load_state_data(state_file):
-    with create_app().app_context():
-        sess = GlobalDB.db().session
+    """ Load data into the States table
 
-        # delete any data in the States table
-        sess.query(States).delete()
+        Args:
+            state_file: path/url to file to gather State data from
+    """
+    sess = GlobalDB.db().session
 
-        # parse the new state data
-        parse_state_file(state_file, sess)
+    # delete any data in the States table
+    sess.query(States).delete()
+
+    # parse the new state data
+    parse_state_file(state_file, sess)
 
 
 def load_zip_city_data(zip_city_file):
-    with create_app().app_context():
-        sess = GlobalDB.db().session
+    """ Load data into the ZipCity table
 
-        # delete any data in the ZipCity table
-        sess.query(ZipCity).delete()
+        Args:
+            zip_city_file: path/url to file to gather ZipCity data from
+    """
+    sess = GlobalDB.db().session
 
-        # parse the new zip city data
-        parse_zip_city_file(zip_city_file, sess)
+    # delete any data in the ZipCity table
+    sess.query(ZipCity).delete()
+
+    # parse the new zip city data
+    parse_zip_city_file(zip_city_file, sess)
 
 
 def load_location_data():
     if CONFIG_BROKER["use_aws"]:
-        s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-        s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-        city_file = s3bucket.get_key("NationalFedCodes.txt").generate_url(expires_in=600)
-        county_file = s3bucket.get_key("GOVT_UNITS.txt").generate_url(expires_in=600)
-        state_file = s3bucket.get_key("state_list.txt").generate_url(expires_in=600)
-        citystate_file = s3bucket.get_key("ctystate.txt").generate_url(expires_in=600)
+        s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        city_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
+                                                                    'Key': "NationalFedCodes.txt"}, ExpiresIn=600)
+        county_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
+                                                                      'Key': "GOVT_UNITS.txt"}, ExpiresIn=600)
+        state_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
+                                                                     'Key': "state_list.txt"}, ExpiresIn=600)
+        citystate_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
+                                                                         'Key': "ctystate.txt"}, ExpiresIn=600)
         zip_city_file = urllib.request.urlopen(citystate_file)
     else:
         city_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "NationalFedCodes.txt")
@@ -207,14 +257,15 @@ def load_location_data():
         citystate_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "ctystate.txt")
         zip_city_file = open(citystate_file)
 
-    logger.info('Loading city data')
-    load_city_data(city_file)
-    logger.info('Loading county data')
-    load_county_data(county_file)
-    logger.info('Loading state data')
-    load_state_data(state_file)
-    logger.info('Loading zip city data')
-    load_zip_city_data(zip_city_file)
+    with create_app().app_context():
+        logger.info('Loading city data')
+        load_city_data(city_file)
+        logger.info('Loading county data')
+        load_county_data(county_file)
+        logger.info('Loading state data')
+        load_state_data(state_file)
+        logger.info('Loading zip city data')
+        load_zip_city_data(zip_city_file)
 
 
 if __name__ == '__main__':

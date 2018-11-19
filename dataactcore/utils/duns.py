@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import DUNS
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
+from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +109,8 @@ def update_duns(models, new_data, benchmarks=False, table=DUNS):
         if awardee_or_recipient_uniqu not in models:
             models[awardee_or_recipient_uniqu] = table()
         for field, value in row.items():
-            setattr(models[awardee_or_recipient_uniqu], field, value)
+            if value:
+                setattr(models[awardee_or_recipient_uniqu], field, value)
     if benchmarks:
         logger.info("Updating duns took {} seconds".format(time.time() - update_duns_start))
 
@@ -133,6 +134,7 @@ def clean_sam_data(data, table=DUNS):
         "last_sam_mod_date": "last_sam_mod_date",
         "sam_extract_code": "sam_extract_code",
         "legal_business_name": "legal_business_name",
+        "dba_name": "dba_name",
         "address_line_1": "address_line_1",
         "address_line_2": "address_line_2",
         "city": "city",
@@ -175,6 +177,7 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
             "last_sam_mod_date": 8,
             "activation_date": 9,
             "legal_business_name": 10,
+            "dba_name": 11,
             "address_line_1": 14,
             "address_line_2": 15,
             "city": 16,
@@ -222,7 +225,8 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
                     csv_data = csv_data.assign(deactivation_date=pd.Series([np.nan], name='deactivation_date')
                                                if monthly else csv_data["sam_extract_code"].apply(lambda_func))
                     # convert business types string to array
-                    bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~')]]))
+                    bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~')
+                                                          if isinstance(bt_raw, str)]]))
                     csv_data = csv_data.assign(business_types_codes=csv_data["business_types_raw"].apply(bt_func))
                     del csv_data["business_types_raw"]
                     # removing rows where DUNS number isn't even provided

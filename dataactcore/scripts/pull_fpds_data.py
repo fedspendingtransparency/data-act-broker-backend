@@ -1,6 +1,6 @@
 import os
 import urllib.request
-import boto
+import boto3
 import zipfile
 import logging
 import argparse
@@ -20,7 +20,8 @@ from sqlalchemy import func
 
 from dateutil.relativedelta import relativedelta
 
-from requests.packages.urllib3.exceptions import ReadTimeoutError
+from requests.exceptions import ConnectionError, ReadTimeout
+from urllib3.exceptions import ReadTimeoutError
 
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
@@ -38,8 +39,7 @@ from dataactcore.models.jobModels import Submission  # noqa
 from dataactcore.models.userModel import User  # noqa
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
-from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
+from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.5.0&q="
@@ -887,7 +887,8 @@ def calculate_legal_entity_fields(obj, sess, county_by_code, state_code_list, co
         obj['legal_entity_country_name'] = country_list[obj['legal_entity_country_code']]
 
 
-def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list, country_list):
+def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list, country_list,
+                               atom_type):
     """ calculate values that aren't in any feed but can be calculated """
     # we want to null out all the calculated columns in case this is an update to the records
     obj['awarding_agency_code'] = None
@@ -942,20 +943,32 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
     # calculate business categories
     obj['business_categories'] = get_business_categories(row=obj, data_type='fpds')
 
+    # calculate unique award key
+    if atom_type == 'award':
+        unique_award_string_list = []
+        key_list = ['piid', 'agency_id', 'parent_award_id', 'referenced_idv_agency_iden']
+    else:
+        unique_award_string_list = ['IDV']
+        key_list = ['piid', 'agency_id']
+    for item in key_list:
+        # Get the value in the object or, if the key doesn't exist or value is None, set it to "-none-"
+        unique_award_string_list.append(obj.get(item) or '-none-')
+    obj['unique_award_key'] = '_'.join(unique_award_string_list)
+
     # calculate unique key
     key_list = ['agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id',
                 'transaction_number']
+    idv_list = ['agency_id', 'piid', 'award_modification_amendme']
     unique_string = ""
     for item in key_list:
         if len(unique_string) > 0:
             unique_string += "_"
-        try:
-            if obj[item]:
-                unique_string += obj[item]
-            else:
-                unique_string += "-none-"
-        except KeyError:
-            unique_string += "-none-"
+
+        if atom_type == 'award' or item in idv_list:
+            # Get the value in the object or, if the key doesn't exist or value is None, set it to "-none-"
+            unique_string += obj.get(item) or '-none-'
+        else:
+            unique_string += '-none-'
 
     # The order of the unique key is agency_id, referenced_idv_agency_iden, piid, award_modification_amendme,
     # parent_award_id, transaction_number
@@ -1074,7 +1087,7 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
     obj = vendor_values(data['vendor'], obj)
 
     obj = calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-                                     country_list)
+                                     country_list, atom_type)
 
     try:
         obj['last_modified'] = data['transactionInformation']['lastModifiedDate']
@@ -1153,14 +1166,8 @@ def process_delete_data(data, atom_type):
         except (KeyError, TypeError):
             unique_string += "-none-"
 
-        unique_string += "_"
-
-        try:
-            unique_string += extract_text(data['contractID']['referencedIDVID']['agencyID'])
-        except (KeyError, TypeError):
-            unique_string += "-none-"
-
-        unique_string += "_"
+        # referenced_idv_agency_iden not used in IDV identifier, just set it to "-none-"
+        unique_string += "_-none-_"
 
         try:
             unique_string += extract_text(data['contractID']['IDVID']['PIID'])
@@ -1174,15 +1181,8 @@ def process_delete_data(data, atom_type):
         except (KeyError, TypeError):
             unique_string += "-none-"
 
-        unique_string += "_"
-
-        try:
-            unique_string += extract_text(data['contractID']['referencedIDVID']['PIID'])
-        except (KeyError, TypeError):
-            unique_string += "-none-"
-
-        # transaction_number not in IDV feed, just set it to "-none-"
-        unique_string += "_-none-"
+        # parent_award_id not used in IDV identifier and transaction_number not in IDV feed, just set them to "-none-"
+        unique_string += "_-none-_-none-"
 
     return unique_string
 
@@ -1258,8 +1258,7 @@ def get_with_exception_hand(url_string):
         try:
             resp = requests.get(url_string, timeout=request_timeout)
             break
-        except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError,
-                requests.exceptions.ReadTimeout) as e:
+        except (ConnectionResetError, ReadTimeoutError, ConnectionError, ReadTimeout) as e:
             exception_retries += 1
             request_timeout += 60
             if exception_retries < len(retry_sleep_times):
@@ -1304,7 +1303,10 @@ def get_total_expected_records(base_url):
     # retrieve the last page of data
     final_request = get_with_exception_hand(final_request_url)
     final_request_xml = xmltodict.parse(final_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
-    entries_list = list_data(final_request_xml['feed']['entry'])
+    try:
+        entries_list = list_data(final_request_xml['feed']['entry'])
+    except KeyError:
+        raise Exception("Initial count failed, no entries in last page of request.")
 
     return final_request_count + len(entries_list)
 
@@ -1371,6 +1373,15 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                 entries_processed += len(entries_per_response)
 
         if len(data) % SPOT_CHECK_COUNT == 0 and entries_processed > total_expected_records:
+            # Find entries that don't have FPDS content and print them all
+            for next_resp in full_response:
+                response_dict = xmltodict.parse(next_resp, process_namespaces=True, namespaces=FPDS_NAMESPACES)
+                try:
+                    list_data(response_dict['feed']['entry'])
+                except KeyError:
+                    logger.info(response_dict)
+                    continue
+
             raise Exception("Total number of expected records has changed\nExpected: {}\nRetrieved so far: {}"
                             .format(total_expected_records, len(data)))
 
@@ -1393,7 +1404,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             # ensure we loaded the number of records we expected to, otherwise we'll need to reload
             if entries_processed != total_expected_records:
                 raise Exception("Records retrieved != Total expected records\nExpected: {}\nRetrieved: {}"
-                                .format(total_expected_records, len(entries_processed)))
+                                .format(total_expected_records, entries_processed))
             else:
                 break
         else:
@@ -1429,7 +1440,7 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
         try:
             resp = requests.get(base_url + '&start=' + str(processed_deletions), timeout=request_timeout)
             resp_data = xmltodict.parse(resp.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
-        except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError) as e:
+        except (ConnectionResetError, ReadTimeoutError, ConnectionError, ReadTimeout) as e:
             exception_retries += 1
             request_timeout += 60
             if exception_retries < len(retry_sleep_times):
@@ -1486,9 +1497,6 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
             if last_modified > existing_item.last_modified:
                 delete_list.append(existing_item.detached_award_procurement_id)
                 delete_dict[existing_item.detached_award_procurement_id] = existing_item.detached_award_proc_unique
-        # TODO remove this after the first run
-        # else:
-        #     delete_dict[unique_string] = unique_string
 
     # only need to delete values if there's something to delete
     if delete_list:
@@ -1501,11 +1509,12 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
     file_name = now.strftime('%m-%d-%Y') + "_delete_records_" + contract_type + "_" + str(seconds) + ".csv"
     headers = ["detached_award_procurement_id", "detached_award_proc_unique"]
     if CONFIG_BROKER["use_aws"]:
-        with CsvS3Writer(CONFIG_BROKER['aws_region'], CONFIG_BROKER['fpds_delete_bucket'], file_name,
-                         headers) as writer:
-            for key, value in delete_dict.items():
-                writer.write([key, value])
-            writer.finish_batch()
+        s3client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        # add headers
+        contents = bytes((",".join(headers) + "\n").encode())
+        for key, value in delete_dict.items():
+            contents += bytes('{},{}\n'.format(key, value).encode())
+        s3client.put_object(Bucket=CONFIG_BROKER['fpds_delete_bucket'], Key=file_name, Body=contents)
     else:
         with CsvLocalWriter(file_name, headers) as writer:
             for key, value in delete_dict.items():
@@ -1857,6 +1866,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
 
     # create the unique key
     data['detached_award_proc_unique'] = data.apply(lambda x: create_unique_key(x), axis=1)
+    data['unique_award_key'] = data.apply(lambda x: create_unique_award_key(x), axis=1)
 
     logger.info('Cleaning data and fixing np.nan to None')
     # clean the data
@@ -2113,6 +2123,7 @@ def format_fpds_data(data, sub_tier_list, naics_data):
             'typeofsetaside': 'type_set_aside',
             'ultimatecompletiondate': 'period_of_perf_potential_e',
             'undefinitized_action_desc': 'undefinitized_action_desc',
+            'unique_award_key': 'unique_award_key',
             'us_government_entity': 'us_government_entity',
             'useofepadesignatedproducts': 'epa_designated_product',
             'vendor_cd': 'legal_entity_congressional',
@@ -2262,15 +2273,26 @@ def format_date(row, header):
 
 def create_unique_key(row):
     key_list = ['agencyid', 'idvagencyid', 'piid', 'modnumber', 'idvpiid', 'transactionnumber']
+    idv_list = ['agencyid', 'piid', 'modnumber']
     unique_string = ""
     for item in key_list:
         if len(unique_string) > 0:
             unique_string += "_"
-        if row[item] and str(row[item]) != 'nan':
+        if row[item] and str(row[item]) != 'nan' and (row['pulled_from'] == 'award' or item in idv_list):
             unique_string += str(row[item])
         else:
             unique_string += "-none-"
     return unique_string
+
+
+def create_unique_award_key(row):
+    key_list = ['piid', 'agencyid', 'idvpiid', 'idvagencyid'] if row['pulled_from'] == 'award' else ['piid', 'agencyid']
+    unique_string_list = [] if row['pulled_from'] == 'award' else [row['pulled_from']]
+
+    for item in key_list:
+        unique_string_list.append(row[item] if row[item] and str(row[item]) != 'nan' else '-none-')
+
+    return '_'.join(unique_string_list)
 
 
 def main():
@@ -2293,6 +2315,10 @@ def main():
     parser.add_argument('-da', '--dates', help='Used in conjunction with -l to specify dates to gather updates from.'
                                                'Should have 2 arguments, first and last day, formatted YYYY/mm/dd',
                         nargs=2, type=str)
+    parser.add_argument('-del', '--delete', help='Used to only run the delete feed. First argument must be "both", '
+                                                 '"idv", or "award". The second and third arguments must be the first '
+                                                 'and last day to run the feeds for, formatted YYYY/mm/dd',
+                        nargs=3, type=str)
     args = parser.parse_args()
 
     award_types_award = ["BPA Call", "Definitive Contract", "Purchase Order", "Delivery Order"]
@@ -2406,6 +2432,26 @@ def main():
 
         sess.commit()
         logger.info("Ending at: %s", str(datetime.datetime.now()))
+    elif args.delete:
+        del_type = args.delete[0]
+        if del_type == 'award':
+            del_awards = True
+            del_idvs = False
+        elif del_type == 'idv':
+            del_awards = False
+            del_idvs = True
+        elif del_type == 'both':
+            del_awards = True
+            del_idvs = True
+        else:
+            logger.error("Delete argument must be \"idv\", \"award\", or \"both\"")
+            raise ValueError("Delete argument must be \"idv\", \"award\", or \"both\"")
+
+        if del_idvs:
+            get_delete_data("IDV", now, sess, now, args.delete[1], args.delete[2])
+        if del_awards:
+            get_delete_data("award", now, sess, now, args.delete[1], args.delete[2])
+        sess.commit()
     elif args.files:
         logger.info("Starting file loads at: %s", str(datetime.datetime.now()))
         max_year = 2015
@@ -2417,32 +2463,34 @@ def main():
             subfolder = args.subfolder[0]
 
         if CONFIG_BROKER["use_aws"]:
-            s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-            # get naics dictionary
-            s3bucket_naics = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-            agency_list_path = s3bucket_naics.get_key("naics.csv").generate_url(expires_in=600)
+            # # get naics dictionary
+            s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+            agency_list_path = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
+                                                                               'Key': "naics.csv"}, ExpiresIn=600)
             agency_list_file = urllib.request.urlopen(agency_list_path)
             reader = csv.reader(agency_list_file.read().decode("utf-8").splitlines())
             naics_dict = {rows[0]: rows[1].upper() for rows in reader}
 
-            # parse contracts files
-            s3bucket = s3connection.lookup(CONFIG_BROKER['archive_bucket'])
+            # Gather list of files
             if subfolder:
                 subfolder = subfolder + "/"
-            for key in s3bucket.list(prefix=subfolder):
+                file_list = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['archive_bucket'], Prefix=subfolder)
+            else:
+                file_list = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['archive_bucket'])
+            # Parse files
+            for obj in file_list.get('Contents', []):
                 match_string = '^\d{4}_All_Contracts_Full_\d{8}.csv.zip'
                 if subfolder:
                     match_string = "^" + subfolder + "\d{4}_All_Contracts_Full_\d{8}.csv.zip"
-                if re.match(match_string, key.name):
+                if re.match(match_string, obj['Key']):
                     # we only want up through 2015 for this data unless it’s a subfolder, then do all of them
-                    if subfolder or int(key.name[:4]) <= max_year:
-                        # Create an in-memory bytes IO buffer
-                        with io.BytesIO() as b:
-                            # Read the file into it
-                            key.get_file(b)
-
-                            # Reset the file pointer to the beginning
-                            parse_fpds_file(b, sess, sub_tier_list, naics_dict, filename=key.name)
+                    if subfolder or int(obj['Key'][:4]) <= max_year:
+                        s3_res = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
+                        s3_object = s3_res.Object(CONFIG_BROKER['archive_bucket'], obj['Key'])
+                        response = s3_object.get()
+                        pa_file = io.BytesIO(response['Body'].read())
+                        # Parse the file
+                        parse_fpds_file(pa_file, sess, sub_tier_list, naics_dict, filename=obj['Key'])
         else:
             # get naics dictionary
             naics_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
