@@ -133,7 +133,7 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
 
 #### POST "/v1/login/"
 
-###**THIS IS NOT A PRODUCTION ENDPOINT**###
+###**THIS IS NOT A PRODUCTION ENDPOINT**
 
 This route checks the username and password against a credentials file. It is used solely as a workaround for developing on a local instance of the broker to bypass MAX.gov login. Accepts input as json or form-urlencoded, with keys "username" and "password". See `current_user` docs for details.
 
