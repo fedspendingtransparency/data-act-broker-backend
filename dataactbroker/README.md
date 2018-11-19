@@ -132,7 +132,10 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
 - `session_id`: string, a hash the application uses to verify that user sending the request is logged in, part of response only if login is successful
 
 #### POST "/v1/login/"
-This route checks the username and password against a credentials file. Accepts input as json or form-urlencoded, with keys "username" and "password". See `current_user` docs for details.
+
+###**THIS IS NOT A PRODUCTION ENDPOINT**###
+
+This route checks the username and password against a credentials file. It is used solely as a workaround for developing on a local instance of the broker to bypass MAX.gov login. Accepts input as json or form-urlencoded, with keys "username" and "password". See `current_user` docs for details.
 
 Example input:
 
