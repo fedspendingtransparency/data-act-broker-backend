@@ -673,9 +673,12 @@ class FileHandler:
                 new_row = PublishedAwardFinancialAssistance(**temp_obj)
                 sess.add(new_row)
 
-                # update the list of affected agency_codes
+                # update the list of affected awarding_agency_codes
                 if temp_obj['awarding_agency_code'] not in agency_codes_list:
                     agency_codes_list.append(temp_obj['awarding_agency_code'])
+
+                # update the list of affected funding_agency_codes
+                if temp_obj['funding_agency_code'] not in agency_codes_list:
                     agency_codes_list.append(temp_obj['funding_agency_code'])
 
                 if row_count % 1000 == 0:
@@ -685,7 +688,7 @@ class FileHandler:
 
             # update all cached D2 FileGeneration objects that could have been affected by the publish
             sess.query(FileGeneration).\
-                filter(FileGeneration.agency_code.in_(set(agency_codes_list)),
+                filter(FileGeneration.agency_code.in_(agency_codes_list),
                        FileGeneration.is_cached_file.is_(True),
                        FileGeneration.file_type == 'D2').\
                 update({"is_cached_file": False}, synchronize_session=False)

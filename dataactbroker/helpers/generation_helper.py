@@ -75,11 +75,9 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
             job.file_generation_id = file_generation.file_generation_id
             sess.commit()
             reset_generation_jobs(sess, job)
-
-            log_data = {'message': 'Sending new FileGeneration {} to SQS'.format(file_generation.file_generation_id),
-                        'message_type': 'BrokerInfo', 'file_type': job.file_type.letter_name, 'job_id': job.job_id,
-                        'submission_id': job.submission_id, 'file_generation_id': file_generation.file_generation_id}
-            logger.info(log_data)
+            logger.info({'message': 'Sending new FileGeneration {} to SQS'.format(file_generation.file_generation_id),
+                         'message_type': 'BrokerInfo', 'file_type': job.file_type.letter_name, 'job_id': job.job_id,
+                         'submission_id': job.submission_id, 'file_generation_id': file_generation.file_generation_id})
 
             # Add file_generation_id to the SQS job queue
             queue = sqs_queue()
@@ -209,9 +207,8 @@ def retrieve_cached_file_generation(job, agency_type, agency_code):
             FileGeneration object matching the criteria, or None
     """
     sess = GlobalDB.db().session
-    log_data = {'message': 'Checking for a cached FileGeneration to pull file from', 'message_type': 'BrokerInfo',
-                'submission_id': job.submission_id, 'job_id': job.job_id, 'file_type': job.file_type.letter_name}
-    logger.info(log_data)
+    logger.info({'message': 'Checking for a cached FileGeneration to pull file from', 'message_type': 'BrokerInfo',
+                 'submission_id': job.submission_id, 'job_id': job.job_id, 'file_type': job.file_type.letter_name})
 
     # find current date and date of last FPDS pull
     current_date = datetime.now().date()

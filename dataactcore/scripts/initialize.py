@@ -114,7 +114,7 @@ def load_zip_codes():
 
 
 def uncache_all_files():
-    logger.info('Un-caching all generated file')
+    logger.info('Un-caching all generated files')
     with create_app().app_context():
         sess = GlobalDB.db().session
         sess.query(FileGeneration).update({"is_cached_file": False}, synchronize_session=False)

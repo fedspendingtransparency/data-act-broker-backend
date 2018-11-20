@@ -54,15 +54,13 @@ def generate_file(submission, file_type, start, end, agency_type):
     job = sess.query(Job).filter(Job.submission_id == submission.submission_id,
                                  Job.file_type_id == lookups.FILE_TYPE_DICT_LETTER_ID[file_type],
                                  Job.job_type_id == lookups.JOB_TYPE_DICT['file_upload']).one()
-
-    log_data = {
+    logger.info({
         'message': 'Starting {} file generation within submission {}'.format(file_type, submission.submission_id),
         'message_type': 'BrokerInfo',
         'submission_id': submission.submission_id,
         'job_id': job.job_id,
         'file_type': file_type
-    }
-    logger.info(log_data)
+    })
 
     # Check prerequisites on upload job
     if not generation_helper.check_generation_prereqs(submission.submission_id, file_type):
