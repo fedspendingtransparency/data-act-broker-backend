@@ -8,7 +8,7 @@ from datetime import datetime
 from dataactcore.models.domainModels import DUNS
 from dataactcore.utils.parentDuns import sam_config_is_valid
 from dataactcore.utils.duns import load_duns_by_row
-from dataactvalidator.scripts.loaderUtils import clean_data
+from dataactvalidator.scripts.loader_utils import clean_data
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
