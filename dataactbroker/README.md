@@ -823,9 +823,14 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Do not have permission to access that submission
 
-#### POST "/v1/submit_detached_file"
+#### POST "/v1/submit\_detached\_file"
 
-This route sends a request to the backend with ID of the FABS submission we're submitting in order to publish it.
+##### This endpoint is deprecated and will be removed in March. Use `publish_fabs_file` instead
+
+
+#### POST "/v1/publish\_fabs\_file"
+
+This route sends a request to the backend with ID of the FABS submission to publish.
 
 ##### Body (JSON)
 
@@ -837,10 +842,9 @@ This route sends a request to the backend with ID of the FABS submission we're s
 
 ##### Body Description
 
-* `submission_id` - **required** - ID of the submission to process
+- `submission_id` - **required** - ID of the submission to publish
 
 ##### Response (JSON)
-Successful response will contain the submission_id.
 
 ```
 {
@@ -848,9 +852,17 @@ Successful response will contain the submission_id.
 }
 ```
 
-Invalid submission_ids (nonexistant or not FABS submissions) and submissions that have already been published will return a 400 error.
+##### Response Attributes
 
-Other errors will be 500 errors
+- `submission_id` - the ID of the submission being published
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400: Invalid submission, already published or currently publishing submission, different submission published the same rows between validation and this API call, missing required parameter
+- 401: Login required
+- 500: Any other unexpected errors
+
 
 #### POST "/v1/delete_submission"
 
