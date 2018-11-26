@@ -130,20 +130,18 @@ class SubmissionWindowFactory(factory.Factory):
     application_type = factory.SubFactory(ApplicationTypeFactory)
 
 
-class FileRequestFactory(factory.Factory):
+class FileGenerationFactory(factory.Factory):
     class Meta:
-        model = jobModels.FileRequest
+        model = jobModels.FileGeneration
 
-    file_request_id = fuzzy.FuzzyInteger(9999)
+    file_generation_id = fuzzy.FuzzyInteger(9999)
     request_date = fuzzy.FuzzyDate(date(2010, 1, 1))
-    job_id = fuzzy.FuzzyInteger(9999)
-    job = factory.SubFactory(JobFactory)
-    parent_job_id = fuzzy.FuzzyInteger(9999)
     start_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     end_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     agency_code = fuzzy.FuzzyText()
     agency_type = fuzzy.FuzzyChoice({'awarding', 'funding'})
-    file_type = fuzzy.FuzzyText()
+    file_type = fuzzy.FuzzyChoice({'D1', 'D2'})
+    file_path = fuzzy.FuzzyText()
     is_cached_file = fuzzy.FuzzyChoice((False, True))
 
 

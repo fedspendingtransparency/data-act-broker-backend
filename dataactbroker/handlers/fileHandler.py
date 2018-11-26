@@ -29,7 +29,7 @@ from dataactcore.interfaces.function_bag import (
 
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
-                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
+                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileGeneration)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
@@ -673,24 +673,25 @@ class FileHandler:
                 new_row = PublishedAwardFinancialAssistance(**temp_obj)
                 sess.add(new_row)
 
-                # update the list of affected agency_codes
+                # update the list of affected awarding_agency_codes
                 if temp_obj['awarding_agency_code'] not in agency_codes_list:
                     agency_codes_list.append(temp_obj['awarding_agency_code'])
+
+                # update the list of affected funding_agency_codes
+                if temp_obj['funding_agency_code'] not in agency_codes_list:
+                    agency_codes_list.append(temp_obj['funding_agency_code'])
 
                 if row_count % 1000 == 0:
                     log_data['message'] = 'Completed derivations for {} rows'.format(row_count)
                     logger.info(log_data)
                 row_count += 1
 
-            # update all cached D2 FileRequest objects that could have been affected by the publish
-            for agency_code in agency_codes_list:
-                sess.query(FileRequest).\
-                    filter(FileRequest.agency_code == agency_code,
-                           FileRequest.is_cached_file.is_(True),
-                           FileRequest.file_type == 'D2',
-                           sa.or_(FileRequest.start_date <= submission.reporting_end_date,
-                                  FileRequest.end_date >= submission.reporting_start_date)).\
-                    update({"is_cached_file": False}, synchronize_session=False)
+            # update all cached D2 FileGeneration objects that could have been affected by the publish
+            sess.query(FileGeneration).\
+                filter(FileGeneration.agency_code.in_(agency_codes_list),
+                       FileGeneration.is_cached_file.is_(True),
+                       FileGeneration.file_type == 'D2').\
+                update({"is_cached_file": False}, synchronize_session=False)
             sess.commit()
         except Exception as e:
             log_data['message'] = 'An error occurred while publishing a FABS submission'
@@ -837,16 +838,11 @@ class FileHandler:
                job.file_type_id in [FILE_TYPE_DICT["award"], FILE_TYPE_DICT["award_procurement"]]:
                 # file generation handled on backend, mark as ready
                 job.job_status_id = JOB_STATUS_DICT['ready']
-                file_request = sess.query(FileRequest).filter_by(job_id=job.job_id).one_or_none()
 
-                # uncache any related D file requests
-                if file_request:
-                    file_request.is_cached_file = False
-                    if file_request.parent_job_id:
-                        parent_file_request = sess.query(FileRequest).filter_by(job_id=file_request.parent_job_id).\
-                            one_or_none()
-                        if parent_file_request:
-                            parent_file_request.is_cached_file = False
+                # forcibly uncache any related D file requests
+                file_gen = sess.query(FileGeneration).filter_by(file_generation_id=job.file_generation_id).one_or_none()
+                if file_gen:
+                    file_gen.is_cached_file = False
             else:
                 # these are dependent on file D2 validation
                 job.job_status_id = JOB_STATUS_DICT['waiting']
