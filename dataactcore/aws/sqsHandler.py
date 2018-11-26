@@ -10,7 +10,7 @@ class SQSMockQueue:
     @staticmethod
     def send_message(MessageBody, MessageAttributes=None):  # noqa
         sess = GlobalDB.db().session
-        sess.add(SQS(message=int(MessageBody), attributes=str(MessageAttributes)))
+        sess.add(SQS(message=int(MessageBody), attributes=str(MessageAttributes) if MessageAttributes else None))
         sess.commit()
         return {"ResponseMetadata": {"HTTPStatusCode": 200}}
 
