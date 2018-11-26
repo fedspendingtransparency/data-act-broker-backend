@@ -67,7 +67,7 @@ def run_app():
                     msg_attr = current_message.message_attributes
 
                     # Generating a file
-                    if msg_attr and msg_attr.get('validation_type') == 'generation':
+                    if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
                         handled_error = validator_process_file_generation(message.body)
                     # Running validations
                     else:
