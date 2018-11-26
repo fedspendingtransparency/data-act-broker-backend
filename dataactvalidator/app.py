@@ -68,10 +68,10 @@ def run_app():
 
                     # Generating a file
                     if msg_attr and msg_attr.get('validation_type') == 'generation':
-                        handled_error = validator_process_file_generation(message.body, local)
+                        handled_error = validator_process_file_generation(message.body)
                     # Running validations
                     else:
-                        handled_error = validator_process_job(message.body, local, current_message)
+                        handled_error = validator_process_job(message.body, current_message)
 
                     # Delete from SQS once processed
                     if not handled_error:
