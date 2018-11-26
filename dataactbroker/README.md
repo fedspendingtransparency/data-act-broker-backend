@@ -825,7 +825,7 @@ Possible HTTP Status Codes:
 
 #### POST "/v1/submit\_detached\_file"
 
-##### This endpoint is deprecated and will be removed XXX. Use `publish_fabs_file` instead
+##### This endpoint is deprecated and will be removed in March. Use `publish_fabs_file` instead
 
 
 #### POST "/v1/publish\_fabs\_file"
