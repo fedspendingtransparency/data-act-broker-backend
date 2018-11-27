@@ -6,6 +6,7 @@ from dataactbroker.helpers.generation_helper import a_file_query, d_file_query, 
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.models.jobModels import Job
 from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_NAME
@@ -42,7 +43,7 @@ class FileGenerationManager:
         self.job = job
         self.file_type = job.file_type.letter_name if job else file_generation.file_type
 
-    def generate_file(self):
+    def generate_file(self, agency_code=None):
         """ Generates a file based on the FileGeneration object and updates any Jobs referencing it """
         raw_filename = CONFIG_BROKER["".join([FILE_TYPE_DICT_LETTER_NAME[self.file_type], "_file_name"])]
         file_name = S3Handler.get_timestamped_filename(raw_filename)
@@ -64,10 +65,19 @@ class FileGenerationManager:
             })
         elif self.job.file_type.letter_name in ['A', 'E', 'F']:
             log_data['job_id'] = self.job.job_id
+            mark_job_status(self.job.job_id, 'running')
 
-            # Call self.generate_%s_file() where %s is a, e, or f based on the Job's file_type
-            file_type_lower = self.job.file_type.letter_name.lower()
-            getattr(self, 'generate_%s_file' % file_type_lower)()
+            if self.job.file_type.letter_name == 'A':
+                if not agency_code:
+                    raise Exception('Agency code not provided for an A file generation')
+
+                self.generate_a_file(agency_code, file_path)
+            else:
+                # Call self.generate_%s_file() where %s is e or f based on the Job's file_type
+                file_type_lower = self.job.file_type.letter_name.lower()
+                getattr(self, 'generate_%s_file' % file_type_lower)()
+
+            mark_job_status(self.job.job_id, 'finished')
         else:
             e = 'No FileGeneration object for D file generation.' if self.file_type in ['D1', 'D2'] else \
                 'Cannot generate file for {} file type.'.format(self.file_type if self.file_type else 'empty')
@@ -162,10 +172,14 @@ class FileGenerationManager:
 
         write_csv(self.job.original_filename, self.job.filename, self.is_local, header, body)
 
-    def generate_a_file(self):
+    def generate_a_file(self, agency_code, file_path):
         """ Write file A to an appropriate CSV. """
+        self.job.filename = file_path
+        self.job.original_filename = file_path.split('/')[-1]
+        self.sess.commit()
+
         log_data = {'message': 'Starting file A generation', 'message_type': 'ValidatorInfo', 'job_id': self.job.job_id,
-                    'agency_code': self.agency_code, 'file_type': self.job.file_type.letter_name,
+                    'agency_code': agency_code, 'file_type': self.job.file_type.letter_name,
                     'start_date': self.job.start_date, 'end_date': self.job.end_date,
                     'filename': self.job.original_filename}
         logger.info(log_data)
@@ -174,7 +188,7 @@ class FileGenerationManager:
         headers = [key for key in fileA.mapping]
         # add 3 months to account for fiscal year
         period_date = self.job.end_date + relativedelta(months=3)
-        query_utils = {"agency_code": self.agency_code, "period": period_date.month, "year": period_date.year,
+        query_utils = {"agency_code": agency_code, "period": period_date.month, "year": period_date.year,
                        "sess": self.sess}
 
         # Generate the file and put in S3
