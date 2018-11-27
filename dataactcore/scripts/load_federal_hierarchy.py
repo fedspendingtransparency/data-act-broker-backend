@@ -162,7 +162,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
                 # We have somehow retrieved more records than existed at the beginning of the pull
                 logger.error("Total expected records: {}, Number of records retrieved: {}".format(
                     total_expected_records, entries_processed))
-                sys.exit(1)
+                sys.exit(2)
 
     if update_db:
         sess.commit()
@@ -223,7 +223,7 @@ def get_normalized_agency_code(agency_code, subtier_code):
 
 
 def get_with_exception_hand(url_string):
-    """ Retrieve data from FPDS, allow for multiple retries and timeouts
+    """ Retrieve data from API, allow for multiple retries and timeouts
 
         Args:
             url_string: URL to make the request to
@@ -248,8 +248,8 @@ def get_with_exception_hand(url_string):
                             .format(retry_sleep_times[exception_retries], request_timeout))
                 time.sleep(retry_sleep_times[exception_retries])
             else:
-                logger.error('Connection to FPDS feed lost, maximum retry attempts exceeded.')
-                sys.exit(1)
+                logger.error('Connection to Federal Hierarchy API lost, maximum retry attempts exceeded.')
+                sys.exit(2)
     return resp
 
 
