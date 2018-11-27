@@ -80,7 +80,7 @@ Example output:
 ### User Routes
 
 #### POST "/v1/max_login/"
-This route sends a request to the backend with the ticket obtained from the MAX login endpoint in order to verify authentication and access to the Data Broker. If called by a service account, a certificate is required for authentication.
+This route sends a request to the backend with the ticket obtained from the MAX login endpoint in order to verify authentication and access to the Data Broker. If called by a service account, a certificate is required for authentication. **IMPORTANT**: The ticket has a 30 second expiration window so it must be used immediately after being received in order for it to be valid.
 
 #### Body (JSON)
 
@@ -132,7 +132,10 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
 - `session_id`: string, a hash the application uses to verify that user sending the request is logged in, part of response only if login is successful
 
 #### POST "/v1/login/"
-This route checks the username and password against a credentials file. Accepts input as json or form-urlencoded, with keys "username" and "password". See `current_user` docs for details.
+
+### **THIS IS NOT A PRODUCTION ENDPOINT**
+
+This route checks the username and password against a credentials file. It is used solely as a workaround for developing on a local instance of the broker to bypass MAX.gov login. Accepts input as json or form-urlencoded, with keys "username" and "password". See `current_user` docs for details.
 
 Example input:
 
@@ -820,9 +823,14 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Do not have permission to access that submission
 
-#### POST "/v1/submit_detached_file"
+#### POST "/v1/submit\_detached\_file"
 
-This route sends a request to the backend with ID of the FABS submission we're submitting in order to publish it.
+##### This endpoint is deprecated and will be removed in March. Use `publish_fabs_file` instead
+
+
+#### POST "/v1/publish\_fabs\_file"
+
+This route sends a request to the backend with ID of the FABS submission to publish.
 
 ##### Body (JSON)
 
@@ -834,10 +842,9 @@ This route sends a request to the backend with ID of the FABS submission we're s
 
 ##### Body Description
 
-* `submission_id` - **required** - ID of the submission to process
+- `submission_id` - **required** - ID of the submission to publish
 
 ##### Response (JSON)
-Successful response will contain the submission_id.
 
 ```
 {
@@ -845,9 +852,17 @@ Successful response will contain the submission_id.
 }
 ```
 
-Invalid submission_ids (nonexistant or not FABS submissions) and submissions that have already been published will return a 400 error.
+##### Response Attributes
 
-Other errors will be 500 errors
+- `submission_id` - the ID of the submission being published
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400: Invalid submission, already published or currently publishing submission, different submission published the same rows between validation and this API call, missing required parameter
+- 401: Login required
+- 500: Any other unexpected errors
+
 
 #### POST "/v1/delete_submission"
 

@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import DUNS
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
+from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +143,7 @@ def clean_sam_data(data, table=DUNS):
         "zip4": "zip4",
         "country_code": "country_code",
         "congressional_district": "congressional_district",
+        "entity_structure": "entity_structure",
         "business_types_codes": "business_types_codes",
         "ultimate_parent_legal_enti": "ultimate_parent_legal_enti",
         "ultimate_parent_unique_ide": "ultimate_parent_unique_ide"
@@ -186,6 +187,7 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
             "zip4": 19,
             "country_code": 20,
             "congressional_district": 21,
+            "entity_structure": 27,
             "business_types_raw": 31,
             "ultimate_parent_legal_enti": 186,
             "ultimate_parent_unique_ide": 187

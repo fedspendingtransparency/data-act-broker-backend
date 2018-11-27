@@ -108,7 +108,9 @@ class Job(Base):
     end_date = Column(Date)
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_job_user"), nullable=True)
     last_validated = Column(DateTime, default=datetime.utcnow)
-    from_cached = Column(Boolean, nullable=False, default=False)
+    file_generation_id = Column(Integer, ForeignKey("file_generation.file_generation_id", ondelete="SET NULL",
+                                                    name="fk_file_request_file_generation_id"), nullable=True)
+    file_generation = relationship("FileGeneration", uselist=False)
 
     @property
     def job_type_name(self):
@@ -183,11 +185,8 @@ class SQS(Base):
     __tablename__ = "sqs"
 
     sqs_id = Column(Integer, primary_key=True)
-    job_id = Column(Integer, nullable=False)
-    agency_code = Column(Text)
-    agency_type = Column(Enum('awarding', 'funding', name='agency_types'), nullable=True)
-
-    __table_args__ = (UniqueConstraint('job_id', name='uniq_job_id'),)
+    message = Column(Integer, nullable=False)
+    attributes = Column(Text, nullable=True)
 
 
 class RevalidationThreshold(Base):
@@ -267,4 +266,20 @@ class FileRequest(Base):
     agency_type = Column(Enum('awarding', 'funding', name='agency_types'), nullable=False, index=True,
                          default='awarding', server_default='awarding')
     file_type = Column(Text, nullable=False, index=True)
+    is_cached_file = Column(Boolean, nullable=False, default=False)
+
+
+class FileGeneration(Base):
+    __tablename__ = "file_generation"
+
+    file_generation_id = Column(Integer, primary_key=True)
+    request_date = Column(Date, nullable=False, index=True)
+    start_date = Column(Date, nullable=False, index=True)
+    end_date = Column(Date, nullable=False, index=True)
+    agency_code = Column(Text, nullable=False, index=True)
+    agency_type = Column(Enum('awarding', 'funding', name='generation_agency_types'), nullable=False, index=True,
+                         default='awarding', server_default='awarding')
+    file_type = Column(Enum('D1', 'D2', name='generation_file_types'), nullable=False, index=True,
+                       default='D1', server_default='D1')
+    file_path = Column(Text)
     is_cached_file = Column(Boolean, nullable=False, default=False)

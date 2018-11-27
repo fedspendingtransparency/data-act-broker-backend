@@ -1,5 +1,6 @@
 import boto3
 import logging
+import traceback
 
 from datetime import datetime
 from flask import g
@@ -11,7 +12,8 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models import lookups
-from dataactcore.models.jobModels import FileRequest, FPDSUpdate, Job, Submission
+from dataactcore.models.jobModels import FileGeneration, FPDSUpdate, Job, Submission
+from dataactcore.utils import fileA
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
@@ -34,9 +36,6 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
             end_date: String to parse as the end date of the generation
             agency_type: Type of Agency to generate files by: "awarding" or "funding"
             agency_code: Agency code for detached D file generations
-
-        Returns:
-            SQS send_message response
     """
     if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
         raise ResponseException("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
@@ -52,29 +51,45 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
     if job.submission_id:
         agency_code = update_generation_submission(sess, job)
 
-    mark_job_status(job.job_id, "waiting")
+    mark_job_status(job.job_id, 'waiting')
 
-    log_data = {'message': 'Sending {} file generation job {} to SQS'.format(job.file_type.letter_name, job.job_id),
-                'message_type': 'BrokerInfo', 'submission_id': job.submission_id, 'job_id': job.job_id,
-                'file_type': job.file_type.letter_name}
-    logger.info(log_data)
+    file_generation = retrieve_cached_file_generation(job, agency_type, agency_code)
+    if file_generation:
+        try:
+            copy_file_generation_to_job(job, file_generation, g.is_local)
+        except Exception as e:
+            logger.error(traceback.format_exc())
 
-    file_request = retrieve_cached_file_request(job, agency_type, agency_code, g.is_local)
-    if file_request:
-        log_data['message'] = 'No new file generated, used FileRequest with ID {}'.format(file_request.file_request_id)
-        logger.info(log_data)
+            mark_job_status(job.job_id, 'failed')
+            job.error_message = str(e)
+            sess.commit()
     else:
-        # Set SQS message attributes
-        message_attr = {'agency_type': {'DataType': 'String', 'StringValue': agency_type}}
-        if not job.submission_id:
-            message_attr['agency_code'] = {'DataType': 'String', 'StringValue': agency_code}
+        # Create new FileGeneration and reset Jobs
+        file_generation = FileGeneration(
+            request_date=datetime.now().date(), start_date=job.start_date, end_date=job.end_date,
+            file_type=job.file_type.letter_name, agency_code=agency_code, agency_type=agency_type, is_cached_file=True)
+        sess.add(file_generation)
+        sess.commit()
 
-        # Add job_id to the SQS job queue
-        queue = sqs_queue()
-        msg_response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes=message_attr)
+        try:
+            job.file_generation_id = file_generation.file_generation_id
+            sess.commit()
+            reset_generation_jobs(sess, job)
+            logger.info({'message': 'Sending new FileGeneration {} to SQS'.format(file_generation.file_generation_id),
+                         'message_type': 'BrokerInfo', 'file_type': job.file_type.letter_name, 'job_id': job.job_id,
+                         'submission_id': job.submission_id, 'file_generation_id': file_generation.file_generation_id})
 
-        log_data['message'] = 'SQS message response: {}'.format(msg_response)
-        logger.debug(log_data)
+            # Add file_generation_id to the SQS job queue
+            queue = sqs_queue()
+            message_attr = {"validation_type": {"DataType": "String", "StringValue": "generation"}}
+            queue.send_message(MessageBody=str(file_generation.file_generation_id), MessageAttributes=message_attr)
+        except Exception as e:
+            logger.error(traceback.format_exc())
+
+            mark_job_status(job.job_id, 'failed')
+            job.error_message = str(e)
+            file_generation.is_cached_file = False
+            sess.commit()
 
 
 def start_e_f_generation(job):
@@ -94,6 +109,43 @@ def start_e_f_generation(job):
     # Add job_id to the SQS job queue
     queue = sqs_queue()
     msg_response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes={})
+
+    log_data['message'] = 'SQS message response: {}'.format(msg_response)
+    logger.debug(log_data)
+
+
+def start_a_generation(job, start_date, end_date, agency_code):
+    """ Validates the start and end dates of the generation and sends the job information to SQS.
+
+        Args:
+            job: File generation job to start
+            start_date: String to parse as the start date of the generation
+            end_date: String to parse as the end date of the generation
+            agency_code: Agency code for A file generations
+    """
+    if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
+        raise ResponseException("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
+                                StatusCode.CLIENT_ERROR)
+
+    # Update the Job's start and end dates
+    sess = GlobalDB.db().session
+    job.start_date = start_date
+    job.end_date = end_date
+    sess.commit()
+
+    mark_job_status(job.job_id, "waiting")
+
+    file_type = job.file_type.letter_name
+    log_data = {'message': 'Sending {} file generation job {} to Validator in SQS'.format(file_type, job.job_id),
+                'message_type': 'BrokerInfo', 'job_id': job.job_id, 'file_type': file_type}
+    logger.info(log_data)
+
+    # Set SQS message attributes
+    message_attr = {'agency_code': {'DataType': 'String', 'StringValue': agency_code}}
+
+    # Add job_id to the SQS job queue
+    queue = sqs_queue()
+    msg_response = queue.send_message(MessageBody=str(job.job_id), MessageAttributes=message_attr)
 
     log_data['message'] = 'SQS message response: {}'.format(msg_response)
     logger.debug(log_data)
@@ -143,105 +195,41 @@ def check_file_generation(job_id):
     return response_dict
 
 
-def retrieve_cached_file_request(job, agency_type, agency_code, is_local):
-    """ Retrieves a cached FileRequest for the D file generation, if there is one.
+def retrieve_cached_file_generation(job, agency_type, agency_code):
+    """ Retrieves a cached FileGeneration for the D file request, if there is one.
 
         Args:
-            job: the upload job for the generation file
+            job: Upload Job for the generation file
             agency_type: Type of Agency to generate files by: "awarding" or "funding"
-            agency_code: Agency code for detached D file generations
-            is_local: A boolean flag indicating whether the application is being run locally or not
+            agency_code: Agency code to generate file for
 
         Returns:
-            FileRequest object matching the criteria, or None
+            FileGeneration object matching the criteria, or None
     """
     sess = GlobalDB.db().session
-    log_data = {'message': 'Checking for a cached FileRequest to pull file from', 'message_type': 'BrokerInfo',
-                'submission_id': job.submission_id, 'job_id': job.job_id, 'file_type': job.file_type.letter_name}
-    logger.info(log_data)
+    logger.info({'message': 'Checking for a cached FileGeneration to pull file from', 'message_type': 'BrokerInfo',
+                 'submission_id': job.submission_id, 'job_id': job.job_id, 'file_type': job.file_type.letter_name})
 
     # find current date and date of last FPDS pull
     current_date = datetime.now().date()
     last_update = sess.query(FPDSUpdate).one_or_none()
     fpds_date = last_update.update_date if last_update else current_date
 
-    # check if FileRequest already exists with this job_id, if not, create one
-    file_request = None
-    file_request_list = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id).all()
+    # check if a cached FileGeneration already exists using these criteria
+    file_generation = None
+    file_gen = sess.query(FileGeneration).filter(
+        FileGeneration.start_date == job.start_date, FileGeneration.end_date == job.end_date,
+        FileGeneration.agency_code == agency_code,  FileGeneration.agency_type == agency_type,
+        FileGeneration.file_type == job.file_type.letter_name, FileGeneration.is_cached_file.is_(True)).one_or_none()
 
-    for fr in file_request_list:
-        if (fr.file_type == 'D1' and fr.request_date < fpds_date) or fr.agency_type != agency_type or \
-           fr.start_date != job.start_date or fr.end_date != job.end_date:
-            # Uncache if D1 file is expired or old generation does not match current generation
-            fr.is_cached_file = False
-        else:
-            file_request = fr
-    sess.commit()
-
-    # determine if anything needs to be done at all
-    if file_request and file_request.is_cached_file:
-        # this is the up-to-date cached version of the generated file
-        # reset the file names on the upload Job
-        log_data['message'] = '{} file has already been generated for this job'.format(file_request.file_type)
-        logger.info(log_data)
-        job.from_cached = False
+    if file_gen and (file_gen.file_type == 'D1' and file_gen.request_date < fpds_date):
+        # Uncache expired D1 FileGeneration
+        file_gen.is_cached_file = False
         sess.commit()
+    elif file_gen:
+        file_generation = file_gen
 
-        mark_job_status(job.job_id, 'finished')
-    else:
-        # search for potential parent FileRequests
-        file_request = None
-        parent_file_request = None
-        parent_file_requests = sess.query(FileRequest).\
-            filter(FileRequest.file_type == job.file_type.letter_name, FileRequest.start_date == job.start_date,
-                   FileRequest.end_date == job.end_date, FileRequest.agency_code == agency_code,
-                   FileRequest.agency_type == agency_type, FileRequest.is_cached_file.is_(True)).all()
-
-        # there will, very rarely, be more than one value in parent_file_requests
-        for parent_request in parent_file_requests:
-            valid_cached_job_statuses = [lookups.JOB_STATUS_DICT["running"], lookups.JOB_STATUS_DICT["finished"]]
-            parent_job = sess.query(Job).filter_by(job_id=parent_request.job_id).one_or_none()
-
-            # check that D1 FileRequests are newer than the last FPDS pull
-            invalid_d1 = parent_request.file_type == 'D1' and parent_request.request_date < fpds_date
-
-            # check FileRequest hasn't expired and Job status is valid
-            invalid_job = not parent_job or parent_job.job_status_id not in valid_cached_job_statuses
-
-            # check that this parent_request is newer than any previous valid requests
-            is_older_request = parent_file_request and parent_request.updated_at <= parent_file_request.updated_at
-
-            # if this parent_request is not a valid cached FileRequest
-            if invalid_d1 or invalid_job or is_older_request:
-                # uncache FileRequest
-                parent_request.is_cached_file = False
-                continue
-
-            # uncache outdated parent FileRequests
-            if parent_file_request:
-                parent_file_request.is_cached_file = False
-
-            # mark FileRequest with parent job_id
-            parent_file_request = parent_request
-
-        sess.commit()
-
-        if parent_file_request:
-            # parent exists; copy parent data to this job
-            log_data['message'] = 'Copying data for job_id:{} from parent job_id:{}'.format(job.job_id,
-                                                                                            parent_file_request.job_id)
-            logger.info(log_data)
-
-            file_request = FileRequest(request_date=current_date, job_id=job.job_id, start_date=job.start_date,
-                                       end_date=job.end_date, agency_code=agency_code, agency_type=agency_type,
-                                       is_cached_file=False, file_type=job.file_type.letter_name,
-                                       parent_job_id=parent_file_request.job_id)
-            sess.add(file_request)
-            sess.commit()
-
-            copy_parent_file_request_data(job, parent_file_request.job, is_local)
-
-    return file_request
+    return file_generation
 
 
 def map_generate_status(sess, upload_job):
@@ -256,9 +244,21 @@ def map_generate_status(sess, upload_job):
             The status of the submission based on upload job status and validation job status (where applicable)
     """
     if lookups.FILE_TYPE_DICT_LETTER[upload_job.file_type_id] in ['D1', 'D2'] and upload_job.submission_id:
-        validation_job = sess.query(Job).filter(Job.submission_id == upload_job.submission_id,
-                                                Job.file_type_id == upload_job.file_type_id,
-                                                Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
+        validation_job = sess.query(Job).filter(
+            Job.submission_id == upload_job.submission_id,
+            Job.file_type_id == upload_job.file_type_id,
+            Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one_or_none()
+
+        if not validation_job:
+            # Handle missing validation Job
+            error_text = 'The upload Job {} with submission_id {} is missing its validation Job'.format(
+                upload_job.job_id, upload_job.submission_id)
+            logger.error({
+                'message': error_text, 'message_type': 'BrokerError', 'job_id': upload_job.job_id,
+                'file_type': upload_job.file_type.name, 'submission_id': upload_job.submission_id
+            })
+            raise Exception(error_text)
+
         validation_status = validation_job.job_status.name
         if validation_job.number_of_errors > 0:
             errors_present = True
@@ -311,7 +311,6 @@ def update_generation_submission(sess, job):
             CGAC or FREC agency code of the Submission
     """
     submission = sess.query(Submission).filter(Submission.submission_id == job.submission_id).one()
-    agency_code = submission.frec_code if submission.frec_code else submission.cgac_code
 
     # Change the publish status back to updated if certified
     if submission.publish_status_id == lookups.PUBLISH_STATUS_DICT['published']:
@@ -319,13 +318,15 @@ def update_generation_submission(sess, job):
         submission.publish_status_id = lookups.PUBLISH_STATUS_DICT['updated']
         submission.updated_at = datetime.utcnow()
 
-    # Set validation status to waiting if it's not already
-    validation_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
-                                            Job.file_type_id == job.file_type_id,
-                                            Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation'],
-                                            Job.job_status_id != lookups.JOB_STATUS_DICT['waiting']).one_or_none()
-    if validation_job:
-        validation_job.job_status_id = lookups.JOB_STATUS_DICT['waiting']
+    # Retrieve and update the validation Job
+    val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
+                                     Job.file_type_id == job.file_type_id,
+                                     Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
+    val_job.start_date = job.start_date
+    val_job.end_date = job.end_date
+    val_job.filename = job.filename
+    val_job.original_filename = job.original_filename
+    val_job.job_status_id = lookups.JOB_STATUS_DICT["waiting"]
 
     # Set cross-file validation status to waiting if it's not already
     # No need to update it for each type of D file generation job, just do it once
@@ -337,10 +338,10 @@ def update_generation_submission(sess, job):
 
     sess.commit()
 
-    return agency_code
+    return submission.frec_code if submission.frec_code else submission.cgac_code
 
 
-def add_generation_job_info(file_type_name, job=None, start_date=None, end_date=None):
+def create_generation_job(file_type_name, start_date, end_date):
     """ Add details to jobs for generating files
 
         Args:
@@ -355,10 +356,9 @@ def add_generation_job_info(file_type_name, job=None, start_date=None, end_date=
     sess = GlobalDB.db().session
 
     # Create a new job for a detached generation
-    if job is None:
-        job = Job(job_type_id=lookups.JOB_TYPE_DICT['file_upload'], user_id=g.user.user_id,
-                  file_type_id=lookups.FILE_TYPE_DICT[file_type_name], start_date=start_date, end_date=end_date)
-        sess.add(job)
+    job = Job(job_type_id=lookups.JOB_TYPE_DICT['file_upload'], user_id=g.user.user_id,
+              file_type_id=lookups.FILE_TYPE_DICT[file_type_name], start_date=start_date, end_date=end_date)
+    sess.add(job)
 
     # Update the job details
     job.message = None
@@ -398,100 +398,72 @@ def check_generation_prereqs(submission_id, file_type):
     return unfinished_prereqs == 0
 
 
-def copy_parent_file_request_data(child_job, parent_job, is_local=None):
-    """ Parent FileRequest job data to the child FileRequest job data.
+def copy_file_generation_to_job(job, file_generation, is_local):
+    """ Copy cached FileGeneration data to a Job requesting a file.
 
         Args:
-            child_job: Job object for the child FileRequest
-            parent_job: Job object for the parent FileRequest
+            job: Job object to copy the data to
+            file_generation: Cached FileGeneration object to copy the data from
             is_local: A boolean flag indicating whether the application is being run locally or not
     """
     sess = GlobalDB.db().session
+    log_data = {
+        'message': 'Copying FileGeneration {} data to Job {}'.format(file_generation.file_generation_id, job.job_id),
+        'message_type': 'BrokerInfo', 'job_id': job.job_id, 'file_type': job.file_type.name,
+        'file_generation_id': file_generation.file_generation_id}
+    logger.info(log_data)
 
-    # Do not edit submissions that have successfully completed
-    if child_job.job_status_id == lookups.JOB_STATUS_DICT['finished']:
+    # Do not edit submissions that have already successfully completed
+    sess.refresh(job)
+    if job.job_status_id == lookups.JOB_STATUS_DICT['finished']:
         return
 
-    # Generate file path for child Job's filaname
-    filepath = CONFIG_BROKER['broker_files'] if is_local else "{}/".format(str(child_job.submission_id))
-    filename = '{}{}'.format(filepath, parent_job.original_filename)
+    job.file_generation_id = file_generation.file_generation_id
+
+    # File is still being generated, just mark the FileGeneration ID in the Job and wait
+    # FileGeneration will update all child Jobs when it finishes
+    if not file_generation.file_path:
+        sess.commit()
+        return
+
+    # Generate file path for child Job's filename
+    filepath = CONFIG_BROKER['broker_files'] if g.is_local else "{}/".format(str(job.submission_id))
+    original_filename = file_generation.file_path.split('/')[-1]
+    filename = '{}{}'.format(filepath, original_filename)
 
     # Copy parent job's data
-    child_job.from_cached = True
-    child_job.filename = filename
-    child_job.original_filename = parent_job.original_filename
-    child_job.number_of_errors = parent_job.number_of_errors
-    child_job.number_of_warnings = parent_job.number_of_warnings
-    child_job.error_message = parent_job.error_message
+    job.filename = filename
+    job.original_filename = original_filename
+    job.number_of_errors = 0
+    job.number_of_warnings = 0
 
     # Change the validation job's file data when within a submission
-    if child_job.submission_id is not None:
-        val_job = sess.query(Job).filter(Job.submission_id == child_job.submission_id,
-                                         Job.file_type_id == parent_job.file_type_id,
-                                         Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
-        val_job.filename = filename
-        val_job.original_filename = parent_job.original_filename
-    sess.commit()
-
-    copy_file_from_parent_to_child(child_job, parent_job, is_local)
-
-    # Mark job status last so the validation job doesn't start until everything is done
-    mark_job_status(child_job.job_id, lookups.JOB_STATUS_DICT_ID[parent_job.job_status_id])
-
-
-def copy_file_from_parent_to_child(child_job, parent_job, is_local):
-    """ Copy the file from the parent job's bucket to the child job's bucket.
-
-        Args:
-            child_job: Job object for the child FileRequest
-            parent_job: Job object for the parent FileRequest
-            is_local: A boolean flag indicating whether the application is being run locally or not
-
-    """
-    file_type = parent_job.file_type.letter_name
-    log_data = {'message': 'Copying data from parent job with job_id:{}'.format(parent_job.job_id),
-                'message_type': 'ValidatorInfo', 'job_id': child_job.job_id, 'file_type': parent_job.file_type.name}
-
-    if not is_local:
-        is_local = g.is_local
-    if not is_local and parent_job.filename != child_job.filename:
-        # Check to see if the same file exists in the child bucket
-        s3 = boto3.client('s3', region_name=CONFIG_BROKER["aws_region"])
-        response = s3.list_objects_v2(Bucket=CONFIG_BROKER['aws_bucket'], Prefix=child_job.filename)
-        for obj in response.get('Contents', []):
-            if obj['Key'] == child_job.filename:
-                # The file already exists in this location
-                log_data['message'] = 'Cached {} file CSV already exists in this location'.format(file_type)
-                logger.info(log_data)
-                return
-
-        # Copy the parent file into the child's S3 location
-        log_data['message'] = 'Copying the cached {} file from job {}'.format(file_type, parent_job.job_id)
-        logger.info(log_data)
-        S3Handler.copy_file(CONFIG_BROKER['aws_bucket'], CONFIG_BROKER['aws_bucket'], parent_job.filename,
-                            child_job.filename)
-
-
-def update_validation_job_info(sess, job):
-    """ Populates validation job objects with start and end dates, filenames, and status.
-        Assumes the upload Job's start and end dates have been validated.
-    """
-    if job.submission_id:
-        # Retrieve and update the validation Job
+    if job.submission_id is not None:
         val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
                                          Job.file_type_id == job.file_type_id,
                                          Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
-        val_job.start_date = job.start_date
-        val_job.end_date = job.end_date
-        val_job.filename = job.filename
-        val_job.original_filename = job.original_filename
-        val_job.job_status_id = lookups.JOB_STATUS_DICT["waiting"]
+        val_job.filename = filename
+        val_job.original_filename = original_filename
 
-        # Clear out error messages to prevent stale messages
-        val_job.error_message = None
+        # Copy the data to the Submission's bucket
+        if not g.is_local and file_generation.file_path != job.filename:
+            # Check to see if the same file exists in the child bucket
+            s3 = boto3.client('s3', region_name=CONFIG_BROKER["aws_region"])
+            bucket = CONFIG_BROKER['aws_bucket']
+            response = s3.list_objects_v2(Bucket=bucket, Prefix=job.filename)
+            for obj in response.get('Contents', []):
+                if obj['Key'] == job.filename:
+                    # The file already exists in this location
+                    log_data['message'] = '{} file already exists in this location: {}; not overwriting.'.format(
+                        job.file_type.name, job.filename)
+                    logger.info(log_data)
+                    return
 
-    job.error_message = None
+            S3Handler.copy_file(bucket, bucket, file_generation.file_path, job.filename)
     sess.commit()
+
+    # Mark Job status last so the validation job doesn't start until everything is done
+    mark_job_status(job.job_id, 'finished')
 
 
 def d_file_query(query_utils, page_start, page_end):
@@ -513,4 +485,57 @@ def d_file_query(query_utils, page_start, page_end):
     rows = query_utils["file_utils"].query_data(query_utils["sess"], query_utils["agency_code"],
                                                 query_utils["agency_type"], query_utils["start"], query_utils["end"],
                                                 page_start, page_end)
+    return rows.all()
+
+
+def reset_generation_jobs(sess, job):
+    """ Resets the Job and (if present) its validation Job to pre-generation
+
+        Args:
+            sess: Current database session
+            job: The generation Job
+
+        Raises:
+            Exception: If the job_id is not valid
+    """
+    job.filename = None
+    job.original_filename = None
+    job.number_of_errors = 0
+    job.number_of_warnings = 0
+    job.file_size = None
+    job.number_of_rows = None
+    job.number_of_rows_valid = None
+
+    if job.submission_id:
+        val_job = sess.query(Job).filter(Job.submission_id == job.submission_id,
+                                         Job.file_type_id == job.file_type_id,
+                                         Job.job_type_id == lookups.JOB_TYPE_DICT['csv_record_validation']).one()
+        val_job.filename = None
+        val_job.original_filename = None
+        val_job.number_of_errors = 0
+        val_job.number_of_warnings = 0
+        val_job.file_size = None
+        val_job.number_of_rows = None
+        val_job.number_of_rows_valid = None
+
+    sess.commit()
+
+
+def a_file_query(query_utils, page_start, page_end):
+    """ Retrieve D1 or D2 data.
+
+            Args:
+                query_utils: object containing:
+                    sess: database session
+                    agency_code: FREC or CGAC code for generation
+                    start: beginning of period for D file
+                    end: end of period for D file
+                page_start: beginning of pagination
+                page_end: end of pagination
+
+            Return:
+                paginated A query results
+        """
+    rows = fileA.query_data(query_utils["sess"], query_utils["agency_code"], query_utils["period"], query_utils["year"],
+                            page_start, page_end)
     return rows.all()
