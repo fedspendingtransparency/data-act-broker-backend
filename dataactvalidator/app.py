@@ -71,7 +71,8 @@ def run_app():
                         handled_error = validator_process_file_generation(message.body)
                     # Running validations
                     else:
-                        handled_error = validator_process_job(message.body, current_message)
+                        a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
+                        handled_error = validator_process_job(message.body, current_message, a_agency_code)
 
                     # Delete from SQS once processed
                     if not handled_error:
@@ -127,7 +128,7 @@ def validator_process_file_generation(file_gen_id):
     return has_errors
 
 
-def validator_process_job(job_id, current_message):
+def validator_process_job(job_id, current_message, agency_code):
     """ Retrieves a Job based on its ID, and kicks off a validation. Handles errors by ensuring the Job (if exists) is
         no longer running.
 
@@ -154,9 +155,9 @@ def validator_process_job(job_id, current_message):
 
         # We can either validate or generate a file based on Job ID
         if job.job_type.name == 'file_upload':
-            # Generate E or F file
+            # Generate A, E, or F file
             file_generation_manager = FileGenerationManager(sess, g.is_local, job=job)
-            file_generation_manager.generate_file()
+            file_generation_manager.generate_file(agency_code)
         else:
             # Run validations
             validation_manager = ValidationManager(g.is_local, CONFIG_SERVICES['error_report_path'])
