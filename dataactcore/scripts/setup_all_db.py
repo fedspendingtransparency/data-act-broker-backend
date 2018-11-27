@@ -1,12 +1,12 @@
 from dataactcore.config import CONFIG_DB
 from dataactcore.logging import configure_logging
-from dataactcore.scripts.databaseSetup import create_database, run_migrations
-from dataactcore.scripts.setupErrorDB import setup_error_db
-from dataactcore.scripts.setupJobTrackerDB import setup_job_tracker_db
-from dataactcore.scripts.setupUserDB import setup_user_db
-from dataactcore.scripts.setupValidationDB import setup_validation_db
+from dataactcore.scripts.database_setup import create_database, run_migrations
+from dataactcore.scripts.setup_error_db import setup_error_db
+from dataactcore.scripts.setup_job_tracker_db import setup_job_tracker_db
+from dataactcore.scripts.setup_user_db import setup_user_db
+from dataactcore.scripts.setup_validation_db import setup_validation_db
 from dataactcore.scripts.setup_static_data import setup_static_data
-from dataactcore.scripts.setupSubmissionTypeDB import setup_submission_type_db
+from dataactcore.scripts.setup_submission_type_db import setup_submission_type_db
 
 
 def setup_all_db():

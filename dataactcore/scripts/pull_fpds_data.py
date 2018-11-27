@@ -38,7 +38,7 @@ from dataactcore.models.jobModels import Submission  # noqa
 from dataactcore.models.userModel import User  # noqa
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
+from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.5.0&q="
@@ -1303,7 +1303,10 @@ def get_total_expected_records(base_url):
     # retrieve the last page of data
     final_request = get_with_exception_hand(final_request_url)
     final_request_xml = xmltodict.parse(final_request.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
-    entries_list = list_data(final_request_xml['feed']['entry'])
+    try:
+        entries_list = list_data(final_request_xml['feed']['entry'])
+    except KeyError:
+        raise Exception("Initial count failed, no entries in last page of request.")
 
     return final_request_count + len(entries_list)
 
@@ -1370,6 +1373,15 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                 entries_processed += len(entries_per_response)
 
         if len(data) % SPOT_CHECK_COUNT == 0 and entries_processed > total_expected_records:
+            # Find entries that don't have FPDS content and print them all
+            for next_resp in full_response:
+                response_dict = xmltodict.parse(next_resp, process_namespaces=True, namespaces=FPDS_NAMESPACES)
+                try:
+                    list_data(response_dict['feed']['entry'])
+                except KeyError:
+                    logger.info(response_dict)
+                    continue
+
             raise Exception("Total number of expected records has changed\nExpected: {}\nRetrieved so far: {}"
                             .format(total_expected_records, len(data)))
 

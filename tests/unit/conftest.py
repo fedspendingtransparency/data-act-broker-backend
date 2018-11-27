@@ -6,8 +6,8 @@ import pytest
 
 import dataactcore.config
 from dataactcore.models import baseModel
-from dataactcore.scripts import setupJobTrackerDB, setupUserDB
-from dataactcore.scripts.databaseSetup import create_database, drop_database, run_migrations
+from dataactcore.scripts import setup_job_tracker_db, setup_user_db
+from dataactcore.scripts.database_setup import create_database, drop_database, run_migrations
 from dataactcore.interfaces.db import GlobalDB
 
 
@@ -48,12 +48,12 @@ def database(full_database_setup):
 
 @pytest.fixture()
 def job_constants(database):
-    setupJobTrackerDB.insert_codes(database.session)
+    setup_job_tracker_db.insert_codes(database.session)
 
 
 @pytest.fixture()
 def user_constants(database):
-    setupUserDB.insert_codes(database.session)
+    setup_user_db.insert_codes(database.session)
     database.session.commit()
 
 

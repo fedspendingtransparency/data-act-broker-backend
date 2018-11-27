@@ -13,7 +13,7 @@ from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.userModel import User # noqa
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import trim_item
+from dataactvalidator.scripts.loader_utils import trim_item
 from dataactvalidator.filestreaming.csvReader import CsvReader
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
