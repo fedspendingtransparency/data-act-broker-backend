@@ -162,7 +162,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
                 # We have somehow retrieved more records than existed at the beginning of the pull
                 logger.error("Total expected records: {}, Number of records retrieved: {}".format(
                     total_expected_records, entries_processed))
-                sys.exit(1)
+                sys.exit(2)
 
     if update_db:
         sess.commit()
