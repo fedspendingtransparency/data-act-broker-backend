@@ -50,7 +50,7 @@ from dataactvalidator.filestreaming.csv_selection import write_query_to_file
 
 logger = logging.getLogger(__name__)
 
-NUM_ROWS_PER_SET = 10000
+ROWS_PER_LOOP = 10000
 
 
 class FileHandler:
@@ -645,12 +645,12 @@ class FileHandler:
             query = []
             log_data['message'] = 'Starting derivations for FABS submission'
             logger.info(log_data)
-            while len(query) == NUM_ROWS_PER_SET or loop_num == 0:
+            while len(query) == ROWS_PER_LOOP or loop_num == 0:
                 # get next set of valid lines for this submission
                 query = sess.query(DetachedAwardFinancialAssistance). \
                     filter_by(is_valid=True, submission_id=submission_id). \
                     order_by(DetachedAwardFinancialAssistance.detached_award_financial_assistance_id).\
-                    slice(NUM_ROWS_PER_SET * loop_num, NUM_ROWS_PER_SET * (loop_num + 1)).all()
+                    slice(ROWS_PER_LOOP * loop_num, ROWS_PER_LOOP * (loop_num + 1)).all()
 
                 for row in query:
                     # remove all keys in the row that are not in the intermediate table
