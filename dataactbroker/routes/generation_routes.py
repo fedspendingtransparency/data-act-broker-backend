@@ -70,14 +70,16 @@ def add_generation_routes(app, is_local, server_path):
         'frec_code': webargs_fields.String(),
         'start': webargs_fields.String(),
         'end': webargs_fields.String(),
-        'quarter': webargs_fields.String(),
+        'year': webargs_fields.Int(),
+        'period': webargs_fields.Int(validate=webargs_validate.OneOf(list(range(2, 13)),
+                                                                     error="Period must be an integer 2-12.")),
         'agency_type': webargs_fields.String(
             missing='awarding',
             validate=webargs_validate.OneOf(('awarding', 'funding'),
                                             error="Must be either awarding or funding if provided")
         )
     })
-    def generate_detached_file(file_type, cgac_code, frec_code, start, end, quarter, agency_type):
+    def generate_detached_file(file_type, cgac_code, frec_code, start, end, year, period, agency_type):
         """ Generate a file from external API, independent from a submission
 
             Attributes:
@@ -86,9 +88,11 @@ def add_generation_routes(app, is_local, server_path):
                 frec_code: the code of a FREC agency if generating for a FREC agency
                 start: start date in a string, formatted MM/DD/YYYY
                 end: end date in a string, formatted MM/DD/YYYY
+                year: integer indicating the year to generate for (YYYY)
+                period: integer indicating the period to generate for (2-12)
                 agency_type: The type of agency (awarding or funding) to generate the file for
         """
-        return generation_handler.generate_detached_file(file_type, cgac_code, frec_code, start, end, quarter,
+        return generation_handler.generate_detached_file(file_type, cgac_code, frec_code, start, end, year, period,
                                                          agency_type)
 
     @app.route("/v1/check_detached_generation_status/", methods=["GET"])

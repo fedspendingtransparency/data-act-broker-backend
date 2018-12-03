@@ -102,7 +102,7 @@ def check_generation(submission, file_type):
     return JsonResponse.create(StatusCode.OK, response_dict)
 
 
-def generate_detached_file(file_type, cgac_code, frec_code, start_date, end_date, quarter, agency_type):
+def generate_detached_file(file_type, cgac_code, frec_code, start_date, end_date, year, period, agency_type):
     """ Start a file generation job for the specified file type not connected to a submission
 
         Args:
@@ -111,7 +111,8 @@ def generate_detached_file(file_type, cgac_code, frec_code, start_date, end_date
             frec_code: the code of a FREC agency if generating for a FREC agency
             start_date: start date in a string, formatted MM/DD/YYYY
             end_date: end date in a string, formatted MM/DD/YYYY
-            quarter: quarter to generate for, formatted Q#/YYYY
+            year: year to generate for, integer 4 digits
+            period: period to generate for, integer (2-12)
             agency_type: The type of agency (awarding or funding) to generate the file for
 
         Returns:
@@ -139,12 +140,14 @@ def generate_detached_file(file_type, cgac_code, frec_code, start_date, end_date
             return JsonResponse.error(ValueError("agency_type must be either awarding or funding."),
                                       StatusCode.CLIENT_ERROR)
     else:
-        # Check if date format is Q#/YYYY
-        if not quarter:
-            return JsonResponse.error(ValueError("Must have a quarter for A file generation."), StatusCode.CLIENT_ERROR)
+        # Make sure both year and period are provided
+        if not (year and period):
+            return JsonResponse.error(ValueError("Must have a year and period for A file generation."),
+                                      StatusCode.CLIENT_ERROR)
 
         try:
-            start_date, end_date = generic_helper.quarter_to_dates(quarter)
+            # Convert to real start and end dates
+            start_date, end_date = generic_helper.year_period_to_dates(year, period)
         except ResponseException as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
 
