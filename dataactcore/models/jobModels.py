@@ -192,7 +192,7 @@ class SQS(Base):
 class RevalidationThreshold(Base):
     __tablename__ = "revalidation_threshold"
 
-    revalidation_date = Column(Date, primary_key=True)
+    revalidation_date = Column(DateTime, primary_key=True)
 
 
 class FPDSUpdate(Base):

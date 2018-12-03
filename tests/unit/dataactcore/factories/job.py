@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import factory
 from factory import fuzzy
 
@@ -149,4 +150,4 @@ class RevalidationThresholdFactory(factory.Factory):
     class Meta:
         model = jobModels.RevalidationThreshold
 
-    revalidation_date = fuzzy.FuzzyDate(date(2010, 1, 1))
+    revalidation_date = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))

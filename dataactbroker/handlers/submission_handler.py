@@ -189,10 +189,11 @@ def get_revalidation_threshold():
             An object containing the revalidation threshold for submissions formatted in MM/DD/YYYY format
     """
     sess = GlobalDB.db().session
-
     reval_thresh = sess.query(RevalidationThreshold).one_or_none()
 
-    return {'revalidation_threshold': reval_thresh.revalidation_date.strftime('%m/%d/%Y') if reval_thresh else ''}
+    return {
+        'revalidation_threshold': reval_thresh.revalidation_date.strftime("%Y-%m-%dT%H:%M:%S") if reval_thresh else ''
+    }
 
 
 def reporting_date(submission):
