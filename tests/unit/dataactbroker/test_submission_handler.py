@@ -56,7 +56,7 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
         'total_size': 20000,
         'created_on': now.strftime('%m/%d/%Y'),
         'last_updated': now_plus_10.strftime("%Y-%m-%dT%H:%M:%S"),
-        'last_validated': now_plus_10.strftime('%m/%d/%Y'),
+        'last_validated': now_plus_10.strftime('%Y-%m-%dT%H:%M:%S'),
         'reporting_period': 'Q1/2017',
         'publish_status': 'updated',
         'quarterly_submission': True,
@@ -244,13 +244,13 @@ def test_get_revalidation_threshold(database):
     sess = database.session
 
     # Revalidation date
-    reval = RevalidationThresholdFactory(revalidation_date=datetime.date(2018, 1, 15))
+    reval = RevalidationThresholdFactory(revalidation_date=datetime.datetime(2018, 1, 15, 0, 0))
 
     sess.add(reval)
     sess.commit()
 
     results = get_revalidation_threshold()
-    assert results['revalidation_threshold'] == '01/15/2018'
+    assert results['revalidation_threshold'] == '2018-01-15T00:00:00'
 
 
 def test_get_revalidation_threshold_no_threshold():

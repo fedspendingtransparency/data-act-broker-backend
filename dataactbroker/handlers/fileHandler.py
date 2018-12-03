@@ -1120,7 +1120,7 @@ def submission_to_dict_for_status(submission):
         'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': last_validated,
         'revalidation_threshold':
-            revalidation_threshold.revalidation_date.strftime('%m/%d/%Y') if revalidation_threshold else '',
+            revalidation_threshold.revalidation_date.strftime("%Y-%m-%dT%H:%M:%S") if revalidation_threshold else '',
         # Broker allows submission for a single quarter or a single month, so reporting_period start and end dates
         # reported by check_status are always equal
         'reporting_period_start_date': reporting_date(submission),
