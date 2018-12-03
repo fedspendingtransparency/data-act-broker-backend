@@ -293,7 +293,6 @@ def main():
     if args.all and not args.ignore_db:
         logger.info("Emptying out the Office table for a complete reload.")
         sess.execute('''TRUNCATE TABLE office RESTART IDENTITY''')
-        sess.commit()
 
     try:
         pull_offices(sess, filename, not args.ignore_db, args.all, updated_date_from)
