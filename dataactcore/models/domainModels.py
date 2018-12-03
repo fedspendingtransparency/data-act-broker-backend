@@ -142,6 +142,18 @@ class SubTierAgency(Base):
     is_frec = Column(Boolean, nullable=False, default=False, server_default="False")
 
 
+class Office(Base):
+    __tablename__ = "office"
+    office_id = Column(Integer, primary_key=True)
+    office_code = Column(Text, nullable=False, index=True, unique=True)
+    office_name = Column(Text)
+    sub_tier_code = Column(Text, nullable=False, index=True)
+    agency_code = Column(Text, nullable=False, index=True)
+    contracting_office = Column(Boolean, nullable=False, default=False, server_default="False")
+    funding_office = Column(Boolean, nullable=False, default=False, server_default="False")
+    grant_office = Column(Boolean, nullable=False, default=False, server_default="False")
+
+
 class ObjectClass(Base):
     __tablename__ = "object_class"
     object_class_id = Column(Integer, primary_key=True)
