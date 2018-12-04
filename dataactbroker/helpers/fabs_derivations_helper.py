@@ -266,34 +266,36 @@ def derive_office_data(obj, office_dict, sess):
     # If we don't have an awarding office code, we need to copy it from the earliest transaction of that award
     if not obj['awarding_office_code'] or not obj['funding_office_code']:
         first_transaction = None
-        model = PublishedAwardFinancialAssistance
+        pafa = PublishedAwardFinancialAssistance
         if obj['record_type'] == 1:
             # Get the minimum action date for this uri/AwardingSubTierCode combo
-            min_action_date = sess.query(func.min(model.action_date).label("min_date")). \
-                filter(model.uri == obj['uri'], model.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
-                       model.is_active.is_(True), model.record_type == 1).one()
+            min_action_date = sess.query(func.min(pafa.action_date).label("min_date")). \
+                filter(pafa.uri == obj['uri'], pafa.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
+                       pafa.is_active.is_(True), pafa.record_type == 1).one()
             # If we have a minimum action date, get the office codes for the first entry that matches it
             if min_action_date.min_date:
-                first_transaction = sess.query(model.awarding_office_code, model.funding_office_code).\
-                    filter(model.uri == obj['uri'], model.is_active.is_(True),
-                           model.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
-                           func.cast_as_date(model.action_date) == min_action_date.min_date,
-                           model.record_type == 1).first()
+                first_transaction = sess.query(pafa.awarding_office_code, pafa.funding_office_code,
+                                               pafa.award_modification_amendme).\
+                    filter(pafa.uri == obj['uri'], pafa.is_active.is_(True),
+                           pafa.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
+                           func.cast_as_date(pafa.action_date) == min_action_date.min_date,
+                           pafa.record_type == 1).first()
         else:
             # Get the minimum action date for this fain/AwardingSubTierCode combo
-            min_action_date = sess.query(func.min(func.cast(model.action_date, DATE)).label("min_date")).\
-                filter(model.fain == obj['fain'], model.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
-                       model.is_active.is_(True), model.record_type != 1).one()
+            min_action_date = sess.query(func.min(func.cast(pafa.action_date, DATE)).label("min_date")).\
+                filter(pafa.fain == obj['fain'], pafa.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
+                       pafa.is_active.is_(True), pafa.record_type != 1).one()
             # If we have a minimum action date, get the office codes for the first entry that matches it
             if min_action_date.min_date:
-                first_transaction = sess.query(model.awarding_office_code, model.funding_office_code).\
-                    filter(model.fain == obj['fain'], model.is_active.is_(True),
-                           model.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
-                           func.cast_as_date(model.action_date) == min_action_date.min_date,
-                           model.record_type != 1).first()
+                first_transaction = sess.query(pafa.awarding_office_code, pafa.funding_office_code,
+                                               pafa.award_modification_amendme).\
+                    filter(pafa.fain == obj['fain'], pafa.is_active.is_(True),
+                           pafa.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
+                           func.cast_as_date(pafa.action_date) == min_action_date.min_date,
+                           pafa.record_type != 1).first()
 
         # If we managed to find a transaction, copy the office codes into it
-        if first_transaction:
+        if first_transaction and first_transaction.award_modification_amendme != obj['award_modification_amendme']:
             if not obj['awarding_office_code']:
                 obj['awarding_office_code'] = first_transaction.awarding_office_code
             if not obj['funding_office_code']:
