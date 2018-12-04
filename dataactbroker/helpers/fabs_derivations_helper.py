@@ -294,7 +294,8 @@ def derive_office_data(obj, office_dict, sess):
                            func.cast_as_date(pafa.action_date) == min_action_date.min_date,
                            pafa.record_type != 1).first()
 
-        # If we managed to find a transaction, copy the office codes into it
+        # If we managed to find a transaction, copy the office codes into it. Don't copy if the mod is the same because
+        # we don't want to auto-fill the base record for an award.
         if first_transaction and first_transaction.award_modification_amendme != obj['award_modification_amendme']:
             if not obj['awarding_office_code']:
                 obj['awarding_office_code'] = first_transaction.awarding_office_code
