@@ -2,6 +2,7 @@ import argparse
 import logging
 
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.logging import configure_logging
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ if __name__ == '__main__':
     if not args.files or len(args.files) < 1:
         raise Exception('At least one filepath to a SQL file must be included.')
 
+    configure_logging()
     with create_app().app_context():
         for filepath in args.files[0]:
             with open(filepath, 'r') as file:
