@@ -34,8 +34,8 @@ def upgrade_data_broker():
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('certified_appropriation_id', sa.Integer(), nullable=False),
     sa.Column('submission_id', sa.Integer(), nullable=False),
-    sa.Column('job_id', sa.Integer(), nullable=False),
-    sa.Column('row_number', sa.Integer(), nullable=False),
+    sa.Column('job_id', sa.Integer(), nullable=True),
+    sa.Column('row_number', sa.Integer(), nullable=True),
     sa.Column('adjustments_to_unobligated_cpe', sa.Numeric(), nullable=True),
     sa.Column('agency_identifier', sa.Text(), nullable=True),
     sa.Column('allocation_transfer_agency', sa.Text(), nullable=True),
@@ -56,23 +56,19 @@ def upgrade_data_broker():
     sa.Column('status_of_budgetary_resour_cpe', sa.Numeric(), nullable=True),
     sa.Column('sub_account_code', sa.Text(), nullable=True),
     sa.Column('unobligated_balance_cpe', sa.Numeric(), nullable=True),
-    sa.Column('tas', sa.Text(), nullable=False),
+    sa.Column('tas', sa.Text(), nullable=True),
     sa.Column('tas_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['submission_id'], ['submission.submission_id'], name='fk_certified_appropriation_submission_id', ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('certified_appropriation_id')
     )
-    op.create_index(op.f('ix_certified_appropriation_job_id'), 'certified_appropriation', ['job_id'], unique=False)
-    op.create_index(op.f('ix_certified_appropriation_row_number'), 'certified_appropriation', ['row_number'], unique=False)
     op.create_index(op.f('ix_certified_appropriation_submission_id'), 'certified_appropriation', ['submission_id'], unique=False)
-    op.create_index(op.f('ix_certified_appropriation_tas'), 'certified_appropriation', ['tas'], unique=False)
-    op.create_index(op.f('ix_certified_appropriation_tas_id'), 'certified_appropriation', ['tas_id'], unique=False)
     op.create_table('certified_award_financial',
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('certified_award_financial_id', sa.Integer(), nullable=False),
     sa.Column('submission_id', sa.Integer(), nullable=False),
-    sa.Column('job_id', sa.Integer(), nullable=False),
-    sa.Column('row_number', sa.Integer(), nullable=False),
+    sa.Column('job_id', sa.Integer(), nullable=True),
+    sa.Column('row_number', sa.Integer(), nullable=True),
     sa.Column('agency_identifier', sa.Text(), nullable=True),
     sa.Column('allocation_transfer_agency', sa.Text(), nullable=True),
     sa.Column('availability_type_code', sa.Text(), nullable=True),
@@ -121,32 +117,19 @@ def upgrade_data_broker():
     sa.Column('ussgl497200_downward_adjus_cpe', sa.Numeric(), nullable=True),
     sa.Column('ussgl498100_upward_adjustm_cpe', sa.Numeric(), nullable=True),
     sa.Column('ussgl498200_upward_adjustm_cpe', sa.Numeric(), nullable=True),
-    sa.Column('tas', sa.Text(), nullable=False),
+    sa.Column('tas', sa.Text(), nullable=True),
     sa.Column('tas_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['submission_id'], ['submission.submission_id'], name='fk_certified_award_financial_submission_id', ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('certified_award_financial_id')
     )
-    op.create_index(op.f('ix_certified_award_financial_agency_identifier'), 'certified_award_financial', ['agency_identifier'], unique=False)
-    op.create_index(op.f('ix_certified_award_financial_allocation_transfer_agency'), 'certified_award_financial', ['allocation_transfer_agency'], unique=False)
-    op.create_index(op.f('ix_certified_award_financial_fain'), 'certified_award_financial', ['fain'], unique=False)
-    op.create_index(op.f('ix_certified_award_financial_job_id'), 'certified_award_financial', ['job_id'], unique=False)
-    op.create_index(op.f('ix_certified_award_financial_main_account_code'), 'certified_award_financial', ['main_account_code'], unique=False)
-    op.create_index(op.f('ix_certified_award_financial_object_class'), 'certified_award_financial', ['object_class'], unique=False)
-    op.create_index(op.f('ix_certified_award_financial_parent_award_id'), 'certified_award_financial', ['parent_award_id'], unique=False)
-    op.create_index(op.f('ix_certified_award_financial_piid'), 'certified_award_financial', ['piid'], unique=False)
-    op.create_index(op.f('ix_certified_award_financial_program_activity_code'), 'certified_award_financial', ['program_activity_code'], unique=False)
-    op.create_index(op.f('ix_certified_award_financial_row_number'), 'certified_award_financial', ['row_number'], unique=False)
     op.create_index(op.f('ix_certified_award_financial_submission_id'), 'certified_award_financial', ['submission_id'], unique=False)
-    op.create_index(op.f('ix_certified_award_financial_tas'), 'certified_award_financial', ['tas'], unique=False)
-    op.create_index(op.f('ix_certified_award_financial_tas_id'), 'certified_award_financial', ['tas_id'], unique=False)
-    op.create_index(op.f('ix_certified_award_financial_uri'), 'certified_award_financial', ['uri'], unique=False)
     op.create_table('certified_object_class_program_activity',
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('certified_object_class_program_activity_id', sa.Integer(), nullable=False),
     sa.Column('submission_id', sa.Integer(), nullable=False),
-    sa.Column('job_id', sa.Integer(), nullable=False),
-    sa.Column('row_number', sa.Integer(), nullable=False),
+    sa.Column('job_id', sa.Integer(), nullable=True),
+    sa.Column('row_number', sa.Integer(), nullable=True),
     sa.Column('agency_identifier', sa.Text(), nullable=True),
     sa.Column('allocation_transfer_agency', sa.Text(), nullable=True),
     sa.Column('availability_type_code', sa.Text(), nullable=True),
@@ -190,16 +173,11 @@ def upgrade_data_broker():
     sa.Column('ussgl497200_downward_adjus_cpe', sa.Numeric(), nullable=True),
     sa.Column('ussgl498100_upward_adjustm_cpe', sa.Numeric(), nullable=True),
     sa.Column('ussgl498200_upward_adjustm_cpe', sa.Numeric(), nullable=True),
-    sa.Column('tas', sa.Text(), nullable=False),
+    sa.Column('tas', sa.Text(), nullable=True),
     sa.Column('tas_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['submission_id'], ['submission.submission_id'], name='fk_certified_object_class_program_activity_submission_id', ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('certified_object_class_program_activity_id')
     )
-    op.create_index(op.f('ix_certified_object_class_program_activity_by_direct_reimbursable_fun'), 'certified_object_class_program_activity', ['by_direct_reimbursable_fun'], unique=False)
-    op.create_index(op.f('ix_certified_object_class_program_activity_job_id'), 'certified_object_class_program_activity', ['job_id'], unique=False)
-    op.create_index(op.f('ix_certified_object_class_program_activity_object_class'), 'certified_object_class_program_activity', ['object_class'], unique=False)
-    op.create_index(op.f('ix_certified_object_class_program_activity_program_activity_code'), 'certified_object_class_program_activity', ['program_activity_code'], unique=False)
-    op.create_index(op.f('ix_certified_object_class_program_activity_row_number'), 'certified_object_class_program_activity', ['row_number'], unique=False)
     op.create_index(op.f('ix_certified_object_class_program_activity_submission_id'), 'certified_object_class_program_activity', ['submission_id'], unique=False)
     # ### end Alembic commands ###
 
@@ -207,32 +185,10 @@ def upgrade_data_broker():
 def downgrade_data_broker():
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_index(op.f('ix_certified_object_class_program_activity_submission_id'), table_name='certified_object_class_program_activity')
-    op.drop_index(op.f('ix_certified_object_class_program_activity_row_number'), table_name='certified_object_class_program_activity')
-    op.drop_index(op.f('ix_certified_object_class_program_activity_program_activity_code'), table_name='certified_object_class_program_activity')
-    op.drop_index(op.f('ix_certified_object_class_program_activity_object_class'), table_name='certified_object_class_program_activity')
-    op.drop_index(op.f('ix_certified_object_class_program_activity_job_id'), table_name='certified_object_class_program_activity')
-    op.drop_index(op.f('ix_certified_object_class_program_activity_by_direct_reimbursable_fun'), table_name='certified_object_class_program_activity')
     op.drop_table('certified_object_class_program_activity')
-    op.drop_index(op.f('ix_certified_award_financial_uri'), table_name='certified_award_financial')
-    op.drop_index(op.f('ix_certified_award_financial_tas_id'), table_name='certified_award_financial')
-    op.drop_index(op.f('ix_certified_award_financial_tas'), table_name='certified_award_financial')
     op.drop_index(op.f('ix_certified_award_financial_submission_id'), table_name='certified_award_financial')
-    op.drop_index(op.f('ix_certified_award_financial_row_number'), table_name='certified_award_financial')
-    op.drop_index(op.f('ix_certified_award_financial_program_activity_code'), table_name='certified_award_financial')
-    op.drop_index(op.f('ix_certified_award_financial_piid'), table_name='certified_award_financial')
-    op.drop_index(op.f('ix_certified_award_financial_parent_award_id'), table_name='certified_award_financial')
-    op.drop_index(op.f('ix_certified_award_financial_object_class'), table_name='certified_award_financial')
-    op.drop_index(op.f('ix_certified_award_financial_main_account_code'), table_name='certified_award_financial')
-    op.drop_index(op.f('ix_certified_award_financial_job_id'), table_name='certified_award_financial')
-    op.drop_index(op.f('ix_certified_award_financial_fain'), table_name='certified_award_financial')
-    op.drop_index(op.f('ix_certified_award_financial_allocation_transfer_agency'), table_name='certified_award_financial')
-    op.drop_index(op.f('ix_certified_award_financial_agency_identifier'), table_name='certified_award_financial')
     op.drop_table('certified_award_financial')
-    op.drop_index(op.f('ix_certified_appropriation_tas_id'), table_name='certified_appropriation')
-    op.drop_index(op.f('ix_certified_appropriation_tas'), table_name='certified_appropriation')
     op.drop_index(op.f('ix_certified_appropriation_submission_id'), table_name='certified_appropriation')
-    op.drop_index(op.f('ix_certified_appropriation_row_number'), table_name='certified_appropriation')
-    op.drop_index(op.f('ix_certified_appropriation_job_id'), table_name='certified_appropriation')
     op.drop_table('certified_appropriation')
     # ### end Alembic commands ###
 
