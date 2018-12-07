@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
                 sql = sql.replace('\n', ' ')
                 sess = GlobalDB.db().session
-                sess.execute(sql)
+                executed = sess.execute(sql)
                 sess.commit()
 
-                logger.info('SQL completed\n')
+                logger.info('SQL completed, {} rows affected\n'.format(executed.rowcount))
