@@ -245,6 +245,12 @@ class CertifiedAppropriation(Base):
     tas = Column(Text)
     tas_id = Column(Integer)
 
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(CertifiedAppropriation, self).__init__(**clean_kwargs)
+
 
 class CertifiedObjectClassProgramActivity(Base):
     """Model for the certified data from the ObjectClassProgramActivity (B file) table."""
@@ -302,6 +308,12 @@ class CertifiedObjectClassProgramActivity(Base):
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text, default=concat_tas)
     tas_id = Column(Integer)
+
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(CertifiedObjectClassProgramActivity, self).__init__(**clean_kwargs)
 
 
 class CertifiedAwardFinancial(Base):
@@ -365,6 +377,12 @@ class CertifiedAwardFinancial(Base):
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text)
     tas_id = Column(Integer)
+
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(CertifiedAwardFinancial, self).__init__(**clean_kwargs)
 
 
 class AwardFinancialAssistance(Base):
