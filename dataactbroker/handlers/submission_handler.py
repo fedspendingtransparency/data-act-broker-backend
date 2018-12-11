@@ -538,7 +538,6 @@ def move_certified_data(sess, submission_id):
             sess: the database connection
             submission_id: The ID of the submission to move data for
     """
-    print(submission_id)
     table_types = {'appropriation': [Appropriation, CertifiedAppropriation],
                    'object_class_program_activity': [ObjectClassProgramActivity, CertifiedObjectClassProgramActivity],
                    'award_financial': [AwardFinancial, CertifiedAwardFinancial]}
