@@ -567,11 +567,33 @@ class FileHandler:
         sess.commit()
 
         try:
-            # check to make sure no new entries have been published that collide with the new rows
-            # (correction_delete_indicatr is not C or D)
             # need to set the models to something because the names are too long and flake gets mad
             dafa = DetachedAwardFinancialAssistance
             pafa = PublishedAwardFinancialAssistance
+
+            # Check to make sure no rows are currently publishing that collide with the rows in this submission
+            # (in any way, including C or D)
+            valid_sub_rows = sess.query(dafa.afa_generated_unique).\
+                filter(dafa.submission_id == submission_id, dafa.is_valid.is_(True)).cte('valid_sub_rows')
+            publishing_subs = sess.query(dafa.submission_id).\
+                join(valid_sub_rows, valid_sub_rows.c.afa_generated_unique == dafa.afa_generated_unique).\
+                join(Submission, Submission.submission_id == dafa.submission_id).\
+                filter(dafa.is_valid.is_(True),
+                       dafa.submission_id != submission_id,
+                       Submission.publish_status_id == PUBLISH_STATUS_DICT['publishing']).distinct().all()
+            print(publishing_subs)
+            if publishing_subs:
+                sub_list = []
+                for sub in publishing_subs:
+                    sub_list.append(str(sub.submission_id))
+                raise ResponseException("1 or more rows in this submission are currently publishing (in a separate "
+                                        "submission). To prevent duplicate records, please wait for the other "
+                                        "submission(s) to finish publishing before trying to publish. IDs of "
+                                        "submissions affecting this publish attempt: {}".format(", ".join(sub_list)),
+                                        StatusCode.CLIENT_ERROR)
+
+            # check to make sure no new entries have been published that collide with the new rows
+            # (correction_delete_indicatr is not C or D)
             colliding_rows = sess.query(dafa.afa_generated_unique). \
                 filter(dafa.is_valid.is_(True),
                        dafa.submission_id == submission_id,
