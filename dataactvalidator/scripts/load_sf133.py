@@ -10,6 +10,7 @@ import boto3
 import pandas as pd
 
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.helpers.generic_helper import format_internal_tas
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import matching_cars_subquery, SF133
@@ -189,21 +190,6 @@ def clean_sf133_data(filename, sf133_data):
     data = fill_blank_sf133_lines(data)
 
     return data
-
-
-def format_internal_tas(row):
-    """Concatenate TAS components into a single field for internal use."""
-    # This formatting should match formatting in dataactcore.models.stagingModels concat_tas
-    tas = ''.join([
-        row['allocation_transfer_agency'] if row['allocation_transfer_agency'] else '000',
-        row['agency_identifier'] if row['agency_identifier'] else '000',
-        row['beginning_period_of_availa'] if row['beginning_period_of_availa'].strip() else '0000',
-        row['ending_period_of_availabil'] if row['ending_period_of_availabil'].strip() else '0000',
-        row['availability_type_code'].strip() if row['availability_type_code'].strip() else ' ',
-        row['main_account_code'] if row['main_account_code'] else '0000',
-        row['sub_account_code'] if row['sub_account_code'] else '000'
-    ])
-    return tas
 
 
 def get_sf133_list(sf133_path):

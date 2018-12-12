@@ -8,6 +8,7 @@ from pandas import isnull
 from sqlalchemy import func
 
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.helpers.generic_helper import format_internal_tas
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.jobModels import CertifiedFilesHistory, Job
@@ -60,26 +61,6 @@ def filenames_by_file_type(file_type_id):
 
     return sess.query(CertifiedFilesHistory.filename, CertifiedFilesHistory.submission_id).\
         join(certified_ids, certified_ids.c.most_recent_id == CertifiedFilesHistory.certified_files_history_id)
-
-
-def generate_tas(row):
-    """Create a concatenated TAS string for insert into database.
-
-        Params:
-            row: Contents of the dataframe row
-
-        Returns:
-            Concatenated generated TAS
-    """
-    tas1 = row['allocation_transfer_agency'] if not pd.isnull(row['allocation_transfer_agency']) else '000'
-    tas2 = row['agency_identifier'] if not pd.isnull(row['agency_identifier']) else '000'
-    tas3 = row['beginning_period_of_availa'] if not pd.isnull(row['beginning_period_of_availa']) else '0000'
-    tas4 = row['ending_period_of_availabil'] if not pd.isnull(row['ending_period_of_availabil']) else '0000'
-    tas5 = row['availability_type_code'] if not pd.isnull(row['availability_type_code']) else ' '
-    tas6 = row['main_account_code'] if not pd.isnull(row['main_account_code']) else '0000'
-    tas7 = row['sub_account_code'] if not pd.isnull(row['sub_account_code']) else '000'
-    tas = '{}{}{}{}{}{}{}'.format(tas1, tas2, tas3, tas4, tas5, tas6, tas7)
-    return tas
 
 
 def clean_col(row, col, file_type_id, csv_schema):
@@ -167,7 +148,7 @@ def insert_file(filename, submission_id, file_type_id, csv_schema, long_to_short
 
     # Populate columns that aren't in the file
     if len(data.index) > 0:
-        data['tas'] = data.apply(lambda x: generate_tas(x), axis=1)
+        data['tas'] = data.apply(lambda x: format_internal_tas(x), axis=1)
     now = datetime.datetime.now()
     data['created_at'] = now
     data['updated_at'] = now
