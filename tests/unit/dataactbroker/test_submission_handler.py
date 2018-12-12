@@ -7,10 +7,14 @@ from unittest.mock import Mock
 
 from dataactbroker.handlers import fileHandler
 from dataactbroker.handlers.submission_handler import (certify_dabs_submission, get_submission_metadata,
-                                                       get_revalidation_threshold, get_submission_data)
+                                                       get_revalidation_threshold, get_submission_data,
+                                                       move_certified_data)
 
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.jobModels import CertifyHistory
+from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
+                                              CertifiedAppropriation, CertifiedObjectClassProgramActivity,
+                                              CertifiedAwardFinancial)
 
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import (SubmissionFactory, JobFactory, CertifyHistoryFactory,
@@ -402,3 +406,55 @@ def test_certify_dabs_submission(database, monkeypatch):
         assert certify_history is not None
         assert submission.certifying_user_id == user.user_id
         assert submission.publish_status_id == PUBLISH_STATUS_DICT['published']
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_move_certified_data(database):
+    """ Tests the move_certified_data function """
+    with Flask('test-app').app_context():
+        sess = database.session
+
+        # Create 2 submissions
+        sub_1 = SubmissionFactory()
+        sub_2 = SubmissionFactory()
+        sess.add_all([sub_1, sub_2])
+        sess.commit()
+
+        # Create jobs so we can put a job ID into the tables
+        job_1 = JobFactory(submission_id=sub_1.submission_id)
+        job_2 = JobFactory(submission_id=sub_2.submission_id)
+        sess.add_all([job_1, job_2])
+        sess.commit()
+
+        # Create Appropriation entries, 1 per submission, and one of each other kind
+        approp_1 = Appropriation(submission_id=sub_1.submission_id, job_id=job_1.job_id, row_number=1,
+                                 spending_authority_from_of_cpe=2)
+        approp_2 = Appropriation(submission_id=sub_2.submission_id, job_id=job_2.job_id, row_number=1,
+                                 spending_authority_from_of_cpe=2)
+        ocpa = ObjectClassProgramActivity(submission_id=sub_1.submission_id, job_id=job_1.job_id, row_number=1)
+        award_fin = AwardFinancial(submission_id=sub_1.submission_id, job_id=job_1.job_id, row_number=1)
+        sess.add_all([approp_1, approp_2, ocpa, award_fin])
+        sess.commit()
+
+        move_certified_data(sess, sub_1.submission_id)
+
+        # There are 2 entries, we only want to move the 1 with the submission ID that matches
+        approp_query = sess.query(CertifiedAppropriation).filter_by(submission_id=sub_1.submission_id).all()
+        assert len(approp_query) == 1
+        assert approp_query[0].spending_authority_from_of_cpe == 2
+
+        # Make sure the other 2 got moved as well
+        ocpa_query = sess.query(CertifiedObjectClassProgramActivity).filter_by(submission_id=sub_1.submission_id).all()
+        award_query = sess.query(CertifiedAwardFinancial).filter_by(submission_id=sub_1.submission_id).all()
+        assert len(ocpa_query) == 1
+        assert len(award_query) == 1
+
+        # Change the Appropriation data
+        approp_1.spending_authority_from_of_cpe = 5
+        sess.refresh(approp_1)
+
+        # Move the data again (recertify) and make sure we didn't add extras, just adjusted the one we had
+        move_certified_data(sess, sub_1.submission_id)
+        approp_query = sess.query(CertifiedAppropriation).filter_by(submission_id=sub_1.submission_id).all()
+        assert len(approp_query) == 1
+        assert approp_query[0].spending_authority_from_of_cpe == 2

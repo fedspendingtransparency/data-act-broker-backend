@@ -1,10 +1,9 @@
 from collections import OrderedDict
 from sqlalchemy import func, cast, Date
 
-from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance, AwardFinancialAssistance
+from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
 
 file_model = PublishedAwardFinancialAssistance
-staging_model = AwardFinancialAssistance
 
 mapping = OrderedDict([
     ('FAIN', 'fain'),
