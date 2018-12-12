@@ -581,7 +581,6 @@ class FileHandler:
                 filter(dafa.is_valid.is_(True),
                        dafa.submission_id != submission_id,
                        Submission.publish_status_id == PUBLISH_STATUS_DICT['publishing']).distinct().all()
-            print(publishing_subs)
             if publishing_subs:
                 sub_list = []
                 for sub in publishing_subs:
