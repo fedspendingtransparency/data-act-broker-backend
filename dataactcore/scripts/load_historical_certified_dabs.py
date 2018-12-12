@@ -7,8 +7,9 @@ import pandas as pd
 from pandas import isnull
 from sqlalchemy import func
 
+from dataactbroker.helpers.generic_helper import format_internal_tas
+
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.helpers.generic_helper import format_internal_tas
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.jobModels import CertifiedFilesHistory, Job
@@ -57,7 +58,7 @@ def filenames_by_file_type(file_type_id):
         query(func.max(CertifiedFilesHistory.certified_files_history_id).label('most_recent_id')).\
         filter_by(file_type_id=file_type_id).\
         group_by(CertifiedFilesHistory.submission_id).\
-        cte('most_recent_id')
+        cte('certified_ids')
 
     return sess.query(CertifiedFilesHistory.filename, CertifiedFilesHistory.submission_id).\
         join(certified_ids, certified_ids.c.most_recent_id == CertifiedFilesHistory.certified_files_history_id)
@@ -85,11 +86,8 @@ def insert_from_table(file_type_id, submission_id):
     """ Insert the data from the base staging table into the corresponding Certified table.
 
         Params:
-            filename: filename to load
-            submission_id: Database ID for the submission being loaded
             file_type_id:  Database file type ID for files A, B, or C
-            csv_schema: Schema built for this filetype's
-            long_to_short_dict: Dict to translate long column names to the column names used by the database
+            submission_id: Database ID for the submission being loaded
     """
     sess = GlobalDB.db().session
     logger.info('Copying submission {} data from base table into {}'.format(submission_id,
