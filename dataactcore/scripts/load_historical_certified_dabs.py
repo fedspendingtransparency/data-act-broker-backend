@@ -5,8 +5,7 @@ import tempfile
 
 import pandas as pd
 from pandas import isnull
-from sqlalchemy import func, Numeric
-from sqlalchemy.types import NUMERIC
+from sqlalchemy import func
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -21,7 +20,7 @@ from dataactcore.models.userModel import User # noqa
 from dataactcore.models.validationModels import FileColumn
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loader_utils import insert_dataframe, pad_function
+from dataactvalidator.scripts.loader_utils import insert_dataframe
 from dataactvalidator.validation_handlers.validationManager import update_tas_ids
 
 logger = logging.getLogger(__name__)
@@ -203,7 +202,7 @@ def main():
     file_type_names = ['appropriations', 'program_activity', 'award_financial']
     for file_type_name in file_type_names:
         file_type_id = FILE_TYPE_DICT[file_type_name]
-        logger.info('\nStarting to update the {} table'.format(FTI_TABLENAME_DICT[file_type_id]))
+        logger.info('Starting to update the {} table'.format(FTI_TABLENAME_DICT[file_type_id]))
 
         # Load all certified files with file_type_id matching the file_type_id
         file_columns = sess.query(FileColumn).filter(FileColumn.file_id == file_type_id).all()
