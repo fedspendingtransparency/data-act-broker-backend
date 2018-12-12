@@ -4,11 +4,9 @@ from sqlalchemy.orm import outerjoin
 from sqlalchemy.sql.expression import case
 
 from dataactcore.models.domainModels import SF133, TASLookup, CGAC, FREC
-from dataactcore.models.stagingModels import Appropriation
 
 gtas_model = SF133
 tas_model = TASLookup
-staging_model = Appropriation
 
 mapping = OrderedDict([
     ('AllocationTransferAgencyIdentifier', 'allocation_transfer_agency'),

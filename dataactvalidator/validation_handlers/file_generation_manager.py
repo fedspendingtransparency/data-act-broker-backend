@@ -1,24 +1,19 @@
 import logging
 
-from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-from dataactbroker.helpers.generation_helper import (
-    retrieve_cached_file_request, update_validation_job_info, d_file_query, a_file_query)
+from dataactbroker.helpers.generation_helper import a_file_query, d_file_query, copy_file_generation_to_job
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.domainModels import ExecutiveCompensation
-from dataactcore.models.jobModels import FileRequest, Submission
+from dataactcore.models.jobModels import Job
+from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_NAME
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileA, fileD1, fileD2, fileE, fileF
-from dataactcore.utils.responseException import ResponseException
-from dataactcore.utils.statusCode import StatusCode
 
 from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file
-from dataactvalidator.validation_handlers.validationError import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -28,130 +23,107 @@ class FileGenerationManager:
 
         Attributes:
             sess: Current database session
-            job: he generation's upload Job
-            agency_code: The CGAC or FREC code for the agency to generate the file for
-            agency_type: The type of agency (awarding or funding) to generate the file for
             is_local: A boolean flag indicating whether the application is being run locally or not
+            file_generation: FileGeneration object representing a D file generation task
+            job: Job object for an E or F file generation task
+            file_type: File type letter name
     """
-    def __init__(self, job, agency_code, agency_type, is_local=True):
-        """ Initialize the FileGeneration Manager. Also derives the agency_code from Submission if this is a
-            within-submission generation.
+    def __init__(self, sess, is_local, file_generation=None, job=None):
+        """ Initialize the FileGeneration Manager.
 
             Args:
-                job: the generation's upload Job
-                agency_code: The CGAC or FREC code for the agency to generate the file for
-                agency_type: The type of agency (awarding or funding) to generate the file for
+                sess: Current database session
                 is_local: A boolean flag indicating whether the application is being run locally or not
+                file_generation: FileGeneration object representing a D file generation task
+                job: Job object for an E or F file generation task
         """
-        self.sess = GlobalDB.db().session
-        self.job = job
-        self.agency_code = agency_code
-        self.agency_type = agency_type
+        self.sess = sess
         self.is_local = is_local
+        self.file_generation = file_generation
+        self.job = job
+        self.file_type = job.file_type.letter_name if job else file_generation.file_type
 
-        if job.submission_id:
-            submission = self.sess.query(Submission).filter_by(submission_id=job.submission_id).one_or_none()
-            if submission:
-                self.agency_code = submission.frec_code if submission.frec_code else submission.cgac_code
+    def generate_file(self, agency_code=None):
+        """ Generates a file based on the FileGeneration object and updates any Jobs referencing it """
+        raw_filename = CONFIG_BROKER["".join([FILE_TYPE_DICT_LETTER_NAME[self.file_type], "_file_name"])]
+        file_name = S3Handler.get_timestamped_filename(raw_filename)
+        if self.is_local:
+            file_path = "".join([CONFIG_BROKER['broker_files'], file_name])
+        else:
+            file_path = "".join(["None/", file_name])
 
-    def generate_from_job(self):
-        """ Generates a file for a specified job """
-        # Mark Job as running
-        mark_job_status(self.job.job_id, 'running')
+        # Generate the file and upload to S3
+        log_data = {'message': 'Finished file {} generation'.format(self.file_type), 'message_type': 'ValidatorInfo',
+                    'file_type': self.file_type, 'file_path': file_path}
+        if self.file_generation:
+            self.generate_d_file(file_path)
 
-        # Ensure this is a file generation job
-        job_type = self.job.job_type.name
-        if job_type != 'file_upload':
-            raise ResponseException(
-                'Job ID {} is not a file generation job (job type is {})'.format(self.job.job_id, job_type),
-                StatusCode.CLIENT_ERROR, None, ValidationError.jobError)
+            log_data.update({
+                'agency_code': self.file_generation.agency_code, 'agency_type': self.file_generation.agency_type,
+                'start_date': self.file_generation.start_date, 'end_date': self.file_generation.end_date,
+                'file_generation_id': self.file_generation.file_generation_id
+            })
+        elif self.job.file_type.letter_name in ['A', 'E', 'F']:
+            log_data['job_id'] = self.job.job_id
+            mark_job_status(self.job.job_id, 'running')
 
-        # Ensure there is an available agency_code
-        if not self.agency_code:
-            raise ResponseException(
-                'An agency_code must be provided to generate a file'.format(self.job.job_id, job_type),
-                StatusCode.CLIENT_ERROR, None, ValidationError.jobError)
+            if self.job.file_type.letter_name == 'A':
+                if not agency_code:
+                    raise Exception('Agency code not provided for an A file generation')
 
-        # Retrieve any FileRequest that may have started since the Broker sent the request to SQS
-        skip_generation = None
-        if self.job.file_type.letter_name in ['D1', 'D2']:
-            skip_generation = retrieve_cached_file_request(self.job, self.agency_type, self.agency_code, self.is_local)
-
-        if not skip_generation:
-            # Generate timestamped file names
-            raw_filename = CONFIG_BROKER["".join([str(self.job.file_type.name), "_file_name"])]
-            self.job.original_filename = S3Handler.get_timestamped_filename(raw_filename)
-            if self.is_local:
-                self.job.filename = "".join([CONFIG_BROKER['broker_files'], self.job.original_filename])
+                self.generate_a_file(agency_code, file_path)
             else:
-                self.job.filename = "".join([str(self.job.submission_id), "/", self.job.original_filename])
-            self.sess.commit()
-
-            # Generate the file, and upload to S3
-            if self.job.file_type.letter_name in ['D1', 'D2']:
-                # Update the validation Job if necessary
-                update_validation_job_info(self.sess, self.job)
-
-                self.generate_d_file()
-            elif self.job.file_type.letter_name == 'A':
-                self.generate_a_file()
-            elif self.job.file_type.letter_name == 'E':
-                self.generate_e_file()
-            else:
-                self.generate_f_file()
+                # Call self.generate_%s_file() where %s is e or f based on the Job's file_type
+                file_type_lower = self.job.file_type.letter_name.lower()
+                getattr(self, 'generate_%s_file' % file_type_lower)()
 
             mark_job_status(self.job.job_id, 'finished')
+        else:
+            e = 'No FileGeneration object for D file generation.' if self.file_type in ['D1', 'D2'] else \
+                'Cannot generate file for {} file type.'.format(self.file_type if self.file_type else 'empty')
+            raise Exception(e)
 
-        logger.info({
-            'message': 'Finished file {} generation'.format(self.job.file_type.letter_name),
-            'message_type': 'ValidatorInfo', 'job_id': self.job.job_id, 'agency_code': self.agency_code,
-            'file_type': self.job.file_type.letter_name, 'start_date': self.job.start_date,
-            'end_date': self.job.end_date, 'filename': self.job.original_filename
-        })
-
-    def generate_d_file(self):
-        """ Write file D1 or D2 to an appropriate CSV. """
-        log_data = {'message': 'Starting file {} generation'.format(self.job.file_type.letter_name),
-                    'message_type': 'ValidatorInfo', 'job_id': self.job.job_id, 'agency_code': self.agency_code,
-                    'file_type': self.job.file_type.letter_name, 'start_date': self.job.start_date,
-                    'end_date': self.job.end_date, 'filename': self.job.original_filename}
-        if self.job.submission_id:
-            log_data['submission_id'] = self.job.submission_id
         logger.info(log_data)
 
-        # Get or create a FileRequest for this generation
-        current_date = datetime.now().date()
-        file_request_params = {
-            "job_id": self.job.job_id, "is_cached_file": True, "start_date": self.job.start_date,
-            "end_date": self.job.end_date, "agency_code": self.agency_code, "file_type": self.job.file_type.letter_name,
-            "agency_type": self.agency_type
+    def generate_d_file(self, file_path):
+        """ Write file D1 or D2 to an appropriate CSV. """
+        log_data = {
+            'message': 'Starting file {} generation'.format(self.file_type), 'message_type': 'ValidatorInfo',
+            'agency_code': self.file_generation.agency_code, 'agency_type': self.file_generation.agency_type,
+            'start_date': self.file_generation.start_date, 'end_date': self.file_generation.end_date,
+            'file_generation_id': self.file_generation.file_generation_id, 'file_type': self.file_type,
+            'file_path': file_path
         }
+        logger.info(log_data)
 
-        file_request = self.sess.query(FileRequest).filter_by(**file_request_params).one_or_none()
-        if not file_request:
-            file_request_params["request_date"] = current_date
-            file_request = FileRequest(**file_request_params)
-            self.sess.add(file_request)
-            self.sess.commit()
-
-        # Mark this Job as not from-cache, and mark the FileRequest as the cached version (requested today)
-        self.job.from_cached = False
-        file_request.is_cached_file = True
-        file_request.request_date = current_date
-        self.sess.commit()
+        original_filename = file_path.split('/')[-1]
+        local_file = "".join([CONFIG_BROKER['d_file_storage_path'], original_filename])
 
         # Prepare file data
-        file_utils = fileD1 if self.job.file_type.letter_name == 'D1' else fileD2
-        local_file = "".join([CONFIG_BROKER['d_file_storage_path'], self.job.original_filename])
+        if self.file_type == 'D1':
+            file_utils = fileD1
+        elif self.file_type == 'D2':
+            file_utils = fileD2
+        else:
+            raise Exception('Failed to generate_d_file with file_type:{} (must be D1 or D2).'.format(self.file_type))
         headers = [key for key in file_utils.mapping]
-        query_utils = {"file_utils": file_utils, "agency_code": self.agency_code, "agency_type": self.agency_type,
-                       "start": self.job.start_date, "end": self.job.end_date, "sess": self.sess}
+        query_utils = {
+            "sess": self.sess, "file_utils": file_utils, "agency_code": self.file_generation.agency_code,
+            "agency_type": self.file_generation.agency_type, "start": self.file_generation.start_date,
+            "end": self.file_generation.end_date}
 
-        # Generate the file and put in S3
-        write_query_to_file(local_file, self.job.filename, headers, self.job.file_type.letter_name, self.is_local,
-                            d_file_query, query_utils)
-        log_data['message'] = 'Finished writing to file: {}'.format(self.job.original_filename)
+        # Generate the file locally, then place in S3
+        write_query_to_file(local_file, file_path, headers, self.file_type, self.is_local, d_file_query,
+                            query_utils)
+
+        log_data['message'] = 'Finished writing to file: {}'.format(original_filename)
         logger.info(log_data)
+
+        self.file_generation.file_path = file_path
+        self.sess.commit()
+
+        for job in self.sess.query(Job).filter_by(file_generation_id=self.file_generation.file_generation_id).all():
+            copy_file_generation_to_job(job, self.file_generation, self.is_local)
 
     def generate_e_file(self):
         """ Write file E to an appropriate CSV. """
@@ -200,10 +172,14 @@ class FileGenerationManager:
 
         write_csv(self.job.original_filename, self.job.filename, self.is_local, header, body)
 
-    def generate_a_file(self):
+    def generate_a_file(self, agency_code, file_path):
         """ Write file A to an appropriate CSV. """
+        self.job.filename = file_path
+        self.job.original_filename = file_path.split('/')[-1]
+        self.sess.commit()
+
         log_data = {'message': 'Starting file A generation', 'message_type': 'ValidatorInfo', 'job_id': self.job.job_id,
-                    'agency_code': self.agency_code, 'file_type': self.job.file_type.letter_name,
+                    'agency_code': agency_code, 'file_type': self.job.file_type.letter_name,
                     'start_date': self.job.start_date, 'end_date': self.job.end_date,
                     'filename': self.job.original_filename}
         logger.info(log_data)
@@ -212,7 +188,7 @@ class FileGenerationManager:
         headers = [key for key in fileA.mapping]
         # add 3 months to account for fiscal year
         period_date = self.job.end_date + relativedelta(months=3)
-        query_utils = {"agency_code": self.agency_code, "period": period_date.month, "year": period_date.year,
+        query_utils = {"agency_code": agency_code, "period": period_date.month, "year": period_date.year,
                        "sess": self.sess}
 
         # Generate the file and put in S3

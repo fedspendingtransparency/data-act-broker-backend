@@ -123,6 +123,10 @@ broker:
     cas_service_url: https://cas.service.url
     parent_group: sample
 
+    max:
+        federal_hierarchy_api_url: https://federal.hierarchy.api.uri.gov/?api_key={}
+        federal_hierarchy_api_key: example
+
     # Session timeout, in seconds
     session_timeout: 1800
 

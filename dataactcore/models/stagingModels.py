@@ -211,6 +211,180 @@ Index("ix_award_financial_tas_oc_pa",
       unique=False)
 
 
+class CertifiedAppropriation(Base):
+    """Model for the certified data from the Appropriation (A file) table."""
+    __tablename__ = "certified_appropriation"
+
+    certified_appropriation_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                               name="fk_certified_appropriation_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
+    job_id = Column(Integer)
+    row_number = Column(Integer)
+    adjustments_to_unobligated_cpe = Column(Numeric)
+    agency_identifier = Column(Text)
+    allocation_transfer_agency = Column(Text)
+    availability_type_code = Column(Text)
+    beginning_period_of_availa = Column(Text)
+    borrowing_authority_amount_cpe = Column(Numeric)
+    budget_authority_appropria_cpe = Column(Numeric)
+    total_budgetary_resources_cpe = Column(Numeric)
+    budget_authority_unobligat_fyb = Column(Numeric)
+    contract_authority_amount_cpe = Column(Numeric)
+    deobligations_recoveries_r_cpe = Column(Numeric)
+    ending_period_of_availabil = Column(Text)
+    gross_outlay_amount_by_tas_cpe = Column(Numeric)
+    main_account_code = Column(Text)
+    obligations_incurred_total_cpe = Column(Numeric)
+    other_budgetary_resources_cpe = Column(Numeric)
+    spending_authority_from_of_cpe = Column(Numeric)
+    status_of_budgetary_resour_cpe = Column(Numeric)
+    sub_account_code = Column(Text)
+    unobligated_balance_cpe = Column(Numeric)
+    tas = Column(Text)
+    tas_id = Column(Integer)
+
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(CertifiedAppropriation, self).__init__(**clean_kwargs)
+
+
+class CertifiedObjectClassProgramActivity(Base):
+    """Model for the certified data from the ObjectClassProgramActivity (B file) table."""
+    __tablename__ = "certified_object_class_program_activity"
+
+    certified_object_class_program_activity_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                               name="fk_certified_object_class_program_activity_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
+    job_id = Column(Integer)
+    row_number = Column(Integer)
+    agency_identifier = Column(Text)
+    allocation_transfer_agency = Column(Text)
+    availability_type_code = Column(Text)
+    beginning_period_of_availa = Column(Text)
+    by_direct_reimbursable_fun = Column(Text)
+    deobligations_recov_by_pro_cpe = Column(Numeric)
+    ending_period_of_availabil = Column(Text)
+    gross_outlay_amount_by_pro_cpe = Column(Numeric)
+    gross_outlay_amount_by_pro_fyb = Column(Numeric)
+    gross_outlays_delivered_or_cpe = Column(Numeric)
+    gross_outlays_delivered_or_fyb = Column(Numeric)
+    gross_outlays_undelivered_cpe = Column(Numeric)
+    gross_outlays_undelivered_fyb = Column(Numeric)
+    main_account_code = Column(Text)
+    object_class = Column(Text)
+    obligations_delivered_orde_cpe = Column(Numeric)
+    obligations_delivered_orde_fyb = Column(Numeric)
+    obligations_incurred_by_pr_cpe = Column(Numeric)
+    obligations_undelivered_or_cpe = Column(Numeric)
+    obligations_undelivered_or_fyb = Column(Numeric)
+    program_activity_code = Column(Text)
+    program_activity_name = Column(Text)
+    sub_account_code = Column(Text)
+    ussgl480100_undelivered_or_cpe = Column(Numeric)
+    ussgl480100_undelivered_or_fyb = Column(Numeric)
+    ussgl480200_undelivered_or_cpe = Column(Numeric)
+    ussgl480200_undelivered_or_fyb = Column(Numeric)
+    ussgl483100_undelivered_or_cpe = Column(Numeric)
+    ussgl483200_undelivered_or_cpe = Column(Numeric)
+    ussgl487100_downward_adjus_cpe = Column(Numeric)
+    ussgl487200_downward_adjus_cpe = Column(Numeric)
+    ussgl488100_upward_adjustm_cpe = Column(Numeric)
+    ussgl488200_upward_adjustm_cpe = Column(Numeric)
+    ussgl490100_delivered_orde_cpe = Column(Numeric)
+    ussgl490100_delivered_orde_fyb = Column(Numeric)
+    ussgl490200_delivered_orde_cpe = Column(Numeric)
+    ussgl490800_authority_outl_cpe = Column(Numeric)
+    ussgl490800_authority_outl_fyb = Column(Numeric)
+    ussgl493100_delivered_orde_cpe = Column(Numeric)
+    ussgl497100_downward_adjus_cpe = Column(Numeric)
+    ussgl497200_downward_adjus_cpe = Column(Numeric)
+    ussgl498100_upward_adjustm_cpe = Column(Numeric)
+    ussgl498200_upward_adjustm_cpe = Column(Numeric)
+    tas = Column(Text, default=concat_tas)
+    tas_id = Column(Integer)
+
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(CertifiedObjectClassProgramActivity, self).__init__(**clean_kwargs)
+
+
+class CertifiedAwardFinancial(Base):
+    """Model for the certified data from the AwardFinancial (C file) table."""
+    __tablename__ = "certified_award_financial"
+
+    certified_award_financial_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                               name="fk_certified_award_financial_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
+    job_id = Column(Integer)
+    row_number = Column(Integer)
+    agency_identifier = Column(Text)
+    allocation_transfer_agency = Column(Text)
+    availability_type_code = Column(Text)
+    beginning_period_of_availa = Column(Text)
+    by_direct_reimbursable_fun = Column(Text)
+    deobligations_recov_by_awa_cpe = Column(Numeric)
+    ending_period_of_availabil = Column(Text)
+    fain = Column(Text)
+    gross_outlay_amount_by_awa_cpe = Column(Numeric)
+    gross_outlay_amount_by_awa_fyb = Column(Numeric)
+    gross_outlays_delivered_or_cpe = Column(Numeric)
+    gross_outlays_delivered_or_fyb = Column(Numeric)
+    gross_outlays_undelivered_cpe = Column(Numeric)
+    gross_outlays_undelivered_fyb = Column(Numeric)
+    main_account_code = Column(Text)
+    object_class = Column(Text)
+    obligations_delivered_orde_cpe = Column(Numeric)
+    obligations_delivered_orde_fyb = Column(Numeric)
+    obligations_incurred_byawa_cpe = Column(Numeric)
+    obligations_undelivered_or_cpe = Column(Numeric)
+    obligations_undelivered_or_fyb = Column(Numeric)
+    parent_award_id = Column(Text)
+    piid = Column(Text)
+    program_activity_code = Column(Text)
+    program_activity_name = Column(Text)
+    sub_account_code = Column(Text)
+    transaction_obligated_amou = Column(Numeric)
+    uri = Column(Text)
+    ussgl480100_undelivered_or_cpe = Column(Numeric)
+    ussgl480100_undelivered_or_fyb = Column(Numeric)
+    ussgl480200_undelivered_or_cpe = Column(Numeric)
+    ussgl480200_undelivered_or_fyb = Column(Numeric)
+    ussgl483100_undelivered_or_cpe = Column(Numeric)
+    ussgl483200_undelivered_or_cpe = Column(Numeric)
+    ussgl487100_downward_adjus_cpe = Column(Numeric)
+    ussgl487200_downward_adjus_cpe = Column(Numeric)
+    ussgl488100_upward_adjustm_cpe = Column(Numeric)
+    ussgl488200_upward_adjustm_cpe = Column(Numeric)
+    ussgl490100_delivered_orde_cpe = Column(Numeric)
+    ussgl490100_delivered_orde_fyb = Column(Numeric)
+    ussgl490200_delivered_orde_cpe = Column(Numeric)
+    ussgl490800_authority_outl_cpe = Column(Numeric)
+    ussgl490800_authority_outl_fyb = Column(Numeric)
+    ussgl493100_delivered_orde_cpe = Column(Numeric)
+    ussgl497100_downward_adjus_cpe = Column(Numeric)
+    ussgl497200_downward_adjus_cpe = Column(Numeric)
+    ussgl498100_upward_adjustm_cpe = Column(Numeric)
+    ussgl498200_upward_adjustm_cpe = Column(Numeric)
+    tas = Column(Text)
+    tas_id = Column(Integer)
+
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(CertifiedAwardFinancial, self).__init__(**clean_kwargs)
+
+
 class AwardFinancialAssistance(Base):
     """Model for D2-Award (Financial Assistance)."""
     __tablename__ = "award_financial_assistance"
@@ -1046,6 +1220,18 @@ Index(
     PublishedAwardFinancialAssistance.is_active,
     postgresql_where=(PublishedAwardFinancialAssistance.is_active.is_(True))
     )
+
+Index("ix_pafa_fain_awarding_sub_tier_is_active",
+      PublishedAwardFinancialAssistance.fain,
+      PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c,
+      PublishedAwardFinancialAssistance.is_active,
+      unique=False)
+
+Index("ix_pafa_uri_awarding_sub_tier_is_active",
+      PublishedAwardFinancialAssistance.uri,
+      PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c,
+      PublishedAwardFinancialAssistance.is_active,
+      unique=False)
 
 
 class FPDSContractingOffice(Base):

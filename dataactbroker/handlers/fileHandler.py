@@ -27,14 +27,14 @@ from dataactcore.interfaces.function_bag import (
     create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, get_last_validated_date,
     get_lastest_certified_date)
 
-from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode
+from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
+                                             Office)
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
-                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
+                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileGeneration)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
-from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
-                                              FPDSContractingOffice)
+from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.userModel import User
 from dataactcore.models.views import SubmissionUpdatedView
 
@@ -594,13 +594,14 @@ class FileHandler:
             sub_tier_dict = {}
             cfda_dict = {}
             county_dict = {}
-            fpds_office_dict = {}
+            office_dict = {}
 
             # This table is big enough that we want to only grab 2 columns
-            offices = sess.query(FPDSContractingOffice.contracting_office_code,
-                                 FPDSContractingOffice.contracting_office_name).all()
+            offices = sess.query(Office.office_code, Office.office_name, Office.sub_tier_code, Office.agency_code).all()
             for office in offices:
-                fpds_office_dict[office.contracting_office_code] = office.contracting_office_name
+                office_dict[office.office_code] = {'office_name': office.office_name,
+                                                   'sub_tier_code': office.sub_tier_code,
+                                                   'agency_code': office.agency_code}
             del offices
 
             counties = sess.query(CountyCode).all()
@@ -645,6 +646,7 @@ class FileHandler:
             query = []
             log_data['message'] = 'Starting derivations for FABS submission'
             logger.info(log_data)
+
             while len(query) == ROWS_PER_LOOP or loop_num == 0:
                 # get next set of valid lines for this submission
                 query = sess.query(DetachedAwardFinancialAssistance). \
@@ -663,7 +665,7 @@ class FileHandler:
                     temp_obj.pop('_sa_instance_state', None)
 
                     temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict,
-                                                county_dict, fpds_office_dict)
+                                                county_dict, office_dict)
 
                     # if it's a correction or deletion row and an old row is active, update the old row to be inactive
                     if row.correction_delete_indicatr is not None:
@@ -680,9 +682,13 @@ class FileHandler:
                     new_row = PublishedAwardFinancialAssistance(**temp_obj)
                     sess.add(new_row)
 
-                    # update the list of affected agency_codes
+                    # update the list of affected awarding_agency_codes
                     if temp_obj['awarding_agency_code'] not in agency_codes_list:
                         agency_codes_list.append(temp_obj['awarding_agency_code'])
+
+                    # update the list of affected funding_agency_codes
+                    if temp_obj['funding_agency_code'] not in agency_codes_list:
+                        agency_codes_list.append(temp_obj['funding_agency_code'])
 
                     if row_count % 1000 == 0:
                         log_data['message'] = 'Completed derivations for {} rows'.format(row_count)
@@ -690,15 +696,12 @@ class FileHandler:
                     row_count += 1
                 loop_num += 1
 
-            # update all cached D2 FileRequest objects that could have been affected by the publish
-            for agency_code in agency_codes_list:
-                sess.query(FileRequest).\
-                    filter(FileRequest.agency_code == agency_code,
-                           FileRequest.is_cached_file.is_(True),
-                           FileRequest.file_type == 'D2',
-                           sa.or_(FileRequest.start_date <= submission.reporting_end_date,
-                                  FileRequest.end_date >= submission.reporting_start_date)).\
-                    update({"is_cached_file": False}, synchronize_session=False)
+            # update all cached D2 FileGeneration objects that could have been affected by the publish
+            sess.query(FileGeneration).\
+                filter(FileGeneration.agency_code.in_(agency_codes_list),
+                       FileGeneration.is_cached_file.is_(True),
+                       FileGeneration.file_type == 'D2').\
+                update({"is_cached_file": False}, synchronize_session=False)
             sess.commit()
         except Exception as e:
             log_data['message'] = 'An error occurred while publishing a FABS submission'
@@ -845,16 +848,11 @@ class FileHandler:
                job.file_type_id in [FILE_TYPE_DICT["award"], FILE_TYPE_DICT["award_procurement"]]:
                 # file generation handled on backend, mark as ready
                 job.job_status_id = JOB_STATUS_DICT['ready']
-                file_request = sess.query(FileRequest).filter_by(job_id=job.job_id).one_or_none()
 
-                # uncache any related D file requests
-                if file_request:
-                    file_request.is_cached_file = False
-                    if file_request.parent_job_id:
-                        parent_file_request = sess.query(FileRequest).filter_by(job_id=file_request.parent_job_id).\
-                            one_or_none()
-                        if parent_file_request:
-                            parent_file_request.is_cached_file = False
+                # forcibly uncache any related D file requests
+                file_gen = sess.query(FileGeneration).filter_by(file_generation_id=job.file_generation_id).one_or_none()
+                if file_gen:
+                    file_gen.is_cached_file = False
             else:
                 # these are dependent on file D2 validation
                 job.job_status_id = JOB_STATUS_DICT['waiting']
@@ -1131,7 +1129,7 @@ def submission_to_dict_for_status(submission):
         'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': last_validated,
         'revalidation_threshold':
-            revalidation_threshold.revalidation_date.strftime('%m/%d/%Y') if revalidation_threshold else '',
+            revalidation_threshold.revalidation_date.strftime("%Y-%m-%dT%H:%M:%S") if revalidation_threshold else '',
         # Broker allows submission for a single quarter or a single month, so reporting_period start and end dates
         # reported by check_status are always equal
         'reporting_period_start_date': reporting_date(submission),

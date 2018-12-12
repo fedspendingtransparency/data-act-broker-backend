@@ -9,13 +9,13 @@ from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT, FILE_STATUS_DICT, FILE_TYPE_DICT, JOB_TYPE_DICT
 
 
-class DetachedUploadTests(BaseTestAPI):
-    """ Test detached file upload """
+class FABSUploadTests(BaseTestAPI):
+    """ Test FABS file upload """
 
     @classmethod
     def setUpClass(cls):
         """ Set up class-wide resources (test data) """
-        super(DetachedUploadTests, cls).setUpClass()
+        super(FABSUploadTests, cls).setUpClass()
         # TODO: refactor into a pytest fixture
 
         with create_app().app_context():
@@ -52,13 +52,13 @@ class DetachedUploadTests(BaseTestAPI):
 
     def setUp(self):
         """Test set-up."""
-        super(DetachedUploadTests, self).setUp()
+        super(FABSUploadTests, self).setUp()
         self.login_admin_user()
 
-    def test_successful_submit_detached(self):
+    def test_successful_publish_fabs_file(self):
         """ Test a successful publish """
         submission = {"submission_id": self.d2_submission}
-        response = self.app.post_json("/v1/submit_detached_file/", submission,
+        response = self.app.post_json("/v1/publish_fabs_file/", submission,
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(response.status_code, 200)
 
@@ -67,7 +67,7 @@ class DetachedUploadTests(BaseTestAPI):
         self.logout()
         self.login_user()
         submission = {"submission_id": self.d2_submission_2}
-        response = self.app.post_json("/v1/submit_detached_file/", submission,
+        response = self.app.post_json("/v1/publish_fabs_file/", submission,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json["message"], "User does not have permission to access that submission")
@@ -75,7 +75,7 @@ class DetachedUploadTests(BaseTestAPI):
     def test_already_published(self):
         """ Test a publish failure because the submission is already published """
         submission = {"submission_id": self.published_submission}
-        response = self.app.post_json("/v1/submit_detached_file/", submission,
+        response = self.app.post_json("/v1/publish_fabs_file/", submission,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "Submission has already been published")
@@ -83,7 +83,7 @@ class DetachedUploadTests(BaseTestAPI):
     def test_not_fabs(self):
         """ Test a publish failure because the submission is not FABS """
         submission = {"submission_id": self.other_submission}
-        response = self.app.post_json("/v1/submit_detached_file/", submission,
+        response = self.app.post_json("/v1/publish_fabs_file/", submission,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "Submission is not a FABS submission")
