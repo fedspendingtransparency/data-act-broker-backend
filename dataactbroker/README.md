@@ -1332,7 +1332,7 @@ Possible HTTP Status Codes not covered by `check_generation_status` documentatio
 
 ### POST "/v1/generate\_detached\_file"
 
-This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted. This route is used for file generation **independent** from a submission.
+This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted. This route is used for file generation **independent** from a submission. For more details on how files are generated, see the [FileLogic.md](../FileLogic.md) file.
 
 #### Body (JSON)
 
