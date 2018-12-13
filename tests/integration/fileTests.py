@@ -634,14 +634,6 @@ class FileTests(BaseTestAPI):
         assert response.status_code == 200
         assert "total_obligations" in response.json
 
-    def test_get_protected_files(self):
-        """ Check get_protected_files route """
-        response = self.app.get("/v1/get_protected_files/", headers={"x-session-id": self.session_id})
-        self.assertEqual(response.status_code, 200, msg=str(response.json))
-        self.assertEqual(response.headers.get("Content-Type"), "application/json")
-        json = response.json
-        self.assertNotEqual(len(json["urls"]), 0)
-
     def check_metrics(self, submission_id, exists, type_file):
         """Get error metrics for specified submission."""
         post_json = {"submission_id": submission_id}
