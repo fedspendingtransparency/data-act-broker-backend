@@ -636,8 +636,7 @@ class FileTests(BaseTestAPI):
 
     def test_get_protected_files(self):
         """ Check get_protected_files route """
-        response = self.app.get("/v1/get_protected_files/",
-                                headers={"x-session-id": self.session_id}, expect_errors=True)
+        response = self.app.get("/v1/get_protected_files/", headers={"x-session-id": self.session_id})
         self.assertEqual(response.status_code, 200, msg=str(response.json))
         self.assertEqual(response.headers.get("Content-Type"), "application/json")
         json = response.json
