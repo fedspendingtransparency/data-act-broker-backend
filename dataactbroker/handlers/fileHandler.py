@@ -50,6 +50,8 @@ from dataactvalidator.filestreaming.csv_selection import write_query_to_file
 
 logger = logging.getLogger(__name__)
 
+ROWS_PER_LOOP = 10000
+
 
 class FileHandler:
     """ Responsible for all tasks relating to file upload
@@ -606,10 +608,6 @@ class FileHandler:
                                         "publish.",
                                         StatusCode.CLIENT_ERROR)
 
-            # get all valid lines for this submission
-            query = sess.query(DetachedAwardFinancialAssistance).\
-                filter_by(is_valid=True, submission_id=submission_id).all()
-
             # Create lookup dictionaries so we don't have to query the API every time. We do biggest to smallest
             # to save the most possible space, although none of these should take that much.
             state_dict = {}
@@ -665,48 +663,59 @@ class FileHandler:
 
             agency_codes_list = []
             row_count = 1
+            loop_num = 0
+            query = []
             log_data['message'] = 'Starting derivations for FABS submission'
             logger.info(log_data)
-            for row in query:
-                # remove all keys in the row that are not in the intermediate table
-                temp_obj = row.__dict__
 
-                temp_obj.pop('row_number', None)
-                temp_obj.pop('is_valid', None)
-                temp_obj.pop('created_at', None)
-                temp_obj.pop('updated_at', None)
-                temp_obj.pop('_sa_instance_state', None)
+            while len(query) == ROWS_PER_LOOP or loop_num == 0:
+                # get next set of valid lines for this submission
+                query = sess.query(DetachedAwardFinancialAssistance). \
+                    filter_by(is_valid=True, submission_id=submission_id). \
+                    order_by(DetachedAwardFinancialAssistance.detached_award_financial_assistance_id).\
+                    slice(ROWS_PER_LOOP * loop_num, ROWS_PER_LOOP * (loop_num + 1)).all()
 
-                temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict,
-                                            county_dict, office_dict)
+                for row in query:
+                    # remove all keys in the row that are not in the intermediate table
+                    temp_obj = row.__dict__
 
-                # if it's a correction or deletion row and an old row is active, update the old row to be inactive
-                if row.correction_delete_indicatr is not None:
-                    check_row = sess.query(PublishedAwardFinancialAssistance).\
-                        filter_by(afa_generated_unique=row.afa_generated_unique, is_active=True).one_or_none()
-                    if check_row:
-                        # just creating this as a variable because flake thinks the row is too long
-                        row_id = check_row.published_award_financial_assistance_id
-                        sess.query(PublishedAwardFinancialAssistance).\
-                            filter_by(published_award_financial_assistance_id=row_id).\
-                            update({"is_active": False, "updated_at": row.modified_at}, synchronize_session=False)
+                    temp_obj.pop('row_number', None)
+                    temp_obj.pop('is_valid', None)
+                    temp_obj.pop('created_at', None)
+                    temp_obj.pop('updated_at', None)
+                    temp_obj.pop('_sa_instance_state', None)
 
-                # for all rows, insert the new row (active/inactive should be handled by fabs_derivations)
-                new_row = PublishedAwardFinancialAssistance(**temp_obj)
-                sess.add(new_row)
+                    temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict,
+                                                county_dict, office_dict)
 
-                # update the list of affected awarding_agency_codes
-                if temp_obj['awarding_agency_code'] not in agency_codes_list:
-                    agency_codes_list.append(temp_obj['awarding_agency_code'])
+                    # if it's a correction or deletion row and an old row is active, update the old row to be inactive
+                    if row.correction_delete_indicatr is not None:
+                        check_row = sess.query(PublishedAwardFinancialAssistance).\
+                            filter_by(afa_generated_unique=row.afa_generated_unique, is_active=True).one_or_none()
+                        if check_row:
+                            # just creating this as a variable because flake thinks the row is too long
+                            row_id = check_row.published_award_financial_assistance_id
+                            sess.query(PublishedAwardFinancialAssistance).\
+                                filter_by(published_award_financial_assistance_id=row_id).\
+                                update({"is_active": False, "updated_at": row.modified_at}, synchronize_session=False)
 
-                # update the list of affected funding_agency_codes
-                if temp_obj['funding_agency_code'] not in agency_codes_list:
-                    agency_codes_list.append(temp_obj['funding_agency_code'])
+                    # for all rows, insert the new row (active/inactive should be handled by fabs_derivations)
+                    new_row = PublishedAwardFinancialAssistance(**temp_obj)
+                    sess.add(new_row)
 
-                if row_count % 1000 == 0:
-                    log_data['message'] = 'Completed derivations for {} rows'.format(row_count)
-                    logger.info(log_data)
-                row_count += 1
+                    # update the list of affected awarding_agency_codes
+                    if temp_obj['awarding_agency_code'] not in agency_codes_list:
+                        agency_codes_list.append(temp_obj['awarding_agency_code'])
+
+                    # update the list of affected funding_agency_codes
+                    if temp_obj['funding_agency_code'] not in agency_codes_list:
+                        agency_codes_list.append(temp_obj['funding_agency_code'])
+
+                    if row_count % 1000 == 0:
+                        log_data['message'] = 'Completed derivations for {} rows'.format(row_count)
+                        logger.info(log_data)
+                    row_count += 1
+                loop_num += 1
 
             # update all cached D2 FileGeneration objects that could have been affected by the publish
             sess.query(FileGeneration).\

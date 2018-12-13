@@ -13,7 +13,9 @@ from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JO
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
                                           CertifyHistory, RevalidationThreshold)
-from dataactcore.models.stagingModels import AwardFinancial
+from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
+                                              CertifiedAppropriation, CertifiedObjectClassProgramActivity,
+                                              CertifiedAwardFinancial)
 from dataactcore.models.errorModels import File
 
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -529,6 +531,47 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
     return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
 
+def move_certified_data(sess, submission_id):
+    """ Move data from the staging tables to the certified tables for a submission.
+
+        Args:
+            sess: the database connection
+            submission_id: The ID of the submission to move data for
+    """
+    table_types = {'appropriation': [Appropriation, CertifiedAppropriation],
+                   'object_class_program_activity': [ObjectClassProgramActivity, CertifiedObjectClassProgramActivity],
+                   'award_financial': [AwardFinancial, CertifiedAwardFinancial]}
+
+    for table_type, table_object in table_types.items():
+        logger.info({
+            "message": "Deleting old certified data from {} table".format("certified_" + table_type),
+            "message_type": "BrokerInfo",
+            "submission_id": submission_id
+        })
+
+        # Delete the old certified data in the table
+        sess.query(table_object[1]).filter_by(submission_id=submission_id).delete()
+
+        logger.info({
+            "message": "Moving certified data from {} table".format(table_type),
+            "message_type": "BrokerInfo",
+            "submission_id": submission_id
+        })
+
+        column_list = [col.key for col in table_object[0].__table__.columns]
+        column_list.remove('created_at')
+        column_list.remove('updated_at')
+        column_list.remove(table_type + '_id')
+
+        col_string = ", ".join(column_list)
+
+        # Move the certified data
+        sess.execute("INSERT INTO certified_{} (created_at, updated_at, {}) "
+                     "SELECT NOW() AS created_at, NOW() AS updated_at, {} "
+                     "FROM {} "
+                     "WHERE submission_id={}".format(table_type, col_string, col_string, table_type, submission_id))
+
+
 def certify_dabs_submission(submission, file_manager):
     """ Certify a DABS submission
 
@@ -537,7 +580,8 @@ def certify_dabs_submission(submission, file_manager):
             file_manager: a FileHandler object to be used to call move_certified_files
 
         Returns:
-            Nothing if successful, JsonResponse error containing the details of the error if something went wrong
+            A JsonResponse containing the message "success" if successful, JsonResponse error containing the details of
+            the error if something went wrong
     """
     current_user_id = g.user.user_id
 
@@ -572,6 +616,9 @@ def certify_dabs_submission(submission, file_manager):
         # get the certify_history entry including the PK
         certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
             order_by(CertifyHistory.created_at.desc()).first()
+
+        # Move the data to the certified table, deleting any old certified data in the process
+        move_certified_data(sess, submission.submission_id)
 
         # move files (locally we don't move but we still need to populate the certified_files_history table)
         file_manager.move_certified_files(submission, certify_history, file_manager.is_local)
