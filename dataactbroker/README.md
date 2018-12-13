@@ -859,7 +859,7 @@ This route sends a request to the backend with ID of the FABS submission to publ
 ##### Errors
 Possible HTTP Status Codes:
 
-- 400: Invalid submission, already published or currently publishing submission, different submission published the same rows between validation and this API call, missing required parameter
+- 400: Invalid submission, already published or currently publishing submission, different submission published the same rows between validation and this API call, different submission that shares valid rows with this one currently publishing, missing required parameter
 - 401: Login required
 - 500: Any other unexpected errors
 
