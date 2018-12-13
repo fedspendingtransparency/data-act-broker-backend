@@ -976,7 +976,7 @@ This endpoint lists submissions for all agencies for which the current user is a
     "certified": "true",
     "sort": "modified",
     "order": "desc",
-    "d2_submission": False,
+    "fabs": False,
     "filters": {
         "submission_ids": [123, 456],
         "last_modified_range": {
@@ -1007,7 +1007,7 @@ This endpoint lists submissions for all agencies for which the current user is a
 - `order` - **optional** - a string indicating the sort order. Defaults to `desc` if not provided. Valid values are:
     - `desc`
     - `asc`
-- `d2_submission` - **optional** - a boolean indicating if the submissions listed should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
+- `fabs` - **optional** - a boolean indicating if the submissions listed should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
 - `filters` - **optional** - an object containing additional filters to narrow the results returned by the endpoint. Possible filters are:
     - `submission_ids` - an array of integers or strings that limits the submission IDs returned to only the values listed in the array.
     - `last_modified_range` - an object containing a start and end date for the last modified date range. Both must be provided if this filter is used.

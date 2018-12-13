@@ -21,7 +21,7 @@ from tests.unit.dataactcore.factories.user import UserFactory
 
 
 def list_submissions_result(d2_submission=False):
-    json_response = fileHandler.list_submissions(1, 10, "mixed", d2_submission=d2_submission)
+    json_response = fileHandler.list_submissions(1, 10, "mixed", is_fabs=d2_submission)
     assert json_response.status_code == 200
     return json.loads(json_response.get_data().decode('UTF-8'))
 
