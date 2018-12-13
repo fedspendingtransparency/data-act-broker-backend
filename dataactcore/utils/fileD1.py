@@ -1,10 +1,9 @@
 from collections import OrderedDict
 from sqlalchemy import func, cast, Date
 
-from dataactcore.models.stagingModels import DetachedAwardProcurement, AwardProcurement
+from dataactcore.models.stagingModels import DetachedAwardProcurement
 
 file_model = DetachedAwardProcurement
-staging_model = AwardProcurement
 
 mapping = OrderedDict([
     ('PIID', 'piid'),
