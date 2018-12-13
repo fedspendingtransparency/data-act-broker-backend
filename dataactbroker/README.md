@@ -741,7 +741,7 @@ Possible HTTP Status Codes:
 - 403: Permission denied, user does not have permission to view this submission
 
 #### GET "/v1/submission/\<int:submission\_id\>/report\_url"
-This endpoint requests the URL associated with a particular type of submission report. The provided URL will expire after roughly half an hour.
+This endpoint requests the URL associated with a particular type of submission report. The provided URL will expire after one minute.
 
 ##### Sample Request
 `/v1/submission/<int:submission_id>/report_url?warning=True&file_type=appropriations&cross_type=award_financial`
