@@ -1,6 +1,6 @@
 # File A Generation
 
-File A is generated using SF133 data submitted by agencies
+File A is generated using SF133 data submitted by agencies. TAS and monetary amounts are gathered using the period and year provided.
 
 ## TAS Selection
 
