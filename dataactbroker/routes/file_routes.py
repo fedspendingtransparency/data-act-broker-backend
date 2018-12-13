@@ -78,12 +78,12 @@ def add_file_routes(app, is_local, server_path):
             validate=webargs_validate.OneOf(('mixed', 'true', 'false'))),
         'sort': webargs_fields.String(missing='modified'),
         'order': webargs_fields.String(missing='desc'),
-        'd2_submission': webargs_fields.Bool(missing=False),
+        'fabs': webargs_fields.Bool(missing=False),
         'filters': webargs_fields.Dict(keys=webargs_fields.String(), missing={})
     })
-    def list_submissions(page, limit, certified, sort, order, d2_submission, filters):
+    def list_submissions(page, limit, certified, sort, order, fabs, filters):
         """ List submission IDs associated with the current user """
-        return list_submissions_handler(page, limit, certified, sort, order, d2_submission, filters)
+        return list_submissions_handler(page, limit, certified, sort, order, fabs, filters)
 
     @app.route("/v1/list_certifications/", methods=["POST"])
     @convert_to_submission_id

@@ -1437,7 +1437,7 @@ def add_list_submission_filters(query, filters):
     return query
 
 
-def list_submissions(page, limit, certified, sort='modified', order='desc', d2_submission=False, filters=None):
+def list_submissions(page, limit, certified, sort='modified', order='desc', is_fabs=False, filters=None):
     """ List submission based on current page and amount to display. If provided, filter based on certification status
 
         Args:
@@ -1446,7 +1446,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
             certified: string indicating whether to display only certified, only uncertified, or both for submissions
             sort: the column to order on
             order: order ascending or descending
-            d2_submission: boolean indicating whether it is a DABS or FABS submission (True if FABS)
+            is_fabs: boolean indicating whether it is a DABS or FABS submission (True if FABS)
             filters: an object containing the filters provided by the user
 
         Returns:
@@ -1482,7 +1482,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
         outerjoin(sub_query, Submission.submission_id == sub_query.c.submission_id).\
-        filter(Submission.d2_submission.is_(d2_submission))
+        filter(Submission.d2_submission.is_(is_fabs))
 
     # Limit the data coming back to only what the given user is allowed to see
     if not g.user.website_admin:
