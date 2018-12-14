@@ -769,19 +769,14 @@ class FileHandler:
         return JsonResponse.create(StatusCode.OK, response_dict)
 
     def get_protected_files(self):
-        """ Gets a set of urls to protected files (on S3 with timeouts) on the help page
+        """ Gets a set of urls to files on S3 on the help page
 
             Returns:
-                A JsonResponse object with the urls in a list or an empty object if local
+                A JsonResponse object with the urls in a list
         """
-        response = {}
-        if self.is_local:
-            response["urls"] = {}
-            return JsonResponse.create(StatusCode.CLIENT_ERROR, response)
-
-        response["urls"] = self.s3manager.get_file_urls(bucket_name=CONFIG_BROKER["static_files_bucket"],
-                                                        path=CONFIG_BROKER["help_files_path"],
-                                                        url_mapping=CONFIG_BROKER["help_files_mapping"])
+        response = {
+            "urls": self.s3manager.get_file_urls(bucket_name=CONFIG_BROKER["static_files_bucket"],
+                                                 path=CONFIG_BROKER["help_files_path"] + '/')}
         return JsonResponse.create(StatusCode.OK, response)
 
     def build_file_map(self, file_dict, file_type_list, upload_files, submission):
