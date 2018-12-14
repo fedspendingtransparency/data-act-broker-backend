@@ -20,8 +20,8 @@ from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory,
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
-def list_submissions_result(d2_submission=False):
-    json_response = fileHandler.list_submissions(1, 10, "mixed", is_fabs=d2_submission)
+def list_submissions_result(is_fabs=False):
+    json_response = fileHandler.list_submissions(1, 10, "mixed", is_fabs=is_fabs)
     assert json_response.status_code == 200
     return json.loads(json_response.get_data().decode('UTF-8'))
 
@@ -143,7 +143,7 @@ def test_list_submissions_success(database, monkeypatch):
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
-    result = list_submissions_result(d2_submission=True)
+    result = list_submissions_result(is_fabs=True)
     assert result['total'] == 1
     assert result['submissions'][0]['status'] == "ready"
     delete_models(database, [user, sub, job])
@@ -193,12 +193,12 @@ def test_list_submissions_detached(database, monkeypatch):
 
     monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
     result = list_submissions_result()
-    d2_result = list_submissions_result(d2_submission=True)
+    fabs_result = list_submissions_result(is_fabs=True)
 
     assert result['total'] == 1
     assert result['submissions'][0]['submission_id'] == sub.submission_id
-    assert d2_result['total'] == 1
-    assert d2_result['submissions'][0]['submission_id'] == d2_sub.submission_id
+    assert fabs_result['total'] == 1
+    assert fabs_result['submissions'][0]['submission_id'] == d2_sub.submission_id
     delete_models(database, [user, sub, d2_sub])
 
 
