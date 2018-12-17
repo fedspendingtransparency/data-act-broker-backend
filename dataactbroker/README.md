@@ -741,7 +741,7 @@ Possible HTTP Status Codes:
 - 403: Permission denied, user does not have permission to view this submission
 
 #### GET "/v1/submission/\<int:submission\_id\>/report\_url"
-This endpoint requests the URL associated with a particular type of submission report. The provided URL will expire after roughly half an hour.
+This endpoint requests the URL associated with a particular type of submission report. The provided URL will expire after one minute.
 
 ##### Sample Request
 `/v1/submission/<int:submission_id>/report_url?warning=True&file_type=appropriations&cross_type=award_financial`
@@ -859,7 +859,7 @@ This route sends a request to the backend with ID of the FABS submission to publ
 ##### Errors
 Possible HTTP Status Codes:
 
-- 400: Invalid submission, already published or currently publishing submission, different submission published the same rows between validation and this API call, missing required parameter
+- 400: Invalid submission, already published or currently publishing submission, different submission published the same rows between validation and this API call, different submission that shares valid rows with this one currently publishing, missing required parameter
 - 401: Login required
 - 500: Any other unexpected errors
 
@@ -976,7 +976,7 @@ This endpoint lists submissions for all agencies for which the current user is a
     "certified": "true",
     "sort": "modified",
     "order": "desc",
-    "d2_submission": False,
+    "fabs": False,
     "filters": {
         "submission_ids": [123, 456],
         "last_modified_range": {
@@ -1007,7 +1007,7 @@ This endpoint lists submissions for all agencies for which the current user is a
 - `order` - **optional** - a string indicating the sort order. Defaults to `desc` if not provided. Valid values are:
     - `desc`
     - `asc`
-- `d2_submission` - **optional** - a boolean indicating if the submissions listed should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
+- `fabs` - **optional** - a boolean indicating if the submissions listed should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
 - `filters` - **optional** - an object containing additional filters to narrow the results returned by the endpoint. Possible filters are:
     - `submission_ids` - an array of integers or strings that limits the submission IDs returned to only the values listed in the array.
     - `last_modified_range` - an object containing a start and end date for the last modified date range. Both must be provided if this filter is used.
@@ -1332,7 +1332,7 @@ Possible HTTP Status Codes not covered by `check_generation_status` documentatio
 
 ### POST "/v1/generate\_detached\_file"
 
-This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted. This route is used for file generation **independent** from a submission.
+This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted. This route is used for file generation **independent** from a submission. For more details on how files are generated, see the [FileLogic.md](../FileLogic.md) file.
 
 #### Body (JSON)
 

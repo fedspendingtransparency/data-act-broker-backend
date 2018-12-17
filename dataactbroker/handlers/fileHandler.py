@@ -569,11 +569,32 @@ class FileHandler:
         sess.commit()
 
         try:
-            # check to make sure no new entries have been published that collide with the new rows
-            # (correction_delete_indicatr is not C or D)
             # need to set the models to something because the names are too long and flake gets mad
             dafa = DetachedAwardFinancialAssistance
             pafa = PublishedAwardFinancialAssistance
+
+            # Check to make sure no rows are currently publishing that collide with the rows in this submission
+            # (in any way, including C or D)
+            valid_sub_rows = sess.query(dafa.afa_generated_unique).\
+                filter(dafa.submission_id == submission_id, dafa.is_valid.is_(True)).cte('valid_sub_rows')
+            publishing_subs = sess.query(dafa.submission_id).\
+                join(valid_sub_rows, valid_sub_rows.c.afa_generated_unique == dafa.afa_generated_unique).\
+                join(Submission, Submission.submission_id == dafa.submission_id).\
+                filter(dafa.is_valid.is_(True),
+                       dafa.submission_id != submission_id,
+                       Submission.publish_status_id == PUBLISH_STATUS_DICT['publishing']).distinct().all()
+            if publishing_subs:
+                sub_list = []
+                for sub in publishing_subs:
+                    sub_list.append(str(sub.submission_id))
+                raise ResponseException("1 or more rows in this submission are currently publishing (in a separate "
+                                        "submission). To prevent duplicate records, please wait for the other "
+                                        "submission(s) to finish publishing before trying to publish. IDs of "
+                                        "submissions affecting this publish attempt: {}".format(", ".join(sub_list)),
+                                        StatusCode.CLIENT_ERROR)
+
+            # check to make sure no new entries have been published that collide with the new rows
+            # (correction_delete_indicatr is not C or D)
             colliding_rows = sess.query(dafa.afa_generated_unique). \
                 filter(dafa.is_valid.is_(True),
                        dafa.submission_id == submission_id,
@@ -748,19 +769,14 @@ class FileHandler:
         return JsonResponse.create(StatusCode.OK, response_dict)
 
     def get_protected_files(self):
-        """ Gets a set of urls to protected files (on S3 with timeouts) on the help page
+        """ Gets a set of urls to files on S3 on the help page
 
             Returns:
-                A JsonResponse object with the urls in a list or an empty object if local
+                A JsonResponse object with the urls in a list
         """
-        response = {}
-        if self.is_local:
-            response["urls"] = {}
-            return JsonResponse.create(StatusCode.CLIENT_ERROR, response)
-
-        response["urls"] = self.s3manager.get_file_urls(bucket_name=CONFIG_BROKER["static_files_bucket"],
-                                                        path=CONFIG_BROKER["help_files_path"],
-                                                        url_mapping=CONFIG_BROKER["help_files_mapping"])
+        response = {
+            "urls": self.s3manager.get_file_urls(bucket_name=CONFIG_BROKER["static_files_bucket"],
+                                                 path=CONFIG_BROKER["help_files_path"] + '/')}
         return JsonResponse.create(StatusCode.OK, response)
 
     def build_file_map(self, file_dict, file_type_list, upload_files, submission):
@@ -1416,7 +1432,7 @@ def add_list_submission_filters(query, filters):
     return query
 
 
-def list_submissions(page, limit, certified, sort='modified', order='desc', d2_submission=False, filters=None):
+def list_submissions(page, limit, certified, sort='modified', order='desc', is_fabs=False, filters=None):
     """ List submission based on current page and amount to display. If provided, filter based on certification status
 
         Args:
@@ -1425,7 +1441,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
             certified: string indicating whether to display only certified, only uncertified, or both for submissions
             sort: the column to order on
             order: order ascending or descending
-            d2_submission: boolean indicating whether it is a DABS or FABS submission (True if FABS)
+            is_fabs: boolean indicating whether it is a DABS or FABS submission (True if FABS)
             filters: an object containing the filters provided by the user
 
         Returns:
@@ -1461,7 +1477,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
         outerjoin(sub_query, Submission.submission_id == sub_query.c.submission_id).\
-        filter(Submission.d2_submission.is_(d2_submission))
+        filter(Submission.d2_submission.is_(is_fabs))
 
     # Limit the data coming back to only what the given user is allowed to see
     if not g.user.website_admin:
