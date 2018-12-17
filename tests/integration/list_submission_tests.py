@@ -116,31 +116,31 @@ class ListSubmissionTests(BaseTestAPI):
 
     def test_list_submissions_fabs_admin(self):
         """ Test with FABS submissions for an admin user. """
-        response = self.app.post_json("/v1/list_submissions/", {"certified": "mixed", "d2_submission": True},
+        response = self.app.post_json("/v1/list_submissions/", {"certified": "mixed", "fabs": True},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_fabs_sub_id, self.admin_fabs_sub_id,
                                                   self.published_fabs_sub_id})
 
-        response = self.app.post_json("/v1/list_submissions/", {"certified": "false", "d2_submission": True},
+        response = self.app.post_json("/v1/list_submissions/", {"certified": "false", "fabs": True},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_fabs_sub_id, self.admin_fabs_sub_id})
 
-        response = self.app.post_json("/v1/list_submissions/", {"certified": "true", "d2_submission": True},
+        response = self.app.post_json("/v1/list_submissions/", {"certified": "true", "fabs": True},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.published_fabs_sub_id})
 
     def test_list_submissions_fabs_non_admin(self):
         """ Test with FABS submissions for a non admin user. """
         self.login_user()
-        response = self.app.post_json("/v1/list_submissions/", {"certified": "mixed", "d2_submission": True},
+        response = self.app.post_json("/v1/list_submissions/", {"certified": "mixed", "fabs": True},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.admin_fabs_sub_id, self.published_fabs_sub_id})
 
-        response = self.app.post_json("/v1/list_submissions/", {"certified": "false", "d2_submission": True},
+        response = self.app.post_json("/v1/list_submissions/", {"certified": "false", "fabs": True},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.admin_fabs_sub_id})
 
-        response = self.app.post_json("/v1/list_submissions/", {"certified": "true", "d2_submission": True},
+        response = self.app.post_json("/v1/list_submissions/", {"certified": "true", "fabs": True},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.published_fabs_sub_id})
 
@@ -260,7 +260,7 @@ class ListSubmissionTests(BaseTestAPI):
         # Not returning a result if the user doesn't have access to the submission
         post_json = {
             "certified": "mixed",
-            "d2_submission": True,
+            "fabs": True,
             "filters": {
                 "agency_codes": ['SYS']
             }
@@ -346,7 +346,7 @@ class ListSubmissionTests(BaseTestAPI):
         # non-local style submission
         post_json = {
             "certified": "mixed",
-            "d2_submission": True,
+            "fabs": True,
             "filters": {
                 "file_names": ['test']
             }
