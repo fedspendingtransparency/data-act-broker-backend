@@ -130,9 +130,13 @@ def insert_file(filename, submission_id, file_type_id, csv_schema, long_to_short
         s3.download_file(CONFIG_BROKER['certified_bucket'], filename, tmp_filename)
         filename = tmp_filename
 
-    # Create dataframe from file
     with open(filename) as file:
-        data = pd.read_csv(file, dtype=str)
+        # Get file delimiter and reset reader to start of file
+        delim = '|' if file.readline().count('|') != 0 else ','
+        file.seek(0)
+
+        # Create dataframe from file
+        data = pd.read_csv(file, dtype=str, delimiter=delim)
 
     # Only use the columns needed for the DB table
     data = data.rename(columns=lambda x: x.lower().strip())
