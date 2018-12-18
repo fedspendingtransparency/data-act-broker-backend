@@ -20,7 +20,8 @@ from sqlalchemy import func
 
 from dateutil.relativedelta import relativedelta
 
-from requests.packages.urllib3.exceptions import ReadTimeoutError
+from requests.exceptions import ConnectionError, ReadTimeout
+from urllib3.exceptions import ReadTimeoutError
 
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
@@ -1257,8 +1258,7 @@ def get_with_exception_hand(url_string):
         try:
             resp = requests.get(url_string, timeout=request_timeout)
             break
-        except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError,
-                requests.exceptions.ReadTimeout) as e:
+        except (ConnectionResetError, ReadTimeoutError, ConnectionError, ReadTimeout) as e:
             exception_retries += 1
             request_timeout += 60
             if exception_retries < len(retry_sleep_times):
@@ -1440,7 +1440,7 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
         try:
             resp = requests.get(base_url + '&start=' + str(processed_deletions), timeout=request_timeout)
             resp_data = xmltodict.parse(resp.text, process_namespaces=True, namespaces=FPDS_NAMESPACES)
-        except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError) as e:
+        except (ConnectionResetError, ReadTimeoutError, ConnectionError, ReadTimeout) as e:
             exception_retries += 1
             request_timeout += 60
             if exception_retries < len(retry_sleep_times):

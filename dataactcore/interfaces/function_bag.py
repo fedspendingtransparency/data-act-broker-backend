@@ -578,7 +578,7 @@ def get_last_validated_date(submission_id):
 
     # Still need to do a check here in case there aren't any jobs for a submission.
     # This is the case for a single unit test
-    return oldest_date.strftime('%m/%d/%Y') if oldest_date else oldest_date
+    return oldest_date.strftime('%Y-%m-%dT%H:%M:%S') if oldest_date else oldest_date
 
 
 def get_fabs_meta(submission_id):

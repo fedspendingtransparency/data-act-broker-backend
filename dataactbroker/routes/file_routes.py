@@ -78,12 +78,12 @@ def add_file_routes(app, is_local, server_path):
             validate=webargs_validate.OneOf(('mixed', 'true', 'false'))),
         'sort': webargs_fields.String(missing='modified'),
         'order': webargs_fields.String(missing='desc'),
-        'd2_submission': webargs_fields.Bool(missing=False),
+        'fabs': webargs_fields.Bool(missing=False),
         'filters': webargs_fields.Dict(keys=webargs_fields.String(), missing={})
     })
-    def list_submissions(page, limit, certified, sort, order, d2_submission, filters):
+    def list_submissions(page, limit, certified, sort, order, fabs, filters):
         """ List submission IDs associated with the current user """
-        return list_submissions_handler(page, limit, certified, sort, order, d2_submission, filters)
+        return list_submissions_handler(page, limit, certified, sort, order, fabs, filters)
 
     @app.route("/v1/list_certifications/", methods=["POST"])
     @convert_to_submission_id
@@ -137,6 +137,13 @@ def add_file_routes(app, is_local, server_path):
     @convert_to_submission_id
     @requires_submission_perms('fabs', check_owner=False)
     def submit_detached_file(submission):
+        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+        return file_manager.publish_fabs_submission(submission)
+
+    @app.route("/v1/publish_fabs_file/", methods=["POST"])
+    @convert_to_submission_id
+    @requires_submission_perms('fabs', check_owner=False)
+    def publish_fabs_file(submission):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.publish_fabs_submission(submission)
 
