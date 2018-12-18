@@ -111,30 +111,6 @@ class S3Handler:
             return 0
 
     @staticmethod
-    def get_file_urls(bucket_name, path):
-        """ Get signed urls for all files in a given bucket prefixed with the provided path
-
-            Args:
-                bucket_name: Name of the bucket to get files form
-                path: prefix for all the files so only those that start with that prefix are selected
-
-            Returns:
-                An array of signed urls keyed by the name of the file
-        """
-        urls = {}
-
-        s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-        response = s3.list_objects_v2(Bucket=bucket_name, Prefix=path)
-        for obj in response.get('Contents', []):
-            if obj['Key'] != path:
-                file_name = obj['Key'][len(path):]
-                url = 'https://' + CONFIG_BROKER['proxy_url'] + '/' + CONFIG_BROKER["help_files_mapping"][1] + '/' +\
-                      file_name
-                urls[file_name] = url
-
-        return urls
-
-    @staticmethod
     def copy_file(original_bucket, new_bucket, original_path, new_path):
         """ Copies a file from one bucket to another.
 
