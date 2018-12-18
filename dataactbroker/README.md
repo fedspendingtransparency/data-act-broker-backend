@@ -1342,7 +1342,8 @@ This route sends a request to the backend to utilize the relevant external APIs 
     "cgac_code": "020",
     "start": "01/01/2016",
     "end": "03/31/2016",
-    "quarter": "Q1/2017",
+    "year": 2017,
+    "period": 3,
     "agency_type": "awarding"
 }
 ```
@@ -1357,7 +1358,10 @@ This route sends a request to the backend to utilize the relevant external APIs 
 - `frec_code` - **required if cgac\_code not provided** - the frec of the agency for which to generate the files for
 - `start` - **required for D file generation** - the start date of the requested date range, in `MM/DD/YYYY` string format
 - `end` - **required for D file generation** - the end date of the requested date range, in `MM/DD/YYYY` string format
-- `quarter` - **required for A file generation** - the quarter for which to generate an A file, in `Q#/YYYY` format where # is a number 1-4
+- `year` - **required for A file generation** - an integer indicating the year for which to generate an A file
+- `period` - **required for A file generation** - an integer indicating the period for which to generate an A file
+    - Allowed values: 2-12
+    - 2 indicates November of the previous year, 12 indicates September of the selected year
 - `agency_type` - **optional** - a string indicating if the file generated should be based on awarding or funding agency. Ignored in A file generation. Defaults to `awarding` if not provided. Only allowed values are:
     - `awarding`
     - `funding`

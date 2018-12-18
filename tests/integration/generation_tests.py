@@ -221,7 +221,7 @@ class GenerationTests(BaseTestAPI):
 
     def test_detached_a_file_generation(self):
         """ Test the generate and check routes for external A files """
-        post_json = {'file_type': 'A', 'quarter': 'Q1/2018', 'cgac_code': '020'}
+        post_json = {'file_type': 'A', 'year': 2018, 'period': 3, 'cgac_code': '020'}
         response = self.app.post_json("/v1/generate_detached_file/", post_json,
                                       headers={"x-session-id": self.session_id})
 
@@ -234,39 +234,49 @@ class GenerationTests(BaseTestAPI):
         self.assertIsNotNone(json["job_id"])
 
     def test_detached_a_file_generation_quarter_format_fail(self):
-        """ Test that detached A file generation fails for bad quarter format. """
-        # Wrong number
-        post_json = {'file_type': 'A', 'quarter': 'Q5/2345', 'cgac_code': '020'}
+        """ Test that detached A file generation fails for bad year/period. """
+        # Bad period
+        post_json = {'file_type': 'A', 'year': 2345, 'period': 13, 'cgac_code': '020'}
         response = self.app.post_json("/v1/generate_detached_file/", post_json,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json["message"], "Quarter must be in Q#/YYYY format, where # is 1-4.")
-
-        # Too many numbers
-        post_json['quarter'] = 'Q11/2345'
-        response = self.app.post_json("/v1/generate_detached_file/", post_json,
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json["message"], "Quarter must be in Q#/YYYY format, where # is 1-4.")
+        self.assertEqual(response.json["message"], "period: Period must be an integer 2-12.")
 
         # Invalid year
-        post_json['quarter'] = 'Q1/123'
+        post_json['year'] = 12345
+        post_json['period'] = 5
         response = self.app.post_json("/v1/generate_detached_file/", post_json,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json["message"], "Quarter must be in Q#/YYYY format, where # is 1-4.")
+        self.assertEqual(response.json["message"], "Year must be in YYYY format.")
 
     def test_detached_a_file_generation_start_end_fail(self):
-        """ Test that detached A file generation fails if no quarter is provided """
+        """ Test that detached A file generation fails if no year/period is provided """
         post_json = {'file_type': 'A', 'start': '01/02/2016', 'end': '02/03/2016', 'cgac_code': '020'}
         response = self.app.post_json("/v1/generate_detached_file/", post_json,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json["message"], "Must have a quarter for A file generation.")
+        self.assertEqual(response.json["message"], "Must have a year and period for A file generation.")
+
+        # Only year is provided
+        post_json['year'] = 2017
+        response = self.app.post_json("/v1/generate_detached_file/", post_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "Must have a year and period for A file generation.")
+
+        # Only period is provided
+        del post_json['year']
+        post_json['period'] = 5
+        response = self.app.post_json("/v1/generate_detached_file/", post_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "Must have a year and period for A file generation.")
 
     @classmethod
     def setup_file_generation_submission(cls, sess, submission_id=None):
