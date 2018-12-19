@@ -37,20 +37,10 @@ broker:
     # The folder within dataactvalidator/config where USPS zip4 files are stored
     zip_folder: zips
 
-    # File A, D1, and D2 generation
-    # Uses "{}" because it requires string formatting to insert agency type as a parameter
-    a_file_name: appropriations_data.csv
-    d1_file_name: d1_{}agency_data.csv
-    d2_file_name: d2_{}agency_data.csv
-
     d_file_storage_path: /data-act/backend/tmp/
 
     # File E
     awardee_attributes_file_name: awardee_data.csv
-    e_file_name: executive_compensation_data.csv
-
-    # File F
-    f_file_name: sub_award_data.csv
 
     ## AWS Configuration Settings ##
 
