@@ -46,6 +46,8 @@ class FileGenerationManager:
     def generate_file(self, agency_code=None):
         """ Generates a file based on the FileGeneration object and updates any Jobs referencing it """
         raw_filename = CONFIG_BROKER["".join([FILE_TYPE_DICT_LETTER_NAME[self.file_type], "_file_name"])]
+        if self.file_generation:
+            raw_filename = raw_filename.format(self.file_generation.agency_type)
         file_name = S3Handler.get_timestamped_filename(raw_filename)
         if self.is_local:
             file_path = "".join([CONFIG_BROKER['broker_files'], file_name])
