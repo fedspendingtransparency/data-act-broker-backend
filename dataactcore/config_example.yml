@@ -47,10 +47,10 @@ broker:
 
     # File E
     awardee_attributes_file_name: awardee_data.csv
-    executive_compensation_file_name: executive_compensation_data.csv
+    e_file_name: executive_compensation_data.csv
 
     # File F
-    sub_award_file_name: sub_award_data.csv
+    f_file_name: sub_award_data.csv
 
     ## AWS Configuration Settings ##
 
