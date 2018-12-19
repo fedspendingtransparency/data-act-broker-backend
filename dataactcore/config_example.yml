@@ -37,11 +37,11 @@ broker:
     # The folder within dataactvalidator/config where USPS zip4 files are stored
     zip_folder: zips
 
-    # File A, D1, and D2 filenames
-    # Uses "{}" because it requires string formatting to insert query parameters
-    appropriations_file_name: appropriations_data.csv
-    award_procurement_file_name: d1_{}agency_data.csv
-    award_file_name: d2_{}agency_data.csv
+    # File A, D1, and D2 generation
+    # Uses "{}" because it requires string formatting to insert agency type as a parameter
+    a_file_name: appropriations_data.csv
+    d1_file_name: d1_{}agency_data.csv
+    d2_file_name: d2_{}agency_data.csv
 
     d_file_storage_path: /data-act/backend/tmp/
 
