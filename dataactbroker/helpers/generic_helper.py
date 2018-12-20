@@ -47,13 +47,15 @@ def format_internal_tas(row):
             TAS components concatenated into a single string
     """
     # This formatting should match formatting in dataactcore.models.stagingModels concat_tas
-    tas = ''.join([
-        row['allocation_transfer_agency'] if row['allocation_transfer_agency'] else '000',
-        row['agency_identifier'] if row['agency_identifier'] else '000',
-        row['beginning_period_of_availa'] if row['beginning_period_of_availa'].strip() else '0000',
-        row['ending_period_of_availabil'] if row['ending_period_of_availabil'].strip() else '0000',
-        row['availability_type_code'].strip() if row['availability_type_code'].strip() else ' ',
-        row['main_account_code'] if row['main_account_code'] else '0000',
-        row['sub_account_code'] if row['sub_account_code'] else '000'
-    ])
-    return tas
+    ata = row['allocation_transfer_agency'].strip() if row['allocation_transfer_agency'] and \
+        row['allocation_transfer_agency'].strip() else '000'
+    aid = row['agency_identifier'].strip() if row['agency_identifier'] and row['agency_identifier'].strip() else '000'
+    bpoa = row['beginning_period_of_availa'].strip() if row['beginning_period_of_availa'] and \
+        row['beginning_period_of_availa'].strip() else '0000'
+    epoa = row['ending_period_of_availabil'].strip() if row['ending_period_of_availabil'] and \
+        row['ending_period_of_availabil'].strip() else '0000'
+    atc = row['availability_type_code'].strip() if row['availability_type_code'] and \
+        row['availability_type_code'].strip() else ' '
+    mac = row['main_account_code'].strip() if row['main_account_code'] and row['main_account_code'].strip() else '0000'
+    sac = row['sub_account_code'].strip() if row['sub_account_code'] and row['sub_account_code'].strip() else '000'
+    return ''.join([ata, aid, bpoa, epoa, atc, mac, sac])

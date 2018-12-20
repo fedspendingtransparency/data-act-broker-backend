@@ -600,29 +600,6 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
-
-#### GET "/v1/get_protected_files/"
-This route returns a signed S3 URL for all files available to download on the help page.
-
-Example output:
-
-```json
-{
-    "urls": {
-            "AgencyLabel_to_TerseLabel.xslx": "https://prod-data-act-submission.s3-us-gov-west-1.amazonaws.com:443/rss/AgencyLabel_to_TerseLabel.xslx?Signature=abcdefg......",
-            "File2.extension": "https://......"
-    }
-}
-```
-
-Example output if there are no files available:
-
-```json
-{
-    "urls": {}
-}
-```
-
 #### GET "/v1/get\_obligations/"
 This endpoint gets total obligations and specific obligations.
 
