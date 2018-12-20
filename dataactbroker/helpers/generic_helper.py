@@ -1,8 +1,47 @@
 import re
 import calendar
 
+from sqlalchemy.engine.default import DefaultDialect
+from sqlalchemy.sql.sqltypes import String, DateTime, NullType, Date
+
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+
+
+class StringLiteral(String):
+    """ Teach SA how to literalize various things """
+
+    def literal_processor(self, dialect):
+        """ Overwritten method to populate variables in SQL """
+
+        super_processor = super(StringLiteral, self).literal_processor(dialect)
+
+        def process(value):
+            """ Overwritten method to populate variables in SQL """
+
+            if isinstance(value, int):
+                return str(value)
+            if not isinstance(value, str):
+                value = str(value)
+            result = super_processor(value)
+            if isinstance(result, bytes):
+                result = result.decode(dialect.encoding)
+            return result
+        return process
+
+class LiteralDialect(DefaultDialect):
+    """ Special type to populate variables in SQL """
+
+    colspecs = {
+        # prevent various encoding explosions
+        String: StringLiteral,
+        # teach SA about how to literalize a datetime
+        DateTime: StringLiteral,
+        # teach SA about how to literalize a datetime
+        Date: StringLiteral,
+        # don't format py2 long integers to NULL
+        NullType: StringLiteral,
+    }
 
 
 def year_period_to_dates(year, period):
@@ -57,3 +96,9 @@ def format_internal_tas(row):
         row['sub_account_code'] if row['sub_account_code'] else '000'
     ])
     return tas
+
+
+def generate_raw_quoted_query(queryset):
+    """ Generates the raw sql from a queryset """
+    return str(queryset.statement.compile(dialect=LiteralDialect(), compile_kwargs={"literal_binds": True}))\
+        .replace('\n', ' ')
