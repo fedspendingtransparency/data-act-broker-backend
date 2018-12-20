@@ -56,31 +56,26 @@ def run_app():
         while True:
             # Set current_message to None before every loop to ensure it's never set to the previous message
             current_message = None
-            try:
-                # Grabs one (or more) messages from the queue
-                messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
-                for message in messages:
-                    logger.info("Message received: %s", message.body)
 
-                    # Retrieve the message body and attributes
-                    current_message = message
-                    msg_attr = current_message.message_attributes
+            # Grabs one (or more) messages from the queue
+            messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
+            for message in messages:
+                logger.info("Message received: %s", message.body)
 
-                    # Generating a file
-                    if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
-                        handled_error = validator_process_file_generation(message.body)
-                    # Running validations
-                    else:
-                        a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
-                        handled_error = validator_process_job(message.body, current_message, a_agency_code)
+                # Retrieve the message body and attributes
+                current_message = message
+                msg_attr = current_message.message_attributes
 
-                    # Delete from SQS once processed
-                    if not handled_error:
-                        message.delete()
+                # Generating a file
+                if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
+                    validator_process_file_generation(message.body)
+                # Running validations
+                else:
+                    a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
+                    validator_process_job(message.body, current_message, a_agency_code)
 
-            except Exception as e:
-                # Log exceptions
-                logger.error(traceback.format_exc())
+                # Delete from SQS once processed
+                message.delete()
 
 
 def validator_process_file_generation(file_gen_id):
@@ -95,7 +90,6 @@ def validator_process_file_generation(file_gen_id):
     """
     sess = GlobalDB.db().session
     file_generation = None
-    has_errors = False
 
     try:
         file_generation = sess.query(FileGeneration).filter_by(file_generation_id=file_gen_id).one_or_none()
@@ -106,42 +100,58 @@ def validator_process_file_generation(file_gen_id):
         file_generation_manager = FileGenerationManager(sess, g.is_local, file_generation=file_generation)
         file_generation_manager.generate_file()
 
-    except Exception as e:
-        logger.error(traceback.format_exc())
-        has_errors = True
-
+    except ResponseException as e:
+        # Log uncaught exceptions and fail all Jobs referencing this FileGeneration
+        error_data = {
+            'message': 'An unhandled exception occurred in the Validator during file generation',
+            'message_type': 'ValidatorInfo',
+            'file_generation_id': file_gen_id,
+            'traceback': traceback.format_exc()
+        }
         if file_generation:
-            # Uncache the FileGeneration
-            sess.refresh(file_generation)
-            file_generation.is_cached_file = False
+            error_data.update({
+                'agency_code': file_generation.agency_code, 'agency_type': file_generation.agency_type,
+                'start_date': file_generation.start_date, 'end_date': file_generation.end_date,
+                'file_type': file_generation.file_type, 'file_path': file_generation.file_path,
+            })
+        logger.error(error_data)
 
-            # Mark all Jobs waiting on this FileGeneration as failed
-            generation_jobs = sess.query(Job).filter_by(file_generation_id=file_gen_id).all()
-            for job in generation_jobs:
-                if job.job_status in [JOB_STATUS_DICT['waiting'], JOB_STATUS_DICT['ready'], JOB_STATUS_DICT['running']]:
-                    mark_job_status(job.job_id, 'failed')
-                    sess.refresh(job)
-                    job.update({'file_generation_id': None}, synchronize_session=False)
+        # Try to mark the Jobs as failed, but continue raising the original Exception if not possible
+        try:
+            if file_generation:
+                # Uncache the FileGeneration
+                sess.refresh(file_generation)
+                file_generation.is_cached_file = False
 
-            sess.commit()
+                # Mark all Jobs waiting on this FileGeneration as failed
+                generation_jobs = sess.query(Job).filter_by(file_generation_id=file_gen_id).all()
+                for job in generation_jobs:
+                    if job.job_status in [JOB_STATUS_DICT['waiting'], JOB_STATUS_DICT['ready'],
+                                          JOB_STATUS_DICT['running']]:
+                        mark_job_status(job.job_id, 'failed')
+                        sess.refresh(job)
+                        job.update({'file_generation_id': None, }, synchronize_session=False)
+                sess.commit()
+        except:
+            pass
 
-    return has_errors
+        raise e
 
 
-def validator_process_job(job_id, current_message, agency_code):
+def validator_process_job(job_id, agency_code):
     """ Retrieves a Job based on its ID, and kicks off a validation. Handles errors by ensuring the Job (if exists) is
         no longer running.
 
     Args:
         job_id: ID of a Job
-        current_message: The currently in-transit SQS message
+        agency_code: CGAC or FREC code for agency, only required for file generations by Job
 
     Raises:
-        Any Exceptions raised by the ValidationManager
+        Any Exceptions raised by the GenerationManager or ValidationManager, excluding those explicitly handled
     """
     sess = GlobalDB.db().session
     job = None
-    has_errors = False
+
     try:
         mark_job_status(job_id, 'ready')
 
@@ -163,52 +173,53 @@ def validator_process_job(job_id, current_message, agency_code):
             validation_manager = ValidationManager(g.is_local, CONFIG_SERVICES['error_report_path'])
             validation_manager.validate_job(job.job_id)
 
-    except ResponseException as e:
-        # Handle exceptions explicitly raised during validation.
-        logger.error(traceback.format_exc())
-        has_errors = True
+    except (ResponseException, csv.Error, UnicodeDecodeError, ValueError) as e:
+        # Handle exceptions explicitly raised during validation
+        error_data = {
+            'message': 'An exception occurred in the Validator',
+            'message_type': 'ValidatorInfo',
+            'job_id': job_id,
+            'traceback': traceback.format_exc()
+        }
 
         if job:
+            error_data.update({'submission_id': job.submission_id, 'file_type': job.file_type.name})
+            logger.error(error_data)
+
             sess.refresh(job)
-            if job.filename is not None:
-                # Insert file-level error info to the database
-                write_file_error(job.job_id, job.filename, e.errorType, e.extraInfo)
-
-            if e.errorType != ValidationError.jobError:
-                # Job passed prerequisites for validation but an error happened somewhere: mark job as 'invalid'
-                mark_job_status(job.job_id, 'invalid')
-                if current_message:
-                    if e.errorType in [ValidationError.rowCountError, ValidationError.headerError,
-                                       ValidationError.fileTypeError]:
-                        current_message.delete()
-
-    except Exception as e:
-        # Handle uncaught exceptions in validation process.
-        logger.error(traceback.format_exc())
-        has_errors = True
-
-        if job:
-            # csv-specific errors get a different job status and response code
-            sess.refresh(job)
-            if isinstance(e, ValueError) or isinstance(e, csv.Error) or isinstance(e, UnicodeDecodeError):
-                job_status = 'invalid'
-            else:
-                job_status = 'failed'
-
             if job.filename is not None:
                 error_type = ValidationError.unknownError
-
-                # Delete UnicodeDecodeErrors because they're the only legitimate errors caught as exceptions
                 if isinstance(e, UnicodeDecodeError):
                     error_type = ValidationError.encodingError
-                    if current_message:
-                        current_message.delete()
+                elif isinstance(e, ResponseException):
+                    error_type = e.errorType
 
                 write_file_error(job.job_id, job.filename, error_type)
 
-            mark_job_status(job.job_id, job_status)
+            mark_job_status(job.job_id, 'invalid')
+        else:
+            logger.error(error_data)
+            raise e
 
-    return has_errors
+    except Exception as e:
+        # Log uncaught exceptions and fail the Job
+        error_data = {
+            'message': 'An unhandled exception occurred in the Validator',
+            'message_type': 'ValidatorInfo',
+            'job_id': job_id,
+            'traceback': traceback.format_exc()
+        }
+        if job:
+            error_data.update({'submission_id': job.submission_id, 'file_type': job.file_type.name})
+        logger.error(error_data)
+
+        # Try to mark the Job as failed, but continue raising the original Exception if not possible
+        try:
+            mark_job_status(job_id, 'failed')
+        except:
+            pass
+
+        raise e
 
 
 if __name__ == "__main__":

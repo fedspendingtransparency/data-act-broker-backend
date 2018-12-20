@@ -1,8 +1,10 @@
-import csv
-import os
-import logging
-from datetime import datetime
 import boto3
+import csv
+import logging
+import os
+import traceback
+
+from datetime import datetime
 
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
@@ -446,9 +448,18 @@ class ValidationManager:
             # Mark validation as finished in job tracker
             mark_job_status(job_id, "finished")
             mark_file_complete(job_id, file_name)
+
         except Exception as e:
-            logger.error("An exception occurred during validation:{}".format(str(e)))
+            logger.error({
+                'message': 'An exception occurred during validation',
+                'message_type': 'ValidatorInfo',
+                'submission_id': job.submission_id,
+                'job_id': job.job_id,
+                'file_type': job.file_type.name,
+                'traceback': traceback.format_exc()
+            })
             raise
+
         finally:
             # Ensure the files always close
             reader.close()
@@ -518,8 +529,8 @@ class ValidationManager:
         return error_rows
 
     def run_cross_validation(self, job):
-        """ Cross file validation job. Test all rules with matching rule_timing.
-            Run each cross-file rule and create error report.
+        """ Cross file validation job. Test all rules with matching rule_timing. Run each cross-file rule and create
+            error report.
 
             Args:
                 job: Current job
@@ -634,10 +645,12 @@ class ValidationManager:
 
     def validate_job(self, job_id):
         """ Gets file for job, validates each row, and sends valid rows to a staging table
-        Args:
-        request -- HTTP request containing the jobId
-        Returns:
-        Http response object
+
+            Args:
+                job_id: Database ID for the validation Job
+
+            Returns:
+                Http response object
         """
         # Create connection to job tracker database
         sess = GlobalDB.db().session
@@ -730,6 +743,7 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
         row_number: Current row number
         error_list: instance of ErrorInterface to keep track of errors
         flex_cols: all flex columns for this row
+
     Returns:
         True if any fatal errors were found, False if only warnings are present
     """
