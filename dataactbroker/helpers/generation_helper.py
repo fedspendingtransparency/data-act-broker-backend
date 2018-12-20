@@ -466,7 +466,7 @@ def copy_file_generation_to_job(job, file_generation, is_local):
     mark_job_status(job.job_id, 'finished')
 
 
-def d_file_query(query_utils, page_start, page_end):
+def d_file_query(query_utils):
     """ Retrieve D1 or D2 data.
 
         Args:
@@ -476,16 +476,13 @@ def d_file_query(query_utils, page_start, page_end):
                 agency_code: FREC or CGAC code for generation
                 start: beginning of period for D file
                 end: end of period for D file
-            page_start: beginning of pagination
-            page_end: end of pagination
 
         Return:
-            paginated D1 or D2 query results
+            D1 or D2 queryset
     """
     rows = query_utils["file_utils"].query_data(query_utils["sess"], query_utils["agency_code"],
-                                                query_utils["agency_type"], query_utils["start"], query_utils["end"],
-                                                page_start, page_end)
-    return rows.all()
+                                                query_utils["agency_type"], query_utils["start"], query_utils["end"])
+    return rows
 
 
 def reset_generation_jobs(sess, job):

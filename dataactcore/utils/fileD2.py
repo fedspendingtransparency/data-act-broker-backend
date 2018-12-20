@@ -80,7 +80,7 @@ mapping = OrderedDict([
 db_columns = [val for key, val in mapping.items()]
 
 
-def query_data(session, agency_code, agency_type, start, end, page_start, page_stop):
+def query_data(session, agency_code, agency_type, start, end):
     """ Request D2 file data
 
         Args:
@@ -105,9 +105,6 @@ def query_data(session, agency_code, agency_type, start, end, page_start, page_s
         rows = rows.filter(file_model.funding_agency_code == agency_code)
     else:
         rows = rows.filter(file_model.awarding_agency_code == agency_code)
-
-    # Slice the final query
-    rows = rows.slice(page_start, page_stop)
 
     return rows
 
@@ -136,7 +133,7 @@ def initial_query(session):
         Returns:
             The base query (a select from the PublishedAwardFinancialAssistance table with the specified columns).
     """
-    return session.query(
+    selects = [
         file_model.fain,
         file_model.award_modification_amendme,
         file_model.uri,
@@ -206,4 +203,10 @@ def initial_query(session):
         file_model.action_type_description,
         file_model.record_type,
         file_model.record_type_description,
-        func.to_char(cast(file_model.modified_at, Date), 'YYYYMMDD'))
+        func.to_char(cast(file_model.modified_at, Date), 'YYYYMMDD')
+    ]
+    annotations = []
+    keys = list(mapping.keys())
+    for i in range(0, len(selects)):
+        annotations.append(selects[i].label(keys[i]))
+    return session.query(*annotations)
