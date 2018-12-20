@@ -99,7 +99,7 @@ def validator_process_file_generation(file_gen_id):
         file_generation_manager = FileGenerationManager(sess, g.is_local, file_generation=file_generation)
         file_generation_manager.generate_file()
 
-    except ResponseException as e:
+    except Exception as e:
         # Log uncaught exceptions and fail all Jobs referencing this FileGeneration
         error_data = {
             'message': 'An unhandled exception occurred in the Validator during file generation',
@@ -134,7 +134,10 @@ def validator_process_file_generation(file_gen_id):
         except:
             pass
 
-        raise e
+        # ResponseExceptions only occur at very specific times, and should not affect the Validator's future attempts
+        # at handling messages from SQS
+        if not isinstance(e, ResponseException):
+            raise e
 
 
 def validator_process_job(job_id, agency_code):
