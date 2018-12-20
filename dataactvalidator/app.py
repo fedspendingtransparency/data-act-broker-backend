@@ -54,25 +54,19 @@ def run_app():
 
         logger.info("Starting SQS polling")
         while True:
-            # Set current_message to None before every loop to ensure it's never set to the previous message
-            current_message = None
-
             # Grabs one (or more) messages from the queue
             messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
             for message in messages:
                 logger.info("Message received: %s", message.body)
 
-                # Retrieve the message body and attributes
-                current_message = message
-                msg_attr = current_message.message_attributes
-
-                # Generating a file
+                msg_attr = message.message_attributes
                 if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
+                    # Generating a file
                     validator_process_file_generation(message.body)
-                # Running validations
                 else:
+                    # Running validations (or generating a file from a Job)
                     a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
-                    validator_process_job(message.body, current_message, a_agency_code)
+                    validator_process_job(message.body, a_agency_code)
 
                 # Delete from SQS once processed
                 message.delete()
