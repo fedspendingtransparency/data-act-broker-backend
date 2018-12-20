@@ -1,5 +1,6 @@
 import logging
 import csv
+import time
 import traceback
 
 from flask import Flask, g, current_app
@@ -70,6 +71,10 @@ def run_app():
 
                 # Delete from SQS once processed
                 message.delete()
+
+            # When you receive an empty response from the queue, wait a second before trying again
+            if len(messages) == 0:
+                time.sleep(1)
 
 
 def validator_process_file_generation(file_gen_id):
