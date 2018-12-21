@@ -518,21 +518,18 @@ def reset_generation_jobs(sess, job):
     sess.commit()
 
 
-def a_file_query(query_utils, page_start, page_end):
+def a_file_query(query_utils):
     """ Retrieve D1 or D2 data.
 
             Args:
                 query_utils: object containing:
                     sess: database session
                     agency_code: FREC or CGAC code for generation
-                    start: beginning of period for D file
-                    end: end of period for D file
-                page_start: beginning of pagination
-                page_end: end of pagination
+                    start: beginning of period for A file
+                    end: end of period for A file
 
             Return:
-                paginated A query results
+                A queryset
         """
-    rows = fileA.query_data(query_utils["sess"], query_utils["agency_code"], query_utils["period"], query_utils["year"],
-                            page_start, page_end)
-    return rows.all()
+    rows = fileA.query_data(query_utils["sess"], query_utils["agency_code"], query_utils["period"], query_utils["year"])
+    return rows

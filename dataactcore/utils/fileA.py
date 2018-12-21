@@ -33,7 +33,7 @@ mapping = OrderedDict([
 db_columns = [val for key, val in mapping.items()]
 
 
-def query_data(session, agency_code, period, year, page_start, page_stop):
+def query_data(session, agency_code, period, year):
     """ Request A file data
 
         Args:
@@ -41,11 +41,9 @@ def query_data(session, agency_code, period, year, page_start, page_stop):
             agency_code: FREC or CGAC code for generation
             period: The period for which to get GTAS data
             year: The year for which to get GTAS data
-            page_start: Beginning of pagination
-            page_stop: End of pagination
 
         Returns:
-            The rows using the provided dates and page size for the given agency.
+            The rows using the provided dates for the given agency.
     """
     # set a boolean to determine if the original agency code is frec or cgac
     frec_provided = len(agency_code) == 4
@@ -103,9 +101,6 @@ def query_data(session, agency_code, period, year, page_start, page_stop):
                  tas_gtas.c.availability_type_code,
                  tas_gtas.c.main_account_code,
                  tas_gtas.c.sub_account_code)
-
-    # Slice the final query
-    rows = rows.slice(page_start, page_stop)
 
     return rows
 
