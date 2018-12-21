@@ -29,6 +29,7 @@ class StringLiteral(String):
             return result
         return process
 
+
 class LiteralDialect(PGDialect):
     """ Special type to populate variables in SQL """
 
