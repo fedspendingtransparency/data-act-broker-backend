@@ -103,13 +103,6 @@ def add_file_routes(app, is_local, server_path):
         """ Get the signed URL for the specified file history """
         return file_history_url(submission, certified_files_history_id, is_warning, is_local)
 
-    @app.route("/v1/get_protected_files/", methods=["GET"])
-    @requires_login
-    def get_protected_files():
-        """ Return signed URLs for all help page files """
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.get_protected_files()
-
     @app.route("/v1/check_current_page/", methods=["GET"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
