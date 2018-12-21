@@ -89,11 +89,9 @@ def query_data(session, agency_code, agency_type, start, end):
             agency_type: The type of agency (awarding or funding) to generate the file for
             start: Beginning of period for D file
             end: End of period for D file
-            page_start: Beginning of pagination
-            page_stop: End of pagination
 
         Returns:
-            The rows using the provided dates and page size for the given agency.
+            The rows using the provided dates for the given agency.
     """
     rows = initial_query(session).\
         filter(file_model.is_active.is_(True)).\

@@ -102,6 +102,13 @@ def format_internal_tas(row):
 
 
 def generate_raw_quoted_query(queryset):
-    """ Generates the raw sql from a queryset """
+    """ Generates the raw sql from a queryset
+
+        Args:
+            queryset: SQLAlchemy object to parse
+
+        Returns:
+            raw SQL string equivalent to the queryset
+    """
     return str(queryset.statement.compile(dialect=LiteralDialect(), compile_kwargs={"literal_binds": True}))\
         .replace('\n', ' ')
