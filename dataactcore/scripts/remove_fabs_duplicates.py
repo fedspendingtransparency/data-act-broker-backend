@@ -22,6 +22,8 @@ if __name__ == '__main__':
 
         sess = GlobalDB.db().session
 
+        logger.info("Beginning script to clean up duplicated FABS records. Creating temporary table.")
+
         # Create a temporary table
         sess.execute("""CREATE TEMP TABLE duplicated_fabs AS
                             SELECT afa_generated_unique, MAX(submission_id) AS max_id
@@ -30,6 +32,7 @@ if __name__ == '__main__':
                             GROUP BY afa_generated_unique
                             HAVING COUNT(1) > 1""")
 
+        logger.info("Table created, determining which submissions have been affected.")
         # Figure out exactly which submissions have been affected in any way
         executed = sess.execute(""" SELECT DISTINCT submission_id
                                     FROM published_award_financial_assistance AS pafa
@@ -46,6 +49,7 @@ if __name__ == '__main__':
             logger.info("There are no duplicated submissions, ending script.")
             exit(0)
 
+        logger.info("Deleting duplicate records.")
         # Delete duplicates from the published FABS table, keeping the instance with the highest submission_id
         executed = sess.execute(""" DELETE FROM published_award_financial_assistance AS pafa
                                     WHERE is_active IS TRUE
@@ -54,7 +58,8 @@ if __name__ == '__main__':
                                             WHERE df.afa_generated_unique = pafa.afa_generated_unique
                                                 AND df.max_id != pafa.submission_id)""")
 
-        logger.info("Deleted {} duplicate rows from published_award_financial_assistance".format(executed.rowcount))
+        logger.info("Deleted {} duplicate rows from published_award_financial_assistance. Determining if any "
+                    "submissions have been completely invalidated by the deletes.".format(executed.rowcount))
 
         # Make a list of submissions that have had all published records deleted
         cleared_submissions = []
