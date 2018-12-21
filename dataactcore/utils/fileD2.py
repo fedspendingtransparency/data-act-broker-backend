@@ -203,5 +203,4 @@ def initial_query(session):
         file_model.action_type_description,
         file_model.record_type,
         file_model.record_type_description,
-        func.to_char(cast(file_model.modified_at, Date), 'YYYYMMDD')
-    ])
+        func.to_char(cast(file_model.modified_at, Date), 'YYYYMMDD')])

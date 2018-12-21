@@ -561,5 +561,4 @@ def initial_query(session):
         file_model.c8a_program_participant,
         file_model.historically_underutilized,
         file_model.sba_certified_8_a_joint_ve,
-        func.to_char(cast(file_model.last_modified, Date), 'YYYYMMDD')
-    ])
+        func.to_char(cast(file_model.last_modified, Date), 'YYYYMMDD')])
