@@ -1,7 +1,7 @@
 import re
 import calendar
 
-from sqlalchemy.engine.default import DefaultDialect
+from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.sql.sqltypes import String, DateTime, NullType, Date
 
 from dataactcore.utils.responseException import ResponseException
@@ -29,7 +29,7 @@ class StringLiteral(String):
             return result
         return process
 
-class LiteralDialect(DefaultDialect):
+class LiteralDialect(PGDialect):
     """ Special type to populate variables in SQL """
 
     colspecs = {
