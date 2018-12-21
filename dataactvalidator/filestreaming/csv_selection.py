@@ -67,9 +67,20 @@ def write_query_to_file(local_filename, upload_name, header, file_type, is_local
     if is_local:
         local_filename = upload_name
 
-    # Write local csv
+    # get the raw SQL equivalent
     raw_query = generate_raw_quoted_query(query_func(query_utils))
+    # save psql command with query to a temp file
     temp_sql_file, temp_sql_file_path = generate_temp_query_file(raw_query)
+
+    # write base csv with headers
+    # Note: while psql's copy command supports headers, some header lengths exceed the maximum label length (63)
+    with open(local_filename, 'w', newline='') as csv_file:
+        # create local file and write headers
+        out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+        if header:
+            out_csv.writerow(header)
+
+    # run the psql command and cleanup
     database_string = str(query_utils['sess'].bind.url)
     execute_psql(temp_sql_file_path, local_filename, database_string)
     os.remove(temp_sql_file_path)
@@ -121,7 +132,7 @@ def generate_temp_query_file(query):
     # Create a unique temporary file to hold the raw query, using \copy
     (temp_sql_file, temp_sql_file_path) = tempfile.mkstemp(prefix='b_sql_', dir='/tmp')
     with open(temp_sql_file_path, 'w') as file:
-        file.write('\copy ({}) To STDOUT with CSV HEADER'.format(query))
+        file.write('\copy ({}) To STDOUT with CSV'.format(query))
 
     return temp_sql_file, temp_sql_file_path
 
@@ -137,9 +148,14 @@ def execute_psql(temp_sql_file_path, source_path, database_string):
     """
     try:
         log_time = time.time()
+        # open the file to append
+        source_file = open(source_path, 'a')
+        # pass the command to the psql process
         cat_command = subprocess.Popen(['cat', temp_sql_file_path], stdout=subprocess.PIPE)
-        subprocess.check_output(['psql', '-o', source_path, database_string, '-v', 'ON_ERROR_STOP=1'],
-                                stdin=cat_command.stdout, stderr=subprocess.STDOUT)
+        # psql appends to source_path
+        subprocess.call(['psql', database_string, '-v', 'ON_ERROR_STOP=1'], stdin=cat_command.stdout,
+                        stderr=subprocess.STDOUT, stdout=source_file)
+        source_file.close()
 
         logger.debug('Wrote {}, took {} seconds'.format(os.path.basename(source_path), time.time() - log_time))
     except subprocess.CalledProcessError as e:

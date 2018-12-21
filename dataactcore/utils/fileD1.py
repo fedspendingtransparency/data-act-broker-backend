@@ -300,7 +300,7 @@ def query_data(session, agency_code, agency_type, start, end):
 
 
 def initial_query(session):
-    selects = [
+    return session.query(*[
         file_model.piid,
         file_model.award_modification_amendme,
         file_model.transaction_number,
@@ -562,9 +562,4 @@ def initial_query(session):
         file_model.historically_underutilized,
         file_model.sba_certified_8_a_joint_ve,
         func.to_char(cast(file_model.last_modified, Date), 'YYYYMMDD')
-    ]
-    annotations = []
-    keys = list(mapping.keys())
-    for i in range(0, len(selects)):
-        annotations.append(selects[i].label(keys[i]))
-    return session.query(*annotations)
+    ])
