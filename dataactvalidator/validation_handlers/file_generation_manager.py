@@ -11,6 +11,7 @@ from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.models.jobModels import Job
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils import fileA, fileD1, fileD2, fileE, fileF
+from dataactcore.utils.responseException import ResponseException
 
 from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file
 
@@ -74,7 +75,7 @@ class FileGenerationManager:
 
             if self.job.file_type.letter_name == 'A':
                 if not agency_code:
-                    raise Exception('Agency code not provided for an A file generation')
+                    raise ResponseException('Agency code not provided for an A file generation')
 
                 self.generate_a_file(agency_code, file_path)
             else:
@@ -86,7 +87,7 @@ class FileGenerationManager:
         else:
             e = 'No FileGeneration object for D file generation.' if self.file_type in ['D1', 'D2'] else \
                 'Cannot generate file for {} file type.'.format(self.file_type if self.file_type else 'empty')
-            raise Exception(e)
+            raise ResponseException(e)
 
         logger.info(log_data)
 
@@ -110,7 +111,8 @@ class FileGenerationManager:
         elif self.file_type == 'D2':
             file_utils = fileD2
         else:
-            raise Exception('Failed to generate_d_file with file_type:{} (must be D1 or D2).'.format(self.file_type))
+            raise ResponseException('Failed to generate_d_file with file_type:{} (must be D1 or D2).'.format(
+                self.file_type))
         headers = [key for key in file_utils.mapping]
         query_utils = {
             "sess": self.sess, "file_utils": file_utils, "agency_code": self.file_generation.agency_code,
