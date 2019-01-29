@@ -658,10 +658,8 @@ class ValidationManager:
         # Get the job
         job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
         if job is None:
-            validation_error_type = ValidationError.jobError
-            write_file_error(job_id, None, validation_error_type)
             raise ResponseException('Job ID {} not found in database'.format(job_id), StatusCode.CLIENT_ERROR, None,
-                                    validation_error_type)
+                                    ValidationError.jobError)
 
         # Make sure job's prerequisites are complete
         if not run_job_checks(job_id):
