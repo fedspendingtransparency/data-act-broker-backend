@@ -1235,25 +1235,29 @@ def process_job_status(jobs, response_content):
     validation = None
     upload_status = ''
     validation_status = ''
+    upload_em = ''
+    validation_em = ''
     for job in jobs:
         if job['job_type'] == JOB_TYPE_DICT['file_upload']:
             upload = job
             upload_status = JOB_STATUS_DICT_ID[job['job_status']]
+            upload_em = upload['error_message']
         else:
             validation = job
             validation_status = JOB_STATUS_DICT_ID[job['job_status']]
+            validation_em = validation['error_message']
 
     # checking for failures
     if upload_status == 'invalid' or upload_status == 'failed' or validation_status == 'failed':
         response_content['status'] = 'failed'
         response_content['has_errors'] = True
-        response_content['message'] = upload['error_message'] or validation['error_message'] or ''
+        response_content['message'] = upload_em or validation_em or ''
         return response_content
 
     if validation_status == 'invalid':
         response_content['status'] = 'finished'
         response_content['has_errors'] = True
-        response_content['message'] = upload['error_message'] or validation['error_message'] or ''
+        response_content['message'] = upload_em or validation_em or ''
         return response_content
 
     # If upload job exists and hasn't started or if it doesn't exist and validation job hasn't started,
