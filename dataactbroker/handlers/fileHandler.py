@@ -1245,7 +1245,7 @@ def process_job_status(jobs, response_content):
         else:
             validation = job
             validation_status = JOB_STATUS_DICT_ID[job['job_status']]
-            validation_em = upload['error_message']
+            validation_em = validation['error_message']
 
     # checking for failures
     if upload_status == 'invalid' or upload_status == 'failed' or validation_status == 'failed':
