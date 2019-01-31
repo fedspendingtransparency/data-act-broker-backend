@@ -487,7 +487,7 @@ This endpoint returns detailed validation job data for the requested submission.
     - `csv_record_validation` - a single file validation
     - `validation` - the cross-file validations
 - `filename`: string, the orignal name of the submitted file (null for cross-file)
-- `file_size`: int, size of the file in bytes (null for cross-file)
+- `file_size`: bigint, size of the file in bytes (null for cross-file)
 - `number_of_rows`: total number of rows in the file including header row (null for cross-file)
 - `file_type`: type of the file, can only be the following values
     - `fabs` - will be the only file for FABS submissions and will not be present in DABS submissions

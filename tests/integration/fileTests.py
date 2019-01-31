@@ -394,15 +394,13 @@ class FileTests(BaseTestAPI):
         params = {"submission_id": self.status_check_submission_id}
         # Log in as admin user
         self.login_admin_user()
-        response = self.app.get("/v1/submission_metadata/", params, expect_errors=True,
-                                headers={"x-session-id": self.session_id})
+        response = self.app.get("/v1/submission_metadata/", params, headers={"x-session-id": self.session_id})
         self.assertEqual(response.status_code, 200)
 
     def test_submission_metadata(self):
         """ Test submission_metadata route response. """
         params = {"submission_id": self.status_check_submission_id}
-        response = self.app.get("/v1/submission_metadata/", params, expect_errors=True,
-                                headers={"x-session-id": self.session_id})
+        response = self.app.get("/v1/submission_metadata/", params, headers={"x-session-id": self.session_id})
         self.assertEqual(response.status_code, 200)
 
         # Make sure we got the right submission
