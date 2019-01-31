@@ -1,4 +1,4 @@
---  FundingSubTierAgencyCode is an optional field, but when provided must be a valid 4-digit sub-tier agency code.
+-- When provided, FundingSubTierAgencyCode must be a valid 4-character sub-tier agency code from the Federal Hierarchy.
 SELECT
     dafa.row_number,
     dafa.funding_sub_tier_agency_co

@@ -11,9 +11,11 @@ from dataactcore.interfaces.function_bag import (sum_number_of_errors_for_job_li
 from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT,
                                         FILE_TYPE_DICT)
 from dataactcore.models.domainModels import CGAC, FREC
-from dataactcore.models.jobModels import (FileRequest, Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
+from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
                                           CertifyHistory, RevalidationThreshold)
-from dataactcore.models.stagingModels import AwardFinancial
+from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
+                                              CertifiedAppropriation, CertifiedObjectClassProgramActivity,
+                                              CertifiedAwardFinancial)
 from dataactcore.models.errorModels import File
 
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -189,10 +191,11 @@ def get_revalidation_threshold():
             An object containing the revalidation threshold for submissions formatted in MM/DD/YYYY format
     """
     sess = GlobalDB.db().session
-
     reval_thresh = sess.query(RevalidationThreshold).one_or_none()
 
-    return {'revalidation_threshold': reval_thresh.revalidation_date.strftime('%m/%d/%Y') if reval_thresh else ''}
+    return {
+        'revalidation_threshold': reval_thresh.revalidation_date.strftime("%Y-%m-%dT%H:%M:%S") if reval_thresh else ''
+    }
 
 
 def reporting_date(submission):
@@ -333,10 +336,10 @@ def delete_all_submission_data(submission):
                                   StatusCode.CLIENT_ERROR)
 
     sess = GlobalDB.db().session
-    all_jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id)
 
     # check if the submission has any jobs that are currently running, if so, do not allow deletion
-    running_jobs = all_jobs.filter(Job.job_status_id == JOB_STATUS_DICT['running']).all()
+    running_jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                          Job.job_status_id == JOB_STATUS_DICT['running']).all()
     if running_jobs:
         return JsonResponse.error(ValueError("Submissions with running jobs cannot be deleted"),
                                   StatusCode.CLIENT_ERROR)
@@ -346,14 +349,6 @@ def delete_all_submission_data(submission):
         "message_type": "BrokerInfo",
         "submission_id": submission.submission_id
     })
-
-    for job in all_jobs.all():
-        # check if the submission has any cached D files, if so, disconnect that job from the submission
-        cached_file = sess.query(FileRequest).filter(FileRequest.job_id == job.job_id,
-                                                     FileRequest.is_cached_file.is_(True)).all()
-        if cached_file:
-            job.submission_id = None
-            sess.commit()
 
     sess.query(SubmissionSubTierAffiliation).\
         filter(SubmissionSubTierAffiliation.submission_id == submission.submission_id).\
@@ -536,6 +531,47 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
     return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
 
+def move_certified_data(sess, submission_id):
+    """ Move data from the staging tables to the certified tables for a submission.
+
+        Args:
+            sess: the database connection
+            submission_id: The ID of the submission to move data for
+    """
+    table_types = {'appropriation': [Appropriation, CertifiedAppropriation],
+                   'object_class_program_activity': [ObjectClassProgramActivity, CertifiedObjectClassProgramActivity],
+                   'award_financial': [AwardFinancial, CertifiedAwardFinancial]}
+
+    for table_type, table_object in table_types.items():
+        logger.info({
+            "message": "Deleting old certified data from {} table".format("certified_" + table_type),
+            "message_type": "BrokerInfo",
+            "submission_id": submission_id
+        })
+
+        # Delete the old certified data in the table
+        sess.query(table_object[1]).filter_by(submission_id=submission_id).delete()
+
+        logger.info({
+            "message": "Moving certified data from {} table".format(table_type),
+            "message_type": "BrokerInfo",
+            "submission_id": submission_id
+        })
+
+        column_list = [col.key for col in table_object[0].__table__.columns]
+        column_list.remove('created_at')
+        column_list.remove('updated_at')
+        column_list.remove(table_type + '_id')
+
+        col_string = ", ".join(column_list)
+
+        # Move the certified data
+        sess.execute("INSERT INTO certified_{} (created_at, updated_at, {}) "
+                     "SELECT NOW() AS created_at, NOW() AS updated_at, {} "
+                     "FROM {} "
+                     "WHERE submission_id={}".format(table_type, col_string, col_string, table_type, submission_id))
+
+
 def certify_dabs_submission(submission, file_manager):
     """ Certify a DABS submission
 
@@ -544,7 +580,8 @@ def certify_dabs_submission(submission, file_manager):
             file_manager: a FileHandler object to be used to call move_certified_files
 
         Returns:
-            Nothing if successful, JsonResponse error containing the details of the error if something went wrong
+            A JsonResponse containing the message "success" if successful, JsonResponse error containing the details of
+            the error if something went wrong
     """
     current_user_id = g.user.user_id
 
@@ -579,6 +616,9 @@ def certify_dabs_submission(submission, file_manager):
         # get the certify_history entry including the PK
         certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
             order_by(CertifyHistory.created_at.desc()).first()
+
+        # Move the data to the certified table, deleting any old certified data in the process
+        move_certified_data(sess, submission.submission_id)
 
         # move files (locally we don't move but we still need to populate the certified_files_history table)
         file_manager.move_certified_files(submission, certify_history, file_manager.is_local)

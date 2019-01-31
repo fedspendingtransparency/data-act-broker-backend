@@ -5,33 +5,57 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
 
-def quarter_to_dates(quarter):
-    """ Converts a quarter of format Q#/YYYY to the real-life start and end dates it represents.
+def year_period_to_dates(year, period):
+    """ Converts a year and period to the real-life start and end dates they represents.
 
         Args:
-            quarter: string representing the quarter/year to convert
+            year: integer representing the year to use
+            period: integer representing the period (month of the fiscal year) to use
 
         Returns:
             Strings representing the start and end dates of the given quarter
     """
-    # Make sure quarter is in the proper format
-    if not quarter or not re.match('Q[1-4]/\d{4}', quarter):
-        raise ResponseException('Quarter must be in Q#/YYYY format, where # is 1-4.', StatusCode.CLIENT_ERROR)
+    # Make sure year is in the proper format
+    if not year or not re.match('^\d{4}$', str(year)):
+        raise ResponseException('Year must be in YYYY format.', StatusCode.CLIENT_ERROR)
+    # Make sure period is a number 2-12
+    if not period or period not in list(range(2, 13)):
+        raise ResponseException('Period must be an integer 2-12.', StatusCode.CLIENT_ERROR)
 
-    split_quarter = quarter.split('/')
+    # Set the actual month, add 12 if it's negative so it loops around and adjusts the year
+    month = period - 3
+    if month < 1:
+        month += 12
+        year -= 1
 
-    # set the year to the one given if anything other than Q1, if Q1 set it to the previous year
-    year = int(split_quarter[1]) if split_quarter[0] != 'Q1' else int(split_quarter[1]) - 1
+    # Get the last day of the month
+    last_day_of_month = calendar.monthrange(year, month)[1]
 
-    # Get the last month of the quarter (set to December if it's 0)
-    last_month = (int(split_quarter[0][1]) - 1) * 3
-    if last_month == 0:
-        last_month = 12
-    # Get the last day of the last month
-    last_day_of_month = calendar.monthrange(year, last_month)[1]
-
-    first_month = last_month - 2
-    start = str(first_month).zfill(2) + '/01/' + str(year)
-    end = str(last_month).zfill(2) + '/' + str(last_day_of_month) + '/' + str(year)
+    start = str(month).zfill(2) + '/01/' + str(year)
+    end = str(month).zfill(2) + '/' + str(last_day_of_month) + '/' + str(year)
 
     return start, end
+
+
+def format_internal_tas(row):
+    """ Concatenate TAS components into a single field for internal use.
+
+        Args:
+            row: row of data with TAS elements
+
+        Returns:
+            TAS components concatenated into a single string
+    """
+    # This formatting should match formatting in dataactcore.models.stagingModels concat_tas
+    ata = row['allocation_transfer_agency'].strip() if row['allocation_transfer_agency'] and \
+        row['allocation_transfer_agency'].strip() else '000'
+    aid = row['agency_identifier'].strip() if row['agency_identifier'] and row['agency_identifier'].strip() else '000'
+    bpoa = row['beginning_period_of_availa'].strip() if row['beginning_period_of_availa'] and \
+        row['beginning_period_of_availa'].strip() else '0000'
+    epoa = row['ending_period_of_availabil'].strip() if row['ending_period_of_availabil'] and \
+        row['ending_period_of_availabil'].strip() else '0000'
+    atc = row['availability_type_code'].strip() if row['availability_type_code'] and \
+        row['availability_type_code'].strip() else ' '
+    mac = row['main_account_code'].strip() if row['main_account_code'] and row['main_account_code'].strip() else '0000'
+    sac = row['sub_account_code'].strip() if row['sub_account_code'] and row['sub_account_code'].strip() else '000'
+    return ''.join([ata, aid, bpoa, epoa, atc, mac, sac])

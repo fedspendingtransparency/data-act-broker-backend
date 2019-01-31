@@ -45,7 +45,7 @@ CONFIG_BROKER['path'] = dirname(dirname(abspath(__file__)))
 if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
     CONFIG_BROKER['local'] = False
     # AWS flag is on, so make sure all needed AWS info is present
-    required_aws_keys = ['aws_bucket', 'aws_region', 'static_files_bucket', 'help_files_path']
+    required_aws_keys = ['aws_bucket', 'aws_region']
     for k in required_aws_keys:
         try:
             CONFIG_BROKER[k]
@@ -54,10 +54,6 @@ if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
                            format(k))
         if not CONFIG_BROKER[k]:
             raise ValueError('Config error: use_aws is True but {} value is missing'.format(k))
-
-    help_files_path = CONFIG_BROKER["help_files_path"]
-    CONFIG_BROKER["help_files_path"] = "".join([help_files_path, "/"]) if help_files_path[-1] != "/" \
-        else help_files_path
 else:
     CONFIG_BROKER['local'] = True
     CONFIG_BROKER['aws_bucket'] = None

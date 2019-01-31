@@ -27,14 +27,14 @@ from dataactcore.interfaces.function_bag import (
     create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, get_last_validated_date,
     get_lastest_certified_date)
 
-from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode
+from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
+                                             Office)
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
-                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
+                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileGeneration)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
-from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
-                                              FPDSContractingOffice)
+from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.userModel import User
 from dataactcore.models.views import SubmissionUpdatedView
 
@@ -47,8 +47,11 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
+from dataactvalidator.validation_handlers.file_generation_manager import GEN_FILENAMES
 
 logger = logging.getLogger(__name__)
+
+ROWS_PER_LOOP = 10000
 
 
 class FileHandler:
@@ -73,7 +76,7 @@ class FileHandler:
     # 1024 sounds like a good chunk size, we can change if needed
     CHUNK_SIZE = 1024
     FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
-    EXTERNAL_FILE_TYPES = ["award", "award_procurement", "executive_compensation", "sub_award"]
+    EXTERNAL_FILE_TYPES = ["D2", "D1", "E", "F"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
@@ -235,20 +238,20 @@ class FileHandler:
             if not existing_submission:
                 # don't add external files to existing submission
                 for ext_file_type in FileHandler.EXTERNAL_FILE_TYPES:
-                    filename = CONFIG_BROKER["".join([ext_file_type, "_file_name"])]
-
+                    filename = GEN_FILENAMES[ext_file_type]
+                    if ext_file_type in ['D1', 'D2']:
+                        filename = filename.format('awarding')  # default to using awarding agency
                     if not self.is_local:
-                        upload_name = "{}/{}".format(
-                            submission.submission_id,
-                            S3Handler.get_timestamped_filename(filename)
-                        )
+                        upload_name = "{}/{}".format(submission.submission_id,
+                                                     S3Handler.get_timestamped_filename(filename))
                     else:
                         upload_name = filename
+
                     upload_files.append(FileHandler.UploadFile(
-                        file_type=ext_file_type,
+                        file_type=FILE_TYPE_DICT_LETTER_NAME[ext_file_type],
                         upload_name=upload_name,
                         file_name=filename,
-                        file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[ext_file_type]]
+                        file_letter=ext_file_type
                     ))
 
             # Add jobs or update existing ones
@@ -567,11 +570,32 @@ class FileHandler:
         sess.commit()
 
         try:
-            # check to make sure no new entries have been published that collide with the new rows
-            # (correction_delete_indicatr is not C or D)
             # need to set the models to something because the names are too long and flake gets mad
             dafa = DetachedAwardFinancialAssistance
             pafa = PublishedAwardFinancialAssistance
+
+            # Check to make sure no rows are currently publishing that collide with the rows in this submission
+            # (in any way, including C or D)
+            valid_sub_rows = sess.query(dafa.afa_generated_unique).\
+                filter(dafa.submission_id == submission_id, dafa.is_valid.is_(True)).cte('valid_sub_rows')
+            publishing_subs = sess.query(dafa.submission_id).\
+                join(valid_sub_rows, valid_sub_rows.c.afa_generated_unique == dafa.afa_generated_unique).\
+                join(Submission, Submission.submission_id == dafa.submission_id).\
+                filter(dafa.is_valid.is_(True),
+                       dafa.submission_id != submission_id,
+                       Submission.publish_status_id == PUBLISH_STATUS_DICT['publishing']).distinct().all()
+            if publishing_subs:
+                sub_list = []
+                for sub in publishing_subs:
+                    sub_list.append(str(sub.submission_id))
+                raise ResponseException("1 or more rows in this submission are currently publishing (in a separate "
+                                        "submission). To prevent duplicate records, please wait for the other "
+                                        "submission(s) to finish publishing before trying to publish. IDs of "
+                                        "submissions affecting this publish attempt: {}".format(", ".join(sub_list)),
+                                        StatusCode.CLIENT_ERROR)
+
+            # check to make sure no new entries have been published that collide with the new rows
+            # (correction_delete_indicatr is not C or D)
             colliding_rows = sess.query(dafa.afa_generated_unique). \
                 filter(dafa.is_valid.is_(True),
                        dafa.submission_id == submission_id,
@@ -585,10 +609,6 @@ class FileHandler:
                                         "publish.",
                                         StatusCode.CLIENT_ERROR)
 
-            # get all valid lines for this submission
-            query = sess.query(DetachedAwardFinancialAssistance).\
-                filter_by(is_valid=True, submission_id=submission_id).all()
-
             # Create lookup dictionaries so we don't have to query the API every time. We do biggest to smallest
             # to save the most possible space, although none of these should take that much.
             state_dict = {}
@@ -596,13 +616,14 @@ class FileHandler:
             sub_tier_dict = {}
             cfda_dict = {}
             county_dict = {}
-            fpds_office_dict = {}
+            office_dict = {}
 
             # This table is big enough that we want to only grab 2 columns
-            offices = sess.query(FPDSContractingOffice.contracting_office_code,
-                                 FPDSContractingOffice.contracting_office_name).all()
+            offices = sess.query(Office.office_code, Office.office_name, Office.sub_tier_code, Office.agency_code).all()
             for office in offices:
-                fpds_office_dict[office.contracting_office_code] = office.contracting_office_name
+                office_dict[office.office_code] = {'office_name': office.office_name,
+                                                   'sub_tier_code': office.sub_tier_code,
+                                                   'agency_code': office.agency_code}
             del offices
 
             counties = sess.query(CountyCode).all()
@@ -643,54 +664,66 @@ class FileHandler:
 
             agency_codes_list = []
             row_count = 1
+            loop_num = 0
+            query = []
             log_data['message'] = 'Starting derivations for FABS submission'
             logger.info(log_data)
-            for row in query:
-                # remove all keys in the row that are not in the intermediate table
-                temp_obj = row.__dict__
 
-                temp_obj.pop('row_number', None)
-                temp_obj.pop('is_valid', None)
-                temp_obj.pop('created_at', None)
-                temp_obj.pop('updated_at', None)
-                temp_obj.pop('_sa_instance_state', None)
+            while len(query) == ROWS_PER_LOOP or loop_num == 0:
+                # get next set of valid lines for this submission
+                query = sess.query(DetachedAwardFinancialAssistance). \
+                    filter_by(is_valid=True, submission_id=submission_id). \
+                    order_by(DetachedAwardFinancialAssistance.detached_award_financial_assistance_id).\
+                    slice(ROWS_PER_LOOP * loop_num, ROWS_PER_LOOP * (loop_num + 1)).all()
 
-                temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict,
-                                            county_dict, fpds_office_dict)
+                for row in query:
+                    # remove all keys in the row that are not in the intermediate table
+                    temp_obj = row.__dict__
 
-                # if it's a correction or deletion row and an old row is active, update the old row to be inactive
-                if row.correction_delete_indicatr is not None:
-                    check_row = sess.query(PublishedAwardFinancialAssistance).\
-                        filter_by(afa_generated_unique=row.afa_generated_unique, is_active=True).one_or_none()
-                    if check_row:
-                        # just creating this as a variable because flake thinks the row is too long
-                        row_id = check_row.published_award_financial_assistance_id
-                        sess.query(PublishedAwardFinancialAssistance).\
-                            filter_by(published_award_financial_assistance_id=row_id).\
-                            update({"is_active": False, "updated_at": row.modified_at}, synchronize_session=False)
+                    temp_obj.pop('row_number', None)
+                    temp_obj.pop('is_valid', None)
+                    temp_obj.pop('created_at', None)
+                    temp_obj.pop('updated_at', None)
+                    temp_obj.pop('_sa_instance_state', None)
 
-                # for all rows, insert the new row (active/inactive should be handled by fabs_derivations)
-                new_row = PublishedAwardFinancialAssistance(**temp_obj)
-                sess.add(new_row)
+                    temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict,
+                                                county_dict, office_dict)
 
-                # update the list of affected agency_codes
-                if temp_obj['awarding_agency_code'] not in agency_codes_list:
-                    agency_codes_list.append(temp_obj['awarding_agency_code'])
+                    # if it's a correction or deletion row and an old row is active, update the old row to be inactive
+                    if row.correction_delete_indicatr is not None:
+                        check_row = sess.query(PublishedAwardFinancialAssistance).\
+                            filter_by(afa_generated_unique=row.afa_generated_unique, is_active=True).one_or_none()
+                        if check_row:
+                            # just creating this as a variable because flake thinks the row is too long
+                            row_id = check_row.published_award_financial_assistance_id
+                            sess.query(PublishedAwardFinancialAssistance).\
+                                filter_by(published_award_financial_assistance_id=row_id).\
+                                update({"is_active": False, "updated_at": row.modified_at}, synchronize_session=False)
 
-                if row_count % 1000 == 0:
-                    log_data['message'] = 'Completed derivations for {} rows'.format(row_count)
-                    logger.info(log_data)
-                row_count += 1
+                    # for all rows, insert the new row (active/inactive should be handled by fabs_derivations)
+                    new_row = PublishedAwardFinancialAssistance(**temp_obj)
+                    sess.add(new_row)
 
-            # update all cached D2 FileRequest objects that could have been affected by the publish
-            for agency_code in agency_codes_list:
-                sess.query(FileRequest).\
-                    filter(FileRequest.agency_code == agency_code,
-                           FileRequest.is_cached_file.is_(True),
-                           FileRequest.file_type == 'D2',
-                           sa.or_(FileRequest.start_date <= submission.reporting_end_date,
-                                  FileRequest.end_date >= submission.reporting_start_date)).\
-                    update({"is_cached_file": False}, synchronize_session=False)
+                    # update the list of affected awarding_agency_codes
+                    if temp_obj['awarding_agency_code'] not in agency_codes_list:
+                        agency_codes_list.append(temp_obj['awarding_agency_code'])
+
+                    # update the list of affected funding_agency_codes
+                    if temp_obj['funding_agency_code'] not in agency_codes_list:
+                        agency_codes_list.append(temp_obj['funding_agency_code'])
+
+                    if row_count % 1000 == 0:
+                        log_data['message'] = 'Completed derivations for {} rows'.format(row_count)
+                        logger.info(log_data)
+                    row_count += 1
+                loop_num += 1
+
+            # update all cached D2 FileGeneration objects that could have been affected by the publish
+            sess.query(FileGeneration).\
+                filter(FileGeneration.agency_code.in_(agency_codes_list),
+                       FileGeneration.is_cached_file.is_(True),
+                       FileGeneration.file_type == 'D2').\
+                update({"is_cached_file": False}, synchronize_session=False)
             sess.commit()
         except Exception as e:
             log_data['message'] = 'An error occurred while publishing a FABS submission'
@@ -735,22 +768,6 @@ class FileHandler:
 
         response_dict = {"submission_id": submission_id}
         return JsonResponse.create(StatusCode.OK, response_dict)
-
-    def get_protected_files(self):
-        """ Gets a set of urls to protected files (on S3 with timeouts) on the help page
-
-            Returns:
-                A JsonResponse object with the urls in a list or an empty object if local
-        """
-        response = {}
-        if self.is_local:
-            response["urls"] = {}
-            return JsonResponse.create(StatusCode.CLIENT_ERROR, response)
-
-        response["urls"] = self.s3manager.get_file_urls(bucket_name=CONFIG_BROKER["static_files_bucket"],
-                                                        path=CONFIG_BROKER["help_files_path"],
-                                                        url_mapping=CONFIG_BROKER["help_files_mapping"])
-        return JsonResponse.create(StatusCode.OK, response)
 
     def build_file_map(self, file_dict, file_type_list, upload_files, submission):
         """ Build fileNameMap to be used in creating jobs
@@ -837,16 +854,11 @@ class FileHandler:
                job.file_type_id in [FILE_TYPE_DICT["award"], FILE_TYPE_DICT["award_procurement"]]:
                 # file generation handled on backend, mark as ready
                 job.job_status_id = JOB_STATUS_DICT['ready']
-                file_request = sess.query(FileRequest).filter_by(job_id=job.job_id).one_or_none()
 
-                # uncache any related D file requests
-                if file_request:
-                    file_request.is_cached_file = False
-                    if file_request.parent_job_id:
-                        parent_file_request = sess.query(FileRequest).filter_by(job_id=file_request.parent_job_id).\
-                            one_or_none()
-                        if parent_file_request:
-                            parent_file_request.is_cached_file = False
+                # forcibly uncache any related D file requests
+                file_gen = sess.query(FileGeneration).filter_by(file_generation_id=job.file_generation_id).one_or_none()
+                if file_gen:
+                    file_gen.is_cached_file = False
             else:
                 # these are dependent on file D2 validation
                 job.job_status_id = JOB_STATUS_DICT['waiting']
@@ -1123,7 +1135,7 @@ def submission_to_dict_for_status(submission):
         'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': last_validated,
         'revalidation_threshold':
-            revalidation_threshold.revalidation_date.strftime('%m/%d/%Y') if revalidation_threshold else '',
+            revalidation_threshold.revalidation_date.strftime("%Y-%m-%dT%H:%M:%S") if revalidation_threshold else '',
         # Broker allows submission for a single quarter or a single month, so reporting_period start and end dates
         # reported by check_status are always equal
         'reporting_period_start_date': reporting_date(submission),
@@ -1223,25 +1235,29 @@ def process_job_status(jobs, response_content):
     validation = None
     upload_status = ''
     validation_status = ''
+    upload_em = ''
+    validation_em = ''
     for job in jobs:
         if job['job_type'] == JOB_TYPE_DICT['file_upload']:
             upload = job
             upload_status = JOB_STATUS_DICT_ID[job['job_status']]
+            upload_em = upload['error_message']
         else:
             validation = job
             validation_status = JOB_STATUS_DICT_ID[job['job_status']]
+            validation_em = validation['error_message']
 
     # checking for failures
     if upload_status == 'invalid' or upload_status == 'failed' or validation_status == 'failed':
         response_content['status'] = 'failed'
         response_content['has_errors'] = True
-        response_content['message'] = upload['error_message'] or validation['error_message'] or ''
+        response_content['message'] = upload_em or validation_em or ''
         return response_content
 
     if validation_status == 'invalid':
         response_content['status'] = 'finished'
         response_content['has_errors'] = True
-        response_content['message'] = upload['error_message'] or validation['error_message'] or ''
+        response_content['message'] = upload_em or validation_em or ''
         return response_content
 
     # If upload job exists and hasn't started or if it doesn't exist and validation job hasn't started,
@@ -1410,7 +1426,7 @@ def add_list_submission_filters(query, filters):
     return query
 
 
-def list_submissions(page, limit, certified, sort='modified', order='desc', d2_submission=False, filters=None):
+def list_submissions(page, limit, certified, sort='modified', order='desc', is_fabs=False, filters=None):
     """ List submission based on current page and amount to display. If provided, filter based on certification status
 
         Args:
@@ -1419,7 +1435,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
             certified: string indicating whether to display only certified, only uncertified, or both for submissions
             sort: the column to order on
             order: order ascending or descending
-            d2_submission: boolean indicating whether it is a DABS or FABS submission (True if FABS)
+            is_fabs: boolean indicating whether it is a DABS or FABS submission (True if FABS)
             filters: an object containing the filters provided by the user
 
         Returns:
@@ -1455,7 +1471,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
         outerjoin(sub_query, Submission.submission_id == sub_query.c.submission_id).\
-        filter(Submission.d2_submission.is_(d2_submission))
+        filter(Submission.d2_submission.is_(is_fabs))
 
     # Limit the data coming back to only what the given user is allowed to see
     if not g.user.website_admin:

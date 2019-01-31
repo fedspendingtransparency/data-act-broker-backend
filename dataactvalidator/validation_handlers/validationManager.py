@@ -1,8 +1,10 @@
-import csv
-import os
-import logging
-from datetime import datetime
 import boto3
+import csv
+import logging
+import os
+import traceback
+
+from datetime import datetime
 
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
@@ -18,7 +20,7 @@ from dataactcore.interfaces.function_bag import (
     populate_job_error_info, get_action_dates
 )
 
-from dataactcore.models.domainModels import matching_cars_subquery
+from dataactcore.models.domainModels import matching_cars_subquery, Office
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
@@ -252,6 +254,7 @@ class ValidationManager:
 
                 required_list = None
                 type_list = None
+                office_list = {}
                 if file_type == "fabs":
                     # create a list of all required/type labels for FABS
                     labels = sess.query(ValidationLabel).all()
@@ -262,6 +265,14 @@ class ValidationManager:
                             required_list[label.column_name] = label.label
                         else:
                             type_list[label.column_name] = label.label
+
+                    # Create a list of all offices
+                    offices = sess.query(Office.office_code, Office.sub_tier_code).all()
+                    for office in offices:
+                        office_list[office.office_code] = office.sub_tier_code
+
+                    # Clear out office list to save space
+                    del offices
 
                 # write headers to file
                 error_csv.writerow(self.reportHeaders)
@@ -312,10 +323,15 @@ class ValidationManager:
                         valid = True
                     else:
                         if file_type == "fabs":
+                            # Derive awarding sub tier agency code if it wasn't provided
+                            if not record.get('awarding_sub_tier_agency_c'):
+                                office_code = record.get('awarding_office_code')
+                                record['awarding_sub_tier_agency_c'] = office_list.get(office_code)
+
                             # Create afa_generated_unique
                             record['afa_generated_unique'] = (record['award_modification_amendme'] or '-none-') + "_" +\
-                                                             (record['awarding_sub_tier_agency_c'] or '-none-') + \
-                                                             "_" + (record['fain'] or '-none-') + "_" + \
+                                                             (record['awarding_sub_tier_agency_c'] or '-none-') + "_" +\
+                                                             (record['fain'] or '-none-') + "_" + \
                                                              (record['uri'] or '-none-')
                             # Create unique_award_key
                             if str(record['record_type']) == '1':
@@ -432,9 +448,18 @@ class ValidationManager:
             # Mark validation as finished in job tracker
             mark_job_status(job_id, "finished")
             mark_file_complete(job_id, file_name)
+
         except Exception as e:
-            logger.error("An exception occurred during validation:{}".format(str(e)))
+            logger.error({
+                'message': 'An exception occurred during validation',
+                'message_type': 'ValidatorInfo',
+                'submission_id': job.submission_id,
+                'job_id': job.job_id,
+                'file_type': job.file_type.name,
+                'traceback': traceback.format_exc()
+            })
             raise
+
         finally:
             # Ensure the files always close
             reader.close()
@@ -504,8 +529,8 @@ class ValidationManager:
         return error_rows
 
     def run_cross_validation(self, job):
-        """ Cross file validation job. Test all rules with matching rule_timing.
-            Run each cross-file rule and create error report.
+        """ Cross file validation job. Test all rules with matching rule_timing. Run each cross-file rule and create
+            error report.
 
             Args:
                 job: Current job
@@ -620,10 +645,12 @@ class ValidationManager:
 
     def validate_job(self, job_id):
         """ Gets file for job, validates each row, and sends valid rows to a staging table
-        Args:
-        request -- HTTP request containing the jobId
-        Returns:
-        Http response object
+
+            Args:
+                job_id: Database ID for the validation Job
+
+            Returns:
+                Http response object
         """
         # Create connection to job tracker database
         sess = GlobalDB.db().session
@@ -631,10 +658,8 @@ class ValidationManager:
         # Get the job
         job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
         if job is None:
-            validation_error_type = ValidationError.jobError
-            write_file_error(job_id, None, validation_error_type)
             raise ResponseException('Job ID {} not found in database'.format(job_id), StatusCode.CLIENT_ERROR, None,
-                                    validation_error_type)
+                                    ValidationError.jobError)
 
         # Make sure job's prerequisites are complete
         if not run_job_checks(job_id):
@@ -716,6 +741,7 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
         row_number: Current row number
         error_list: instance of ErrorInterface to keep track of errors
         flex_cols: all flex columns for this row
+
     Returns:
         True if any fatal errors were found, False if only warnings are present
     """
