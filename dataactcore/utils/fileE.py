@@ -3,6 +3,7 @@ import logging
 from operator import attrgetter
 
 from suds.client import Client
+import urllib.error
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.validationModels import FileColumn
@@ -43,7 +44,14 @@ def get_entities(client, duns_list):
     params = client.factory.create('requestedData')
     params.coreData.value = 'Y'
 
-    result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
+    try:
+        result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
+    except urllib.error.HTTPError:
+        raise Exception("Unable to contact SAM service, please try again later.")
+
+    # If result is the string "-1" then our credentials aren't correct, inform the user of this
+    if result == "-1":
+        raise ValueError("Invalid SAM credentials, please contact the Service Desk.")
 
     if result.transactionInformation.transactionMessage:
         logger.warning({
