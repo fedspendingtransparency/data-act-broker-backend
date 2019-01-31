@@ -155,8 +155,6 @@ def validator_process_job(job_id, agency_code):
     job = None
 
     try:
-        mark_job_status(job_id, 'ready')
-
         # Get the job
         job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
         if job is None:
@@ -164,6 +162,8 @@ def validator_process_job(job_id, agency_code):
             write_file_error(job_id, None, validation_error_type)
             raise ResponseException('Job ID {} not found in database'.format(job_id),
                                     StatusCode.CLIENT_ERROR, None, validation_error_type)
+
+        mark_job_status(job_id, 'ready')
 
         # We can either validate or generate a file based on Job ID
         if job.job_type.name == 'file_upload':
