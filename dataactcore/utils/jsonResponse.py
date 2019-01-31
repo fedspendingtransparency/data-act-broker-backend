@@ -3,6 +3,7 @@ import logging
 import traceback
 
 import flask
+import decimal
 
 from dataactcore.utils.responseException import ResponseException
 
@@ -23,7 +24,7 @@ class JsonResponse:
         jsondata = flask.Response()
         jsondata.headers["Content-Type"] = "application/json"
         jsondata.status_code = code
-        jsondata.set_data(json.dumps(dictionary_data))
+        jsondata.set_data(json.dumps(dictionary_data, cls=DecimalEncoder))
         return jsondata
 
     @staticmethod
@@ -55,3 +56,10 @@ class JsonResponse:
             return JsonResponse.create(error_code, response_dict)
         else:
             return JsonResponse.create(error_code, response_dict)
+
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, decimal.Decimal):
+            return float(obj)
+        return json.JSONEncoder.default(self, obj)
