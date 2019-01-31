@@ -189,7 +189,7 @@ def validator_process_job(job_id, agency_code):
             logger.error(error_data)
 
             sess.refresh(job)
-            job.update({'error_message': str(e)}, synchronize_session=False)
+            job.error_message = str(e)
             if job.filename is not None:
                 error_type = ValidationError.unknownError
                 if isinstance(e, UnicodeDecodeError):
