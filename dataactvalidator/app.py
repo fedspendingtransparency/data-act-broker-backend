@@ -34,7 +34,7 @@ def create_app():
 
 
 def run_app():
-    """Run the application."""
+    """ Run the application. """
     app = create_app()
 
     # This is for DataDog (Do Not Delete)
@@ -51,7 +51,6 @@ def run_app():
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
         queue = sqs_queue()
-        messages = []
 
         logger.info("Starting SQS polling")
         while True:
@@ -81,11 +80,11 @@ def validator_process_file_generation(file_gen_id):
     """ Retrieves a FileGeneration object based on its ID, and kicks off a file generation. Handles errors by ensuring
         the FileGeneration (if exists) is no longer cached.
 
-    Args:
-        file_gen_id: ID of a FileGeneration object
+        Args:
+            file_gen_id: ID of a FileGeneration object
 
-    Raises:
-        Any Exceptions raised by the FileGenerationManager
+        Raises:
+            Any Exceptions raised by the FileGenerationManager
     """
     sess = GlobalDB.db().session
     file_generation = None
@@ -144,19 +143,17 @@ def validator_process_job(job_id, agency_code):
     """ Retrieves a Job based on its ID, and kicks off a validation. Handles errors by ensuring the Job (if exists) is
         no longer running.
 
-    Args:
-        job_id: ID of a Job
-        agency_code: CGAC or FREC code for agency, only required for file generations by Job
+        Args:
+            job_id: ID of a Job
+            agency_code: CGAC or FREC code for agency, only required for file generations by Job
 
-    Raises:
-        Any Exceptions raised by the GenerationManager or ValidationManager, excluding those explicitly handled
+        Raises:
+            Any Exceptions raised by the GenerationManager or ValidationManager, excluding those explicitly handled
     """
     sess = GlobalDB.db().session
     job = None
 
     try:
-        mark_job_status(job_id, 'ready')
-
         # Get the job
         job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
         if job is None:
@@ -164,6 +161,8 @@ def validator_process_job(job_id, agency_code):
             write_file_error(job_id, None, validation_error_type)
             raise ResponseException('Job ID {} not found in database'.format(job_id),
                                     StatusCode.CLIENT_ERROR, None, validation_error_type)
+
+        mark_job_status(job_id, 'ready')
 
         # We can either validate or generate a file based on Job ID
         if job.job_type.name == 'file_upload':
