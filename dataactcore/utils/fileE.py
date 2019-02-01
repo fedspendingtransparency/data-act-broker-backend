@@ -81,7 +81,8 @@ def get_entities(client, duns_list):
     try:
         result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
     except urllib.error.HTTPError:
-        raise ResponseException("Unable to contact SAM service, please try again later.", StatusCode.NOT_FOUND)
+        raise ResponseException("Unable to contact SAM service, which may be experiencing downtime or intermittent "
+                                "performance issues. Please try again later.", StatusCode.NOT_FOUND)
 
     # If result is the string "-1" then our credentials aren't correct, inform the user of this
     if result == "-1":
