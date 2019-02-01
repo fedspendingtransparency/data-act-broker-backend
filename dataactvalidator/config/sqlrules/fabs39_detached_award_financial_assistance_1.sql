@@ -1,5 +1,6 @@
 -- PrimaryPlaceOfPerformanceCode is a required field for aggregate and non-aggregate records (RecordType = 1 or 2), and
--- must be 00*****, 00FORGN, or start with a valid 2-character state code.
+-- must be in 00FORGN, 00*****, XX*****, XX**###, XX#####, or XX####R formats, where XX is a valid two-character state
+-- code, # are numerals, and 'R' is that letter.
 WITH detached_award_financial_assistance_fabs39_1_{0} AS
     (SELECT submission_id,
         row_number,
