@@ -217,7 +217,7 @@ class ValidationManager:
 
             # Count file rows: throws a File Level Error for non-UTF8 characters
             temp_file = open(reader.get_filename(region_name, bucket_name, file_name), encoding='utf-8')
-            file_row_count = len(list(csv.reader(temp_file)))
+            file_row_count = sum(1 for _ in temp_file)
             try:
                 temp_file.close()
             except AttributeError:
