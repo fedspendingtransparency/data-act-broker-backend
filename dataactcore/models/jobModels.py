@@ -1,6 +1,6 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 from datetime import datetime
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Text, UniqueConstraint, Enum
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Text, UniqueConstraint, Enum, BigInteger
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 from dataactcore.models.domainModels import SubTierAgency
@@ -98,7 +98,7 @@ class Job(Base):
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id"), nullable=True)
     file_type = relationship("FileType", uselist=False, lazy='joined')
     original_filename = Column(Text, nullable=True)
-    file_size = Column(Integer)
+    file_size = Column(BigInteger)
     number_of_rows = Column(Integer)
     number_of_rows_valid = Column(Integer)
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
