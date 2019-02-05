@@ -17,6 +17,12 @@ WHERE dafa.record_type IN (1, 2)
     AND (COALESCE(dafa.place_of_performance_code, '') = ''
         OR (dafa.place_of_performance_code <> '00*****'
             AND UPPER(dafa.place_of_performance_code) <> '00FORGN'
+            AND UPPER(dafa.place_of_performance_code) !~ '^[A-Z][A-Z]\*\*\*\*\*$'
+            AND UPPER(dafa.place_of_performance_code) !~ '^[A-Z][A-Z]\*\*\d\d\d$'
+            AND UPPER(dafa.place_of_performance_code) !~ '^[A-Z][A-Z]\d\d\d\d\d$'
+            AND UPPER(dafa.place_of_performance_code) !~ '^[A-Z][A-Z]\d\d\d\dR$')
+        OR (dafa.place_of_performance_code <> '00*****'
+            AND UPPER(dafa.place_of_performance_code) <> '00FORGN'
             AND dafa.row_number NOT IN (
                 SELECT DISTINCT sub_dafa.row_number
                 FROM detached_award_financial_assistance_fabs39_1_{0} AS sub_dafa
