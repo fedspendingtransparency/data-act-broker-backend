@@ -577,3 +577,45 @@ def gen_file_path_from_submission(submission, original_filename):
     local_filepath = CONFIG_BROKER['broker_files']
     nonlocal_filepath = '{}/'.format(submission)
     return '{}{}'.format(local_filepath if CONFIG_BROKER['local'] else nonlocal_filepath, original_filename)
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_check_detached_a_file_generation(database):
+    """ Job statuses should return the correct status and error message to the user """
+    sess = database.session
+
+    # Detached A generation waiting to be picked up by the Validator
+    job = JobFactory(job_status_id=JOB_STATUS_DICT['waiting'], job_type_id=JOB_TYPE_DICT['file_upload'],
+                     file_type_id=FILE_TYPE_DICT['appropriations'], error_message='', filename='job_id/file.csv',
+                     original_filename='file.csv')
+    sess.add(job)
+    sess.commit()
+    response_dict = check_file_generation(job.job_id)
+    assert response_dict['status'] == 'waiting'
+
+    # Detached A generation running in the Validator
+    job.job_status_id = JOB_STATUS_DICT['running']
+    sess.commit()
+    response_dict = check_file_generation(job.job_id)
+    assert response_dict['status'] == 'waiting'
+
+    # Detached A generation completed by the Validator
+    job.job_status_id = JOB_STATUS_DICT['finished']
+    sess.commit()
+    response_dict = check_file_generation(job.job_id)
+    assert response_dict['status'] == 'finished'
+    assert response_dict['message'] == ''
+
+    # Detached A generation with an unknown error
+    job.job_status_id = JOB_STATUS_DICT['failed']
+    sess.commit()
+    response_dict = check_file_generation(job.job_id)
+    assert response_dict['status'] == 'failed'
+    assert response_dict['message'] == 'Upload job failed without error message'
+
+    # Detached A generation with a known error
+    job.error_message = 'A file upload error message'
+    sess.commit()
+    response_dict = check_file_generation(job.job_id)
+    assert response_dict['status'] == 'failed'
+    assert response_dict['message'] == 'A file upload error message'
