@@ -12,6 +12,7 @@ def concat_tas(context):
     """ Given a database context, return a concatenated TAS string. """
     return concat_tas_dict(context.current_parameters)
 
+
 def concat_tas_dict(tas_dict):
     """ Given a dictionary, create a concatenated TAS string. """
     tas1 = tas_dict['allocation_transfer_agency']
