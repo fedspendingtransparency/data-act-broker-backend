@@ -29,7 +29,7 @@ from tests.unit.dataactcore.factories.staging import (
 def test_generate_a(mock_broker_config_paths, database):
     sess = database.session
 
-    agency_cgac = '123'
+    agency_cgac = '097'
     year = 2017
 
     tas1_dict = {
@@ -43,13 +43,26 @@ def test_generate_a(mock_broker_config_paths, database):
     }
     tas1_str = concat_tas_dict(tas1_dict)
 
+    tas2_dict = {
+        'allocation_transfer_agency': None,
+        'agency_identifier': '017',
+        'beginning_period_of_availa': '2017',
+        'ending_period_of_availabil': '2017',
+        'availability_type_code': ' ',
+        'main_account_code': '0001',
+        'sub_account_code': '001'
+    }
+    tas2_str = concat_tas_dict(tas2_dict)
+
     sf1 = SF133Factory(period=6, fiscal_year=year, tas=tas1_str, line=1160, amount='1.00', **tas1_dict)
     sf2 = SF133Factory(period=6, fiscal_year=year, tas=tas1_str, line=1180, amount='2.00', **tas1_dict)
+    sf3 = SF133Factory(period=6, fiscal_year=year, tas=tas2_str, line=1000, amount='4.00', **tas2_dict)
     tas1 = TASFactory(financial_indicator2=' ', **tas1_dict)
+    tas2 = TASFactory(financial_indicator2=' ', **tas2_dict)
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['appropriations'], filename=None, start_date='01/01/2017',
                      end_date='03/31/2017', submission_id=None)
-    sess.add_all([sf1, sf2, tas1, job])
+    sess.add_all([sf1, sf2, sf3, tas1, tas2, job])
     sess.commit()
 
     file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], job=job)
@@ -63,8 +76,10 @@ def test_generate_a(mock_broker_config_paths, database):
     assert file_rows[0] == [key for key in file_generation_manager.fileA.mapping]
 
     # check body
-    sf = sess.query(SF133).filter_by(tas=tas1_str).first()
-    expected = []
+    sf1 = sess.query(SF133).filter_by(tas=tas1_str).first()
+    sf2 = sess.query(SF133).filter_by(tas=tas2_str).first()
+    expected1 = []
+    expected2 = []
     sum_cols = [
         'total_budgetary_resources_cpe',
         'budget_authority_appropria_cpe',
@@ -81,16 +96,21 @@ def test_generate_a(mock_broker_config_paths, database):
         'deobligations_recoveries_r_cpe'
     ]
     zero_sum_cols = {sum_col: '0' for sum_col in sum_cols}
-    expected_sum_cols = zero_sum_cols.copy()
-    expected_sum_cols['budget_authority_appropria_cpe'] = '3.00'
+    expected1_sum_cols = zero_sum_cols.copy()
+    expected1_sum_cols['budget_authority_appropria_cpe'] = '3.00'
+    expected2_sum_cols = zero_sum_cols.copy()
+    expected2_sum_cols['budget_authority_unobligat_fyb'] = '4.00'
     for value in file_generation_manager.fileA.db_columns:
         # loop through all values and format date columns
-        if value in sf.__dict__:
-            expected.append(str(sf.__dict__[value]))
-        elif value in expected_sum_cols:
-            expected.append(expected_sum_cols[value])
+        if value in sf1.__dict__:
+            expected1.append(str(sf1.__dict__[value] or ''))
+            expected2.append(str(sf2.__dict__[value] or ''))
+        elif value in expected1_sum_cols:
+            expected1.append(expected1_sum_cols[value])
+            expected2.append(expected2_sum_cols[value])
 
-    assert expected in file_rows
+    assert expected1 in file_rows
+    assert expected2 in file_rows
 
 
 @pytest.mark.usefixtures("job_constants")
