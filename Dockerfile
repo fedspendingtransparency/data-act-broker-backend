@@ -1,5 +1,8 @@
 FROM python:3.5
 
+RUN apt-get -y update
+RUN apt-get -y postgresql-client
+
 RUN pip install unittest-xml-reporting
 RUN pip install paramiko==2.4.1
 
