@@ -69,7 +69,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
             url_with_params += "&updateddatefrom={}".format(updated_date_from)
 
         # Retrieve the total count of expected records for this pull
-        total_expected_records = json.loads(requests.get(url_with_params, timeout=60).text)['totalRecords']
+        total_expected_records = json.loads(requests.get(url_with_params, timeout=60).text)['totalrecords']
         logger.info('{} level-{} record(s) expected'.format(str(total_expected_records), str(level)))
         if total_expected_records == 0:
             empty_pull_count += 1
@@ -107,7 +107,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
             for next_resp in full_response:
                 response_dict = json.loads(next_resp)
 
-                for org in response_dict.get('orgList', []):
+                for org in response_dict.get('orglist', []):
                     entries_processed += 1
 
                     # Add to the file data structure
