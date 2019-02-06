@@ -157,7 +157,11 @@ def retrieve_rows(duns_list):
             duns_list: A list of DUNS to search for
     """
     if config_valid():
-        client = Client(CONFIG_BROKER['sam']['wsdl'])
+        try:
+            client = Client(CONFIG_BROKER['sam']['wsdl'])
+        except ConnectionResetError:
+            raise ResponseException("Unable to contact SAM service, which may be experiencing downtime or intermittent "
+                                    "performance issues. Please try again later.", StatusCode.NOT_FOUND)
         return [suds_to_row(e) for e in get_entities(client, duns_list)]
     else:
         logger.error({
