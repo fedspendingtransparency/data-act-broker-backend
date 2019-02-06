@@ -72,6 +72,13 @@ def write_query_to_file(local_filename, upload_name, header, file_type, is_local
     # save psql command with query to a temp file
     temp_sql_file, temp_sql_file_path = generate_temp_query_file(raw_query)
 
+    log_data = {
+        'message': 'Writing query to csv',
+        'message_type': 'BrokerDebug',
+        'upload_name': upload_name,
+        'file_type': file_type
+    }
+    logger.debug(log_data)
     # write base csv with headers
     # Note: while psql's copy command supports headers, some header lengths exceed the maximum label length (63)
     with open(local_filename, 'w', newline='') as csv_file:
@@ -84,6 +91,14 @@ def write_query_to_file(local_filename, upload_name, header, file_type, is_local
     database_string = str(query_utils['sess'].bind.url)
     execute_psql(temp_sql_file_path, local_filename, database_string)
     os.remove(temp_sql_file_path)
+
+    log_data = {
+        'message': 'CSV written from query',
+        'message_type': 'BrokerDebug',
+        'upload_name': upload_name,
+        'file_type': file_type
+    }
+    logger.debug(log_data)
 
     if not is_local:
         # stream file to S3
