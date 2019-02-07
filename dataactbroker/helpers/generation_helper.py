@@ -457,6 +457,7 @@ def copy_file_generation_to_job(job, file_generation, is_local):
                     log_data['message'] = '{} file already exists in this location: {}; not overwriting.'.format(
                         job.file_type.name, job.filename)
                     logger.info(log_data)
+                    mark_job_status(job.job_id, 'finished')
                     return
 
             S3Handler.copy_file(bucket, bucket, file_generation.file_path, job.filename)
