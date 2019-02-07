@@ -34,11 +34,19 @@ def hot_swap_zip_tables(sess):
     indexes = Zips.__table__.indexes
 
     logger.info("Hot swapping temporary zips table to official zips table.")
+
+    # Do everything in a transaction so it doesn't affect anything until it's completely done
     sess.execute("BEGIN;")
+
+    # Make sure the sequence remains
     sess.execute("ALTER SEQUENCE zips_zips_id_seq OWNED BY temp_zips.zips_id")
+
+    # Drop old zips table and rename the temporary one
     sess.execute("DROP TABLE zips;")
     sess.execute("ALTER TABLE temp_zips "
                  "RENAME TO zips;")
+
+    # Rename all the indexes and constraints to match what they were in the original zips table
     sess.execute("ALTER INDEX temp_zips_pkey RENAME TO zips_pkey;")
     sess.execute("ALTER INDEX temp_zips_zip5_zip_last4_key RENAME TO uniq_zip5_zip_last4;")
     # Get all the indexes swapped out
@@ -48,8 +56,12 @@ def hot_swap_zip_tables(sess):
     sess.execute("COMMIT;")
 
 
-# update contents of state_congressional table based on zips we just inserted
 def update_state_congr_table_current(sess):
+    """ Update contents of state_congressional table based on zips we just inserted
+
+        Args:
+            sess: the database connection
+    """
     logger.info("Loading zip codes complete, beginning update of state_congressional table")
     # clear old data out
     sess.query(StateCongressional).delete(synchronize_session=False)
@@ -65,7 +77,13 @@ def update_state_congr_table_current(sess):
 
 
 def update_state_congr_table_census(census_file, sess):
-    logger.info("Adding congressional districtions from census to the state_congressional table")
+    """ Update contents of state_congressional table to include districts from the census
+
+        Args:
+            census_file: file path/url to the census file to read 
+            sess: the database connection
+    """
+    logger.info("Adding congressional districts from census to the state_congressional table")
 
     data = pd.read_csv(census_file, dtype=str)
     model = StateCongressional
@@ -84,8 +102,13 @@ def update_state_congr_table_census(census_file, sess):
     sess.commit()
 
 
-# add data to the zips table
 def add_to_table(data, sess):
+    """ Add data to the temp_zips table.
+
+        Args:
+            data: dictionary of dictionaries containing zip data to process and add to the table
+            sess: the database connection
+    """
     value_array = []
     for _, item in data.items():
         value_array.append("(NOW(), NOW(), '{}', '{}', '{}', '{}', '{}')".
@@ -116,6 +139,12 @@ def add_to_table(data, sess):
 
 
 def parse_zip4_file(f, sess):
+    """ Parse file containing full 9-digit zip data
+
+        Args:
+            f: opened file containing zip5 and zip_last4 data
+            sess: the database connection
+    """
     logger.info("Starting file %s", str(f))
     # pull out the copyright data
     f.read(zip4_line_size)
@@ -206,6 +235,12 @@ def parse_zip4_file(f, sess):
 
 
 def parse_citystate_file(f, sess):
+    """ Parse citystate file data to get remaining 5-digit zips that weren't included in the 9-digit file
+
+        Args:
+            f: opened file containing citystate data
+            sess: the database connection
+    """
     logger.info("Starting file %s", str(f))
     # pull out the copyright data
     f.read(citystate_line_size)
@@ -271,9 +306,11 @@ def parse_citystate_file(f, sess):
 
 
 def read_zips():
+    """ Update zip codes in the zips table. """
     with create_app().app_context():
         sess = GlobalDB.db().session
 
+        # Create temporary table to do work in so we don't disrupt the site for too long by altering the actual table
         sess.execute('CREATE TABLE IF NOT EXISTS temp_zips (LIKE zips INCLUDING ALL);')
         # Truncating in case we didn't clear out this table after a failure in the script
         sess.execute('TRUNCATE TABLE temp_zips;')
