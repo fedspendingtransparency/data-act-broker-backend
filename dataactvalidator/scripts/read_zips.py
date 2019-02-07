@@ -8,7 +8,6 @@ import boto3
 import urllib.request
 import pandas as pd
 
-from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
 from dataactcore.logging import configure_logging
@@ -23,6 +22,30 @@ logger = logging.getLogger(__name__)
 zip4_line_size = 182
 citystate_line_size = 129
 chunk_size = 1024 * 10
+
+
+def hot_swap_zip_tables(sess):
+    """ Drop the existing zips table, rename the temp_zips table, and rename all the indexes in a transaction.
+
+        Args:
+            sess: the database connection 
+    """
+    # Getting indexes before dropping the table
+    indexes = Zips.__table__.indexes
+
+    logger.info("Hot swapping temporary zips table to official zips table.")
+    sess.execute("BEGIN;")
+    sess.execute("ALTER SEQUENCE zips_zips_id_seq OWNED BY temp_zips.zips_id")
+    sess.execute("DROP TABLE zips;")
+    sess.execute("ALTER TABLE temp_zips "
+                 "RENAME TO zips;")
+    sess.execute("ALTER INDEX temp_zips_pkey RENAME TO zips_pkey;")
+    sess.execute("ALTER INDEX temp_zips_zip5_zip_last4_key RENAME TO uniq_zip5_zip_last4;")
+    # Get all the indexes swapped out
+    for index in indexes:
+        index_name = index.name.replace('ix_', '')
+        sess.execute("ALTER INDEX temp_{}_idx RENAME TO ix_{}".format(index_name, index_name))
+    sess.execute("COMMIT;")
 
 
 # update contents of state_congressional table based on zips we just inserted
@@ -63,22 +86,30 @@ def update_state_congr_table_census(census_file, sess):
 
 # add data to the zips table
 def add_to_table(data, sess):
+    value_array = []
+    for _, item in data.items():
+        value_array.append("(NOW(), NOW(), '{}', '{}', '{}', '{}', '{}')".
+                           format(item['zip5'], item['zip_last4'], item['county_number'],
+                                  item['state_abbreviation'], item['congressional_district_no']))
     try:
-        sess.bulk_save_objects([Zips(**zip_data) for _, zip_data in data.items()])
-        sess.commit()
+        if value_array:
+            sess.execute('INSERT INTO temp_zips '
+                         '(updated_at, created_at, zip5, zip_last4, county_number, state_abbreviation, '
+                         'congressional_district_no) VALUES {}'.format(", ".join(value_array)))
+            sess.commit()
     except IntegrityError:
         sess.rollback()
         logger.error("Attempted to insert duplicate zip. Inserting each row in batch individually.")
 
         i = 0
-        # loop through all the items in the current array
-        for _, new_zip in data.items():
+        for new_zip in value_array:
             # create an insert statement that overrides old values if there's a conflict
-            insert_statement = insert(Zips).values(**new_zip).\
-                on_conflict_do_nothing(index_elements=[Zips.zip5, Zips.zip_last4])
-            sess.execute(insert_statement)
+            sess.execute('INSERT INTO temp_zips '
+                         '(updated_at, created_at, zip5, zip_last4, county_number, state_abbreviation, '
+                         'congressional_district_no) VALUES {} '
+                         'ON CONFLICT DO NOTHING'.format(new_zip))
 
-            if i % 10000 == 0:
+            if i % 1000 == 0:
                 logger.info("Inserting row %s of current batch", str(i))
             i += 1
         sess.commit()
@@ -229,7 +260,8 @@ def parse_citystate_file(f, sess):
             curr_chunk = curr_chunk[citystate_line_size:]
 
     # remove all zip5s that already exist in the table
-    for item in sess.query(Zips.zip5).distinct():
+    distinct_zip5 = sess.execute('SELECT DISTINCT zip5 FROM temp_zips').fetchall()
+    for item in distinct_zip5:
         if item.zip5 in data_array:
             del data_array[item.zip5]
 
@@ -242,8 +274,9 @@ def read_zips():
     with create_app().app_context():
         sess = GlobalDB.db().session
 
-        # delete old values in case something changed and one is now invalid
-        sess.query(Zips).delete(synchronize_session=False)
+        sess.execute('CREATE TABLE IF NOT EXISTS temp_zips (LIKE zips INCLUDING ALL);')
+        # Truncating in case we didn't clear out this table after a failure in the script
+        sess.execute('TRUNCATE TABLE temp_zips;')
         sess.commit()
 
         if CONFIG_BROKER["use_aws"]:
@@ -278,6 +311,7 @@ def read_zips():
 
             census_file = os.path.join(base_path, "census_congressional_districts.csv")
 
+        hot_swap_zip_tables(sess)
         update_state_congr_table_current(sess)
         update_state_congr_table_census(census_file, sess)
 
