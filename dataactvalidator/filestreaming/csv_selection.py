@@ -76,7 +76,8 @@ def write_query_to_file(local_filename, upload_name, header, file_type, is_local
         'message': 'Writing query to csv',
         'message_type': 'BrokerDebug',
         'upload_name': upload_name,
-        'file_type': file_type
+        'file_type': file_type,
+        'query_utils': query_utils
     }
     logger.debug(log_data)
     # write base csv with headers
@@ -96,7 +97,8 @@ def write_query_to_file(local_filename, upload_name, header, file_type, is_local
         'message': 'CSV written from query',
         'message_type': 'BrokerDebug',
         'upload_name': upload_name,
-        'file_type': file_type
+        'file_type': file_type,
+        'query_utils': query_utils
     }
     logger.debug(log_data)
 
