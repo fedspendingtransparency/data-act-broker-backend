@@ -155,6 +155,20 @@ class SubTierAgencyFactory(factory.Factory):
     priority = fuzzy.FuzzyInteger(1, 2)
 
 
+class OfficeFactory(factory.Factory):
+    class Meta:
+        model = domainModels.Office
+
+    office_id = None
+    office_code = fuzzy.FuzzyText()
+    office_name = fuzzy.FuzzyText()
+    sub_tier_code = fuzzy.FuzzyText()
+    agency_code = fuzzy.FuzzyText()
+    contracting_office = fuzzy.FuzzyChoice((False, True))
+    funding_office = fuzzy.FuzzyChoice((False, True))
+    grant_office = fuzzy.FuzzyChoice((False, True))
+
+
 class StatesFactory(factory.Factory):
     class Meta:
         model = domainModels.States

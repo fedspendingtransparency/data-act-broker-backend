@@ -63,6 +63,9 @@ def write_query_to_file(local_filename, upload_name, header, file_type, is_local
             query_utils: variables to pass to query function
             is_certified: True if writing to the certified bucket, False otherwise (default False)
     """
+    if is_local:
+        local_filename = upload_name
+
     # create file locally
     with open(local_filename, 'w', newline='') as csv_file:
         # create local file and write headers

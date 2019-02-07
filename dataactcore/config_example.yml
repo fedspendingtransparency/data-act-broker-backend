@@ -103,15 +103,10 @@ broker:
 
     submission_bucket_mapping: [s3-bucket, proxy/here]
     certified_bucket_mapping: [s3-bucket, proxy/here]
-    help_files_mapping: [s3-bucket, proxy/here]
 
     # S3 filenames for SF-133 file, only required if planning to load SF-133 table
     sf_133_folder: config
     sf_133_file: sf_133.csv
-
-    # Static Files Locations
-    static_files_bucket: s3-bucket
-    help_files_path: help-files
 
     # Location that deleted records from the FPDS atom feed are stored
     fpds_delete_bucket: s3-bucket
@@ -122,6 +117,10 @@ broker:
     # MAX login
     cas_service_url: https://cas.service.url
     parent_group: sample
+
+    max:
+        federal_hierarchy_api_url: https://federal.hierarchy.api.uri.gov/?api_key={}
+        federal_hierarchy_api_key: example
 
     # Session timeout, in seconds
     session_timeout: 1800

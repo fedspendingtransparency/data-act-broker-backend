@@ -1,7 +1,7 @@
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
-_FILE = 'fabs38_detached_award_financial_assistance_6'
+_FILE = 'fabs38_detached_award_financial_assistance_3'
 
 
 def test_column_headers(database):
@@ -11,7 +11,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Test AwardingOfficeCode should be submitted for new awards (ActionType = A or blank) whose ActionDate is on or
+    """ Test AwardingOfficeCode must be submitted for new awards (ActionType = A or blank) whose ActionDate is on or
         after October 1, 2018, and whose CorrectionDeleteIndicator is either Blank or C.
     """
 
@@ -37,7 +37,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test failure AwardingOfficeCode should be submitted for new awards (ActionType = A or blank) whose ActionDate is
+    """ Test failure AwardingOfficeCode must be submitted for new awards (ActionType = A or blank) whose ActionDate is
         on or after October 1, 2018, and whose CorrectionDeleteIndicator is either Blank or C.
     """
 

@@ -132,7 +132,10 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
 - `session_id`: string, a hash the application uses to verify that user sending the request is logged in, part of response only if login is successful
 
 #### POST "/v1/login/"
-This route checks the username and password against a credentials file. Accepts input as json or form-urlencoded, with keys "username" and "password". See `current_user` docs for details.
+
+### **THIS ENDPOINT IS FOR LOCAL DEVELOPMENT ONLY AND CANNOT BE USED TO AUTHENTICATE INTO BROKER IN PRODUCTION**
+
+This route checks the username and password against a credentials file. It is used solely as a workaround for developing on a local instance of the broker to bypass MAX.gov login. Accepts input as json or form-urlencoded, with keys "username" and "password". See `current_user` docs for details.
 
 Example input:
 
@@ -597,29 +600,6 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
-
-#### GET "/v1/get_protected_files/"
-This route returns a signed S3 URL for all files available to download on the help page.
-
-Example output:
-
-```json
-{
-    "urls": {
-            "AgencyLabel_to_TerseLabel.xslx": "https://prod-data-act-submission.s3-us-gov-west-1.amazonaws.com:443/rss/AgencyLabel_to_TerseLabel.xslx?Signature=abcdefg......",
-            "File2.extension": "https://......"
-    }
-}
-```
-
-Example output if there are no files available:
-
-```json
-{
-    "urls": {}
-}
-```
-
 #### GET "/v1/get\_obligations/"
 This endpoint gets total obligations and specific obligations.
 
@@ -738,7 +718,7 @@ Possible HTTP Status Codes:
 - 403: Permission denied, user does not have permission to view this submission
 
 #### GET "/v1/submission/\<int:submission\_id\>/report\_url"
-This endpoint requests the URL associated with a particular type of submission report. The provided URL will expire after roughly half an hour.
+This endpoint requests the URL associated with a particular type of submission report. The provided URL will expire after one minute.
 
 ##### Sample Request
 `/v1/submission/<int:submission_id>/report_url?warning=True&file_type=appropriations&cross_type=award_financial`
@@ -820,9 +800,14 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Do not have permission to access that submission
 
-#### POST "/v1/submit_detached_file"
+#### POST "/v1/submit\_detached\_file"
 
-This route sends a request to the backend with ID of the FABS submission we're submitting in order to publish it.
+##### This endpoint is deprecated and will be removed in March. Use `publish_fabs_file` instead
+
+
+#### POST "/v1/publish\_fabs\_file"
+
+This route sends a request to the backend with ID of the FABS submission to publish.
 
 ##### Body (JSON)
 
@@ -834,10 +819,9 @@ This route sends a request to the backend with ID of the FABS submission we're s
 
 ##### Body Description
 
-* `submission_id` - **required** - ID of the submission to process
+- `submission_id` - **required** - ID of the submission to publish
 
 ##### Response (JSON)
-Successful response will contain the submission_id.
 
 ```
 {
@@ -845,9 +829,17 @@ Successful response will contain the submission_id.
 }
 ```
 
-Invalid submission_ids (nonexistant or not FABS submissions) and submissions that have already been published will return a 400 error.
+##### Response Attributes
 
-Other errors will be 500 errors
+- `submission_id` - the ID of the submission being published
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400: Invalid submission, already published or currently publishing submission, different submission published the same rows between validation and this API call, different submission that shares valid rows with this one currently publishing, missing required parameter
+- 401: Login required
+- 500: Any other unexpected errors
+
 
 #### POST "/v1/delete_submission"
 
@@ -961,7 +953,7 @@ This endpoint lists submissions for all agencies for which the current user is a
     "certified": "true",
     "sort": "modified",
     "order": "desc",
-    "d2_submission": False,
+    "fabs": False,
     "filters": {
         "submission_ids": [123, 456],
         "last_modified_range": {
@@ -992,7 +984,7 @@ This endpoint lists submissions for all agencies for which the current user is a
 - `order` - **optional** - a string indicating the sort order. Defaults to `desc` if not provided. Valid values are:
     - `desc`
     - `asc`
-- `d2_submission` - **optional** - a boolean indicating if the submissions listed should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
+- `fabs` - **optional** - a boolean indicating if the submissions listed should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
 - `filters` - **optional** - an object containing additional filters to narrow the results returned by the endpoint. Possible filters are:
     - `submission_ids` - an array of integers or strings that limits the submission IDs returned to only the values listed in the array.
     - `last_modified_range` - an object containing a start and end date for the last modified date range. Both must be provided if this filter is used.
@@ -1317,7 +1309,7 @@ Possible HTTP Status Codes not covered by `check_generation_status` documentatio
 
 ### POST "/v1/generate\_detached\_file"
 
-This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted. This route is used for file generation **independent** from a submission.
+This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted. This route is used for file generation **independent** from a submission. For more details on how files are generated, see the [FileLogic.md](../FileLogic.md) file.
 
 #### Body (JSON)
 
@@ -1327,7 +1319,8 @@ This route sends a request to the backend to utilize the relevant external APIs 
     "cgac_code": "020",
     "start": "01/01/2016",
     "end": "03/31/2016",
-    "quarter": "Q1/2017",
+    "year": 2017,
+    "period": 3,
     "agency_type": "awarding"
 }
 ```
@@ -1342,7 +1335,10 @@ This route sends a request to the backend to utilize the relevant external APIs 
 - `frec_code` - **required if cgac\_code not provided** - the frec of the agency for which to generate the files for
 - `start` - **required for D file generation** - the start date of the requested date range, in `MM/DD/YYYY` string format
 - `end` - **required for D file generation** - the end date of the requested date range, in `MM/DD/YYYY` string format
-- `quarter` - **required for A file generation** - the quarter for which to generate an A file, in `Q#/YYYY` format where # is a number 1-4
+- `year` - **required for A file generation** - an integer indicating the year for which to generate an A file
+- `period` - **required for A file generation** - an integer indicating the period for which to generate an A file
+    - Allowed values: 2-12
+    - 2 indicates November of the previous year, 12 indicates September of the selected year
 - `agency_type` - **optional** - a string indicating if the file generated should be based on awarding or funding agency. Ignored in A file generation. Defaults to `awarding` if not provided. Only allowed values are:
     - `awarding`
     - `funding`
