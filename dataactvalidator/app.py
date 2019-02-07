@@ -128,7 +128,8 @@ def validator_process_file_generation(file_gen_id):
                                           JOB_STATUS_DICT['running']]:
                         mark_job_status(job.job_id, 'failed')
                         sess.refresh(job)
-                        job.update({'file_generation_id': None, 'error_message': str(e)}, synchronize_session=False)
+                        job.file_generation_id = None
+                        job.error_message = str(e)
                 sess.commit()
         except:
             pass
@@ -188,7 +189,7 @@ def validator_process_job(job_id, agency_code):
             logger.error(error_data)
 
             sess.refresh(job)
-            job.update({'error_message': str(e)}, synchronize_session=False)
+            job.error_message = str(e)
             if job.filename is not None:
                 error_type = ValidationError.unknownError
                 if isinstance(e, UnicodeDecodeError):
@@ -220,7 +221,7 @@ def validator_process_job(job_id, agency_code):
             mark_job_status(job_id, 'failed')
 
             sess.refresh(job)
-            job.update({'error_message': str(e)}, synchronize_session=False)
+            job.error_message = str(e)
             sess.commit()
         except:
             pass

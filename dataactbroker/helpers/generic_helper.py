@@ -1,9 +1,12 @@
 import re
 import calendar
 
+from suds.client import Client
+
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.sql.sqltypes import String, DateTime, NullType, Date
 
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
@@ -99,6 +102,16 @@ def format_internal_tas(row):
     mac = row['main_account_code'].strip() if row['main_account_code'] and row['main_account_code'].strip() else '0000'
     sac = row['sub_account_code'].strip() if row['sub_account_code'] and row['sub_account_code'].strip() else '000'
     return ''.join([ata, aid, bpoa, epoa, atc, mac, sac])
+
+
+def get_client():
+    """ Get the Client to access SAM. """
+    try:
+        client = Client(CONFIG_BROKER['sam']['wsdl'])
+    except ConnectionResetError:
+        raise ResponseException("Unable to contact SAM service, which may be experiencing downtime or intermittent "
+                                "performance issues. Please try again later.", StatusCode.NOT_FOUND)
+    return client
 
 
 def generate_raw_quoted_query(queryset):

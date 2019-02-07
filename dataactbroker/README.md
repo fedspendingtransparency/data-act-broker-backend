@@ -1268,14 +1268,14 @@ Example output:
 ```
 
 ## Generate Files
-### POST "/v1/generate\_file"
+### POST "/v1/generate\_file/"
 This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted. This route is used for file generation **within** a submission.
 
 #### Sample Request Body (JSON)
 ```
 {
     "submission_id": 123,
-    "file_type": "D1"
+    "file_type": "D1",
     "start": "01/01/2016",
     "end": "03/31/2016",
     "agency_type": "awarding"
