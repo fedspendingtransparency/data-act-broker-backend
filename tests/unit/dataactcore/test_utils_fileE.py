@@ -139,7 +139,7 @@ def test_retrieve_rows(monkeypatch):
     )
     mock_client = Mock()
     mock_client.return_value.service.getEntities.return_value = mock_result
-    monkeypatch.setattr(fileE, 'Client', mock_client)
+    monkeypatch.setattr(fileE, 'get_client', mock_client)
 
     rows = fileE.retrieve_rows(['duns1', 'duns2'])
     assert len(rows) == 2
