@@ -72,7 +72,7 @@ def write_query_to_file(local_filename, upload_name, header, file_type, is_local
     # save psql command with query to a temp file
     temp_sql_file, temp_sql_file_path = generate_temp_query_file(raw_query)
 
-    logger.debug({  
+    logger.debug({
         'message': 'Writing query to csv',
         'message_type': 'BrokerDebug',
         'upload_name': upload_name,
