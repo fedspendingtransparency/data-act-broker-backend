@@ -577,4 +577,3 @@ def gen_file_path_from_submission(submission, original_filename):
     local_filepath = CONFIG_BROKER['broker_files']
     nonlocal_filepath = '{}/'.format(submission)
     return '{}{}'.format(local_filepath if CONFIG_BROKER['local'] else nonlocal_filepath, original_filename)
-
