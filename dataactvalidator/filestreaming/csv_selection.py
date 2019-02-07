@@ -142,7 +142,6 @@ def generate_temp_query_file(query):
 
         Args:
             query: string query to populate the csv file
-
     """
     logger.debug('Creating PSQL Query: {}'.format(query))
 
@@ -161,7 +160,6 @@ def execute_psql(temp_sql_file_path, source_path, database_string):
             temp_sql_file_path: the
             source_path: output path of the csv
             database_string: connection string to the database
-
     """
     try:
         log_time = time.time()
