@@ -1,8 +1,48 @@
 import re
 import calendar
 
+from sqlalchemy.dialects.postgresql.base import PGDialect
+from sqlalchemy.sql.sqltypes import String, DateTime, NullType, Date
+
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+
+
+class StringLiteral(String):
+    """ Teach SA how to literalize various things """
+
+    def literal_processor(self, dialect):
+        """ Overwritten method to populate variables in SQL """
+
+        super_processor = super(StringLiteral, self).literal_processor(dialect)
+
+        def process(value):
+            """ Overwritten method to populate variables in SQL """
+
+            if isinstance(value, int):
+                return str(value)
+            if not isinstance(value, str):
+                value = str(value)
+            result = super_processor(value)
+            if isinstance(result, bytes):
+                result = result.decode(dialect.encoding)
+            return result
+        return process
+
+
+class LiteralDialect(PGDialect):
+    """ Special type to populate variables in SQL """
+
+    colspecs = {
+        # prevent various encoding explosions
+        String: StringLiteral,
+        # teach SA about how to literalize a datetime
+        DateTime: StringLiteral,
+        # teach SA about how to literalize a datetime
+        Date: StringLiteral,
+        # don't format py2 long integers to NULL
+        NullType: StringLiteral,
+    }
 
 
 def year_period_to_dates(year, period):
@@ -59,3 +99,16 @@ def format_internal_tas(row):
     mac = row['main_account_code'].strip() if row['main_account_code'] and row['main_account_code'].strip() else '0000'
     sac = row['sub_account_code'].strip() if row['sub_account_code'] and row['sub_account_code'].strip() else '000'
     return ''.join([ata, aid, bpoa, epoa, atc, mac, sac])
+
+
+def generate_raw_quoted_query(queryset):
+    """ Generates the raw sql from a queryset
+
+        Args:
+            queryset: SQLAlchemy object to parse
+
+        Returns:
+            raw SQL string equivalent to the queryset
+    """
+    return str(queryset.statement.compile(dialect=LiteralDialect(), compile_kwargs={"literal_binds": True}))\
+        .replace('\n', ' ')
