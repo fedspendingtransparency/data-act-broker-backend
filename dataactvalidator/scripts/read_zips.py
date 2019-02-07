@@ -28,7 +28,7 @@ def hot_swap_zip_tables(sess):
     """ Drop the existing zips table, rename the temp_zips table, and rename all the indexes in a transaction.
 
         Args:
-            sess: the database connection 
+            sess: the database connection
     """
     # Getting indexes before dropping the table
     indexes = Zips.__table__.indexes
@@ -80,7 +80,7 @@ def update_state_congr_table_census(census_file, sess):
     """ Update contents of state_congressional table to include districts from the census
 
         Args:
-            census_file: file path/url to the census file to read 
+            census_file: file path/url to the census file to read
             sess: the database connection
     """
     logger.info("Adding congressional districts from census to the state_congressional table")
