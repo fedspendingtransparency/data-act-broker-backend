@@ -3,9 +3,9 @@ import pandas as pd
 import time
 import sys
 from sqlalchemy import and_, func
-from suds.client import Client
 
-from dataactcore.config import CONFIG_BROKER
+from dataactbroker.helpers.generic_helper import get_client
+
 from dataactcore.utils.fileE import config_valid, get_entities
 from dataactcore.models.domainModels import DUNS
 from dataactcore.utils.duns import load_duns_by_row
@@ -23,7 +23,7 @@ def sam_config_is_valid():
             client object representing the SAM service
     """
     if config_valid():
-        return Client(CONFIG_BROKER['sam']['wsdl'])
+        return get_client()
     else:
         logger.error({
             'message': "Invalid SAM wsdl config",
