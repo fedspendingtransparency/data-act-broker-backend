@@ -35,20 +35,22 @@ def hot_swap_zip_tables(sess):
 
     logger.info("Hot swapping temporary zips table to official zips table.")
 
-    # Do everything in a transaction so it doesn't affect anything until it's completely done
-    sess.execute("BEGIN;")
+    #
+    sess.execute(
+        """-- Do everything in a transaction so it doesn't affect anything until it's completely done
+            BEGIN;
 
-    # Make sure the sequence remains
-    sess.execute("ALTER SEQUENCE zips_zips_id_seq OWNED BY temp_zips.zips_id")
+            -- Make sure the sequence remains
+            ALTER SEQUENCE zips_zips_id_seq OWNED BY temp_zips.zips_id;
 
-    # Drop old zips table and rename the temporary one
-    sess.execute("DROP TABLE zips;")
-    sess.execute("ALTER TABLE temp_zips "
-                 "RENAME TO zips;")
+            -- Drop old zips table and rename the temporary one
+            DROP TABLE zips;
+            ALTER TABLE temp_zips RENAME TO zips;
 
-    # Rename all the indexes and constraints to match what they were in the original zips table
-    sess.execute("ALTER INDEX temp_zips_pkey RENAME TO zips_pkey;")
-    sess.execute("ALTER INDEX temp_zips_zip5_zip_last4_key RENAME TO uniq_zip5_zip_last4;")
+            -- Rename the PKs and constraints to match what they were in the original zips table
+            ALTER INDEX temp_zips_pkey RENAME TO zips_pkey;
+            ALTER INDEX temp_zips_zip5_zip_last4_key RENAME TO uniq_zip5_zip_last4;""")
+
     # Get all the indexes swapped out
     for index in indexes:
         index_name = index.name.replace('ix_', '')
@@ -132,6 +134,7 @@ def add_to_table(data, sess):
                          'congressional_district_no) VALUES {} '
                          'ON CONFLICT DO NOTHING'.format(new_zip))
 
+            # Printing every 1000 rows in each batch
             if i % 1000 == 0:
                 logger.info("Inserting row %s of current batch", str(i))
             i += 1
