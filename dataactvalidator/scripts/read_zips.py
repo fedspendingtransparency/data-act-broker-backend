@@ -35,27 +35,28 @@ def hot_swap_zip_tables(sess):
 
     logger.info("Hot swapping temporary zips table to official zips table.")
 
-    #
-    sess.execute(
-        """-- Do everything in a transaction so it doesn't affect anything until it's completely done
-            BEGIN;
+    sql_string = """-- Do everything in a transaction so it doesn't affect anything until it's completely done
+                    BEGIN;
 
-            -- Make sure the sequence remains
-            ALTER SEQUENCE zips_zips_id_seq OWNED BY temp_zips.zips_id;
+                    -- Make sure the sequence remains
+                    ALTER SEQUENCE zips_zips_id_seq OWNED BY temp_zips.zips_id;
 
-            -- Drop old zips table and rename the temporary one
-            DROP TABLE zips;
-            ALTER TABLE temp_zips RENAME TO zips;
+                    -- Drop old zips table and rename the temporary one
+                    DROP TABLE zips;
+                    ALTER TABLE temp_zips RENAME TO zips;
 
-            -- Rename the PKs and constraints to match what they were in the original zips table
-            ALTER INDEX temp_zips_pkey RENAME TO zips_pkey;
-            ALTER INDEX temp_zips_zip5_zip_last4_key RENAME TO uniq_zip5_zip_last4;""")
+                    -- Rename the PKs and constraints to match what they were in the original zips table
+                    ALTER INDEX temp_zips_pkey RENAME TO zips_pkey;
+                    ALTER INDEX temp_zips_zip5_zip_last4_key RENAME TO uniq_zip5_zip_last4;
+
+                    -- Swap out indexes"""
 
     # Get all the indexes swapped out
     for index in indexes:
         index_name = index.name.replace('ix_', '')
-        sess.execute("ALTER INDEX temp_{}_idx RENAME TO ix_{}".format(index_name, index_name))
-    sess.execute("COMMIT;")
+        sql_string += "\nALTER INDEX temp_{}_idx RENAME TO ix_{};".format(index_name, index_name)
+    sql_string += "COMMIT;"
+    sess.execute(sql_string)
 
 
 def update_state_congr_table_current(sess):
