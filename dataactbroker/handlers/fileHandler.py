@@ -47,6 +47,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
+from dataactvalidator.validation_handlers.file_generation_manager import GEN_FILENAMES
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ class FileHandler:
     # 1024 sounds like a good chunk size, we can change if needed
     CHUNK_SIZE = 1024
     FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
-    EXTERNAL_FILE_TYPES = ["award", "award_procurement", "executive_compensation", "sub_award"]
+    EXTERNAL_FILE_TYPES = ["D2", "D1", "E", "F"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
@@ -237,20 +238,20 @@ class FileHandler:
             if not existing_submission:
                 # don't add external files to existing submission
                 for ext_file_type in FileHandler.EXTERNAL_FILE_TYPES:
-                    filename = CONFIG_BROKER["".join([ext_file_type, "_file_name"])]
-
+                    filename = GEN_FILENAMES[ext_file_type]
+                    if ext_file_type in ['D1', 'D2']:
+                        filename = filename.format('awarding')  # default to using awarding agency
                     if not self.is_local:
-                        upload_name = "{}/{}".format(
-                            submission.submission_id,
-                            S3Handler.get_timestamped_filename(filename)
-                        )
+                        upload_name = "{}/{}".format(submission.submission_id,
+                                                     S3Handler.get_timestamped_filename(filename))
                     else:
                         upload_name = filename
+
                     upload_files.append(FileHandler.UploadFile(
-                        file_type=ext_file_type,
+                        file_type=FILE_TYPE_DICT_LETTER_NAME[ext_file_type],
                         upload_name=upload_name,
                         file_name=filename,
-                        file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[ext_file_type]]
+                        file_letter=ext_file_type
                     ))
 
             # Add jobs or update existing ones
@@ -1234,25 +1235,29 @@ def process_job_status(jobs, response_content):
     validation = None
     upload_status = ''
     validation_status = ''
+    upload_em = ''
+    validation_em = ''
     for job in jobs:
         if job['job_type'] == JOB_TYPE_DICT['file_upload']:
             upload = job
             upload_status = JOB_STATUS_DICT_ID[job['job_status']]
+            upload_em = upload['error_message']
         else:
             validation = job
             validation_status = JOB_STATUS_DICT_ID[job['job_status']]
+            validation_em = validation['error_message']
 
     # checking for failures
     if upload_status == 'invalid' or upload_status == 'failed' or validation_status == 'failed':
         response_content['status'] = 'failed'
         response_content['has_errors'] = True
-        response_content['message'] = upload['error_message'] or validation['error_message'] or ''
+        response_content['message'] = upload_em or validation_em or ''
         return response_content
 
     if validation_status == 'invalid':
         response_content['status'] = 'finished'
         response_content['has_errors'] = True
-        response_content['message'] = upload['error_message'] or validation['error_message'] or ''
+        response_content['message'] = upload_em or validation_em or ''
         return response_content
 
     # If upload job exists and hasn't started or if it doesn't exist and validation job hasn't started,

@@ -271,7 +271,7 @@ mapping = OrderedDict([
 db_columns = [val for key, val in mapping.items()]
 
 
-def query_data(session, agency_code, agency_type, start, end, page_start, page_stop):
+def query_data(session, agency_code, agency_type, start, end):
     """ Request D1 file data
 
         Args:
@@ -280,11 +280,9 @@ def query_data(session, agency_code, agency_type, start, end, page_start, page_s
             agency_type: The type of agency (awarding or funding) to generate the file for
             start: Beginning of period for D file
             end: End of period for D file
-            page_start: Beginning of pagination
-            page_stop: End of pagination
 
         Returns:
-            The rows using the provided dates and page size for the given agency.
+            The rows using the provided dates for the given agency.
     """
     rows = initial_query(session).\
         filter(func.cast_as_date(file_model.action_date) >= start).\
@@ -295,9 +293,6 @@ def query_data(session, agency_code, agency_type, start, end, page_start, page_s
         rows = rows.filter(file_model.funding_agency_code == agency_code)
     else:
         rows = rows.filter(file_model.awarding_agency_code == agency_code)
-
-    # Slice the final query
-    rows = rows.slice(page_start, page_stop)
 
     return rows
 

@@ -2,7 +2,12 @@ from collections import namedtuple
 import logging
 from operator import attrgetter
 
-from suds.client import Client
+import urllib.error
+
+from dataactbroker.helpers.generic_helper import get_client
+
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.validationModels import FileColumn
@@ -14,8 +19,11 @@ logger = logging.getLogger(__name__)
 
 
 def config_valid():
-    """Does the config have the necessary bits for talking to the SAM SOAP
-    API"""
+    """ Does the config have the necessary bits for talking to the SAM SOAP API
+
+        Returns:
+            A boolean indicating whether the configs have a wsdl, user, and password defined
+    """
     sam = CONFIG_BROKER.get('sam') or {}
     has_wsdl = bool(sam.get('wsdl'))
     has_user = bool(sam.get('username'))
@@ -24,6 +32,14 @@ def config_valid():
 
 
 def create_auth(client):
+    """ Creates an authentication key for the user provided.
+
+        Args:
+            client: an object containing information about the client
+
+        Returns:
+            An object containing details of authentication for a SAM user.
+    """
     auth = client.factory.create('userAuthenticationKeyType')
     auth.userID = CONFIG_BROKER['sam']['username']
     auth.password = CONFIG_BROKER['sam']['password']
@@ -31,6 +47,15 @@ def create_auth(client):
 
 
 def create_search(client, duns_list):
+    """ Creates a search criteria object
+
+        Args:
+            client: an object containing information about the client
+            duns_list: A list of DUNS to search for
+
+        Returns:
+            An object containing details of search criteria to use for the SAM query.
+    """
     search = client.factory.create('entitySearchCriteriaType')
     search.DUNSList = client.factory.create('DUNSList')
     search.DUNSList.DUNSNumber = duns_list
@@ -38,12 +63,31 @@ def create_search(client, duns_list):
 
 
 def get_entities(client, duns_list):
-    """Hit the SAM SOAP API, searching for the provided DUNS numbers. Return
-    the results as a list of Suds objects"""
+    """ Hit the SAM SOAP API, searching for the provided DUNS numbers. Return the results as a list of Suds objects.
+
+        Args:
+            client: an object containing information about the client
+            duns_list: A list of DUNS to search for
+
+        Returns:
+            A list of SAM entries for the provided DUNS or an empty list if there are no results.
+
+        Raises:
+            ValueError: If SAM credentials are not valid
+            ResponseException: If SAM is not responding
+    """
     params = client.factory.create('requestedData')
     params.coreData.value = 'Y'
 
-    result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
+    try:
+        result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
+    except urllib.error.HTTPError:
+        raise ResponseException("Unable to contact SAM service, which may be experiencing downtime or intermittent "
+                                "performance issues. Please try again later.", StatusCode.NOT_FOUND)
+
+    # If result is the string "-1" then our credentials aren't correct, inform the user of this
+    if result == "-1":
+        raise ValueError("Invalid SAM credentials, please contact the Service Desk.")
 
     if result.transactionInformation.transactionMessage:
         logger.warning({
@@ -75,8 +119,14 @@ Row = namedtuple('Row', (
 
 
 def suds_to_row(suds_obj):
-    """Convert a Suds result object into a Row tuple. This accounts for the
-    presence/absence of top-paid officers"""
+    """ Convert a Suds result object into a Row tuple. This accounts for the presence/absence of top-paid officers
+
+        Args:
+            suds_obj: a Suds object
+
+        Returns:
+            A row object containing all relevant data from the Suds object
+    """
     comp = getattr(suds_obj.coreData, 'listOfExecutiveCompensationInformation',
                    '')
     officers = []
@@ -102,11 +152,13 @@ def suds_to_row(suds_obj):
 
 
 def retrieve_rows(duns_list):
-    """Soup-to-nuts creates a list of Row tuples from a set of DUNS
-    numbers."""
+    """ Soup-to-nuts creates a list of Row tuples from a set of DUNS numbers.
+
+        Args:
+            duns_list: A list of DUNS to search for
+    """
     if config_valid():
-        client = Client(CONFIG_BROKER['sam']['wsdl'])
-        return [suds_to_row(e) for e in get_entities(client, duns_list)]
+        return [suds_to_row(e) for e in get_entities(get_client(), duns_list)]
     else:
         logger.error({
             'message': "Invalid sam config",
@@ -116,6 +168,11 @@ def retrieve_rows(duns_list):
 
 
 def row_to_dict(row):
+    """ Converts a row into a dictionary that can be stored in the executive_compensation table.
+
+        Args:
+            row: A row of executive_compensation data
+    """
     sess = GlobalDB.db().session
     col_names = sess.query(FileColumn.name, FileColumn.name_short).\
         filter(FileColumn.file_id == FILE_TYPE_DICT['executive_compensation']).all()
