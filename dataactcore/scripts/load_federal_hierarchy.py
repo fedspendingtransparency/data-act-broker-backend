@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
 API_URL = CONFIG_BROKER['sam']['federal_hierarchy_api_url'].format(CONFIG_BROKER['sam']['federal_hierarchy_api_key'])
-BUCKET_NAME = 'da-data-extracts'
+ARCHIVE_BUCKET = CONFIG_BROKER['archive_bucket']
 REQUESTS_AT_ONCE = 10
 
 
@@ -159,7 +159,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
 
                     # Upload raw file to S3
                     s3_resource = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
-                    s3_resource.meta.client.upload_file(filename, BUCKET_NAME, filename)
+                    s3_resource.meta.client.upload_file(filename, ARCHIVE_BUCKET, filename)
 
             if update_db:
                 office_codes = set(offices.keys())
