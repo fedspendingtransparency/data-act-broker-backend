@@ -70,7 +70,7 @@ def write_query_to_file(local_filename, upload_name, header, file_type, is_local
     # get the raw SQL equivalent
     raw_query = generate_raw_quoted_query(query_func(query_utils))
     # save psql command with query to a temp file
-    temp_sql_file, temp_sql_file_path = generate_temp_query_file(raw_query)
+    temp_sql_file, temp_sql_file_path = generate_temp_query_file(raw_query, header=False)
 
     logger.debug({
         'message': 'Writing query to csv',
@@ -134,7 +134,7 @@ def stream_file_to_s3(upload_name, reader, is_certified=False):
     s3_resource.Object(bucket_name, upload_name).put(Body=reader)
 
 
-def generate_temp_query_file(query):
+def generate_temp_query_file(query, header=True):
     """ Generates a temporary file containing the shell command to create the csv
         Reason for this being that the query can be too long for shell to process via subprocess
 
@@ -146,7 +146,8 @@ def generate_temp_query_file(query):
     # Create a unique temporary file to hold the raw query, using \copy
     (temp_sql_file, temp_sql_file_path) = tempfile.mkstemp(prefix='b_sql_', dir='/tmp')
     with open(temp_sql_file_path, 'w') as file:
-        file.write('\copy ({}) To STDOUT with CSV'.format(query))
+        with_header = ' HEADER' if header else ''
+        file.write('\copy ({}) To STDOUT with CSV{}'.format(query, with_header))
 
     return temp_sql_file, temp_sql_file_path
 
