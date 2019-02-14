@@ -7,6 +7,7 @@ import pandas as pd
 import requests
 import sys
 import time
+import boto3
 
 from datetime import datetime
 from pandas.io.json import json_normalize
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
 API_URL = CONFIG_BROKER['sam']['federal_hierarchy_api_url'].format(CONFIG_BROKER['sam']['federal_hierarchy_api_key'])
+ARCHIVE_BUCKET = CONFIG_BROKER['archive_bucket']
 REQUESTS_AT_ONCE = 10
 
 
@@ -41,6 +43,8 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
     office_levels = ["3", "4", "5", "6", "7"]
 
     if filename:
+        logger.info("Creating a file ({}) with the data from this pull".format(filename))
+
         # Write headers to file
         file_headers = [
             "fhorgid", "fhorgname", "fhorgtype", "description", "level", "status", "region", "categoryid",
@@ -147,6 +151,14 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
                 # Write to file
                 with open(filename, 'a') as f:
                     dataframe.to_csv(f, index=False, header=False, columns=file_headers)
+
+                # Upload file if AWS is available
+                if CONFIG_BROKER["use_aws"]:
+                    logger.info("Uploading file ({}) with the data from this pull".format(filename))
+
+                    # Upload raw file to S3
+                    s3_resource = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
+                    s3_resource.meta.client.upload_file(filename, ARCHIVE_BUCKET, filename)
 
             if update_db:
                 office_codes = set(offices.keys())
@@ -256,7 +268,8 @@ def get_with_exception_hand(url_string):
 def main():
     parser = argparse.ArgumentParser(description='Pull data from the Federal Hierarchy API.')
     parser.add_argument('-a', '--all', help='Clear out the database and get historical data', action='store_true')
-    parser.add_argument('-f', '--filename', help='Generate a local CSV file from the data.', nargs=1, type=str)
+    parser.add_argument('-f', '--filename', help='Generate a local CSV file from the data. '
+                                                 'Note, this uploads said file if use_aws is true.', nargs=1, type=str)
     parser.add_argument('-d', '--pull_date', help='Date from which to start the pull', nargs=1, type=str)
     parser.add_argument('-i', '--ignore_db', help='Do not update the DB tables', action='store_true')
     args = parser.parse_args()
@@ -286,8 +299,6 @@ def main():
 
     # Handle the filename parameter
     filename = args.filename[0] if args.filename else None
-    if filename:
-        logger.info("Creating a file ({}) with the data from this pull".format(filename))
 
     # Handle a complete data reload
     if args.all and not args.ignore_db:
