@@ -40,8 +40,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
             updated_date_from: Date to pull data from. Defaults to the date of the most recently updated Office.
     """
     logger.info('Starting feed: %s', API_URL.replace(CONFIG_BROKER['sam']['federal_hierarchy_api_key'], "[API_KEY]"))
-    # office_levels = ["3", "4", "5", "6", "7"]
-    office_levels = ["4", "5", "6", "7"]
+    office_levels = ["3", "4", "5", "6", "7"]
 
     if filename:
         logger.info("Creating a file ({}) with the data from this pull".format(filename))
