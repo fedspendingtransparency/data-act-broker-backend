@@ -7,6 +7,7 @@ import pandas as pd
 import requests
 import sys
 import time
+import os
 
 from datetime import datetime
 from pandas.io.json import json_normalize
@@ -19,6 +20,8 @@ from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import Office, SubTierAgency
 
 from dataactvalidator.health_check import create_app
+from dataactvalidator.filestreaming.csv_selection import generate_temp_query_file, execute_psql
+from dataactbroker.helpers.generic_helper import generate_raw_quoted_query
 
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -27,7 +30,7 @@ API_URL = CONFIG_BROKER['sam']['federal_hierarchy_api_url'].format(CONFIG_BROKER
 REQUESTS_AT_ONCE = 10
 
 
-def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
+def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_office):
     """ Pull Office data from the Federal Hierarchy API and update the DB, return it as a file, or both.
 
         Args:
@@ -167,6 +170,18 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from):
     if update_db:
         sess.commit()
 
+    if export_office:
+        all_offices = sess.query(Office)
+
+        # generate psql temp file
+        raw_query = generate_raw_quoted_query(all_offices)
+        temp_sql_file, temp_sql_file_path = generate_temp_query_file(raw_query)
+
+        # export to csv
+        database_string = str(sess.bind.url)
+        execute_psql(temp_sql_file_path, export_office, database_string)
+        os.remove(temp_sql_file_path)
+
     if empty_pull_count == len(office_levels):
         logger.error("No records retrieved from the Federal Hierarchy API")
         sys.exit(3)
@@ -257,6 +272,8 @@ def main():
     parser = argparse.ArgumentParser(description='Pull data from the Federal Hierarchy API.')
     parser.add_argument('-a', '--all', help='Clear out the database and get historical data', action='store_true')
     parser.add_argument('-f', '--filename', help='Generate a local CSV file from the data.', nargs=1, type=str)
+    parser.add_argument('-o', '--export_office', help='Export the current office table. '
+                                                      'Please provide the file name/path.', nargs=1, type=str)
     parser.add_argument('-d', '--pull_date', help='Date from which to start the pull', nargs=1, type=str)
     parser.add_argument('-i', '--ignore_db', help='Do not update the DB tables', action='store_true')
     args = parser.parse_args()
@@ -289,13 +306,18 @@ def main():
     if filename:
         logger.info("Creating a file ({}) with the data from this pull".format(filename))
 
+    # Handle the export office parameter
+    export_office = args.export_office[0] if args.export_office else None
+    if export_office:
+        logger.info("Creating a file ({}) with the data from the database".format(filename))
+
     # Handle a complete data reload
     if args.all and not args.ignore_db:
         logger.info("Emptying out the Office table for a complete reload.")
         sess.execute('''TRUNCATE TABLE office RESTART IDENTITY''')
 
     try:
-        pull_offices(sess, filename, not args.ignore_db, args.all, updated_date_from)
+        pull_offices(sess, filename, not args.ignore_db, args.all, updated_date_from, export_office)
     except Exception as e:
         logger.error(str(e))
         sys.exit(1)
