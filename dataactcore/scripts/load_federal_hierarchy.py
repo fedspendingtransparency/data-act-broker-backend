@@ -7,7 +7,6 @@ import pandas as pd
 import requests
 import sys
 import time
-import os
 
 from datetime import datetime
 from pandas.io.json import json_normalize
@@ -20,8 +19,7 @@ from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import Office, SubTierAgency
 
 from dataactvalidator.health_check import create_app
-from dataactvalidator.filestreaming.csv_selection import generate_temp_query_file, execute_psql
-from dataactbroker.helpers.generic_helper import generate_raw_quoted_query
+from dataactvalidator.filestreaming.csv_selection import write_query_to_file
 
 logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -41,7 +39,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             updated_date_from: Date to pull data from. Defaults to the date of the most recently updated Office.
     """
     logger.info('Starting feed: %s', API_URL.replace(CONFIG_BROKER['sam']['federal_hierarchy_api_key'], "[API_KEY]"))
-    office_levels = ["3", "4", "5", "6", "7"]
+    office_levels = ["4", "5", "6", "7"]
 
     if filename:
         # Write headers to file
@@ -172,15 +170,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
 
     if export_office:
         all_offices = sess.query(Office)
-
-        # generate psql temp file
-        raw_query = generate_raw_quoted_query(all_offices)
-        temp_sql_file, temp_sql_file_path = generate_temp_query_file(raw_query)
-
-        # export to csv
-        database_string = str(sess.bind.url)
-        execute_psql(temp_sql_file_path, export_office, database_string)
-        os.remove(temp_sql_file_path)
+        write_query_to_file(sess, all_offices, export_office)
 
     if empty_pull_count == len(office_levels):
         logger.error("No records retrieved from the Federal Hierarchy API")
