@@ -443,7 +443,8 @@ def test_certify_dabs_submission_revalidation_needed(database):
         response_json = json.loads(response.data.decode('UTF-8'))
         assert response.status_code == 400
         assert response_json['message'] == "This submission has not been validated since before the revalidation " \
-                                           "threshold, it must be revalidated before certifying."
+                                           "threshold ({}), it must be revalidated before certifying.".\
+            format(now.strftime('%Y-%m-%d %H:%M:%S'))
 
 
 @pytest.mark.usefixtures("job_constants")
