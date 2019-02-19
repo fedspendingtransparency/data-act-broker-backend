@@ -12,7 +12,7 @@ from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JO
                                         FILE_TYPE_DICT)
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
-                                          CertifyHistory, RevalidationThreshold)
+                                          CertifyHistory, RevalidationThreshold, QuarterlyRevalidationThreshold)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
                                               CertifiedAwardFinancial)
@@ -600,13 +600,31 @@ def certify_dabs_submission(submission, file_manager):
         if window.block_certification:
             return JsonResponse.error(ValueError(window.message), StatusCode.CLIENT_ERROR)
 
+    sess = GlobalDB.db().session
+    # Get the year/quarter of the submission and filter by them
+    sub_quarter = submission.reporting_fiscal_period // 3
+    sub_year = submission.reporting_fiscal_year
+    quarter_reval = sess.query(QuarterlyRevalidationThreshold).filter_by(year=sub_year, quarter=sub_quarter).\
+        one_or_none()
+
+    # If we don't have a quarterly revalidation threshold for this year/quarter, they can't submit
+    if not quarter_reval:
+        return JsonResponse.error(ValueError("No start date a submission period for this quarter was found. If this "
+                                             "is an error, please contact the Service Desk."), StatusCode.CLIENT_ERROR)
+
+    # Make sure everything was last validated after the start of the submission window
+    last_validated = datetime.strptime(get_last_validated_date(submission.submission_id), '%Y-%m-%dT%H:%M:%S')
+    if last_validated < quarter_reval.window_start:
+        return JsonResponse.error(ValueError("This submission was last validated before the start of the submission "
+                                             "window ({}). Please revalidate before certifying.".
+                                             format(quarter_reval.window_start.strftime('%m/%d/%Y'))),
+                                  StatusCode.CLIENT_ERROR)
+
     response = find_existing_submissions_in_period(submission.cgac_code, submission.frec_code,
                                                    submission.reporting_fiscal_year,
                                                    submission.reporting_fiscal_period, submission.submission_id)
 
     if response.status_code == StatusCode.OK:
-        sess = GlobalDB.db().session
-
         # create the certify_history entry
         certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=current_user_id,
                                          submission_id=submission.submission_id)
