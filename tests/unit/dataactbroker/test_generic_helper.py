@@ -2,7 +2,7 @@ import pytest
 import datetime
 from sqlalchemy import func, or_
 
-from dataactbroker.helpers.generic_helper import year_period_to_dates, generate_raw_quoted_query, date_to_year_quarter
+from dataactbroker.helpers.generic_helper import year_period_to_dates, generate_raw_quoted_query
 from dataactcore.models.jobModels import FileGeneration
 
 from dataactcore.utils.responseException import ResponseException
@@ -62,45 +62,6 @@ def test_year_period_to_dates_year_failure():
 
     assert resp_except.value.status == 400
     assert str(resp_except.value) == error_text
-
-
-def test_date_to_year_quarter():
-    """ Tests to make sure the year and quarter provided are what is expected. Also proves both date and datetime are
-        valid formats. 
-    """
-
-    # Dates in Oct should be Q1 of the next year (date)
-    year, quarter = date_to_year_quarter(datetime.date(2018, 10, 1))
-    assert year == 2019
-    assert quarter == 1
-
-    # Dates in other quarters should return the correct quarter with the same year (datetime)
-    year, quarter = date_to_year_quarter(datetime.datetime(2018, 5, 30))
-    assert year == 2018
-    assert quarter == 3
-
-    # Also testing the final month in a quarter just like we tested the first month in one
-    year, quarter = date_to_year_quarter(datetime.date(2018, 3, 30))
-    assert year == 2018
-    assert quarter == 2
-
-
-def test_date_to_year_quarter_fail():
-    """ Tests to make sure the date_to_year_quarter_fail throws an error for non-date values. """
-
-    # Test string (formatted as a date)
-    with pytest.raises(ResponseException) as resp_except:
-        date_to_year_quarter('2018/01/01')
-
-    assert resp_except.value.status == 400
-    assert str(resp_except.value) == 'Argument provided must be of type date or datetime'
-
-    # Test int
-    with pytest.raises(ResponseException) as resp_except:
-        date_to_year_quarter(25)
-
-    assert resp_except.value.status == 400
-    assert str(resp_except.value) == 'Argument provided must be of type date or datetime'
 
 
 def test_generate_raw_quoted_query(database):

@@ -84,29 +84,6 @@ def year_period_to_dates(year, period):
     return start, end
 
 
-def date_to_year_quarter(date):
-    """ Takes a date and returns the year and quarter it is a part of.
-
-        Args:
-            date: The date to find the year and quarter of
-
-        Returns:
-            The year and quarter of the provided date
-    """
-
-    # If the object provided is not of type date (also allows datetime), throw an error
-    if not isinstance(date, datetime.date):
-        raise ResponseException('Argument provided must be of type date or datetime', StatusCode.CLIENT_ERROR)
-
-    # Add three months so we can more easily get the proper year/quarter
-    date = date + relativedelta(months=3)
-
-    year = date.year
-    quarter = math.ceil(date.month / 3)
-
-    return year, quarter
-
-
 def format_internal_tas(row):
     """ Concatenate TAS components into a single field for internal use.
 
