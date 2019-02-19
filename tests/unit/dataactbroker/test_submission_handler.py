@@ -442,8 +442,8 @@ def test_certify_dabs_submission_quarterly_revalidation_not_in_db(database):
         response = certify_dabs_submission(submission, file_handler)
         response_json = json.loads(response.data.decode('UTF-8'))
         assert response.status_code == 400
-        assert response_json['message'] == "No submission period for this quarter was found. If this is an error, " \
-                                           "please contact the Service Desk."
+        assert response_json['message'] == "No submission window for this year and quarter was found. If this is an " \
+                                           "error, please contact the Service Desk."
 
 
 @pytest.mark.usefixtures("job_constants")

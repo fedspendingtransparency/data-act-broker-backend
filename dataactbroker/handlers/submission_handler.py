@@ -609,8 +609,8 @@ def certify_dabs_submission(submission, file_manager):
 
     # If we don't have a quarterly revalidation threshold for this year/quarter, they can't submit
     if not quarter_reval:
-        return JsonResponse.error(ValueError("No submission period for this quarter was found. If this is an error, "
-                                             "please contact the Service Desk."), StatusCode.CLIENT_ERROR)
+        return JsonResponse.error(ValueError("No submission window for this year and quarter was found. If this is an "
+                                             "error, please contact the Service Desk."), StatusCode.CLIENT_ERROR)
 
     # Make sure everything was last validated after the start of the submission window
     last_validated = datetime.strptime(get_last_validated_date(submission.submission_id), '%Y-%m-%dT%H:%M:%S')
