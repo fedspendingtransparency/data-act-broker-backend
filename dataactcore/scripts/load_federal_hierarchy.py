@@ -42,6 +42,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
     office_levels = ["4", "5", "6", "7"]
 
     if filename:
+        logger.info("Creating a file ({}) with the data from this pull".format(filename))
         # Write headers to file
         file_headers = [
             "fhorgid", "fhorgname", "fhorgtype", "description", "level", "status", "region", "categoryid",
@@ -169,6 +170,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
         sess.commit()
 
     if export_office:
+        logger.info("Creating a file ({}) with the data from the database".format(export_office))
         all_offices = sess.query(Office)
         write_query_to_file(sess, all_offices, export_office)
 
@@ -293,13 +295,9 @@ def main():
 
     # Handle the filename parameter
     filename = args.filename[0] if args.filename else None
-    if filename:
-        logger.info("Creating a file ({}) with the data from this pull".format(filename))
 
     # Handle the export office parameter
     export_office = args.export_office[0] if args.export_office else None
-    if export_office:
-        logger.info("Creating a file ({}) with the data from the database".format(filename))
 
     # Handle a complete data reload
     if args.all and not args.ignore_db:
