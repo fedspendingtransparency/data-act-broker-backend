@@ -2,7 +2,7 @@ from tests.unit.dataactcore.factories.domain import OfficeFactory
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
-_FILE = 'fabs38_detached_award_financial_assistance_4'
+_FILE = 'fabs38_detached_award_financial_assistance_4_1'
 
 
 def test_column_headers(database):
