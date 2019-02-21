@@ -84,7 +84,7 @@ def test_generate_raw_quoted_query(database):
 
     # Testing various filter logic
     q = sess.query(FileGeneration.created_at).filter(
-        or_(FileGeneration.file_generation_id == 1, FileGeneration.request_date > datetime.datetime(2018, 1, 15, 0, 0)),
+        or_(FileGeneration.file_generation_id == 1, FileGeneration.request_date > dt.datetime(2018, 1, 15, 0, 0)),
         FileGeneration.agency_code.like('A'),
         FileGeneration.file_path.is_(None),
         FileGeneration.agency_type.in_(['awarding', 'funding']),
@@ -108,6 +108,7 @@ def test_generate_raw_quoted_query(database):
                'FROM file_generation'
     assert generate_raw_quoted_query(q) == expected
 
+
 @pytest.mark.parametrize("raw_date, expected_fy", legal_dates.items())
 def test_fy_returns_integer(raw_date, expected_fy):
     assert isinstance(fy(raw_date), int)
@@ -120,7 +121,7 @@ def test_fy_returns_correct(raw_date, expected_fy):
 
 @pytest.mark.parametrize("not_date", not_dates)
 def test_fy_type_exceptions(not_date):
-    assert fy(None) == None
+    assert fy(None) is None
 
     with pytest.raises(TypeError):
         fy(not_date)

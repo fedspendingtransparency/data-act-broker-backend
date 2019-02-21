@@ -129,7 +129,14 @@ def generate_raw_quoted_query(queryset):
 
 
 def fy(raw_date):
-    """Federal fiscal year corresponding to date"""
+    """ Get fiscal year from date, datetime, or date string
+
+        Args:
+            raw_date: date to be parsed
+
+        Returns:
+            integer representing the fiscal year associated with the date
+    """
 
     if raw_date is None:
         return None
