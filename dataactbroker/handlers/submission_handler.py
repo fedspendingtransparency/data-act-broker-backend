@@ -601,6 +601,14 @@ def certify_dabs_submission(submission, file_manager):
             return JsonResponse.error(ValueError(window.message), StatusCode.CLIENT_ERROR)
 
     sess = GlobalDB.db().session
+    # Check revalidation threshold
+    reval_thresh = get_revalidation_threshold()['revalidation_threshold']
+    if reval_thresh and reval_thresh >= get_last_validated_date(submission.submission_id):
+        return JsonResponse.error(ValueError("This submission has not been validated since before the revalidation "
+                                             "threshold ({}), it must be revalidated before certifying.".
+                                             format(reval_thresh.replace('T', ' '))),
+                                  StatusCode.CLIENT_ERROR)
+
     # Get the year/quarter of the submission and filter by them
     sub_quarter = submission.reporting_fiscal_period // 3
     sub_year = submission.reporting_fiscal_year

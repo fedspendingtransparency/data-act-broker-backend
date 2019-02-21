@@ -401,6 +401,11 @@ def test_certify_dabs_submission(database, monkeypatch):
         sess.add(job)
         sess.commit()
 
+        job = JobFactory(submission_id=submission.submission_id, last_validated=now + datetime.timedelta(days=1),
+                         job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+        sess.add(job)
+        sess.commit()
+
         g.user = user
         file_handler = fileHandler.FileHandler({}, is_local=True)
         monkeypatch.setattr(file_handler, 'move_certified_files', Mock(return_value=True))
@@ -413,6 +418,39 @@ def test_certify_dabs_submission(database, monkeypatch):
         assert certify_history is not None
         assert submission.certifying_user_id == user.user_id
         assert submission.publish_status_id == PUBLISH_STATUS_DICT['published']
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_certify_dabs_submission_revalidation_needed(database):
+    """ Tests the certify_dabs_submission function preventing certification when revalidation threshold isn't met """
+    with Flask('test-app').app_context():
+        now = datetime.datetime.utcnow()
+        earlier = now - datetime.timedelta(days=1)
+        sess = database.session
+
+        user = UserFactory()
+        cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
+        submission = SubmissionFactory(created_at=earlier, updated_at=earlier, cgac_code=cgac.cgac_code,
+                                       reporting_fiscal_period=3, reporting_fiscal_year=2017, is_quarter_format=True,
+                                       publishable=True, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                       d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                       certifying_user_id=None)
+        reval = RevalidationThresholdFactory(revalidation_date=now)
+        sess.add_all([user, cgac, submission, reval])
+        sess.commit()
+        job = JobFactory(submission_id=submission.submission_id, last_validated=earlier,
+                         job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+        sess.add(job)
+        sess.commit()
+
+        g.user = user
+        file_handler = fileHandler.FileHandler({}, is_local=True)
+        response = certify_dabs_submission(submission, file_handler)
+        response_json = json.loads(response.data.decode('UTF-8'))
+        assert response.status_code == 400
+        assert response_json['message'] == "This submission has not been validated since before the revalidation " \
+                                           "threshold ({}), it must be revalidated before certifying.". \
+            format(now.strftime('%Y-%m-%d %H:%M:%S'))
 
 
 @pytest.mark.usefixtures("job_constants")
