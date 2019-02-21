@@ -163,7 +163,7 @@ mappings = OrderedDict([
     )), # ADDED # TODO: double check this will work
 
     # Sub-Award Properties
-    ('SubAwardType', lambda model: ), # ADDED
+    ('SubAwardType', lambda model: model), # ADDED # TODO: figure this out
     ('SubAwardReportYear', copy_prime_field('report_period_year')), # ADDED
     ('SubAwardReportMonth', copy_prime_field('report_period_mon')), # ADDED
     ('SubawardNumber', CopyValues('subcontract_num', 'subaward_num')),
