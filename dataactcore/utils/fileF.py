@@ -107,14 +107,14 @@ mappings = OrderedDict([
     )), # ADDED
     ('AwardingAgencyCode', CopyValues(award='awarding_agency_code')),  # ADDED
     ('AwardingAgencyName', CopyValues(award='awarding_agency_name')),  # ADDED
-    ('AwardingSubTierAgencyCode', CopyValues(procurement='contracting_office_aid', grant='')),  # ADDED # TODO: figure this out
-    ('AwardingSubTierAgencyName', CopyValues(procurement='contracting_office_aname', grant='')),  # ADDED # TODO: figure this out
+    ('AwardingSubTierAgencyCode', CopyValues(procurement='contracting_office_aid', grant='federal_agency_id')),  # ADDED # TODO: figure this out
+    ('AwardingSubTierAgencyName', CopyValues(procurement='contracting_office_aname', grant='federal_agency_name')),  # ADDED # TODO: figure this out
     ('AwardingOfficeCode', CopyValues(award='awarding_office_code', procurement='contracting_office_id')),  # ADDED # TODO: double check this will work
     ('AwardingOfficeName', CopyValues(award='awarding_office_name', procurement='contracting_office_name')),  # ADDED # TODO double check this will work
     ('FundingAgencyCode', CopyValues(award='awarding_office_code')),  # ADDED
     ('FundingAgencyName', CopyValues(award='awarding_office_name')),  # ADDED
-    ('FundingSubTierAgencyCode', copy_prime_field('funding_agency_id')),  # ADDED # TODO: figure this out
-    ('FundingSubTierAgencyName', copy_prime_field('federal_agency_id')),  # ADDED # TODO: figure this out
+    ('FundingSubTierAgencyCode', CopyValues(procurement='funding_agency_id', grant='federal_agency_id')),  # ADDED # TODO: figure this out
+    ('FundingSubTierAgencyName', CopyValues(procurement='funding_agency_name', grant='federal_agency_name')),  # ADDED # TODO: figure this out
     ('FundingOfficeCode', CopyValues(award='funding_office_code', procurement='funding_office_id')),  # ADDED # TODO: double check this will work
     ('FundingOfficeName', CopyValues(award='funding_office_name', procurement='funding_office_name')),  # ADDED # TODO: double check this will work
     ('AwardeeOrRecipientUniqueIdentifier', copy_prime_field('duns')),
@@ -164,8 +164,8 @@ mappings = OrderedDict([
 
     # Sub-Award Properties
     ('SubAwardType', lambda model: model), # ADDED # TODO: figure this out
-    ('SubAwardReportYear', copy_prime_field('report_period_year')), # ADDED
-    ('SubAwardReportMonth', copy_prime_field('report_period_mon')), # ADDED
+    ('SubAwardReportYear', copy_prime_field('report_period_year')), # ADDED # TODO: ask if prime or sub
+    ('SubAwardReportMonth', copy_prime_field('report_period_mon')), # ADDED # TODO: ask if prime or sub
     ('SubawardNumber', CopyValues('subcontract_num', 'subaward_num')),
     ('SubAwardAmount', CopyValues('subcontract_amount', 'subaward_amount')), # ADDED
     ('SubAwardActionDate', CopyValues('subcontract_date', 'subaward_date')), # RENAMED
@@ -216,7 +216,7 @@ mappings = OrderedDict([
     ('SubAwardeeHighCompOfficer5Amount', copy_subaward_field('top_paid_amount_5')),
 
     # ('PrimaryPlaceOfPerformanceAddressLine1', copy_prime_field('principle_place_street')), # REMOVED
-    # ('SubawardeePlaceOfPerformanceAddressLine1', copy_subaward_field('principle_place_street')), # REMOVED
+    # ('SubAwardeePlaceOfPerformanceAddressLine1', copy_subaward_field('principle_place_street')), # REMOVED
     # ('SubcontractAwardAmount', CopyValues(subcontract='subcontract_amount')), # REMOVED
     # ('TotalFundingAmount', CopyValues(subgrant='subaward_amount')), # REMOVED
     # ('NAICS', CopyValues(subcontract='naics')), # REMOVED
