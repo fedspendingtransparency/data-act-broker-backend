@@ -46,7 +46,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 
-from dataactvalidator.filestreaming.csv_selection import write_query_to_file
+from dataactvalidator.filestreaming.csv_selection import write_stream_query_func
 from dataactvalidator.validation_handlers.file_generation_manager import GEN_FILENAMES
 
 logger = logging.getLogger(__name__)
@@ -1070,8 +1070,8 @@ def create_fabs_published_file(sess, submission_id, new_route):
     upload_name = "".join([new_route, timestamped_name])
 
     # write file and stream to S3
-    write_query_to_file(local_filename, upload_name, [key for key in fileD2.mapping], "published FABS", g.is_local,
-                        published_fabs_query, {"sess": sess, "submission_id": submission_id}, is_certified=True)
+    write_stream_query_func(local_filename, upload_name, [key for key in fileD2.mapping], "published FABS", g.is_local,
+                            published_fabs_query, {"sess": sess, "submission_id": submission_id}, is_certified=True)
     return local_filename if g.is_local else upload_name
 
 
