@@ -600,13 +600,20 @@ def certify_dabs_submission(submission, file_manager):
         if window.block_certification:
             return JsonResponse.error(ValueError(window.message), StatusCode.CLIENT_ERROR)
 
+    # check revalidation threshold
+    sess = GlobalDB.db().session
+    reval_thresh = get_revalidation_threshold()['revalidation_threshold']
+    if reval_thresh and reval_thresh >= get_last_validated_date(submission.submission_id):
+        return JsonResponse.error(ValueError("This submission has not been validated since before the revalidation "
+                                             "threshold ({}), it must be revalidated before certifying.".
+                                             format(reval_thresh.replace('T', ' '))),
+                                  StatusCode.CLIENT_ERROR)
+
     response = find_existing_submissions_in_period(submission.cgac_code, submission.frec_code,
                                                    submission.reporting_fiscal_year,
                                                    submission.reporting_fiscal_period, submission.submission_id)
 
     if response.status_code == StatusCode.OK:
-        sess = GlobalDB.db().session
-
         # create the certify_history entry
         certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=current_user_id,
                                          submission_id=submission.submission_id)
