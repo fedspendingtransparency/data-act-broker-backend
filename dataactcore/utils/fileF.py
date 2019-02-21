@@ -151,7 +151,6 @@ mappings = OrderedDict([
         contract_fn=lambda contract: _country_name(contract.principle_place_country),
         grant_fn=lambda grant: _country_name(grant.principle_place_country)
     )), # ADDED
-    # ('PrimaryPlaceOfPerformanceAddressLine1', copy_prime_field('principle_place_street')), # TODO: Ask if this is needed
     ('AwardDescription', CopyValues(award='award_description', grant='project_description')), # ADDED # TODO: double check this will work
     ('NAICS', CopyValues(procurement='naics')), # ADDED
     ('NAICS_Description', lambda models: models.naics_desc), # ADDED TODO: double check this will work
@@ -204,7 +203,6 @@ mappings = OrderedDict([
         subcontract_fn=lambda subcontract: _country_name(subcontract.principle_place_country),
         subgrant_fn=lambda subgrant: _country_name(subgrant.principle_place_country)
     )),
-    # ('SubawardeePlaceOfPerformanceAddressLine1', copy_subaward_field('principle_place_street')), # TODO: Ask if this is needed
     ('SubAwardDescription', CopyValues('overall_description', 'project_description')),
     ('SubAwardeeHighCompOfficer1FullName', copy_subaward_field('top_paid_fullname_1')),
     ('SubAwardeeHighCompOfficer1Amount', copy_subaward_field('top_paid_amount_1')),
@@ -217,6 +215,8 @@ mappings = OrderedDict([
     ('SubAwardeeHighCompOfficer5FullName', copy_subaward_field('top_paid_fullname_5')),
     ('SubAwardeeHighCompOfficer5Amount', copy_subaward_field('top_paid_amount_5')),
 
+    # ('PrimaryPlaceOfPerformanceAddressLine1', copy_prime_field('principle_place_street')), # REMOVED
+    # ('SubawardeePlaceOfPerformanceAddressLine1', copy_subaward_field('principle_place_street')), # REMOVED
     # ('SubcontractAwardAmount', CopyValues(subcontract='subcontract_amount')), # REMOVED
     # ('TotalFundingAmount', CopyValues(subgrant='subaward_amount')), # REMOVED
     # ('NAICS', CopyValues(subcontract='naics')), # REMOVED
