@@ -65,6 +65,8 @@ class _GrantAttributes(_FSRSAttributes):
     project_description = Column(String)
     compensation_q1 = Column(Boolean)
     compensation_q2 = Column(Boolean)
+    federal_agency_id = Column(String)
+    federal_agency_name = Column(String)
 
 
 class _PrimeAwardAttributes:
