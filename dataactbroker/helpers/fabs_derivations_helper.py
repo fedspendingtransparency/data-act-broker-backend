@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from sqlalchemy import func, or_, DATE
 
-from dataactcore.models.domainModels import Zips, CityCode, ZipCity, DUNS, Office
+from dataactcore.models.domainModels import Zips, CityCode, ZipCity, DUNS
 from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
 from dataactcore.models.lookups import (ACTION_TYPE_DICT, ASSISTANCE_TYPE_DICT, CORRECTION_DELETE_IND_DICT,
                                         RECORD_TYPE_DICT, BUSINESS_TYPE_DICT, BUSINESS_FUNDS_IND_DICT)
@@ -300,15 +300,13 @@ def derive_office_data(obj, office_dict, sess):
             # No need to copy if new code isn't blank or old code is
             if not obj['awarding_office_code'] and first_transaction.awarding_office_code:
                 # Make sure the code we're copying is a valid awarding office code
-                valid_award_office = sess.query(Office.office_id).\
-                    filter_by(office_code=first_transaction.awarding_office_code, grant_office=True).one_or_none()
-                if valid_award_office:
+                award_office = office_dict.get(first_transaction.awarding_office_code)
+                if award_office and award_office['grant_office']:
                     obj['awarding_office_code'] = first_transaction.awarding_office_code
             if not obj['funding_office_code'] and first_transaction.funding_office_code:
                 # Make sure the code we're copying is a valid funding office code
-                valid_fund_office = sess.query(Office.office_id). \
-                    filter_by(office_code=first_transaction.funding_office_code, funding_office=True).one_or_none()
-                if valid_fund_office:
+                fund_office = office_dict.get(first_transaction.funding_office_code)
+                if fund_office and fund_office['funding_office']:
                     obj['funding_office_code'] = first_transaction.funding_office_code
 
     # Deriving awarding_office_name based off awarding_office_code

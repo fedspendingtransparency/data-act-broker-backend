@@ -623,7 +623,9 @@ class FileHandler:
             for office in offices:
                 office_dict[office.office_code] = {'office_name': office.office_name,
                                                    'sub_tier_code': office.sub_tier_code,
-                                                   'agency_code': office.agency_code}
+                                                   'agency_code': office.agency_code,
+                                                   'grant_office': office.grant_office,
+                                                   'funding_office': office.funding_office}
             del offices
 
             counties = sess.query(CountyCode).all()
