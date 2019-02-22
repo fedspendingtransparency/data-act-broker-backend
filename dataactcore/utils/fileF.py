@@ -107,8 +107,8 @@ mappings = OrderedDict([
     )),
     ('AwardingAgencyCode', CopyValues(award='awarding_agency_code')),
     ('AwardingAgencyName', CopyValues(award='awarding_agency_name')),
-    ('AwardingSubTierAgencyCode', CopyValues(procurement='contracting_office_aid', grant='federal_agency_id')),  # TODO: add federal_agency_id
-    ('AwardingSubTierAgencyName', CopyValues(procurement='contracting_office_aname', grant='federal_agency_name')),  # TODO: add federal_agency_name
+    ('AwardingSubTierAgencyCode', CopyValues(procurement='contracting_office_aid', grant='federal_agency_id')),
+    ('AwardingSubTierAgencyName', CopyValues(procurement='contracting_office_aname', grant='federal_agency_name')),
     ('AwardingOfficeCode', CopyValues(award='awarding_office_code', procurement='contracting_office_id')),
     ('AwardingOfficeName', CopyValues(award='awarding_office_name', procurement='contracting_office_name')),
     ('FundingAgencyCode', CopyValues(award='funding_agency_code')),
