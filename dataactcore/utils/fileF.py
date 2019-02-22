@@ -96,84 +96,84 @@ ModelRow.__new__.__defaults__ = (None, None, None, None, None)
 # matters as it defines the CSV column order
 mappings = OrderedDict([
     # Prime Award Properties
-    ('PrimeAwardUniqueKey', CopyValues('detached_award_proc_unique', 'afa_generated_unique')), # ADDED # TODO: figure this out
-    ('PrimeAwardReportID', CopyValues(procurement='contract_number', grant='fain')), # RENAMED
+    ('PrimeAwardUniqueKey', CopyValues('detached_award_proc_unique', 'afa_generated_unique')), # TODO: figure this out
+    ('PrimeAwardReportID', CopyValues(procurement='contract_number', grant='fain')),
     ('ParentAwardId', CopyValues(procurement='idv_reference_number')),
-    ('PrimeAwardAmount', CopyValues(procurement='dollars_obligated', grant='total_fed_funding_amount')), # ADDED
-    ('ActionDate', CopyValues(procurement='date_signed', grant='obligation_date')), # ADDED
+    ('PrimeAwardAmount', CopyValues(procurement='dollars_obligated', grant='total_fed_funding_amount')),
+    ('ActionDate', CopyValues(procurement='date_signed', grant='obligation_date')),
     ('PrimeAwardFiscalYear', CopyLogic(
         contract_fn=lambda contract: fy(contract.date_signed),
         grant_fn=lambda grant: fy(grant.obligation_date)
-    )), # ADDED
-    ('AwardingAgencyCode', CopyValues(award='awarding_agency_code')),  # ADDED
-    ('AwardingAgencyName', CopyValues(award='awarding_agency_name')),  # ADDED
-    ('AwardingSubTierAgencyCode', CopyValues(procurement='contracting_office_aid', grant='federal_agency_id')),  # ADDED # TODO: figure this out
-    ('AwardingSubTierAgencyName', CopyValues(procurement='contracting_office_aname', grant='federal_agency_name')),  # ADDED # TODO: figure this out
-    ('AwardingOfficeCode', CopyValues(award='awarding_office_code', procurement='contracting_office_id')),  # ADDED # TODO: double check this will work
-    ('AwardingOfficeName', CopyValues(award='awarding_office_name', procurement='contracting_office_name')),  # ADDED # TODO double check this will work
-    ('FundingAgencyCode', CopyValues(award='awarding_office_code')),  # ADDED
-    ('FundingAgencyName', CopyValues(award='awarding_office_name')),  # ADDED
-    ('FundingSubTierAgencyCode', CopyValues(procurement='funding_agency_id', grant='federal_agency_id')),  # ADDED # TODO: figure this out
-    ('FundingSubTierAgencyName', CopyValues(procurement='funding_agency_name', grant='federal_agency_name')),  # ADDED # TODO: figure this out
-    ('FundingOfficeCode', CopyValues(award='funding_office_code', procurement='funding_office_id')),  # ADDED # TODO: double check this will work
-    ('FundingOfficeName', CopyValues(award='funding_office_name', procurement='funding_office_name')),  # ADDED # TODO: double check this will work
+    )),
+    ('AwardingAgencyCode', CopyValues(award='awarding_agency_code')),
+    ('AwardingAgencyName', CopyValues(award='awarding_agency_name')),
+    ('AwardingSubTierAgencyCode', CopyValues(procurement='contracting_office_aid', grant='federal_agency_id')),  # TODO: add federal_agency_id
+    ('AwardingSubTierAgencyName', CopyValues(procurement='contracting_office_aname', grant='federal_agency_name')),  # TODO: add federal_agency_name
+    ('AwardingOfficeCode', CopyValues(award='awarding_office_code', procurement='contracting_office_id')),
+    ('AwardingOfficeName', CopyValues(award='awarding_office_name', procurement='contracting_office_name')),
+    ('FundingAgencyCode', CopyValues(award='funding_agency_code')),
+    ('FundingAgencyName', CopyValues(award='funding_agency_name')),
+    ('FundingSubTierAgencyCode', CopyValues(procurement='funding_agency_id')),
+    ('FundingSubTierAgencyName', CopyValues(procurement='funding_agency_name')),
+    ('FundingOfficeCode', CopyValues(award='funding_office_code', procurement='funding_office_id')),
+    ('FundingOfficeName', CopyValues(award='funding_office_name', procurement='funding_office_name')),
     ('AwardeeOrRecipientUniqueIdentifier', copy_prime_field('duns')),
-    ('AwardeeOrRecipientLegalEntityName', CopyValues(procurement='company_name', grant='awardee_name')), # ADDED
+    ('AwardeeOrRecipientLegalEntityName', CopyValues(procurement='company_name', grant='awardee_name')),
     ('Vendor Doing As Business Name', copy_prime_field('dba_name')),
-    ('UltimateParentUniqueIdentifier', copy_prime_field('parent_duns')), # ADDED
-    ('UltimateParentLegalEntityName', CopyValues(procurement='parent_company_name', grant='')), # ADDED # TODO: figure this outs
-    ('LegalEntityCountryCode', CopyValues(procurement='company_address_country', grant='awardee_address_country')), # ADDED
+    ('UltimateParentUniqueIdentifier', copy_prime_field('parent_duns')),
+    ('UltimateParentLegalEntityName', CopyValues(procurement='parent_company_name', grant='')), # TODO: for grant, derive from parent_duns
+    ('LegalEntityCountryCode', CopyValues(procurement='company_address_country', grant='awardee_address_country')),
     ('LegalEntityCountryName', CopyLogic(
         contract_fn=lambda contract: _country_name(contract.company_address_country),
         grant_fn=lambda grant: _country_name(grant.awardee_address_country)
-    )), # ADDED
-    ('LegalEntityAddressLine1', CopyValues(procurement='company_address_street', grant='awardee_address_street')), # ADDED
-    ('LegalEntityCityName', CopyValues(procurement='company_address_city', grant='awardee_address_city')), # ADDED
-    ('LegalEntityStateCode', CopyValues(procurement='company_address_state', grant='awardee_address_state')), # ADDED
-    ('LegalEntityStateName', CopyValues(procurement='company_address_state_name', grant='awardee_address_state_name')), # ADDED
+    )),
+    ('LegalEntityAddressLine1', CopyValues(procurement='company_address_street', grant='awardee_address_street')),
+    ('LegalEntityCityName', CopyValues(procurement='company_address_city', grant='awardee_address_city')),
+    ('LegalEntityStateCode', CopyValues(procurement='company_address_state', grant='awardee_address_state')),
+    ('LegalEntityStateName', CopyValues(procurement='company_address_state_name', grant='awardee_address_state_name')),
     ('LegalEntityZIP+4', CopyLogic(
         contract_fn=lambda contract: _zipcode_guard(contract, 'company_address', True),
         grant_fn=lambda grant: _zipcode_guard(grant, 'awardee_address', True)
-    )), # ADDED
-    ('LegalEntityCongressionalDistrict', CopyValues(procurement='company_address_district', grant='awardee_address_district')), # ADDED
+    )),
+    ('LegalEntityCongressionalDistrict', CopyValues(procurement='company_address_district',
+                                                    grant='awardee_address_district')),
     ('LegalEntityForeignPostalCode', CopyLogic(
         contract_fn=lambda contract: _zipcode_guard(contract, 'company_address', False),
         grant_fn=lambda grant: _zipcode_guard(grant, 'awardee_address', False)
-    )), # ADDED
-    ('PrimeAwardeeBusinessTypes', CopyValues(procurement='bus_types')), # ADDED
-    ('PrimaryPlaceOfPerformanceCityName', copy_prime_field('principle_place_city')), # ADDED
-    ('PrimaryPlaceOfPerformanceStateCode', copy_prime_field('principle_place_state')), # ADDED
-    ('PrimaryPlaceOfPerformanceStateName', copy_prime_field('principle_place_state_name')), # ADDED
-    ('PrimaryPlaceOfPerformanceZIP+4', copy_prime_field('principle_place_zip')), # ADDED
-    ('PrimaryPlaceOfPerformanceCongressionalDistrict', copy_prime_field('principle_place_district')), # ADDED
-    ('PrimaryPlaceOfPerformanceCountryCode', copy_prime_field('principle_place_country')), # ADDED
+    )),
+    ('PrimeAwardeeBusinessTypes', CopyValues(procurement='bus_types')),
+    ('PrimaryPlaceOfPerformanceCityName', copy_prime_field('principle_place_city')),
+    ('PrimaryPlaceOfPerformanceStateCode', copy_prime_field('principle_place_state')),
+    ('PrimaryPlaceOfPerformanceStateName', copy_prime_field('principle_place_state_name')),
+    ('PrimaryPlaceOfPerformanceZIP+4', copy_prime_field('principle_place_zip')),
+    ('PrimaryPlaceOfPerformanceCongressionalDistrict', copy_prime_field('principle_place_district')),
+    ('PrimaryPlaceOfPerformanceCountryCode', copy_prime_field('principle_place_country')),
     ('PrimaryPlaceOfPerformanceCountryName', CopyLogic(
         contract_fn=lambda contract: _country_name(contract.principle_place_country),
         grant_fn=lambda grant: _country_name(grant.principle_place_country)
-    )), # ADDED
-    ('AwardDescription', CopyValues(award='award_description', grant='project_description')), # ADDED # TODO: double check this will work
-    ('NAICS', CopyValues(procurement='naics')), # ADDED
-    ('NAICS_Description', lambda models: models.naics_desc), # ADDED TODO: double check this will work
-    # ('CFDA_Numbers', CopyValues(grant='cfda_numbers')), # REMOVED
+    )),
+    ('AwardDescription', CopyValues(subcontract='overall_description', grant='project_description')),
+    ('NAICS', CopyValues(procurement='naics')),
+    ('NAICS_Description', lambda models: models.naics_desc),
     ('CFDA_Numbers', CopyLogic(
         grant_fn=lambda grant: _extract_naics(grant.cfda_numbers, 'numbers')
-    )), # ADDED # TODO: double check this will work
+    )),
     ('CFDA_Titles', CopyLogic(
         grant_fn=lambda grant: _extract_naics(grant.cfda_numbers, 'titles')
-    )), # ADDED # TODO: double check this will work
+    )),
 
     # Sub-Award Properties
-    ('SubAwardType', lambda model: model), # ADDED # TODO: figure this out
-    ('SubAwardReportYear', copy_prime_field('report_period_year')), # ADDED # TODO: ask if prime or sub
-    ('SubAwardReportMonth', copy_prime_field('report_period_mon')), # ADDED # TODO: ask if prime or sub
+    ('SubAwardType', lambda model: model), # TODO: figure this out
+    ('SubAwardReportYear', copy_prime_field('report_period_year')),
+    ('SubAwardReportMonth', copy_prime_field('report_period_mon')),
     ('SubawardNumber', CopyValues('subcontract_num', 'subaward_num')),
-    ('SubAwardAmount', CopyValues('subcontract_amount', 'subaward_amount')), # ADDED
-    ('SubAwardActionDate', CopyValues('subcontract_date', 'subaward_date')), # RENAMED
+    ('SubAwardAmount', CopyValues('subcontract_amount', 'subaward_amount')),
+    ('SubAwardActionDate', CopyValues('subcontract_date', 'subaward_date')),
     ('SubAwardeeOrRecipientUniqueIdentifier', copy_subaward_field('duns')),
     ('SubAwardeeOrRecipientLegalEntityName', CopyValues('company_name', 'awardee_name')),
     ('SubAwardeeDoingBusinessAsName', copy_subaward_field('dba_name')),
     ('SubAwardeeUltimateParentUniqueIdentifier', copy_subaward_field('parent_duns')),
-    ('SubAwardeeUltimateParentLegalEntityName', CopyValues(subcontract='parent_company_name')), # TODO: figure this out
+    ('SubAwardeeUltimateParentLegalEntityName', CopyValues(subcontract='parent_company_name')), # TODO: for grant, derive from parent_duns
     ('SubAwardeeLegalEntityCountryCode', CopyValues('company_address_country', 'awardee_address_country')),
     ('SubAwardeeLegalEntityCountryName', CopyLogic(
         subcontract_fn=lambda subcontract: _country_name(subcontract.company_address_country),
@@ -214,20 +214,6 @@ mappings = OrderedDict([
     ('SubAwardeeHighCompOfficer4Amount', copy_subaward_field('top_paid_amount_4')),
     ('SubAwardeeHighCompOfficer5FullName', copy_subaward_field('top_paid_fullname_5')),
     ('SubAwardeeHighCompOfficer5Amount', copy_subaward_field('top_paid_amount_5')),
-
-    # ('PrimaryPlaceOfPerformanceAddressLine1', copy_prime_field('principle_place_street')), # REMOVED
-    # ('SubAwardeePlaceOfPerformanceAddressLine1', copy_subaward_field('principle_place_street')), # REMOVED
-    # ('SubcontractAwardAmount', CopyValues(subcontract='subcontract_amount')), # REMOVED
-    # ('TotalFundingAmount', CopyValues(subgrant='subaward_amount')), # REMOVED
-    # ('NAICS', CopyValues(subcontract='naics')), # REMOVED
-    # ('NAICS_Description', lambda models: models.naics_desc), # REMOVED
-    # ('CFDA_NumberAndTitle', CopyValues(subgrant='cfda_numbers')), # REMOVED
-    # ('AwardingSubTierAgencyName', copy_subaward_field('funding_agency_name')), # REMOVED
-    # ('AwardingSubTierAgencyCode', copy_subaward_field('funding_agency_id')), # REMOVED
-    # ('AwardReportYear', copy_prime_field('report_period_year')), # REMOVED
-    # ('AwardReportMonth', copy_prime_field('report_period_mon')), # REMOVED
-    # ('RecModelQuestion1', CopyValues('recovery_model_q1', 'compensation_q1')), # REMOVED
-    # ('RecModelQuestion2', CopyValues('recovery_model_q2', 'compensation_q2')) # REMOVED
 ])
 
 
