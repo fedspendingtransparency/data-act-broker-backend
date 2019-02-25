@@ -14,15 +14,71 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _prime_unique_id(award):
+    """ Given an award, derive its unique key
+
+        Args:
+            award: either AwardProcurement or AwardFinancialAssistance
+
+        Returns:
+            the concatenated award key, or None
+    """
+    unique_key = ''
+    unique_keys = []
+    if isinstance(award, AwardProcurement):
+        # "CONT_AW_" + agency_id + referenced_idv_agency_iden + piid + parent_award_id
+        # "CONT_AW_" + contract_agency_code + contract_idv_agency_code + contract_number + idv_reference_number
+        # TODO: Agency Id?
+        for unique_key_param in ['','referenced_idv_agency_iden', 'piid', 'parent_award_id']:
+            unique_keys.append(award.get(unique_key_param) or '-none-')
+        unique_key = "CONT_AW_{}".format(unique_keys.join('_'))
+    elif isinstance(award, AwardFinancialAssistance):
+        # "ASST_AW_" + awarding_sub_tier_agency_c + fain + uri
+        for unique_key_param in ['awarding_sub_tier_agency_c', 'fain', 'uri']:
+            unique_keys.append(award.get(unique_key_param) or '-none-')
+        unique_key = "ASST_AW_{}".format(unique_keys.join('_'))
+
+    return unique_key
+
+def _determine_sub_award_type(subaward):
+    """ Given an subaward, determine its type
+
+        Args:
+            subaward: either FSRSSubcontract or FSRSSubgrant
+
+        Returns:
+            a string representing the subaward type
+    """
+    if isinstance(subaward, FSRSSubcontract):
+        return 'sub-contract'
+    elif isinstance(subaward, FSRSSubgrant):
+        return 'sub-grant'
+
 def _country_name(code):
-    """Convert a country code to the country name; return None if invalid"""
+    """ Convert a country code to the country name
+
+        Args:
+            code: country code
+
+        Returns:
+            a string representing the country name, or None if invalid
+    """
     country = iso3166.countries.get(code, None)
     if country:
         return country.name
 
 
 def _zipcode_guard(model, field_prefix, match_usa):
-    """Get the zip code or not depending on country value"""
+    """ Get the zip code or not depending on country value
+
+        Args:
+            model: model to extract code from
+            field_prefix: string prefix depending on legal entity or place of performance
+            match_usa: whether the zip should be in USA or not
+
+        Returns:
+            zip code, or None if invalid
+    """
     is_usa = getattr(model, field_prefix + '_country') == 'USA'
     zipcode = getattr(model, field_prefix + '_zip')
     if (match_usa and is_usa) or (not match_usa and not is_usa):
@@ -30,6 +86,15 @@ def _zipcode_guard(model, field_prefix, match_usa):
 
 
 def _extract_naics(naics, type):
+    """ Get the naics codes or titles
+
+        Args:
+            naics: naics string to parse
+            type: whether to return 'numbers' or 'titles'
+
+        Returns:
+            naics codes or titles, or None if invalid
+    """
     naics_list = naics.split(';')
     if type == 'numbers':
         return [naics_entry.split(' ')[0] for naics_entry in naics_list].join(',')
@@ -38,7 +103,7 @@ def _extract_naics(naics, type):
 
 
 class CopyValues:
-    """Copy a field value from one of our existing models"""
+    """ Copy a field value from one of our existing models """
     # Order to check fields
     MODEL_TYPES = ('subcontract', 'subgrant', 'procurement', 'grant', 'award')
 
@@ -58,20 +123,38 @@ class CopyValues:
 
 
 def copy_subaward_field(field_name):
+    """ Copy the same field from both subrants/subcntracts
+
+        Args:
+            field_name: the field name to copy from
+
+        Returns:
+            CopyValues for both grants/contracts
+    """
     return CopyValues(field_name, field_name)
 
 
 def copy_prime_field(field_name):
+    """ Copy the same field from both grants/contracts
+
+        Args:
+            field_name: the field name to copy from
+
+        Returns:
+            CopyValues for both grants/contracts
+    """
     return CopyValues(procurement=field_name, grant=field_name)
 
 class CopyLogic:
     """ Perform custom logic relating to the award or subaward. Instantiated with two to four functions: one for
-    contracts and one for grants, or one for subcontracts, one for subgrants """
-    def __init__(self, contract_fn=None, grant_fn=None, subcontract_fn=None, subgrant_fn=None):
+        contracts and one for grants, or one for subcontracts, one for subgrants
+    """
+    def __init__(self, contract_fn=None, grant_fn=None, subcontract_fn=None, subgrant_fn=None, award_fn=None):
         self.contract_fn = contract_fn
         self.grant_fn = grant_fn
         self.subcontract_fn = subcontract_fn
         self.subgrant_fn = subgrant_fn
+        self.award_fn = award_fn
 
     def __call__(self, models):
         if models.contract:
@@ -82,6 +165,8 @@ class CopyLogic:
             return self.subcontract_fn(models.subcontract)
         elif models.subgrant:
             return self.subgrant_fn(models.subgrant)
+        elif models.award:
+            return self.award_fn(models.award)
 
 
 # Collect the models associated with a single F CSV row
@@ -96,7 +181,9 @@ ModelRow.__new__.__defaults__ = (None, None, None, None, None)
 # matters as it defines the CSV column order
 mappings = OrderedDict([
     # Prime Award Properties
-    ('PrimeAwardUniqueKey', CopyValues('detached_award_proc_unique', 'afa_generated_unique')), # TODO: figure this out
+    ('PrimeAwardUniqueKey', CopyLogic(
+        award_fn=lambda award: _prime_unique_id(award)
+    )),
     ('PrimeAwardReportID', CopyValues(procurement='contract_number', grant='fain')),
     ('ParentAwardId', CopyValues(procurement='idv_reference_number')),
     ('PrimeAwardAmount', CopyValues(procurement='dollars_obligated', grant='total_fed_funding_amount')),
@@ -163,7 +250,7 @@ mappings = OrderedDict([
     )),
 
     # Sub-Award Properties
-    ('SubAwardType', lambda model: model), # TODO: figure this out
+    ('SubAwardType', lambda subaward: _determine_sub_award_type(subaward)),
     ('SubAwardReportYear', copy_prime_field('report_period_year')),
     ('SubAwardReportMonth', copy_prime_field('report_period_mon')),
     ('SubawardNumber', CopyValues('subcontract_num', 'subaward_num')),
@@ -218,7 +305,14 @@ mappings = OrderedDict([
 
 
 def submission_procurements(submission_id):
-    """ Fetch procurements and subcontracts """
+    """ Fetch procurements and subcontracts
+
+        Args:
+            submission_id: submission to get data from
+
+        Yields:
+            ModelRows representing procurement data (award, procurement, subcontract)
+    """
     sess = GlobalDB.db().session
     log_data = {
         'message': 'Starting file F submission procurements',
@@ -251,7 +345,14 @@ def submission_procurements(submission_id):
 
 
 def submission_grants(submission_id):
-    """ Fetch grants and subgrants """
+    """ Fetch grants and subgrants
+
+        Args:
+            submission_id: submission to get data from
+
+        Yields:
+            ModelRows representing grant data (award, grant, subgrant)
+    """
     sess = GlobalDB.db().session
     log_data = {
         'message': 'Starting file F submission grants',
@@ -279,8 +380,16 @@ def submission_grants(submission_id):
 
 
 def generate_f_rows(submission_id):
-    """ Generated OrderedDicts representing File F rows. Subawards are filtered
-    to those relevant to a particular submissionId """
+    """ Generated OrderedDicts representing File F rows. Subawards are filtered to those relevant to a particular
+        submissionId
+
+        Args:
+            submission_id: submission to get data from
+
+        Yields:
+            OrderedDict representing File F row
+    """
+
     log_data = {
         'message': 'Starting to generate_f_rows',
         'message_type': 'CoreDebug',
