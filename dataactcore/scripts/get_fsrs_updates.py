@@ -3,6 +3,7 @@ import re
 import logging
 import os
 import csv
+import boto3
 
 from dataactcore.logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
@@ -10,27 +11,47 @@ from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
 
+'''
+This script is used to pull updated financial assistance records (from --date to present) for FSRS.
+It can also run with --auto to poll the specified S3 bucket (BUCKET_NAME/BUCKET_PREFIX}) for the most
+recent file that was uploaded, and use the boto3 response for --date.
+'''
+
+BUCKET_NAME = 'da-data-extracts'
+BUCKET_PREFIX = 'fsrs_award_extracts/'
+
 
 def main():
-    parser = argparse.ArgumentParser(description='Pull data from the FPDS Atom Feed.')
-    parser.add_argument('-d', '--date',
-                        help='Specify modified date in mm/dd/yyyy format. Defaults to 09/20/2017 if none is given.',
+    parser = argparse.ArgumentParser(description='Pull')
+    parser.add_argument('--date',
+                        help='Specify modified date in mm/dd/yyyy format. Overrides --auto option.',
                         nargs=1, type=str)
+    parser.add_argument('--auto',
+                        help='Polls S3 for the most recently uploaded FABS_for_FSRS file, ' +
+                             'and uses that as the modified date.',
+                        action='store_true')
     args = parser.parse_args()
 
-    mod_date = '09/20/2017'
-    # allow user to set start date
+    if args.auto:
+        s3_resource = boto3.resource('s3', region_name='us-gov-west-1')
+        extract_bucket = s3_resource.Bucket(BUCKET_NAME)
+        all_fsrs_extracts = extract_bucket.objects.filter(Prefix=BUCKET_PREFIX)
+        mod_date = max(all_fsrs_extracts, key=lambda k: k.last_modified).last_modified.strftime("%m/%d/%Y")
+
     if args.date:
         arg_date = args.date[0]
         given_date = arg_date.split('/')
-        # error if it's in the wrong format somehow
         if not re.match('^\d{2}$', given_date[0]) or not re.match('^\d{2}$', given_date[1])\
                 or not re.match('^\d{4}$', given_date[2]):
             logger.error("Date " + arg_date + " not in proper mm/dd/yyyy format")
             return
         mod_date = arg_date
 
-    logger.info("Starting SQL query")
+    if not mod_date:
+        logger.error("Date or auto setting is required.")
+        return
+
+    logger.info("Starting SQL query of financial assistance records from {} to present...".format(mod_date))
     sess = GlobalDB.db().session
     results = sess.execute("""
     WITH base_transaction AS (
@@ -105,6 +126,7 @@ def main():
     # close file
     csv_file.close()
     logger.info("Script complete")
+
 
 if __name__ == '__main__':
     configure_logging()

@@ -80,7 +80,7 @@ mapping = OrderedDict([
 db_columns = [val for key, val in mapping.items()]
 
 
-def query_data(session, agency_code, agency_type, start, end, page_start, page_stop):
+def query_data(session, agency_code, agency_type, start, end):
     """ Request D2 file data
 
         Args:
@@ -89,11 +89,9 @@ def query_data(session, agency_code, agency_type, start, end, page_start, page_s
             agency_type: The type of agency (awarding or funding) to generate the file for
             start: Beginning of period for D file
             end: End of period for D file
-            page_start: Beginning of pagination
-            page_stop: End of pagination
 
         Returns:
-            The rows using the provided dates and page size for the given agency.
+            The rows using the provided dates for the given agency.
     """
     rows = initial_query(session).\
         filter(file_model.is_active.is_(True)).\
@@ -106,25 +104,20 @@ def query_data(session, agency_code, agency_type, start, end, page_start, page_s
     else:
         rows = rows.filter(file_model.awarding_agency_code == agency_code)
 
-    # Slice the final query
-    rows = rows.slice(page_start, page_stop)
-
     return rows
 
 
-def query_published_fabs_data(session, submission_id, page_start, page_stop):
+def query_published_fabs_data(session, submission_id):
     """ Request published FABS file data
 
         Args:
             session: DB session
             submission_id: Submission ID for generation
-            page_start: Beginning of pagination
-            page_stop: End of pagination
 
         Returns:
-            A query to gather published data from the provided submission with the provided slice
+            A query to gather published data from the provided submission
     """
-    return initial_query(session).filter(file_model.submission_id == submission_id).slice(page_start, page_stop)
+    return initial_query(session).filter(file_model.submission_id == submission_id)
 
 
 def initial_query(session):

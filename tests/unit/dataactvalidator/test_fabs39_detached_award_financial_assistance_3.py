@@ -11,8 +11,9 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ PrimaryPlaceofPerformanceZIP+4 should not be provided for any format of PrimaryPlaceOfPerformanceCode
-        other than XX##### for record type 1 and 2. """
+    """ For aggregate or non-aggregate records (RecordType = 1 or 2): PrimaryPlaceofPerformanceZIP+4 must not be
+        provided for any format of PrimaryPlaceOfPerformanceCode other than XX##### or XX####R.
+    """
 
     # place_of_performance_code = None should technically be a failure based on the rule, but because it is
     # tested elsewhere we want to ignore it.
@@ -20,22 +21,24 @@ def test_success(database):
                                                           place_of_performance_zip4a="1234", record_type=1)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny98765",
                                                           place_of_performance_zip4a="4312", record_type=1)
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code=None,
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny9876R",
+                                                          place_of_performance_zip4a="4312", record_type=1)
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code=None,
                                                           place_of_performance_zip4a="4312", record_type=2)
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny**987",
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny**987",
                                                           place_of_performance_zip4a=None, record_type=2)
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00*****",
-                                                          place_of_performance_zip4a="", record_type=1)
     det_award_6 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00*****",
+                                                          place_of_performance_zip4a="", record_type=1)
+    det_award_7 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00*****",
                                                           place_of_performance_zip4a="abcde", record_type=3)
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6])
+                                                       det_award_6, det_award_7])
     assert errors == 0
 
 
 def test_failure(database):
-    """ Test failure for PrimaryPlaceofPerformanceZIP+4 should not be provided for any format of
-        PrimaryPlaceOfPerformanceCode other than XX##### for record type 1 and 2. """
+    """ Test failure for aggregate or non-aggregate records (RecordType = 1 or 2): PrimaryPlaceofPerformanceZIP+4
+        must not be provided for any format of PrimaryPlaceOfPerformanceCode other than XX##### or XX####R. """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00FORGN",
                                                           place_of_performance_zip4a="1234", record_type=1)

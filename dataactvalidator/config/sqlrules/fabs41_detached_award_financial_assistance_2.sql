@@ -1,4 +1,6 @@
--- For PrimaryPlaceOfPerformanceCode XX##### city must exist in provided state (zip4 provided, warning)
+-- For PrimaryPlaceOfPerformanceCode XX##### or XX####R, where valid 5 or 9-digit PrimaryPlaceOfPerformanceZIP+4 is
+-- provided : city code ##### or ####R should be valid and exist in the provided state, but will only trigger a warning
+-- if not.
 WITH detached_award_financial_assistance_d41_2_{0} AS
     (SELECT submission_id,
         row_number,
@@ -10,7 +12,8 @@ SELECT
     dafa.row_number,
     dafa.place_of_performance_code
 FROM detached_award_financial_assistance_d41_2_{0} AS dafa
-WHERE UPPER(dafa.place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d\d$'
+WHERE (UPPER(dafa.place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d\d$'
+        OR UPPER(dafa.place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\dR$')
     AND UPPER(dafa.place_of_performance_code) !~ '^[A-Z][A-Z]00000$'
     AND COALESCE(dafa.place_of_performance_zip4a, '') <> ''
     AND dafa.place_of_performance_zip4a <> 'city-wide'

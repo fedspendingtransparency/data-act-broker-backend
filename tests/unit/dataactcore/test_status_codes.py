@@ -13,5 +13,13 @@ def test_status_login_required():
     assert StatusCode.LOGIN_REQUIRED == 401
 
 
+def test_status_permission_denied():
+    assert StatusCode.PERMISSION_DENIED == 403
+
+
+def test_status_not_found():
+    assert StatusCode.NOT_FOUND == 404
+
+
 def test_status_internal_error():
     assert StatusCode.INTERNAL_ERROR == 500

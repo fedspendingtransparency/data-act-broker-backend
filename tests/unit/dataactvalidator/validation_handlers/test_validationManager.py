@@ -3,8 +3,11 @@ from unittest.mock import Mock
 
 import pytest
 
+from dataactcore.config import CONFIG_BROKER
+from dataactcore.utils.responseException import ResponseException
 from dataactvalidator.validation_handlers import validationManager
 from dataactvalidator.validation_handlers.errorInterface import ErrorInterface
+
 from tests.unit.dataactcore.factories.domain import TASFactory
 from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
 from tests.unit.dataactcore.factories.staging import (AppropriationFactory, AwardFinancialFactory,
@@ -111,3 +114,16 @@ def test_insert_staging_model_failure():
     assert error['firstRow'] == 1234
     assert error['fieldName'] == 'Formatting Error'
     assert error['filename'] == job.filename
+
+
+@pytest.mark.usefixtures('database')
+def test_attempt_validate_deleted_job():
+    error = None
+    validation_manager = validationManager.ValidationManager(is_local=CONFIG_BROKER['local'])
+    try:
+        validation_manager.validate_job(12345678901234567890)
+    except ResponseException as e:
+        error = e
+
+    assert error is not None
+    assert str(error) == 'Job ID 12345678901234567890 not found in database'
