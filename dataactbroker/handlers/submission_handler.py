@@ -602,8 +602,9 @@ def certify_dabs_submission(submission, file_manager):
 
     sess = GlobalDB.db().session
     # Check revalidation threshold
+    last_validated = get_last_validated_date(submission.submission_id)
     reval_thresh = get_revalidation_threshold()['revalidation_threshold']
-    if reval_thresh and reval_thresh >= get_last_validated_date(submission.submission_id):
+    if reval_thresh and reval_thresh >= last_validated:
         return JsonResponse.error(ValueError("This submission has not been validated since before the revalidation "
                                              "threshold ({}), it must be revalidated before certifying.".
                                              format(reval_thresh.replace('T', ' '))),
@@ -621,7 +622,7 @@ def certify_dabs_submission(submission, file_manager):
                                              "error, please contact the Service Desk."), StatusCode.CLIENT_ERROR)
 
     # Make sure everything was last validated after the start of the submission window
-    last_validated = datetime.strptime(get_last_validated_date(submission.submission_id), '%Y-%m-%dT%H:%M:%S')
+    last_validated = datetime.strptime(last_validated, '%Y-%m-%dT%H:%M:%S')
     if last_validated < quarter_reval.window_start:
         return JsonResponse.error(ValueError("This submission was last validated before the start of the submission "
                                              "window ({}). Please revalidate before certifying.".
