@@ -624,9 +624,9 @@ def certify_dabs_submission(submission, file_manager):
     # Make sure everything was last validated after the start of the submission window
     last_validated = datetime.strptime(last_validated, '%Y-%m-%dT%H:%M:%S')
     if last_validated < quarter_reval.window_start:
-        return JsonResponse.error(ValueError("This submission was last validated before the start of the submission "
-                                             "window ({}). Please revalidate before certifying.".
-                                             format(quarter_reval.window_start.strftime('%m/%d/%Y'))),
+        return JsonResponse.error(ValueError("This submission was last validated or its D files generated before the "
+                                             "start of the submission window ({}). Please revalidate before "
+                                             "certifying.".format(quarter_reval.window_start.strftime('%m/%d/%Y'))),
                                   StatusCode.CLIENT_ERROR)
 
     response = find_existing_submissions_in_period(submission.cgac_code, submission.frec_code,
