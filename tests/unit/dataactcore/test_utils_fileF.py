@@ -8,21 +8,21 @@ from tests.unit.dataactcore.factories.job import SubmissionFactory
 def test_copy_values_procurement():
     model_row = fileF.ModelRow(None, FSRSProcurementFactory(duns='DUNS'), FSRSSubcontractFactory(duns='DUNS SUB'),
                                None, None)
-    mapper = fileF.CopyValues(procurement='duns')
+    mapper = fileF.DeriveValues(procurement='duns')
     assert mapper(model_row) == 'DUNS'
-    mapper = fileF.CopyValues(subcontract='duns')
+    mapper = fileF.DeriveValues(subcontract='duns')
     assert mapper(model_row) == 'DUNS SUB'
-    mapper = fileF.CopyValues(grant='duns')
+    mapper = fileF.DeriveValues(grant='duns')
     assert mapper(model_row) is None
 
 
 def test_copy_values_grant():
     model_row = fileF.ModelRow(None, None, None, FSRSGrantFactory(duns='DUNS'), FSRSSubgrantFactory(duns='DUNS SUB'))
-    mapper = fileF.CopyValues(grant='duns')
+    mapper = fileF.DeriveValues(grant='duns')
     assert mapper(model_row) == 'DUNS'
-    mapper = fileF.CopyValues(subgrant='duns')
+    mapper = fileF.DeriveValues(subgrant='duns')
     assert mapper(model_row) == 'DUNS SUB'
-    mapper = fileF.CopyValues(procurement='duns')
+    mapper = fileF.DeriveValues(procurement='duns')
     assert mapper(model_row) is None
 
 
@@ -30,10 +30,10 @@ def test_country_name():
     model_row = fileF.ModelRow(
         None, None, None, None, FSRSSubgrantFactory(awardee_address_country='USA', principle_place_country='DE')
     )
-    entity = fileF.mappings['LegalEntityCountryName'](model_row)
+    entity = fileF.mappings['SubAwardeeLegalEntityCountryName'](model_row)
     assert entity == 'United States'
 
-    place = fileF.mappings['PrimaryPlaceOfPerformanceCountryName'](model_row)
+    place = fileF.mappings['SubAwardeePlaceOfPerformanceCountryName'](model_row)
     assert place == 'Germany'
 
 
@@ -43,14 +43,14 @@ def test_zipcode_guard():
         FSRSSubcontractFactory(company_address_country='USA', company_address_zip='12345'),
         None, None
     )
-    us_zip = fileF.mappings['LegalEntityZIP+4'](model_row)
-    foreign_zip = fileF.mappings['LegalEntityForeignPostalCode'](model_row)
+    us_zip = fileF.mappings['SubAwardeeLegalEntityZIP+4'](model_row)
+    foreign_zip = fileF.mappings['SubAwardeeLegalEntityForeignPostalCode'](model_row)
     assert us_zip == '12345'
     assert foreign_zip is None
 
     model_row.subcontract.company_address_country = 'RU'
-    us_zip = fileF.mappings['LegalEntityZIP+4'](model_row)
-    foreign_zip = fileF.mappings['LegalEntityForeignPostalCode'](model_row)
+    us_zip = fileF.mappings['SubAwardeeLegalEntityZIP+4'](model_row)
+    foreign_zip = fileF.mappings['SubAwardeeLegalEntityForeignPostalCode'](model_row)
     assert us_zip is None
     assert foreign_zip == '12345'
 
