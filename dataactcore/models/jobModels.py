@@ -195,6 +195,15 @@ class RevalidationThreshold(Base):
     revalidation_date = Column(DateTime, primary_key=True)
 
 
+class QuarterlyRevalidationThreshold(Base):
+    __tablename__ = "quarterly_revalidation_threshold"
+
+    quarterly_revalidation_threshold_id = Column(Integer, primary_key=True)
+    year = Column(Integer, nullable=False)
+    quarter = Column(Integer, nullable=False)
+    window_start = Column(DateTime)
+
+
 class FPDSUpdate(Base):
     __tablename__ = "fpds_update"
 

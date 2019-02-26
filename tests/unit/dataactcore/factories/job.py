@@ -1,8 +1,6 @@
-from datetime import datetime, timezone
+from datetime import datetime, date, timezone
 import factory
 from factory import fuzzy
-
-from datetime import date
 
 from dataactcore.models import jobModels
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
@@ -151,3 +149,12 @@ class RevalidationThresholdFactory(factory.Factory):
         model = jobModels.RevalidationThreshold
 
     revalidation_date = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
+
+
+class QuarterlyRevalidationThresholdFactory(factory.Factory):
+    class Meta:
+        model = jobModels.QuarterlyRevalidationThreshold
+
+    year = fuzzy.FuzzyInteger(2010, 3000)
+    quarter = fuzzy.FuzzyChoice((1, 2, 3, 4))
+    window_start = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
