@@ -513,8 +513,9 @@ def test_certify_dabs_submission_quarterly_revalidation_too_early(database):
         response = certify_dabs_submission(submission, file_handler)
         response_json = json.loads(response.data.decode('UTF-8'))
         assert response.status_code == 400
-        assert response_json['message'] == "This submission was last validated before the start of the submission " \
-                                           "window ({}). Please revalidate before certifying.".\
+        assert response_json['message'] == "This submission was last validated or its D files generated before the " \
+                                           "start of the submission window ({}). Please revalidate before " \
+                                           "certifying.".\
             format(quarter_reval.window_start.strftime('%m/%d/%Y'))
 
 
