@@ -1075,19 +1075,17 @@ def create_fabs_published_file(sess, submission_id, new_route):
     return local_filename if g.is_local else upload_name
 
 
-def published_fabs_query(data_utils, page_start, page_end):
+def published_fabs_query(data_utils):
     """ Get the data from the published FABS table to write to the file with
 
         Args:
             data_utils: A dictionary of utils that are needed for the query being made, in this case including the
                 session object and the submission ID
-            page_start: the start of the slice to limit the data
-            page_end: the end of the slice to limit the data
 
         Returns:
             A list of published FABS rows.
     """
-    return fileD2.query_published_fabs_data(data_utils["sess"], data_utils["submission_id"], page_start, page_end).all()
+    return fileD2.query_published_fabs_data(data_utils["sess"], data_utils["submission_id"])
 
 
 def submission_to_dict_for_status(submission):
