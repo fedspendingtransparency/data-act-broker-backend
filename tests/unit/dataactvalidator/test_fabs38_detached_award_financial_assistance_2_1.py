@@ -2,7 +2,7 @@ from tests.unit.dataactcore.factories.domain import OfficeFactory
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
-_FILE = 'fabs38_detached_award_financial_assistance_2'
+_FILE = 'fabs38_detached_award_financial_assistance_2_1'
 
 
 def test_column_headers(database):
@@ -31,11 +31,11 @@ def test_failure(database):
         designated specifically as a Funding Office in the hierarchy.
     """
 
-    office = OfficeFactory(office_code='123456', funding_office=True)
-    office = OfficeFactory(office_code='987654', funding_office=False)
+    office_1 = OfficeFactory(office_code='123456', funding_office=True)
+    office_2 = OfficeFactory(office_code='987654', funding_office=False)
     det_award_1 = DetachedAwardFinancialAssistanceFactory(funding_office_code='12345')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_office_code='1234567')
     # Test fail if funding office is false even if code matches
     det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_office_code='987654')
-    errors = number_of_errors(_FILE, database, models=[office, det_award_1, det_award_2, det_award_3])
+    errors = number_of_errors(_FILE, database, models=[office_1, office_2, det_award_1, det_award_2, det_award_3])
     assert errors == 3
