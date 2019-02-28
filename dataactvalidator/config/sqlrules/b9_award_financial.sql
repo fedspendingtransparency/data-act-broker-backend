@@ -28,7 +28,7 @@ WHERE (af.program_activity_code <> '0000'
         WHERE af.agency_identifier = pa.agency_id
             AND af.main_account_code = pa.account_number
             AND UPPER(COALESCE(af.program_activity_name, '')) = UPPER(pa.program_activity_name)
-            AND COALESCE(af.program_activity_code, '') = pa.program_activity_code
+            AND UPPER(COALESCE(af.program_activity_code, '')) = UPPER(pa.program_activity_code)
             AND pa.fiscal_year_quarter = 'FY' || RIGHT(CAST(sub.reporting_fiscal_year AS CHAR(4)), 2) || 'Q' || sub.reporting_fiscal_period / 3
 
     );
