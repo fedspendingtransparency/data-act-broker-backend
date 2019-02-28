@@ -99,9 +99,9 @@ def _extract_naics(naics, type):
     """
     naics_list = naics.split(';')
     if type == 'numbers':
-        return [naics_entry.split(' ')[0] for naics_entry in naics_list].join(',')
+        return ','.join([naics_entry.split(' ')[0] for naics_entry in naics_list])
     elif type == 'titles':
-        return [naics_entry.split(' ')[1:].join() for naics_entry in naics_list].join(',')
+        return ','.join([naics_entry.split(' ')[1:] for naics_entry in naics_list])
 
 
 def _derive_duns_name(duns):
