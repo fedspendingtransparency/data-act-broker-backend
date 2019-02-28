@@ -55,6 +55,7 @@ def _determine_sub_award_type(subaward):
     elif isinstance(subaward, FSRSSubgrant):
         return 'sub-grant'
 
+
 def _country_name(code):
     """ Convert a country code to the country name
 
@@ -117,6 +118,22 @@ def _derive_duns_name(duns):
     duns = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu == duns).one_or_none()
     if duns:
         return duns.legal_business_name
+
+
+def _derive_duns_business_types(duns):
+    """ Get the duns business types, if available
+
+        Args:
+            duns: duns to find
+
+        Returns:
+            duns name, or None
+    """
+    sess = GlobalDB.db().session
+
+    duns = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu == duns).one_or_none()
+    if duns:
+        return duns.business_types_codes
 
 
 class DeriveValues:
@@ -188,29 +205,30 @@ ModelRow.__new__.__defaults__ = (None, None, None, None, None)
 mappings = OrderedDict([
     # Prime Award Properties
     ('PrimeAwardUniqueKey', DeriveValues(
-        procurement_fn = lambda contract: _prime_unique_id(contract),
-        grant_fn = lambda grant: _prime_unique_id(grant)
+        procurement_fn=lambda contract: _prime_unique_id(contract),
+        grant_fn=lambda grant: _prime_unique_id(grant)
     )),
     ('PrimeAwardReportID', DeriveValues(procurement='contract_number', grant='fain')),
     ('ParentAwardId', DeriveValues(procurement='idv_reference_number')),
     ('PrimeAwardAmount', DeriveValues(procurement='dollar_obligated', grant='total_fed_funding_amount')),
     ('ActionDate', DeriveValues(procurement='date_signed', grant='obligation_date')),
     ('PrimeAwardFiscalYear', DeriveValues(
-        procurement_fn=lambda contract: fy(contract.date_signed),
-        grant_fn=lambda grant: fy(grant.obligation_date)
+        procurement_fn=lambda contract: 'FY{}'.format(fy(contract.date_signed)) if fy(contract.date_signed) else None,
+        grant_fn=lambda grant: 'FY{}'.format(fy(grant.obligation_date)) if fy(grant.obligation_date) else None
     )),
     ('AwardingAgencyCode', DeriveValues(award='awarding_agency_code')),
     ('AwardingAgencyName', DeriveValues(award='awarding_agency_name')),
     ('AwardingSubTierAgencyCode', DeriveValues(procurement='contracting_office_aid', grant='federal_agency_id')),
-    ('AwardingSubTierAgencyName', DeriveValues(procurement='contracting_office_aname', grant='federal_agency_name')),
-    ('AwardingOfficeCode', DeriveValues(award='awarding_office_code', procurement='contracting_office_id')),
-    ('AwardingOfficeName', DeriveValues(award='awarding_office_name', procurement='contracting_office_name')),
+    ('AwardingSubTierAgencyName', DeriveValues(procurement='contracting_office_aname',
+                                               award='awarding_sub_tier_agency_n')),
+    ('AwardingOfficeCode', DeriveValues(procurement='contracting_office_id', award='awarding_office_code')),
+    ('AwardingOfficeName', DeriveValues(procurement='contracting_office_name', award='awarding_office_name')),
     ('FundingAgencyCode', DeriveValues(award='funding_agency_code')),
     ('FundingAgencyName', DeriveValues(award='funding_agency_name')),
-    ('FundingSubTierAgencyCode', DeriveValues(procurement='funding_agency_id')),
-    ('FundingSubTierAgencyName', DeriveValues(procurement='funding_agency_name')),
-    ('FundingOfficeCode', DeriveValues(award='funding_office_code', procurement='funding_office_id')),
-    ('FundingOfficeName', DeriveValues(award='funding_office_name', procurement='funding_office_name')),
+    ('FundingSubTierAgencyCode', DeriveValues(procurement='funding_agency_id', award='funding_sub_tier_agency_co')),
+    ('FundingSubTierAgencyName', DeriveValues(procurement='funding_agency_name', award='funding_sub_tier_agency_co')),
+    ('FundingOfficeCode', DeriveValues(procurement='funding_office_id', award='funding_office_code')),
+    ('FundingOfficeName', DeriveValues(procurement='funding_office_name', award='funding_office_name')),
     ('AwardeeOrRecipientUniqueIdentifier', copy_prime_field('duns')),
     ('AwardeeOrRecipientLegalEntityName', DeriveValues(procurement='company_name', grant='awardee_name')),
     ('Vendor Doing As Business Name', copy_prime_field('dba_name')),
@@ -227,18 +245,19 @@ mappings = OrderedDict([
     ('LegalEntityAddressLine1', DeriveValues(procurement='company_address_street', grant='awardee_address_street')),
     ('LegalEntityCityName', DeriveValues(procurement='company_address_city', grant='awardee_address_city')),
     ('LegalEntityStateCode', DeriveValues(procurement='company_address_state', grant='awardee_address_state')),
-    ('LegalEntityStateName', DeriveValues(procurement='company_address_state_name', grant='awardee_address_state_name')),
+    ('LegalEntityStateName', DeriveValues(procurement='company_address_state_name',
+                                          grant='awardee_address_state_name')),
     ('LegalEntityZIP+4', DeriveValues(
         procurement_fn=lambda contract: _zipcode_guard(contract, 'company_address', True),
         grant_fn=lambda grant: _zipcode_guard(grant, 'awardee_address', True)
     )),
     ('LegalEntityCongressionalDistrict', DeriveValues(procurement='company_address_district',
-                                                    grant='awardee_address_district')),
+                                                      grant='awardee_address_district')),
     ('LegalEntityForeignPostalCode', DeriveValues(
         procurement_fn=lambda contract: _zipcode_guard(contract, 'company_address', False),
         grant_fn=lambda grant: _zipcode_guard(grant, 'awardee_address', False)
     )),
-    ('PrimeAwardeeBusinessTypes', DeriveValues(procurement='bus_types')),
+    ('PrimeAwardeeBusinessTypes', DeriveValues(procurement='bus_types', award='business_types_desc')),
     ('PrimaryPlaceOfPerformanceCityName', copy_prime_field('principle_place_city')),
     ('PrimaryPlaceOfPerformanceStateCode', copy_prime_field('principle_place_state')),
     ('PrimaryPlaceOfPerformanceStateName', copy_prime_field('principle_place_state_name')),
@@ -249,7 +268,7 @@ mappings = OrderedDict([
         procurement_fn=lambda contract: _country_name(contract.principle_place_country),
         grant_fn=lambda grant: _country_name(grant.principle_place_country)
     )),
-    ('AwardDescription', DeriveValues(subcontract='overall_description', grant='project_description')),
+    ('AwardDescription', DeriveValues(grant='project_description', award='award_description')),
     ('NAICS', DeriveValues(procurement='naics')),
     ('NAICS_Description', lambda models: models.naics_desc),
     ('CFDA_Numbers', DeriveValues(
@@ -287,12 +306,16 @@ mappings = OrderedDict([
         subcontract_fn=lambda subcontract: _zipcode_guard(subcontract, 'company_address', True),
         subgrant_fn=lambda subgrant: _zipcode_guard(subgrant, 'awardee_address', True)
     )),
-    ('SubAwardeeLegalEntityCongressionalDistrict', DeriveValues('company_address_district', 'awardee_address_district')),
+    ('SubAwardeeLegalEntityCongressionalDistrict', DeriveValues('company_address_district',
+                                                                'awardee_address_district')),
     ('SubAwardeeLegalEntityForeignPostalCode', DeriveValues(
         subcontract_fn=lambda subcontract: _zipcode_guard(subcontract, 'company_address', False),
         subgrant_fn=lambda subgrant: _zipcode_guard(subgrant, 'awardee_address', False)
     )),
-    ('SubAwardeeBusinessTypes', DeriveValues(subcontract='bus_types')),
+    ('SubAwardeeBusinessTypes', DeriveValues(
+        subcontract='bus_types',
+        subgrant_fn=lambda subgrant: _derive_duns_business_types(subgrant.duns)
+    )),
     ('SubAwardeePlaceOfPerformanceCityName', copy_subaward_field('principle_place_city')),
     ('SubAwardeePlaceOfPerformanceStateCode', copy_subaward_field('principle_place_state')),
     ('SubAwardeePlaceOfPerformanceStateName', copy_subaward_field('principle_place_state_name')),
