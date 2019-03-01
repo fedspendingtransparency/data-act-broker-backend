@@ -91,11 +91,12 @@ def test_generate_f_rows(database, monkeypatch):
         ]
         sess.add_all(procurements[piid])
     grants = {}
+    cfda_numbers = '49.021 One CFDA; 49.028 Two CFDA'
     for fain in ('FAIN0', 'FAIN1'):
         grants[fain] = [
-            FSRSGrantFactory(fain=fain, subawards=[FSRSSubgrantFactory() for _ in range(3)]),
+            FSRSGrantFactory(fain=fain, subawards=[FSRSSubgrantFactory() for _ in range(3)], cfda_numbers=cfda_numbers),
             FSRSGrantFactory(fain=fain, subawards=[]),
-            FSRSGrantFactory(fain=fain, subawards=[FSRSSubgrantFactory() for _ in range(2)])
+            FSRSGrantFactory(fain=fain, subawards=[FSRSSubgrantFactory() for _ in range(2)], cfda_numbers=cfda_numbers)
         ]
         sess.add_all(grants[fain])
     sess.commit()
