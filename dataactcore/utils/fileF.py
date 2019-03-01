@@ -88,17 +88,17 @@ def _zipcode_guard(model, field_prefix, match_usa):
         return zipcode
 
 
-def _extract_cfda(naics, type):
+def _extract_cfda(cfda_numbers, type):
     """ Get the cfda codes or titles
 
         Args:
-            cfda: cfda string to parse
+            cfda_numbers: cfda_numbers string to parse
             type: whether to return 'numbers' or 'titles'
 
         Returns:
             cfda codes or titles, or None if invalid
     """
-    cfda_list = naics.split(';')
+    cfda_list = [cfda_entry for cfda_entry in cfda_numbers.split(';')]
     if type == 'numbers':
         return ','.join([cfda_entry.split(' ')[0] for cfda_entry in cfda_list])
     elif type == 'titles':
