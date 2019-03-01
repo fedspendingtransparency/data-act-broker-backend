@@ -32,7 +32,8 @@ def _prime_unique_id(model):
         unique_key_attrs = ['CONT_AW']
         unique_fields = ['contract_agency_code', 'contract_idv_agency_code', 'contract_number', 'idv_reference_number']
     elif isinstance(model, FSRSSubcontract):
-        unique_fields = ['fain']
+        unique_key_attrs = ['ASST_AW']
+        unique_fields = ['federal_agency_id', 'fain']
 
     for unique_field in unique_fields:
         unique_key_attrs.append(model.get(unique_field) or '-none-')
