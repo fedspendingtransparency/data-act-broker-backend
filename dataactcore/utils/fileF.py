@@ -28,15 +28,15 @@ def _prime_unique_id(model):
     #       in the AwardProcurement model. For now this field can be used to match the prime award.
     unique_key_attrs = []
     unique_fields = []
-    if isinstance(model, FSRSSubgrant):
+    if isinstance(model, FSRSProcurement):
         unique_key_attrs = ['CONT_AW']
         unique_fields = ['contract_agency_code', 'contract_idv_agency_code', 'contract_number', 'idv_reference_number']
-    elif isinstance(model, FSRSSubcontract):
+    elif isinstance(model, FSRSGrant):
         unique_key_attrs = ['ASST_AW']
         unique_fields = ['federal_agency_id', 'fain']
 
     for unique_field in unique_fields:
-        unique_key_attrs.append(model.get(unique_field) or '-none-')
+        unique_key_attrs.append(getattr(model, unique_field) or '-none-')
     unique_key = '_'.join(unique_key_attrs)
 
     return unique_key

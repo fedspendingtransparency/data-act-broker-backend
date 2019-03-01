@@ -26,6 +26,21 @@ def test_copy_values_grant():
     assert mapper(model_row) is None
 
 
+def test_prime_unique_id():
+    model_row_contract = fileF.ModelRow(
+        None, FSRSProcurementFactory(contract_agency_code='A', contract_idv_agency_code='B', contract_number=None,
+                                     idv_reference_number='D'), None, None, None
+    )
+    model_row_grant = fileF.ModelRow(
+        None, None, None, FSRSGrantFactory(federal_agency_id=None, fain='F'), None
+    )
+    key = fileF.mappings['PrimeAwardUniqueKey'](model_row_contract)
+    assert key == 'CONT_AW_A_B_-none-_D'
+
+    key = fileF.mappings['PrimeAwardUniqueKey'](model_row_grant)
+    assert key == 'ASST_AW_-none-_F'
+
+
 def test_country_name():
     model_row = fileF.ModelRow(
         None, None, None, None, FSRSSubgrantFactory(awardee_address_country='USA', principle_place_country='DE')
