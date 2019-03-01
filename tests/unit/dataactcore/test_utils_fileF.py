@@ -84,6 +84,32 @@ def test_zipcode_guard():
     assert foreign_zip == '12345'
 
 
+def test_extract_cfda():
+    model_row_grant = fileF.ModelRow(
+        None, None, None, FSRSGrantFactory(cfda_numbers='49.021 One CFDA; 49.028 Two CFDA'), None
+    )
+    cfda_numbers = fileF.mappings['CFDA_Numbers'](model_row_grant)
+    cfda_titles = fileF.mappings['CFDA_Titles'](model_row_grant)
+    assert cfda_numbers == '49.021,49.028'
+    assert cfda_titles == 'One CFDA,Two CFDA'
+
+    model_row_grant = fileF.ModelRow(
+        None, None, None, FSRSGrantFactory(cfda_numbers='37.021 One CFDA, with commas'), None
+    )
+    cfda_numbers = fileF.mappings['CFDA_Numbers'](model_row_grant)
+    cfda_titles = fileF.mappings['CFDA_Titles'](model_row_grant)
+    assert cfda_numbers == '37.021'
+    assert cfda_titles == 'One CFDA, with commas'
+
+    model_row_grant = fileF.ModelRow(
+        None, None, None, FSRSGrantFactory(cfda_numbers='21.021 One CFDA, with an extra semicolon and space; '), None
+    )
+    cfda_numbers = fileF.mappings['CFDA_Numbers'](model_row_grant)
+    cfda_titles = fileF.mappings['CFDA_Titles'](model_row_grant)
+    assert cfda_numbers == '21.021'
+    assert cfda_titles == 'One CFDA, with an extra semicolon and space'
+
+
 def test_generate_f_rows(database, monkeypatch):
     """generate_f_rows should find and convert subaward data relevant to a
     specific submission id. We'll compare the resulting DUNs values for
