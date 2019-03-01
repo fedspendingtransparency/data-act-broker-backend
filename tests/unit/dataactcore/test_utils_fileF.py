@@ -41,6 +41,20 @@ def test_prime_unique_id():
     assert key == 'ASST_AW_-none-_F'
 
 
+def test_determine_sub_award_type():
+    model_row_subcontract = fileF.ModelRow(
+        None, None, FSRSSubcontractFactory(), None, None
+    )
+    model_row_subgrant = fileF.ModelRow(
+        None, None, None, None, FSRSSubgrantFactory()
+    )
+    sub_type = fileF.mappings['SubAwardType'](model_row_subcontract)
+    assert sub_type == 'sub-contract'
+
+    sub_type = fileF.mappings['SubAwardType'](model_row_subgrant)
+    assert sub_type == 'sub-grant'
+
+
 def test_country_name():
     model_row = fileF.ModelRow(
         None, None, None, None, FSRSSubgrantFactory(awardee_address_country='USA', principle_place_country='DE')

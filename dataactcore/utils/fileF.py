@@ -280,7 +280,10 @@ mappings = OrderedDict([
     )),
 
     # Sub-Award Properties
-    ('SubAwardType', lambda subaward: _determine_sub_award_type(subaward)),
+    ('SubAwardType', DeriveValues(
+        subcontract_fn=lambda subaward: _determine_sub_award_type(subaward),
+        subgrant_fn=lambda subaward: _determine_sub_award_type(subaward)
+    )),
     ('SubAwardReportYear', copy_prime_field('report_period_year')),
     ('SubAwardReportMonth', copy_prime_field('report_period_mon')),
     ('SubawardNumber', DeriveValues('subcontract_num', 'subaward_num')),
