@@ -87,21 +87,21 @@ def _zipcode_guard(model, field_prefix, match_usa):
         return zipcode
 
 
-def _extract_naics(naics, type):
-    """ Get the naics codes or titles
+def _extract_cfda(naics, type):
+    """ Get the cfda codes or titles
 
         Args:
-            naics: naics string to parse
+            cfda: cfda string to parse
             type: whether to return 'numbers' or 'titles'
 
         Returns:
-            naics codes or titles, or None if invalid
+            cfda codes or titles, or None if invalid
     """
-    naics_list = naics.split(';')
+    cfda_list = naics.split(';')
     if type == 'numbers':
-        return ','.join([naics_entry.split(' ')[0] for naics_entry in naics_list])
+        return ','.join([cfda_entry.split(' ')[0] for cfda_entry in cfda_list])
     elif type == 'titles':
-        return ','.join([naics_entry.split(' ')[1:] for naics_entry in naics_list])
+        return ','.join([cfda_entry[cfda_entry.index(' ')+1:] for cfda_entry in cfda_list])
 
 
 def _derive_duns_name(duns):
@@ -272,10 +272,10 @@ mappings = OrderedDict([
     ('NAICS', DeriveValues(procurement='naics')),
     ('NAICS_Description', lambda models: models.naics_desc),
     ('CFDA_Numbers', DeriveValues(
-        grant_fn=lambda grant: _extract_naics(grant.cfda_numbers, 'numbers')
+        grant_fn=lambda grant: _extract_cfda(grant.cfda_numbers, 'numbers')
     )),
     ('CFDA_Titles', DeriveValues(
-        grant_fn=lambda grant: _extract_naics(grant.cfda_numbers, 'titles')
+        grant_fn=lambda grant: _extract_cfda(grant.cfda_numbers, 'titles')
     )),
 
     # Sub-Award Properties
