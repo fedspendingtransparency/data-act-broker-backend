@@ -108,7 +108,7 @@ def get_row_count(sql_statement, table, sess):
 
 def print_report(initial, final, agency_type, is_updated=False):
     """ Logs row count before and after and update.
-    
+
         Args:
             initial: The total number of rows before the updates
             final: The number of rows remaining after the fix (0 if being logged before update)
