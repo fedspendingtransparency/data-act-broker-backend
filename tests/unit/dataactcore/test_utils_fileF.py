@@ -129,7 +129,7 @@ def test_derive_duns_name(database):
     assert duns_name == duns.legal_business_name
 
 
-    def test_derive_duns_business_types(database):
+def test_derive_duns_business_types(database):
     duns = DunsFactory(awardee_or_recipient_uniqu='987654321', business_types_codes=['A', 'B', 'C'])
     database.session.add(duns)
     database.session.commit()
