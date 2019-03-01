@@ -3,6 +3,7 @@ from tests.unit.dataactcore.factories.fsrs import (FSRSGrantFactory, FSRSProcure
                                                    FSRSSubgrantFactory)
 from tests.unit.dataactcore.factories.staging import AwardFinancialAssistanceFactory, AwardProcurementFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
+from tests.unit.dataactcore.factories.domain import DunsFactory
 
 
 def test_copy_values_procurement():
@@ -108,6 +109,24 @@ def test_extract_cfda():
     cfda_titles = fileF.mappings['CFDA_Titles'](model_row_grant)
     assert cfda_numbers == '21.021'
     assert cfda_titles == 'One CFDA, with an extra semicolon and space'
+
+
+def test_derive_duns_name(database):
+    duns = DunsFactory(awardee_or_recipient_uniqu='123456789', legal_business_name='Test Duns')
+    database.session.add(duns)
+    database.session.commit()
+
+    model_row_grant = fileF.ModelRow(
+        None, None, None, FSRSGrantFactory(parent_duns=duns.awardee_or_recipient_uniqu), None
+    )
+    duns_name = fileF.mappings['UltimateParentLegalEntityName'](model_row_grant)
+    assert duns_name == duns.legal_business_name
+
+    model_row_grant = fileF.ModelRow(
+        None, None, None, None, FSRSSubgrantFactory(parent_duns=duns.awardee_or_recipient_uniqu)
+    )
+    duns_name = fileF.mappings['SubAwardeeUltimateParentLegalEntityName'](model_row_grant)
+    assert duns_name == duns.legal_business_name
 
 
 def test_generate_f_rows(database, monkeypatch):
