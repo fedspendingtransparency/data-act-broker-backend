@@ -129,6 +129,18 @@ def test_derive_duns_name(database):
     assert duns_name == duns.legal_business_name
 
 
+    def test_derive_duns_business_types(database):
+    duns = DunsFactory(awardee_or_recipient_uniqu='987654321', business_types_codes=['A', 'B', 'C'])
+    database.session.add(duns)
+    database.session.commit()
+
+    model_row_grant = fileF.ModelRow(
+        None, None, None, None, FSRSSubgrantFactory(duns=duns.awardee_or_recipient_uniqu)
+    )
+    duns_bus_types = fileF.mappings['SubAwardeeBusinessTypes'](model_row_grant)
+    assert duns_bus_types == duns.business_types_codes
+
+
 def test_generate_f_rows(database, monkeypatch):
     """generate_f_rows should find and convert subaward data relevant to a
     specific submission id. We'll compare the resulting DUNs values for
