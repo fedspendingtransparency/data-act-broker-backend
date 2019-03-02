@@ -209,8 +209,8 @@ mappings = OrderedDict([
         procurement_fn=lambda contract: _prime_unique_id(contract),
         grant_fn=lambda grant: _prime_unique_id(grant)
     )),
-    ('PrimeAwardReportID', DeriveValues(procurement='contract_number', grant='fain')),
-    ('ParentAwardId', DeriveValues(procurement='idv_reference_number')),
+    ('PrimeAwardID', DeriveValues(procurement='contract_number', grant='fain')),
+    ('ParentAwardID', DeriveValues(procurement='idv_reference_number')),
     ('PrimeAwardAmount', DeriveValues(procurement='dollar_obligated', grant='total_fed_funding_amount')),
     ('ActionDate', DeriveValues(procurement='date_signed', grant='obligation_date')),
     ('PrimeAwardFiscalYear', DeriveValues(
@@ -286,7 +286,7 @@ mappings = OrderedDict([
     )),
     ('SubAwardReportYear', copy_prime_field('report_period_year')),
     ('SubAwardReportMonth', copy_prime_field('report_period_mon')),
-    ('SubawardNumber', DeriveValues('subcontract_num', 'subaward_num')),
+    ('SubAwardNumber', DeriveValues('subcontract_num', 'subaward_num')),
     ('SubAwardAmount', DeriveValues('subcontract_amount', 'subaward_amount')),
     ('SubAwardActionDate', DeriveValues('subcontract_date', 'subaward_date')),
     ('SubAwardeeOrRecipientUniqueIdentifier', copy_subaward_field('duns')),
@@ -320,13 +320,13 @@ mappings = OrderedDict([
         subcontract='bus_types',
         subgrant_fn=lambda subgrant: _derive_duns_business_types(subgrant.duns)
     )),
-    ('SubAwardeePlaceOfPerformanceCityName', copy_subaward_field('principle_place_city')),
-    ('SubAwardeePlaceOfPerformanceStateCode', copy_subaward_field('principle_place_state')),
-    ('SubAwardeePlaceOfPerformanceStateName', copy_subaward_field('principle_place_state_name')),
-    ('SubAwardeePlaceOfPerformanceZIP+4', copy_subaward_field('principle_place_zip')),
-    ('SubAwardeePlaceOfPerformanceCongressionalDistrict', copy_subaward_field('principle_place_district')),
-    ('SubAwardeePlaceOfPerformanceCountryCode', copy_subaward_field('principle_place_country')),
-    ('SubAwardeePlaceOfPerformanceCountryName', DeriveValues(
+    ('SubAwardPlaceOfPerformanceCityName', copy_subaward_field('principle_place_city')),
+    ('SubAwardPlaceOfPerformanceStateCode', copy_subaward_field('principle_place_state')),
+    ('SubAwardPlaceOfPerformanceStateName', copy_subaward_field('principle_place_state_name')),
+    ('SubAwardPlaceOfPerformanceZIP+4', copy_subaward_field('principle_place_zip')),
+    ('SubAwardPlaceOfPerformanceCongressionalDistrict', copy_subaward_field('principle_place_district')),
+    ('SubAwardPlaceOfPerformanceCountryCode', copy_subaward_field('principle_place_country')),
+    ('SubAwardPlaceOfPerformanceCountryName', DeriveValues(
         subcontract_fn=lambda subcontract: _country_name(subcontract.principle_place_country),
         subgrant_fn=lambda subgrant: _country_name(subgrant.principle_place_country)
     )),
