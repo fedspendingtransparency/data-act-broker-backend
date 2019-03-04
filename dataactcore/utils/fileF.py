@@ -4,7 +4,7 @@ import itertools
 import iso3166
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.fsrs import FSRSGrant, FSRSProcurement, FSRSSubcontract, FSRSSubgrant
+from dataactcore.models.fsrs import FSRSGrant, FSRSProcurement, FSRSSubcontract, FSRSSubgrant, FileF
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 from dataactcore.models.domainModels import DUNS
 from dataactbroker.helpers.generic_helper import fy
@@ -457,3 +457,18 @@ def generate_f_rows(submission_id):
 
     log_data['message'] = 'Finished generate_f_rows'
     logger.debug(log_data)
+
+
+def create_record(row):
+    """ Given a row generated for File F, create an FileF object for our table
+
+        Args:
+            row: OrderedDict representing File F row
+
+        Returns:
+            FileF object to be added
+    """
+    # TODO: Check File F Uniqueness
+    updated_row = {key.replace('+', '').replace(' ', ''): value for key, value in row.items()}
+    return FileF(**updated_row)
+

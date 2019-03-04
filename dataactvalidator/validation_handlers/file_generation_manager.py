@@ -173,6 +173,9 @@ class FileGenerationManager:
         body = []
         for row in rows_of_dicts:
             body.append([row[key] for key in header])
+            entry = fileF.store_record(row)
+            self.sess.add(entry)
+        self.sess.commit()
 
         log_data['message'] = 'Writing file F CSV'
         logger.info(log_data)
