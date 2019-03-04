@@ -1211,7 +1211,6 @@ CGAC AGENCY CODE,FPDS DEPARTMENT ID,AGENCY NAME,AGENCY ABBREVIATION,SUB TIER COD
 97,9700,Department of Defense,DOD,573C,"Air Force Elements, U.S. Central Command"
 97,9700,Department of Defense,DOD,574Z,Air National Guard
 97,9700,Department of Defense,DOD,57NG,Air National Guard Units (Title 32)
-97,9700,Department of Defense,DOD,96CE,U.S. Army Corps of Engineers - Civil Program Financing Only
 97,9700,Department of Defense,DOD,9748,Defense Human Resources Activity
 97,9700,Department of Defense,DOD,9750,USD(A And T) Defense Support Activity
 97,9700,Department of Defense,DOD,9761,Defense Threat Reduction Agency (DTRA)
@@ -1420,6 +1419,7 @@ CGAC AGENCY CODE,FPDS DEPARTMENT ID,AGENCY NAME,AGENCY ABBREVIATION,SUB TIER COD
 97,9700,Department of Defense,DOD,57ZS,U.S. Special Operations Command (Air Force)
 428,,Neighborhood Reinvestment Corporation,NEIGHBORWORKS,8291,Neighborhood Reinvestment Corporation
 96,,Corps of Engineers - Civil Works,USACE,9600,Corps of Engineers - Civil Works
+96,9700,Corps of Engineers - Civil Works,USACE,96CE,U.S. Army Corps of Engineers - Civil Program Financing Only
 96,,Corps of Engineers - Civil Works,CIVIL WORKS,96NC,Permanent International Association of Navigation Congresses
 96,,Corps of Engineers - Civil Works,CIVIL WORKS,96RC,Permanent International Association of Road Congresses
 96,,Corps of Engineers - Civil Works,CIVIL WORKS,9668,Mississippi River Commission
