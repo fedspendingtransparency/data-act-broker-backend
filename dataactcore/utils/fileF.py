@@ -116,7 +116,8 @@ def _derive_duns_name(duns):
     """
     sess = GlobalDB.db().session
 
-    duns = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu == duns).one_or_none()
+    duns = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu == duns)\
+        .order_by(DUNS.activation_date.desc()).first()
     if duns:
         return duns.legal_business_name
 
@@ -132,7 +133,8 @@ def _derive_duns_business_types(duns):
     """
     sess = GlobalDB.db().session
 
-    duns = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu == duns).one_or_none()
+    duns = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu == duns)\
+        .order_by(DUNS.activation_date.desc()).first()
     if duns:
         return duns.business_types_codes
 
