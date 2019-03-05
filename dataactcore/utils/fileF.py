@@ -389,6 +389,7 @@ def submission_grants(submission_id):
     for afa_sub_fain, afa_sub_id, grant, sub, grant_pduns_name, subgrant_pduns_name, subgrant_duns_bus in triplets:
         # need to combine those columns again here so we can get a proper ModelRow
         award = AwardFinancialAssistance(fain=afa_sub_fain, submission_id=afa_sub_id)
+        award.naics_description = None
         grant.grant_pduns_name = grant_pduns_name
         sub.subgrant_pduns_name = subgrant_pduns_name
         sub.subgrant_duns_bus = subgrant_duns_bus
