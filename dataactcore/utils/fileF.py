@@ -105,40 +105,6 @@ def _extract_cfda(cfda_numbers, type):
         return ','.join([cfda_entry[cfda_entry.index(' ')+1:] for cfda_entry in cfda_list if cfda_entry])
 
 
-def _derive_duns_name(duns):
-    """ Get the duns name, if available
-
-        Args:
-            duns: duns to find
-
-        Returns:
-            duns name, or None
-    """
-    sess = GlobalDB.db().session
-
-    duns = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu == duns)\
-        .order_by(DUNS.activation_date.desc()).first()
-    if duns:
-        return duns.legal_business_name
-
-
-def _derive_duns_business_types(duns):
-    """ Get the duns business types, if available
-
-        Args:
-            duns: duns to find
-
-        Returns:
-            duns name, or None
-    """
-    sess = GlobalDB.db().session
-
-    duns = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu == duns)\
-        .order_by(DUNS.activation_date.desc()).first()
-    if duns:
-        return duns.business_types_codes
-
-
 class DeriveValues:
     """ Derive values (either by copying or applying logic from one of our existing models """
     # Order to check fields
@@ -198,7 +164,8 @@ def copy_prime_field(field_name):
 # Collect the models associated with a single F CSV row
 ModelRow = namedtuple(
     'ModelRow',
-    ['award', 'procurement', 'subcontract', 'grant', 'subgrant', 'naics_desc'])
+    ['award', 'procurement', 'subcontract', 'grant', 'subgrant', 'grant_pduns_name', 'subgrant_pduns_name',
+     'subgrant_duns_bus'])
 ModelRow.__new__.__defaults__ = (None, None, None, None, None)
 
 
@@ -236,10 +203,7 @@ mappings = OrderedDict([
     ('AwardeeOrRecipientLegalEntityName', DeriveValues(procurement='company_name', grant='awardee_name')),
     ('Vendor Doing As Business Name', copy_prime_field('dba_name')),
     ('UltimateParentUniqueIdentifier', copy_prime_field('parent_duns')),
-    ('UltimateParentLegalEntityName', DeriveValues(
-        procurement='parent_company_name',
-        grant_fn=lambda grant: _derive_duns_name(grant.parent_duns)
-    )),
+    ('UltimateParentLegalEntityName', DeriveValues(procurement='parent_company_name',grant='grant_pduns_name')),
     ('LegalEntityCountryCode', DeriveValues(procurement='company_address_country', grant='awardee_address_country')),
     ('LegalEntityCountryName', DeriveValues(
         procurement_fn=lambda contract: _country_name(contract.company_address_country),
@@ -273,7 +237,7 @@ mappings = OrderedDict([
     )),
     ('AwardDescription', DeriveValues(grant='project_description', award='award_description')),
     ('NAICS', DeriveValues(procurement='naics')),
-    ('NAICS_Description', lambda models: models.naics_desc),
+    ('NAICS_Description', DeriveValues(award='naics_description')),
     ('CFDA_Numbers', DeriveValues(
         grant_fn=lambda grant: _extract_cfda(grant.cfda_numbers, 'numbers')
     )),
@@ -297,7 +261,7 @@ mappings = OrderedDict([
     ('SubAwardeeUltimateParentUniqueIdentifier', copy_subaward_field('parent_duns')),
     ('SubAwardeeUltimateParentLegalEntityName', DeriveValues(
         subcontract='parent_company_name',
-        subgrant_fn=lambda subgrant: _derive_duns_name(subgrant.parent_duns)
+        subgrant='subgrant_pduns_name'
     )),
     ('SubAwardeeLegalEntityCountryCode', DeriveValues('company_address_country', 'awardee_address_country')),
     ('SubAwardeeLegalEntityCountryName', DeriveValues(
@@ -318,10 +282,7 @@ mappings = OrderedDict([
         subcontract_fn=lambda subcontract: _zipcode_guard(subcontract, 'company_address', False),
         subgrant_fn=lambda subgrant: _zipcode_guard(subgrant, 'awardee_address', False)
     )),
-    ('SubAwardeeBusinessTypes', DeriveValues(
-        subcontract='bus_types',
-        subgrant_fn=lambda subgrant: _derive_duns_business_types(subgrant.duns)
-    )),
+    ('SubAwardeeBusinessTypes', DeriveValues(subcontract='bus_types', subgrant='subgrant_duns_bus')),
     ('SubAwardPlaceOfPerformanceCityName', copy_subaward_field('principle_place_city')),
     ('SubAwardPlaceOfPerformanceStateCode', copy_subaward_field('principle_place_state')),
     ('SubAwardPlaceOfPerformanceStateName', copy_subaward_field('principle_place_state_name')),
@@ -380,7 +341,8 @@ def submission_procurements(submission_id):
         # need to combine those columns again here so we can get a proper ModelRow
         award = AwardProcurement(piid=award_piid, parent_award_id=award_parent_id, naics_description=award_naics_desc,
                                  awarding_sub_tier_agency_c=award_sub_tier, submission_id=award_sub_id)
-        yield ModelRow(award, proc, sub, naics_desc=award.naics_description)
+
+        yield ModelRow(award, proc, sub)
 
     log_data['message'] = 'Finished file F submission procurements'
     logger.debug(log_data)
@@ -407,15 +369,31 @@ def submission_grants(submission_id):
     afa_sub = sess.query(AwardFinancialAssistance.fain, AwardFinancialAssistance.submission_id).\
         filter(AwardFinancialAssistance.submission_id == submission_id).distinct().cte("afa_sub")
 
-    triplets = sess.query(afa_sub, FSRSGrant, FSRSSubgrant).\
+    grant_pduns_name = sess.query(DUNS.legal_business_name). \
+        filter(FSRSGrant.parent_duns == DUNS.awardee_or_recipient_uniqu).order_by(DUNS.activation_date.desc())\
+        .distinct().cte("grant_pduns_name")
+
+    subgrant_pduns_name = sess.query(DUNS.legal_business_name). \
+        filter(FSRSSubgrant.parent_duns == DUNS.awardee_or_recipient_uniqu).order_by(DUNS.activation_date.desc())\
+        .distinct().cte("subgrant_pduns_name")
+
+    subgrant_duns_bus = sess.query(DUNS.business_types_codes). \
+        filter(FSRSSubgrant.duns == DUNS.awardee_or_recipient_uniqu).order_by(DUNS.activation_date.desc())\
+        .distinct().cte("subgrant_duns_bus")
+
+    triplets = sess.query(afa_sub, FSRSGrant, FSRSSubgrant, grant_pduns_name, subgrant_pduns_name, subgrant_duns_bus).\
         filter(FSRSGrant.fain == afa_sub.c.fain).\
         filter(FSRSSubgrant.parent_id == FSRSGrant.id)
 
     # The cte returns a set of columns, not an AwardFinancialAssistance object, so we have to unpack each column
-    for afa_sub_fain, afa_sub_id, grant, sub in triplets:
+    for afa_sub_fain, afa_sub_id, grant, sub, grant_pduns_name, subgrant_pduns_name, subgrant_duns_bus in triplets:
         # need to combine those columns again here so we can get a proper ModelRow
         award = AwardFinancialAssistance(fain=afa_sub_fain, submission_id=afa_sub_id)
-        yield ModelRow(award, grant=grant, subgrant=sub)
+        grant.grant_pduns_name = grant_pduns_name
+        sub.subgrant_pduns_name = subgrant_pduns_name
+        sub.subgrant_duns_bus = subgrant_duns_bus
+        yield ModelRow(award, grant=grant, subgrant=sub, grant_pduns_name=grant_pduns_name,
+                       subgrant_pduns_name=subgrant_pduns_name, subgrant_duns_bus=subgrant_duns_bus)
 
     log_data['message'] = 'Finished file F submission grants'
     logger.debug(log_data)
