@@ -398,34 +398,34 @@ def submission_grants(submission_id):
     grand_pduns_from = select([DUNS.awardee_or_recipient_uniqu, DUNS.legal_business_name,
                                func.row_number().over(partition_by=DUNS.awardee_or_recipient_uniqu).label('row')]). \
         select_from(outerjoin(FSRSGrant, DUNS, FSRSGrant.parent_duns == DUNS.awardee_or_recipient_uniqu)).\
-        order_by(DUNS.activation_date.desc())
+        order_by(DUNS.activation_date.desc()).alias('grand_pduns_from')
 
     grant_pduns = sess.query(grand_pduns_from.c.awardee_or_recipient_uniqu, grand_pduns_from.c.legal_business_name). \
-        filter(grand_pduns_from.c.row == 1).cte("grant_pduns_name")
+        filter(grand_pduns_from.c.row == 1).cte("grant_pduns")
 
     sub_pduns_from = select([DUNS.awardee_or_recipient_uniqu, DUNS.legal_business_name,
                             func.row_number().over(partition_by=DUNS.awardee_or_recipient_uniqu).label('row')]). \
         select_from(outerjoin(FSRSSubgrant, DUNS, FSRSSubgrant.parent_duns == DUNS.awardee_or_recipient_uniqu)). \
-        order_by(DUNS.activation_date.desc())
+        order_by(DUNS.activation_date.desc()).alias('sub_pduns_from')
 
     subgrant_pduns = sess.query(sub_pduns_from.c.awardee_or_recipient_uniqu, sub_pduns_from.c.legal_business_name). \
-        filter(sub_pduns_from.c.row == 1).cte("subgrant_pduns_name")
+        filter(sub_pduns_from.c.row == 1).cte("subgrant_pduns")
 
     sub_duns_from = select([DUNS.awardee_or_recipient_uniqu, DUNS.business_types_codes,
                             func.row_number().over(partition_by=DUNS.awardee_or_recipient_uniqu).label('row')]). \
         select_from(outerjoin(FSRSSubgrant, DUNS, FSRSSubgrant.duns == DUNS.awardee_or_recipient_uniqu)). \
-        order_by(DUNS.activation_date.desc())
+        order_by(DUNS.activation_date.desc()).alias('sub_duns_from')
 
     subgrant_duns = sess.query(sub_duns_from.c.awardee_or_recipient_uniqu, sub_duns_from.c.business_types_codes). \
-        filter(sub_duns_from.c.row == 1).cte("subgrant_duns_bus")
+        filter(sub_duns_from.c.row == 1).cte("subgrant_duns")
 
-    triplets = sess.query(afa_sub, FSRSGrant, FSRSSubgrant, grand_pduns_from.c.legal_business_name,
-                          sub_pduns_from.c.legal_business_name, subgrant_duns.c.business_types_codes). \
-        filter(FSRSGrant.fain == afa_sub.c.fain). \
-        filter(FSRSSubgrant.parent_id == FSRSGrant.id). \
-        outerjoin(grant_pduns, FSRSGrant.parent_duns == DUNS.awardee_or_recipient_uniqu). \
-        outerjoin(subgrant_pduns, FSRSSubgrant.parent_duns == DUNS.awardee_or_recipient_uniqu). \
-        outerjoin(subgrant_duns, FSRSSubgrant.duns == DUNS.awardee_or_recipient_uniqu)
+    triplets = sess.query(afa_sub, FSRSGrant, FSRSSubgrant, grant_pduns.c.legal_business_name,
+                          subgrant_pduns.c.legal_business_name, subgrant_duns.c.business_types_codes). \
+        join(FSRSGrant, FSRSGrant.fain == afa_sub.c.fain). \
+        join(FSRSSubgrant, FSRSSubgrant.parent_id == FSRSGrant.id). \
+        outerjoin(grant_pduns, FSRSGrant.parent_duns == grant_pduns.c.awardee_or_recipient_uniqu). \
+        outerjoin(subgrant_pduns, FSRSSubgrant.parent_duns == subgrant_pduns.c.awardee_or_recipient_uniqu). \
+        outerjoin(subgrant_duns, FSRSSubgrant.duns == subgrant_duns.c.awardee_or_recipient_uniqu)
 
     # The cte returns a set of columns, not an AwardFinancialAssistance object, so we have to unpack each column
     for afa_sub_fain, afa_sub_id, award_code, award_name, award_office_code, award_office_name, fund_code, fund_name, \
