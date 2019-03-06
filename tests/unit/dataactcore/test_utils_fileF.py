@@ -63,7 +63,7 @@ def test_country_name():
     entity = fileF.mappings['SubAwardeeLegalEntityCountryName'](model_row)
     assert entity == 'United States'
 
-    place = fileF.mappings['SubAwardeePlaceOfPerformanceCountryName'](model_row)
+    place = fileF.mappings['SubAwardPlaceOfPerformanceCountryName'](model_row)
     assert place == 'Germany'
 
 
@@ -111,44 +111,18 @@ def test_extract_cfda():
     assert cfda_titles == 'One CFDA, with an extra semicolon and space'
 
 
-def test_derive_duns_name(database):
-    duns = DunsFactory(awardee_or_recipient_uniqu='123456789', legal_business_name='Test Duns')
-    database.session.add(duns)
-    database.session.commit()
-
-    model_row_grant = fileF.ModelRow(
-        None, None, None, FSRSGrantFactory(parent_duns=duns.awardee_or_recipient_uniqu), None
-    )
-    duns_name = fileF.mappings['UltimateParentLegalEntityName'](model_row_grant)
-    assert duns_name == duns.legal_business_name
-
-    model_row_grant = fileF.ModelRow(
-        None, None, None, None, FSRSSubgrantFactory(parent_duns=duns.awardee_or_recipient_uniqu)
-    )
-    duns_name = fileF.mappings['SubAwardeeUltimateParentLegalEntityName'](model_row_grant)
-    assert duns_name == duns.legal_business_name
-
-
-def test_derive_duns_business_types(database):
-    duns = DunsFactory(awardee_or_recipient_uniqu='987654321', business_types_codes=['A', 'B', 'C'])
-    database.session.add(duns)
-    database.session.commit()
-
-    model_row_grant = fileF.ModelRow(
-        None, None, None, None, FSRSSubgrantFactory(duns=duns.awardee_or_recipient_uniqu)
-    )
-    duns_bus_types = fileF.mappings['SubAwardeeBusinessTypes'](model_row_grant)
-    assert duns_bus_types == duns.business_types_codes
-
-
 def test_generate_f_rows(database, monkeypatch):
-    """generate_f_rows should find and convert subaward data relevant to a
-    specific submission id. We'll compare the resulting DUNs values for
-    uniqueness"""
+    """ generate_f_rows should find and convert subaward data relevant to a specific submission id.
+        We'll compare the resulting DUNs values for uniqueness
+    """
     # Setup - create awards, procurements/grants, subawards
     sess = database.session
     sub_1 = SubmissionFactory()
     sub_2 = SubmissionFactory()
+    duns_1 = DunsFactory(awardee_or_recipient_uniqu='123456789', legal_business_name='DUNS 1',
+                         business_types_codes=['A', 'B', 'C'])
+    duns_2 = DunsFactory(awardee_or_recipient_uniqu='987654321', legal_business_name='DUNS 2',
+                         business_types_codes=['D', 'E', 'F'])
     sess.add_all([sub_1, sub_2])
     sess.commit()
 
@@ -180,9 +154,15 @@ def test_generate_f_rows(database, monkeypatch):
     cfda_numbers = '49.021 One CFDA; 49.028 Two CFDA'
     for fain in ('FAIN0', 'FAIN1'):
         grants[fain] = [
-            FSRSGrantFactory(fain=fain, subawards=[FSRSSubgrantFactory() for _ in range(3)], cfda_numbers=cfda_numbers),
-            FSRSGrantFactory(fain=fain, subawards=[]),
-            FSRSGrantFactory(fain=fain, subawards=[FSRSSubgrantFactory() for _ in range(2)], cfda_numbers=cfda_numbers)
+            FSRSGrantFactory(fain=fain, duns=duns_2.awardee_or_recipient_uniqu, cfda_numbers=cfda_numbers,
+                             subawards=[FSRSSubgrantFactory(duns=duns_1.awardee_or_recipient_uniqu,
+                                                            parent_duns=duns_2.awardee_or_recipient_uniqu)
+                                        for _ in range(3)]),
+            FSRSGrantFactory(fain=fain, duns=duns_2.awardee_or_recipient_uniqu, subawards=[]),
+            FSRSGrantFactory(fain=fain, duns=duns_2.awardee_or_recipient_uniqu, cfda_numbers=cfda_numbers,
+                             subawards=[FSRSSubgrantFactory(duns=duns_1.awardee_or_recipient_uniqu,
+                                                            parent_duns=duns_2.awardee_or_recipient_uniqu)
+                                        for _ in range(2)])
         ]
         sess.add_all(grants[fain])
     sess.commit()
@@ -196,7 +176,7 @@ def test_generate_f_rows(database, monkeypatch):
 
 
 def test_generate_f_rows_naics_desc(database, monkeypatch):
-    """The NAICS description should be retireved from an AwardProcurement"""
+    """ The NAICS description should be retireved from an AwardProcurement """
     sub = SubmissionFactory()
     database.session.add(sub)
     database.session.commit()

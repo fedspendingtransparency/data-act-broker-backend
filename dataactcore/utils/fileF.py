@@ -9,6 +9,9 @@ from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProc
 from dataactcore.models.domainModels import DUNS
 from dataactbroker.helpers.generic_helper import fy
 
+from sqlalchemy.orm import outerjoin, aliased
+from sqlalchemy import func, select
+
 import logging
 
 
@@ -108,16 +111,22 @@ def _extract_cfda(cfda_numbers, type):
 class DeriveValues:
     """ Derive values (either by copying or applying logic from one of our existing models """
     # Order to check fields
-    MODEL_TYPES = ('subcontract', 'subgrant', 'procurement', 'grant', 'award')
+    MODEL_TYPES = ('subcontract', 'subgrant', 'procurement', 'grant', 'award', 'grant_pduns', 'subgrant_pduns',
+                   'subgrant_duns')
 
     def __init__(self, subcontract=None, subgrant=None, procurement=None, grant=None, award=None, procurement_fn=None,
-                 grant_fn=None, subcontract_fn=None, subgrant_fn=None, award_fn=None):
+                 grant_fn=None, subcontract_fn=None, subgrant_fn=None, award_fn=None, grant_pduns=None,
+                 grant_pduns_fn=None, subgrant_pduns=None, subgrant_pduns_fn=None, subgrant_duns=None,
+                 subgrant_duns_fn=None):
         # Copy fields
         self.procurement_field = procurement
         self.subcontract_field = subcontract
         self.grant_field = grant
         self.subgrant_field = subgrant
         self.award_field = award
+        self.grant_pduns_field = grant_pduns
+        self.subgrant_pduns_field = subgrant_pduns
+        self.subgrant_duns_field = subgrant_duns
 
         # Logic functions
         self.procurement_fn = procurement_fn
@@ -125,6 +134,9 @@ class DeriveValues:
         self.grant_fn = grant_fn
         self.subgrant_fn = subgrant_fn
         self.award_fn = award_fn
+        self.grant_pduns_fn = grant_pduns_fn
+        self.subgrant_pduns_fn = subgrant_pduns_fn
+        self.subgrant_duns_fn = subgrant_duns_fn
 
     def __call__(self, models):
         for model_type in self.MODEL_TYPES:
@@ -164,9 +176,8 @@ def copy_prime_field(field_name):
 # Collect the models associated with a single F CSV row
 ModelRow = namedtuple(
     'ModelRow',
-    ['award', 'procurement', 'subcontract', 'grant', 'subgrant', 'grant_pduns_name', 'subgrant_pduns_name',
-     'subgrant_duns_bus'])
-ModelRow.__new__.__defaults__ = (None, None, None, None, None)
+    ['award', 'procurement', 'subcontract', 'grant', 'subgrant', 'grant_pduns', 'subgrant_pduns', 'subgrant_duns'])
+ModelRow.__new__.__defaults__ = (None, None, None, None, None, None, None, None)
 
 
 # A collection of mappers (callables which convert a ModelRow into a string to
@@ -196,14 +207,17 @@ mappings = OrderedDict([
     ('FundingAgencyCode', DeriveValues(award='funding_agency_code')),
     ('FundingAgencyName', DeriveValues(award='funding_agency_name')),
     ('FundingSubTierAgencyCode', DeriveValues(procurement='funding_agency_id', award='funding_sub_tier_agency_co')),
-    ('FundingSubTierAgencyName', DeriveValues(procurement='funding_agency_name', award='funding_sub_tier_agency_co')),
+    ('FundingSubTierAgencyName', DeriveValues(procurement='funding_agency_name', award='funding_sub_tier_agency_na')),
     ('FundingOfficeCode', DeriveValues(procurement='funding_office_id', award='funding_office_code')),
     ('FundingOfficeName', DeriveValues(procurement='funding_office_name', award='funding_office_name')),
     ('AwardeeOrRecipientUniqueIdentifier', copy_prime_field('duns')),
     ('AwardeeOrRecipientLegalEntityName', DeriveValues(procurement='company_name', grant='awardee_name')),
     ('Vendor Doing As Business Name', copy_prime_field('dba_name')),
     ('UltimateParentUniqueIdentifier', copy_prime_field('parent_duns')),
-    ('UltimateParentLegalEntityName', DeriveValues(procurement='parent_company_name',grant='grant_pduns_name')),
+    ('UltimateParentLegalEntityName', DeriveValues(
+        procurement='parent_company_name',
+        grant_pduns='legal_business_name'
+    )),
     ('LegalEntityCountryCode', DeriveValues(procurement='company_address_country', grant='awardee_address_country')),
     ('LegalEntityCountryName', DeriveValues(
         procurement_fn=lambda contract: _country_name(contract.company_address_country),
@@ -261,7 +275,7 @@ mappings = OrderedDict([
     ('SubAwardeeUltimateParentUniqueIdentifier', copy_subaward_field('parent_duns')),
     ('SubAwardeeUltimateParentLegalEntityName', DeriveValues(
         subcontract='parent_company_name',
-        subgrant='subgrant_pduns_name'
+        subgrant_pduns='legal_business_name'
     )),
     ('SubAwardeeLegalEntityCountryCode', DeriveValues('company_address_country', 'awardee_address_country')),
     ('SubAwardeeLegalEntityCountryName', DeriveValues(
@@ -282,7 +296,7 @@ mappings = OrderedDict([
         subcontract_fn=lambda subcontract: _zipcode_guard(subcontract, 'company_address', False),
         subgrant_fn=lambda subgrant: _zipcode_guard(subgrant, 'awardee_address', False)
     )),
-    ('SubAwardeeBusinessTypes', DeriveValues(subcontract='bus_types', subgrant='subgrant_duns_bus')),
+    ('SubAwardeeBusinessTypes', DeriveValues(subcontract='bus_types', subgrant_duns='business_types_codes')),
     ('SubAwardPlaceOfPerformanceCityName', copy_subaward_field('principle_place_city')),
     ('SubAwardPlaceOfPerformanceStateCode', copy_subaward_field('principle_place_state')),
     ('SubAwardPlaceOfPerformanceStateName', copy_subaward_field('principle_place_state_name')),
@@ -327,7 +341,9 @@ def submission_procurements(submission_id):
 
     award_proc_sub = sess.query(AwardProcurement.piid, AwardProcurement.parent_award_id,
                                 AwardProcurement.naics_description, AwardProcurement.awarding_sub_tier_agency_c,
-                                AwardProcurement.submission_id).\
+                                AwardProcurement.submission_id, AwardProcurement.awarding_agency_code,
+                                AwardProcurement.awarding_agency_name, AwardProcurement.funding_agency_code,
+                                AwardProcurement.funding_agency_name).\
         filter(AwardProcurement.submission_id == submission_id).distinct().cte("award_proc_sub")
 
     results = sess.query(award_proc_sub, FSRSProcurement, FSRSSubcontract).\
@@ -337,11 +353,13 @@ def submission_procurements(submission_id):
         filter(FSRSSubcontract.parent_id == FSRSProcurement.id)
 
     # The cte returns a set of columns, not an AwardProcurement object, so we have to unpack each column
-    for award_piid, award_parent_id, award_naics_desc, award_sub_tier, award_sub_id, proc, sub in results:
+    for award_piid, award_parent_id, award_naics_desc, award_sub_tier, award_sub_id, award_code, award_name, \
+        fund_code, fund_name, proc, sub in results:
         # need to combine those columns again here so we can get a proper ModelRow
         award = AwardProcurement(piid=award_piid, parent_award_id=award_parent_id, naics_description=award_naics_desc,
-                                 awarding_sub_tier_agency_c=award_sub_tier, submission_id=award_sub_id)
-
+                                 awarding_sub_tier_agency_c=award_sub_tier, submission_id=award_sub_id,
+                                 awarding_agency_code=award_code, awarding_agency_name=award_name,
+                                 funding_agency_code=fund_code, funding_agency_name=fund_name)
         yield ModelRow(award, proc, sub)
 
     log_data['message'] = 'Finished file F submission procurements'
@@ -366,35 +384,68 @@ def submission_grants(submission_id):
     }
     logger.debug(log_data)
 
-    afa_sub = sess.query(AwardFinancialAssistance.fain, AwardFinancialAssistance.submission_id).\
+    afa_sub = sess.query(AwardFinancialAssistance.fain, AwardFinancialAssistance.submission_id,
+                         AwardFinancialAssistance.awarding_agency_code, AwardFinancialAssistance.awarding_agency_name,
+                         AwardFinancialAssistance.awarding_office_code, AwardFinancialAssistance.awarding_office_name,
+                         AwardFinancialAssistance.funding_agency_code, AwardFinancialAssistance.funding_agency_name,
+                         AwardFinancialAssistance.funding_office_code, AwardFinancialAssistance.funding_office_name,
+                         AwardFinancialAssistance.business_types_desc, AwardFinancialAssistance.award_description,
+                         AwardFinancialAssistance.awarding_sub_tier_agency_n,
+                         AwardFinancialAssistance.funding_sub_tier_agency_co,
+                         AwardFinancialAssistance.funding_sub_tier_agency_na).\
         filter(AwardFinancialAssistance.submission_id == submission_id).distinct().cte("afa_sub")
 
-    grant_pduns_name = sess.query(DUNS.legal_business_name). \
-        filter(FSRSGrant.parent_duns == DUNS.awardee_or_recipient_uniqu).order_by(DUNS.activation_date.desc())\
-        .distinct().cte("grant_pduns_name")
+    grand_pduns_from = select([DUNS.awardee_or_recipient_uniqu, DUNS.legal_business_name,
+                               func.row_number().over(partition_by=DUNS.awardee_or_recipient_uniqu).label('row')]). \
+        select_from(outerjoin(FSRSGrant, DUNS, FSRSGrant.parent_duns == DUNS.awardee_or_recipient_uniqu)).\
+        order_by(DUNS.activation_date.desc())
 
-    subgrant_pduns_name = sess.query(DUNS.legal_business_name). \
-        filter(FSRSSubgrant.parent_duns == DUNS.awardee_or_recipient_uniqu).order_by(DUNS.activation_date.desc())\
-        .distinct().cte("subgrant_pduns_name")
+    grant_pduns = sess.query(grand_pduns_from.c.awardee_or_recipient_uniqu, grand_pduns_from.c.legal_business_name). \
+        filter(grand_pduns_from.c.row == 1).cte("grant_pduns_name")
 
-    subgrant_duns_bus = sess.query(DUNS.business_types_codes). \
-        filter(FSRSSubgrant.duns == DUNS.awardee_or_recipient_uniqu).order_by(DUNS.activation_date.desc())\
-        .distinct().cte("subgrant_duns_bus")
+    sub_pduns_from = select([DUNS.awardee_or_recipient_uniqu, DUNS.legal_business_name,
+                            func.row_number().over(partition_by=DUNS.awardee_or_recipient_uniqu).label('row')]). \
+        select_from(outerjoin(FSRSSubgrant, DUNS, FSRSSubgrant.parent_duns == DUNS.awardee_or_recipient_uniqu)). \
+        order_by(DUNS.activation_date.desc())
 
-    triplets = sess.query(afa_sub, FSRSGrant, FSRSSubgrant, grant_pduns_name, subgrant_pduns_name, subgrant_duns_bus).\
-        filter(FSRSGrant.fain == afa_sub.c.fain).\
-        filter(FSRSSubgrant.parent_id == FSRSGrant.id)
+    subgrant_pduns = sess.query(sub_pduns_from.c.awardee_or_recipient_uniqu, sub_pduns_from.c.legal_business_name). \
+        filter(sub_pduns_from.c.row == 1).cte("subgrant_pduns_name")
+
+    sub_duns_from = select([DUNS.awardee_or_recipient_uniqu, DUNS.business_types_codes,
+                            func.row_number().over(partition_by=DUNS.awardee_or_recipient_uniqu).label('row')]). \
+        select_from(outerjoin(FSRSSubgrant, DUNS, FSRSSubgrant.duns == DUNS.awardee_or_recipient_uniqu)). \
+        order_by(DUNS.activation_date.desc())
+
+    subgrant_duns = sess.query(sub_duns_from.c.awardee_or_recipient_uniqu, sub_duns_from.c.business_types_codes). \
+        filter(sub_duns_from.c.row == 1).cte("subgrant_duns_bus")
+
+    triplets = sess.query(afa_sub, FSRSGrant, FSRSSubgrant, grand_pduns_from.c.legal_business_name,
+                          sub_pduns_from.c.legal_business_name, subgrant_duns.c.business_types_codes). \
+        filter(FSRSGrant.fain == afa_sub.c.fain). \
+        filter(FSRSSubgrant.parent_id == FSRSGrant.id). \
+        outerjoin(grant_pduns, FSRSGrant.parent_duns == DUNS.awardee_or_recipient_uniqu). \
+        outerjoin(subgrant_pduns, FSRSSubgrant.parent_duns == DUNS.awardee_or_recipient_uniqu). \
+        outerjoin(subgrant_duns, FSRSSubgrant.duns == DUNS.awardee_or_recipient_uniqu)
 
     # The cte returns a set of columns, not an AwardFinancialAssistance object, so we have to unpack each column
-    for afa_sub_fain, afa_sub_id, grant, sub, grant_pduns_name, subgrant_pduns_name, subgrant_duns_bus in triplets:
+    for afa_sub_fain, afa_sub_id, award_code, award_name, award_office_code, award_office_name, fund_code, fund_name, \
+        fund_office_code, fund_office_name, bus_types, award_desc, award_sub_name, fund_sub_code, fund_sub_name, grant, \
+        sub, grant_pduns_name, sub_pduns_name, sub_duns_bus in triplets:
         # need to combine those columns again here so we can get a proper ModelRow
-        award = AwardFinancialAssistance(fain=afa_sub_fain, submission_id=afa_sub_id)
+        award = AwardFinancialAssistance(fain=afa_sub_fain, submission_id=afa_sub_id, awarding_agency_code=award_code,
+                                         awarding_agency_name=award_name, awarding_office_code=award_office_code,
+                                         awarding_office_name=award_office_name, funding_agency_code=fund_code,
+                                         funding_agency_name=fund_name, funding_office_code=fund_office_code,
+                                         funding_office_name=fund_office_name, business_types_desc=bus_types,
+                                         award_description=award_desc, awarding_sub_tier_agency_n=award_sub_name,
+                                         funding_sub_tier_agency_co=fund_sub_code,
+                                         funding_sub_tier_agency_na=fund_sub_name)
         award.naics_description = None
-        grant.grant_pduns_name = grant_pduns_name
-        sub.subgrant_pduns_name = subgrant_pduns_name
-        sub.subgrant_duns_bus = subgrant_duns_bus
-        yield ModelRow(award, grant=grant, subgrant=sub, grant_pduns_name=grant_pduns_name,
-                       subgrant_pduns_name=subgrant_pduns_name, subgrant_duns_bus=subgrant_duns_bus)
+        grant_pduns = DUNS(legal_business_name=grant_pduns_name)
+        subgrant_pduns = DUNS(legal_business_name=sub_pduns_name)
+        subgrant_duns = DUNS(business_types_codes=sub_duns_bus)
+        yield ModelRow(award, grant=grant, subgrant=sub, grant_pduns=grant_pduns, subgrant_pduns=subgrant_pduns,
+                       subgrant_duns=subgrant_duns)
 
     log_data['message'] = 'Finished file F submission grants'
     logger.debug(log_data)
