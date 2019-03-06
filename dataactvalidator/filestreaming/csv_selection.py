@@ -50,8 +50,8 @@ def write_csv(file_name, upload_name, is_local, header, body):
         os.remove(local_filename)
 
 
-def write_query_to_file(local_filename, upload_name, header, file_type, is_local, query_func, query_utils,
-                        is_certified=False):
+def write_stream_query_func(local_filename, upload_name, header, file_type, is_local, query_func, query_utils,
+                            is_certified=False):
     """ Write file locally from a query, then stream it to S3
 
         Args:
@@ -67,11 +67,6 @@ def write_query_to_file(local_filename, upload_name, header, file_type, is_local
     if is_local:
         local_filename = upload_name
 
-    # get the raw SQL equivalent
-    raw_query = generate_raw_quoted_query(query_func(query_utils))
-    # save psql command with query to a temp file
-    temp_sql_file, temp_sql_file_path = generate_temp_query_file(raw_query)
-
     logger.debug({
         'message': 'Writing query to csv',
         'message_type': 'BrokerDebug',
@@ -79,18 +74,8 @@ def write_query_to_file(local_filename, upload_name, header, file_type, is_local
         'file_type': file_type,
         'query_utils': query_utils
     })
-    # write base csv with headers
-    # Note: while psql's copy command supports headers, some header lengths exceed the maximum label length (63)
-    with open(local_filename, 'w', newline='') as csv_file:
-        # create local file and write headers
-        out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-        if header:
-            out_csv.writerow(header)
 
-    # run the psql command and cleanup
-    database_string = str(query_utils['sess'].bind.url)
-    execute_psql(temp_sql_file_path, local_filename, database_string)
-    os.remove(temp_sql_file_path)
+    write_query_to_file(query_utils['sess'], query_func(query_utils), local_filename, header=header)
 
     logger.debug({
         'message': 'CSV written from query',
@@ -107,6 +92,36 @@ def write_query_to_file(local_filename, upload_name, header, file_type, is_local
         # close and delete local copy
         reader.close()
         os.remove(local_filename)
+
+
+def write_query_to_file(sess, query, local_filename, header=None):
+    """ Write file locally from a query
+
+        Args:
+            sess: database connection
+            query: query to spit out data
+            local_filename: full path for local file
+            header: value to write as the first line of the file
+    """
+
+    # write base csv with headers
+    # Note: while psql's copy command supports headers, some header lengths exceed the maximum label length (63)
+    if header:
+        with open(local_filename, 'w', newline='') as csv_file:
+            # create local file and write headers
+            out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+            out_csv.writerow(header)
+
+    # get the raw SQL equivalent
+    raw_query = generate_raw_quoted_query(query)
+    # save psql command with query to a temp file
+    # note: if we've been provded a header and wrote it, there's no need to add another
+    temp_sql_file, temp_sql_file_path = generate_temp_query_file(raw_query, header=(header is None))
+
+    # run the psql command and cleanup
+    database_string = str(sess.bind.url)
+    execute_psql(temp_sql_file_path, local_filename, database_string)
+    os.remove(temp_sql_file_path)
 
 
 def stream_file_to_s3(upload_name, reader, is_certified=False):
@@ -134,19 +149,21 @@ def stream_file_to_s3(upload_name, reader, is_certified=False):
     s3_resource.Object(bucket_name, upload_name).put(Body=reader)
 
 
-def generate_temp_query_file(query):
+def generate_temp_query_file(query, header=True):
     """ Generates a temporary file containing the shell command to create the csv
         Reason for this being that the query can be too long for shell to process via subprocess
 
         Args:
             query: string query to populate the csv file
+            header: include header in csv (includes column names or aliases if provided in query)
     """
     logger.debug('Creating PSQL Query: {}'.format(query))
 
     # Create a unique temporary file to hold the raw query, using \copy
     (temp_sql_file, temp_sql_file_path) = tempfile.mkstemp(prefix='b_sql_', dir='/tmp')
     with open(temp_sql_file_path, 'w') as file:
-        file.write('\copy ({}) To STDOUT with CSV'.format(query))
+        with_header = ' HEADER' if header else ''
+        file.write('\copy ({}) To STDOUT with CSV{}'.format(query, with_header))
 
     return temp_sql_file, temp_sql_file_path
 

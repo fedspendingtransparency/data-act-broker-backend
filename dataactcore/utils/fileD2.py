@@ -107,19 +107,17 @@ def query_data(session, agency_code, agency_type, start, end):
     return rows
 
 
-def query_published_fabs_data(session, submission_id, page_start, page_stop):
+def query_published_fabs_data(session, submission_id):
     """ Request published FABS file data
 
         Args:
             session: DB session
             submission_id: Submission ID for generation
-            page_start: Beginning of pagination
-            page_stop: End of pagination
 
         Returns:
-            A query to gather published data from the provided submission with the provided slice
+            A query to gather published data from the provided submission
     """
-    return initial_query(session).filter(file_model.submission_id == submission_id).slice(page_start, page_stop)
+    return initial_query(session).filter(file_model.submission_id == submission_id)
 
 
 def initial_query(session):

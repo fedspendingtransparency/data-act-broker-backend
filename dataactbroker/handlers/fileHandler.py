@@ -46,7 +46,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 
-from dataactvalidator.filestreaming.csv_selection import write_query_to_file
+from dataactvalidator.filestreaming.csv_selection import write_stream_query_func
 from dataactvalidator.validation_handlers.file_generation_manager import GEN_FILENAMES
 
 logger = logging.getLogger(__name__)
@@ -619,11 +619,14 @@ class FileHandler:
             office_dict = {}
 
             # This table is big enough that we want to only grab 2 columns
-            offices = sess.query(Office.office_code, Office.office_name, Office.sub_tier_code, Office.agency_code).all()
+            offices = sess.query(Office.office_code, Office.office_name, Office.sub_tier_code, Office.agency_code,
+                                 Office.grant_office, Office.funding_office).all()
             for office in offices:
                 office_dict[office.office_code] = {'office_name': office.office_name,
                                                    'sub_tier_code': office.sub_tier_code,
-                                                   'agency_code': office.agency_code}
+                                                   'agency_code': office.agency_code,
+                                                   'grant_office': office.grant_office,
+                                                   'funding_office': office.funding_office}
             del offices
 
             counties = sess.query(CountyCode).all()
@@ -1070,24 +1073,22 @@ def create_fabs_published_file(sess, submission_id, new_route):
     upload_name = "".join([new_route, timestamped_name])
 
     # write file and stream to S3
-    write_query_to_file(local_filename, upload_name, [key for key in fileD2.mapping], "published FABS", g.is_local,
-                        published_fabs_query, {"sess": sess, "submission_id": submission_id}, is_certified=True)
+    write_stream_query_func(local_filename, upload_name, [key for key in fileD2.mapping], "published FABS", g.is_local,
+                            published_fabs_query, {"sess": sess, "submission_id": submission_id}, is_certified=True)
     return local_filename if g.is_local else upload_name
 
 
-def published_fabs_query(data_utils, page_start, page_end):
+def published_fabs_query(data_utils):
     """ Get the data from the published FABS table to write to the file with
 
         Args:
             data_utils: A dictionary of utils that are needed for the query being made, in this case including the
                 session object and the submission ID
-            page_start: the start of the slice to limit the data
-            page_end: the end of the slice to limit the data
 
         Returns:
             A list of published FABS rows.
     """
-    return fileD2.query_published_fabs_data(data_utils["sess"], data_utils["submission_id"], page_start, page_end).all()
+    return fileD2.query_published_fabs_data(data_utils["sess"], data_utils["submission_id"])
 
 
 def submission_to_dict_for_status(submission):

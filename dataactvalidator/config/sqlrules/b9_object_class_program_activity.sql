@@ -35,7 +35,7 @@ WHERE (sub.reporting_fiscal_year, sub.reporting_fiscal_period) NOT IN (('2017', 
             WHERE op.agency_identifier = pa.agency_id
             AND op.main_account_code = pa.account_number
             AND UPPER(COALESCE(op.program_activity_name, '')) = UPPER(pa.program_activity_name)
-            AND COALESCE(op.program_activity_code, '') = pa.program_activity_code
+            AND UPPER(COALESCE(op.program_activity_code, '')) = UPPER(pa.program_activity_code)
             AND pa.fiscal_year_quarter = 'FY' || RIGHT(CAST(sub.reporting_fiscal_year AS CHAR(4)), 2) || 'Q' || sub.reporting_fiscal_period / 3
     )
     AND (op.program_activity_code <> '0000'

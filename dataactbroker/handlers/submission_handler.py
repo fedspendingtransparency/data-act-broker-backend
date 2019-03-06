@@ -12,7 +12,7 @@ from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JO
                                         FILE_TYPE_DICT)
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
-                                          CertifyHistory, RevalidationThreshold)
+                                          CertifyHistory, RevalidationThreshold, QuarterlyRevalidationThreshold)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
                                               CertifiedAwardFinancial)
@@ -600,13 +600,33 @@ def certify_dabs_submission(submission, file_manager):
         if window.block_certification:
             return JsonResponse.error(ValueError(window.message), StatusCode.CLIENT_ERROR)
 
-    # check revalidation threshold
     sess = GlobalDB.db().session
+    # Check revalidation threshold
+    last_validated = get_last_validated_date(submission.submission_id)
     reval_thresh = get_revalidation_threshold()['revalidation_threshold']
-    if reval_thresh and reval_thresh >= get_last_validated_date(submission.submission_id):
+    if reval_thresh and reval_thresh >= last_validated:
         return JsonResponse.error(ValueError("This submission has not been validated since before the revalidation "
                                              "threshold ({}), it must be revalidated before certifying.".
                                              format(reval_thresh.replace('T', ' '))),
+                                  StatusCode.CLIENT_ERROR)
+
+    # Get the year/quarter of the submission and filter by them
+    sub_quarter = submission.reporting_fiscal_period // 3
+    sub_year = submission.reporting_fiscal_year
+    quarter_reval = sess.query(QuarterlyRevalidationThreshold).filter_by(year=sub_year, quarter=sub_quarter).\
+        one_or_none()
+
+    # If we don't have a quarterly revalidation threshold for this year/quarter, they can't submit
+    if not quarter_reval:
+        return JsonResponse.error(ValueError("No submission window for this year and quarter was found. If this is an "
+                                             "error, please contact the Service Desk."), StatusCode.CLIENT_ERROR)
+
+    # Make sure everything was last validated after the start of the submission window
+    last_validated = datetime.strptime(last_validated, '%Y-%m-%dT%H:%M:%S')
+    if last_validated < quarter_reval.window_start:
+        return JsonResponse.error(ValueError("This submission was last validated or its D files generated before the "
+                                             "start of the submission window ({}). Please revalidate before "
+                                             "certifying.".format(quarter_reval.window_start.strftime('%m/%d/%Y'))),
                                   StatusCode.CLIENT_ERROR)
 
     response = find_existing_submissions_in_period(submission.cgac_code, submission.frec_code,
