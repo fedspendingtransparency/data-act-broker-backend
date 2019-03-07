@@ -101,11 +101,12 @@ def _extract_cfda(cfda_numbers, type):
         Returns:
             cfda codes or titles, or None if invalid
     """
-    cfda_list = [cfda_entry.strip() for cfda_entry in cfda_numbers.split(';')]
-    if type == 'numbers':
-        return ','.join([cfda_entry.split(' ')[0] for cfda_entry in cfda_list if cfda_entry])
-    elif type == 'titles':
-        return ','.join([cfda_entry[cfda_entry.index(' ')+1:] for cfda_entry in cfda_list if cfda_entry])
+    if cfda_numbers:
+        cfda_list = [cfda_entry.strip() for cfda_entry in cfda_numbers.split(';')]
+        if type == 'numbers':
+            return ','.join([cfda_entry.split(' ')[0] for cfda_entry in cfda_list if cfda_entry])
+        elif type == 'titles':
+            return ','.join([cfda_entry[cfda_entry.index(' ')+1:] for cfda_entry in cfda_list if cfda_entry])
 
 
 class DeriveValues:
