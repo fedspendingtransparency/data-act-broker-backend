@@ -33,6 +33,7 @@ def upgrade_data_broker():
         EXCEPTION WHEN others THEN
             return NULL;
         END;
+        $$ LANGUAGE plpgsql;
     """)
     op.execute("""
         CREATE OR REPLACE function cfda_word(TEXT) returns TEXT AS $$
@@ -42,6 +43,7 @@ def upgrade_data_broker():
         EXCEPTION WHEN others THEN
             return NULL;
         END;
+        $$ LANGUAGE plpgsql;
     """)
     op.execute("""
         CREATE OR REPLACE function cfda_num_loop(TEXT) returns TEXT AS $$
@@ -57,6 +59,7 @@ def upgrade_data_broker():
         EXCEPTION WHEN others THEN
             return NULL;
         END;
+        $$ LANGUAGE plpgsql;
     """)
     op.execute("""
         CREATE OR REPLACE function cfda_word_loop(TEXT) RETURNS TEXT AS $$
@@ -72,6 +75,7 @@ def upgrade_data_broker():
         EXCEPTION WHEN others THEN
             return NULL;
         END;
+        $$ LANGUAGE plpgsql;
     """)
     op.execute("""
         CREATE OR REPLACE FUNCTION fy(raw_date DATE) RETURNS integer AS $$
@@ -86,6 +90,7 @@ def upgrade_data_broker():
             END IF;
             RETURN result;
         END;
+        $$ LANGUAGE plpgsql;
     """)
     pass
 
