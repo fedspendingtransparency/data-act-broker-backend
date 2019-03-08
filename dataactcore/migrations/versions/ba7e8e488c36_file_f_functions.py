@@ -53,7 +53,7 @@ def upgrade_data_broker():
         BEGIN
             FOREACH i IN ARRAY regexp_split_to_array($1, ';')
             LOOP
-                s := CONCAT(s, ', ', pg_temp.cfda_num(i));
+                s := CONCAT(s, ', ', cfda_num(i));
             END LOOP;
             RETURN RIGHT(s, -2);
         EXCEPTION WHEN others THEN
@@ -69,7 +69,7 @@ def upgrade_data_broker():
         BEGIN
             FOREACH i IN ARRAY regexp_split_to_array($1, ';')
             LOOP
-                s := CONCAT(s, ', ', pg_temp.cfda_word(i));
+                s := CONCAT(s, ', ', cfda_word(i));
             END LOOP;
             RETURN RIGHT(s, -2);
         EXCEPTION WHEN others THEN
