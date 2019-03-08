@@ -4,6 +4,7 @@ from io import BytesIO
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.logging import configure_logging
 import logging
+import requests
 
 import boto3
 from botocore.handlers import disable_signing
@@ -16,6 +17,7 @@ CFDA_FILE_FORMAT = CONFIG_BROKER['cfda_file_path']
 WEEKDAY_UPLOADED = 5  # datetime.weekday()'s integer representing the day it's usually uploaded (Saturday)
 DAYS_TO_SEARCH = 4 * 7  # 4 weeks
 LOCAL_CFDA_FILE = os.path.join('dataactvalidator', 'config', 'cfda_program.csv')
+S3_CFDA_FILE = 'https://files.usaspending.gov/reference_data/cfda.csv'
 
 
 def find_latest_file(bucket, days_to_search=DAYS_TO_SEARCH):
@@ -58,30 +60,35 @@ def file_exists(bucket, src):
 
 
 def load_cfda():
-    gsa_connection = boto3.resource('s3', region_name=CONFIG_BROKER['cfda_region'])
-    # disregard aws credentials for public file
-    gsa_connection.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
-    gsa_bucket = gsa_connection.Bucket(CONFIG_BROKER['cfda_bucket'])
+    if 'pull_external_cfda_file' in CONFIG_BROKER and CONFIG_BROKER['pull_external_cfda_file']:
+        gsa_connection = boto3.resource('s3', region_name=CONFIG_BROKER['cfda_region'])
+        # disregard aws credentials for public file
+        gsa_connection.meta.client.meta.events.register('choose-signer.s3.*', disable_signing)
+        gsa_bucket = gsa_connection.Bucket(CONFIG_BROKER['cfda_bucket'])
 
-    latest_file = find_latest_file(gsa_bucket)
-    if not latest_file:
-        logger.error('Could not find cfda file')
-        return
+        latest_file = find_latest_file(gsa_bucket)
+        if not latest_file:
+            logger.error('Could not find cfda file')
+            return
 
-    logger.info('Loading ' + os.path.basename(latest_file))
+        logger.info('Loading ' + os.path.basename(latest_file))
 
-    if CONFIG_BROKER["use_aws"]:
-        # download file to memory, reupload
-        data = BytesIO()
-        gsa_bucket.download_fileobj(latest_file, data)
-        data.seek(0)
-        broker_s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
-        broker_s3.Bucket(CONFIG_BROKER['sf_133_bucket']).put_object(Key='cfda_program.csv', Body=data)
-        logger.info('Loading file to S3 completed')
+        if CONFIG_BROKER["use_aws"]:
+            # download file to memory, reupload
+            data = BytesIO()
+            gsa_bucket.download_fileobj(latest_file, data)
+            data.seek(0)
+            broker_s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
+            broker_s3.Bucket(CONFIG_BROKER['sf_133_bucket']).put_object(Key='cfda_program.csv', Body=data)
+            logger.info('Loading file to S3 completed')
+        else:
+            # download file locally
+            gsa_bucket.download_file(latest_file, LOCAL_CFDA_FILE)
+            logger.info('Loading file completed')
     else:
-        # download file locally
-        gsa_bucket.download_file(latest_file, LOCAL_CFDA_FILE)
-        logger.info('Loading file completed')
+        logger.info('Retrieving CFDA file from S3...')
+        r = requests.get(S3_CFDA_FILE, allow_redirects=True)
+        open(LOCAL_CFDA_FILE, 'wb').write(r.content)
 
 
 if __name__ == '__main__':
