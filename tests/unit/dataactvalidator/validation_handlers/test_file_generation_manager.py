@@ -3,7 +3,6 @@ import os
 import re
 import pytest
 
-from collections import OrderedDict
 from datetime import datetime
 from unittest.mock import Mock
 

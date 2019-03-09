@@ -94,6 +94,7 @@ EXPECTED_COLS = [
     'SubAwardeeHighCompOfficer5Amount'
 ]
 
+
 def generate_unique_key(fsrs_award, d_file):
     """ Helper function representing the cfda psql functions """
     if isinstance(fsrs_award, FSRSProcurement):
@@ -110,6 +111,7 @@ def generate_unique_key(fsrs_award, d_file):
         else:
             unique_fields.extend(['NON', fsrs_award.fain, fsrs_award.federal_agency_id])
     return '_'.join([unique_field or '-NONE-' for unique_field in unique_fields]).upper()
+
 
 def extract_cfda(field, type):
     """ Helper function representing the cfda psql functions """
@@ -235,39 +237,35 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
     sub = SubmissionFactory(submission_id=1)
     d1_awd = AwardProcurementFactory(
         submission_id=sub.submission_id,
-        idv_type=None,
+        idv_type=None
     )
     contract_awd = FSRSProcurementFactory(
         contract_number=d1_awd.piid,
         idv_reference_number=d1_awd.parent_award_id,
         contracting_office_aid=d1_awd.awarding_sub_tier_agency_c,
-
         company_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code,
-        duns=duns.awardee_or_recipient_uniqu,
+        duns=duns.awardee_or_recipient_uniqu
     )
     sub_contract_awd = FSRSSubcontractFactory(
-        parent = contract_awd,
-
+        parent=contract_awd,
         company_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code
     )
     d1_idv = AwardProcurementFactory(
         submission_id=sub.submission_id,
-        idv_type='C',
+        idv_type='C'
     )
     contract_idv = FSRSProcurementFactory(
         contract_number=d1_idv.piid,
         idv_reference_number=d1_idv.parent_award_id,
         contracting_office_aid=d1_idv.awarding_sub_tier_agency_c,
-
         company_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code,
-        duns=duns.awardee_or_recipient_uniqu,
+        duns=duns.awardee_or_recipient_uniqu
     )
     sub_contract_idv = FSRSSubcontractFactory(
-        parent = contract_idv,
-
+        parent=contract_idv,
         company_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code
     )
@@ -293,6 +291,7 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
 
     assert sorted(contracts_results, key=lambda result: result[0]) == expected_contracts
     assert contracts_cols == EXPECTED_COLS
+
 
 def replicate_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_country, int_country):
     """ Helper function for grant results """
@@ -383,6 +382,7 @@ def replicate_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_co
         sub_grant.top_paid_amount_5
     )
 
+
 def test_generate_f_file_queries_grants(database, monkeypatch):
     """ generate_f_file_queries should provide queries representing halves of F file data related to a submission
         This will cover grants records.
@@ -399,17 +399,14 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         record_type='2'
     )
     grant_non = FSRSGrantFactory(
-        fain = d2_non.fain,
-
+        fain=d2_non.fain,
         awardee_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
-
         cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2'
     )
     sub_grant_non = FSRSSubgrantFactory(
-        parent = grant_non,
-
+        parent=grant_non,
         awardee_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
@@ -420,17 +417,14 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         record_type='1'
     )
     grant_agg = FSRSGrantFactory(
-        fain = d2_agg.fain,
-
+        fain=d2_agg.fain,
         awardee_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
-
         cfda_numbers='00.003 CFDA 3'
     )
     sub_grant_agg = FSRSSubgrantFactory(
-        parent = grant_agg,
-
+        parent=grant_agg,
         awardee_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
