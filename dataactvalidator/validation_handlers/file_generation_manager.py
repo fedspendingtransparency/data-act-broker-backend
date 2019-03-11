@@ -180,7 +180,8 @@ class FileGenerationManager:
         # writing locally first without uploading
         log_data['message'] = 'Writing F file contracts to CSV: {}'.format(self.job.original_filename)
         logger.info(log_data)
-        write_query_to_file(self.sess, f_file_contracts_query, self.job.original_filename, generate_headers=True,
+        local_f_file = self.job.filename if self.is_local else self.job.original_filename
+        write_query_to_file(self.sess, f_file_contracts_query, local_f_file, generate_headers=True,
                             generate_string=False)
 
         # writing locally again but then uploading
