@@ -1,5 +1,5 @@
-WITH afa_sub AS  (
-    SELECT
+WITH afa_sub AS
+    (SELECT
         DISTINCT ON (
             award_financial_assistance.fain,
             award_financial_assistance.submission_id
@@ -22,78 +22,54 @@ WITH afa_sub AS  (
         award_financial_assistance.awarding_sub_tier_agency_n AS awarding_sub_tier_agency_n,
         award_financial_assistance.funding_sub_tier_agency_co AS funding_sub_tier_agency_co,
         award_financial_assistance.funding_sub_tier_agency_na AS funding_sub_tier_agency_na
-    FROM
-        award_financial_assistance
-    WHERE
-        award_financial_assistance.submission_id = {}
-),
-grant_pduns AS (
-    SELECT
-        grand_pduns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
+    FROM award_financial_assistance
+    WHERE award_financial_assistance.submission_id = {0}),
+grant_pduns AS
+    (SELECT grand_pduns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
         grand_pduns_from.legal_business_name AS legal_business_name
-    FROM
-        (SELECT
-            duns.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
+    FROM (
+        SELECT duns.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
             duns.legal_business_name AS legal_business_name,
-            row_number() OVER (PARTITION
-        BY
-            duns.awardee_or_recipient_uniqu) AS row
-        FROM
-            fsrs_grant
-        LEFT OUTER JOIN
-            duns
+            row_number() OVER (PARTITION BY
+                duns.awardee_or_recipient_uniqu
+            ) AS row
+        FROM fsrs_grant
+            LEFT OUTER JOIN duns
                 ON fsrs_grant.parent_duns = duns.awardee_or_recipient_uniqu
-        ORDER BY
-            duns.activation_date DESC) AS grand_pduns_from
-    WHERE
-        grand_pduns_from.row = 1
-),
+        ORDER BY duns.activation_date DESC
+     ) AS grand_pduns_from
+    WHERE grand_pduns_from.row = 1),
 subgrant_pduns AS (
-    SELECT
-        sub_pduns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
+    SELECT sub_pduns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
         sub_pduns_from.legal_business_name AS legal_business_name
-        FROM
-            (
-                SELECT
-                    duns.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
-                    duns.legal_business_name AS legal_business_name,
-                    row_number() OVER (PARTITION
-                BY
-                    duns.awardee_or_recipient_uniqu) AS row
-                FROM
-                    fsrs_subgrant
-                LEFT OUTER JOIN
-                    duns
-                        ON fsrs_subgrant.parent_duns = duns.awardee_or_recipient_uniqu
-                ORDER BY
-                    duns.activation_date DESC
-            ) AS sub_pduns_from
-        WHERE
-            sub_pduns_from.row = 1
-),
+    FROM (
+        SELECT duns.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
+            duns.legal_business_name AS legal_business_name,
+            row_number() OVER (PARTITION BY
+                duns.awardee_or_recipient_uniqu
+            ) AS row
+        FROM fsrs_subgrant
+            LEFT OUTER JOIN duns
+                ON fsrs_subgrant.parent_duns = duns.awardee_or_recipient_uniqu
+        ORDER BY duns.activation_date DESC
+    ) AS sub_pduns_from
+    WHERE sub_pduns_from.row = 1),
 subgrant_duns AS (
-    SELECT
-        sub_duns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
+    SELECT sub_duns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
         sub_duns_from.business_types_codes AS business_types_codes
-            FROM
-                (
-                    SELECT
-                        duns.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
-                        duns.business_types_codes AS business_types_codes,
-                        row_number() OVER (PARTITION
-                    BY
-                        duns.awardee_or_recipient_uniqu) AS row
-                    FROM
-                        fsrs_subgrant
-                    LEFT OUTER JOIN
-                        duns
-                            ON fsrs_subgrant.duns = duns.awardee_or_recipient_uniqu
-                    ORDER BY
-                        duns.activation_date DESC
-                ) AS sub_duns_from
-            WHERE
-                sub_duns_from.row = 1
-)
+    FROM (
+        SELECT
+            duns.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
+            duns.business_types_codes AS business_types_codes,
+            row_number() OVER (PARTITION BY
+                duns.awardee_or_recipient_uniqu
+            ) AS row
+        FROM fsrs_subgrant
+            LEFT OUTER JOIN duns
+                ON fsrs_subgrant.duns = duns.awardee_or_recipient_uniqu
+        ORDER BY duns.activation_date DESC
+    ) AS sub_duns_from
+    WHERE sub_duns_from.row = 1)
 SELECT
     CASE WHEN afa_sub.record_type = '1'
         THEN
@@ -207,32 +183,22 @@ SELECT
     fsrs_subgrant.top_paid_amount_4 AS "SubAwardeeHighCompOfficer4Amount",
     fsrs_subgrant.top_paid_fullname_5 AS "SubAwardeeHighCompOfficer5FullName",
     fsrs_subgrant.top_paid_amount_5 AS "SubAwardeeHighCompOfficer5Amount"
-FROM
-    afa_sub
-JOIN
-    fsrs_grant
+FROM afa_sub
+    JOIN fsrs_grant
         ON fsrs_grant.fain = afa_sub.fain
-JOIN
-    fsrs_subgrant
+    JOIN fsrs_subgrant
         ON fsrs_subgrant.parent_id = fsrs_grant.id
-LEFT OUTER JOIN
-    country_code AS le_country
+    LEFT OUTER JOIN country_code AS le_country
         ON fsrs_grant.awardee_address_country = le_country.country_code
-LEFT OUTER JOIN
-    country_code AS ppop_country
+    LEFT OUTER JOIN country_code AS ppop_country
         ON fsrs_grant.principle_place_country = ppop_country.country_code
-LEFT OUTER JOIN
-    country_code AS sub_le_country
+    LEFT OUTER JOIN country_code AS sub_le_country
         ON fsrs_subgrant.awardee_address_country = sub_le_country.country_code
-LEFT OUTER JOIN
-    country_code AS sub_ppop_country
+    LEFT OUTER JOIN country_code AS sub_ppop_country
         ON fsrs_subgrant.principle_place_country = sub_ppop_country.country_code
-LEFT OUTER JOIN
-    grant_pduns
+    LEFT OUTER JOIN grant_pduns
         ON fsrs_grant.parent_duns = grant_pduns.awardee_or_recipient_uniqu
-LEFT OUTER JOIN
-    subgrant_pduns
+    LEFT OUTER JOIN subgrant_pduns
         ON fsrs_subgrant.parent_duns = subgrant_pduns.awardee_or_recipient_uniqu
-LEFT OUTER JOIN
-    subgrant_duns
+    LEFT OUTER JOIN subgrant_duns
         ON fsrs_subgrant.duns = subgrant_duns.awardee_or_recipient_uniqu

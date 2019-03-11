@@ -1,5 +1,5 @@
-WITH ap_sub AS  (
-    SELECT
+WITH ap_sub AS
+    (SELECT
         DISTINCT ON (
             award_procurement.piid,
             award_procurement.parent_award_id,
@@ -16,11 +16,8 @@ WITH ap_sub AS  (
         award_procurement.awarding_agency_name AS awarding_agency_name,
         award_procurement.funding_agency_code AS funding_agency_code,
         award_procurement.funding_agency_name AS funding_agency_name
-    FROM
-        award_procurement
-    WHERE
-        award_procurement.submission_id = {}
-)
+    FROM award_procurement
+    WHERE award_procurement.submission_id = {0})
 SELECT
     CASE WHEN ap_sub.idv_type IS NOT NULL
         THEN
@@ -130,27 +127,20 @@ SELECT
     fsrs_subcontract.top_paid_amount_4 AS "SubAwardeeHighCompOfficer4Amount",
     fsrs_subcontract.top_paid_fullname_5 AS "SubAwardeeHighCompOfficer5FullName",
     fsrs_subcontract.top_paid_amount_5 AS "SubAwardeeHighCompOfficer5Amount"
-FROM
-    ap_sub
-JOIN
-    fsrs_procurement
+FROM ap_sub
+    JOIN fsrs_procurement
         ON (
             fsrs_procurement.contract_number = ap_sub.piid AND
             fsrs_procurement.idv_reference_number IS NOT DISTINCT FROM ap_sub.parent_award_id AND
             fsrs_procurement.contracting_office_aid = ap_sub.awarding_sub_tier_agency_c
            )
-JOIN
-    fsrs_subcontract
+    JOIN fsrs_subcontract
         ON fsrs_subcontract.parent_id = fsrs_procurement.id
-LEFT OUTER JOIN
-    country_code AS le_country
+    LEFT OUTER JOIN country_code AS le_country
         ON fsrs_procurement.company_address_country = le_country.country_code
-LEFT OUTER JOIN
-    country_code AS ppop_country
+    LEFT OUTER JOIN country_code AS ppop_country
         ON fsrs_procurement.principle_place_country = ppop_country.country_code
-LEFT OUTER JOIN
-    country_code AS sub_le_country
+    LEFT OUTER JOIN country_code AS sub_le_country
         ON fsrs_subcontract.company_address_country = sub_le_country.country_code
-LEFT OUTER JOIN
-    country_code AS sub_ppop_country
+    LEFT OUTER JOIN country_code AS sub_ppop_country
         ON fsrs_subcontract.principle_place_country = sub_ppop_country.country_code
