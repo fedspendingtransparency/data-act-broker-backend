@@ -9,7 +9,7 @@ def generate_f_file_queries(submission_id):
             submission_id: submission to get data from
 
         Returns:
-            raw query query representing File F contract data
+            raw string query representing File F contract data
             raw string query representing File F grant data
     """
     file_f_dir = os.path.join(CONFIG_BROKER["path"], "dataactcore", "scripts", "raw_sql")
