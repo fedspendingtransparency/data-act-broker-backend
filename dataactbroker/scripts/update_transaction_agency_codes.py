@@ -100,7 +100,7 @@ def get_row_count(sql_statement, table, sess):
         Returns:
             The count of how many rows in the provided table match the provided WHERE statement
     """
-    rows = sess.execute("select count(*) from " + table + " where " + sql_statement + ";")
+    rows = sess.execute("SELECT COUNT(*) FROM " + table + " WHERE " + sql_statement + ";")
     row_count = rows.fetchone()[0]
 
     return row_count
