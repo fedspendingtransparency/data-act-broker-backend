@@ -39,7 +39,9 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             updated_date_from: Date to pull data from. Defaults to the date of the most recently updated Office.
     """
     logger.info('Starting feed: %s', API_URL.replace(CONFIG_BROKER['sam']['federal_hierarchy_api_key'], "[API_KEY]"))
+    top_sub_levels = ["1", "2"]
     office_levels = ["3", "4", "5", "6", "7"]
+    levels = top_sub_levels + office_levels if filename else office_levels
 
     if filename:
         logger.info("Creating a file ({}) with the data from this pull".format(filename))
@@ -62,7 +64,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             csv_writer.writerow(file_headers)
 
     empty_pull_count = 0
-    for level in office_levels:
+    for level in levels:
         # Create URL with the level parameter
         url_with_params = "{}&level={}".format(API_URL, level)
 
@@ -116,6 +118,10 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                     if filename:
                         row = json_normalize(flatten_json(org))
                         dataframe = dataframe.append(row)
+
+                    # Don't process the top_sub_levels, but store them in the fed hierarchy export
+                    if level in top_sub_levels:
+                        continue
 
                     # Add to the list of DB objects
                     if update_db:
@@ -174,7 +180,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
         all_offices = sess.query(Office)
         write_query_to_file(sess, all_offices, export_office)
 
-    if empty_pull_count == len(office_levels):
+    if empty_pull_count == len(levels):
         logger.error("No records retrieved from the Federal Hierarchy API")
         sys.exit(3)
 
