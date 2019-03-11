@@ -1,6 +1,7 @@
 import re
 import calendar
 from dateutil.parser import parse
+import datetime as dt
 
 from suds.client import Client
 
@@ -145,13 +146,12 @@ def fy(raw_date):
         try:
             raw_date = parse(raw_date)
         except:
-            raise TypeError('{} needs to be a valid date/datetime string (usually YYYY-MM-DD)'.format(raw_date))
+            raise TypeError('{} needs to be a valid date/datetime string'.format(raw_date))
+    elif not isinstance(raw_date, (dt.date, dt.datetime)):
+        raise TypeError('{} needs to be a valid date/datetime'.format(raw_date))
 
-    try:
-        result = raw_date.year
-        if raw_date.month > 9:
-            result += 1
-    except AttributeError:
-        raise TypeError('{} needs year and month attributes'.format(raw_date))
+    result = raw_date.year
+    if raw_date.month > 9:
+        result += 1
 
     return result
