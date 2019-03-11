@@ -79,9 +79,9 @@ def upgrade_data_broker():
     """)
     op.execute("""
         CREATE OR REPLACE FUNCTION fy(raw_date DATE) RETURNS integer AS $$
-          DECLARE result INTEGER;
-          DECLARE month_num INTEGER;
-          BEGIN 
+        DECLARE result INTEGER;
+        DECLARE month_num INTEGER;
+        BEGIN 
             month_num := EXTRACT(MONTH from raw_date);
             result := EXTRACT(YEAR FROM raw_date);
             IF month_num > 9    
