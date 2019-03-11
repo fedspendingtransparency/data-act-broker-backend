@@ -13,7 +13,7 @@ from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProc
 from dataactcore.utils import fileA, fileD1, fileD2, fileE, fileF
 from dataactcore.utils.responseException import ResponseException
 
-from dataactvalidator.filestreaming.csv_selection import write_csv, write_query_to_file
+from dataactvalidator.filestreaming.csv_selection import write_csv, write_stream_query_func
 
 logger = logging.getLogger(__name__)
 
@@ -120,8 +120,8 @@ class FileGenerationManager:
             "end": self.file_generation.end_date}
 
         # Generate the file locally, then place in S3
-        write_query_to_file(local_file, file_path, headers, self.file_type, self.is_local, d_file_query,
-                            query_utils)
+        write_stream_query_func(local_file, file_path, headers, self.file_type, self.is_local, d_file_query,
+                                query_utils)
 
         log_data['message'] = 'Finished writing to file: {}'.format(original_filename)
         logger.info(log_data)
@@ -199,7 +199,7 @@ class FileGenerationManager:
                        "sess": self.sess}
 
         # Generate the file and put in S3
-        write_query_to_file(local_file, self.job.filename, headers, self.job.file_type.letter_name, self.is_local,
-                            a_file_query, query_utils)
+        write_stream_query_func(local_file, self.job.filename, headers, self.job.file_type.letter_name, self.is_local,
+                                a_file_query, query_utils)
         log_data['message'] = 'Finished writing to file: {}'.format(self.job.original_filename)
         logger.info(log_data)
