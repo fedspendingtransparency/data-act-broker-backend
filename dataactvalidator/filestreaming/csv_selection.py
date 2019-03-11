@@ -176,7 +176,7 @@ def execute_psql(temp_sql_file_path, source_path, database_string):
     """ Executes the sql located in the temporary sql
 
         Args:
-            temp_sql_file_path: the
+            temp_sql_file_path: the file path to temporarily store the copy SQL
             source_path: output path of the csv
             database_string: connection string to the database
     """
