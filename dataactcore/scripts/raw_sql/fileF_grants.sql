@@ -1,6 +1,5 @@
 WITH afa_sub AS
-    (SELECT
-        DISTINCT ON (
+    (SELECT DISTINCT ON (
             award_financial_assistance.fain,
             award_financial_assistance.submission_id
         )
@@ -72,14 +71,12 @@ subgrant_duns AS (
     WHERE sub_duns_from.row = 1)
 SELECT
     CASE WHEN afa_sub.record_type = '1'
-        THEN
-            UPPER('ASST_AGG_' ||
-            coalesce(afa_sub.uri, '-NONE-') || '_' ||
-            coalesce(fsrs_grant.federal_agency_id, '-NONE-'))
-        ELSE
-            UPPER('ASST_NON_' ||
-            coalesce(fsrs_grant.fain, '-NONE-') || '_' ||
-            coalesce(fsrs_grant.federal_agency_id, '-NONE-'))
+        THEN UPPER('ASST_AGG_' ||
+            COALESCE(afa_sub.uri, '-NONE-') || '_' ||
+            COALESCE(fsrs_grant.federal_agency_id, '-NONE-'))
+        ELSE UPPER('ASST_NON_' ||
+            COALESCE(fsrs_grant.fain, '-NONE-') || '_' ||
+            COALESCE(fsrs_grant.federal_agency_id, '-NONE-'))
     END AS "PrimeAwardUniqueKey",
     fsrs_grant.fain AS "PrimeAwardID",
     NULL AS "ParentAwardID",

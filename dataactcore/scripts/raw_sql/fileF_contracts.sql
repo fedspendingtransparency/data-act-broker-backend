@@ -1,6 +1,5 @@
 WITH ap_sub AS
-    (SELECT
-        DISTINCT ON (
+    (SELECT DISTINCT ON (
             award_procurement.piid,
             award_procurement.parent_award_id,
             award_procurement.submission_id
@@ -20,16 +19,14 @@ WITH ap_sub AS
     WHERE award_procurement.submission_id = {0})
 SELECT
     CASE WHEN ap_sub.idv_type IS NOT NULL
-        THEN
-            UPPER('CONT_IDV_' ||
-            coalesce(fsrs_procurement.contract_number, '-NONE-') || '_' ||
-            coalesce(fsrs_procurement.contract_agency_code, '-NONE-'))
-        ELSE
-            UPPER('CONT_AWD_' ||
-            coalesce(fsrs_procurement.contract_number, '-NONE-') || '_' ||
-                coalesce(fsrs_procurement.contract_agency_code, '-NONE-') || '_' ||
-            coalesce(fsrs_procurement.contract_idv_agency_code, '-NONE-') || '_' ||
-            coalesce(fsrs_procurement.idv_reference_number, '-NONE-'))
+        THEN UPPER('CONT_IDV_' ||
+            COALESCE(fsrs_procurement.contract_number, '-NONE-') || '_' ||
+            COALESCE(fsrs_procurement.contract_agency_code, '-NONE-'))
+        ELSE UPPER('CONT_AWD_' ||
+            COALESCE(fsrs_procurement.contract_number, '-NONE-') || '_' ||
+            COALESCE(fsrs_procurement.contract_agency_code, '-NONE-') || '_' ||
+            COALESCE(fsrs_procurement.contract_idv_agency_code, '-NONE-') || '_' ||
+            COALESCE(fsrs_procurement.idv_reference_number, '-NONE-'))
     END AS "PrimeAwardUniqueKey",
     fsrs_procurement.contract_number AS "PrimeAwardID",
     fsrs_procurement.idv_reference_number AS "ParentAwardID",
@@ -129,11 +126,9 @@ SELECT
     fsrs_subcontract.top_paid_amount_5 AS "SubAwardeeHighCompOfficer5Amount"
 FROM ap_sub
     JOIN fsrs_procurement
-        ON (
-            fsrs_procurement.contract_number = ap_sub.piid AND
-            fsrs_procurement.idv_reference_number IS NOT DISTINCT FROM ap_sub.parent_award_id AND
-            fsrs_procurement.contracting_office_aid = ap_sub.awarding_sub_tier_agency_c
-           )
+        ON fsrs_procurement.contract_number = ap_sub.piid
+        AND fsrs_procurement.idv_reference_number IS NOT DISTINCT FROM ap_sub.parent_award_id
+        AND fsrs_procurement.contracting_office_aid = ap_sub.awarding_sub_tier_agency_c
     JOIN fsrs_subcontract
         ON fsrs_subcontract.parent_id = fsrs_procurement.id
     LEFT OUTER JOIN country_code AS le_country
