@@ -13,7 +13,7 @@ from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProc
 from dataactcore.utils import fileA, fileD1, fileD2, fileE, fileF
 from dataactcore.utils.responseException import ResponseException
 
-from dataactvalidator.filestreaming.csv_selection import write_csv, write_stream_query
+from dataactvalidator.filestreaming.csv_selection import write_csv, write_stream_query, write_query_to_file
 
 logger = logging.getLogger(__name__)
 
@@ -175,8 +175,8 @@ class FileGenerationManager:
 
         logger.info({'message': 'Writing file F contracts to CSV'})
         # writing locally first without uploading
-        write_stream_query(self.sess, f_file_contracts_query, self.job.original_filename, self.job.filename,
-                           True, generate_headers=True, generate_string=False)
+        write_query_to_file(self.sess, f_file_contracts_query, self.job.original_filename, generate_headers=True,
+                            generate_string=False)
 
         # writing locally again but then uploading
         logger.info({'message': 'Writing file F grant to CSV'})
