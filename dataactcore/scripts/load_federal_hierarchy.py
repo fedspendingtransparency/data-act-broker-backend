@@ -178,7 +178,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
     if export_office:
         logger.info("Creating a file ({}) with the data from the database".format(export_office))
         all_offices = sess.query(Office)
-        write_query_to_file(sess, all_offices, export_office)
+        write_query_to_file(sess, all_offices, export_office, generate_headers=True)
 
     if empty_pull_count == len(levels):
         logger.error("No records retrieved from the Federal Hierarchy API")
