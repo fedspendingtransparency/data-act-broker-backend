@@ -209,7 +209,7 @@ class FileGenerationManager:
         # add 3 months to account for fiscal year
         period_date = self.job.end_date + relativedelta(months=3)
 
-        log_data['message'] = 'Writing A file CSV: {}'.format(self.job.original_filenames)
+        log_data['message'] = 'Writing A file CSV: {}'.format(self.job.original_filename)
         logger.info(log_data)
 
         query_utils = {"agency_code": agency_code, "period": period_date.month, "year": period_date.year,
