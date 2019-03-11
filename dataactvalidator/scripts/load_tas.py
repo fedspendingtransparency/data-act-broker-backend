@@ -91,6 +91,8 @@ def clean_tas(csv_path):
             else:
                 logger.error('Encountered new column set: {}'.format(data.columns))
                 raise e
+    # Drop all but the last instance of each account number
+    data = data[~data.duplicated(subset=['account_num'], keep='last')]
     data["account_num"] = pd.to_numeric(data['account_num'])
     return data.where(pd.notnull(data), None)
 
