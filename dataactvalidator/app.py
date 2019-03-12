@@ -69,6 +69,7 @@ def run_app():
                         a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
                         validator_process_job(message.body, a_agency_code)
                 finally:
+                    log_session_size('After message, n finally block')  # TODO: remove diagnostic code
                     # Done processing message, either with success, or with exception(s).
                     # Remove DB Session to clean up objects/resources used while processing this message.
                     # Next message processed will get its own fresh, new, and empty DB Session
@@ -93,6 +94,7 @@ def validator_process_file_generation(file_gen_id):
             Any Exceptions raised by the FileGenerationManager
     """
     sess = GlobalDB.db().session
+    log_session_size('Start of validator_process_file_generation')  # TODO: remove diagnostic code
     file_generation = None
 
     try:
@@ -158,6 +160,7 @@ def validator_process_job(job_id, agency_code):
             Any Exceptions raised by the GenerationManager or ValidationManager, excluding those explicitly handled
     """
     sess = GlobalDB.db().session
+    log_session_size('Start of validator_process_job')  # TODO: remove diagnostic code
     job = None
 
     try:
@@ -233,6 +236,74 @@ def validator_process_job(job_id, agency_code):
             pass
 
         raise e
+
+
+# ============================================================
+# DIAGNOSTIC CODE
+# - to to be used while under test, then removed
+# ============================================================
+def log_session_size(checkpoint_name='<unspecified>'):
+    logger.debug(
+        "Size of SQLAlchemy Session at [{}]: Session object [{}] has [{}] objects stored in its identity_map, "
+        "for a total size of [{}]"
+                 .format(checkpoint_name,
+                         GlobalDB.db().session,
+                         len(GlobalDB.db().session.identity_map),
+                         total_size(GlobalDB.db().session)))
+
+
+# From: https://code.activestate.com/recipes/577504/
+# Referred to by: https://docs.python.org/3/library/sys.html#sys.getsizeof
+from __future__ import print_function
+from sys import getsizeof, stderr
+from itertools import chain
+from collections import deque
+try:
+    from reprlib import repr
+except ImportError:
+    pass
+
+
+def total_size(o, handlers={}, verbose=False):
+    """ Returns the approximate memory footprint an object and all of its contents.
+
+    Automatically finds the contents of the following builtin containers and
+    their subclasses:  tuple, list, deque, dict, set and frozenset.
+    To search other containers, add handlers to iterate over their contents:
+
+        handlers = {SomeContainerClass: iter,
+                    OtherContainerClass: OtherContainerClass.get_elements}
+
+    """
+    dict_handler = lambda d: chain.from_iterable(d.items())
+    all_handlers = {tuple: iter,
+                    list: iter,
+                    deque: iter,
+                    dict: dict_handler,
+                    set: iter,
+                    frozenset: iter,
+                   }
+    all_handlers.update(handlers)     # user handlers take precedence
+    seen = set()                      # track which object id's have already been seen
+    default_size = getsizeof(0)       # estimate sizeof object without __sizeof__
+
+    def sizeof(o):
+        if id(o) in seen:       # do not double count the same object
+            return 0
+        seen.add(id(o))
+        s = getsizeof(o, default_size)
+
+        if verbose:
+            print(s, type(o), repr(o), file=stderr)
+
+        for typ, handler in all_handlers.items():
+            if isinstance(o, typ):
+                s += sum(map(sizeof, handler(o)))
+                break
+        return s
+
+    return sizeof(o)
+# ============================================================
 
 
 if __name__ == "__main__":
