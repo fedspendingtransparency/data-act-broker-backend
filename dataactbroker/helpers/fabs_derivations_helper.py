@@ -297,10 +297,17 @@ def derive_office_data(obj, office_dict, sess):
         # If we managed to find a transaction, copy the office codes into it. Don't copy if the mod is the same because
         # we don't want to auto-fill the base record for an award.
         if first_transaction and first_transaction.award_modification_amendme != obj['award_modification_amendme']:
-            if not obj['awarding_office_code']:
-                obj['awarding_office_code'] = first_transaction.awarding_office_code
-            if not obj['funding_office_code']:
-                obj['funding_office_code'] = first_transaction.funding_office_code
+            # No need to copy if new code isn't blank or old code is
+            if not obj['awarding_office_code'] and first_transaction.awarding_office_code:
+                # Make sure the code we're copying is a valid awarding office code
+                award_office = office_dict.get(first_transaction.awarding_office_code)
+                if award_office and award_office['grant_office']:
+                    obj['awarding_office_code'] = first_transaction.awarding_office_code
+            if not obj['funding_office_code'] and first_transaction.funding_office_code:
+                # Make sure the code we're copying is a valid funding office code
+                fund_office = office_dict.get(first_transaction.funding_office_code)
+                if fund_office and fund_office['funding_office']:
+                    obj['funding_office_code'] = first_transaction.funding_office_code
 
     # Deriving awarding_office_name based off awarding_office_code
     awarding_office_data = office_dict.get(obj['awarding_office_code'])

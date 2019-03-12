@@ -63,6 +63,8 @@ class _GrantAttributes(_FSRSAttributes):
     project_description = fuzzy.FuzzyText()
     compensation_q1 = fuzzy.FuzzyChoice((False, True))
     compensation_q2 = fuzzy.FuzzyChoice((False, True))
+    federal_agency_id = fuzzy.FuzzyText()
+    federal_agency_name = fuzzy.FuzzyText()
 
 
 class _PrimeAwardAttributes(factory.Factory):

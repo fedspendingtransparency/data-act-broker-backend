@@ -130,7 +130,8 @@ def soap_to_dict(soap_obj):
 _common = ('duns', 'dba_name', 'parent_duns', 'funding_agency_id', 'funding_agency_name')
 _contract = ('company_name', 'parent_company_name', 'naics', 'funding_office_id', 'funding_office_name',
              'recovery_model_q1', 'recovery_model_q2')
-_grant = ('dunsplus4', 'awardee_name', 'project_description', 'compensation_q1', 'compensation_q2')
+_grant = ('dunsplus4', 'awardee_name', 'project_description', 'compensation_q1', 'compensation_q2', 'federal_agency_id',
+          'federal_agency_name')
 _prime = ('internal_id', 'date_submitted', 'report_period_mon', 'report_period_year')
 _primeContract = _common + _contract + _prime + (
     'id', 'contract_number', 'idv_reference_number', 'report_type', 'contract_agency_code', 'contract_idv_agency_code',

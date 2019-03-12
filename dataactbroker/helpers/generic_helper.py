@@ -1,5 +1,7 @@
 import re
 import calendar
+from dateutil.parser import parse
+import datetime as dt
 
 from suds.client import Client
 
@@ -125,3 +127,31 @@ def generate_raw_quoted_query(queryset):
     """
     return str(queryset.statement.compile(dialect=LiteralDialect(), compile_kwargs={"literal_binds": True}))\
         .replace('\n', ' ')
+
+
+def fy(raw_date):
+    """ Get fiscal year from date, datetime, or date string
+
+        Args:
+            raw_date: date to be parsed
+
+        Returns:
+            integer representing the fiscal year associated with the date
+    """
+
+    if raw_date is None:
+        return None
+
+    if isinstance(raw_date, str):
+        try:
+            raw_date = parse(raw_date)
+        except:
+            raise TypeError('{} needs to be a valid date/datetime string'.format(raw_date))
+    elif not isinstance(raw_date, (dt.date, dt.datetime)):
+        raise TypeError('{} needs to be a valid date/datetime'.format(raw_date))
+
+    result = raw_date.year
+    if raw_date.month > 9:
+        result += 1
+
+    return result
