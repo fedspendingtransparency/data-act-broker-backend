@@ -59,16 +59,22 @@ def run_app():
             for message in messages:
                 logger.info("Message received: %s", message.body)
 
-                msg_attr = message.message_attributes
-                if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
-                    # Generating a file
-                    validator_process_file_generation(message.body)
-                else:
-                    # Running validations (or generating a file from a Job)
-                    a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
-                    validator_process_job(message.body, a_agency_code)
+                try:
+                    msg_attr = message.message_attributes
+                    if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
+                        # Generating a file
+                        validator_process_file_generation(message.body)
+                    else:
+                        # Running validations (or generating a file from a Job)
+                        a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
+                        validator_process_job(message.body, a_agency_code)
+                finally:
+                    # Done processing message, either with success, or with exception(s).
+                    # Remove DB Session to clean up objects/resources used while processing this message.
+                    # Next message processed will get its own fresh, new, and empty DB Session
+                    GlobalDB.close()
 
-                # Delete from SQS once processed
+                # Delete from SQS once successfully processed and resources cleaned up
                 message.delete()
 
             # When you receive an empty response from the queue, wait a second before trying again

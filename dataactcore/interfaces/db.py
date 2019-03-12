@@ -25,6 +25,16 @@ class GlobalDB:
         but there are paths through the app which won't have access. In those
         situations, fall back to the non-threadsafe static member approach"""
         if flask.current_app:
+            # `current_app` and the "global" data store, `g` are only available when working within a Flask app context.
+            # That is: when processing a request, using Flask CLI, or when a manually established app context is used by
+            # `app.app_context().push()` or `with app.app_context()` for a created Flask app named `app`.
+            # As noted in http://flask.pocoo.org/docs/1.0/appcontext/#storing-data, the `g` object and any data stored
+            # within it (including the DB `Session`) is only "globally" available during the life of the app context.
+            # That life span is:
+            # - in a web app: the life of the request
+            # - in a CLI command: the duration of that command's execution
+            # - in a `with app.app_context()` context manager: the scope of the `with` block
+            # - in a "pushed" app context: until popped or an app_context teardown occurs
             return flask.g
         else:
             logger.warning("No current_app, falling back to non-threadsafe database connection")
