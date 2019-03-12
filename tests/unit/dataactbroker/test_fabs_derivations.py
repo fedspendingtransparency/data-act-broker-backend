@@ -27,7 +27,14 @@ CFDA_DICT = {'12.345': 'CFDA Title'}
 COUNTY_DICT = {'NY001': 'Test County'}
 OFFICE_DICT = {'033103': {'office_name': 'Office',
                           'sub_tier_code': '1234',
-                          'agency_code': '000'}}
+                          'agency_code': '000',
+                          'grant_office': True,
+                          'funding_office': True},
+               '654321': {'office_name': 'Office',
+                          'sub_tier_code': '1234',
+                          'agency_code': '000',
+                          'grant_office': False,
+                          'funding_office': False}}
 
 
 def initialize_db_values(db):
@@ -71,8 +78,18 @@ def initialize_db_values(db):
                                                       action_date='04/28/2000', funding_office_code='033103',
                                                       awarding_office_code=None, is_active=True, record_type=1,
                                                       award_modification_amendme='0')
+    # record type 1 base pafa with invalid office codes
+    pafa_5 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='1234', fain='abcd', uri='efg',
+                                                      action_date='04/28/2000', funding_office_code='123456',
+                                                      awarding_office_code='123456', is_active=True, record_type=1,
+                                                      award_modification_amendme='0')
+    # record type 1 base pafa with valid office codes but they aren't grant or funding type
+    pafa_6 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='1234', fain='efg', uri='abcd',
+                                                      action_date='04/28/2000', funding_office_code='654321',
+                                                      awarding_office_code='654321', is_active=True, record_type=1,
+                                                      award_modification_amendme='0')
     db.session.add_all([zip_code_1, zip_code_2, zip_code_3, zip_code_4, zip_city, zip_city_2, zip_city_3, city_code,
-                        duns_1, duns_2a, duns_2b, duns_3, pafa_1, pafa_2, pafa_3, pafa_4])
+                        duns_1, duns_2a, duns_2b, duns_3, pafa_1, pafa_2, pafa_3, pafa_4, pafa_5, pafa_6])
     db.session.commit()
 
 
@@ -475,9 +492,31 @@ def test_derive_office_data(database):
     assert obj['funding_office_code'] is None
     assert obj['funding_office_name'] is None
 
-    # if office_code is not presentand mod number is the same as the base record, do not derive it from historical data
+    # if office_code is not present and mod number is the same as the base record, do not derive it from historical data
     obj = initialize_test_obj(awarding_office=None, funding_office=None, uri='654321', record_type=1,
                               award_mod_amend=None)
+    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
+                           OFFICE_DICT)
+    assert obj['awarding_office_code'] is None
+    assert obj['awarding_office_name'] is None
+    assert obj['funding_office_code'] is None
+    assert obj['funding_office_name'] is None
+
+    # if office_code is not present and mod number is different from the base record, but the base office code is
+    # invalid, do not derive
+    obj = initialize_test_obj(awarding_office=None, funding_office=None, uri='efg', record_type=1,
+                              award_mod_amend='1')
+    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
+                           OFFICE_DICT)
+    assert obj['awarding_office_code'] is None
+    assert obj['awarding_office_name'] is None
+    assert obj['funding_office_code'] is None
+    assert obj['funding_office_name'] is None
+
+    # if office_code is not present and mod number is different from the base record and the base office code is
+    # valid but is not a grant/funding code, do not derive
+    obj = initialize_test_obj(awarding_office=None, funding_office=None, uri='abcd', record_type=1,
+                              award_mod_amend='1')
     obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
                            OFFICE_DICT)
     assert obj['awarding_office_code'] is None

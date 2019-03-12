@@ -866,9 +866,9 @@ This route deletes all data related to the specified `submission_id`. A submissi
 ```
 * `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
 
-#### POST "/v1/certify_submission"
 
-This route certifies the specified submission, if possible. If a submission has critical errors, it cannot be certified. Submission files are copied to a certified bucket on aws if it is a non-local environment.
+#### POST "/v1/certify\_submission"
+This route certifies the specified submission, if possible. If a submission has critical errors, it cannot be certified. Only quarterly submissions can be certified. Submission files are copied to a certified bucket on aws if it is a non-local environment.
 
 ##### Body (JSON)
 
@@ -879,8 +879,7 @@ This route certifies the specified submission, if possible. If a submission has 
 ```
 
 ##### Body Description
-
-* `submission_id` - **required** - an integer corresponding to the ID of the submission that is to be certified.
+- `submission_id` - **required** - an integer corresponding to the ID of the submission that is to be certified.
 
 ##### Response (JSON)
 
@@ -889,7 +888,17 @@ This route certifies the specified submission, if possible. If a submission has 
   "message": "Success"
 }
 ```
-* `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
+
+##### Response Attributes
+- `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400: Submission does not exist, critical errors prevent the submission from being certified, submission is a monthly submission, submission is already certified, a validation was completed before the revalidation threshold or the start of the submission window for the submission's year/quarter, submission window for this year/quarter doesn't exist, a different submission for this period was already published
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
 
 #### GET "/v1/gtas_window"
 
@@ -914,9 +923,9 @@ Returns a data object with start and end dates if it is a window, or a data obje
 * `start_date` - The date that the window opens
 * `end_date` - The date that the window closes
 
-#### POST "/v1/restart_validation"
+#### POST "/v1/restart\_validation"
 
-This route alters a submission's jobs' statuses and then restarts all validations for the specified submission.
+This route alters a submission's jobs' statuses so they are no longer complete (requiring a regeneration and revalidation for all steps), uncaches all generated files, then restarts A/B/C or FABS validations for the specified submission.
 
 ##### Body (JSON)
 
@@ -929,8 +938,8 @@ This route alters a submission's jobs' statuses and then restarts all validation
 
 ##### Body Description
 
-* `submission_id` - **required** - an integer corresponding to the ID of the submission for which the validations should be restarted.
-* `d2_submission` - a boolean indicating whether this is a dabs or fabs submission
+- `submission_id` - **required** - an integer corresponding to the ID of the submission for which the validations should be restarted.
+- `d2_submission` - a boolean indicating whether this is a DABS or FABS submission (True for FABS), defaults to False when not provided
 
 ##### Response (JSON)
 
@@ -939,7 +948,16 @@ This route alters a submission's jobs' statuses and then restarts all validation
   "message": "Success"
 }
 ```
-* `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
+
+##### Response Attributes
+- `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400: Submission does not exist
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
 
 #### POST "/v1/list\_submissions"
 This endpoint lists submissions for all agencies for which the current user is a member of. Optional filters allow for more refined lists.

@@ -13,7 +13,7 @@ from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProc
 from dataactcore.utils import fileA, fileD1, fileD2, fileE, fileF
 from dataactcore.utils.responseException import ResponseException
 
-from dataactvalidator.filestreaming.csv_selection import write_csv, write_stream_query_func
+from dataactvalidator.filestreaming.csv_selection import write_csv, write_stream_query, write_query_to_file
 
 logger = logging.getLogger(__name__)
 
@@ -114,16 +114,20 @@ class FileGenerationManager:
             raise ResponseException('Failed to generate_d_file with file_type:{} (must be D1 or D2).'.format(
                 self.file_type))
         headers = [key for key in file_utils.mapping]
+
+        log_data['message'] = 'Writing {} file CSV: {}'.format(self.file_type, original_filename)
+        logger.info(log_data)
+
         query_utils = {
             "sess": self.sess, "file_utils": file_utils, "agency_code": self.file_generation.agency_code,
             "agency_type": self.file_generation.agency_type, "start": self.file_generation.start_date,
             "end": self.file_generation.end_date}
+        logger.debug({'query_utils': query_utils})
 
         # Generate the file locally, then place in S3
-        write_stream_query_func(local_file, file_path, headers, self.file_type, self.is_local, d_file_query,
-                                query_utils)
+        write_stream_query(self.sess, d_file_query(query_utils), local_file, file_path, self.is_local, header=headers)
 
-        log_data['message'] = 'Finished writing to file: {}'.format(original_filename)
+        log_data['message'] = 'Finished writing {} file CSV: {}'.format(self.file_type, original_filename)
         logger.info(log_data)
 
         self.file_generation.file_path = file_path
@@ -157,10 +161,13 @@ class FileGenerationManager:
             self.sess.merge(ExecutiveCompensation(**fileE.row_to_dict(row)))
         self.sess.commit()
 
-        log_data['message'] = 'Writing file E CSV'
+        log_data['message'] = 'Writing E file CSV: {}'.format(self.job.original_filename)
         logger.info(log_data)
 
         write_csv(self.job.original_filename, self.job.filename, self.is_local, fileE.Row._fields, rows)
+
+        log_data['message'] = 'Finished writing E file CSV: {}'.format(self.job.original_filename)
+        logger.info(log_data)
 
     def generate_f_file(self):
         """ Write rows from fileF.generate_f_rows to an appropriate CSV. """
@@ -168,16 +175,23 @@ class FileGenerationManager:
                     'submission_id': self.job.submission_id, 'file_type': 'sub_award'}
         logger.info(log_data)
 
-        rows_of_dicts = fileF.generate_f_rows(self.job.submission_id)
-        header = [key for key in fileF.mappings]    # keep order
-        body = []
-        for row in rows_of_dicts:
-            body.append([row[key] for key in header])
+        f_file_contracts_query, f_file_grants_query = fileF.generate_f_file_queries(self.job.submission_id)
 
-        log_data['message'] = 'Writing file F CSV'
+        # writing locally first without uploading
+        log_data['message'] = 'Writing F file contracts to CSV: {}'.format(self.job.original_filename)
         logger.info(log_data)
+        local_f_file = self.job.filename if self.is_local else self.job.original_filename
+        write_query_to_file(self.sess, f_file_contracts_query, local_f_file, generate_headers=True,
+                            generate_string=False)
 
-        write_csv(self.job.original_filename, self.job.filename, self.is_local, header, body)
+        # writing locally again but then uploading
+        log_data['message'] = 'Writing F file grants to CSV: {}'.format(self.job.original_filename)
+        logger.info(log_data)
+        write_stream_query(self.sess, f_file_grants_query, self.job.original_filename, self.job.filename,
+                           self.is_local, generate_headers=False, generate_string=False)
+
+        log_data['message'] = 'Finished writing F file CSV: {}'.format(self.job.original_filename)
+        logger.info(log_data)
 
     def generate_a_file(self, agency_code, file_path):
         """ Write file A to an appropriate CSV. """
@@ -195,11 +209,16 @@ class FileGenerationManager:
         headers = [key for key in fileA.mapping]
         # add 3 months to account for fiscal year
         period_date = self.job.end_date + relativedelta(months=3)
+
+        log_data['message'] = 'Writing A file CSV: {}'.format(self.job.original_filename)
+        logger.info(log_data)
+
         query_utils = {"agency_code": agency_code, "period": period_date.month, "year": period_date.year,
                        "sess": self.sess}
+        logger.debug({'query_utils': query_utils})
 
         # Generate the file and put in S3
-        write_stream_query_func(local_file, self.job.filename, headers, self.job.file_type.letter_name, self.is_local,
-                                a_file_query, query_utils)
-        log_data['message'] = 'Finished writing to file: {}'.format(self.job.original_filename)
+        write_stream_query(self.sess, a_file_query(query_utils), local_file, self.job.filename, self.is_local,
+                           header=headers)
+        log_data['message'] = 'Finished writing A file CSV: {}'.format(self.job.original_filename)
         logger.info(log_data)
