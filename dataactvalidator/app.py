@@ -41,17 +41,18 @@ from dataactvalidator.validation_handlers.validationManager import ValidationMan
 # DIAGNOSTIC CODE
 # - to to be used while under test, then removed
 # ============================================================
-def log_session_size(checkpoint_name='<unspecified>'):
+def log_session_size(job_id=None, checkpoint_name='<unspecified>'):
     logger.debug(
-        "Size of SQLAlchemy Session at [{}]: Session object [{}] has [{}] objects stored in its identity_map, "
-        "for a total size of [{}]".format(
-            checkpoint_name,
+        "(Validator Job ID [{}]) SQLAlchemy Session object [{}] at [{}] has [{}] objects stored in "
+        "its identity_map, approx. size of [{} bytes]".format(
+            job_id,
             GlobalDB.db().session,
+            checkpoint_name,
             len(GlobalDB.db().session.identity_map),
-            total_size(GlobalDB.db().session)))
+            total_size(GlobalDB.db().session) + total_size(GlobalDB.db().session.identity_map)))
 
 
-def total_size(o, handlers={}, verbose=False):
+def total_size(o, handlers={}, verbose=True):
     """ Returns the approximate memory footprint an object and all of its contents.
 
     Automatically finds the contents of the following builtin containers and
@@ -62,12 +63,13 @@ def total_size(o, handlers={}, verbose=False):
                     OtherContainerClass: OtherContainerClass.get_elements}
 
     """
-    all_handlers = {tuple: iter,
-                    list: iter,
-                    deque: iter,
-                    dict: dict_handler,
-                    set: iter,
-                    frozenset: iter,
+    all_handlers = {'tuple': iter,
+                    'list': iter,
+                    'deque': iter,
+                    'dict': dict_handler,
+                    'set': iter,
+                    'frozenset': iter,
+                    'WeakInstanceDict': dict_handler
                     }
     all_handlers.update(handlers)  # user handlers take precedence
     seen = set()  # track which object id's have already been seen
@@ -80,10 +82,10 @@ def total_size(o, handlers={}, verbose=False):
         s = getsizeof(o, default_size)
 
         if verbose:
-            print(s, type(o), repr(o), file=stderr)
+            logger.debug("Size={}, Type={}, Class={}, Object={}".format(s, type(o), o.__class__.__name__, repr(o)))
 
         for typ, handler in all_handlers.items():
-            if isinstance(o, typ):
+            if o.__class__.__name__ == typ:
                 s += sum(map(sizeof, handler(o)))
                 break
         return s
@@ -148,11 +150,12 @@ def run_app():
                         a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
                         validator_process_job(message.body, a_agency_code)
                 finally:
-                    log_session_size('After message, n finally block')  # TODO: remove diagnostic code
+                    log_session_size(message.body, 'finally block post-message-processing')  # TODO: remove diagnostic
+                    # code
                     # Done processing message, either with success, or with exception(s).
                     # Remove DB Session to clean up objects/resources used while processing this message.
                     # Next message processed will get its own fresh, new, and empty DB Session
-                    GlobalDB.close()
+                    #GlobalDB.close()
 
                 # Delete from SQS once successfully processed and resources cleaned up
                 message.delete()
@@ -173,7 +176,7 @@ def validator_process_file_generation(file_gen_id):
             Any Exceptions raised by the FileGenerationManager
     """
     sess = GlobalDB.db().session
-    log_session_size('Start of validator_process_file_generation')  # TODO: remove diagnostic code
+    log_session_size(file_gen_id, 'Start of validator_process_file_generation')  # TODO: remove diagnostic code
     file_generation = None
 
     try:
@@ -239,7 +242,7 @@ def validator_process_job(job_id, agency_code):
             Any Exceptions raised by the GenerationManager or ValidationManager, excluding those explicitly handled
     """
     sess = GlobalDB.db().session
-    log_session_size('Start of validator_process_job')  # TODO: remove diagnostic code
+    log_session_size(job_id, 'Start of validator_process_job')  # TODO: remove diagnostic code
     job = None
 
     try:
