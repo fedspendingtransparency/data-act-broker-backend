@@ -8,6 +8,7 @@ from __future__ import print_function
 from sys import getsizeof, stderr
 from itertools import chain
 from collections import deque
+from os import getpid
 
 try:
     from reprlib import repr
@@ -43,12 +44,13 @@ from dataactvalidator.validation_handlers.validationManager import ValidationMan
 # ============================================================
 def log_session_size(job_id=None, checkpoint_name='<unspecified>'):
     logger.debug(
-        "(Validator Job ID [{}]) SQLAlchemy Session object [{}] at [{}] has [{}] objects stored in "
+        "(Validator PID [{}] Job ID [{}]) SQLAlchemy Session object [{}] at [{}] has [{}] objects stored in "
         "its identity_map, approx. size of [{} bytes]".format(
+            getpid(),
             job_id,
             GlobalDB.db().session,
             checkpoint_name,
-            len(GlobalDB.db().session.identity_map),
+            len(GlobalDB.db().session.identity_map.keys()),
             total_size(GlobalDB.db().session) + total_size(GlobalDB.db().session.identity_map)))
 
 
@@ -155,7 +157,7 @@ def run_app():
                     # Done processing message, either with success, or with exception(s).
                     # Remove DB Session to clean up objects/resources used while processing this message.
                     # Next message processed will get its own fresh, new, and empty DB Session
-                    #GlobalDB.close()
+                    GlobalDB.close()
 
                 # Delete from SQS once successfully processed and resources cleaned up
                 message.delete()
