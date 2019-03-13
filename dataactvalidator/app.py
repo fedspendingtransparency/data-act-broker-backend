@@ -9,6 +9,7 @@ from sys import getsizeof, stderr
 from itertools import chain
 from collections import deque
 from os import getpid
+from flask import _app_ctx_stack
 
 try:
     from reprlib import repr
@@ -43,15 +44,18 @@ from dataactvalidator.validation_handlers.validationManager import ValidationMan
 # - to to be used while under test, then removed
 # ============================================================
 def log_session_size(job_id=None, checkpoint_name='<unspecified>'):
-    logger.debug(
-        "(Validator PID [{}] Job ID [{}]) SQLAlchemy Session object [{}] at [{}] has [{}] objects stored in "
-        "its identity_map, approx. size of [{} bytes]".format(
-            getpid(),
-            job_id,
-            GlobalDB.db().session,
-            checkpoint_name,
-            len(GlobalDB.db().session.identity_map.keys()),
-            total_size(GlobalDB.db().session) + total_size(GlobalDB.db().session.identity_map)))
+    log_data = {'validator_pid': getpid(),
+                'current_app': hex(id(current_app)),
+                'flask.g': hex(id(g)),
+                '_app_ctx_stack.__ident_func__': hex(_app_ctx_stack.__ident_func__()),
+                'job_id': job_id,
+                'message': "SQLAlchemy Session object [{}] at [{}] has [{}] objects stored in "
+                           "its identity_map, approx. size of [{} bytes]".format(
+                    GlobalDB.db().session,
+                    checkpoint_name,
+                    len(GlobalDB.db().session.identity_map.keys()),
+                    total_size(GlobalDB.db().session) + total_size(GlobalDB.db().session.identity_map))}
+    logger.debug(log_data)
 
 
 def total_size(o, handlers={}, verbose=True):
