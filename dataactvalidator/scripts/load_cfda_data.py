@@ -112,7 +112,7 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         import_data["published_date"] = format_date(import_data["published_date"])
         import_data["archived_date"] = format_date(import_data["archived_date"])
         import_dataframe = import_data.copy(deep=True)
-        #To do the comparison, first we need to mock the pk column that postgres creates. We'll set it unversally to 1
+        #To do the comparison, first we need to mock the pk column that postgres creates. We'll set it universally to 1
         import_dataframe = import_dataframe.assign(cfda_program_id = 1,created_at=now, updated_at=now)
 
         table_name = model.__table__.name
@@ -137,9 +137,9 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         current_data.reset_index(drop=True, inplace=True)
         #My favorite part: When pandas pulls the data out of postgres, the program_number column is a Decimal. However, in adding it to
         # the dataframe, this column loses precision, for reasons I could not uncover and cannot fathom. So for example, a program number of
-        # 10.001 imports into the dataframe as 10.000999999999999. It also needs to be cast to a string, and padded with the right number of zero, as needed.
+        # 10.001 imports into the dataframe as 10.000999999999999. It also needs to be cast to a string, and padded with the right number of zeroes, as needed.
         current_data['program_number'] = current_data['program_number'].apply(lambda x: str(round_up(x, 3)).ljust(6, '0'))
-        #Finally, you can exceute this and get True back if the data truly has not changed from the last time the CSV was loaded.
+        #Finally, you can execute this and get True back if the data truly has not changed from the last time the CSV was loaded.
         new_data = not import_dataframe.equals(current_data)
         if new_data:
             #insert to db
