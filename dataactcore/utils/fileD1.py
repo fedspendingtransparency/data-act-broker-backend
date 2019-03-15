@@ -24,7 +24,7 @@ mapping = OrderedDict([
     ('PeriodOfPerformanceCurrentEndDate', 'period_of_performance_curr'),
     ('PeriodOfPerformancePotentialEndDate', 'period_of_perf_potential_e'),
     ('OrderingPeriodEndDate', 'ordering_period_end_date'),
-    ('Solicitation Date', 'solicitation_date'),
+    ('SolicitationDate', 'solicitation_date'),
     ('AwardingAgencyCode', 'awarding_agency_code'),
     ('AwardingAgencyName', 'awarding_agency_name'),
     ('AwardingSubTierAgencyCode', 'awarding_sub_tier_agency_c'),
