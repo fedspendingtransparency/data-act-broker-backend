@@ -1,16 +1,11 @@
 import os
-import sys
 import logging
 import requests
 import pandas as pd
-import boto3
 import time
 import math
 from datetime import datetime
 
-from sqlalchemy import *
-
-from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import CFDAProgram
@@ -21,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 S3_CFDA_FILE = 'https://files.usaspending.gov/reference_data/cfda.csv'
 
-DATA_CLEANING_MAP  = {
+DATA_CLEANING_MAP = {
                  "program_title": "program_title",
                  "program_number": "program_number",
                  "popular_name_(020)": "popular_name",
@@ -64,18 +59,13 @@ DATA_CLEANING_MAP  = {
                  "archived_date": "archived_date"
                  }
 
-def cloneTable(name, table, metadata):
-    cols = [c.copy() for c in table.columns]
-    constraints = [c.copy() for c in table.constraints]
-    return Table(name, metadata, *(cols + constraints))
-
 
 def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program.csv"):
     """ Load cfda program.
 
         Args:
             base_path: directory that contains the cfda values files.
-    """ 
+    """
     if not load_local:
         logger.info("Fetching CFDA file from {}".format(S3_CFDA_FILE))
         tmp_name = str(time.time()).replace(".", "")+"_cfda_program.csv"
@@ -89,19 +79,18 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
     """Load country code lookup table."""
     model = CFDAProgram
 
-    # TODO: Find out if we have a function like this somewhere already and/or move this to a util file.
-    def round_up(n, decimals=0):
+    def fix_program_number(n, decimals=3):
         multiplier = 10 ** decimals
-        return math.floor(n*multiplier + 0.5) / multiplier
+        value = math.floor(n*multiplier + 0.5) / multiplier
+        return str(value).ljust(6, '0')
 
     with create_app().app_context():
         configure_logging()
         sess = GlobalDB.db().session
 
-
         # Witness the insanity...
 
-        now = datetime.utcnow()       
+        now = datetime.utcnow()
         import_data = pd.read_csv(filename, dtype=str, encoding='latin1', na_filter=False)
         import_data = clean_data(
             import_data,
@@ -112,18 +101,19 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         import_data["published_date"] = format_date(import_data["published_date"])
         import_data["archived_date"] = format_date(import_data["archived_date"])
         import_dataframe = import_data.copy(deep=True)
-        #To do the comparison, first we need to mock the pk column that postgres creates. We'll set it universally to 1
-        import_dataframe = import_dataframe.assign(cfda_program_id = 1,created_at=now, updated_at=now)
+        # To do the comparison, first we need to mock the pk column that postgres creates. We'll set it universally to 1
+        import_dataframe = import_dataframe.assign(cfda_program_id=1, created_at=now, updated_at=now)
 
         table_name = model.__table__.name
         current_data = pd.read_sql_table(table_name, sess.connection(), coerce_float=False)
-        # Now we need to overwrite the db's audit dates in the created dataframe, and ALSO set all the  pks to 1, so they match
-        current_data = current_data.assign(cfda_program_id=1,created_at=now, updated_at=now)
-        #pandas comparison requires everything to be in the same order
+        # Now we need to overwrite the db's audit dates in the created dataframe, and
+        # ALSO set all the  pks to 1, so they match
+        current_data = current_data.assign(cfda_program_id=1, created_at=now, updated_at=now)
+        # pandas comparison requires everything to be in the same order
         current_data.sort_values('program_number', inplace=True)
-        import_dataframe.sort_values('program_number',inplace=True)
-        
-        #columns too
+        import_dataframe.sort_values('program_number', inplace=True)
+
+        # columns too
         cols = import_dataframe.columns.tolist()
         cols.sort()
         import_dataframe = import_dataframe[cols]
@@ -131,23 +121,25 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         cols = current_data.columns.tolist()
         cols.sort()
         current_data = current_data[cols]
-        
+
         # need to reset the indexes now that we've done all this sorting, so that THEY match
         import_dataframe.reset_index(drop=True, inplace=True)
         current_data.reset_index(drop=True, inplace=True)
-        #My favorite part: When pandas pulls the data out of postgres, the program_number column is a Decimal. However, in adding it to
-        # the dataframe, this column loses precision, for reasons I could not uncover and cannot fathom. So for example, a program number of
-        # 10.001 imports into the dataframe as 10.000999999999999. It also needs to be cast to a string, and padded with the right number of zeroes, as needed.
-        current_data['program_number'] = current_data['program_number'].apply(lambda x: str(round_up(x, 3)).ljust(6, '0'))
-        #Finally, you can execute this and get True back if the data truly has not changed from the last time the CSV was loaded.
+        # My favorite part: When pandas pulls the data out of postgres, the program_number column
+        # is a Decimal. However, in adding it to the dataframe, this column loses precision, for
+        # reasons I could not uncover and cannot fathom. So for example, a program number of
+        # 10.001 imports into the dataframe as 10.000999999999999. It also needs to be cast to a
+        # string, and padded with the right number of zeroes, as needed.
+        current_data['program_number'] = current_data['program_number'].apply(lambda x: fix_program_number(x))
+        # Finally, you can execute this and get True back if the data truly has not changed from the last
+        # time the CSV was loaded.
         new_data = not import_dataframe.equals(current_data)
         if new_data:
-            #insert to db
+            # insert to db
             sess.query(model).delete()
             num = insert_dataframe(import_data, table_name, sess.connection())
             sess.commit()
-            
-        
+
     if new_data:
         logger.info('{} records inserted to {}'.format(num, table_name))
     else:
