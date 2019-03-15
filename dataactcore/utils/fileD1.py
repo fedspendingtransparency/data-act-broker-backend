@@ -374,7 +374,7 @@ def initial_query(session):
         file_model.action_type,
         file_model.action_type_description,
         file_model.solicitation_identifier,
-        file_model.solicitation_date,
+        func.to_char(cast(file_model.solicitation_date, Date), 'YYYYMMDD'),
         file_model.number_of_actions,
         file_model.inherently_government_func,
         file_model.inherently_government_desc,
