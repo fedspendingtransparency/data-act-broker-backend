@@ -25,6 +25,8 @@ def update_keys(model, model_type, filter_content, update_years, concat_list):
             update_years: an array of years to work with
             concat_list: the concatenation to update with
     """
+    # Uppercasing here for consistency
+    concat_list = func.upper(concat_list)
     base_query = sess.query(model)
     if model_type == 'FPDS':
         base_query = base_query.filter(model.pulled_from == filter_content)
@@ -94,14 +96,14 @@ if __name__ == '__main__':
 
             # awards
             if 'award' in types:
-                update_keys(dap, 'FPDS', 'award', years, func.concat(
+                update_keys(dap, 'FPDS', 'award', years, func.concat('CONT_AWD_',
                     func.coalesce(dap.piid, '-none-'), '_',
                     func.coalesce(dap.agency_id, '-none-'), '_',
                     func.coalesce(dap.parent_award_id, '-none-'), '_',
                     func.coalesce(dap.referenced_idv_agency_iden, '-none-')))
             # IDV
             if 'IDV' in types:
-                update_keys(dap, 'FPDS', 'IDV', years, func.concat('IDV_', func.coalesce(dap.piid, '-none-'), '_',
+                update_keys(dap, 'FPDS', 'IDV', years, func.concat('CONT_IDV_', func.coalesce(dap.piid, '-none-'), '_',
                                                                    func.coalesce(dap.agency_id, '-none-')))
 
         # unpublished FABS
@@ -111,12 +113,12 @@ if __name__ == '__main__':
             # record type 1
             if 'AGG' in types:
                 update_keys(dafa, 'unpublished FABS', 'aggregate', None,
-                            func.concat('AGG_', func.coalesce(dafa.uri, '-none-'), '_',
+                            func.concat('ASST_AGG_', func.coalesce(dafa.uri, '-none-'), '_',
                                         func.coalesce(dafa.awarding_sub_tier_agency_c, '-none-')))
             # record type not 1
             if 'NON' in types:
                 update_keys(dafa, 'unpublished FABS', 'non-aggregated', None,
-                            func.concat('NON_', func.coalesce(dafa.fain, '-none-'), '_',
+                            func.concat('ASST_NON_', func.coalesce(dafa.fain, '-none-'), '_',
                                         func.coalesce(dafa.awarding_sub_tier_agency_c, '-none-')))
 
         # published FABS
@@ -126,13 +128,13 @@ if __name__ == '__main__':
             # record type 1
             if 'AGG' in types:
                 update_keys(pafa, 'published FABS', 'aggregate', years,
-                            func.concat('AGG_', func.coalesce(pafa.uri, '-none-'), '_',
+                            func.concat('ASST_AGG_', func.coalesce(pafa.uri, '-none-'), '_',
                                         func.coalesce(pafa.awarding_sub_tier_agency_c, '-none-')))
 
             # record type not 1
             if 'NON' in types:
                 update_keys(pafa, 'published', 'non-aggregated', years,
-                            func.concat('NON_', func.coalesce(pafa.fain, '-none-'), '_',
+                            func.concat('ASST_NON_', func.coalesce(pafa.fain, '-none-'), '_',
                                         func.coalesce(pafa.awarding_sub_tier_agency_c, '-none-')))
 
         sess.close()
