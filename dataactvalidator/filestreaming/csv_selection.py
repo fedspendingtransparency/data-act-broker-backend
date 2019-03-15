@@ -50,18 +50,19 @@ def write_csv(file_name, upload_name, is_local, header, body):
         os.remove(local_filename)
 
 
-def write_stream_query_func(local_filename, upload_name, header, file_type, is_local, query_func, query_utils,
-                            is_certified=False):
+def write_stream_query(sess, query, local_filename, upload_name, is_local, header=None, generate_headers=False,
+                       generate_string=True, is_certified=False):
     """ Write file locally from a query, then stream it to S3
 
         Args:
+            sess: the database connection
+            query: the query object or string
             local_filename: full path for local file
             upload_name: file name to be used as S3 key
-            header: value to write as the first line of the file
-            file_type: Type of file (for logging purposes only)
             is_local: True if in local development, False otherwise
-            query_func: function to call to query data
-            query_utils: variables to pass to query function
+            header: value to write as the first line of the file if provided (default None)
+            generate_headers: whether to generate headers based on the query (default False)
+            generate_string: whether to extract the raw query from the queryset (default True)
             is_certified: True if writing to the certified bucket, False otherwise (default False)
     """
     if is_local:
@@ -70,19 +71,16 @@ def write_stream_query_func(local_filename, upload_name, header, file_type, is_l
     logger.debug({
         'message': 'Writing query to csv',
         'message_type': 'BrokerDebug',
-        'upload_name': upload_name,
-        'file_type': file_type,
-        'query_utils': query_utils
+        'upload_name': upload_name
     })
 
-    write_query_to_file(query_utils['sess'], query_func(query_utils), local_filename, header=header)
+    write_query_to_file(sess, query, local_filename, header=header, generate_headers=generate_headers,
+                        generate_string=generate_string)
 
     logger.debug({
         'message': 'CSV written from query',
         'message_type': 'BrokerDebug',
-        'upload_name': upload_name,
-        'file_type': file_type,
-        'query_utils': query_utils
+        'upload_name': upload_name
     })
 
     if not is_local:
@@ -94,14 +92,16 @@ def write_stream_query_func(local_filename, upload_name, header, file_type, is_l
         os.remove(local_filename)
 
 
-def write_query_to_file(sess, query, local_filename, header=None):
+def write_query_to_file(sess, query, local_filename, header=None, generate_headers=False, generate_string=True):
     """ Write file locally from a query
 
         Args:
             sess: database connection
             query: query to spit out data
             local_filename: full path for local file
-            header: value to write as the first line of the file
+            header: value to write as the first line of the file if provided
+            generate_headers: whether to generate headers based on the query
+            generate_string: whether to extract the raw query from the queryset
     """
 
     # write base csv with headers
@@ -113,10 +113,14 @@ def write_query_to_file(sess, query, local_filename, header=None):
             out_csv.writerow(header)
 
     # get the raw SQL equivalent
-    raw_query = generate_raw_quoted_query(query)
+    if generate_string:
+        raw_query = generate_raw_quoted_query(query)
+    else:
+        raw_query = query
+
     # save psql command with query to a temp file
     # note: if we've been provded a header and wrote it, there's no need to add another
-    temp_sql_file, temp_sql_file_path = generate_temp_query_file(raw_query, header=(header is None))
+    temp_sql_file, temp_sql_file_path = generate_temp_query_file(raw_query, header=generate_headers)
 
     # run the psql command and cleanup
     database_string = str(sess.bind.url)
@@ -172,7 +176,7 @@ def execute_psql(temp_sql_file_path, source_path, database_string):
     """ Executes the sql located in the temporary sql
 
         Args:
-            temp_sql_file_path: the
+            temp_sql_file_path: the file path to temporarily store the copy SQL
             source_path: output path of the csv
             database_string: connection string to the database
     """
