@@ -3,6 +3,7 @@ import logging
 import requests
 import pandas as pd
 import time
+import sys
 import math
 from datetime import datetime
 
@@ -139,13 +140,13 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
             sess.query(model).delete()
             num = insert_dataframe(import_data, table_name, sess.connection())
             sess.commit()
-
+    if not load_local:
+        os.remove(filename)
     if new_data:
         logger.info('{} records inserted to {}'.format(num, table_name))
     else:
         logger.info("Skipped cfda load, no new data.")
-    if not load_local:
-        os.remove(filename)
+        sys.exit(3)
 
 
 if __name__ == '__main__':
