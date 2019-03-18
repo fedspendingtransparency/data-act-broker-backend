@@ -96,11 +96,12 @@ if __name__ == '__main__':
 
             # awards
             if 'award' in types:
-                update_keys(dap, 'FPDS', 'award', years, func.concat('CONT_AWD_',
-                    func.coalesce(dap.piid, '-none-'), '_',
-                    func.coalesce(dap.agency_id, '-none-'), '_',
-                    func.coalesce(dap.parent_award_id, '-none-'), '_',
-                    func.coalesce(dap.referenced_idv_agency_iden, '-none-')))
+                update_keys(dap, 'FPDS', 'award', years,
+                            func.concat('CONT_AWD_',
+                                        func.coalesce(dap.piid, '-none-'), '_',
+                                        func.coalesce(dap.agency_id, '-none-'), '_',
+                                        func.coalesce(dap.parent_award_id, '-none-'), '_',
+                                        func.coalesce(dap.referenced_idv_agency_iden, '-none-')))
             # IDV
             if 'IDV' in types:
                 update_keys(dap, 'FPDS', 'IDV', years, func.concat('CONT_IDV_', func.coalesce(dap.piid, '-none-'), '_',
