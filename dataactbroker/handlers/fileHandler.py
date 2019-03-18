@@ -206,6 +206,10 @@ class FileHandler:
                 # If the existing submission is a FABS submission, stop everything
                 if existing_submission_obj.d2_submission:
                     raise ResponseException("Existing submission must be a DABS submission", StatusCode.CLIENT_ERROR)
+                jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
+                for job in jobs:
+                    if job.job_status_id == JOB_STATUS_DICT['running']:
+                        raise ResponseException("Submission already has a running job", StatusCode.CLIENT_ERROR)
             else:
                 existing_submission = None
                 existing_submission_obj = None
@@ -457,6 +461,10 @@ class FileHandler:
                 if not existing_submission_obj.d2_submission:
                     raise ResponseException("Existing submission must be a FABS submission", StatusCode.CLIENT_ERROR)
                 jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
+                for job in jobs:
+                    if job.job_status_id == JOB_STATUS_DICT['running']:
+                        raise ResponseException("Submission already has a running job", StatusCode.CLIENT_ERROR)
+
                 # set all jobs to their initial status of "waiting"
                 jobs[0].job_status_id = JOB_STATUS_DICT['waiting']
                 sess.commit()
