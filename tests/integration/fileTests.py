@@ -254,6 +254,23 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "Existing submission must be a DABS submission")
 
+    def test_submit_file_fabs_duplicate_running(self):
+        """ Test trying to upload an already running FABS submission """
+        insert_job(
+            self.session,
+            filetype=FILE_TYPE_DICT['award'],
+            status=JOB_STATUS_DICT['running'],
+            type_id=JOB_TYPE_DICT['file_upload'],
+            submission=self.status_check_submission_id
+        )
+        update_json = {"existing_submission_id": self.status_check_submission_id}
+
+        response = self.app.post("/v1/upload_dabs_files/", update_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "Submission already has a running job")
+
     def test_submit_file_new_missing_params(self):
         """ Test file submission for a new submission while missing any of the parameters """
         update_json = {

@@ -6,7 +6,8 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.userModel import User
 from dataactcore.models.jobModels import Submission, Job
-from dataactcore.models.lookups import PUBLISH_STATUS_DICT, FILE_STATUS_DICT, FILE_TYPE_DICT, JOB_TYPE_DICT
+from dataactcore.models.lookups import PUBLISH_STATUS_DICT, FILE_STATUS_DICT, FILE_TYPE_DICT, JOB_TYPE_DICT, \
+    JOB_STATUS_DICT
 
 
 class FABSUploadTests(BaseTestAPI):
@@ -147,6 +148,22 @@ class FABSUploadTests(BaseTestAPI):
                                  headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "Existing submission must be a FABS submission")
+
+    def test_upload_fabs_duplicate_running(self):
+        """ Test file submissions for when the job is already running """
+        # Mark a job as already running
+        self.session.add(Job(file_type_id=FILE_TYPE_DICT['fabs'], job_status_id=JOB_STATUS_DICT['running'],
+                             job_type_id=JOB_TYPE_DICT['file_upload'], submission_id=str(self.d2_submission),
+                             original_filename=None, file_size=None, number_of_rows=None))
+        self.session.commit()
+
+        response = self.app.post("/v1/upload_fabs_file/",
+                                 {"existing_submission_id": str(self.d2_submission)},
+                                 upload_files=[('fabs', 'fabs.csv',
+                                                open('tests/integration/data/fabs.csv', 'rb').read())],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'Submission already has a running job')
 
     def test_upload_fabs_file_invalid_format(self):
         """ Test file submissions for bad file formats (not CSV or TXT) """
