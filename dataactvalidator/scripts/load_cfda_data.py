@@ -75,7 +75,6 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         open(filename, 'wb').write(r.content)
     else:
         filename = os.path.join(base_path, local_file_name)
-    logger.info(base_path)
     logger.info('Loading CFDA program file: ' + filename)
     """Load country code lookup table."""
     model = CFDAProgram
