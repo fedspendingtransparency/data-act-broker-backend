@@ -125,9 +125,9 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         import_dataframe.reset_index(drop=True, inplace=True)
         current_data.reset_index(drop=True, inplace=True)
         # My favorite part: When pandas pulls the data out of postgres, the program_number column
-        # is a Decimal. However, in adding it to the dataframe, this column loses precision. So for example, a program number of
-        # 10.001 imports into the dataframe as 10.000999999999999. It also needs to be cast to a
-        # string, and padded with the right number of zeroes, as needed.
+        # is a Decimal. However, in adding it to the dataframe, this column loses precision.
+        # So for example, a program number  of 10.001 imports into the dataframe as 10.000999999999999.
+        # It also needs to be cast to astring, and padded with the right number of zeroes, as needed.
         current_data['program_number'] = current_data['program_number'].apply(lambda x: fix_program_number(x))
         # Finally, you can execute this and get True back if the data truly has not changed from the last
         # time the CSV was loaded.
@@ -147,7 +147,7 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
 
 
 def main():
-    # Can be run from CLI as:  python load_cfda_data.py '/data-act/backend/dataactvalidator/config' True  'filename.csv' 
+    # Can be run from CLI as:  python load_cfda_data.py '/data-act/backend/dataactvalidator/config' True  'filename.csv'
     # (or similar)
     load_cfda_program(*sys.argv[1:])
 
