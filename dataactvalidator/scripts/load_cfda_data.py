@@ -75,7 +75,7 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         open(filename, 'wb').write(r.content)
     else:
         filename = os.path.join(base_path, local_file_name)
-
+    logger.info(base_path)
     logger.info('Loading CFDA program file: ' + filename)
     """Load country code lookup table."""
     model = CFDAProgram
@@ -88,8 +88,6 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
     with create_app().app_context():
         configure_logging()
         sess = GlobalDB.db().session
-
-        # Witness the insanity...
 
         now = datetime.utcnow()
         import_data = pd.read_csv(filename, dtype=str, encoding='latin1', na_filter=False)
@@ -108,7 +106,7 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         table_name = model.__table__.name
         current_data = pd.read_sql_table(table_name, sess.connection(), coerce_float=False)
         # Now we need to overwrite the db's audit dates in the created dataframe, and
-        # ALSO set all the  pks to 1, so they match
+        # also set all the  pks to 1, so they match
         current_data = current_data.assign(cfda_program_id=1, created_at=now, updated_at=now)
         # pandas comparison requires everything to be in the same order
         current_data.sort_values('program_number', inplace=True)
@@ -123,12 +121,11 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         cols.sort()
         current_data = current_data[cols]
 
-        # need to reset the indexes now that we've done all this sorting, so that THEY match
+        # need to reset the indexes now that we've done all this sorting, so that they match
         import_dataframe.reset_index(drop=True, inplace=True)
         current_data.reset_index(drop=True, inplace=True)
         # My favorite part: When pandas pulls the data out of postgres, the program_number column
-        # is a Decimal. However, in adding it to the dataframe, this column loses precision, for
-        # reasons I could not uncover and cannot fathom. So for example, a program number of
+        # is a Decimal. However, in adding it to the dataframe, this column loses precision. So for example, a program number of
         # 10.001 imports into the dataframe as 10.000999999999999. It also needs to be cast to a
         # string, and padded with the right number of zeroes, as needed.
         current_data['program_number'] = current_data['program_number'].apply(lambda x: fix_program_number(x))
@@ -149,5 +146,11 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         sys.exit(3)
 
 
+def main():
+    # Can be run from CLI as:  python load_cfda_data.py '/data-act/backend/dataactvalidator/config' True  'filename.csv' 
+    # (or similar)
+    load_cfda_program(*sys.argv[1:])
+
 if __name__ == '__main__':
     configure_logging()
+    main()
