@@ -800,6 +800,19 @@ def vendor_site_details_values(data, obj):
     return obj
 
 
+def generic_values(data, obj):
+    """ Get values from the genericTags level of the xml """
+    generic_strings_value_map = {'genericString01': 'solicitation_date'}
+
+    for key, value in generic_strings_value_map.items():
+        try:
+            obj[value] = extract_text(data['genericStrings'][key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
+    return obj
+
+
 def calculate_ppop_fields(obj, sess, county_by_name, county_by_code, state_code_list, country_list):
     """ calculate values that aren't in any feed (or haven't been provided properly) for place of performance """
     # only do any of these calculation if the country code is in the list of US territories
@@ -1085,6 +1098,13 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
     except KeyError:
         data['vendor'] = {}
     obj = vendor_values(data['vendor'], obj)
+
+    # make sure key exists before passing it
+    try:
+        data['genericTags']
+    except KeyError:
+        data['genericTags'] = {}
+    obj = generic_values(data['genericTags'], obj)
 
     obj = calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
                                      country_list, atom_type)
