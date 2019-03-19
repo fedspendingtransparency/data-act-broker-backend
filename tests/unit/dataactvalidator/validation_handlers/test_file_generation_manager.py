@@ -3,7 +3,6 @@ import os
 import re
 import pytest
 
-from collections import OrderedDict
 from datetime import datetime
 from unittest.mock import Mock
 
@@ -324,39 +323,6 @@ def test_generate_file_updates_jobs(monkeypatch, mock_broker_config_paths, datab
     assert job3.original_filename == original_filename
     assert job3.filename == '{}{}'.format(
         CONFIG_BROKER['broker_files'] if CONFIG_BROKER['local'] else job3.submission_id + '/', original_filename)
-
-
-@pytest.mark.usefixtures("job_constants")
-def test_generate_f_file(monkeypatch, mock_broker_config_paths, database):
-    """ A CSV with fields in the right order should be written to the file system """
-    file_path1 = str(mock_broker_config_paths['broker_files'].join('f_test1'))
-    job1 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                      file_type_id=FILE_TYPE_DICT['sub_award'], filename=file_path1, original_filename='f_test1')
-    file_path2 = str(mock_broker_config_paths['broker_files'].join('f_test2'))
-    job2 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                      file_type_id=FILE_TYPE_DICT['sub_award'], filename=file_path2, original_filename='f_test2')
-    database.session.add_all([job1, job2])
-    database.session.commit()
-
-    file_f_mock = Mock()
-    monkeypatch.setattr(file_generation_manager, 'fileF', file_f_mock)
-    file_f_mock.generate_f_rows.return_value = [dict(key4='a', key11='b'), dict(key4='c', key11='d')]
-    file_f_mock.mappings = OrderedDict([('key4', 'mapping4'), ('key11', 'mapping11')])
-    expected = [['key4', 'key11'], ['a', 'b'], ['c', 'd']]
-
-    manager1 = FileGenerationManager(database.session, CONFIG_BROKER['local'], job=job1)
-    manager1.generate_f_file()
-
-    assert read_file_rows(file_path1) == expected
-
-    # re-order
-    file_f_mock.mappings = OrderedDict([('key11', 'mapping11'), ('key4', 'mapping4')])
-    expected = [['key11', 'key4'], ['b', 'a'], ['d', 'c']]
-
-    manager2 = FileGenerationManager(database.session, CONFIG_BROKER['local'], job=job2)
-    manager2.generate_f_file()
-
-    assert read_file_rows(file_path2) == expected
 
 
 @pytest.mark.usefixtures("job_constants")
