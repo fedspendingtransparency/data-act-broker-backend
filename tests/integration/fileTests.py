@@ -254,7 +254,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "Existing submission must be a DABS submission")
 
-    def test_submit_file_fabs_duplicate_running(self):
+    def test_submit_file_duplicate_running(self):
         """ Test trying to upload an already running FABS submission """
         insert_job(
             self.session,
