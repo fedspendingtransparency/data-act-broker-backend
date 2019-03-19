@@ -958,15 +958,15 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
 
     # calculate unique award key
     if atom_type == 'award':
-        unique_award_string_list = []
+        unique_award_string_list = ['CONT_AWD']
         key_list = ['piid', 'agency_id', 'parent_award_id', 'referenced_idv_agency_iden']
     else:
-        unique_award_string_list = ['IDV']
+        unique_award_string_list = ['CONT_IDV']
         key_list = ['piid', 'agency_id']
     for item in key_list:
         # Get the value in the object or, if the key doesn't exist or value is None, set it to "-none-"
         unique_award_string_list.append(obj.get(item) or '-none-')
-    obj['unique_award_key'] = '_'.join(unique_award_string_list)
+    obj['unique_award_key'] = '_'.join(unique_award_string_list).upper()
 
     # calculate unique key
     key_list = ['agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id',
@@ -2307,12 +2307,12 @@ def create_unique_key(row):
 
 def create_unique_award_key(row):
     key_list = ['piid', 'agencyid', 'idvpiid', 'idvagencyid'] if row['pulled_from'] == 'award' else ['piid', 'agencyid']
-    unique_string_list = [] if row['pulled_from'] == 'award' else [row['pulled_from']]
+    unique_string_list = ['CONT_AWD'] if row['pulled_from'] == 'award' else ['CONT_IDV']
 
     for item in key_list:
         unique_string_list.append(row[item] if row[item] and str(row[item]) != 'nan' else '-none-')
 
-    return '_'.join(unique_string_list)
+    return '_'.join(unique_string_list).upper()
 
 
 def main():
