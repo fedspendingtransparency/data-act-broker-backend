@@ -21,6 +21,7 @@ import logging
 import csv
 import time
 import traceback
+import gc
 
 from flask import Flask, g, current_app
 
@@ -37,6 +38,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
+
 
 
 # ============================================================
@@ -162,8 +164,11 @@ def run_app():
                     # code
                     # Done processing message, either with success, or with exception(s).
                     # Remove DB Session to clean up objects/resources used while processing this message.
-                    # Next message processed will get its own fresh, new, and empty DB Session
+                    # Next message processed will get its own fresh, new, and empty DB Session.
+                    # Also do an explicit garbage collection of any freed DB session objects
                     GlobalDB.close()
+                    gc.collect()
+
 
                 # Delete from SQS once successfully processed and resources cleaned up
                 message.delete()

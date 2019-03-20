@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 class _DB(namedtuple('_DB', ['engine', 'connection', 'scoped_session_maker', 'session'])):
     """Represents a database connection, from engine to session."""
     def close(self):
+        logger.debug("Explicitly closing SQLAlchemy database session object {}".format(self.session))
         self.session.close()
         self.scoped_session_maker.remove()
         self.connection.close()
