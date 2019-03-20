@@ -163,7 +163,7 @@ def run_app():
                     # Done processing message, either with success, or with exception(s).
                     # Remove DB Session to clean up objects/resources used while processing this message.
                     # Next message processed will get its own fresh, new, and empty DB Session
-                    #GlobalDB.close()
+                    GlobalDB.close()
 
                 # Delete from SQS once successfully processed and resources cleaned up
                 message.delete()
