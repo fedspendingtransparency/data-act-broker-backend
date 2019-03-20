@@ -335,12 +335,12 @@ class ValidationManager:
                                                              (record['uri'] or '-none-')
                             # Create unique_award_key
                             if str(record['record_type']) == '1':
-                                unique_award_key_list = ['AGG', record['uri'] or '-none-']
+                                unique_award_key_list = ['ASST_AGG', record['uri'] or '-none-']
                             else:
-                                unique_award_key_list = ['NON', record['fain'] or '-none-']
+                                unique_award_key_list = ['ASST_NON', record['fain'] or '-none-']
                             unique_award_key_list.append(record['awarding_sub_tier_agency_c'] or '-none-')
 
-                            record['unique_award_key'] = '_'.join(unique_award_key_list)
+                            record['unique_award_key'] = '_'.join(unique_award_key_list).upper()
 
                         passed_validations, failures, valid = Validator.validate(record, csv_schema,
                                                                                  file_type == "fabs",
