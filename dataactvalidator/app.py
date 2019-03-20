@@ -7,9 +7,9 @@
 from __future__ import print_function
 from sys import getsizeof, stderr
 from itertools import chain
-from collections import deque
 from os import getpid
 from flask import _app_ctx_stack
+import psutil
 
 try:
     from reprlib import repr
@@ -48,7 +48,9 @@ def log_session_size(job_id=None, checkpoint_name='<unspecified>'):
                 'current_app': hex(id(current_app)),
                 'flask.g': hex(id(g)),
                 '_app_ctx_stack.__ident_func__': hex(_app_ctx_stack.__ident_func__()),
+                'db_session': hex(id(GlobalDB.db().session)),
                 'job_id': job_id,
+                'memory': dict(psutil.Process().memory_full_info()._asdict()),
                 'message': "SQLAlchemy Session object [{}] at [{}] has [{}] objects stored in "
                            "its identity_map, approx. size of [{} bytes]".format(
                     GlobalDB.db().session,
@@ -161,7 +163,7 @@ def run_app():
                     # Done processing message, either with success, or with exception(s).
                     # Remove DB Session to clean up objects/resources used while processing this message.
                     # Next message processed will get its own fresh, new, and empty DB Session
-                    GlobalDB.close()
+                    #GlobalDB.close()
 
                 # Delete from SQS once successfully processed and resources cleaned up
                 message.delete()
