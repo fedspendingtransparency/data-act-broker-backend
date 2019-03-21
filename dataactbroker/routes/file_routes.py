@@ -126,13 +126,6 @@ def add_file_routes(app, is_local, server_path):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.upload_fabs_file(fabs)
 
-    @app.route("/v1/submit_detached_file/", methods=["POST"])
-    @convert_to_submission_id
-    @requires_submission_perms('fabs', check_owner=False)
-    def submit_detached_file(submission):
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.publish_fabs_submission(submission)
-
     @app.route("/v1/publish_fabs_file/", methods=["POST"])
     @convert_to_submission_id
     @requires_submission_perms('fabs', check_owner=False)
