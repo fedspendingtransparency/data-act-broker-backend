@@ -1,4 +1,5 @@
 fieldname,fieldname_short,required,data_type,field_length,padded_flag
+contracttransactionuniquekey,detached_award_proc_unique,FALSE,str,,
 piid,piid,FALSE,str,,
 awardingsubtieragencycode,awarding_sub_tier_agency_c,FALSE,str,,
 awardingsubtieragencyname,awarding_sub_tier_agency_n,FALSE,str,,
