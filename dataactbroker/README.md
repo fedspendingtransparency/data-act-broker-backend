@@ -800,10 +800,6 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Do not have permission to access that submission
 
-#### POST "/v1/submit\_detached\_file"
-
-##### This endpoint is deprecated and will be removed in March. Use `publish_fabs_file` instead
-
 
 #### POST "/v1/publish\_fabs\_file"
 
