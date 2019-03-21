@@ -6,6 +6,7 @@ from dataactcore.models.stagingModels import DetachedAwardProcurement
 file_model = DetachedAwardProcurement
 
 mapping = OrderedDict([
+    ('ContractTransactionUniqueKey', 'detached_award_proc_unique'),
     ('PIID', 'piid'),
     ('AwardModificationAmendmentNumber', 'award_modification_amendme'),
     ('Transaction Number', 'transaction_number'),
@@ -247,8 +248,6 @@ mapping = OrderedDict([
     ('Nonprofit Organization', 'nonprofit_organization'),
     ('Other Not For Profit Organization', 'other_not_for_profit_organ'),
     ('The AbilityOne Program', 'the_ability_one_program'),
-    ('NumberOfEmployees', 'number_of_employees'),
-    ('AnnualRevenue', 'annual_revenue'),
     ('Private University or College', 'private_university_or_coll'),
     ('State Controlled Institution of Higher Learning', 'state_controlled_instituti'),
     ('1862 Land Grant College', 'c1862_land_grant_college'),
@@ -300,6 +299,7 @@ def query_data(session, agency_code, agency_type, start, end):
 
 def initial_query(session):
     return session.query(*[
+        file_model.detached_award_proc_unique,
         file_model.piid,
         file_model.award_modification_amendme,
         file_model.transaction_number,
@@ -541,8 +541,6 @@ def initial_query(session):
         file_model.nonprofit_organization,
         file_model.other_not_for_profit_organ,
         file_model.the_ability_one_program,
-        file_model.number_of_employees,
-        file_model.annual_revenue,
         file_model.private_university_or_coll,
         file_model.state_controlled_instituti,
         file_model.c1862_land_grant_college,

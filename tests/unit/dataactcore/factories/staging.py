@@ -155,6 +155,7 @@ class AwardFinancialAssistanceFactory(factory.Factory):
         model = stagingModels.AwardFinancialAssistance
 
     award_financial_assistance_id = None
+    afa_generated_unique = fuzzy.FuzzyText()
     submission_id = fuzzy.FuzzyInteger(9999)
     job_id = fuzzy.FuzzyInteger(9999)
     row_number = fuzzy.FuzzyInteger(9999)
@@ -365,6 +366,7 @@ class AwardProcurementFactory(factory.Factory):
         model = stagingModels.AwardProcurement
 
     award_procurement_id = None
+    detached_award_proc_unique = fuzzy.FuzzyText()
     submission_id = fuzzy.FuzzyInteger(9999)
     job_id = fuzzy.FuzzyInteger(9999)
     row_number = fuzzy.FuzzyInteger(1, 9999)
