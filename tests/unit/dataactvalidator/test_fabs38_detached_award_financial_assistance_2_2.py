@@ -85,19 +85,32 @@ def test_failure(database):
     pub_award_4 = PublishedAwardFinancialAssistanceFactory(funding_office_code='abcd', unique_award_key='123_abc',
                                                            action_date='20181018', award_modification_amendme='0',
                                                            is_active=True)
+    # award_modification_amendme number is null
+    pub_award_5 = PublishedAwardFinancialAssistanceFactory(funding_office_code='abc', unique_award_key='zyxwv_1234',
+                                                           action_date='20181018', award_modification_amendme=None,
+                                                           is_active=True)
 
     # Entry for invalid code in base record
     det_award_1 = DetachedAwardFinancialAssistanceFactory(funding_office_code='', unique_award_key='zyxwv_123',
                                                           action_date='20181020', award_modification_amendme='2',
                                                           correction_delete_indicatr=None)
+    # Entry with award_modification_amendme null
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_office_code='', unique_award_key='zyxwv_123',
+                                                          action_date='20181020', award_modification_amendme=None,
+                                                          correction_delete_indicatr=None)
     # New entry for earliest inactive
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_office_code='', unique_award_key='4321_cba',
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_office_code='', unique_award_key='4321_cba',
                                                           action_date='20181020', award_modification_amendme='2',
                                                           correction_delete_indicatr=None)
     # New entry for has valid non-funding code
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_office_code='', unique_award_key='123_abc',
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(funding_office_code='', unique_award_key='123_abc',
+                                                          action_date='20181020', award_modification_amendme='2',
+                                                          correction_delete_indicatr=None)
+    # Entry for award_modification_amendme null in base record
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(funding_office_code='', unique_award_key='zyxwv_1234',
                                                           action_date='20181020', award_modification_amendme='2',
                                                           correction_delete_indicatr=None)
     errors = number_of_errors(_FILE, database, models=[office_1, office_2, pub_award_1, pub_award_2, pub_award_3,
-                                                       pub_award_4, det_award_1, det_award_2, det_award_3])
-    assert errors == 3
+                                                       pub_award_4, pub_award_5, det_award_1, det_award_2, det_award_3,
+                                                       det_award_4, det_award_5])
+    assert errors == 5
