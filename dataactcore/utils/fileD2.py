@@ -6,6 +6,7 @@ from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
 file_model = PublishedAwardFinancialAssistance
 
 mapping = OrderedDict([
+    ('AssistanceTransactionUniqueKey', 'afa_generated_unique'),
     ('FAIN', 'fain'),
     ('AwardModificationAmendmentNumber', 'award_modification_amendme'),
     ('URI', 'uri'),
@@ -130,6 +131,7 @@ def initial_query(session):
             The base query (a select from the PublishedAwardFinancialAssistance table with the specified columns).
     """
     return session.query(
+        file_model.afa_generated_unique,
         file_model.fain,
         file_model.award_modification_amendme,
         file_model.uri,

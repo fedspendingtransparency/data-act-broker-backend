@@ -1,4 +1,5 @@
 fieldname,fieldname_short,required,data_type,field_length
+ContractTransactionUniqueKey,detached_award_proc_unique,optional,string,
 PIID,piid,optional,string,
 AwardingSubTierAgencyCode,awarding_sub_tier_agency_c,optional,string,
 AwardingSubTierAgencyName,awarding_sub_tier_agency_n,optional,string,
