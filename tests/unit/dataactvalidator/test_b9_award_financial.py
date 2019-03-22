@@ -119,7 +119,7 @@ def test_success_ignore_case(database):
     populate_publish_status(database)
 
     af = AwardFinancialFactory(row_number=1, submission_id=1, agency_identifier='test', main_account_code='test',
-                               program_activity_name='TEST', program_activity_code='test')
+                               program_activity_name='TEST', program_activity_code='TEST')
 
     pa = ProgramActivityFactory(fiscal_year_quarter='FY16Q4', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')

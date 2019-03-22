@@ -1,150 +1,451 @@
 from dataactcore.utils import fileF
+from dataactbroker.helpers.generic_helper import fy
+from dataactcore.models.fsrs import FSRSProcurement
 from tests.unit.dataactcore.factories.fsrs import (FSRSGrantFactory, FSRSProcurementFactory, FSRSSubcontractFactory,
                                                    FSRSSubgrantFactory)
 from tests.unit.dataactcore.factories.staging import AwardFinancialAssistanceFactory, AwardProcurementFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
+from tests.unit.dataactcore.factories.domain import DunsFactory, CountryCodeFactory
+
+EXPECTED_COLS = [
+    'PrimeAwardUniqueKey',
+    'PrimeAwardID',
+    'ParentAwardID',
+    'PrimeAwardAmount',
+    'ActionDate',
+    'PrimeAwardFiscalYear',
+    'AwardingAgencyCode',
+    'AwardingAgencyName',
+    'AwardingSubTierAgencyCode',
+    'AwardingSubTierAgencyName',
+    'AwardingOfficeCode',
+    'AwardingOfficeName',
+    'FundingAgencyCode',
+    'FundingAgencyName',
+    'FundingSubTierAgencyCode',
+    'FundingSubTierAgencyName',
+    'FundingOfficeCode',
+    'FundingOfficeName',
+    'AwardeeOrRecipientUniqueIdentifier',
+    'AwardeeOrRecipientLegalEntityName',
+    'Vendor Doing As Business Name',
+    'UltimateParentUniqueIdentifier',
+    'UltimateParentLegalEntityName',
+    'LegalEntityCountryCode',
+    'LegalEntityCountryName',
+    'LegalEntityAddressLine1',
+    'LegalEntityCityName',
+    'LegalEntityStateCode',
+    'LegalEntityStateName',
+    'LegalEntityZIP+4',
+    'LegalEntityCongressionalDistrict',
+    'LegalEntityForeignPostalCode',
+    'PrimeAwardeeBusinessTypes',
+    'PrimaryPlaceOfPerformanceCityName',
+    'PrimaryPlaceOfPerformanceStateCode',
+    'PrimaryPlaceOfPerformanceStateName',
+    'PrimaryPlaceOfPerformanceZIP+4',
+    'PrimaryPlaceOfPerformanceCongressionalDistrict',
+    'PrimaryPlaceOfPerformanceCountryCode',
+    'PrimaryPlaceOfPerformanceCountryName',
+    'AwardDescription',
+    'NAICS',
+    'NAICS_Description',
+    'CFDA_Numbers',
+    'CFDA_Titles',
+    'SubAwardType',
+    'SubAwardReportYear',
+    'SubAwardReportMonth',
+    'SubAwardNumber',
+    'SubAwardAmount',
+    'SubAwardActionDate',
+    'SubAwardeeOrRecipientUniqueIdentifier',
+    'SubAwardeeOrRecipientLegalEntityName',
+    'SubAwardeeDoingBusinessAsName',
+    'SubAwardeeUltimateParentUniqueIdentifier',
+    'SubAwardeeUltimateParentLegalEntityName',
+    'SubAwardeeLegalEntityCountryCode',
+    'SubAwardeeLegalEntityCountryName',
+    'SubAwardeeLegalEntityAddressLine1',
+    'SubAwardeeLegalEntityCityName',
+    'SubAwardeeLegalEntityStateCode',
+    'SubAwardeeLegalEntityStateName',
+    'SubAwardeeLegalEntityZIP+4',
+    'SubAwardeeLegalEntityCongressionalDistrict',
+    'SubAwardeeLegalEntityForeignPostalCode',
+    'SubAwardeeBusinessTypes',
+    'SubAwardPlaceOfPerformanceCityName',
+    'SubAwardPlaceOfPerformanceStateCode',
+    'SubAwardPlaceOfPerformanceStateName',
+    'SubAwardPlaceOfPerformanceZIP+4',
+    'SubAwardPlaceOfPerformanceCongressionalDistrict',
+    'SubAwardPlaceOfPerformanceCountryCode',
+    'SubAwardPlaceOfPerformanceCountryName',
+    'SubAwardDescription',
+    'SubAwardeeHighCompOfficer1FullName',
+    'SubAwardeeHighCompOfficer1Amount',
+    'SubAwardeeHighCompOfficer2FullName',
+    'SubAwardeeHighCompOfficer2Amount',
+    'SubAwardeeHighCompOfficer3FullName',
+    'SubAwardeeHighCompOfficer3Amount',
+    'SubAwardeeHighCompOfficer4FullName',
+    'SubAwardeeHighCompOfficer4Amount',
+    'SubAwardeeHighCompOfficer5FullName',
+    'SubAwardeeHighCompOfficer5Amount'
+]
 
 
-def test_copy_values_procurement():
-    model_row = fileF.ModelRow(None, FSRSProcurementFactory(duns='DUNS'), FSRSSubcontractFactory(duns='DUNS SUB'),
-                               None, None)
-    mapper = fileF.CopyValues(procurement='duns')
-    assert mapper(model_row) == 'DUNS'
-    mapper = fileF.CopyValues(subcontract='duns')
-    assert mapper(model_row) == 'DUNS SUB'
-    mapper = fileF.CopyValues(grant='duns')
-    assert mapper(model_row) is None
+def generate_unique_key(fsrs_award, d_file):
+    """ Helper function representing the cfda psql functions """
+    if isinstance(fsrs_award, FSRSProcurement):
+        unique_fields = ['CONT']
+        if d_file.idv_type is not None:
+            unique_fields.extend(['IDV', fsrs_award.contract_number, fsrs_award.contract_agency_code])
+        else:
+            unique_fields.extend(['AWD', fsrs_award.contract_number, fsrs_award.contract_agency_code,
+                                  fsrs_award.contract_idv_agency_code, fsrs_award.idv_reference_number])
+    else:
+        unique_fields = ['ASST']
+        if d_file.record_type == '1':
+            unique_fields.extend(['AGG', d_file.uri, fsrs_award.federal_agency_id])
+        else:
+            unique_fields.extend(['NON', fsrs_award.fain, fsrs_award.federal_agency_id])
+    return '_'.join([unique_field or '-NONE-' for unique_field in unique_fields]).upper()
 
 
-def test_copy_values_grant():
-    model_row = fileF.ModelRow(None, None, None, FSRSGrantFactory(duns='DUNS'), FSRSSubgrantFactory(duns='DUNS SUB'))
-    mapper = fileF.CopyValues(grant='duns')
-    assert mapper(model_row) == 'DUNS'
-    mapper = fileF.CopyValues(subgrant='duns')
-    assert mapper(model_row) == 'DUNS SUB'
-    mapper = fileF.CopyValues(procurement='duns')
-    assert mapper(model_row) is None
+def extract_cfda(field, type):
+    """ Helper function representing the cfda psql functions """
+    extracted_values = []
+    if field:
+        entries = [entry.strip() for entry in field.split(';')]
+        if type == 'numbers':
+            extracted_values = [entry[:entry.index(' ')] for entry in entries]
+        else:
+            extracted_values = [entry[entry.index(' ')+1:] for entry in entries]
+    return ', '.join(extracted_values)
 
 
-def test_country_name():
-    model_row = fileF.ModelRow(
-        None, None, None, None, FSRSSubgrantFactory(awardee_address_country='USA', principle_place_country='DE')
+def reference_data(sess):
+    parent_duns = DunsFactory(awardee_or_recipient_uniqu='987654321', legal_business_name='TEST PARENT DUNS')
+    duns = DunsFactory(awardee_or_recipient_uniqu='123456789', legal_business_name='TEST DUNS',
+                       business_types_codes=['A', 'B', 'C'])
+    dom_country = CountryCodeFactory(country_code='USA', country_name='UNITED STATES')
+    int_country = CountryCodeFactory(country_code='INT', country_name='INTERNATIONAL')
+    sess.add_all([parent_duns, duns, dom_country, int_country])
+    return parent_duns, duns, dom_country, int_country
+
+
+def replicate_contract_results(sub, d1, contract, sub_contract, parent_duns, duns, dom_country, int_country):
+    """ Helper function for contract results """
+    return (
+        generate_unique_key(contract, d1),
+        contract.contract_number,
+        contract.idv_reference_number,
+        contract.dollar_obligated,
+        contract.date_signed,
+        'FY{}'.format(fy(contract.date_signed)),
+        d1.awarding_agency_code,
+        d1.awarding_agency_name,
+        contract.contracting_office_aid,
+        contract.contracting_office_aname,
+        contract.contracting_office_id,
+        contract.contracting_office_name,
+        d1.funding_agency_code,
+        d1.funding_agency_name,
+        contract.funding_agency_id,
+        contract.funding_agency_name,
+        contract.funding_office_id,
+        contract.funding_office_name,
+        contract.duns,
+        contract.company_name,
+        contract.dba_name,
+        contract.parent_duns,
+        contract.parent_company_name,
+        contract.company_address_country,
+        dom_country.country_name,
+        contract.company_address_street,
+        contract.company_address_city,
+        contract.company_address_state,
+        contract.company_address_state_name,
+        contract.company_address_zip,
+        contract.company_address_district,
+        None,
+        contract.bus_types,
+        contract.principle_place_city,
+        contract.principle_place_state,
+        contract.principle_place_state_name,
+        contract.principle_place_zip,
+        contract.principle_place_district,
+        contract.principle_place_country,
+        int_country.country_name,
+        d1.award_description,
+        contract.naics,
+        d1.naics_description,
+        None,
+        None,
+        'sub-contract',
+        contract.report_period_year,
+        contract.report_period_mon,
+        sub_contract.subcontract_num,
+        sub_contract.subcontract_amount,
+        sub_contract.subcontract_date,
+        sub_contract.duns,
+        sub_contract.company_name,
+        sub_contract.dba_name,
+        sub_contract.parent_duns,
+        sub_contract.parent_company_name,
+        sub_contract.company_address_country,
+        int_country.country_name,
+        sub_contract.company_address_street,
+        sub_contract.company_address_city,
+        sub_contract.company_address_state,
+        sub_contract.company_address_state_name,
+        None,
+        sub_contract.company_address_district,
+        sub_contract.company_address_zip,
+        sub_contract.bus_types,
+        sub_contract.principle_place_city,
+        sub_contract.principle_place_state,
+        sub_contract.principle_place_state_name,
+        sub_contract.principle_place_zip,
+        sub_contract.principle_place_district,
+        sub_contract.principle_place_country,
+        dom_country.country_name,
+        sub_contract.overall_description,
+        sub_contract.top_paid_fullname_1,
+        sub_contract.top_paid_amount_1,
+        sub_contract.top_paid_fullname_2,
+        sub_contract.top_paid_amount_2,
+        sub_contract.top_paid_fullname_3,
+        sub_contract.top_paid_amount_3,
+        sub_contract.top_paid_fullname_4,
+        sub_contract.top_paid_amount_4,
+        sub_contract.top_paid_fullname_5,
+        sub_contract.top_paid_amount_5
     )
-    entity = fileF.mappings['LegalEntityCountryName'](model_row)
-    assert entity == 'United States'
-
-    place = fileF.mappings['PrimaryPlaceOfPerformanceCountryName'](model_row)
-    assert place == 'Germany'
 
 
-def test_zipcode_guard():
-    model_row = fileF.ModelRow(
-        None, None,
-        FSRSSubcontractFactory(company_address_country='USA', company_address_zip='12345'),
-        None, None
+def test_generate_f_file_queries_contracts(database, monkeypatch):
+    """ generate_f_file_queries should provide queries representing halves of F file data related to a submission
+        This will cover contracts records.
+    """
+    sess = database.session
+
+    parent_duns, duns, dom_country, int_country = reference_data(sess)
+
+    # Setup - create awards, procurements, subcontracts
+    sub = SubmissionFactory(submission_id=1)
+    d1_awd = AwardProcurementFactory(
+        submission_id=sub.submission_id,
+        idv_type=None
     )
-    us_zip = fileF.mappings['LegalEntityZIP+4'](model_row)
-    foreign_zip = fileF.mappings['LegalEntityForeignPostalCode'](model_row)
-    assert us_zip == '12345'
-    assert foreign_zip is None
+    contract_awd = FSRSProcurementFactory(
+        contract_number=d1_awd.piid,
+        idv_reference_number=d1_awd.parent_award_id,
+        contracting_office_aid=d1_awd.awarding_sub_tier_agency_c,
+        company_address_country=dom_country.country_code,
+        principle_place_country=int_country.country_code,
+        duns=duns.awardee_or_recipient_uniqu
+    )
+    sub_contract_awd = FSRSSubcontractFactory(
+        parent=contract_awd,
+        company_address_country=int_country.country_code,
+        principle_place_country=dom_country.country_code
+    )
+    d1_idv = AwardProcurementFactory(
+        submission_id=sub.submission_id,
+        idv_type='C'
+    )
+    contract_idv = FSRSProcurementFactory(
+        contract_number=d1_idv.piid,
+        idv_reference_number=d1_idv.parent_award_id,
+        contracting_office_aid=d1_idv.awarding_sub_tier_agency_c,
+        company_address_country=dom_country.country_code,
+        principle_place_country=int_country.country_code,
+        duns=duns.awardee_or_recipient_uniqu
+    )
+    sub_contract_idv = FSRSSubcontractFactory(
+        parent=contract_idv,
+        company_address_country=int_country.country_code,
+        principle_place_country=dom_country.country_code
+    )
 
-    model_row.subcontract.company_address_country = 'RU'
-    us_zip = fileF.mappings['LegalEntityZIP+4'](model_row)
-    foreign_zip = fileF.mappings['LegalEntityForeignPostalCode'](model_row)
-    assert us_zip is None
-    assert foreign_zip == '12345'
+    sess.add_all([sub, d1_awd, contract_awd, sub_contract_awd, d1_idv, contract_idv, sub_contract_idv])
+    sess.commit()
+
+    # Gather the sql
+    contract_query, _ = fileF.generate_f_file_queries(sub.submission_id)
+
+    # Get the records
+    contracts_records = sess.execute(contract_query)
+    contracts_cols = contracts_records.keys()
+    contracts_results = contracts_records.fetchall()
+
+    # Expected Results
+    expected_contracts = [
+        replicate_contract_results(sub, d1_awd, contract_awd, sub_contract_awd, parent_duns, duns, dom_country,
+                                   int_country),
+        replicate_contract_results(sub, d1_idv, contract_idv, sub_contract_idv, parent_duns, duns, dom_country,
+                                   int_country)
+    ]
+
+    assert sorted(contracts_results, key=lambda result: result[0]) == expected_contracts
+    assert contracts_cols == EXPECTED_COLS
 
 
-def test_generate_f_rows(database, monkeypatch):
-    """generate_f_rows should find and convert subaward data relevant to a
-    specific submission id. We'll compare the resulting DUNs values for
-    uniqueness"""
+def replicate_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_country, int_country):
+    """ Helper function for grant results """
+    return (
+        generate_unique_key(grant, d2),
+        grant.fain,
+        None,
+        grant.total_fed_funding_amount,
+        grant.obligation_date,
+        'FY{}'.format(fy(grant.obligation_date)),
+        d2.awarding_agency_code,
+        d2.awarding_agency_name,
+        grant.federal_agency_id,
+        d2.awarding_sub_tier_agency_n,
+        d2.awarding_office_code,
+        d2.awarding_office_name,
+        d2.funding_agency_code,
+        d2.funding_agency_name,
+        d2.funding_sub_tier_agency_co,
+        d2.funding_sub_tier_agency_na,
+        d2.funding_office_code,
+        d2.funding_office_name,
+        grant.duns,
+        grant.awardee_name,
+        grant.dba_name,
+        grant.parent_duns,
+        parent_duns.legal_business_name,
+        grant.awardee_address_country,
+        int_country.country_name,
+        grant.awardee_address_street,
+        grant.awardee_address_city,
+        grant.awardee_address_state,
+        grant.awardee_address_state_name,
+        None,
+        grant.awardee_address_district,
+        grant.awardee_address_zip,
+        d2.business_types_desc,
+        grant.principle_place_city,
+        grant.principle_place_state,
+        grant.principle_place_state_name,
+        grant.principle_place_zip,
+        grant.principle_place_district,
+        grant.principle_place_country,
+        dom_country.country_name,
+        grant.project_description,
+        None,
+        None,
+        extract_cfda(grant.cfda_numbers, 'numbers'),
+        extract_cfda(grant.cfda_numbers, 'titles'),
+        'sub-grant',
+        grant.report_period_year,
+        grant.report_period_mon,
+        sub_grant.subaward_num,
+        sub_grant.subaward_amount,
+        sub_grant.subaward_date,
+        sub_grant.duns,
+        sub_grant.awardee_name,
+        sub_grant.dba_name,
+        sub_grant.parent_duns,
+        parent_duns.legal_business_name,
+        sub_grant.awardee_address_country,
+        dom_country.country_name,
+        sub_grant.awardee_address_street,
+        sub_grant.awardee_address_city,
+        sub_grant.awardee_address_state,
+        sub_grant.awardee_address_state_name,
+        sub_grant.awardee_address_zip,
+        sub_grant.awardee_address_district,
+        None,
+        ', '.join(parent_duns.business_types_codes),
+        sub_grant.principle_place_city,
+        sub_grant.principle_place_state,
+        sub_grant.principle_place_state_name,
+        sub_grant.principle_place_zip,
+        sub_grant.principle_place_district,
+        sub_grant.principle_place_country,
+        int_country.country_name,
+        sub_grant.project_description,
+        sub_grant.top_paid_fullname_1,
+        sub_grant.top_paid_amount_1,
+        sub_grant.top_paid_fullname_2,
+        sub_grant.top_paid_amount_2,
+        sub_grant.top_paid_fullname_3,
+        sub_grant.top_paid_amount_3,
+        sub_grant.top_paid_fullname_4,
+        sub_grant.top_paid_amount_4,
+        sub_grant.top_paid_fullname_5,
+        sub_grant.top_paid_amount_5
+    )
+
+
+def test_generate_f_file_queries_grants(database, monkeypatch):
+    """ generate_f_file_queries should provide queries representing halves of F file data related to a submission
+        This will cover grants records.
+    """
     # Setup - create awards, procurements/grants, subawards
     sess = database.session
-    sub_1 = SubmissionFactory()
-    sub_2 = SubmissionFactory()
-    sess.add_all([sub_1, sub_2])
-    sess.commit()
 
-    awards = [AwardProcurementFactory(submission_id=sub_1.submission_id, piid='PIID1', parent_award_id='PIID1',
-                                      awarding_sub_tier_agency_c='1234'),
-              AwardProcurementFactory(submission_id=sub_1.submission_id, piid='PIID2', parent_award_id='PIID2',
-                                      awarding_sub_tier_agency_c='1234'),
-              AwardFinancialAssistanceFactory(submission_id=sub_1.submission_id, fain='FAIN1'),
-              AwardFinancialAssistanceFactory(submission_id=sub_1.submission_id, fain='FAIN2'),
-              AwardProcurementFactory(submission_id=sub_2.submission_id, piid='PIID1', parent_award_id='PIID1',
-                                      awarding_sub_tier_agency_c='1234'),
-              AwardFinancialAssistanceFactory(submission_id=sub_2.submission_id, fain='FAIN1')]
-    sess.add_all(awards)
-    procurements = {}
-    for piid in ('PIID1', 'PIID2', 'PIID3'):
-        procurements[piid] = [
-            FSRSProcurementFactory(contract_number=piid, idv_reference_number=piid,
-                                   subawards=[FSRSSubcontractFactory() for _ in range(3)],
-                                   contracting_office_aid='1234'),
-            FSRSProcurementFactory(contract_number=piid, idv_reference_number=piid,
-                                   subawards=[],
-                                   contracting_office_aid='1234'),
-            FSRSProcurementFactory(contract_number=piid, idv_reference_number=piid,
-                                   subawards=[FSRSSubcontractFactory() for _ in range(2)],
-                                   contracting_office_aid='1234')
-        ]
-        sess.add_all(procurements[piid])
-    grants = {}
-    for fain in ('FAIN0', 'FAIN1'):
-        grants[fain] = [
-            FSRSGrantFactory(fain=fain, subawards=[FSRSSubgrantFactory() for _ in range(3)]),
-            FSRSGrantFactory(fain=fain, subawards=[]),
-            FSRSGrantFactory(fain=fain, subawards=[FSRSSubgrantFactory() for _ in range(2)])
-        ]
-        sess.add_all(grants[fain])
-    sess.commit()
+    parent_duns, duns, dom_country, int_country = reference_data(sess)
 
-    actual = {result['SubAwardeeOrRecipientUniqueIdentifier'] for result in fileF.generate_f_rows(sub_1.submission_id)}
-    expected = set()
-    expected.update(sub.duns for proc in procurements['PIID1'] for sub in proc.subawards)
-    expected.update(sub.duns for proc in procurements['PIID2'] for sub in proc.subawards)
-    expected.update(sub.duns for grant in grants['FAIN1'] for sub in grant.subawards)
-    assert actual == expected
-
-
-def test_generate_f_rows_naics_desc(database, monkeypatch):
-    """The NAICS description should be retireved from an AwardProcurement"""
-    sub = SubmissionFactory()
-    database.session.add(sub)
-    database.session.commit()
-
-    award = AwardProcurementFactory(submission_id=sub.submission_id, awarding_sub_tier_agency_c='1234')
-    other_aps = [AwardProcurementFactory(submission_id=award.submission_id, awarding_sub_tier_agency_c='1234')
-                 for _ in range(3)]
-    proc = FSRSProcurementFactory(contract_number=award.piid, idv_reference_number=award.parent_award_id,
-                                  subawards=[FSRSSubcontractFactory(naics=award.naics)],
-                                  contracting_office_aid='1234')
-
-    database.session.add_all([award, proc] + other_aps)
-    database.session.commit()
-
-    actual = {result['NAICS_Description'] for result in fileF.generate_f_rows(award.submission_id)}
-    assert actual == {award.naics_description}
-
-
-def test_generate_f_rows_false(database, monkeypatch):
-    """Make sure we're converting False to a string"""
-    sub = SubmissionFactory()
-    database.session.add(sub)
-    database.session.commit()
-
-    award = AwardProcurementFactory(submission_id=sub.submission_id, awarding_sub_tier_agency_c='1234')
-    proc = FSRSProcurementFactory(
-        contract_number=award.piid,
-        idv_reference_number=award.parent_award_id,
-        subawards=[FSRSSubcontractFactory(recovery_model_q1=False, recovery_model_q2=None)],
-        contracting_office_aid='1234'
+    # Setup - create awards, procurements, subcontracts
+    sub = SubmissionFactory(submission_id=1)
+    d2_non = AwardFinancialAssistanceFactory(
+        submission_id=sub.submission_id,
+        record_type='2'
     )
+    grant_non = FSRSGrantFactory(
+        fain=d2_non.fain,
+        awardee_address_country=int_country.country_code,
+        principle_place_country=dom_country.country_code,
+        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2'
+    )
+    sub_grant_non = FSRSSubgrantFactory(
+        parent=grant_non,
+        awardee_address_country=dom_country.country_code,
+        principle_place_country=int_country.country_code,
+        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        duns=duns.awardee_or_recipient_uniqu
+    )
+    d2_agg = AwardFinancialAssistanceFactory(
+        submission_id=sub.submission_id,
+        record_type='1'
+    )
+    grant_agg = FSRSGrantFactory(
+        fain=d2_agg.fain,
+        awardee_address_country=int_country.country_code,
+        principle_place_country=dom_country.country_code,
+        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        cfda_numbers='00.003 CFDA 3'
+    )
+    sub_grant_agg = FSRSSubgrantFactory(
+        parent=grant_agg,
+        awardee_address_country=dom_country.country_code,
+        principle_place_country=int_country.country_code,
+        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        duns=duns.awardee_or_recipient_uniqu
+    )
+    sess.add_all([sub, d2_non, grant_non, sub_grant_non, d2_agg, grant_agg, sub_grant_agg])
+    sess.commit()
 
-    database.session.add_all([award, proc])
-    database.session.commit()
+    # Gather the sql
+    _, grant_query = fileF.generate_f_file_queries(sub.submission_id)
 
-    results = list(fileF.generate_f_rows(award.submission_id))
-    assert results[0]['RecModelQuestion1'] == 'False'
-    assert results[0]['RecModelQuestion2'] == ''
+    # Get the records
+    grants_records = sess.execute(grant_query)
+    grants_cols = grants_records.keys()
+    grants_results = grants_records.fetchall()
+
+    # Expected Results
+    expected_grants_results = [
+        replicate_grant_results(sub, d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country, int_country),
+        replicate_grant_results(sub, d2_non, grant_non, sub_grant_non, parent_duns, duns, dom_country, int_country),
+    ]
+
+    assert sorted(grants_results, key=lambda result: result[0]) == expected_grants_results
+    assert grants_cols == EXPECTED_COLS
