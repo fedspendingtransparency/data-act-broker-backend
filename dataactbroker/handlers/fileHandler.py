@@ -1759,6 +1759,33 @@ def get_upload_file_url(submission, file_type):
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 
+def get_detached_upload_file_url(job_id):
+    """ Gets the signed url of the upload file for the given detached generation job.
+
+        Args:
+            job_id: the ID of the detached generation job to get the url for
+
+        Returns:
+            A signed URL to S3 of the specified file when not run locally. The path to the file when run locally.
+            Error response if the job ID doesn't exist or isn't a detached job.
+    """
+    sess = GlobalDB.db().session
+    file_job = sess.query(Job).filter(Job.job_id == job_id).first()
+    if not file_job:
+        return JsonResponse.error(ValueError("This job does not exist."), StatusCode.CLIENT_ERROR)
+    if file_job.submission_id:
+        return JsonResponse.error(ValueError("This is not a detached generation job."), StatusCode.CLIENT_ERROR)
+
+    split_name = file_job.filename.split('/')
+    if CONFIG_BROKER['local']:
+        # when local, can just grab the filename because it stores the entire path
+        url = os.path.join(CONFIG_BROKER['broker_files'], split_name[-1])
+    else:
+        url = S3Handler().get_signed_url(split_name[0], split_name[1],
+                                         url_mapping=CONFIG_BROKER["submission_bucket_mapping"], method="get_object")
+    return JsonResponse.create(StatusCode.OK, {"url": url})
+
+
 # TODO: Do we even use this anymore?
 def get_xml_response_content(api_url):
     """ Retrieve XML Response from the provided API url.
