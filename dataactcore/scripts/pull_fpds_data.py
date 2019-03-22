@@ -725,12 +725,10 @@ def vendor_site_details_values(data, obj):
         obj['legal_entity_country_name'] = None
 
     # vendorOrganizationFactors sub-level
-    value_map = {'annualRevenue': 'annual_revenue',
-                 'isForeignOwnedAndLocated': 'foreign_owned_and_located',
+    value_map = {'isForeignOwnedAndLocated': 'foreign_owned_and_located',
                  'isLimitedLiabilityCorporation': 'limited_liability_corporat',
                  'isShelteredWorkshop': 'the_ability_one_program',
                  'isSubchapterSCorporation': 'subchapter_s_corporation',
-                 'numberOfEmployees': 'number_of_employees',
                  'organizationalType': 'organizational_type'}
 
     for key, value in value_map.items():

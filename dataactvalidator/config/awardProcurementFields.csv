@@ -1,4 +1,5 @@
 fieldname,fieldname_short,required,data_type,field_length,padded_flag
+contracttransactionuniquekey,detached_award_proc_unique,FALSE,str,,
 piid,piid,FALSE,str,,
 awardingsubtieragencycode,awarding_sub_tier_agency_c,FALSE,str,,
 awardingsubtieragencyname,awarding_sub_tier_agency_n,FALSE,str,,
@@ -258,6 +259,4 @@ cage_code,cage_code,FALSE,str,,
 inherently_governmental_functions,inherently_government_func,FALSE,str,,
 inherently_governmental_functions_description_tag,inherently_government_desc,FALSE,str,,
 organizationaltype,organizational_type,FALSE,str,,
-numberofemployees,number_of_employees,FALSE,str,,
-annualrevenue,annual_revenue,FALSE,str,,
 totaldollarsobligated,total_obligated_amount,FALSE,str,,

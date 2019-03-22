@@ -76,7 +76,16 @@ class UserTests(BaseTestAPI):
         response = self.app.post_json("/v1/email_users/", contents, headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK, "Emails successfully sent")
 
+        # User without proper permissions
+        self.login_user(username=self.test_users['editfabs_user'])
+        contents = {"users": [self.agency_user_id], "submission_id": self.submission_id,
+                    "email_template": "review_submission"}
+        response = self.app.post_json("/v1/email_users/", contents, expect_errors=True,
+                                      headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.PERMISSION_DENIED)
+
         # missing request params
+        self.login_user()
         bad_input = {"users": [self.agency_user_id]}
         response = self.app.post_json("/v1/email_users/", bad_input, expect_errors=True,
                                       headers={"x-session-id": self.session_id})
