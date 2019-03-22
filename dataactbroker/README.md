@@ -769,7 +769,7 @@ This endpoint returns the signed url for the uploaded/generated file of the requ
 `/v1/get_file_url?submission_id=123&file_type=A`
 
 ##### Request Params
-- `submission_id` - **required** - an integer representing the ID of the submission to get metadata for
+- `submission_id` - **required** - an integer representing the ID of the submission to get the file url for
 - `file_type` - **required** - a string representing the file letter for the submission. Valid strings are the following:
     - `A`
     - `B`
@@ -799,6 +799,34 @@ Possible HTTP Status Codes:
     - Missing parameter
 - 401: Login required
 - 403: Do not have permission to access that submission
+
+#### GET "/v1/get\_detached\_file\_url"
+This endpoint returns the signed url for the generated file of the requested job
+
+##### Sample Request
+`/v1/get_detached_file_url?job_id=123`
+
+##### Request Params
+- `job_id` - **required** - an integer representing the ID of the job to get the file url for
+
+##### Response (JSON)
+```
+{
+    "url": "https://......."
+}
+```
+
+##### Response Attributes
+- `url`: string, the signed url for the requested file
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - No such job ID
+    - The job ID provided is not a detached file generation
+    - Missing parameter
+- 401: Login required
 
 #### POST "/v1/submit\_detached\_file"
 
