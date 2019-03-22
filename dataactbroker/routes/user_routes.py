@@ -4,7 +4,8 @@ from webargs.flaskparser import use_kwargs
 
 from dataactbroker.handlers.account_handler import (AccountHandler, json_for_user, list_user_emails,
                                                     list_submission_users)
-from dataactbroker.permissions import requires_login
+from dataactbroker.decorators import convert_to_submission_id
+from dataactbroker.permissions import requires_login, requires_submission_perms
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 
@@ -47,10 +48,13 @@ def add_user_routes(app, system_email, bcrypt):
         return account_manager.set_skip_guide()
 
     @app.route("/v1/email_users/", methods=["POST"])
-    @requires_login
-    def email_users():
-        """
-        Sends email notifications to users that their submission is ready for review & publish viewing
-        """
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    @use_kwargs({
+        'email_template': webargs_fields.String(required=True),
+        'users': webargs_fields.List(webargs_fields.Int(), required=True)
+    })
+    def email_users(submission, email_template, users):
+        """ Sends email notifications to users that their submission is ready for review & publish viewing """
         account_manager = AccountHandler(request, bcrypt=bcrypt)
-        return account_manager.email_users(system_email)
+        return account_manager.email_users(submission, system_email, email_template, users)
