@@ -800,7 +800,6 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Do not have permission to access that submission
 
-
 #### GET "/v1/get\_detached\_file\_url"
 This endpoint returns the signed url for the generated file of the requested job
 
