@@ -1285,6 +1285,46 @@ Example output:
 }
 ```
 
+#### POST "/v1/email\_users/"
+This endpoint returns metadata for the requested submission.
+
+##### Body (JSON)
+
+```
+{
+  "submission_id": 1234,
+  "email_template": "review_submission",
+  "users": [1, 2]
+}
+```
+
+##### Body Description
+- `submission_id` - **required** - an integer representing the ID of the submission to email about
+- `email_template` - **required** - a string representing the type of template to use in the email. Currently, only the following templates exist (case-sensitive):
+    - `review_submission`
+- `users` - **required** - a list of integers representing the IDs of the users to send the emails to
+
+##### Response (JSON)
+```
+{
+    "message": "Emails successfully sent"
+}
+```
+
+##### Response Attributes
+- `message`: A message indicating that the emails were sent
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Missing parameters
+    - Submission does not exist
+    - Submission somehow is not associated with valid CGAC/FREC
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
+
 ## Generate Files
 ### POST "/v1/generate\_file/"
 This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted. This route is used for file generation **within** a submission.
