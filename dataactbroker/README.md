@@ -1314,7 +1314,7 @@ Example output:
 ```
 
 #### POST "/v1/email\_users/"
-This endpoint returns metadata for the requested submission.
+This endpoint sends an email of the specified template to the users provided.
 
 ##### Body (JSON)
 
