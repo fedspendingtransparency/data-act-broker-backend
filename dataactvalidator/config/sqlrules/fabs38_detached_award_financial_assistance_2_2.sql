@@ -40,7 +40,7 @@ WHERE EXISTS (
 	SELECT 1
 	FROM funding_codes_{0} AS fc
 	WHERE dafa.unique_award_key = fc.unique_award_key
-		AND dafa.award_modification_amendme != fc.award_modification_amendme
+		AND COALESCE(dafa.award_modification_amendme, '') <> COALESCE(fc.award_modification_amendme, '')
 		AND NOT EXISTS (
 			SELECT 1
 			FROM office

@@ -155,6 +155,7 @@ class AwardFinancialAssistanceFactory(factory.Factory):
         model = stagingModels.AwardFinancialAssistance
 
     award_financial_assistance_id = None
+    afa_generated_unique = fuzzy.FuzzyText()
     submission_id = fuzzy.FuzzyInteger(9999)
     job_id = fuzzy.FuzzyInteger(9999)
     row_number = fuzzy.FuzzyInteger(9999)
@@ -365,6 +366,7 @@ class AwardProcurementFactory(factory.Factory):
         model = stagingModels.AwardProcurement
 
     award_procurement_id = None
+    detached_award_proc_unique = fuzzy.FuzzyText()
     submission_id = fuzzy.FuzzyInteger(9999)
     job_id = fuzzy.FuzzyInteger(9999)
     row_number = fuzzy.FuzzyInteger(1, 9999)
@@ -508,6 +510,7 @@ class AwardProcurementFactory(factory.Factory):
     labor_standards_descrip = fuzzy.FuzzyText()
     small_business_competitive = fuzzy.FuzzyText()
     solicitation_identifier = fuzzy.FuzzyText()
+    solicitation_date = fuzzy.FuzzyDate(date(2015, 1, 1), date(2015, 12, 31))
     solicitation_procedures = fuzzy.FuzzyText()
     solicitation_procedur_desc = fuzzy.FuzzyText()
     fair_opportunity_limited_s = fuzzy.FuzzyText()
@@ -779,6 +782,7 @@ class DetachedAwardProcurementFactory(factory.Factory):
     labor_standards_descrip = fuzzy.FuzzyText()
     small_business_competitive = fuzzy.FuzzyText()
     solicitation_identifier = fuzzy.FuzzyText()
+    solicitation_date = fuzzy.FuzzyDate(date(2015, 1, 1), date(2015, 12, 31))
     solicitation_procedures = fuzzy.FuzzyText()
     solicitation_procedur_desc = fuzzy.FuzzyText()
     fair_opportunity_limited_s = fuzzy.FuzzyText()

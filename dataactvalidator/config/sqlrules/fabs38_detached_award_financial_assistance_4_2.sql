@@ -40,7 +40,7 @@ WHERE EXISTS (
 	SELECT 1
 	FROM awarding_codes_{0} AS ac
 	WHERE dafa.unique_award_key = ac.unique_award_key
-		AND dafa.award_modification_amendme != ac.award_modification_amendme
+		AND COALESCE(dafa.award_modification_amendme, '') <> COALESCE(ac.award_modification_amendme, '')
 		AND NOT EXISTS (
 			SELECT 1
 			FROM office

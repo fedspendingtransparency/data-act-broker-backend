@@ -143,7 +143,7 @@ def test_generate_awarding_d1(mock_broker_config_paths, database):
     for value in file_generation_manager.fileD1.db_columns:
         # loop through all values and format date columns
         if value in ['period_of_performance_star', 'period_of_performance_curr', 'period_of_perf_potential_e',
-                     'ordering_period_end_date', 'action_date', 'last_modified']:
+                     'ordering_period_end_date', 'action_date', 'last_modified', 'solicitation_date']:
             expected1.append(re.sub(r"[-]", r"", str(dap_one.__dict__[value]))[0:8])
             expected2.append(re.sub(r"[-]", r"", str(dap_two.__dict__[value]))[0:8])
         else:
@@ -185,7 +185,7 @@ def test_generate_funding_d1(mock_broker_config_paths, database):
     for value in file_generation_manager.fileD1.db_columns:
         # loop through all values and format date columns
         if value in ['period_of_performance_star', 'period_of_performance_curr', 'period_of_perf_potential_e',
-                     'ordering_period_end_date', 'action_date', 'last_modified']:
+                     'ordering_period_end_date', 'action_date', 'last_modified', 'solicitation_date']:
             expected1.append(re.sub(r"[-]", r"", str(dap_one.__dict__[value]))[0:8])
             expected2.append(re.sub(r"[-]", r"", str(dap_two.__dict__[value]))[0:8])
         else:
