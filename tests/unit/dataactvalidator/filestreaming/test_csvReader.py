@@ -39,7 +39,7 @@ def test_normalize_headers():
     """
     # Verify names are properly lowercased and not mapped if long_headers is false
     headers = [
-        'AllocationTransferAgencyIdentifier', 'BeginningPeriodOfAvailability', 'flex_mycol', 'FLEX_ANOTHER'
+        'AllocationTransferAgencyIdentifier', 'BeginningPeriodOfAvailability', 'flex_mycol', 'FLEX_(ANOTHER)'
     ]
     mapping = {'allocationtransferagencyidentifier': 'ata', 'beginningperiodofavailability': 'boa'}
 

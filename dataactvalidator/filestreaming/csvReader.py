@@ -232,7 +232,7 @@ class CsvReader(object):
         expected_fields = {}
 
         for schema in csv_schema:
-            expected_fields[FieldCleaner.clean_string(schema.name_short)] = 0
+            expected_fields[FieldCleaner.clean_name(schema.name_short)] = 0
 
         for header_value in header_row:
             if header_value not in expected_fields:
@@ -270,7 +270,7 @@ def use_long_headers(header_row, long_to_short_dict):
     """Check to see if header contains long or short column names"""
     col_matches = 0
     for value in header_row:
-        if FieldCleaner.clean_string(value) in long_to_short_dict:
+        if FieldCleaner.clean_name(value) in long_to_short_dict:
             col_matches += 1
     # if most of column headers are in the long format, we'll treat the file as having long headers
     return col_matches > .5 * len(header_row)
@@ -290,7 +290,7 @@ def normalize_headers(header_row, long_headers, long_to_short_dict):
             there is a mapping for that header).
     """
     for header in header_row:
-        header = FieldCleaner.clean_string(header)
+        header = FieldCleaner.clean_name(header)
         # Replace headers that don't match DB but are allowed by the broker with their DB matches
         if header == 'deobligationsrecoveriesrefundsofprioryearbyprogramobjectclass_cpe':
             header = 'deobligationsrecoveriesrefundsdofprioryearbyprogramobjectclass_cpe'
@@ -305,7 +305,7 @@ def normalize_headers(header_row, long_headers, long_to_short_dict):
 
         # yield the short header when applicable, otherwise yield the cleaned header, whatever it is
         if long_headers and header in long_to_short_dict:
-            yield FieldCleaner.clean_string(long_to_short_dict[header])
+            yield FieldCleaner.clean_name(long_to_short_dict[header])
         else:
             yield header
 
