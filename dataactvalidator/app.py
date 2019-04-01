@@ -2,6 +2,8 @@ import logging
 import csv
 import time
 import traceback
+import uwsgi
+import threading
 
 from flask import Flask, g, current_app
 
@@ -49,6 +51,9 @@ def run_app():
 
         # Future: Override config w/ environment variable, if set
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
+
+        handler_thread = threading.Thread(target=handle_aws_signals)
+        handler_thread.start()
 
         queue = sqs_queue()
 
@@ -227,6 +232,14 @@ def validator_process_job(job_id, agency_code):
             pass
 
         raise e
+
+
+def handle_aws_signals():
+    while True:
+        uwsgi.signal_wait()
+        signum = uwsgi.signal_received()
+        logger.info('========================== SIGNAL RECEIVED ===========================')
+        logger.info(signum)
 
 
 if __name__ == "__main__":
