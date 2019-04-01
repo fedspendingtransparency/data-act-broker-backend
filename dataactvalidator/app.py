@@ -237,9 +237,10 @@ def validator_process_job(job_id, agency_code):
 def handle_aws_signals():
     with open('/tmp/validator_logger.txt', 'w') as validator_logger:
         validator_logger.write('Starting signal catching')
-        while True:
-            uwsgi.signal_wait()
-            signum = uwsgi.signal_received()
+    while True:
+        uwsgi.signal_wait()
+        signum = uwsgi.signal_received()
+        with open('/tmp/validator_logger.txt', 'a') as validator_logger:
             validator_logger.write('========================== SIGNAL RECEIVED ===========================')
             validator_logger.write(signum)
 
