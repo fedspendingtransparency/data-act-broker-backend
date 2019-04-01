@@ -57,12 +57,12 @@ def run_app():
 
         queue = sqs_queue()
 
-        logger.info("Starting SQS polling")
+        validator_logger.write("Starting SQS polling")
         while True:
             # Grabs one (or more) messages from the queue
             messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
             for message in messages:
-                logger.info("Message received: %s", message.body)
+                validator_logger.write("Message received: %s", message.body)
 
                 msg_attr = message.message_attributes
                 if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
@@ -235,12 +235,13 @@ def validator_process_job(job_id, agency_code):
 
 
 def handle_aws_signals():
-    logger.info('Starting signal catching')
-    while True:
-        uwsgi.signal_wait()
-        signum = uwsgi.signal_received()
-        logger.info('========================== SIGNAL RECEIVED ===========================')
-        logger.info(signum)
+    with open('/tmp/validator_logger.txt', 'w') as validator_logger:
+        validator_logger.write('Starting signal catching')
+        while True:
+            uwsgi.signal_wait()
+            signum = uwsgi.signal_received()
+            validator_logger.write('========================== SIGNAL RECEIVED ===========================')
+            validator_logger.write(signum)
 
 
 if __name__ == "__main__":
