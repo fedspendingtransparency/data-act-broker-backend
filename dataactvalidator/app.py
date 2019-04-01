@@ -236,7 +236,6 @@ def validator_process_job(job_id, agency_code):
 
 def cleanup(sig, frame):
     logger.info('=========== GOT SIGNAL {} ============'.format(sig))
-    exit()
 
 
 if __name__ == "__main__":
