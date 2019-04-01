@@ -51,13 +51,14 @@ def run_app():
         # Future: Override config w/ environment variable, if set
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
-        signal.signal(signal.SIGINT, cleanup)
-        signal.signal(signal.SIGTERM, cleanup)
+        for i in [x for x in dir(signal) if x.startswith("SIG")]:
+            try:
+                signum = getattr(signal, i)
+                signal.signal(signum, cleanup)
+            except (OSError, RuntimeError) as m:  # OSError for Python3, RuntimeError for 2
+                print("Skipping {}".format(i))
 
         queue = sqs_queue()
-
-        with open('/tmp/validator_logger.txt', 'w+') as validator_logger:
-            validator_logger.write('Please log this.')
 
         logger.info("Starting SQS polling")
         while True:
@@ -237,7 +238,7 @@ def validator_process_job(job_id, agency_code):
 
 
 def cleanup(sig, frame):
-    logger.info('CLEANING UP')
+    logger.info('=========== GOT SIGNAL {} ============'.format(sig))
 
 
 if __name__ == "__main__":
