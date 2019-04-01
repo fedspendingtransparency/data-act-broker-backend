@@ -57,6 +57,9 @@ def run_app():
 
         queue = sqs_queue()
 
+        with open('/tmp/validator_logger.txt', 'w+') as validator_logger:
+            validator_logger.write('Please log this.')
+
         logger.info("Starting SQS polling")
         while True:
             # Grabs one (or more) messages from the queue
@@ -235,7 +238,7 @@ def validator_process_job(job_id, agency_code):
 
 
 def handle_aws_signals():
-    with open('/tmp/validator_logger.txt', 'w') as validator_logger:
+    with open('/tmp/validator_logger.txt', 'w+') as validator_logger:
         validator_logger.write('Starting signal catching')
     while True:
         uwsgi.signal_wait()
