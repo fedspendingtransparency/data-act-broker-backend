@@ -57,12 +57,12 @@ def run_app():
 
         queue = sqs_queue()
 
-        validator_logger.write("Starting SQS polling")
+        logger.info("Starting SQS polling")
         while True:
             # Grabs one (or more) messages from the queue
             messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
             for message in messages:
-                validator_logger.write("Message received: %s", message.body)
+                logger.info("Message received: %s", message.body)
 
                 msg_attr = message.message_attributes
                 if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
