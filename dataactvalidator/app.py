@@ -51,12 +51,9 @@ def run_app():
         # Future: Override config w/ environment variable, if set
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
-        for i in [x for x in dir(signal) if x.startswith("SIG")]:
-            try:
-                signum = getattr(signal, i)
-                signal.signal(signum, cleanup)
-            except (OSError, RuntimeError) as m:  # OSError for Python3, RuntimeError for 2
-                print("Skipping {}".format(i))
+        catchable_sigs = set(signal.Signals) - {signal.SIGKILL, signal.SIGSTOP}
+        for sig in catchable_sigs:
+            signal.signal(sig, cleanup)
 
         queue = sqs_queue()
 
@@ -239,6 +236,7 @@ def validator_process_job(job_id, agency_code):
 
 def cleanup(sig, frame):
     logger.info('=========== GOT SIGNAL {} ============'.format(sig))
+    exit()
 
 
 if __name__ == "__main__":
