@@ -51,9 +51,6 @@ def run_app():
         # Future: Override config w/ environment variable, if set
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
-        with open('/tmp/validator_logger.txt', 'w+') as validator_logger:
-            validator_logger.write('Starting check for signals')
-
         signal.signal(signal.SIGINT, cleanup)
         signal.signal(signal.SIGTERM, cleanup)
 
@@ -240,8 +237,7 @@ def validator_process_job(job_id, agency_code):
 
 
 def cleanup(sig, frame):
-    with open('/tmp/validator_logger.txt', 'a') as validator_logger:
-        validator_logger.write('CLEANING UP')
+    logger.info('CLEANING UP')
 
 
 if __name__ == "__main__":
