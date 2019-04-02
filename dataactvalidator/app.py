@@ -3,6 +3,8 @@ import csv
 import time
 import traceback
 import signal
+import subprocess
+import threading
 
 from flask import Flask, g, current_app
 
@@ -51,9 +53,12 @@ def run_app():
         # Future: Override config w/ environment variable, if set
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
-        catchable_sigs = set(signal.Signals) - {signal.SIGKILL, signal.SIGSTOP}
-        for sig in catchable_sigs:
-            signal.signal(sig, cleanup)
+        # catchable_sigs = set(signal.Signals) - {signal.SIGKILL, signal.SIGSTOP}
+        # for sig in catchable_sigs:
+        #     signal.signal(sig, cleanup)
+
+        ec2_handler_thread = threading.Thread(target=cleanup)
+        ec2_handler_thread.start()
 
         queue = sqs_queue()
 
@@ -234,8 +239,17 @@ def validator_process_job(job_id, agency_code):
         raise e
 
 
-def cleanup(sig, frame):
-    logger.info('=========== GOT SIGNAL {} ============'.format(sig))
+def cleanup():
+    logger.info('============= STARTING THREAD =================')
+    while True:
+        output = subprocess.check_output('systemctl is-system-running')
+        if output == 'stopping':
+            logger.info('============= STOPPING =================')
+        elif output == 'degraded':
+            logger.info('============= DEGRADED =================')
+            output = subprocess.check_output('systemctl --failed')
+            logger.info(output)
+        time.sleep(1)
 
 
 if __name__ == "__main__":
