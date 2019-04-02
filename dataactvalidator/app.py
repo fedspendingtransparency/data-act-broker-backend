@@ -242,10 +242,12 @@ def validator_process_job(job_id, agency_code):
 def cleanup():
     logger.info('============= STARTING THREAD =================')
     while True:
-        output = subprocess.check_output('systemctl is-system-running; exit 0', shell=True).decode()
-        if 'stopping' in output:
+        output = subprocess.check_output('systemctl is-system-running; exit 0', shell=True)
+        logger.info('OUTPUT: {}'.format(output))
+        logger.info('DECODED OUTPUT: {}'.format(output.decode()))
+        if 'stopping' in output.decode():
             logger.info('============= STOPPING =================')
-        elif 'degraded' in output:
+        elif 'degraded' in output.decode():
             logger.info('============= DEGRADED =================')
             output = subprocess.check_output('systemctl --failed; exit 0', shell=True).decode()
             logger.info(output)
