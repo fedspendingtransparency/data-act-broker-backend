@@ -22,6 +22,8 @@ from dataactvalidator.validation_handlers.validationManager import ValidationMan
 
 
 # DataDog Import (the below value gets changed via Ansible during deployment. DO NOT DELETE)
+from dataactvalidator.validator_logging import log_session_size
+
 USE_DATADOG = False
 
 if USE_DATADOG:
@@ -86,6 +88,8 @@ def validator_process_file_generation(file_gen_id):
             Any Exceptions raised by the FileGenerationManager
     """
     sess = GlobalDB.db().session
+    # TODO: Remove diagnostic code
+    log_session_size(logger, job_id=file_gen_id, checkpoint_name="start: validator_process_file_generation(...)")
     file_generation = None
 
     try:
@@ -96,6 +100,9 @@ def validator_process_file_generation(file_gen_id):
 
         file_generation_manager = FileGenerationManager(sess, g.is_local, file_generation=file_generation)
         file_generation_manager.generate_file()
+
+        # TODO: Remove diagnostic code
+        log_session_size(logger, job_id=file_gen_id, checkpoint_name="end: validator_process_file_generation(...)")
 
     except Exception as e:
         # Log uncaught exceptions and fail all Jobs referencing this FileGeneration
@@ -151,6 +158,8 @@ def validator_process_job(job_id, agency_code):
             Any Exceptions raised by the GenerationManager or ValidationManager, excluding those explicitly handled
     """
     sess = GlobalDB.db().session
+    # TODO: Remove diagnostic code
+    log_session_size(logger, job_id=job_id, checkpoint_name="start: validator_process_job(...)")
     job = None
 
     try:
@@ -173,6 +182,9 @@ def validator_process_job(job_id, agency_code):
             # Run validations
             validation_manager = ValidationManager(g.is_local, CONFIG_SERVICES['error_report_path'])
             validation_manager.validate_job(job.job_id)
+
+        # TODO: Remove diagnostic code
+        log_session_size(logger, job_id=job_id, checkpoint_name="end: validator_process_job(...)")
 
     except (ResponseException, csv.Error, UnicodeDecodeError, ValueError) as e:
         # Handle exceptions explicitly raised during validation
