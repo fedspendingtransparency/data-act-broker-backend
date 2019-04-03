@@ -33,7 +33,7 @@ def log_job_message(logger, message, job_id=None,
         '_app_ctx_stack.__ident_func__': hex(_app_ctx_stack.__ident_func__()) if _app_ctx_stack else None,
         'db_session': hex(id(GlobalDB.db().session)),
         'message': message,
-        'message_type': 'BrokerValidator'
+        'message_type': 'Validator'
     }
 
     for param in other_params:
@@ -41,12 +41,17 @@ def log_job_message(logger, message, job_id=None,
             log_dict[param] = other_params[param]
 
     if is_exception:  # use this when handling an exception to include exception details in log output
+        logger["message_type"] = "ValidatorError"
         logger.exception(log_dict)
     elif is_error:
+        logger["message_type"] = "ValidatorError"
         logger.error(log_dict)
     elif is_warning:
+        logger["message_type"] = "ValidatorWarning"
         logger.warning(log_dict)
     elif is_debug:
+        logger["message_type"] = "ValidatorDebug"
         logger.debug(log_dict)
     else:
+        logger["message_type"] = "ValidatorInfo"
         logger.info(log_dict)
