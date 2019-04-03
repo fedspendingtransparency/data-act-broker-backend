@@ -41,17 +41,17 @@ def log_job_message(logger, message, job_id=None,
             log_dict[param] = other_params[param]
 
     if is_exception:  # use this when handling an exception to include exception details in log output
-        logger["message_type"] = "ValidatorError"
+        log_dict["message_type"] = "ValidatorError"
         logger.exception(log_dict)
     elif is_error:
-        logger["message_type"] = "ValidatorError"
+        log_dict["message_type"] = "ValidatorError"
         logger.error(log_dict)
     elif is_warning:
-        logger["message_type"] = "ValidatorWarning"
+        log_dict["message_type"] = "ValidatorWarning"
         logger.warning(log_dict)
     elif is_debug:
-        logger["message_type"] = "ValidatorDebug"
+        log_dict["message_type"] = "ValidatorDebug"
         logger.debug(log_dict)
     else:
-        logger["message_type"] = "ValidatorInfo"
+        log_dict["message_type"] = "ValidatorInfo"
         logger.info(log_dict)
