@@ -15,7 +15,8 @@ class SQSMockQueue:
         return {"ResponseMetadata": {"HTTPStatusCode": 200}}
 
     @staticmethod
-    def receive_messages(WaitTimeSeconds, MessageAttributeNames=None):  # noqa
+    def receive_messages(WaitTimeSeconds, MessageAttributeNames=None,
+                         VisibilityTimeout=30, MaxNumberOfMessages=1):  # noqa
         sess = GlobalDB.db().session
         messages = []
         for sqs in sess.query(SQS):
@@ -45,11 +46,11 @@ class SQSMockMessage:
         pass
 
 
-def sqs_queue():
+def sqs_queue(region_name=CONFIG_BROKER['aws_region'], queue_name=CONFIG_BROKER['sqs_queue_name']):
     if CONFIG_BROKER['local']:
         return SQSMockQueue
     else:
         # stuff that's in get_queue
-        sqs = boto3.resource('sqs', region_name=CONFIG_BROKER['aws_region'])
-        queue = sqs.get_queue_by_name(QueueName=CONFIG_BROKER['sqs_queue_name'])
+        sqs = boto3.resource('sqs', region_name)
+        queue = sqs.get_queue_by_name(QueueName=queue_name)
         return queue

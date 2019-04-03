@@ -1,27 +1,7 @@
-# ============================================================
-# DIAGNOSTIC CODE
-# - to to be used while under test, then removed
-# ============================================================
-# From: https://code.activestate.com/recipes/577504/
-# Referred to by: https://docs.python.org/3/library/sys.html#sys.getsizeof
-from __future__ import print_function
-from sys import getsizeof, stderr
-from itertools import chain
-from os import getpid
-from flask import _app_ctx_stack
-import psutil
-
-try:
-    from reprlib import repr
-except ImportError:
-    pass
-# ============================================================
-
 import logging
 import csv
 import time
 import traceback
-import gc
 
 from flask import Flask, g, current_app
 
@@ -34,80 +14,11 @@ from dataactcore.models.jobModels import Job, FileGeneration
 from dataactcore.models.lookups import JOB_STATUS_DICT
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactvalidator.sqs_work_dispatcher import SQSWorkDispatcher
 
 from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
-
-
-
-# ============================================================
-# DIAGNOSTIC CODE
-# - to to be used while under test, then removed
-# ============================================================
-def log_session_size(job_id=None, checkpoint_name='<unspecified>'):
-    log_data = {'validator_pid': getpid(),
-                'current_app': hex(id(current_app)),
-                'flask.g': hex(id(g)),
-                '_app_ctx_stack.__ident_func__': hex(_app_ctx_stack.__ident_func__()),
-                'db_session': hex(id(GlobalDB.db().session)),
-                'job_id': job_id,
-                'memory': dict(psutil.Process().memory_full_info()._asdict()),
-                'message': "SQLAlchemy Session object [{}] at [{}] has [{}] objects stored in "
-                           "its identity_map, approx. size of [{} bytes]".format(
-                    GlobalDB.db().session,
-                    checkpoint_name,
-                    len(GlobalDB.db().session.identity_map.keys()),
-                    total_size(GlobalDB.db().session) + total_size(GlobalDB.db().session.identity_map))}
-    logger.debug(log_data)
-
-
-def total_size(o, handlers={}, verbose=True):
-    """ Returns the approximate memory footprint an object and all of its contents.
-
-    Automatically finds the contents of the following builtin containers and
-    their subclasses:  tuple, list, deque, dict, set and frozenset.
-    To search other containers, add handlers to iterate over their contents:
-
-        handlers = {SomeContainerClass: iter,
-                    OtherContainerClass: OtherContainerClass.get_elements}
-
-    """
-    all_handlers = {'tuple': iter,
-                    'list': iter,
-                    'deque': iter,
-                    'dict': dict_handler,
-                    'set': iter,
-                    'frozenset': iter,
-                    'WeakInstanceDict': dict_handler
-                    }
-    all_handlers.update(handlers)  # user handlers take precedence
-    seen = set()  # track which object id's have already been seen
-    default_size = getsizeof(0)  # estimate sizeof object without __sizeof__
-
-    def sizeof(o):
-        if id(o) in seen:  # do not double count the same object
-            return 0
-        seen.add(id(o))
-        s = getsizeof(o, default_size)
-
-        if verbose:
-            logger.debug("Size={}, Type={}, Class={}, Object={}".format(s, type(o), o.__class__.__name__, repr(o)))
-
-        for typ, handler in all_handlers.items():
-            if o.__class__.__name__ == typ:
-                s += sum(map(sizeof, handler(o)))
-                break
-        return s
-
-    return sizeof(o)
-
-
-def dict_handler(d):
-    return chain.from_iterable(d.items())
-
-
-# ============================================================
 
 
 # DataDog Import (the below value gets changed via Ansible during deployment. DO NOT DELETE)
@@ -145,36 +56,22 @@ def run_app():
 
         logger.info("Starting SQS polling")
         while True:
-            # Grabs one (or more) messages from the queue
-            messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
-            for message in messages:
-                logger.info("Message received: %s", message.body)
+            dispatcher = SQSWorkDispatcher(queue, allow_retries=False)
 
-                try:
-                    msg_attr = message.message_attributes
-                    if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
-                        # Generating a file
-                        validator_process_file_generation(message.body)
-                    else:
-                        # Running validations (or generating a file from a Job)
-                        a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
-                        validator_process_job(message.body, a_agency_code)
-                finally:
-                    log_session_size(message.body, 'finally block post-message-processing')  # TODO: remove diagnostic
-                    # code
-                    # Done processing message, either with success, or with exception(s).
-                    # Remove DB Session to clean up objects/resources used while processing this message.
-                    # Next message processed will get its own fresh, new, and empty DB Session.
-                    # Also do an explicit garbage collection of any freed DB session objects
-                    GlobalDB.close()
-                    gc.collect()
+            def choose_job_by_message_attributes(message):
+                msg_attr = message.message_attributes
+                if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
+                    # Generating a file
+                    return validator_process_file_generation, (message.body,)
+                else:
+                    # Running validations (or generating a file from a Job)
+                    a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
+                    return validator_process_job, (message.body, a_agency_code)
 
-
-                # Delete from SQS once successfully processed and resources cleaned up
-                message.delete()
+            found_message = dispatcher.dispatch_by_message_attribute(choose_job_by_message_attributes)
 
             # When you receive an empty response from the queue, wait a second before trying again
-            if len(messages) == 0:
+            if not found_message:
                 time.sleep(1)
 
 
@@ -189,7 +86,6 @@ def validator_process_file_generation(file_gen_id):
             Any Exceptions raised by the FileGenerationManager
     """
     sess = GlobalDB.db().session
-    log_session_size(file_gen_id, 'Start of validator_process_file_generation')  # TODO: remove diagnostic code
     file_generation = None
 
     try:
@@ -255,7 +151,6 @@ def validator_process_job(job_id, agency_code):
             Any Exceptions raised by the GenerationManager or ValidationManager, excluding those explicitly handled
     """
     sess = GlobalDB.db().session
-    log_session_size(job_id, 'Start of validator_process_job')  # TODO: remove diagnostic code
     job = None
 
     try:
