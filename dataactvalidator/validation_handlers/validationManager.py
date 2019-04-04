@@ -3,6 +3,7 @@ import csv
 import logging
 import os
 import traceback
+import time
 
 from datetime import datetime
 
@@ -680,6 +681,7 @@ class ValidationManager:
 
         # set job status to running and do validations
         mark_job_status(job_id, "running")
+        time.sleep(600)
         if job_type_name == 'csv_record_validation':
             self.run_validation(job)
         elif job_type_name == 'validation':

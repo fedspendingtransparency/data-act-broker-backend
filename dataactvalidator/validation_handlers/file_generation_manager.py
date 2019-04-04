@@ -1,4 +1,5 @@
 import logging
+import time
 
 from dateutil.relativedelta import relativedelta
 
@@ -72,6 +73,7 @@ class FileGenerationManager:
         elif self.job.file_type.letter_name in ['A', 'E', 'F']:
             log_data['job_id'] = self.job.job_id
             mark_job_status(self.job.job_id, 'running')
+            time.sleep(600)
 
             if self.job.file_type.letter_name == 'A':
                 if not agency_code:
@@ -123,6 +125,8 @@ class FileGenerationManager:
             "agency_type": self.file_generation.agency_type, "start": self.file_generation.start_date,
             "end": self.file_generation.end_date}
         logger.debug({'query_utils': query_utils})
+
+        time.sleep(600)
 
         # Generate the file locally, then place in S3
         write_stream_query(self.sess, d_file_query(query_utils), local_file, file_path, self.is_local, header=headers)
