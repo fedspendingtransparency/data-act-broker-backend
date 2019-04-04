@@ -57,7 +57,9 @@ def run_app():
         # Future: Override config w/ environment variable, if set
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
+        signal.signal(signal.SIGHUP, cleanup)
         signal.signal(signal.SIGTERM, cleanup)
+        signal.signal(signal.SIGTSTP, cleanup)
 
         queue = sqs_queue()
 
@@ -256,6 +258,7 @@ def cleanup(sig, frame):
         logger.info("Cleaning message: %s", message.body)
         message.delete()
         retry_message(queue, message)
+    exit()
 
 
 def retry_message(queue, message):
