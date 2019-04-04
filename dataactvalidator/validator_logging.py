@@ -1,6 +1,7 @@
 from os import getpid, getppid
 
 import psutil
+import uuid
 from flask import current_app, g, _app_ctx_stack
 
 from dataactcore.interfaces.db import GlobalDB
@@ -10,9 +11,17 @@ from dataactcore.interfaces.db import GlobalDB
 # DIAGNOSTIC CODE
 # - to to be used while under test, then removed
 # ============================================================
+def ensure_db_session_key(session):
+    # info is a dictionary local to the session object
+    if 'db_session_key' not in session.info:
+        session.info['db_session_key'] = uuid.uuid4().hex
+
+
 def log_session_size(logger, job_id=None, checkpoint_name='<unspecified>'):
+    sess = GlobalDB.db().session
+    ensure_db_session_key(sess)
     message = "Diagnostic on SQLAlchemy Session object [{}] at [{}]".format(
-        GlobalDB.db().session,
+        sess,
         checkpoint_name,
     )
     log_metadata_dict = {'memory': dict(psutil.Process().memory_full_info()._asdict())}
@@ -31,6 +40,8 @@ def log_job_message(logger, message, job_id=None,
         'current_app': hex(id(current_app)) if current_app else None,
         'flask.g': hex(id(g)) if g else None,
         '_app_ctx_stack.__ident_func__': hex(_app_ctx_stack.__ident_func__()) if _app_ctx_stack else None,
+        'db_session_key': GlobalDB.db().session.info['db_session_key'] if 'db_session_key' in
+                                                                          GlobalDB.db().session.info else None,
         'db_session': hex(id(GlobalDB.db().session)),
         'message': message,
         'message_type': 'Validator'

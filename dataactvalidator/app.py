@@ -89,6 +89,7 @@ def validator_process_file_generation(file_gen_id):
     """
     sess = GlobalDB.db().session
     # TODO: Remove diagnostic code
+
     log_session_size(logger, job_id=file_gen_id, checkpoint_name="start: validator_process_file_generation(...)")
     file_generation = None
 

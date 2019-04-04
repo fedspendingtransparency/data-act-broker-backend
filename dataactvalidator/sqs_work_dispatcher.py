@@ -2,8 +2,8 @@ import logging
 import json
 import signal
 import time
+import multiprocessing as mp
 
-from multiprocessing import Process
 from botocore.exceptions import ClientError
 
 from dataactcore.aws.sqsHandler import sqs_queue
@@ -86,7 +86,9 @@ class SQSWorkDispatcher:
             message="Creating and starting worker process named [{}] to invoke callable [{}] "
                     "with arguments [{}]".format(name, job, job_args)
         )
-        self._worker_process = Process(name=name, target=job, args=job_args)
+        # Spawn a fresh python interpreter for the child process, to ensure separate memory spaces from parent proc
+        mp.set_start_method('spawn')
+        self._worker_process = mp.Process(name=name, target=job, args=job_args)
         self._worker_process.start()
         log_job_message(
             logger=self._logger,
