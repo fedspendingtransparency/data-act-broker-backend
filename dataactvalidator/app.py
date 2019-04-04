@@ -3,8 +3,6 @@ import csv
 import time
 import traceback
 import signal
-import subprocess
-import threading
 
 from flask import Flask, g, current_app
 
