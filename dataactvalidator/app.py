@@ -19,6 +19,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager
+from dataactbroker.helpers.generation_helper import reset_generation_jobs
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 
@@ -30,6 +31,9 @@ if USE_DATADOG:
     from ddtrace.contrib.flask import TraceMiddleware
 
 logger = logging.getLogger(__name__)
+current_messages = []
+READY_STATUSES = [JOB_STATUS_DICT['waiting'], JOB_STATUS_DICT['ready']]
+RUNNING_STATUSES = READY_STATUSES + [JOB_STATUS_DICT['running']]
 
 
 def create_app():
@@ -37,6 +41,8 @@ def create_app():
 
 
 def run_app():
+    global current_messages
+
     """ Run the application. """
     app = create_app()
 
@@ -53,12 +59,7 @@ def run_app():
         # Future: Override config w/ environment variable, if set
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
-        # catchable_sigs = set(signal.Signals) - {signal.SIGKILL, signal.SIGSTOP}
-        # for sig in catchable_sigs:
-        #     signal.signal(sig, cleanup)
-
-        ec2_handler_thread = threading.Thread(target=cleanup)
-        ec2_handler_thread.start()
+        signal.signal(signal.SIGHUP, cleanup)
 
         queue = sqs_queue()
 
@@ -66,17 +67,21 @@ def run_app():
         while True:
             # Grabs one (or more) messages from the queue
             messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
+            current_messages = messages
             for message in messages:
                 logger.info("Message received: %s", message.body)
 
                 msg_attr = message.message_attributes
+                cleanup_flag = (msg_attr and msg_attr.get('cleanup_flag', {}).get('StringValue') == '1')
                 if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
                     # Generating a file
-                    validator_process_file_generation(message.body)
+                    if not cleanup_flag or (cleanup_flag and cleanup_generation(message.body)):
+                        validator_process_file_generation(message.body)
                 else:
                     # Running validations (or generating a file from a Job)
                     a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
-                    validator_process_job(message.body, a_agency_code)
+                    if not cleanup_flag or (cleanup_flag and cleanup_validation(message.body)):
+                        validator_process_job(message.body, a_agency_code)
 
                 # Delete from SQS once processed
                 message.delete()
@@ -240,18 +245,76 @@ def validator_process_job(job_id, agency_code):
 
 
 def cleanup():
-    logger.info('============= STARTING THREAD =================')
-    while True:
-        output = subprocess.check_output('systemctl is-system-running; exit 0', shell=True)
-        logger.info('OUTPUT: {}'.format(output))
-        logger.info('DECODED OUTPUT: {}'.format(output.decode()))
-        if 'stopping' in output.decode():
-            logger.info('============= STOPPING =================')
-        elif 'degraded' in output.decode():
-            logger.info('============= DEGRADED =================')
-            output = subprocess.check_output('systemctl --failed; exit 0', shell=True).decode()
-            logger.info(output)
-        time.sleep(1)
+    """ This should only occur when the validator receives an unexpected signal to shutdown. On said signal, it simply
+        re-enqueues the current messages with a cleanup_flag for another validator (current or future) to pick up.
+    """
+    global current_messages
+
+    logger.info('Unexpected shutdown. Cleaning up current messages.')
+
+    queue = sqs_queue()
+
+    for message in current_messages:
+        logger.info("Cleaning message: %s", message.body)
+        retry_message(queue, message)
+
+
+def retry_message(queue, message):
+    """ Simply re-enqueues to the queue with a cleanup_flag.
+
+        Args:
+            queue: SQS queue to work with
+            message: message to re-add
+    """
+    message_attr = message.message_attributes
+    if not message_attr:
+        message_attr = {}
+    message_attr['cleanup_flag'] = {"DataType": "String", 'StringValue': '1'}
+    queue.send_message(MessageBody=message.body, MessageAttributes=message_attr)
+
+
+def cleanup_generation(file_gen_id):
+    """ Cleans up generation task if to be reused
+
+        Args:
+            file_gen_id: file generation id
+
+        Returns:
+            boolean whether or not it should run again
+    """
+    sess = GlobalDB.db().session
+
+    gen = sess.query(FileGeneration).filter(FileGeneration.file_generation_id == file_gen_id)
+    if not gen.file_path:
+        return True
+    else:
+        running_jobs = sess.query(Job).filter(Job.file_generation_id == file_gen_id,
+                                              Job.job_status_id.in_(RUNNING_STATUSES))
+        if running_jobs.count() > 0:
+            gen.file_path = None
+            gen.is_cached_file = False
+            sess.commit()
+            return True
+    return False
+
+def cleanup_validation(job_id):
+    """ Cleans up validation task if to be reused
+
+        Args:
+            job_id: ID of a Job
+
+        Returns:
+            boolean whether or not it should run again
+    """
+    sess = GlobalDB.db().session
+
+    job = sess.query(Job).filter(Job.job_id == job_id)
+    if job.job_status_id not in RUNNING_STATUSES:
+        if job.job_status_id not in READY_STATUSES:
+            job.job_status_id = JOB_STATUS_DICT['waiting']
+            sess.commit()
+        return True
+    return False
 
 
 if __name__ == "__main__":
