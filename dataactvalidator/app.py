@@ -242,13 +242,13 @@ def validator_process_job(job_id, agency_code):
         raise e
 
 
-def cleanup():
+def cleanup(sig, frame):
     """ This should only occur when the validator receives an unexpected signal to shutdown. On said signal, it simply
         re-enqueues the current messages with a cleanup_flag for another validator (current or future) to pick up.
     """
     global current_messages
 
-    logger.info('Unexpected shutdown. Cleaning up current messages.')
+    logger.info('Unexpected shutdown (SIG: {}). Cleaning up current messages.'.format(sig))
 
     queue = sqs_queue()
 
@@ -265,6 +265,9 @@ def retry_message(queue, message):
             message: message to re-add
     """
     message_attr = message.message_attributes
+    cleanup_flag = (message_attr and message_attr.get('cleanup_flag', {}).get('StringValue') == '1')
+    if cleanup_flag:
+        return
     if not message_attr:
         message_attr = {}
     message_attr['cleanup_flag'] = {"DataType": "String", 'StringValue': '1'}
