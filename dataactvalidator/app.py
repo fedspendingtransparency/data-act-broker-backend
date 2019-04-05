@@ -68,9 +68,10 @@ def run_app():
         while True:
             # Grabs one (or more) messages from the queue
             messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
+            current_messages = messages
             for message in messages:
                 with open(os.path.join(CONFIG_BROKER['path'], 'results_drive', 'app.log'), 'a') as log_file:
-                    log_file.write("Message received: %s".format(message.body))
+                    log_file.write("Time({}) - Pid ({}) - Message received: {}\n".format(time.time(), os.getpid(), message.body))
 
                 msg_attr = message.message_attributes
                 cleanup_flag = (msg_attr and msg_attr.get('cleanup_flag', {}).get('StringValue') == '1')
@@ -252,18 +253,18 @@ def cleanup(sig, frame):
     global current_messages
 
     with open(os.path.join(CONFIG_BROKER['path'], 'results_drive', 'app.log'), 'a') as log_file:
-        log_file.write('Unexpected shutdown (SIG: {}). Cleaning up current messages.'.format(sig))
+        log_file.write('Time({}) - Pid ({}) - Unexpected shutdown (SIG: {}). Cleaning up current messages.\n'.format(time.time(), os.getpid(), sig))
 
     queue = sqs_queue()
 
     for message in current_messages:
         with open(os.path.join(CONFIG_BROKER['path'], 'results_drive', 'app.log'), 'a') as log_file:
-            log_file.write("Deleting message: {}".format(message.body))
+            log_file.write("Time({}) - Pid ({}) - Deleting message: {}\n".format(time.time(), os.getpid(), message.body))
         message.delete()
 
     for message in current_messages:
         with open(os.path.join(CONFIG_BROKER['path'], 'results_drive', 'app.log'), 'a') as log_file:
-            log_file.write("Resending message: {}".format(message.body))
+            log_file.write("Time({}) - Pid ({}) - Resending message: {}\n".format(time.time(), os.getpid(), message.body))
         retry_message(queue, message)
 
     exit(0)
