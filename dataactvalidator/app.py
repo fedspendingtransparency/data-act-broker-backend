@@ -273,7 +273,7 @@ def retry_message(queue, message):
             queue: SQS queue to work with
             message: message to re-add
     """
-    message_attr = message.message_attributes
+    message_attr = message.message_attributes.copy() if message.message_attributes else None
     cleanup_flag = (message_attr and message_attr.get('cleanup_flag', {}).get('StringValue') == '1')
     if cleanup_flag:
         return
