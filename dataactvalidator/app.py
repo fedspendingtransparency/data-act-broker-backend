@@ -57,7 +57,7 @@ def run_app():
         # Future: Override config w/ environment variable, if set
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
-        signal.signal(signal.SIGHUP, cleanup)
+        signal.signal(signal.SIGTERM, cleanup)
 
         queue = sqs_queue()
 
