@@ -31,6 +31,7 @@ if USE_DATADOG:
 
 logger = logging.getLogger(__name__)
 current_messages = []
+exited = False
 READY_STATUSES = [JOB_STATUS_DICT['waiting'], JOB_STATUS_DICT['ready']]
 RUNNING_STATUSES = READY_STATUSES + [JOB_STATUS_DICT['running']]
 
@@ -250,24 +251,27 @@ def cleanup(sig, frame):
     """ This should only occur when the validator receives an unexpected signal to shutdown. On said signal, it simply
         re-enqueues the current messages with a cleanup_flag for another validator (current or future) to pick up.
     """
-    global current_messages
+    global current_messages, exited
 
-    with open(os.path.join(CONFIG_BROKER['path'], 'results_drive', 'app.log'), 'a') as log_file:
-        log_file.write('Time({}) - Pid ({}) - Unexpected shutdown (SIG: {}). Cleaning up current messages.\n'.format(time.time(), os.getpid(), sig))
+    if not exited:
+        exited = True
 
-    queue = sqs_queue()
-
-    for message in current_messages:
         with open(os.path.join(CONFIG_BROKER['path'], 'results_drive', 'app.log'), 'a') as log_file:
-            log_file.write("Time({}) - Pid ({}) - Deleting message: {}\n".format(time.time(), os.getpid(), message.body))
-        message.delete()
+            log_file.write('Time({}) - Pid ({}) - Unexpected shutdown (SIG: {}). Cleaning up current messages.\n'.format(time.time(), os.getpid(), sig))
 
-    for message in current_messages:
-        with open(os.path.join(CONFIG_BROKER['path'], 'results_drive', 'app.log'), 'a') as log_file:
-            log_file.write("Time({}) - Pid ({}) - Resending message: {}\n".format(time.time(), os.getpid(), message.body))
-        retry_message(queue, message)
+        queue = sqs_queue()
 
-    exit(0)
+        for message in current_messages:
+            with open(os.path.join(CONFIG_BROKER['path'], 'results_drive', 'app.log'), 'a') as log_file:
+                log_file.write("Time({}) - Pid ({}) - Deleting message: {}\n".format(time.time(), os.getpid(), message.body))
+            message.delete()
+
+        for message in current_messages:
+            with open(os.path.join(CONFIG_BROKER['path'], 'results_drive', 'app.log'), 'a') as log_file:
+                log_file.write("Time({}) - Pid ({}) - Resending message: {}\n".format(time.time(), os.getpid(), message.body))
+            retry_message(queue, message)
+
+        exit(0) 
 
 
 def retry_message(queue, message):
