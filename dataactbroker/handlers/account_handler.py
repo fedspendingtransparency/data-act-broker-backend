@@ -210,46 +210,38 @@ class AccountHandler:
         sess.commit()
         return JsonResponse.create(StatusCode.OK, {"message": "skip_guide set successfully", "skip_guide": skip_guide})
 
-    def email_users(self, system_email):
+    @staticmethod
+    def email_users(submission, system_email, template_type, user_ids):
         """ Send email notification to list of users
 
             Args:
+                submission: the submission to send the email about
                 system_email: the address of the system to send the email from
+                template_type: the template type of the email to send
+                user_ids: A list of user IDs denoting who to send the email to
 
             Returns:
                 A JsonReponse containing a message that the email sent successfully or the details of the missing
-                parameters
+                or incorrect parameters
         """
         sess = GlobalDB.db().session
-        request_dict = RequestDictionary.derive(self.request)
-        required = ('users', 'submission_id', 'email_template')
-        try:
-            if any(field not in request_dict for field in required):
-                raise ResponseException(
-                    "Email users route requires users, email_template, and submission_id", StatusCode.CLIENT_ERROR
-                )
-        except ResponseException as exc:
-            return JsonResponse.error(exc, exc.status)
 
-        user_ids = request_dict['users']
-        submission_id = request_dict['submission_id']
-        # Check if submission id is valid
-        _, agency_name = sess.query(Submission.submission_id, CGAC.agency_name).\
-            join(CGAC, Submission.cgac_code == CGAC.cgac_code).filter(Submission.submission_id == submission_id).one()
-        if not agency_name:
-            _, agency_name = sess.query(Submission.submission_id, FREC.agency_name).\
-                join(FREC, Submission.frec_code == FREC.frec_code).\
-                filter(Submission.submission_id == submission_id).one()
+        if submission.cgac_code:
+            agency = sess.query(CGAC).filter_by(cgac_code=submission.cgac_code).first()
+        else:
+            agency = sess.query(FREC).filter_by(frec_code=submission.frec_code).first()
 
-        template_type = request_dict['email_template']
+        if not agency:
+            return JsonResponse.error(ValueError("The requested submission is not aligned to a valid CGAC or FREC "
+                                                 "agency"), StatusCode.CLIENT_ERROR)
+
         # Check if email template type is valid
         get_email_template(template_type)
 
+        link = "".join([AccountHandler.FRONT_END, '#/reviewData/', str(submission.submission_id)])
+        email_template = {'[REV_USER_NAME]': g.user.name, '[REV_AGENCY]': agency.agency_name, '[REV_URL]': link}
+
         users = []
-
-        link = "".join([AccountHandler.FRONT_END, '#/reviewData/', str(submission_id)])
-        email_template = {'[REV_USER_NAME]': g.user.name, '[REV_AGENCY]': agency_name, '[REV_URL]': link}
-
         for user_id in user_ids:
             # Check if user id is valid, if so add User object to array
             users.append(sess.query(User).filter(User.user_id == user_id).one())

@@ -4,7 +4,8 @@ from webargs.flaskparser import use_kwargs
 
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler, get_upload_file_url,
-    narratives_for_submission, submission_report_url, update_narratives, list_certifications, file_history_url)
+    get_detached_upload_file_url, narratives_for_submission, submission_report_url, update_narratives,
+    list_certifications, file_history_url)
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
     certify_dabs_submission, find_existing_submissions_in_period, get_submission_metadata, get_submission_data,
@@ -126,13 +127,6 @@ def add_file_routes(app, is_local, server_path):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.upload_fabs_file(fabs)
 
-    @app.route("/v1/submit_detached_file/", methods=["POST"])
-    @convert_to_submission_id
-    @requires_submission_perms('fabs', check_owner=False)
-    def submit_detached_file(submission):
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.publish_fabs_submission(submission)
-
     @app.route("/v1/publish_fabs_file/", methods=["POST"])
     @convert_to_submission_id
     @requires_submission_perms('fabs', check_owner=False)
@@ -181,6 +175,14 @@ def add_file_routes(app, is_local, server_path):
     })
     def get_file_url(submission, file_type):
         return get_upload_file_url(submission, file_type)
+
+    @app.route("/v1/get_detached_file_url", methods=['GET'])
+    @requires_login
+    @use_kwargs({
+        'job_id': webargs_fields.Int(required=True)
+    })
+    def get_detached_file_url(job_id):
+        return get_detached_upload_file_url(job_id)
 
     @app.route("/v1/delete_submission/", methods=['POST'])
     @convert_to_submission_id

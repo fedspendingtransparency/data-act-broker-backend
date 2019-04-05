@@ -390,6 +390,7 @@ class AwardFinancialAssistance(Base):
     __tablename__ = "award_financial_assistance"
 
     award_financial_assistance_id = Column(Integer, primary_key=True)
+    afa_generated_unique = Column(Text)
     submission_id = Column(Integer,
                            ForeignKey("submission.submission_id", ondelete="CASCADE",
                                       name="fk_award_financial_assistance_submission_id"),
@@ -480,6 +481,7 @@ class AwardProcurement(Base):
     """Model for D1-Award (Procurement)."""
     __tablename__ = "award_procurement"
     award_procurement_id = Column(Integer, primary_key=True)
+    detached_award_proc_unique = Column(Text)
     submission_id = Column(Integer,
                            ForeignKey("submission.submission_id", ondelete="CASCADE",
                                       name="fk_award_procurement_submission_id"),
@@ -625,6 +627,7 @@ class AwardProcurement(Base):
     labor_standards_descrip = Column(Text)
     small_business_competitive = Column(Text)
     solicitation_identifier = Column(Text)
+    solicitation_date = Column(Text)
     solicitation_procedures = Column(Text)
     solicitation_procedur_desc = Column(Text)
     fair_opportunity_limited_s = Column(Text)
@@ -918,6 +921,7 @@ class DetachedAwardProcurement(Base):
     labor_standards_descrip = Column(Text)
     small_business_competitive = Column(Text)
     solicitation_identifier = Column(Text)
+    solicitation_date = Column(Text)
     solicitation_procedures = Column(Text)
     solicitation_procedur_desc = Column(Text)
     fair_opportunity_limited_s = Column(Text)

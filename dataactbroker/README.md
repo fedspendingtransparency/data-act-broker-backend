@@ -769,7 +769,7 @@ This endpoint returns the signed url for the uploaded/generated file of the requ
 `/v1/get_file_url?submission_id=123&file_type=A`
 
 ##### Request Params
-- `submission_id` - **required** - an integer representing the ID of the submission to get metadata for
+- `submission_id` - **required** - an integer representing the ID of the submission to get the file url for
 - `file_type` - **required** - a string representing the file letter for the submission. Valid strings are the following:
     - `A`
     - `B`
@@ -800,10 +800,33 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Do not have permission to access that submission
 
-#### POST "/v1/submit\_detached\_file"
+#### GET "/v1/get\_detached\_file\_url"
+This endpoint returns the signed url for the generated file of the requested job
 
-##### This endpoint is deprecated and will be removed in March. Use `publish_fabs_file` instead
+##### Sample Request
+`/v1/get_detached_file_url?job_id=123`
 
+##### Request Params
+- `job_id` - **required** - an integer representing the ID of the job to get the file url for
+
+##### Response (JSON)
+```
+{
+    "url": "https://......."
+}
+```
+
+##### Response Attributes
+- `url`: string, the signed url for the requested file
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - No such job ID
+    - The job ID provided is not a detached file generation
+    - Missing parameter
+- 401: Login required
 
 #### POST "/v1/publish\_fabs\_file"
 
@@ -1284,6 +1307,46 @@ Example output:
     ]
 }
 ```
+
+#### POST "/v1/email\_users/"
+This endpoint sends an email of the specified template to the users provided.
+
+##### Body (JSON)
+
+```
+{
+  "submission_id": 1234,
+  "email_template": "review_submission",
+  "users": [1, 2]
+}
+```
+
+##### Body Description
+- `submission_id` - **required** - an integer representing the ID of the submission to email about
+- `email_template` - **required** - a string representing the type of template to use in the email. Currently, only the following templates exist (case-sensitive):
+    - `review_submission`
+- `users` - **required** - a list of integers representing the IDs of the users to send the emails to
+
+##### Response (JSON)
+```
+{
+    "message": "Emails successfully sent"
+}
+```
+
+##### Response Attributes
+- `message`: A message indicating that the emails were sent
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Missing parameters
+    - Submission does not exist
+    - Submission somehow is not associated with valid CGAC/FREC
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
 
 ## Generate Files
 ### POST "/v1/generate\_file/"

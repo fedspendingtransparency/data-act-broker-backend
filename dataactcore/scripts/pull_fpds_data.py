@@ -725,12 +725,10 @@ def vendor_site_details_values(data, obj):
         obj['legal_entity_country_name'] = None
 
     # vendorOrganizationFactors sub-level
-    value_map = {'annualRevenue': 'annual_revenue',
-                 'isForeignOwnedAndLocated': 'foreign_owned_and_located',
+    value_map = {'isForeignOwnedAndLocated': 'foreign_owned_and_located',
                  'isLimitedLiabilityCorporation': 'limited_liability_corporat',
                  'isShelteredWorkshop': 'the_ability_one_program',
                  'isSubchapterSCorporation': 'subchapter_s_corporation',
-                 'numberOfEmployees': 'number_of_employees',
                  'organizationalType': 'organizational_type'}
 
     for key, value in value_map.items():
@@ -794,6 +792,19 @@ def vendor_site_details_values(data, obj):
     for key, value in value_map.items():
         try:
             obj[value] = extract_text(data['vendorSocioEconomicIndicators']['minorityOwned'][key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
+    return obj
+
+
+def generic_values(data, obj):
+    """ Get values from the genericTags level of the xml """
+    generic_strings_value_map = {'genericString01': 'solicitation_date'}
+
+    for key, value in generic_strings_value_map.items():
+        try:
+            obj[value] = extract_text(data['genericStrings'][key])
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -945,15 +956,15 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
 
     # calculate unique award key
     if atom_type == 'award':
-        unique_award_string_list = []
+        unique_award_string_list = ['CONT_AWD']
         key_list = ['piid', 'agency_id', 'parent_award_id', 'referenced_idv_agency_iden']
     else:
-        unique_award_string_list = ['IDV']
+        unique_award_string_list = ['CONT_IDV']
         key_list = ['piid', 'agency_id']
     for item in key_list:
         # Get the value in the object or, if the key doesn't exist or value is None, set it to "-none-"
         unique_award_string_list.append(obj.get(item) or '-none-')
-    obj['unique_award_key'] = '_'.join(unique_award_string_list)
+    obj['unique_award_key'] = '_'.join(unique_award_string_list).upper()
 
     # calculate unique key
     key_list = ['agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id',
@@ -1085,6 +1096,13 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
     except KeyError:
         data['vendor'] = {}
     obj = vendor_values(data['vendor'], obj)
+
+    # make sure key exists before passing it
+    try:
+        data['genericTags']
+    except KeyError:
+        data['genericTags'] = {}
+    obj = generic_values(data['genericTags'], obj)
 
     obj = calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
                                      country_list, atom_type)
@@ -2287,12 +2305,12 @@ def create_unique_key(row):
 
 def create_unique_award_key(row):
     key_list = ['piid', 'agencyid', 'idvpiid', 'idvagencyid'] if row['pulled_from'] == 'award' else ['piid', 'agencyid']
-    unique_string_list = [] if row['pulled_from'] == 'award' else [row['pulled_from']]
+    unique_string_list = ['CONT_AWD'] if row['pulled_from'] == 'award' else ['CONT_IDV']
 
     for item in key_list:
         unique_string_list.append(row[item] if row[item] and str(row[item]) != 'nan' else '-none-')
 
-    return '_'.join(unique_string_list)
+    return '_'.join(unique_string_list).upper()
 
 
 def main():
