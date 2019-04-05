@@ -68,6 +68,7 @@ def run_app():
             # Grabs one (or more) messages from the queue
             messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
             current_messages = messages
+            logger.info('CURRENT_MESSAGES: {}'.format(current_messages))
             for message in messages:
                 logger.info("Message received: %s", message.body)
 
@@ -255,9 +256,13 @@ def cleanup(sig, frame):
     queue = sqs_queue()
 
     for message in current_messages:
-        logger.info("Cleaning message: %s", message.body)
-        message.delete()
+        logger.info("Resending message: %s", message.body)
         retry_message(queue, message)
+
+    for message in current_messages:
+        logger.info("Deleting message: %s", message.body)
+        message.delete()
+
     exit(0)
 
 
