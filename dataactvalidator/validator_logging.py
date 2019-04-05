@@ -18,10 +18,9 @@ def ensure_db_session_key(session):
 
 
 def log_session_size(logger, job_id=None, checkpoint_name='<unspecified>'):
-    sess = GlobalDB.db().session
-    ensure_db_session_key(sess)
+    ensure_db_session_key(GlobalDB.db().session)
     message = "Diagnostic on SQLAlchemy Session object [{}] at [{}]".format(
-        sess,
+        GlobalDB.db().session,
         checkpoint_name,
     )
     log_metadata_dict = {'memory': dict(psutil.Process().memory_full_info()._asdict())}
@@ -33,6 +32,7 @@ def log_job_message(logger, message, job_id=None,
                     is_debug=False, is_warning=False, is_error=False, is_exception=False,
                     other_params={}):
     """Handles logging a message about a validator job, with additional job metadata"""
+    ensure_db_session_key(GlobalDB.db().session)  # TODO: Remove diagnostic code
     log_dict = {
         'proc_id': getpid(),
         'parent_proc_id': getppid(),
