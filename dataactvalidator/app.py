@@ -4,6 +4,7 @@ import time
 import traceback
 import signal
 import os
+import sys
 
 from flask import Flask, g, current_app
 
@@ -59,9 +60,9 @@ def run_app():
         # Future: Override config w/ environment variable, if set
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
-        # signal.signal(signal.SIGHUP, cleanup)
+        signal.signal(signal.SIGHUP, cleanup)
         signal.signal(signal.SIGTERM, cleanup)
-        # signal.signal(signal.SIGTSTP, cleanup)
+        signal.signal(signal.SIGTSTP, cleanup)
 
         queue = sqs_queue()
 
@@ -71,8 +72,7 @@ def run_app():
             messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
             current_messages = messages
             for message in messages:
-                with open(os.path.join(CONFIG_BROKER['path'], 'results_drive', 'app.log'), 'a') as log_file:
-                    log_file.write("Time({}) - Pid ({}) - Message received: {}\n".format(time.time(), os.getpid(), message.body))
+                logger.info("Message received: %s", message.body)
 
                 msg_attr = message.message_attributes
                 cleanup_flag = (msg_attr and msg_attr.get('cleanup_flag', {}).get('StringValue') == '1')
@@ -256,22 +256,17 @@ def cleanup(sig, frame):
     if not exited:
         exited = True
 
-        with open(os.path.join(CONFIG_BROKER['path'], 'results_drive', 'app.log'), 'a') as log_file:
-            log_file.write('Time({}) - Pid ({}) - Unexpected shutdown (SIG: {}). Cleaning up current messages.\n'.format(time.time(), os.getpid(), sig))
+        logger.info('Unexpected shutdown (SIG: {}). Cleaning up current messages.'.format(sig))
 
         queue = sqs_queue()
 
         for message in current_messages:
-            with open(os.path.join(CONFIG_BROKER['path'], 'results_drive', 'app.log'), 'a') as log_file:
-                log_file.write("Time({}) - Pid ({}) - Deleting message: {}\n".format(time.time(), os.getpid(), message.body))
+            logger.info('Resending message: {}'.format(message.body))
+            retry_message(queue, message)
+            logger.info('Deleting message: {}'.format(message.body))
             message.delete()
 
-        for message in current_messages:
-            with open(os.path.join(CONFIG_BROKER['path'], 'results_drive', 'app.log'), 'a') as log_file:
-                log_file.write("Time({}) - Pid ({}) - Resending message: {}\n".format(time.time(), os.getpid(), message.body))
-            retry_message(queue, message)
-
-        exit(0) 
+        sys.exit(0)
 
 
 def retry_message(queue, message):
