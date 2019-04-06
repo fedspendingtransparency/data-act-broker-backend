@@ -1,7 +1,5 @@
 Contributing Code to DATA Act Broker
 ====
-
-## Contributing Changes
 _Follow the development process and checks below in order to promote candidate code changes to production._
 
 ### Git Workflow
@@ -37,6 +35,7 @@ _To run Broker locally, and test code changes, you must setup a local developmen
 Start by following instructions in [INSTALL.md](INSTALL.md "broker install guide") to get all the broker components up and running as Docker containers in a local development environment. 
 
 _**Contributing to the Broker Website**_
+
 This setup should provide a running Broker frontend web application as a container, which you can browse to. If you want to contribute changes to the frontend application, see instructions for developing Broker Frontend in the [Broker web app code repository](https://github.com/fedspendingtransparency/data-act-broker-web-app "DATA Act broker web app").
 
 _**Pointing Containerized Broker at an Existing Postgres Database**_

@@ -90,10 +90,10 @@ $ docker-compose up
 ```
 _This command will:_
 
-- _spin up the *PostgreSQL database* as a container named `dataact-broker-db`_
-- _spin up the *Broker backend API* component as a container named `dataact-broker-backend`_
-- _spin up the *Broker Validator* component as a containeir named `dataact-broker-validator`_
-- _spin up the *Broker frontend* JavaScript application as a container named `dataact-broker-frontend`_
+- _spin up the **PostgreSQL database** as a container named `dataact-broker-db`_
+- _spin up the **Broker backend API** component as a container named `dataact-broker-backend`_
+- _spin up the **Broker Validator** component as a containeir named `dataact-broker-validator`_
+- _spin up the **Broker frontend** JavaScript application as a container named `dataact-broker-frontend`_
 
 It may take about 30+ seconds for all containers to report as running and ready.
 
