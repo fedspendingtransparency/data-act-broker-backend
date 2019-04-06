@@ -9,20 +9,25 @@ from dataactcore.models.baseModel import Base
 
 
 def concat_tas(context):
-    """Create a concatenated TAS string for insert into database."""
-    tas1 = context.current_parameters['allocation_transfer_agency']
+    """ Given a database context, return a concatenated TAS string. """
+    return concat_tas_dict(context.current_parameters)
+
+
+def concat_tas_dict(tas_dict):
+    """ Given a dictionary, create a concatenated TAS string. """
+    tas1 = tas_dict['allocation_transfer_agency']
     tas1 = tas1 if tas1 else '000'
-    tas2 = context.current_parameters['agency_identifier']
+    tas2 = tas_dict['agency_identifier']
     tas2 = tas2 if tas2 else '000'
-    tas3 = context.current_parameters['beginning_period_of_availa']
+    tas3 = tas_dict['beginning_period_of_availa']
     tas3 = tas3 if tas3 else '0000'
-    tas4 = context.current_parameters['ending_period_of_availabil']
+    tas4 = tas_dict['ending_period_of_availabil']
     tas4 = tas4 if tas4 else '0000'
-    tas5 = context.current_parameters['availability_type_code']
+    tas5 = tas_dict['availability_type_code']
     tas5 = tas5 if tas5 else ' '
-    tas6 = context.current_parameters['main_account_code']
+    tas6 = tas_dict['main_account_code']
     tas6 = tas6 if tas6 else '0000'
-    tas7 = context.current_parameters['sub_account_code']
+    tas7 = tas_dict['sub_account_code']
     tas7 = tas7 if tas7 else '000'
     tas = '{}{}{}{}{}{}{}'.format(tas1, tas2, tas3, tas4, tas5, tas6, tas7)
     return tas
@@ -53,6 +58,15 @@ class TASLookup(Base):
     financial_indicator2 = Column(Text, nullable=True)
     fr_entity_description = Column(Text, nullable=True)
     fr_entity_type = Column(Text, nullable=True)
+    account_title = Column(Text, nullable=True)
+    reporting_agency_aid = Column(Text, nullable=True)
+    reporting_agency_name = Column(Text, nullable=True)
+    budget_bureau_code = Column(Text, nullable=True)
+    budget_bureau_name = Column(Text, nullable=True)
+    budget_function_code = Column(Text, nullable=True)
+    budget_function_title = Column(Text, nullable=True)
+    budget_subfunction_code = Column(Text, nullable=True)
+    budget_subfunction_title = Column(Text, nullable=True)
 
     def component_dict(self):
         """We'll often want to copy TAS component fields; this method returns
@@ -131,6 +145,18 @@ class SubTierAgency(Base):
                      nullable=True)
     frec = relationship('FREC', foreign_keys='SubTierAgency.frec_id', cascade="delete")
     is_frec = Column(Boolean, nullable=False, default=False, server_default="False")
+
+
+class Office(Base):
+    __tablename__ = "office"
+    office_id = Column(Integer, primary_key=True)
+    office_code = Column(Text, nullable=False, index=True, unique=True)
+    office_name = Column(Text)
+    sub_tier_code = Column(Text, nullable=False, index=True)
+    agency_code = Column(Text, nullable=False, index=True)
+    contracting_office = Column(Boolean, nullable=False, default=False, server_default="False")
+    funding_office = Column(Boolean, nullable=False, default=False, server_default="False")
+    grant_office = Column(Boolean, nullable=False, default=False, server_default="False")
 
 
 class ObjectClass(Base):
@@ -223,6 +249,7 @@ class DUNS(Base):
     duns_id = Column(Integer, primary_key=True)
     awardee_or_recipient_uniqu = Column(Text, index=True)
     legal_business_name = Column(Text)
+    dba_name = Column(Text)
     activation_date = Column(Date, index=True)
     deactivation_date = Column(Date, index=True)
     registration_date = Column(Date, index=True)
@@ -236,6 +263,7 @@ class DUNS(Base):
     zip4 = Column(Text)
     country_code = Column(Text)
     congressional_district = Column(Text)
+    entity_structure = Column(Text)
     business_types_codes = Column(ARRAY(Text))
     ultimate_parent_unique_ide = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
@@ -261,7 +289,7 @@ class HistoricParentDUNS(Base):
 class CFDAProgram(Base):
     __tablename__ = "cfda_program"
     cfda_program_id = Column(Integer, primary_key=True)
-    program_number = Column(Float, nullable=False, index=True)
+    program_number = Column(Float, nullable=False, index=True, unique=True)
     program_title = Column(Text)
     popular_name = Column(Text)
     federal_agency = Column(Text)

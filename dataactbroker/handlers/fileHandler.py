@@ -3,22 +3,20 @@ import calendar
 import logging
 import os
 import requests
-import smart_open
 import sqlalchemy as sa
+import threading
 
 from collections import namedtuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from flask import g, request
-from shutil import copyfile
+from flask import g, current_app
 from sqlalchemy import func, and_, desc, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import case
-from werkzeug.utils import secure_filename
 
-from dataactbroker.handlers.fabsDerivationsHandler import fabs_derivations
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
                                                        reporting_date, job_to_dict)
+from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations
 from dataactbroker.permissions import current_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
@@ -29,14 +27,14 @@ from dataactcore.interfaces.function_bag import (
     create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, get_last_validated_date,
     get_lastest_certified_date)
 
-from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode
+from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
+                                             Office)
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
-                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileRequest)
+                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileGeneration)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
-    FILE_TYPE_DICT_ID, JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
-from dataactcore.models.stagingModels import (DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance,
-                                              FPDSContractingOffice)
+    JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
+from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.userModel import User
 from dataactcore.models.views import SubmissionUpdatedView
 
@@ -48,10 +46,12 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 
-from dataactvalidator.filestreaming.csv_selection import write_query_to_file
-from dataactvalidator.validation_handlers.file_generation_handler import check_file_generation, start_generation_job
+from dataactvalidator.filestreaming.csv_selection import write_stream_query
+from dataactvalidator.validation_handlers.file_generation_manager import GEN_FILENAMES
 
 logger = logging.getLogger(__name__)
+
+ROWS_PER_LOOP = 10000
 
 
 class FileHandler:
@@ -60,7 +60,7 @@ class FileHandler:
         Attributes:
             request: A Flask object containing the route request
             is_local: A boolean flag indicating whether the application is being run locally or not
-            serverPath: A string containing the path to the server files (only applicable when run locally)
+            server_path: A string containing the path to the server files (only applicable when run locally)
             s3manager: An instance of S3Handler that can be used for all interactions with S3
 
         Class Attributes:
@@ -76,9 +76,8 @@ class FileHandler:
     # 1024 sounds like a good chunk size, we can change if needed
     CHUNK_SIZE = 1024
     FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
-    EXTERNAL_FILE_TYPES = ["award", "award_procurement", "executive_compensation", "sub_award"]
+    EXTERNAL_FILE_TYPES = ["D2", "D1", "E", "F"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
-    UPLOAD_FOLDER = '/data-act/backend/tmp'
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
 
@@ -92,25 +91,22 @@ class FileHandler:
         """
         self.request = route_request
         self.is_local = is_local
-        self.serverPath = server_path
+        self.server_path = server_path
         self.s3manager = S3Handler()
 
-    def validate_submit_files(self, create_credentials):
-        """ Validate whether the submission can be submitted or not (does the submission exist for this date range
-            already)
-
-            Args:
-                create_credentials: If True, will create temporary credentials for S3 uploads
+    def validate_upload_dabs_files(self):
+        """ Validate whether the files can be created (if a new submission is being created) or not (does the
+            submission exist for this date range already)
 
             Returns:
                 Results of submit function or a JsonResponse object containing a failure message
         """
         sess = GlobalDB.db().session
-        submission_request = self.request
+        submission_request = RequestDictionary.derive(self.request)
 
-        start_date = submission_request.json.get('reporting_period_start_date')
-        end_date = submission_request.json.get('reporting_period_end_date')
-        is_quarter = submission_request.json.get('is_quarter_format', False)
+        start_date = submission_request.get('reporting_period_start_date')
+        end_date = submission_request.get('reporting_period_end_date')
+        is_quarter = str(submission_request.get('is_quarter')).upper() == 'TRUE'
 
         # If both start and end date are provided, make sure no other submission is already published for that period
         if not (start_date is None or end_date is None):
@@ -118,17 +114,17 @@ class FileHandler:
                                                                                           end_date, is_quarter)
 
             submissions = sess.query(Submission).filter(
-                Submission.cgac_code == submission_request.json.get('cgac_code'),
-                Submission.frec_code == submission_request.json.get('frec_code'),
+                Submission.cgac_code == submission_request.get('cgac_code'),
+                Submission.frec_code == submission_request.get('frec_code'),
                 Submission.reporting_start_date == formatted_start_date,
                 Submission.reporting_end_date == formatted_end_date,
-                Submission.is_quarter_format == submission_request.json.get('is_quarter'),
+                Submission.is_quarter_format == is_quarter,
                 Submission.d2_submission.is_(False),
                 Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
 
-            if 'existing_submission_id' in submission_request.json:
+            if 'existing_submission_id' in submission_request:
                 submissions.filter(Submission.submission_id !=
-                                   submission_request.json['existing_submission_id'])
+                                   submission_request['existing_submission_id'])
 
             submissions = submissions.order_by(desc(Submission.created_at))
 
@@ -139,7 +135,7 @@ class FileHandler:
                 }
                 return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
 
-        return self.submit(sess, create_credentials)
+        return self.submit(sess)
 
     @staticmethod
     def validate_submit_file_params(request_params):
@@ -154,9 +150,8 @@ class FileHandler:
         """
         existing_submission_id = request_params.get('existing_submission_id')
         param_count = 0
-
         for file_type in FileHandler.FILE_TYPES:
-            if request_params.get(file_type):
+            if "_files" in request_params and request_params['_files'].get(file_type):
                 param_count += 1
 
         if not existing_submission_id and param_count != len(FileHandler.FILE_TYPES):
@@ -166,14 +161,20 @@ class FileHandler:
             raise ResponseException("Must include at least one file for an existing submission",
                                     StatusCode.CLIENT_ERROR)
 
-    def submit(self, sess, create_credentials):
+        # Make sure all files are CSV or TXT files and not something else
+        for file_type in request_params.get('_files'):
+            file = request_params['_files'].get(file_type)
+            extension = file.filename.split('.')[-1]
+            if not extension or extension.lower() not in ['csv', 'txt']:
+                raise ResponseException("All submitted files must be CSV or TXT format", StatusCode.CLIENT_ERROR)
+
+    def submit(self, sess):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
 
             Flask request should include keys from FILE_TYPES class variable above
 
             Args:
                 sess: current DB session
-                create_credentials: If True, will create temporary credentials for S3 uploads
 
             Returns:
                 JsonResponse object that contains the results of create_response_dict or the details of the failure
@@ -181,8 +182,8 @@ class FileHandler:
                 key_url is the S3 URL for uploading
                 key_id is the job id to be passed to the finalize_submission route
         """
+        json_response, submission = None, None
         try:
-            response_dict = {}
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
 
@@ -205,22 +206,27 @@ class FileHandler:
                 # If the existing submission is a FABS submission, stop everything
                 if existing_submission_obj.d2_submission:
                     raise ResponseException("Existing submission must be a DABS submission", StatusCode.CLIENT_ERROR)
+                jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
+                for job in jobs:
+                    if job.job_status_id == JOB_STATUS_DICT['running']:
+                        raise ResponseException("Submission already has a running job", StatusCode.CLIENT_ERROR)
             else:
                 existing_submission = None
                 existing_submission_obj = None
+
             for request_field, submission_field in request_submission_mapping.items():
                 if request_field in request_params:
                     request_value = request_params[request_field]
                     submission_data[submission_field] = request_value
-                # all of those fields are required unless
-                # existing_submission_id is present
+                # all of those fields are required unless existing_submission_id is present
                 elif 'existing_submission_id' not in request_params:
                     raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
+
             # make sure submission dates are valid
             formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(
                 submission_data.get('reporting_start_date'),
                 submission_data.get('reporting_end_date'),
-                submission_data.get('is_quarter_format'),
+                str(submission_data.get('is_quarter_format')).upper() == 'TRUE',
                 existing_submission_obj)
             submission_data['reporting_start_date'] = formatted_start_date
             submission_data['reporting_end_date'] = formatted_end_date
@@ -230,39 +236,76 @@ class FileHandler:
             sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files, submission)
+            file_dict = request_params["_files"]
+            self.build_file_map(file_dict, FileHandler.FILE_TYPES, upload_files, submission)
 
             if not existing_submission:
                 # don't add external files to existing submission
                 for ext_file_type in FileHandler.EXTERNAL_FILE_TYPES:
-                    filename = CONFIG_BROKER["".join([ext_file_type, "_file_name"])]
-
+                    filename = GEN_FILENAMES[ext_file_type]
+                    if ext_file_type in ['D1', 'D2']:
+                        filename = filename.format('awarding')  # default to using awarding agency
                     if not self.is_local:
-                        upload_name = "{}/{}".format(
-                            submission.submission_id,
-                            S3Handler.get_timestamped_filename(filename)
-                        )
+                        upload_name = "{}/{}".format(submission.submission_id,
+                                                     S3Handler.get_timestamped_filename(filename))
                     else:
                         upload_name = filename
-                    response_dict[ext_file_type + "_key"] = upload_name
+
                     upload_files.append(FileHandler.UploadFile(
-                        file_type=ext_file_type,
+                        file_type=FILE_TYPE_DICT_LETTER_NAME[ext_file_type],
                         upload_name=upload_name,
                         file_name=filename,
-                        file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[ext_file_type]]
+                        file_letter=ext_file_type
                     ))
 
-            self.create_response_dict_for_submission(upload_files, submission, existing_submission, response_dict,
-                                                     create_credentials)
-            return JsonResponse.create(StatusCode.OK, response_dict)
+            # Add jobs or update existing ones
+            job_dict = self.create_jobs_for_submission(upload_files, submission, existing_submission)
+
+            def upload(file_ref, file_type, app, current_user):
+                filename_key = [x.upload_name for x in upload_files if x.file_type == file_type][0]
+                bucket_name = CONFIG_BROKER["broker_files"] if self.is_local else CONFIG_BROKER["aws_bucket"]
+                if CONFIG_BROKER['use_aws']:
+                    s3 = boto3.client('s3', region_name='us-gov-west-1')
+                    s3.upload_fileobj(file_ref, bucket_name, filename_key)
+                else:
+                    file_ref.save(filename_key)
+                with app.app_context():
+                        g.user = current_user
+                        self.finalize(job_dict[file_type + "_id"])
+            for file_type, file_ref in request_params["_files"].items():
+                t = threading.Thread(target=upload, args=(file_ref, file_type,
+                                                          current_app._get_current_object(), g.user))
+                t.start()
+                t.join()
+            api_response = {"success": "true", "submission_id": submission.submission_id}
+            json_response = JsonResponse.create(StatusCode.OK, api_response)
         except (ValueError, TypeError, NotImplementedError) as e:
-            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
+            json_response = JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ResponseException as e:
             # call error route directly, status code depends on exception
-            return JsonResponse.error(e, e.status)
+            json_response = JsonResponse.error(e, e.status)
         except Exception as e:
-            # unexpected exception, this is a 500 server error
-            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
+            # handle unexpected exception as a 500 server error
+            json_response = JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
+        finally:
+            # handle a missing JSON response
+            if json_response is None:
+                json_response = JsonResponse.error(Exception("Failed to catch exception"), StatusCode.INTERNAL_ERROR)
+
+            # handle errors within upload jobs
+            if json_response.status_code != StatusCode.OK and submission:
+                jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                              Job.job_type_id == JOB_TYPE_DICT['file_upload'],
+                                              Job.job_status_id == JOB_STATUS_DICT['running'],
+                                              Job.file_type_id.in_([FILE_TYPE_DICT_LETTER_ID['A'],
+                                                                    FILE_TYPE_DICT_LETTER_ID['B'],
+                                                                    FILE_TYPE_DICT_LETTER_ID['C']])).all()
+                for job in jobs:
+                    job.job_status_id = JOB_STATUS_DICT['failed']
+                    job.error_message = json_response.response[0].decode("utf-8")
+                sess.commit()
+
+            return json_response
 
     @staticmethod
     def check_submission_dates(start_date, end_date, is_quarter, existing_submission=None):
@@ -374,223 +417,28 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def upload_file(self):
-        """ Saves a file and returns the saved path. Should only be used for local installs.
-
-            Returns:
-                JsonResponse object containing the path to the uploaded file or an error message
-        """
-        try:
-            if self.is_local:
-                uploaded_file = request.files['file']
-                if uploaded_file:
-                    seconds = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
-                    filename = "".join([str(seconds), "_", secure_filename(uploaded_file.filename)])
-                    path = os.path.join(self.serverPath, filename)
-                    uploaded_file.save(path)
-                    return_dict = {"path": path}
-                    return JsonResponse.create(StatusCode.OK, return_dict)
-                else:
-                    raise ResponseException("Failure to read file", StatusCode.CLIENT_ERROR)
-            else:
-                raise ResponseException("Route Only Valid For Local Installs", StatusCode.CLIENT_ERROR)
-        except (ValueError, TypeError) as e:
-            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
-        except ResponseException as e:
-            return JsonResponse.error(e, e.status)
-        except Exception as e:
-            # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
-
-    def download_file(self, local_file_path, file_url, upload_name, response):
-        """ Download a file locally from the specified URL.
+    def upload_fabs_file(self, fabs):
+        """ Uploads the provided FABS file to S3 and creates a new submission if one doesn't exist or updates the
+            existing submission if one does.
 
             Args:
-                local_file_path: path to where the local file will be uploaded
-                file_url: the path to the file including the file name
-                upload_name: name to upload the file as
-                response: the response streamed to the application
+                fabs: the FABS file being uploaded
 
             Returns:
-                Boolean indicating if the file could be successfully downloaded
-
-            Raises:
-                ResponseException: Error if the file_url doesn't point to a valid file or the local_file_path is not
-                    a valid directory
+                A JsonResponse containing the submission ID and a success boolean or a JsonResponse containing the
+                details of the error that occurred.
         """
-        if not self.is_local:
-            conn = self.s3manager.create_file_path(upload_name)
-            with smart_open.smart_open(conn, 'w') as writer:
-                # get request if it doesn't already exist
-                if not response:
-                    response = requests.get(file_url, stream=True)
-                    # we only need to run this check if we haven't already
-                    if response.status_code != 200:
-                        # Could not download the file, return False
-                        return False
-                # write (stream) to file
-                response.encoding = "utf-8"
-                for chunk in response.iter_content(chunk_size=FileHandler.CHUNK_SIZE):
-                    if chunk:
-                        writer.write(chunk)
-                return True
-        # Not a valid file
-        elif not os.path.isfile(file_url):
-            raise ResponseException('{} does not exist'.format(file_url), StatusCode.INTERNAL_ERROR)
-        # Not a valid file path
-        elif not os.path.isdir(os.path.dirname(local_file_path)):
-            dirname = os.path.dirname(local_file_path)
-            raise ResponseException('{} folder does not exist'.format(dirname), StatusCode.INTERNAL_ERROR)
-        else:
-            copyfile(file_url, local_file_path)
-            return True
-
-    def generate_file(self, submission, file_type, start, end):
-        """ Start a file generation job for the specified file type within a submission
-
-            Args:
-                submission: submission for which we're generating the file
-                file_type: type of file to generate the job for
-                start: the start date for the file to generate
-                end: the end date for the file to generate
-
-            Returns:
-                Results of check_generation or JsonResponse object containing an error if the prerequisite job isn't
-                complete.
-        """
-        # if submission is a FABS submission, throw an error
-        if submission.d2_submission:
-            return JsonResponse.error(ValueError("Cannot generate files for FABS submissions"), StatusCode.CLIENT_ERROR)
-
-        # if the file is D1 or D2 and we don't have start or end, raise an error
-        if file_type in ['D1', 'D2'] and (not start or not end):
-            return JsonResponse.error(ValueError("Must have a start and end date for D file generation"),
+        if fabs is None:
+            return JsonResponse.error(Exception('fabs field must be present and contain a file'),
                                       StatusCode.CLIENT_ERROR)
 
-        submission_id = submission.submission_id
         sess = GlobalDB.db().session
-        job = sess.query(Job).filter(Job.submission_id == submission_id,
-                                     Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
-                                     Job.job_type_id == JOB_TYPE_DICT['file_upload']).one()
-
-        log_data = {
-            'message': 'Starting {} file generation within submission {}'.format(file_type, submission_id),
-            'message_type': 'BrokerInfo',
-            'submission_id': submission_id,
-            'job_id': job.job_id,
-            'file_type': file_type
-        }
-        logger.info(log_data)
-
+        json_response, submission = None, None
         try:
-            # Check prerequisites on upload job
-            if not check_generation_prereqs(submission_id, file_type):
-                raise ResponseException("Must wait for successful completion of prerequisite validation job",
-                                        StatusCode.CLIENT_ERROR)
-        except ResponseException as exc:
-            return JsonResponse.error(exc, exc.status)
-
-        success, error_response = start_generation_job(job, start, end)
-
-        log_data['message'] = 'Finished start_generation_job method for submission {}'.format(submission_id)
-        logger.debug(log_data)
-
-        if not success:
-            # If not successful, set job status as "failed"
-            mark_job_status(job.job_id, "failed")
-            return error_response
-
-        submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
-        if file_type in ['D1', 'D2']:
-            # Change the publish status back to updated if certified
-            if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
-                submission.publishable = False
-                submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
-                submission.updated_at = datetime.utcnow()
-                sess.commit()
-
-            # Set cross-file validation status to waiting if it's not already
-            cross_file_job = sess.query(Job).filter(Job.submission_id == submission_id,
-                                                    Job.job_type_id == JOB_TYPE_DICT['validation'],
-                                                    Job.job_status_id != JOB_STATUS_DICT['waiting']).one_or_none()
-
-            # No need to update it for each type of D file generation job, just do it once
-            if cross_file_job:
-                cross_file_job.job_status_id = JOB_STATUS_DICT['waiting']
-                sess.commit()
-
-        # Return same response as check generation route
-        return self.check_generation(submission, file_type)
-
-    def generate_detached_file(self, file_type, cgac_code, frec_code, start, end):
-        """ Start a file generation job for the specified file type not connected to a submission
-
-            Args:
-                file_type: type of file to be generated
-                cgac_code: the code of a CGAC agency if generating for a CGAC agency
-                frec_code: the code of a FREC agency if generating for a FREC agency
-                start: start date in a string, formatted MM/DD/YYYY
-                end: end date in a string, formatted MM/DD/YYYY
-
-            Returns:
-                JSONResponse object with keys job_id, status, file_type, url, message, start, and end.
-
-            Raises:
-                ResponseException: if the start and end Strings cannot be parsed into dates
-        """
-        # Make sure it's a valid request
-        if not cgac_code and not frec_code:
-            return JsonResponse.error(ValueError("Detached file generation requires CGAC or FR Entity Code"),
-                                      StatusCode.CLIENT_ERROR)
-
-        # Check if date format is MM/DD/YYYY
-        if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
-            raise ResponseException('Start or end date cannot be parsed into a date', StatusCode.CLIENT_ERROR)
-
-        # Add job info
-        file_type_name = FILE_TYPE_DICT_ID[FILE_TYPE_DICT_LETTER_ID[file_type]]
-        new_job = self.add_generation_job_info(file_type_name=file_type_name, start_date=start, end_date=end)
-
-        agency_code = frec_code if frec_code else cgac_code
-        logger.info({
-            'message': 'Starting detached {} file generation'.format(file_type),
-            'message_type': 'BrokerInfo',
-            'job_id': new_job.job_id,
-            'file_type': file_type,
-            'agency_code': agency_code,
-            'start_date': start,
-            'end_date': end
-        })
-
-        start_generation_job(new_job, start, end, agency_code)
-
-        # Return same response as check generation route
-        return self.check_detached_generation(new_job.job_id)
-
-    def upload_fabs_file(self, create_credentials, fabs_filename, api_triggered):
-
-        """ Builds S3 URLs for a set of FABS files and adds all related jobs to job tracker database
-
-            Flask request should include keys from FILE_TYPES class variable above
-
-            Args:
-                create_credentials: If True, will create temporary credentials for S3 uploads
-                fabs: the name of the FABS file being uploaded
-
-            Returns:
-                JsonResponse with the response dictionary from create_response_dict_for_submission or the details
-                of what error happened.
-                Flask response returned will have key_url and key_id for each key in the request
-                key_url is the S3 URL for uploading
-                key_id is the job id to be passed to the finalize_submission route
-        """
-        if fabs_filename is None and api_triggered is None:
-            return JsonResponse.error(Exception('fabs: Missing data for required field.'), StatusCode.CLIENT_ERROR)
-        else:
-            fabs = fabs_filename or api_triggered
-        sess = GlobalDB.db().session
-        try:
-            response_dict = {}
+            # Make sure they only pass in csv or plain text files
+            extension = fabs.filename.split('.')[-1]
+            if not extension or extension.lower() not in ['csv', 'txt']:
+                raise ValueError('FABS files must be CSV or TXT format')
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
             logger.info({
@@ -598,7 +446,7 @@ class FileHandler:
                 'message_type': 'BrokerInfo',
                 'agency_code': request_params.get('agency_code'),
                 'existing_submission_id': request_params.get('existing_submission_id'),
-                'file_name': fabs
+                'file_name': fabs.filename
             })
 
             job_data = {}
@@ -613,6 +461,10 @@ class FileHandler:
                 if not existing_submission_obj.d2_submission:
                     raise ResponseException("Existing submission must be a FABS submission", StatusCode.CLIENT_ERROR)
                 jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
+                for job in jobs:
+                    if job.job_status_id == JOB_STATUS_DICT['running']:
+                        raise ResponseException("Submission already has a running job", StatusCode.CLIENT_ERROR)
+
                 # set all jobs to their initial status of "waiting"
                 jobs[0].job_status_id = JOB_STATUS_DICT['waiting']
                 sess.commit()
@@ -648,64 +500,43 @@ class FileHandler:
                 sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map({'fabs': fabs}, ['fabs'], response_dict, upload_files, submission)
+            self.build_file_map({'fabs': fabs}, ['fabs'], upload_files, submission)
 
-            self.create_response_dict_for_submission(upload_files, submission, existing_submission,
-                                                     response_dict, create_credentials)
-            if api_triggered:
-                if CONFIG_BROKER['use_aws']:
-                    s3 = boto3.client('s3', region_name='us-gov-west-1')
-                    key = [x.upload_name for x in upload_files if x.file_type == "fabs"][0]
-                    s3.upload_fileobj(fabs, response_dict["bucket_name"], key)
-                else:
-                    fabs.save(os.path.join(self.UPLOAD_FOLDER, fabs.filename))
-                return self.finalize(response_dict["fabs_id"])
-            return JsonResponse.create(StatusCode.OK, response_dict)
+            # Add jobs or update existing one
+            job_dict = self.create_jobs_for_submission(upload_files, submission, existing_submission)
+
+            filename_key = upload_files[0].upload_name
+            bucket_name = CONFIG_BROKER["broker_files"] if self.is_local else CONFIG_BROKER["aws_bucket"]
+            if CONFIG_BROKER['use_aws']:
+                s3 = boto3.client('s3', region_name='us-gov-west-1')
+                s3.upload_fileobj(fabs, bucket_name, filename_key)
+            else:
+                fabs.save(filename_key)
+            json_response = self.finalize(job_dict["fabs_id"])
         except (ValueError, TypeError, NotImplementedError) as e:
-            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
+            json_response = JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ResponseException as e:
             # call error route directly, status code depends on exception
-            return JsonResponse.error(e, e.status)
+            json_response = JsonResponse.error(e, e.status)
         except Exception as e:
             # unexpected exception, this is a 500 server error
-            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
-        except:
-            return JsonResponse.error(Exception("Failed to catch exception"), StatusCode.INTERNAL_ERROR)
+            json_response = JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
+        finally:
+            # handle a missing JSON response
+            if json_response is None:
+                json_response = JsonResponse.error(Exception("Failed to catch exception"), StatusCode.INTERNAL_ERROR)
 
-    @staticmethod
-    def check_detached_generation(job_id):
-        """ Return information about detached file generation jobs
+            if json_response.status_code != StatusCode.OK and submission:
+                fabs_job = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                                  Job.job_type_id == JOB_TYPE_DICT['file_upload'],
+                                                  Job.job_status_id == JOB_STATUS_DICT['running'],
+                                                  Job.file_type_id == FILE_TYPE_DICT_LETTER_ID['FABS']).one_or_none()
+                if fabs_job:
+                    fabs_job.job_status_id = JOB_STATUS_DICT['failed']
+                    fabs_job.error_message = json_response.get('json', {}).get('message', '')
+                sess.commit()
 
-            Args:
-                job_id: ID of the detached generation job
-
-            Returns:
-                Response object with keys job_id, status, file_type, url, message, start, and end.
-        """
-        response_dict = check_file_generation(job_id)
-
-        return JsonResponse.create(StatusCode.OK, response_dict)
-
-    @staticmethod
-    def check_generation(submission, file_type):
-        """ Return information about file generation jobs connected to a submission
-
-            Args:
-                submission: submission to get information from
-                file_type: type of file being generated to check on
-
-            Returns:
-                Response object with keys status, file_type, url, message.
-                If file_type is D1 or D2, also includes start and end.
-        """
-        sess = GlobalDB.db().session
-        upload_job = sess.query(Job).filter(Job.submission_id == submission.submission_id,
-                                            Job.file_type_id == FILE_TYPE_DICT_LETTER_ID[file_type],
-                                            Job.job_type_id == JOB_TYPE_DICT['file_upload']).one()
-
-        response_dict = check_file_generation(upload_job.job_id)
-
-        return JsonResponse.create(StatusCode.OK, response_dict)
+            return json_response
 
     @staticmethod
     def publish_fabs_submission(submission):
@@ -747,11 +578,32 @@ class FileHandler:
         sess.commit()
 
         try:
-            # check to make sure no new entries have been published that collide with the new rows
-            # (correction_delete_indicatr is not C or D)
             # need to set the models to something because the names are too long and flake gets mad
             dafa = DetachedAwardFinancialAssistance
             pafa = PublishedAwardFinancialAssistance
+
+            # Check to make sure no rows are currently publishing that collide with the rows in this submission
+            # (in any way, including C or D)
+            valid_sub_rows = sess.query(dafa.afa_generated_unique).\
+                filter(dafa.submission_id == submission_id, dafa.is_valid.is_(True)).cte('valid_sub_rows')
+            publishing_subs = sess.query(dafa.submission_id).\
+                join(valid_sub_rows, valid_sub_rows.c.afa_generated_unique == dafa.afa_generated_unique).\
+                join(Submission, Submission.submission_id == dafa.submission_id).\
+                filter(dafa.is_valid.is_(True),
+                       dafa.submission_id != submission_id,
+                       Submission.publish_status_id == PUBLISH_STATUS_DICT['publishing']).distinct().all()
+            if publishing_subs:
+                sub_list = []
+                for sub in publishing_subs:
+                    sub_list.append(str(sub.submission_id))
+                raise ResponseException("1 or more rows in this submission are currently publishing (in a separate "
+                                        "submission). To prevent duplicate records, please wait for the other "
+                                        "submission(s) to finish publishing before trying to publish. IDs of "
+                                        "submissions affecting this publish attempt: {}".format(", ".join(sub_list)),
+                                        StatusCode.CLIENT_ERROR)
+
+            # check to make sure no new entries have been published that collide with the new rows
+            # (correction_delete_indicatr is not C or D)
             colliding_rows = sess.query(dafa.afa_generated_unique). \
                 filter(dafa.is_valid.is_(True),
                        dafa.submission_id == submission_id,
@@ -765,10 +617,6 @@ class FileHandler:
                                         "publish.",
                                         StatusCode.CLIENT_ERROR)
 
-            # get all valid lines for this submission
-            query = sess.query(DetachedAwardFinancialAssistance).\
-                filter_by(is_valid=True, submission_id=submission_id).all()
-
             # Create lookup dictionaries so we don't have to query the API every time. We do biggest to smallest
             # to save the most possible space, although none of these should take that much.
             state_dict = {}
@@ -776,13 +624,17 @@ class FileHandler:
             sub_tier_dict = {}
             cfda_dict = {}
             county_dict = {}
-            fpds_office_dict = {}
+            office_dict = {}
 
             # This table is big enough that we want to only grab 2 columns
-            offices = sess.query(FPDSContractingOffice.contracting_office_code,
-                                 FPDSContractingOffice.contracting_office_name).all()
+            offices = sess.query(Office.office_code, Office.office_name, Office.sub_tier_code, Office.agency_code,
+                                 Office.grant_office, Office.funding_office).all()
             for office in offices:
-                fpds_office_dict[office.contracting_office_code] = office.contracting_office_name
+                office_dict[office.office_code] = {'office_name': office.office_name,
+                                                   'sub_tier_code': office.sub_tier_code,
+                                                   'agency_code': office.agency_code,
+                                                   'grant_office': office.grant_office,
+                                                   'funding_office': office.funding_office}
             del offices
 
             counties = sess.query(CountyCode).all()
@@ -823,54 +675,66 @@ class FileHandler:
 
             agency_codes_list = []
             row_count = 1
+            loop_num = 0
+            query = []
             log_data['message'] = 'Starting derivations for FABS submission'
             logger.info(log_data)
-            for row in query:
-                # remove all keys in the row that are not in the intermediate table
-                temp_obj = row.__dict__
 
-                temp_obj.pop('row_number', None)
-                temp_obj.pop('is_valid', None)
-                temp_obj.pop('created_at', None)
-                temp_obj.pop('updated_at', None)
-                temp_obj.pop('_sa_instance_state', None)
+            while len(query) == ROWS_PER_LOOP or loop_num == 0:
+                # get next set of valid lines for this submission
+                query = sess.query(DetachedAwardFinancialAssistance). \
+                    filter_by(is_valid=True, submission_id=submission_id). \
+                    order_by(DetachedAwardFinancialAssistance.detached_award_financial_assistance_id).\
+                    slice(ROWS_PER_LOOP * loop_num, ROWS_PER_LOOP * (loop_num + 1)).all()
 
-                temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict,
-                                            county_dict, fpds_office_dict)
+                for row in query:
+                    # remove all keys in the row that are not in the intermediate table
+                    temp_obj = row.__dict__
 
-                # if it's a correction or deletion row and an old row is active, update the old row to be inactive
-                if row.correction_delete_indicatr is not None:
-                    check_row = sess.query(PublishedAwardFinancialAssistance).\
-                        filter_by(afa_generated_unique=row.afa_generated_unique, is_active=True).one_or_none()
-                    if check_row:
-                        # just creating this as a variable because flake thinks the row is too long
-                        row_id = check_row.published_award_financial_assistance_id
-                        sess.query(PublishedAwardFinancialAssistance).\
-                            filter_by(published_award_financial_assistance_id=row_id).\
-                            update({"is_active": False, "updated_at": row.modified_at}, synchronize_session=False)
+                    temp_obj.pop('row_number', None)
+                    temp_obj.pop('is_valid', None)
+                    temp_obj.pop('created_at', None)
+                    temp_obj.pop('updated_at', None)
+                    temp_obj.pop('_sa_instance_state', None)
 
-                # for all rows, insert the new row (active/inactive should be handled by fabs_derivations)
-                new_row = PublishedAwardFinancialAssistance(**temp_obj)
-                sess.add(new_row)
+                    temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict,
+                                                county_dict, office_dict)
 
-                # update the list of affected agency_codes
-                if temp_obj['awarding_agency_code'] not in agency_codes_list:
-                    agency_codes_list.append(temp_obj['awarding_agency_code'])
+                    # if it's a correction or deletion row and an old row is active, update the old row to be inactive
+                    if row.correction_delete_indicatr is not None:
+                        check_row = sess.query(PublishedAwardFinancialAssistance).\
+                            filter_by(afa_generated_unique=row.afa_generated_unique, is_active=True).one_or_none()
+                        if check_row:
+                            # just creating this as a variable because flake thinks the row is too long
+                            row_id = check_row.published_award_financial_assistance_id
+                            sess.query(PublishedAwardFinancialAssistance).\
+                                filter_by(published_award_financial_assistance_id=row_id).\
+                                update({"is_active": False, "updated_at": row.modified_at}, synchronize_session=False)
 
-                if row_count % 1000 == 0:
-                    log_data['message'] = 'Completed derivations for {} rows'.format(row_count)
-                    logger.info(log_data)
-                row_count += 1
+                    # for all rows, insert the new row (active/inactive should be handled by fabs_derivations)
+                    new_row = PublishedAwardFinancialAssistance(**temp_obj)
+                    sess.add(new_row)
 
-            # update all cached D2 FileRequest objects that could have been affected by the publish
-            for agency_code in agency_codes_list:
-                sess.query(FileRequest).\
-                    filter(FileRequest.agency_code == agency_code,
-                           FileRequest.is_cached_file.is_(True),
-                           FileRequest.file_type == 'D2',
-                           sa.or_(FileRequest.start_date <= submission.reporting_end_date,
-                                  FileRequest.end_date >= submission.reporting_start_date)).\
-                    update({"is_cached_file": False}, synchronize_session=False)
+                    # update the list of affected awarding_agency_codes
+                    if temp_obj['awarding_agency_code'] not in agency_codes_list:
+                        agency_codes_list.append(temp_obj['awarding_agency_code'])
+
+                    # update the list of affected funding_agency_codes
+                    if temp_obj['funding_agency_code'] not in agency_codes_list:
+                        agency_codes_list.append(temp_obj['funding_agency_code'])
+
+                    if row_count % 1000 == 0:
+                        log_data['message'] = 'Completed derivations for {} rows'.format(row_count)
+                        logger.info(log_data)
+                    row_count += 1
+                loop_num += 1
+
+            # update all cached D2 FileGeneration objects that could have been affected by the publish
+            sess.query(FileGeneration).\
+                filter(FileGeneration.agency_code.in_(agency_codes_list),
+                       FileGeneration.is_cached_file.is_(True),
+                       FileGeneration.file_type == 'D2').\
+                update({"is_cached_file": False}, synchronize_session=False)
             sess.commit()
         except Exception as e:
             log_data['message'] = 'An error occurred while publishing a FABS submission'
@@ -916,56 +780,12 @@ class FileHandler:
         response_dict = {"submission_id": submission_id}
         return JsonResponse.create(StatusCode.OK, response_dict)
 
-    def get_protected_files(self):
-        """ Gets a set of urls to protected files (on S3 with timeouts) on the help page
-
-            Returns:
-                A JsonResponse object with the urls in a list or an empty object if local
-        """
-        response = {}
-        if self.is_local:
-            response["urls"] = {}
-            return JsonResponse.create(StatusCode.CLIENT_ERROR, response)
-
-        response["urls"] = self.s3manager.get_file_urls(bucket_name=CONFIG_BROKER["static_files_bucket"],
-                                                        path=CONFIG_BROKER["help_files_path"])
-        return JsonResponse.create(StatusCode.OK, response)
-
-    def add_generation_job_info(self, file_type_name, job=None, start_date=None, end_date=None):
-        """ Add details to jobs for generating files
-
-            Args:
-                file_type_name: the name of the file type being generated
-                job: the generation job, None if it is a detached generation
-                dates: The start and end dates for the generation job, only used for detached files
-
-            Returns:
-                the file generation job
-        """
-        sess = GlobalDB.db().session
-
-        # Create a new job for a detached generation
-        if job is None:
-            job = Job(job_type_id=JOB_TYPE_DICT['file_upload'], user_id=g.user.user_id,
-                      file_type_id=FILE_TYPE_DICT[file_type_name], start_date=start_date, end_date=end_date)
-            sess.add(job)
-
-        # Update the job details
-        job.message = None
-        job.job_status_id = JOB_STATUS_DICT["ready"]
-        sess.commit()
-        sess.refresh(job)
-
-        return job
-
-    def build_file_map(self, file_dict, file_type_list, response_dict, upload_files, submission):
+    def build_file_map(self, file_dict, file_type_list, upload_files, submission):
         """ Build fileNameMap to be used in creating jobs
 
             Args:
-                request_params: parameters provided by the API request
+                file_dict: parameters provided by the API request
                 file_type_list: a list of all file types needed by a certain submission type
-                response_dict: the response dictionary from the calling function so it can be updated with relevant
-                    information in this function
                 upload_files: files that need to be uploaded
                 submission: submission this file map is for
 
@@ -978,10 +798,11 @@ class FileHandler:
             if not file_dict.get(file_type):
                 continue
             file_reference = file_dict.get(file_type)
-            if not isinstance(file_reference, str):
+            try:
                 file_name = file_reference.filename
-            else:
-                file_name = file_reference
+            except:
+                return JsonResponse.error(Exception("{} parameter must be a file in binary form".format(file_type)),
+                                          StatusCode.CLIENT_ERROR)
             if file_name:
                 if not self.is_local:
                     upload_name = "{}/{}".format(
@@ -989,9 +810,8 @@ class FileHandler:
                         S3Handler.get_timestamped_filename(file_name)
                     )
                 else:
-                    upload_name = os.path.join(self.UPLOAD_FOLDER, file_name)
+                    upload_name = os.path.join(self.server_path, S3Handler.get_timestamped_filename(file_name))
 
-                response_dict[file_type + "_key"] = upload_name
                 upload_files.append(FileHandler.UploadFile(
                     file_type=file_type,
                     upload_name=upload_name,
@@ -999,35 +819,24 @@ class FileHandler:
                     file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type]]
                 ))
 
-    def create_response_dict_for_submission(self, upload_files, submission, existing_submission, response_dict,
-                                            create_credentials):
-        """ Creates a response dictionary for a submission to provide credentials and file locations to the user
+    @staticmethod
+    def create_jobs_for_submission(upload_files, submission, existing_submission):
+        """ Create the jobs for a submission or update existing ones.
 
             Args:
                 upload_files: files to be uploaded
                 submission: submission the dictionary is for
                 existing_submission: boolean indicating if the submission is new or an existing one (true for existing)
-                response_dict: the dictionary being modified to provide information to the user
-                create_credentials: if True, will create temporary S3 credentials for the user
+
+            Returns:
+                A dictionary containing the file types and jobs for those file types
         """
         file_job_dict = create_jobs(upload_files, submission, existing_submission)
+        job_dict = {}
         for file_type in file_job_dict.keys():
             if "submission_id" not in file_type:
-                response_dict[file_type + "_id"] = file_job_dict[file_type]
-
-        # Create temporary credentials if specified, otherwise set everything to local
-        if create_credentials and not self.is_local:
-            self.s3manager = S3Handler(CONFIG_BROKER["aws_bucket"])
-            response_dict["credentials"] = self.s3manager.get_temporary_credentials(g.user.user_id)
-        else:
-            response_dict["credentials"] = {"AccessKeyId": "local", "SecretAccessKey": "local",
-                                            "SessionToken": "local", "Expiration": "local"}
-
-        response_dict["submission_id"] = file_job_dict["submission_id"]
-        if self.is_local:
-            response_dict["bucket_name"] = CONFIG_BROKER["broker_files"]
-        else:
-            response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
+                job_dict[file_type + "_id"] = file_job_dict[file_type]
+        return job_dict
 
     @staticmethod
     def restart_validation(submission, fabs):
@@ -1050,9 +859,20 @@ class FileHandler:
 
         jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id).all()
 
-        # set all jobs to their initial status of "waiting"
+        # set all jobs to their initial status of either "waiting" or "ready"
         for job in jobs:
-            job.job_status_id = JOB_STATUS_DICT['waiting']
+            if job.job_type_id == JOB_TYPE_DICT["file_upload"] and \
+               job.file_type_id in [FILE_TYPE_DICT["award"], FILE_TYPE_DICT["award_procurement"]]:
+                # file generation handled on backend, mark as ready
+                job.job_status_id = JOB_STATUS_DICT['ready']
+
+                # forcibly uncache any related D file requests
+                file_gen = sess.query(FileGeneration).filter_by(file_generation_id=job.file_generation_id).one_or_none()
+                if file_gen:
+                    file_gen.is_cached_file = False
+            else:
+                # these are dependent on file D2 validation
+                job.job_status_id = JOB_STATUS_DICT['waiting']
 
         # update upload jobs to "running" for files A, B, and C for DABS submissions or for the upload job in FABS
         upload_jobs = [job for job in jobs if job.job_type_id in [JOB_TYPE_DICT['file_upload']] and
@@ -1195,37 +1015,6 @@ class FileHandler:
         logger.debug(log_data)
 
 
-def check_generation_prereqs(submission_id, file_type):
-    """ Make sure the prerequisite jobs for this file type are complete without errors.
-
-        Args:
-            submission_id: the submission id for which we're checking file generation prerequisites
-            file_type: the type of file being generated
-
-        Returns:
-            A boolean indicating if the job has no incomplete prerequisites (True if the job is clear to start)
-    """
-
-    sess = GlobalDB.db().session
-    unfinished_prereqs = 0
-    prereq_query = sess.query(Job).filter(Job.submission_id == submission_id,
-                                          or_(Job.job_status_id != JOB_STATUS_DICT['finished'],
-                                              Job.number_of_errors > 0))
-
-    # Check cross-file validation if generating E or F
-    if file_type in ['E', 'F']:
-        unfinished_prereqs = prereq_query.filter(Job.job_type_id == JOB_TYPE_DICT['validation']).count()
-    # Check A, B, C files if generating a D file
-    elif file_type in ['D1', 'D2']:
-        unfinished_prereqs = prereq_query.filter(Job.file_type_id.in_([FILE_TYPE_DICT['appropriations'],
-                                                                       FILE_TYPE_DICT['program_activity'],
-                                                                       FILE_TYPE_DICT['award_financial']])).count()
-    else:
-        raise ResponseException('Invalid type for file generation', StatusCode.CLIENT_ERROR)
-
-    return unfinished_prereqs == 0
-
-
 def narratives_for_submission(submission):
     """ Fetch narratives for this submission, indexed by file letter
 
@@ -1292,24 +1081,23 @@ def create_fabs_published_file(sess, submission_id, new_route):
     upload_name = "".join([new_route, timestamped_name])
 
     # write file and stream to S3
-    write_query_to_file(local_filename, upload_name, [key for key in fileD2.mapping], "published FABS", g.is_local,
-                        published_fabs_query, {"sess": sess, "submission_id": submission_id}, is_certified=True)
+    fabs_query = published_fabs_query({"sess": sess, "submission_id": submission_id})
+    headers = [key for key in fileD2.mapping]
+    write_stream_query(sess, fabs_query, local_filename, upload_name, g.is_local, header=headers, is_certified=True)
     return local_filename if g.is_local else upload_name
 
 
-def published_fabs_query(data_utils, page_start, page_end):
+def published_fabs_query(data_utils):
     """ Get the data from the published FABS table to write to the file with
 
         Args:
             data_utils: A dictionary of utils that are needed for the query being made, in this case including the
                 session object and the submission ID
-            page_start: the start of the slice to limit the data
-            page_end: the end of the slice to limit the data
 
         Returns:
             A list of published FABS rows.
     """
-    return fileD2.query_published_fabs_data(data_utils["sess"], data_utils["submission_id"], page_start, page_end).all()
+    return fileD2.query_published_fabs_data(data_utils["sess"], data_utils["submission_id"])
 
 
 def submission_to_dict_for_status(submission):
@@ -1357,7 +1145,7 @@ def submission_to_dict_for_status(submission):
         'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
         'last_validated': last_validated,
         'revalidation_threshold':
-            revalidation_threshold.revalidation_date.strftime('%m/%d/%Y') if revalidation_threshold else '',
+            revalidation_threshold.revalidation_date.strftime("%Y-%m-%dT%H:%M:%S") if revalidation_threshold else '',
         # Broker allows submission for a single quarter or a single month, so reporting_period start and end dates
         # reported by check_status are always equal
         'reporting_period_start_date': reporting_date(submission),
@@ -1457,25 +1245,29 @@ def process_job_status(jobs, response_content):
     validation = None
     upload_status = ''
     validation_status = ''
+    upload_em = ''
+    validation_em = ''
     for job in jobs:
         if job['job_type'] == JOB_TYPE_DICT['file_upload']:
             upload = job
             upload_status = JOB_STATUS_DICT_ID[job['job_status']]
+            upload_em = upload['error_message']
         else:
             validation = job
             validation_status = JOB_STATUS_DICT_ID[job['job_status']]
+            validation_em = validation['error_message']
 
     # checking for failures
     if upload_status == 'invalid' or upload_status == 'failed' or validation_status == 'failed':
         response_content['status'] = 'failed'
         response_content['has_errors'] = True
-        response_content['message'] = upload['error_message'] or validation['error_message'] or ''
+        response_content['message'] = upload_em or validation_em or ''
         return response_content
 
     if validation_status == 'invalid':
         response_content['status'] = 'finished'
         response_content['has_errors'] = True
-        response_content['message'] = upload['error_message'] or validation['error_message'] or ''
+        response_content['message'] = upload_em or validation_em or ''
         return response_content
 
     # If upload job exists and hasn't started or if it doesn't exist and validation job hasn't started,
@@ -1530,7 +1322,121 @@ def get_error_metrics(submission):
         return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
 
-def list_submissions(page, limit, certified, sort='modified', order='desc', d2_submission=False):
+def add_list_submission_filters(query, filters):
+    """ Add provided filters to the list_submission query
+
+        Args:
+            query: already existing query to add to
+            filters: provided filters
+
+        Returns:
+            The query updated with the valid provided filters
+
+        Raises:
+            ResponseException - invalid type is provided for one of the filters or the contents are invalid
+    """
+    sess = GlobalDB.db().session
+    # Checking for submission ID filter
+    if 'submission_ids' in filters:
+        sub_list = filters['submission_ids']
+        if sub_list and isinstance(sub_list, list):
+            try:
+                sub_list = [int(sub_id) for sub_id in sub_list]
+            except ValueError:
+                raise ResponseException("All submission_ids must be valid submission IDs", StatusCode.CLIENT_ERROR)
+            query = query.filter(Submission.submission_id.in_(sub_list))
+        elif sub_list:
+            raise ResponseException("submission_ids filter must be null or an array", StatusCode.CLIENT_ERROR)
+    # Date range filter
+    if 'last_modified_range' in filters:
+        mod_dates = filters['last_modified_range']
+        # last_modified_range must be a dict
+        if mod_dates and isinstance(mod_dates, dict):
+            start_date = mod_dates.get('start_date')
+            end_date = mod_dates.get('end_date')
+
+            # Make sure that, if it has content, start_date and end_date are both part of this filter
+            if not start_date or not end_date:
+                raise ResponseException("Both start_date and end_date must be provided", StatusCode.CLIENT_ERROR)
+
+            # Start and end dates must be in the format MM/DD/YYYY and be
+            if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
+                raise ResponseException("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
+                                        StatusCode.CLIENT_ERROR)
+            # Make sure start date is not greater than end date (checking for >= because we add a day)
+            start_date = datetime.strptime(start_date, '%m/%d/%Y')
+            end_date = datetime.strptime(end_date, '%m/%d/%Y') + timedelta(days=1)
+            if start_date >= end_date:
+                raise ResponseException("Last modified start date cannot be greater than the end date",
+                                        StatusCode.CLIENT_ERROR)
+
+            query = query.filter(Submission.updated_at >= start_date, Submission.updated_at < end_date)
+        elif mod_dates:
+            raise ResponseException("last_modified_range filter must be null or an object", StatusCode.CLIENT_ERROR)
+    # Agency code filter
+    if 'agency_codes' in filters:
+        agency_list = filters['agency_codes']
+        if agency_list and isinstance(agency_list, list):
+            # Split agencies into frec and cgac lists.
+            cgac_list = [agency for agency in agency_list if isinstance(agency, str) and len(agency) == 3]
+            frec_list = [agency for agency in agency_list if isinstance(agency, str) and len(agency) == 4]
+
+            # If something isn't a length of 3 or 4, it's not valid and should instantly raise an exception
+            if len(cgac_list) + len(frec_list) != len(agency_list):
+                raise ResponseException("All codes in the agency_codes filter must be valid agency codes",
+                                        StatusCode.CLIENT_ERROR)
+            # If the number of CGACs or FRECs returned from a query using the codes doesn't match the length of
+            # each list (ignoring duplicates) then something included wasn't a valid agency
+            cgac_list = set(cgac_list)
+            frec_list = set(frec_list)
+            if (cgac_list and sess.query(CGAC).filter(CGAC.cgac_code.in_(cgac_list)).count() != len(cgac_list)) or \
+                    (frec_list and sess.query(FREC).filter(FREC.frec_code.in_(frec_list)).count() != len(frec_list)):
+                raise ResponseException("All codes in the agency_codes filter must be valid agency codes",
+                                        StatusCode.CLIENT_ERROR)
+            # We only want these filters in here if there's at least one CGAC or FREC to filter on
+            agency_filters = []
+            if len(cgac_list) > 0:
+                agency_filters.append(CGAC.cgac_code.in_(cgac_list))
+            if len(frec_list) > 0:
+                agency_filters.append(FREC.frec_code.in_(frec_list))
+            query = query.filter(or_(*agency_filters))
+        elif agency_list:
+            raise ResponseException("agency_codes filter must be null or an array", StatusCode.CLIENT_ERROR)
+    # File name filter
+    if 'file_names' in filters:
+        file_list = filters['file_names']
+        if file_list and isinstance(file_list, list):
+            # Make a list of all the names we're filtering on
+            file_array = []
+            for file_name in file_list:
+                file_regex = '.+\/.*' + str(file_name).upper() + '[^\/]*$'
+                file_array.append(func.upper(Job.filename).op('~')(file_regex))
+
+            # Create a subquery to get all submission IDs related to upload jobs (every type except cross-file has an
+            # upload, just limiting jobs) that contain at least one of the file names listed.
+            sub_query = sess.query(Job.submission_id.label('job_sub_id')).\
+                filter(or_(*file_array)).\
+                filter(Job.job_type_id == JOB_TYPE_DICT['file_upload']).\
+                distinct().subquery()
+            # Use the subquery to filter by those submission IDs.
+            query = query.filter(Submission.submission_id.in_(sub_query))
+        elif file_list:
+            raise ResponseException("file_names filter must be null or an array", StatusCode.CLIENT_ERROR)
+    # User ID filter
+    if 'user_ids' in filters:
+        user_list = filters['user_ids']
+        if user_list and isinstance(user_list, list):
+            try:
+                user_list = [int(user_id) for user_id in user_list]
+            except ValueError:
+                raise ResponseException("All user_ids must be valid user IDs", StatusCode.CLIENT_ERROR)
+            query = query.filter(Submission.user_id.in_(user_list))
+        elif user_list:
+            raise ResponseException("user_ids filter must be null or an array", StatusCode.CLIENT_ERROR)
+    return query
+
+
+def list_submissions(page, limit, certified, sort='modified', order='desc', is_fabs=False, filters=None):
     """ List submission based on current page and amount to display. If provided, filter based on certification status
 
         Args:
@@ -1539,7 +1445,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
             certified: string indicating whether to display only certified, only uncertified, or both for submissions
             sort: the column to order on
             order: order ascending or descending
-            d2_submission: boolean indicating whether it is a DABS or FABS submission (True if FABS)
+            is_fabs: boolean indicating whether it is a DABS or FABS submission (True if FABS)
+            filters: an object containing the filters provided by the user
 
         Returns:
             Limited list of submissions and the total number of submissions the user has access to
@@ -1574,15 +1481,19 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
         outerjoin(sub_query, Submission.submission_id == sub_query.c.submission_id).\
-        filter(Submission.d2_submission.is_(d2_submission))
+        filter(Submission.d2_submission.is_(is_fabs))
 
     # Limit the data coming back to only what the given user is allowed to see
     if not g.user.website_admin:
         cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
         frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec]
-        query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
-                                    Submission.frec_code.in_(frec_codes),
-                                    Submission.user_id == g.user.user_id))
+
+        affiliation_filters = [Submission.user_id == g.user.user_id]
+        if cgac_codes:
+            affiliation_filters.append(Submission.cgac_code.in_(cgac_codes))
+        if frec_codes:
+            affiliation_filters.append(Submission.frec_code.in_(frec_codes))
+        query = query.filter(sa.or_(*affiliation_filters))
 
     # Determine what types of submissions (published/unpublished/both) to display
     if certified != 'mixed':
@@ -1590,6 +1501,13 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
             query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
         else:
             query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
+
+    # Add additional filters where applicable
+    if filters:
+        try:
+            query = add_list_submission_filters(query, filters)
+        except (ResponseException, ValueError) as e:
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
 
     # Determine what to order by, default to "modified"
     options = {
@@ -1734,7 +1652,8 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
         filename = file_array.pop()
         file_path = '/'.join(x for x in file_array)
         url = S3Handler().get_signed_url(file_path, filename, bucket_route=CONFIG_BROKER['certified_bucket'],
-                                         method="GET")
+                                         url_mapping=CONFIG_BROKER["certified_bucket_mapping"],
+                                         method="get_object")
 
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
@@ -1783,12 +1702,28 @@ def submission_report_url(submission, warning, file_type, cross_type):
 
         Returns:
             A signed URL to S3 of the specified file when not run locally. The path to the file when run locally.
+            If a cross file is requested and the pairing isn't valid, return a JsonResponse containing an error.
     """
+    # If we're doing a cross-file url, make sure it's a valid pairing
+    if cross_type:
+        cross_pairs = {
+            'program_activity': 'appropriations',
+            'award_financial': 'program_activity',
+            'award_procurement': 'award_financial',
+            'award': 'award_financial'
+        }
+        if file_type != cross_pairs[cross_type]:
+            return JsonResponse.error(ValueError("{} and {} is not a valid cross-pair.".format(file_type, cross_type)),
+                                      StatusCode.CLIENT_ERROR)
+
+    # Get the url
     file_name = report_file_name(submission.submission_id, warning, file_type, cross_type)
     if CONFIG_BROKER['local']:
         url = os.path.join(CONFIG_BROKER['broker_files'], file_name)
     else:
-        url = S3Handler().get_signed_url("errors", file_name, method="GET")
+        url = S3Handler().get_signed_url("errors", file_name,
+                                         url_mapping=CONFIG_BROKER["submission_bucket_mapping"],
+                                         method="get_object")
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 
@@ -1819,7 +1754,35 @@ def get_upload_file_url(submission, file_type):
         # when local, can just grab the filename because it stores the entire path
         url = os.path.join(CONFIG_BROKER['broker_files'], split_name[-1])
     else:
-        url = S3Handler().get_signed_url(split_name[0], split_name[1], method="GET")
+        url = S3Handler().get_signed_url(split_name[0], split_name[1],
+                                         url_mapping=CONFIG_BROKER["submission_bucket_mapping"], method="get_object")
+    return JsonResponse.create(StatusCode.OK, {"url": url})
+
+
+def get_detached_upload_file_url(job_id):
+    """ Gets the signed url of the upload file for the given detached generation job.
+
+        Args:
+            job_id: the ID of the detached generation job to get the url for
+
+        Returns:
+            A signed URL to S3 of the specified file when not run locally. The path to the file when run locally.
+            Error response if the job ID doesn't exist or isn't a detached job.
+    """
+    sess = GlobalDB.db().session
+    file_job = sess.query(Job).filter(Job.job_id == job_id).first()
+    if not file_job:
+        return JsonResponse.error(ValueError("This job does not exist."), StatusCode.CLIENT_ERROR)
+    if file_job.submission_id:
+        return JsonResponse.error(ValueError("This is not a detached generation job."), StatusCode.CLIENT_ERROR)
+
+    split_name = file_job.filename.split('/')
+    if CONFIG_BROKER['local']:
+        # when local, can just grab the filename because it stores the entire path
+        url = os.path.join(CONFIG_BROKER['broker_files'], split_name[-1])
+    else:
+        url = S3Handler().get_signed_url(split_name[0], split_name[1],
+                                         url_mapping=CONFIG_BROKER["submission_bucket_mapping"], method="get_object")
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 

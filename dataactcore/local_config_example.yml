@@ -21,7 +21,7 @@ services:
 db:
 
     scheme: postgres
-    host: dataact-postgres
+    host: dataact-broker-db
     port: 5432
     base_db_name: postgres #This is the default db on the instance.
     db_name: data_broker

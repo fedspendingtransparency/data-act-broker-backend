@@ -1,6 +1,6 @@
 from io import StringIO
 
-from dataactvalidator.scripts.readZips import update_state_congr_table_census
+from dataactvalidator.scripts.read_zips import update_state_congr_table_census
 from dataactcore.models.domainModels import StateCongressional
 
 

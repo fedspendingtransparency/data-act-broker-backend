@@ -48,28 +48,6 @@ class UserTests(BaseTestAPI):
         super(UserTests, self).setUp()
         self.login_admin_user()
 
-    def test_finalize_wrong_user(self):
-        """Test finalizing a job as the wrong user."""
-        # Jobs were submitted with the id for "approved user," so lookup
-        # as "admin user" should fail.
-        self.logout()
-        self.login_user(self.test_users['agency_user_2'])
-        post_json = {"upload_id": self.uploadId}
-        response = self.app.post_json("/v1/finalize_job/",
-                                      post_json, expect_errors=True, headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.CLIENT_ERROR, "Cannot finalize a job for a different agency")
-        # Give submission this user's cgac code
-        with create_app().app_context():
-            sess = GlobalDB.db().session
-            submission = sess.query(Submission).filter(Submission.submission_id == self.submission_id).one()
-            user = sess.query(User).filter_by(email=self.test_users['agency_user_2']).one()
-            submission.cgac_code = user.affiliations[0].cgac.cgac_code
-            sess.commit()
-        response = self.app.post_json("/v1/finalize_job/",
-                                      post_json, expect_errors=True, headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.OK)
-        self.logout()
-
     def test_current_user(self):
         """Test retrieving current user information."""
         response = self.app.get("/v1/current_user/", headers={"x-session-id": self.session_id})
@@ -98,7 +76,16 @@ class UserTests(BaseTestAPI):
         response = self.app.post_json("/v1/email_users/", contents, headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK, "Emails successfully sent")
 
+        # User without proper permissions
+        self.login_user(username=self.test_users['editfabs_user'])
+        contents = {"users": [self.agency_user_id], "submission_id": self.submission_id,
+                    "email_template": "review_submission"}
+        response = self.app.post_json("/v1/email_users/", contents, expect_errors=True,
+                                      headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.PERMISSION_DENIED)
+
         # missing request params
+        self.login_user()
         bad_input = {"users": [self.agency_user_id]}
         response = self.app.post_json("/v1/email_users/", bad_input, expect_errors=True,
                                       headers={"x-session-id": self.session_id})

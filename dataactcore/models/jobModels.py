@@ -1,6 +1,6 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 from datetime import datetime
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Text, UniqueConstraint
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Text, UniqueConstraint, Enum, BigInteger
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 from dataactcore.models.domainModels import SubTierAgency
@@ -98,7 +98,7 @@ class Job(Base):
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id"), nullable=True)
     file_type = relationship("FileType", uselist=False, lazy='joined')
     original_filename = Column(Text, nullable=True)
-    file_size = Column(Integer)
+    file_size = Column(BigInteger)
     number_of_rows = Column(Integer)
     number_of_rows_valid = Column(Integer)
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
@@ -108,7 +108,9 @@ class Job(Base):
     end_date = Column(Date)
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_job_user"), nullable=True)
     last_validated = Column(DateTime, default=datetime.utcnow)
-    from_cached = Column(Boolean, nullable=False, default=False)
+    file_generation_id = Column(Integer, ForeignKey("file_generation.file_generation_id", ondelete="SET NULL",
+                                                    name="fk_file_request_file_generation_id"), nullable=True)
+    file_generation = relationship("FileGeneration", uselist=False)
 
     @property
     def job_type_name(self):
@@ -183,16 +185,23 @@ class SQS(Base):
     __tablename__ = "sqs"
 
     sqs_id = Column(Integer, primary_key=True)
-    job_id = Column(Integer, nullable=False)
-    agency_code = Column(Text)
-
-    __table_args__ = (UniqueConstraint('job_id', name='uniq_job_id'),)
+    message = Column(Integer, nullable=False)
+    attributes = Column(Text, nullable=True)
 
 
 class RevalidationThreshold(Base):
     __tablename__ = "revalidation_threshold"
 
-    revalidation_date = Column(Date, primary_key=True)
+    revalidation_date = Column(DateTime, primary_key=True)
+
+
+class QuarterlyRevalidationThreshold(Base):
+    __tablename__ = "quarterly_revalidation_threshold"
+
+    quarterly_revalidation_threshold_id = Column(Integer, primary_key=True)
+    year = Column(Integer, nullable=False)
+    quarter = Column(Integer, nullable=False)
+    window_start = Column(DateTime)
 
 
 class FPDSUpdate(Base):
@@ -263,5 +272,23 @@ class FileRequest(Base):
     start_date = Column(Date, nullable=False, index=True)
     end_date = Column(Date, nullable=False, index=True)
     agency_code = Column(Text, nullable=False, index=True)
+    agency_type = Column(Enum('awarding', 'funding', name='agency_types'), nullable=False, index=True,
+                         default='awarding', server_default='awarding')
     file_type = Column(Text, nullable=False, index=True)
+    is_cached_file = Column(Boolean, nullable=False, default=False)
+
+
+class FileGeneration(Base):
+    __tablename__ = "file_generation"
+
+    file_generation_id = Column(Integer, primary_key=True)
+    request_date = Column(Date, nullable=False, index=True)
+    start_date = Column(Date, nullable=False, index=True)
+    end_date = Column(Date, nullable=False, index=True)
+    agency_code = Column(Text, nullable=False, index=True)
+    agency_type = Column(Enum('awarding', 'funding', name='generation_agency_types'), nullable=False, index=True,
+                         default='awarding', server_default='awarding')
+    file_type = Column(Enum('D1', 'D2', name='generation_file_types'), nullable=False, index=True,
+                       default='D1', server_default='D1')
+    file_path = Column(Text)
     is_cached_file = Column(Boolean, nullable=False, default=False)

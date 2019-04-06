@@ -578,7 +578,7 @@ def get_last_validated_date(submission_id):
 
     # Still need to do a check here in case there aren't any jobs for a submission.
     # This is the case for a single unit test
-    return oldest_date.strftime('%m/%d/%Y') if oldest_date else oldest_date
+    return oldest_date.strftime('%Y-%m-%dT%H:%M:%S') if oldest_date else oldest_date
 
 
 def get_fabs_meta(submission_id):
@@ -604,13 +604,15 @@ def get_fabs_meta(submission_id):
         if CONFIG_BROKER["use_aws"] and file_path:
             path, file_name = file_path.rsplit('/', 1)  # split by last instance of /
             published_file = S3Handler().get_signed_url(path=path, file_name=file_name,
-                                                        bucket_route=CONFIG_BROKER['certified_bucket'], method="GET")
+                                                        bucket_route=CONFIG_BROKER['certified_bucket'],
+                                                        url_mapping=CONFIG_BROKER["certified_bucket_mapping"],
+                                                        method="get_object")
         elif file_path:
             published_file = file_path
 
     return {
-        'valid_rows': len(valid_rows.all()),
-        'total_rows': len(total_rows.all()),
+        'valid_rows': valid_rows.count(),
+        'total_rows': total_rows.count(),
         'publish_date': publish_date.strftime('%-I:%M%p %m/%d/%Y') if publish_date else None,
         'published_file': published_file
     }

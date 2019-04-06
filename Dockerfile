@@ -1,5 +1,8 @@
 FROM python:3.5
 
+RUN apt-get -y update
+RUN apt-get install -y postgresql-client
+
 RUN pip install unittest-xml-reporting
 RUN pip install paramiko==2.4.1
 
@@ -13,5 +16,6 @@ ENV PYTHONPATH /data-act/backend
 WORKDIR /data-act/backend
 
 VOLUME /data-act/backend
+ADD . /data-act/backend
 
 CMD /bin/sh

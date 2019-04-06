@@ -4,15 +4,15 @@ import os
 
 from flask_bcrypt import Bcrypt
 
-from dataactbroker.scripts.setupEmails import setup_emails
+from dataactbroker.scripts.setup_emails import setup_emails
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import create_user_with_password
 from dataactcore.logging import configure_logging
 from dataactcore.models.userModel import User
-from dataactcore.models.jobModels import FileRequest
-from dataactcore.scripts.setupAllDB import setup_all_db
+from dataactcore.models.jobModels import FileGeneration
+from dataactcore.scripts.setup_all_db import setup_all_db
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.labelLoader import LabelLoader
@@ -22,11 +22,11 @@ from dataactvalidator.scripts.load_cfda_data import load_cfda_program
 from dataactvalidator.scripts.load_object_class import load_object_class
 from dataactvalidator.scripts.load_country_codes import load_country_codes
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
-from dataactvalidator.scripts.loadTas import load_tas
-from dataactvalidator.scripts.loadLocationData import load_location_data
-from dataactvalidator.scripts.readZips import read_zips
-from dataactvalidator.scripts.loadAgencies import load_agency_data
-from dataactvalidator.scripts.loadOffices import load_offices
+from dataactvalidator.scripts.load_tas import load_tas
+from dataactvalidator.scripts.load_location_data import load_location_data
+from dataactvalidator.scripts.read_zips import read_zips
+from dataactvalidator.scripts.load_agencies import load_agency_data
+from dataactvalidator.scripts.load_offices import load_offices
 from dataactvalidator.scripts.load_program_activity import load_program_activity_data
 
 logger = logging.getLogger(__name__)
@@ -113,11 +113,11 @@ def load_zip_codes():
     read_zips()
 
 
-def uncache_file_requests():
-    logger.info('Un-caching file generation requests')
+def uncache_all_files():
+    logger.info('Un-caching all generated files')
     with create_app().app_context():
         sess = GlobalDB.db().session
-        sess.query(FileRequest).update({"is_cached_file": False}, synchronize_session=False)
+        sess.query(FileGeneration).update({"is_cached_file": False}, synchronize_session=False)
         sess.commit()
 
 
@@ -141,7 +141,7 @@ def main():
     parser.add_argument('-l', '--load_location', help='Load city and county codes', action='store_true')
     parser.add_argument('-z', '--load_zips', help='Load zip code data', action='store_true')
     parser.add_argument('-o', '--load_offices', help='Load FPDS Office Codes', action='store_true')
-    parser.add_argument('-u', '--uncache_file_requests', help='Un-cache file generation requests', action='store_true')
+    parser.add_argument('-u', '--uncache_all_files', help='Un-cache file generation requests', action='store_true')
     args = parser.parse_args()
 
     if args.initialize:
@@ -203,8 +203,8 @@ def main():
     if args.load_offices:
         load_offices()
 
-    if args.uncache_file_requests:
-        uncache_file_requests()
+    if args.uncache_all_files:
+        uncache_all_files()
 
 
 if __name__ == '__main__':

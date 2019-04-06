@@ -19,17 +19,16 @@ SELECT
 FROM award_financial_b9_{0} AS af
      INNER JOIN submission AS sub
         ON af.submission_id = sub.submission_id
-WHERE af.program_activity_code <> '0000'
-    AND UPPER(af.program_activity_name) <> 'UNKNOWN/OTHER'
-    AND NOT ((sub.reporting_fiscal_year, sub.reporting_fiscal_period) IN (('2017', 6), ('2017', 9))
-        AND sub.publish_status_id <> 1)
+WHERE (af.program_activity_code <> '0000'
+        OR UPPER(af.program_activity_name) <> 'UNKNOWN/OTHER')
+    AND (sub.reporting_fiscal_year, sub.reporting_fiscal_period) NOT IN (('2017', 6), ('2017', 9))
     AND NOT EXISTS (
         SELECT 1
         FROM program_activity AS pa
         WHERE af.agency_identifier = pa.agency_id
             AND af.main_account_code = pa.account_number
             AND UPPER(COALESCE(af.program_activity_name, '')) = UPPER(pa.program_activity_name)
-            AND COALESCE(af.program_activity_code, '') = pa.program_activity_code
+            AND UPPER(COALESCE(af.program_activity_code, '')) = UPPER(pa.program_activity_code)
             AND pa.fiscal_year_quarter = 'FY' || RIGHT(CAST(sub.reporting_fiscal_year AS CHAR(4)), 2) || 'Q' || sub.reporting_fiscal_period / 3
 
     );

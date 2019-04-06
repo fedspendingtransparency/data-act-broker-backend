@@ -1,7 +1,9 @@
+import boto3
 import csv
-import os
 import logging
-import smart_open
+import os
+import traceback
+
 from datetime import datetime
 
 from sqlalchemy import and_, or_
@@ -18,7 +20,7 @@ from dataactcore.interfaces.function_bag import (
     populate_job_error_info, get_action_dates
 )
 
-from dataactcore.models.domainModels import matching_cars_subquery
+from dataactcore.models.domainModels import matching_cars_subquery, Office
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
@@ -33,8 +35,6 @@ from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactvalidator.filestreaming.csvReader import CsvReader
-from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
-from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 from dataactvalidator.validation_handlers.errorInterface import ErrorInterface
@@ -74,19 +74,6 @@ class ValidationManager:
             if not self.short_to_long_dict.get(col.file_id):
                 self.short_to_long_dict[col.file_id] = {}
             self.short_to_long_dict[col.file_id][col.name_short] = col.name
-
-    def get_writer(self, region_name, bucket_name, file_name, header):
-        """ Gets the write type based on if its a local install or not.
-
-        Args:
-            region_name - AWS region to write to, not used for local
-            bucket_name - AWS bucket to write to, not used for local
-            file_name - File to be written
-            header - Column headers for file to be written
-        """
-        if self.is_local:
-            return CsvLocalWriter(file_name, header)
-        return CsvS3Writer(region_name, bucket_name, file_name, header)
 
     def get_file_name(self, path):
         """ Return full path of error report based on provided name """
@@ -230,7 +217,7 @@ class ValidationManager:
 
             # Count file rows: throws a File Level Error for non-UTF8 characters
             temp_file = open(reader.get_filename(region_name, bucket_name, file_name), encoding='utf-8')
-            file_row_count = len(list(csv.reader(temp_file)))
+            file_row_count = sum(1 for line in csv.reader(temp_file) if line)
             try:
                 temp_file.close()
             except AttributeError:
@@ -267,6 +254,7 @@ class ValidationManager:
 
                 required_list = None
                 type_list = None
+                office_list = {}
                 if file_type == "fabs":
                     # create a list of all required/type labels for FABS
                     labels = sess.query(ValidationLabel).all()
@@ -277,6 +265,14 @@ class ValidationManager:
                             required_list[label.column_name] = label.label
                         else:
                             type_list[label.column_name] = label.label
+
+                    # Create a list of all offices
+                    offices = sess.query(Office.office_code, Office.sub_tier_code).all()
+                    for office in offices:
+                        office_list[office.office_code] = office.sub_tier_code
+
+                    # Clear out office list to save space
+                    del offices
 
                 # write headers to file
                 error_csv.writerow(self.reportHeaders)
@@ -327,10 +323,25 @@ class ValidationManager:
                         valid = True
                     else:
                         if file_type == "fabs":
+                            # Derive awarding sub tier agency code if it wasn't provided
+                            if not record.get('awarding_sub_tier_agency_c'):
+                                office_code = record.get('awarding_office_code')
+                                record['awarding_sub_tier_agency_c'] = office_list.get(office_code)
+
+                            # Create afa_generated_unique
                             record['afa_generated_unique'] = (record['award_modification_amendme'] or '-none-') + "_" +\
-                                                             (record['awarding_sub_tier_agency_c'] or '-none-') + \
-                                                             "_" + (record['fain'] or '-none-') + "_" + \
+                                                             (record['awarding_sub_tier_agency_c'] or '-none-') + "_" +\
+                                                             (record['fain'] or '-none-') + "_" + \
                                                              (record['uri'] or '-none-')
+                            # Create unique_award_key
+                            if str(record['record_type']) == '1':
+                                unique_award_key_list = ['ASST_AGG', record['uri'] or '-none-']
+                            else:
+                                unique_award_key_list = ['ASST_NON', record['fain'] or '-none-']
+                            unique_award_key_list.append(record['awarding_sub_tier_agency_c'] or '-none-')
+
+                            record['unique_award_key'] = '_'.join(unique_award_key_list).upper()
+
                         passed_validations, failures, valid = Validator.validate(record, csv_schema,
                                                                                  file_type == "fabs",
                                                                                  required_list, type_list)
@@ -385,29 +396,16 @@ class ValidationManager:
 
             # stream file to S3 when not local
             if not self.is_local:
+                s3_resource = boto3.resource('s3', region_name=region_name)
                 # stream error file
                 with open(error_file_path, 'rb') as csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(error_file_name)), 'w')\
-                            as writer:
-                        while True:
-                            chunk = csv_file.read(CHUNK_SIZE)
-                            if chunk:
-                                writer.write(chunk)
-                            else:
-                                break
+                    s3_resource.Object(bucket_name, self.get_file_name(error_file_name)).put(Body=csv_file)
                 csv_file.close()
                 os.remove(error_file_path)
 
                 # stream warning file
                 with open(warning_file_path, 'rb') as warning_csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(warning_file_name)), 'w')\
-                            as warning_writer:
-                        while True:
-                            chunk = warning_csv_file.read(CHUNK_SIZE)
-                            if chunk:
-                                warning_writer.write(chunk)
-                            else:
-                                break
+                    s3_resource.Object(bucket_name, self.get_file_name(warning_file_name)).put(Body=warning_csv_file)
                 warning_csv_file.close()
                 os.remove(warning_file_path)
 
@@ -450,6 +448,18 @@ class ValidationManager:
             # Mark validation as finished in job tracker
             mark_job_status(job_id, "finished")
             mark_file_complete(job_id, file_name)
+
+        except Exception as e:
+            logger.error({
+                'message': 'An exception occurred during validation',
+                'message_type': 'ValidatorInfo',
+                'submission_id': job.submission_id,
+                'job_id': job.job_id,
+                'file_type': job.file_type.name,
+                'traceback': traceback.format_exc()
+            })
+            raise
+
         finally:
             # Ensure the files always close
             reader.close()
@@ -519,8 +529,8 @@ class ValidationManager:
         return error_rows
 
     def run_cross_validation(self, job):
-        """ Cross file validation job. Test all rules with matching rule_timing.
-            Run each cross-file rule and create error report.
+        """ Cross file validation job. Test all rules with matching rule_timing. Run each cross-file rule and create
+            error report.
 
             Args:
                 job: Current job
@@ -587,29 +597,18 @@ class ValidationManager:
 
             # stream file to S3 when not local
             if not self.is_local:
+                s3_resource = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
                 # stream error file
                 with open(error_file_path, 'rb') as csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(error_file_name)),
-                                               'w') as writer:
-                        while True:
-                            chunk = csv_file.read(CHUNK_SIZE)
-                            if chunk:
-                                writer.write(chunk)
-                            else:
-                                break
+                    s3_resource.Object(CONFIG_BROKER['aws_bucket'], self.get_file_name(error_file_name)).\
+                        put(Body=csv_file)
                 csv_file.close()
                 os.remove(error_file_path)
 
                 # stream warning file
                 with open(warning_file_path, 'rb') as warning_csv_file:
-                    with smart_open.smart_open(S3Handler.create_file_path(self.get_file_name(warning_file_name)),
-                                               'w') as warning_writer:
-                        while True:
-                            chunk = warning_csv_file.read(CHUNK_SIZE)
-                            if chunk:
-                                warning_writer.write(chunk)
-                            else:
-                                break
+                    s3_resource.Object(CONFIG_BROKER['aws_bucket'], self.get_file_name(warning_file_name)).\
+                        put(Body=warning_csv_file)
                 warning_csv_file.close()
                 os.remove(warning_file_path)
 
@@ -646,10 +645,12 @@ class ValidationManager:
 
     def validate_job(self, job_id):
         """ Gets file for job, validates each row, and sends valid rows to a staging table
-        Args:
-        request -- HTTP request containing the jobId
-        Returns:
-        Http response object
+
+            Args:
+                job_id: Database ID for the validation Job
+
+            Returns:
+                Http response object
         """
         # Create connection to job tracker database
         sess = GlobalDB.db().session
@@ -657,10 +658,8 @@ class ValidationManager:
         # Get the job
         job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
         if job is None:
-            validation_error_type = ValidationError.jobError
-            write_file_error(job_id, None, validation_error_type)
             raise ResponseException('Job ID {} not found in database'.format(job_id), StatusCode.CLIENT_ERROR, None,
-                                    validation_error_type)
+                                    ValidationError.jobError)
 
         # Make sure job's prerequisites are complete
         if not run_job_checks(job_id):
@@ -742,6 +741,7 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
         row_number: Current row number
         error_list: instance of ErrorInterface to keep track of errors
         flex_cols: all flex columns for this row
+
     Returns:
         True if any fatal errors were found, False if only warnings are present
     """

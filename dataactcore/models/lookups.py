@@ -94,6 +94,7 @@ PERMISSION_TYPE_DICT = {item.name: item.id for item in PERMISSION_TYPES[:3]}
 ALL_PERMISSION_TYPES_DICT = {item.name: item.id for item in PERMISSION_TYPES}
 PERMISSION_TYPE_DICT_ID = {item.id: item.name for item in PERMISSION_TYPES}
 PERMISSION_SHORT_DICT = {item.name[0]: item.id for item in PERMISSION_TYPES}
+# These are split into DABS and FABS permissions but having DABS permissions gives read-access to FABS submissions
 DABS_PERMISSION_ID_LIST = [item.id for item in PERMISSION_TYPES[:3]]
 FABS_PERMISSION_ID_LIST = [item.id for item in PERMISSION_TYPES[3:]]
 

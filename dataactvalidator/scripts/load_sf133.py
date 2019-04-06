@@ -6,15 +6,16 @@ import os
 import re
 import sys
 
-import boto
+import boto3
 import pandas as pd
 
+from dataactbroker.helpers.generic_helper import format_internal_tas
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import matching_cars_subquery, SF133
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
+from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
@@ -94,8 +95,7 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False):
     with create_app().app_context():
         sess = GlobalDB.db().session
 
-        existing_records = sess.query(SF133).filter(
-            SF133.fiscal_year == fiscal_year, SF133.period == fiscal_period)
+        existing_records = sess.query(SF133).filter(SF133.fiscal_year == fiscal_year, SF133.period == fiscal_period)
         if force_sf133_load:
             # force a reload of this period's current data
             logger.info('Force SF 133 load: deleting existing records for %s %s', fiscal_year, fiscal_period)
@@ -192,21 +192,6 @@ def clean_sf133_data(filename, sf133_data):
     return data
 
 
-def format_internal_tas(row):
-    """Concatenate TAS components into a single field for internal use."""
-    # This formatting should match formatting in dataactcore.models.stagingModels concat_tas
-    tas = ''.join([
-        row['allocation_transfer_agency'] if row['allocation_transfer_agency'] else '000',
-        row['agency_identifier'] if row['agency_identifier'] else '000',
-        row['beginning_period_of_availa'] if row['beginning_period_of_availa'].strip() else '0000',
-        row['ending_period_of_availabil'] if row['ending_period_of_availabil'].strip() else '0000',
-        row['availability_type_code'].strip() if row['availability_type_code'].strip() else ' ',
-        row['main_account_code'] if row['main_account_code'] else '0000',
-        row['sub_account_code'] if row['sub_account_code'] else '000'
-    ])
-    return tas
-
-
 def get_sf133_list(sf133_path):
     """Return info about existing SF133 files as a list of named tuples."""
     SF133File = namedtuple('SF133', ['full_file', 'file'])
@@ -219,11 +204,15 @@ def get_sf133_list(sf133_path):
         logger.info("Loading SF-133")
         if CONFIG_BROKER["use_aws"]:
             # get list of SF 133 files in the config bucket on S3
-            s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-            s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-            # get bucketlistresultset with all sf_133 files
-            sf133_files = s3bucket.list(prefix='sf_133')
-            sf133_list = [SF133File(sf133, os.path.basename(sf133.name)) for sf133 in sf133_files]
+            s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+            response = s3_client.list_objects_v2(Bucket=CONFIG_BROKER['sf_133_bucket'], Prefix='sf_133')
+            sf133_list = []
+            for obj in response.get('Contents', []):
+                if obj['Key'] != 'sf_133':
+                    file_url = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
+                                                                               'Key': obj['Key']},
+                                                                ExpiresIn=600)
+                    sf133_list.append(SF133File(file_url, obj['Key']))
         else:
             sf133_list = []
 

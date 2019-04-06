@@ -12,7 +12,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import ProgramActivity, ExternalDataLoadDate
 from dataactcore.models.lookups import EXTERNAL_DATA_TYPE_DICT
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
+from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 from dataactcore.utils.failure_threshold_exception import FailureThresholdExceededException
 
 logger = logging.getLogger(__name__)

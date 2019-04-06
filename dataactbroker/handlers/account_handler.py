@@ -12,7 +12,7 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.interfaces.db import GlobalDB
 from sqlalchemy.orm.exc import MultipleResultsFound
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 from dataactcore.models.userModel import User, UserAffiliation
 from dataactcore.models.domainModels import CGAC, FREC
@@ -120,7 +120,8 @@ class AccountHandler:
             max_dict = get_max_dict(ticket, service)
 
             if 'cas:authenticationSuccess' not in max_dict['cas:serviceResponse']:
-                raise ValueError("You have failed to login successfully with MAX")
+                raise ValueError("The Max CAS endpoint was unable to locate your session "
+                                 "using the ticket/service combination you provided.")
             cas_attrs = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']
 
             # Grab MAX ID to see if a service account is being logged in
@@ -152,16 +153,18 @@ class AccountHandler:
 
             return self.create_session_and_response(session, user)
 
-        # Catch any specifically raised errors or any other errors that may have happened and return them cleanly
+        # Catch any specifically raised errors or any other errors that may have happened and return them cleanly.
+        # We add the error parameter here because this endpoint needs to provide better feedback, and to avoid changing
+        # the default behavior of the JsonResponse class globally.
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
-            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR, error=str(e))
         except ValueError as e:
             # Return a 401 for login denied
-            return JsonResponse.error(e, StatusCode.LOGIN_REQUIRED)
+            return JsonResponse.error(e, StatusCode.LOGIN_REQUIRED, error=str(e))
         except Exception as e:
             # Return 500
-            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR, error=str(e))
 
     @staticmethod
     def create_session_and_response(session, user):
@@ -207,46 +210,38 @@ class AccountHandler:
         sess.commit()
         return JsonResponse.create(StatusCode.OK, {"message": "skip_guide set successfully", "skip_guide": skip_guide})
 
-    def email_users(self, system_email):
+    @staticmethod
+    def email_users(submission, system_email, template_type, user_ids):
         """ Send email notification to list of users
 
             Args:
+                submission: the submission to send the email about
                 system_email: the address of the system to send the email from
+                template_type: the template type of the email to send
+                user_ids: A list of user IDs denoting who to send the email to
 
             Returns:
                 A JsonReponse containing a message that the email sent successfully or the details of the missing
-                parameters
+                or incorrect parameters
         """
         sess = GlobalDB.db().session
-        request_dict = RequestDictionary.derive(self.request)
-        required = ('users', 'submission_id', 'email_template')
-        try:
-            if any(field not in request_dict for field in required):
-                raise ResponseException(
-                    "Email users route requires users, email_template, and submission_id", StatusCode.CLIENT_ERROR
-                )
-        except ResponseException as exc:
-            return JsonResponse.error(exc, exc.status)
 
-        user_ids = request_dict['users']
-        submission_id = request_dict['submission_id']
-        # Check if submission id is valid
-        _, agency_name = sess.query(Submission.submission_id, CGAC.agency_name).\
-            join(CGAC, Submission.cgac_code == CGAC.cgac_code).filter(Submission.submission_id == submission_id).one()
-        if not agency_name:
-            _, agency_name = sess.query(Submission.submission_id, FREC.agency_name).\
-                join(FREC, Submission.frec_code == FREC.frec_code).\
-                filter(Submission.submission_id == submission_id).one()
+        if submission.cgac_code:
+            agency = sess.query(CGAC).filter_by(cgac_code=submission.cgac_code).first()
+        else:
+            agency = sess.query(FREC).filter_by(frec_code=submission.frec_code).first()
 
-        template_type = request_dict['email_template']
+        if not agency:
+            return JsonResponse.error(ValueError("The requested submission is not aligned to a valid CGAC or FREC "
+                                                 "agency"), StatusCode.CLIENT_ERROR)
+
         # Check if email template type is valid
         get_email_template(template_type)
 
+        link = "".join([AccountHandler.FRONT_END, '#/reviewData/', str(submission.submission_id)])
+        email_template = {'[REV_USER_NAME]': g.user.name, '[REV_AGENCY]': agency.agency_name, '[REV_URL]': link}
+
         users = []
-
-        link = "".join([AccountHandler.FRONT_END, '#/reviewData/', str(submission_id)])
-        email_template = {'[REV_USER_NAME]': g.user.name, '[REV_AGENCY]': agency_name, '[REV_URL]': link}
-
         for user_id in user_ids:
             # Check if user id is valid, if so add User object to array
             users.append(sess.query(User).filter(User.user_id == user_id).one())
@@ -388,9 +383,15 @@ def set_max_perms(user, max_group_list, service_account_flag=False):
 
     # Each group name that we care about begins with the prefix, but once we have that list, we don't need the
     # prefix anymore, so trim it off.
-    perms = [group_name[len(prefix):]
-             for group_name in max_group_list.split(',')
-             if group_name.startswith(prefix)]
+    if max_group_list is not None:
+        perms = [group_name[len(prefix):]
+                 for group_name in max_group_list.split(',')
+                 if group_name.startswith(prefix)]
+    elif service_account_flag:
+        raise ValueError("There are no DATA Act Broker permissions assigned to this Service Account. You may request "
+                         "permissions at https://community.max.gov/x/fJwuRQ")
+    else:
+        perms = []
 
     if 'SYS' in perms:
         user.affiliations = []
@@ -470,3 +471,56 @@ def list_user_emails():
 
     user_info = [{"id": user.user_id, "name": user.name, "email": user.email} for user in users]
     return JsonResponse.create(StatusCode.OK, {"users": user_info})
+
+
+def list_submission_users(d2_submission):
+    """ List user IDs and names that have submissions that the requesting user can see.
+
+        Arguments:
+            d2_submission: boolean indicating whether it is a DABS or FABS submission (True if FABS)
+
+        Returns:
+            A JsonResponse containing a list of users that have submissions that the requesting user can see
+    """
+
+    sess = GlobalDB.db().session
+    # subquery to create the EXISTS portion of the query
+    exists_query = sess.query(Submission).filter(Submission.user_id == User.user_id,
+                                                 Submission.d2_submission.is_(d2_submission))
+
+    # if user is not an admin, we have to adjust the exists query to limit submissions
+    if not g.user.website_admin:
+        # split affiliations into frec and cgac
+        cgac_affiliations = [aff for aff in g.user.affiliations if aff.cgac]
+        frec_affiliations = [aff for aff in g.user.affiliations if aff.frec]
+
+        # Don't list FABS permissions users if the user only has DABS permissions
+        if not d2_submission:
+            cgac_affiliations = [aff for aff in cgac_affiliations if aff.permission_type_id in DABS_PERMISSION_ID_LIST]
+            frec_affiliations = [aff for aff in frec_affiliations if aff.permission_type_id in DABS_PERMISSION_ID_LIST]
+
+        # Make a list of cgac and frec codes
+        cgac_list = [aff.cgac.cgac_code for aff in cgac_affiliations]
+        frec_list = [aff.frec.frec_code for aff in frec_affiliations]
+
+        # Add filters where applicable
+        affiliation_filters = [Submission.user_id == g.user.user_id]
+        if cgac_list:
+            affiliation_filters.append(Submission.cgac_code.in_(cgac_list))
+        if frec_list:
+            affiliation_filters.append(Submission.frec_code.in_(frec_list))
+
+        exists_query = exists_query.filter(or_(*affiliation_filters))
+
+    # Add an exists onto the query, couldn't do this earlier because then the filters couldn't get added in the if
+    exists_query = exists_query.exists()
+
+    # Get all the relevant users
+    user_results = sess.query(User.user_id, User.name).filter(exists_query).order_by(User.name).all()
+
+    # Create an array containing relevant users in a readable format
+    user_list = []
+    for user in user_results:
+        user_list.append({'user_id': user[0], 'name': user[1]})
+
+    return JsonResponse.create(StatusCode.OK, {"users": user_list})

@@ -20,8 +20,8 @@ from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory,
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
-def list_submissions_result(d2_submission=False):
-    json_response = fileHandler.list_submissions(1, 10, "mixed", d2_submission=d2_submission)
+def list_submissions_result(is_fabs=False):
+    json_response = fileHandler.list_submissions(1, 10, "mixed", is_fabs=is_fabs)
     assert json_response.status_code == 200
     return json.loads(json_response.get_data().decode('UTF-8'))
 
@@ -143,7 +143,7 @@ def test_list_submissions_success(database, monkeypatch):
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
 
-    result = list_submissions_result(d2_submission=True)
+    result = list_submissions_result(is_fabs=True)
     assert result['total'] == 1
     assert result['submissions'][0]['status'] == "ready"
     delete_models(database, [user, sub, job])
@@ -193,12 +193,12 @@ def test_list_submissions_detached(database, monkeypatch):
 
     monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
     result = list_submissions_result()
-    d2_result = list_submissions_result(d2_submission=True)
+    fabs_result = list_submissions_result(is_fabs=True)
 
     assert result['total'] == 1
     assert result['submissions'][0]['submission_id'] == sub.submission_id
-    assert d2_result['total'] == 1
-    assert d2_result['submissions'][0]['submission_id'] == d2_sub.submission_id
+    assert fabs_result['total'] == 1
+    assert fabs_result['submissions'][0]['submission_id'] == d2_sub.submission_id
     delete_models(database, [user, sub, d2_sub])
 
 
@@ -370,36 +370,37 @@ def test_submission_report_url_local(monkeypatch, tmpdir):
     file_path = str(tmpdir) + os.path.sep
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': True, 'broker_files': file_path})
     json_response = fileHandler.submission_report_url(
-        SubmissionFactory(submission_id=4), True, 'some_file', 'another_file')
+        SubmissionFactory(submission_id=4), True, 'award_financial', 'award')
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
-    assert url == os.path.join(file_path, 'submission_4_cross_warning_some_file_another_file.csv')
+    assert url == os.path.join(file_path, 'submission_4_cross_warning_award_financial_award.csv')
 
 
 def test_submission_report_url_s3(monkeypatch):
-    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
+    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False, 'submission_bucket_mapping': 'test/path'})
     s3_url_handler = Mock()
     s3_url_handler.return_value.get_signed_url.return_value = 'some/url/here.csv'
     monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
-    json_response = fileHandler.submission_report_url(
-        SubmissionFactory(submission_id=2), False, 'some_file', None)
+    json_response = fileHandler.submission_report_url(SubmissionFactory(submission_id=2), False, 'some_file', None)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == 'some/url/here.csv'
     assert s3_url_handler.return_value.get_signed_url.call_args == (
         ('errors', 'submission_2_some_file_error_report.csv'),
-        {'method': 'GET'}
+        {'method': 'get_object', 'url_mapping': 'test/path'}
     )
 
 
 def test_build_file_map_string(monkeypatch):
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
     upload_files = []
-    response_dict = {}
-    file_type_list = ["fabs"]
-    file_dict = {"fabs": "fabs_file.csv"}
+    file_type_list = ["fabs", "appropriations", "award_financial", "program_activity"]
+    file_dict = {"fabs": "fabs_file.csv",
+                 "appropriations": "appropriations.csv",
+                 "award_financial": "award_financial.csv",
+                 "program_activity": "program_activity.csv"}
     monkeypatch.setattr(S3Handler, 'get_timestamped_filename', Mock(side_effect=lambda x: "123_" + x))
     submission = SubmissionFactory(submission_id=3)
     fh = fileHandler.FileHandler({})
-    fh.build_file_map(file_dict, file_type_list, response_dict, upload_files, submission)
+    fh.build_file_map(file_dict, file_type_list, upload_files, submission)
     for file in upload_files:
         assert file.upload_name == "3/123_"+file.file_name
 
@@ -407,15 +408,21 @@ def test_build_file_map_string(monkeypatch):
 def test_build_file_map_file(monkeypatch):
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
     upload_files = []
-    response_dict = {}
-    file_type_list = ["fabs"]
-    the_file = io.BytesIO(b"something")
-    the_file.filename = 'fabs.csv'
-    file_dict = {"fabs": the_file}
+    file_type_list = ["fabs", "appropriations", "award_financial", "program_activity"]
+    fabs_file = io.BytesIO(b"something")
+    fabs_file.filename = 'fabs.csv'
+    approp_file = io.BytesIO(b"something")
+    approp_file.filename = 'approp.csv'
+    pa_file = io.BytesIO(b"something")
+    pa_file.filename = 'pa.csv'
+    award_file = io.BytesIO(b"something")
+    award_file.filename = 'award.csv'
+    file_dict = {"fabs": fabs_file, "award_financial": award_file, "program_activity": pa_file,
+                 "appropriations": approp_file}
     monkeypatch.setattr(S3Handler, 'get_timestamped_filename', Mock(side_effect=lambda x: "123_" + x))
     submission = SubmissionFactory(submission_id=3)
     fh = fileHandler.FileHandler({})
-    fh.build_file_map(file_dict, file_type_list, response_dict, upload_files, submission)
+    fh.build_file_map(file_dict, file_type_list, upload_files, submission)
     for file in upload_files:
         assert file.upload_name == "3/123_"+file.file_name
 
@@ -479,7 +486,7 @@ def test_get_upload_file_url_no_file(database):
 @pytest.mark.usefixtures("job_constants")
 def test_get_upload_file_url_s3(database, monkeypatch):
     """ Test getting the url of the uploaded file non-locally. """
-    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
+    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False, 'submission_bucket_mapping': 'test/path'})
     s3_url_handler = Mock()
     s3_url_handler.return_value.get_signed_url.return_value = 'some/url/here.csv'
     monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
@@ -496,7 +503,7 @@ def test_get_upload_file_url_s3(database, monkeypatch):
     assert url == 'some/url/here.csv'
     assert s3_url_handler.return_value.get_signed_url.call_args == (
         ('1', 'some_file.csv'),
-        {'method': 'GET'}
+        {'method': 'get_object', 'url_mapping': 'test/path'}
     )
 
 
@@ -889,133 +896,3 @@ def test_process_job_status():
     assert resp['has_errors'] is False
     assert resp['has_warnings'] is True
     assert resp['message'] == ''
-
-
-@pytest.mark.usefixtures("job_constants")
-def test_check_generation_prereqs_ef_valid(database):
-    """ Tests a set of conditions that passes the prerequisite checks to allow E/F files to be generated. Show that
-        warnings do not prevent generation.
-    """
-    sess = database.session
-
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    cross_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'],
-                           file_type_id=None, job_status_id=JOB_STATUS_DICT['finished'], number_of_errors=0,
-                           number_of_warnings=1, error_message=None)
-    sess.add_all([sub, cross_val])
-    sess.commit()
-
-    can_generate = fileHandler.check_generation_prereqs(sub.submission_id, 'E')
-    assert can_generate is True
-
-
-@pytest.mark.usefixtures("job_constants")
-def test_check_generation_prereqs_ef_not_finished(database):
-    """ Tests a set of conditions that has cross-file still waiting, fail the generation check for E/F files. """
-    sess = database.session
-
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    cross_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
-                           job_status_id=JOB_STATUS_DICT['waiting'], number_of_errors=0, number_of_warnings=0,
-                           error_message=None)
-    sess.add_all([sub, cross_val])
-    sess.commit()
-
-    can_generate = fileHandler.check_generation_prereqs(sub.submission_id, 'E')
-    assert can_generate is False
-
-
-@pytest.mark.usefixtures("job_constants")
-def test_check_generation_prereqs_ef_has_errors(database):
-    """ Tests a set of conditions that has an error in cross-file, fail the generation check for E/F files. """
-    sess = database.session
-
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    cross_val = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'], file_type_id=None,
-                           job_status_id=JOB_STATUS_DICT['finished'], number_of_errors=1, number_of_warnings=0,
-                           error_message=None)
-    sess.add_all([sub, cross_val])
-    sess.commit()
-
-    can_generate = fileHandler.check_generation_prereqs(sub.submission_id, 'E')
-    assert can_generate is False
-
-
-@pytest.mark.usefixtures("job_constants")
-def test_check_generation_prereqs_d_valid(database):
-    """ Tests a set of conditions that passes the prerequisite checks to allow D files to be generated. Show that
-        warnings do not prevent generation.
-    """
-    sess = database.session
-
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    job_1 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
-                       file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=JOB_STATUS_DICT['finished'],
-                       number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_2 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
-                       file_type_id=FILE_TYPE_DICT['program_activity'], job_status_id=JOB_STATUS_DICT['finished'],
-                       number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_3 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
-                       file_type_id=FILE_TYPE_DICT['award_financial'], job_status_id=JOB_STATUS_DICT['finished'],
-                       number_of_errors=0, number_of_warnings=1, error_message=None)
-    sess.add_all([sub, job_1, job_2, job_3])
-    sess.commit()
-
-    can_generate = fileHandler.check_generation_prereqs(sub.submission_id, 'D1')
-    assert can_generate is True
-
-
-@pytest.mark.usefixtures("job_constants")
-def test_check_generation_prereqs_d_not_finished(database):
-    """ Tests a set of conditions that has one of the A,B,C files incomplete, prevent D file generation. """
-    sess = database.session
-
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    job_1 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
-                       file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=JOB_STATUS_DICT['finished'],
-                       number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_2 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
-                       file_type_id=FILE_TYPE_DICT['program_activity'], job_status_id=JOB_STATUS_DICT['waiting'],
-                       number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_3 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
-                       file_type_id=FILE_TYPE_DICT['award_financial'], job_status_id=JOB_STATUS_DICT['finished'],
-                       number_of_errors=0, number_of_warnings=0, error_message=None)
-    sess.add_all([sub, job_1, job_2, job_3])
-    sess.commit()
-
-    can_generate = fileHandler.check_generation_prereqs(sub.submission_id, 'D1')
-    assert can_generate is False
-
-
-@pytest.mark.usefixtures("job_constants")
-def test_check_generation_prereqs_d_has_errors(database):
-    """ Tests a set of conditions that has an error in one of the A,B,C files, prevent D file generation. """
-    sess = database.session
-
-    sub = SubmissionFactory(submission_id=1, d2_submission=False)
-    job_1 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
-                       file_type_id=FILE_TYPE_DICT['appropriations'], job_status_id=JOB_STATUS_DICT['finished'],
-                       number_of_errors=1, number_of_warnings=0, error_message=None)
-    job_2 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
-                       file_type_id=FILE_TYPE_DICT['program_activity'], job_status_id=JOB_STATUS_DICT['finished'],
-                       number_of_errors=0, number_of_warnings=0, error_message=None)
-    job_3 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
-                       file_type_id=FILE_TYPE_DICT['award_financial'], job_status_id=JOB_STATUS_DICT['finished'],
-                       number_of_errors=0, number_of_warnings=0, error_message=None)
-    sess.add_all([sub, job_1, job_2, job_3])
-    sess.commit()
-
-    can_generate = fileHandler.check_generation_prereqs(sub.submission_id, 'D1')
-    assert can_generate is False
-
-
-@pytest.mark.usefixtures("job_constants")
-def test_check_generation_prereqs_bad_type(database):
-    """ Tests that check_generation_prereqs raises an error if an invalid type is provided. """
-    sess = database.session
-    sub = SubmissionFactory()
-    sess.add(sub)
-    sess.commit()
-
-    with pytest.raises(ResponseException):
-        fileHandler.check_generation_prereqs(sub.submission_id, 'A')

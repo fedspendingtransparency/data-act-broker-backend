@@ -1,9 +1,9 @@
 version: '3'
 services:
-  dataact-postgres:
-    container_name: dataact-postgres
-    image: postgres:10.3-alpine
-    restart: always
+  dataact-broker-db:
+    container_name: dataact-broker-db
+    image: postgres:10.6-alpine
+    restart: on-failure:3 # 3 max attempt, and then it will stop restarting
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: root
@@ -11,26 +11,40 @@ services:
     ports:
       - "8000:5432"
 
-  dataact-broker:
-    container_name: dataact-broker
-    image: broker-backend
+  dataact-broker-backend:
+    container_name: dataact-broker-backend
+    image: dataact-broker-backend
     build:
       context: ./
     depends_on:
-      - dataact-postgres
-    restart: always
+      - dataact-broker-db
+    restart: on-failure:3 # 3 max attempt, and then it will stop restarting
     command: /bin/sh -c "cd ./dataactcore; sleep 9s; alembic upgrade head; python ../dataactbroker/app.py"
     ports:
       - "9999:9999"
     volumes:
       - ./:/data-act/backend
 
-  dataact-validator:
-    container_name: dataact-validator
-    image: broker-backend
-    restart: always
+  dataact-broker-validator:
+    container_name: dataact-broker-validator
+    image: dataact-broker-backend
+    restart: on-failure:5 # 5 max attempt, and then it will stop restarting
     command: /bin/sh -c "sleep 17s; python dataactvalidator/app.py"
     ports:
       - "8889:8889"
     volumes:
       - ./:/data-act/backend
+
+  # Comment-out from here below if you do not have frontend code or don't want to run the frontend
+  dataact-broker-frontend:
+    container_name: dataact-broker-frontend
+    image: dataact-broker-frontend
+    build:
+      context: ./../data-act-broker-web-app/
+    depends_on: 
+      - dataact-broker-backend
+    restart: on-failure:3 # 3 max attempt, and then it will stop restarting
+    ports: 
+      - "3000:3000"
+    volumes:
+      - ./../data-act-broker-web-app/:/data-act/frontend

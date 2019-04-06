@@ -93,6 +93,8 @@ def current_user_can(permission, cgac_code=None, frec_code=None):
         if (aff.cgac and aff.cgac.cgac_code == cgac_code) or (aff.frec and aff.frec.frec_code == frec_code):
             # Check if affiliation has higher permissions than permission args
             aff_perm_id = aff.permission_type_id
+            # We can check for reader overall regardless of FABS or DABS or permission level because DABS permissions
+            # give read access to FABS submissions so it should pass as long as there are any permissions for the agency
             if (permission == 'reader') or (aff_perm_id in permission_list and aff_perm_id >= permission_id):
                 return True
 

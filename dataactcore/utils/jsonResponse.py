@@ -3,6 +3,7 @@ import logging
 import traceback
 
 import flask
+import decimal
 
 from dataactcore.utils.responseException import ResponseException
 
@@ -23,7 +24,7 @@ class JsonResponse:
         jsondata = flask.Response()
         jsondata.headers["Content-Type"] = "application/json"
         jsondata.status_code = code
-        jsondata.set_data(json.dumps(dictionary_data))
+        jsondata.set_data(json.dumps(dictionary_data, cls=DecimalEncoder))
         return jsondata
 
     @staticmethod
@@ -45,8 +46,8 @@ class JsonResponse:
 
         trace = traceback.extract_tb(exception.__traceback__, 10)
         logger.exception('Route Error')
+        response_dict["message"] = str(exception)
         if JsonResponse.debugMode:
-            response_dict["message"] = str(exception)
             response_dict["errorType"] = str(type(exception))
             if isinstance(exception, ResponseException) and exception.wrappedException:
                 response_dict["wrappedType"] = str(type(exception.wrappedException))
@@ -54,5 +55,11 @@ class JsonResponse:
             response_dict["trace"] = [str(entry) for entry in trace]
             return JsonResponse.create(error_code, response_dict)
         else:
-            response_dict["message"] = "An error has occurred"
             return JsonResponse.create(error_code, response_dict)
+
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, decimal.Decimal):
+            return float(obj)
+        return json.JSONEncoder.default(self, obj)

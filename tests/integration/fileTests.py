@@ -1,10 +1,4 @@
-import calendar
-import boto
 import os
-
-from boto.s3.key import Key
-from datetime import datetime
-from shutil import copy
 
 from dataactbroker.handlers.submission_handler import populate_submission_error_info
 
@@ -22,6 +16,16 @@ from dataactvalidator.health_check import create_app
 from sqlalchemy import or_
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.integration.baseTestAPI import BaseTestAPI
+from tests.integration.integration_test_helper import insert_submission, insert_job
+
+AWARD_FILE_T = ('award_financial', 'award_financial.csv',
+                open('tests/integration/data/awardFinancialValid.csv', 'rb').read())
+APPROP_FILE_T = ('appropriations', 'appropriations.csv',
+                 open('tests/integration/data/appropValid.csv', 'rb').read())
+PA_FILE_T = ('program_activity', 'program_activity.csv',
+             open('tests/integration/data/programActivityValid.csv', 'rb').read())
+INVAL_FILE = ('program_activity', 'invalid_file_format.md',
+              open('tests/integration/data/invalid_file_format.md', 'rb').read())
 
 
 class FileTests(BaseTestAPI):
@@ -49,76 +53,66 @@ class FileTests(BaseTestAPI):
             cls.other_user_id = other_user.user_id
 
             # setup submission/jobs data for test_check_status
-            cls.status_check_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                   start_date="10/2015", end_date="12/2015",
-                                                                   is_quarter=True)
-
-            cls.generation_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                 start_date="07/2015", end_date="09/2015",
-                                                                 is_quarter=True)
-
-            cls.setup_file_generation_submission(sess)
+            cls.status_check_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                               start_date="10/2015", end_date="12/2015",
+                                                               is_quarter=True)
 
             cls.jobIdDict = cls.setup_jobs_for_status_check(sess, cls.status_check_submission_id)
 
             # setup submission/jobs data for test_error_report
-            cls.error_report_submission_id = cls.insert_submission(
-                sess, cls.submission_user_id, cgac_code="SYS", start_date="10/2015", end_date="10/2015")
+            cls.error_report_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                               start_date="10/2015", end_date="10/2015")
             cls.setup_jobs_for_reports(sess, cls.error_report_submission_id)
 
             # setup file status data for test_metrics
-            cls.test_metrics_submission_id = cls.insert_submission(
-                sess, cls.submission_user_id, cgac_code="SYS", start_date="08/2015", end_date="08/2015")
+            cls.test_metrics_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                               start_date="08/2015", end_date="08/2015")
             cls.setup_file_data(sess, cls.test_metrics_submission_id)
 
-            cls.row_error_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                start_date="10/2015", end_date="12/2015",
-                                                                is_quarter=True, number_of_errors=1)
+            cls.row_error_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                            start_date="10/2015", end_date="12/2015", is_quarter=True,
+                                                            number_of_errors=1)
             cls.setup_submission_with_error(sess, cls.row_error_submission_id)
 
-            cls.test_delete_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                  start_date="07/2015", end_date="09/2015",
-                                                                  is_quarter=True)
-            cls.setup_file_generation_submission(sess, submission_id=cls.test_delete_submission_id)
+            cls.test_delete_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                              start_date="07/2015", end_date="09/2015", is_quarter=True)
+            cls.setup_file_generation_submission(sess, cls.test_delete_submission_id)
 
-            cls.test_certified_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                     start_date="07/2015", end_date="09/2015",
-                                                                     is_quarter=True, number_of_errors=0,
-                                                                     publish_status_id=2)
+            cls.test_certified_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                                 start_date="07/2015", end_date="09/2015",
+                                                                 is_quarter=True, number_of_errors=0,
+                                                                 publish_status_id=2)
 
-            cls.test_updated_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                   start_date="07/2016", end_date="09/2016",
-                                                                   is_quarter=True, number_of_errors=0,
-                                                                   publish_status_id=3)
+            cls.test_updated_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                               start_date="07/2016", end_date="09/2016",
+                                                               is_quarter=True, number_of_errors=0,
+                                                               publish_status_id=3)
 
-            cls.test_uncertified_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                       start_date="04/2015", end_date="06/2015",
-                                                                       is_quarter=True, number_of_errors=0)
+            cls.test_uncertified_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                                   start_date="04/2015", end_date="06/2015",
+                                                                   is_quarter=True, number_of_errors=0)
 
-            cls.test_revalidate_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                      start_date="10/2015", end_date="12/2015",
-                                                                      is_quarter=True, number_of_errors=0)
+            cls.test_revalidate_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                                  start_date="10/2015", end_date="12/2015",
+                                                                  is_quarter=True, number_of_errors=0)
 
-            cls.test_monthly_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                   start_date="10/2015", end_date="12/2015",
-                                                                   is_quarter=False, number_of_errors=0)
+            cls.test_monthly_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                               start_date="10/2015", end_date="12/2015",
+                                                               is_quarter=False, number_of_errors=0)
 
-            cls.test_fabs_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                start_date="10/2015", end_date="12/2015",
-                                                                is_quarter=False, number_of_errors=0,
-                                                                is_fabs=True)
+            cls.test_fabs_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                            start_date="10/2015", end_date="12/2015", is_quarter=False,
+                                                            number_of_errors=0, is_fabs=True)
 
-            cls.test_other_user_submission_id = cls.insert_submission(sess, cls.other_user_id, cgac_code="NOT",
-                                                                      start_date="10/2015", end_date="12/2015",
-                                                                      is_quarter=True, number_of_errors=0)
+            cls.test_other_user_submission_id = insert_submission(sess, cls.other_user_id, cgac_code="NOT",
+                                                                  start_date="10/2015", end_date="12/2015",
+                                                                  is_quarter=True, number_of_errors=0)
             for job_type in ['file_upload', 'csv_record_validation']:
                 for file_type in ['appropriations', 'program_activity', 'award_financial']:
-                    cls.insert_job(sess, FILE_TYPE_DICT[file_type], FILE_STATUS_DICT['complete'],
-                                   JOB_TYPE_DICT[job_type], cls.test_other_user_submission_id, job_id=None,
-                                   filename=None, file_size=None, num_rows=None)
-            cls.insert_job(sess, None, FILE_STATUS_DICT['complete'],
-                           JOB_TYPE_DICT['validation'], cls.test_other_user_submission_id, job_id=None,
-                           filename=None, file_size=None, num_rows=None)
+                    insert_job(sess, FILE_TYPE_DICT[file_type], FILE_STATUS_DICT['complete'], JOB_TYPE_DICT[job_type],
+                               cls.test_other_user_submission_id)
+            insert_job(sess, None, FILE_STATUS_DICT['complete'], JOB_TYPE_DICT['validation'],
+                       cls.test_other_user_submission_id)
 
             cls.test_certify_history_id = cls.setup_certification_history(sess)
 
@@ -131,23 +125,17 @@ class FileTests(BaseTestAPI):
         """Call the broker file submission route."""
         if not self.filesSubmitted:
             if CONFIG_BROKER["use_aws"]:
-                self.filenames = {"appropriations": "test1.csv",
-                                  "award_financial": "test2.csv",
-                                  "program_activity": "test4.csv",
-                                  "cgac_code": "SYS", "frec_code": None,
+                self.filenames = {"cgac_code": "SYS", "frec_code": None,
                                   "reporting_period_start_date": "01/2001",
                                   "reporting_period_end_date": "03/2001", "is_quarter": True}
             else:
                 # If local must use full destination path
-                file_path = CONFIG_BROKER["broker_files"]
-                self.filenames = {"appropriations": os.path.join(file_path, "test1.csv"),
-                                  "award_financial": os.path.join(file_path, "test2.csv"),
-                                  "program_activity": os.path.join(file_path, "test4.csv"),
-                                  "cgac_code": "SYS", "frec_code": None,
+                self.filenames = {"cgac_code": "SYS", "frec_code": None,
                                   "reporting_period_start_date": "01/2001",
-                                  "reporting_period_end_date": "03/2001", "is_quarter": True}
-            self.submitFilesResponse = self.app.post_json("/v1/submit_files/", self.filenames,
-                                                          headers={"x-session-id": self.session_id})
+                                  "reporting_period_end_date": "03/2001", "is_quarter": "true"}
+            self.submitFilesResponse = self.app.post("/v1/upload_dabs_files/", self.filenames,
+                                                     upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                                     headers={"x-session-id": self.session_id})
             self.updateSubmissionId = self.submitFilesResponse.json["submission_id"]
         return self.submitFilesResponse
 
@@ -156,52 +144,10 @@ class FileTests(BaseTestAPI):
         response = self.call_file_submission()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "application/json")
-
-        json = response.json
-        self.assertIn("test1.csv", json["appropriations_key"])
-        self.assertIn("test2.csv", json["award_financial_key"])
-        self.assertIn(CONFIG_BROKER["award_file_name"], json["award_key"])
-        self.assertIn("test4.csv", json["program_activity_key"])
-        self.assertIn("credentials", json)
-
-        credentials = json["credentials"]
-        for requiredField in ("AccessKeyId", "SecretAccessKey", "SessionToken", "SessionToken"):
-            self.assertIn(requiredField, credentials)
-            self.assertTrue(len(credentials[requiredField]))
-
-        self.assertIn("bucket_name", json)
-        self.assertTrue(len(json["bucket_name"]))
-
-        file_results = self.upload_file_by_url("/" + json["appropriations_key"], "test1.csv")
-        self.assertGreater(file_results['bytesWritten'], 0)
-
-        # Test that job ids are returned
-        response_dict = json
-        file_keys = ["program_activity", "award_financial", "appropriations"]
-        with create_app().app_context():
-            sess = GlobalDB.db().session
-            for key in file_keys:
-                id_key = '{}_id'.format(key)
-                self.assertIn(id_key, response_dict)
-                job_id = response_dict[id_key]
-                self.assertIsInstance(job_id, int)
-                # Check that original filenames were stored in DB
-                original_filename = sess.query(Job).filter(Job.job_id == job_id).one().original_filename
-                self.assertEquals(original_filename, self.filenames[key])
-            # check that submission got mapped to the correct user
-            submission_id = response_dict["submission_id"]
-            self.file_submission_id = submission_id
-            submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
-        self.assertEqual(submission.user_id, self.submission_user_id)
-        # Check that new submission is unpublished
-        self.assertEqual(submission.publish_status_id, PUBLISH_STATUS_DICT['unpublished'])
-
-        # Call upload complete route
-        finalize_response = self.check_upload_complete(response_dict["appropriations_id"])
-        self.assertEqual(finalize_response.status_code, 200)
+        self.assertIn('submission_id', response.json)
 
     def test_update_submission(self):
-        """ Test submit_files with an existing submission ID """
+        """ Test upload_dabs_files with an existing submission ID """
         self.call_file_submission()
         # note: this is a quarterly test submission, so updated dates must still reflect a quarter
         file_path = "updated.csv" if CONFIG_BROKER["use_aws"] else os.path.join(CONFIG_BROKER["broker_files"],
@@ -217,52 +163,67 @@ class FileTests(BaseTestAPI):
             update_submission = sess.query(Submission).filter(Submission.submission_id == self.updateSubmissionId).one()
             update_submission.publish_status_id = PUBLISH_STATUS_DICT['published']
             sess.commit()
-            update_response = self.app.post_json("/v1/submit_files/", update_json,
-                                                 headers={"x-session-id": self.session_id})
+            update_response = self.app.post("/v1/upload_dabs_files/", update_json,
+                                            upload_files=[('award_financial', file_path,
+                                                           open('tests/integration/data/awardFinancialValid.csv',
+                                                                'rb').read())],
+                                            headers={"x-session-id": self.session_id})
             self.assertEqual(update_response.status_code, 200)
             self.assertEqual(update_response.headers.get("Content-Type"), "application/json")
 
-            json = update_response.json
-            self.assertIn("updated.csv", json["award_financial_key"])
-            submission_id = json["submission_id"]
+            submission_id = update_response.json["submission_id"]
             submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
             self.assertEqual(submission.cgac_code, "SYS")  # Should not have changed agency name
             self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"), "04/2016")
             self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"), "06/2016")
             self.assertEqual(submission.publish_status_id, PUBLISH_STATUS_DICT['updated'])
 
-    def test_bad_quarter_or_month(self):
-        """ Test file submissions for Q5, 13, and AB, and year of ABCD """
+    def test_bad_file_type(self):
+        """ Test file submissions for bad file formats (not CSV or TXT) """
+        update_json = {"existing_submission_id": self.status_check_submission_id}
+        update_response = self.app.post("/v1/upload_dabs_files/", update_json,
+                                        upload_files=[INVAL_FILE],
+                                        headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(update_response.status_code, 400)
+        self.assertEqual(update_response.json["message"], "All submitted files must be CSV or TXT format")
+
+    def test_bad_quarter(self):
+        """ Test file submissions for Q5 """
         update_json = {
             "cgac_code": "020",
             "is_quarter": True,
-            "award_financial": "updated.csv",
             "reporting_period_start_date": "12/2016",
             "reporting_period_end_date": "13/2016"}
-        update_response = self.app.post_json("/v1/submit_files/", update_json,
-                                             headers={"x-session-id": self.session_id}, expect_errors=True)
+        update_response = self.app.post("/v1/upload_dabs_files/", update_json,
+                                        upload_files=[AWARD_FILE_T],
+                                        headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(update_response.status_code, 400)
         self.assertIn("Date must be provided as", update_response.json["message"])
 
+    def test_bad_month(self):
+        """ Test file submissions for alphabet months """
         update_json = {
             # make sure date checks work as expected for an existing submission
             "existing_submission_id": self.status_check_submission_id,
-            "award_financial": "updated.csv",
             "reporting_period_start_date": "AB/2016",
             "reporting_period_end_date": "CD/2016"}
-        update_response = self.app.post_json("/v1/submit_files/", update_json,
-                                             headers={"x-session-id": self.session_id}, expect_errors=True)
+        update_response = self.app.post("/v1/upload_dabs_files/", update_json,
+                                        upload_files=[AWARD_FILE_T],
+                                        headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(update_response.status_code, 400)
         self.assertIn("Date must be provided as", update_response.json["message"])
 
+    def test_bad_year(self):
+        """ Test file submissions for alphabet year """
         update_json = {
             "cgac_code": "020",
+            "frec_code": None,
             "is_quarter": True,
-            "award_financial": "updated.csv",
             "reporting_period_start_date": "Q1/ABCD",
             "reporting_period_end_date": "Q2/2016"}
-        update_response = self.app.post_json("/v1/submit_files/", update_json,
-                                             headers={"x-session-id": self.session_id}, expect_errors=True)
+        update_response = self.app.post("/v1/upload_dabs_files/", update_json,
+                                        upload_files=[AWARD_FILE_T],
+                                        headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(update_response.status_code, 400)
         self.assertIn("Date must be provided as", update_response.json["message"])
 
@@ -270,14 +231,14 @@ class FileTests(BaseTestAPI):
         """ Test file submissions for Q4, 2015, submission w same period already been certified """
         update_json = {
             "cgac_code": "SYS",
+            "frec_code": None,
             "is_quarter": True,
-            "appropriations": "appropriations.csv",
-            "award_financial": "award_financial.csv",
-            "program_activity": "program_activity.csv",
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
-        response = self.app.post_json("/v1/submit_files/", update_json,
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        response = self.app.post("/v1/upload_dabs_files/", update_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "A submission with the same period already exists.")
 
     def test_submit_file_fabs_dabs_route(self):
@@ -285,27 +246,41 @@ class FileTests(BaseTestAPI):
         update_json = {
             "existing_submission_id": self.test_fabs_submission_id,
             "is_quarter": True,
-            "appropriations": "appropriations.csv",
-            "award_financial": "award_financial.csv",
-            "program_activity": "program_activity.csv",
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
-        response = self.app.post_json("/v1/submit_files/", update_json,
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        response = self.app.post("/v1/upload_dabs_files/", update_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "Existing submission must be a DABS submission")
+
+    def test_submit_file_duplicate_running(self):
+        """ Test trying to upload an already running FABS submission """
+        insert_job(
+            self.session,
+            filetype=FILE_TYPE_DICT['award'],
+            status=JOB_STATUS_DICT['running'],
+            type_id=JOB_TYPE_DICT['file_upload'],
+            submission=self.status_check_submission_id
+        )
+        update_json = {"existing_submission_id": self.status_check_submission_id}
+
+        response = self.app.post("/v1/upload_dabs_files/", update_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "Submission already has a running job")
 
     def test_submit_file_new_missing_params(self):
         """ Test file submission for a new submission while missing any of the parameters """
         update_json = {
             "cgac_code": "TEST",
             "is_quarter": True,
-            "appropriations": "appropriations.csv",
-            "award_financial": "award_financial.csv",
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
-        response = self.app.post_json("/v1/submit_files/", update_json,
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        response = self.app.post("/v1/upload_dabs_files/", update_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "Must include all files for a new submission")
 
@@ -316,10 +291,10 @@ class FileTests(BaseTestAPI):
             "is_quarter": True,
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
-        response = self.app.post_json("/v1/submit_files/", update_json,
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        response = self.app.post("/v1/upload_dabs_files/", update_json,
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], "Must include at least one file for an existing submission")
+        self.assertEqual(response.json['message'], "Request must be a multipart/form-data type")
 
     def test_submit_file_wrong_permissions_wrong_user(self):
         self.login_user()
@@ -327,13 +302,11 @@ class FileTests(BaseTestAPI):
             "cgac_code": "NOT",
             "frec_code": None,
             "is_quarter": True,
-            "appropriations": "appropriations.csv",
-            "award_financial": "award_financial.csv",
-            "program_activity": "program_activity.csv",
             "reporting_period_start_date": "07/2015",
             "reporting_period_end_date": "09/2015"}
-        response = self.app.post_json("/v1/submit_files/", new_submission_json,
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        response = self.app.post("/v1/upload_dabs_files/", new_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json['message'], "User does not have permissions to write to that agency")
 
@@ -342,26 +315,22 @@ class FileTests(BaseTestAPI):
         update_submission_json = {
             "existing_submission_id": self.test_other_user_submission_id,
             "is_quarter": True,
-            "appropriations": "appropriations.csv",
-            "award_financial": "award_financial.csv",
-            "program_activity": "program_activity.csv",
             "reporting_period_start_date": "10/2015",
             "reporting_period_end_date": "12/2015"}
-        response = self.app.post_json("/v1/submit_files/", update_submission_json,
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        response = self.app.post("/v1/upload_dabs_files/", update_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 200)
 
     def test_submit_file_missing_parameters(self):
         self.login_user(username=self.other_user_email)
         update_submission_json = {
             "is_quarter": True,
-            "appropriations": "appropriations.csv",
-            "award_financial": "award_financial.csv",
-            "program_activity": "program_activity.csv",
             "reporting_period_start_date": "10/2015",
             "reporting_period_end_date": "12/2015"}
-        response = self.app.post_json("/v1/submit_files/", update_submission_json,
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        response = self.app.post("/v1/upload_dabs_files/", update_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'],
                          "Missing required parameter: cgac_code, frec_code, or existing_submission_id")
@@ -371,15 +340,40 @@ class FileTests(BaseTestAPI):
         update_submission_json = {
             "existing_submission_id": -99,
             "is_quarter": True,
-            "appropriations": "appropriations.csv",
-            "award_financial": "award_financial.csv",
-            "program_activity": "program_activity.csv",
             "reporting_period_start_date": "10/2015",
             "reporting_period_end_date": "12/2015"}
-        response = self.app.post_json("/v1/submit_files/", update_submission_json,
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        response = self.app.post("/v1/upload_dabs_files/", update_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'existing_submission_id must be a valid submission_id')
+
+    def test_submit_file_monthly_submission(self):
+        monthly_submission_json = {
+            "cgac_code": "NOT",
+            "frec_code": None,
+            "is_quarter": False,
+            "reporting_period_start_date": "10/2015",
+            "reporting_period_end_date": "10/2015"}
+        response = self.app.post("/v1/upload_dabs_files/", monthly_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=False)
+        self.assertEqual(response.status_code, 200)
+
+    # TODO: validate that monthly submissions only include one month
+    # def test_submit_file_monthly_submission_wrong_dates(self):
+    #     self.login_user()
+    #     monthly_submission_json = {
+    #         "cgac_code": "NOT",
+    #         "frec_code": None,
+    #         "is_quarter": False,
+    #         "reporting_period_start_date": "10/2015",
+    #         "reporting_period_end_date": "12/2015"}
+    #     response = self.app.post("/v1/upload_dabs_files/", monthly_submission_json,
+    #                              upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+    #                              headers={"x-session-id": self.session_id}, expect_errors=True)
+    #     self.assertEqual(response.status_code, 400)
+    #     self.assertEqual()
 
     def test_revalidation_threshold_no_login(self):
         """ Test response with no login """
@@ -417,15 +411,13 @@ class FileTests(BaseTestAPI):
         params = {"submission_id": self.status_check_submission_id}
         # Log in as admin user
         self.login_admin_user()
-        response = self.app.get("/v1/submission_metadata/", params, expect_errors=True,
-                                headers={"x-session-id": self.session_id})
+        response = self.app.get("/v1/submission_metadata/", params, headers={"x-session-id": self.session_id})
         self.assertEqual(response.status_code, 200)
 
     def test_submission_metadata(self):
         """ Test submission_metadata route response. """
         params = {"submission_id": self.status_check_submission_id}
-        response = self.app.get("/v1/submission_metadata/", params, expect_errors=True,
-                                headers={"x-session-id": self.session_id})
+        response = self.app.get("/v1/submission_metadata/", params, headers={"x-session-id": self.session_id})
         self.assertEqual(response.status_code, 200)
 
         # Make sure we got the right submission
@@ -657,48 +649,6 @@ class FileTests(BaseTestAPI):
         assert response.status_code == 200
         assert "total_obligations" in response.json
 
-    def test_get_protected_files(self):
-        """ Check get_protected_files route """
-        if CONFIG_BROKER["use_aws"]:
-            response = self.app.get("/v1/get_protected_files/", headers={"x-session-id": self.session_id})
-            self.assertEqual(response.status_code, 200, msg=str(response.json))
-            self.assertEqual(response.headers.get("Content-Type"), "application/json")
-            json = response.json
-            self.assertNotEqual(len(json["urls"]), 0)
-        else:
-            response = self.app.get("/v1/get_protected_files/",
-                                    headers={"x-session-id": self.session_id}, expect_errors=True)
-            self.assertEqual(response.status_code, 400, msg=str(response.json))
-            self.assertEqual(response.headers.get("Content-Type"), "application/json")
-            json = response.json
-            self.assertEqual(json["urls"], {})
-
-    def check_upload_complete(self, job_id):
-        """Check status of a broker file submission."""
-        post_json = {"upload_id": job_id}
-        return self.app.post_json("/v1/finalize_job/", post_json, headers={"x-session-id": self.session_id})
-
-    @staticmethod
-    def upload_file_by_url(s3_file_name, filename):
-        """Upload file and return filename and bytes written."""
-        full_path = os.path.join(CONFIG_BROKER['path'], "tests", "integration", "data", filename)
-
-        if CONFIG_BROKER['local']:
-            # If not using AWS, put file submission in location
-            # specified by the config file
-            broker_file_path = CONFIG_BROKER['broker_files']
-            copy(full_path, broker_file_path)
-            submitted_file = os.path.join(broker_file_path, filename)
-            return {'bytesWritten': os.path.getsize(submitted_file), 's3FileName': full_path}
-        else:
-            # Use boto to put files on S3
-            s3conn = boto.s3.connect_to_region(CONFIG_BROKER["aws_region"])
-            bucket_name = CONFIG_BROKER['aws_bucket']
-            key = Key(s3conn.get_bucket(bucket_name))
-            key.key = s3_file_name
-            bytes_written = key.set_contents_from_filename(full_path)
-            return {'bytesWritten': bytes_written, 's3FileName': s3_file_name}
-
     def check_metrics(self, submission_id, exists, type_file):
         """Get error metrics for specified submission."""
         post_json = {"submission_id": submission_id}
@@ -718,174 +668,6 @@ class FileTests(BaseTestAPI):
         self.check_metrics(self.test_metrics_submission_id, False, "award")
         self.check_metrics(self.test_metrics_submission_id, True, "award_financial")
         self.check_metrics(self.test_metrics_submission_id, True, "appropriations")
-
-    def test_bad_file_type_check_generation_status(self):
-        """ Test that an error comes back if an invalid file type is provided for check_generation_status. """
-        post_json = {"submission_id": self.generation_submission_id, "file_type": "A"}
-        response = self.app.get("/v1/check_generation_status/", post_json, headers={"x-session-id": self.session_id},
-                                expect_errors=True)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json["message"], "file_type: Must be either D1, D2, E or F")
-
-    def test_check_generation_status_finished(self):
-        """ Test the check generation status route for finished generation """
-        # Then call check generation route for D2, E and F and check results
-        post_json = {"submission_id": self.generation_submission_id, "file_type": "E"}
-        response = self.app.get("/v1/check_generation_status/", post_json, headers={"x-session-id": self.session_id})
-
-        self.assertEqual(response.status_code, 200)
-        json = response.json
-        self.assertEqual(json["status"], "finished")
-        self.assertEqual(json["file_type"], "E")
-        self.assertEqual(json["url"], "#")
-        self.assertEqual(json["message"], "")
-
-    def test_check_generation_status_failed_file_level_errors(self):
-        """ Test the check generation status route for a failed generation because of file level errors """
-        post_json = {"submission_id": self.generation_submission_id, "file_type": "D2"}
-        response = self.app.get("/v1/check_generation_status/", post_json, headers={"x-session-id": self.session_id})
-
-        self.assertEqual(response.status_code, 200)
-        json = response.json
-        self.assertEqual(json["status"], "failed")
-        self.assertEqual(json["file_type"], "D2")
-        self.assertEqual(json["url"], "#")
-        self.assertEqual(json["message"], "Generated file had file-level errors")
-
-    def test_check_generation_status_failed_invalid_file(self):
-        """ Test the check generation status route for a failed generation because of an invalid file """
-        post_json = {"submission_id": self.generation_submission_id, "file_type": "F"}
-        response = self.app.get("/v1/check_generation_status/", post_json, headers={"x-session-id": self.session_id})
-
-        self.assertEqual(response.status_code, 200)
-        json = response.json
-        self.assertEqual(json["status"], "failed")
-        self.assertEqual(json["file_type"], "F")
-        self.assertEqual(json["url"], "#")
-        self.assertEqual(json["message"], "File was invalid")
-
-    def test_file_generation_d1(self):
-        """ Test the generate route for D1 file """
-        # For file generation submission, call generate route for D1 and check results
-        post_json = {"submission_id": self.generation_submission_id, "file_type": "D1",
-                     "start": "01/02/2016", "end": "02/03/2016"}
-        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id})
-
-        self.assertEqual(response.status_code, 200)
-        json = response.json
-
-        # use_aws is true when the PR unit tests run so the date range specified returns no results.
-        # checking is in place for "failed" until use_aws is flipped to false
-        self.assertIn(json["status"], ["failed", "waiting", "finished"])
-        self.assertEqual(json["file_type"], "D1")
-        self.assertIn("url", json)
-        self.assertEqual(json["start"], "01/02/2016")
-        self.assertEqual(json["end"], "02/03/2016")
-
-        # this is to accommodate for checking for the "failed" status
-        self.assertIn(json["message"], ["", "D1 data unavailable for the specified date range"])
-
-    def test_generate_file_invalid_file_type(self):
-        """ Test invalid file type passed to generate file """
-        post_json = {"submission_id": self.generation_submission_id, "file_type": "A",
-                     "start": "01/02/2016", "end": "02/03/2016"}
-        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id},
-                                      expect_errors=True)
-
-        self.assertEqual(response.status_code, 400)
-        json = response.json
-        self.assertEqual(json["message"], "file_type: Must be either D1, D2, E or F")
-
-    def test_generate_file_bad_start_date_format(self):
-        """ Test bad format on start date """
-        post_json = {"submission_id": self.generation_submission_id, "file_type": "D1",
-                     "start": "ab/02/2016", "end": "02/03/2016"}
-        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id},
-                                      expect_errors=True)
-
-        self.assertEqual(response.status_code, 400)
-        json = response.json
-        self.assertEqual(json["message"], "start: Must be in the format MM/DD/YYYY")
-
-    def test_generate_file_bad_end_date_format(self):
-        """ Test bad format on start date """
-        post_json = {"submission_id": self.generation_submission_id, "file_type": "D1",
-                     "start": "01/02/2016", "end": "ab/03/2016"}
-        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id},
-                                      expect_errors=True)
-
-        self.assertEqual(response.status_code, 400)
-        json = response.json
-        self.assertEqual(json["message"], "end: Must be in the format MM/DD/YYYY")
-
-    def test_generate_d_file_no_start(self):
-        """ Test that there is an error if no start date is provided for D file generation. """
-        post_json = {"submission_id": self.generation_submission_id, "file_type": "D1", "end": "02/03/2016"}
-        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id},
-                                      expect_errors=True)
-
-        self.assertEqual(response.status_code, 400)
-        json = response.json
-        self.assertEqual(json["message"], "Must have a start and end date for D file generation")
-
-    def test_generate_ef_file_no_start(self):
-        """ Test that there is no error when no start date is provided for E/F file generation """
-        post_json = {"submission_id": self.generation_submission_id, "file_type": "E", "end": "02/03/2016"}
-        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id})
-
-        self.assertEqual(response.status_code, 200)
-
-    def test_generate_file_fabs(self):
-        """ Test failure while calling generate_file for a FABS submission """
-        post_json = {"submission_id": self.test_fabs_submission_id, "file_type": "D1",
-                     "start": "01/02/2016", "end": "02/03/2016"}
-        response = self.app.post_json("/v1/generate_file/", post_json, headers={"x-session-id": self.session_id},
-                                      expect_errors=True)
-
-        self.assertEqual(response.status_code, 400)
-        json = response.json
-        self.assertEqual(json["message"], "Cannot generate files for FABS submissions")
-
-    def test_generate_file_permission_error(self):
-        """ Test permission error for generate submission """
-        self.login_user()
-        post_json = {"submission_id": self.generation_submission_id, "file_type": "D1",
-                     "start": "01/02/2016", "end": "02/03/2016"}
-        response = self.app.post_json("/v1/generate_file/", post_json,
-                                      headers={"x-session-id": self.session_id}, expect_errors=True)
-
-        self.assertEqual(response.status_code, 403)
-        json = response.json
-        self.assertEqual(json["message"], "User does not have permission to access that submission")
-
-    def test_detached_file_generation(self):
-        """ Test the generate and check routes for external files """
-        # For file generation submission, call generate route for D1 and check results
-        post_json = {'file_type': 'D1', 'start': '01/02/2016', 'end': '02/03/2016', 'cgac_code': '020'}
-        response = self.app.post_json("/v1/generate_detached_file/", post_json,
-                                      headers={"x-session-id": self.session_id})
-
-        self.assertEqual(response.status_code, 200)
-        json = response.json
-        self.assertIn(json["status"], ["waiting", "running", "finished"])
-        self.assertEqual(json["file_type"], "D1")
-        self.assertIn("url", json)
-        self.assertEqual(json["start"], "01/02/2016")
-        self.assertEqual(json["end"], "02/03/2016")
-        self.assertEqual(json["message"], "")
-        self.assertIsNotNone(json["job_id"])
-
-        # call check generation status route for D2 and check results
-        post_json = {}
-        response = self.app.get("/v1/check_detached_generation_status/", post_json,
-                                headers={"x-session-id": self.session_id}, expect_errors=True)
-        assert response.json['message'] == 'job_id: Missing data for required field.'
-
-        post_json = {'job_id': -1}
-        response = self.app.get("/v1/check_detached_generation_status/", post_json,
-                                headers={"x-session-id": self.session_id}, expect_errors=True)
-        json = response.json
-        self.assertEqual(json["message"], 'No generation job found with the specified ID')
 
     def test_delete_submission(self):
         sess = GlobalDB.db().session
@@ -1062,9 +844,40 @@ class FileTests(BaseTestAPI):
         params = {"warning": False,
                   "file_type": "appropriations"}
         response = self.app.get("/v1/submission/{}/report_url".format(self.row_error_submission_id), params,
-                                headers={"x-session-id": self.session_id}, expect_errors=False)
+                                headers={"x-session-id": self.session_id})
         self.assertEqual(response.status_code, 200)
         self.assertIn("url", response.json)
+
+    def test_submission_report_url_invalid_file(self):
+        """ Test that invalid file_types cause an error (even if they're technically a file type that we have, just
+            not one with error reports)
+        """
+        params = {"warning": False,
+                  "file_type": "executive_compensation"}
+        response = self.app.get("/v1/submission/{}/report_url".format(self.row_error_submission_id), params,
+                                headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "file_type: Not a valid choice.")
+
+    def test_submission_report_url_invalid_cross(self):
+        """ Test that invalid cross_types cause an error """
+        params = {"warning": False,
+                  "file_type": "appropriations",
+                  "cross_type": "appropriations"}
+        response = self.app.get("/v1/submission/{}/report_url".format(self.row_error_submission_id), params,
+                                headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "cross_type: Not a valid choice.")
+
+    def test_submission_report_url_valid_type_invalid_pair(self):
+        """ Test that valid cross_type but invalid pair causes an error """
+        params = {"warning": False,
+                  "file_type": "appropriations",
+                  "cross_type": "award"}
+        response = self.app.get("/v1/submission/{}/report_url".format(self.row_error_submission_id), params,
+                                headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "appropriations and award is not a valid cross-pair.")
 
     def test_cross_file_status_reset_generate(self):
         """ Test that cross-file resets when D file generation is called. """
@@ -1072,14 +885,14 @@ class FileTests(BaseTestAPI):
         self.session.add(submission)
         self.session.commit()
 
-        job_1 = self.insert_job(self.session, FILE_TYPE_DICT['award'], JOB_STATUS_DICT['finished'],
-                                JOB_TYPE_DICT['csv_record_validation'], submission.submission_id, num_errors=1)
-        job_2 = self.insert_job(self.session, FILE_TYPE_DICT['award_procurement'], JOB_STATUS_DICT['finished'],
-                                JOB_TYPE_DICT['file_upload'], submission.submission_id)
-        job_3 = self.insert_job(self.session, FILE_TYPE_DICT['award_procurement'], JOB_STATUS_DICT['finished'],
-                                JOB_TYPE_DICT['csv_record_validation'], submission.submission_id)
-        job_4 = self.insert_job(self.session, None, JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['validation'],
-                                submission.submission_id)
+        job_1 = insert_job(self.session, FILE_TYPE_DICT['award'], JOB_STATUS_DICT['finished'],
+                           JOB_TYPE_DICT['csv_record_validation'], submission.submission_id, num_errors=1)
+        job_2 = insert_job(self.session, FILE_TYPE_DICT['award_procurement'], JOB_STATUS_DICT['finished'],
+                           JOB_TYPE_DICT['file_upload'], submission.submission_id)
+        job_3 = insert_job(self.session, FILE_TYPE_DICT['award_procurement'], JOB_STATUS_DICT['finished'],
+                           JOB_TYPE_DICT['csv_record_validation'], submission.submission_id)
+        job_4 = insert_job(self.session, None, JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['validation'],
+                           submission.submission_id)
 
         dep_1 = JobDependency(
             job_id=job_3.job_id,
@@ -1119,14 +932,14 @@ class FileTests(BaseTestAPI):
         self.session.add(submission)
         self.session.commit()
 
-        job_1 = self.insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['waiting'],
-                                JOB_TYPE_DICT['file_upload'], submission.submission_id)
-        job_2 = self.insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['waiting'],
-                                JOB_TYPE_DICT['csv_record_validation'], submission.submission_id)
-        job_3 = self.insert_job(self.session, FILE_TYPE_DICT['award_financial'], JOB_STATUS_DICT['waiting'],
-                                JOB_TYPE_DICT['csv_record_validation'], submission.submission_id)
-        job_4 = self.insert_job(self.session, None, JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['validation'],
-                                submission.submission_id)
+        job_1 = insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['waiting'],
+                           JOB_TYPE_DICT['file_upload'], submission.submission_id)
+        job_2 = insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['waiting'],
+                           JOB_TYPE_DICT['csv_record_validation'], submission.submission_id)
+        job_3 = insert_job(self.session, FILE_TYPE_DICT['award_financial'], JOB_STATUS_DICT['waiting'],
+                           JOB_TYPE_DICT['csv_record_validation'], submission.submission_id)
+        job_4 = insert_job(self.session, None, JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['validation'],
+                           submission.submission_id)
 
         dep_1 = JobDependency(
             job_id=job_2.job_id,
@@ -1149,11 +962,11 @@ class FileTests(BaseTestAPI):
 
         # Call a generation to test resetting the status, make sure the call succeeded
         update_json = {"existing_submission_id": submission.submission_id,
-                       "appropriations": 'test_path',
                        "reporting_period_start_date": "04/2016",
                        "reporting_period_end_date": "06/2016"}
-        update_response = self.app.post_json("/v1/submit_files/", update_json,
-                                             headers={"x-session-id": self.session_id})
+        update_response = self.app.post("/v1/upload_dabs_files/", update_json,
+                                        upload_files=[APPROP_FILE_T],
+                                        headers={"x-session-id": self.session_id})
         # Need to commit for it to take within this session for some reason
         self.session.commit()
         self.assertEqual(update_response.status_code, 200)
@@ -1162,52 +975,6 @@ class FileTests(BaseTestAPI):
         # good way to make sure D file generation fails so we have to use a different job)
         cross_job = self.session.query(Job).filter(Job.job_id == job_4.job_id).one()
         self.assertEqual(cross_job.job_status_id, JOB_STATUS_DICT['waiting'])
-
-    @staticmethod
-    def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
-                          is_quarter=False, number_of_errors=0, publish_status_id=1, is_fabs=False):
-        """Insert one submission into job tracker and get submission ID back."""
-        publishable = True if number_of_errors == 0 else False
-        end_date = datetime.strptime(end_date, '%m/%Y')
-        end_date = datetime.strptime(
-                        str(end_date.year) + '/' +
-                        str(end_date.month) + '/' +
-                        str(calendar.monthrange(end_date.year, end_date.month)[1]),
-                        '%Y/%m/%d'
-                    ).date()
-        sub = Submission(created_at=datetime.utcnow(),
-                         user_id=submission_user_id,
-                         cgac_code=cgac_code,
-                         reporting_start_date=datetime.strptime(start_date, '%m/%Y'),
-                         reporting_end_date=end_date,
-                         is_quarter_format=is_quarter,
-                         number_of_errors=number_of_errors,
-                         publish_status_id=publish_status_id,
-                         publishable=publishable,
-                         d2_submission=is_fabs)
-        sess.add(sub)
-        sess.commit()
-        return sub.submission_id
-
-    @staticmethod
-    def insert_job(sess, filetype, status, type_id, submission, job_id=None, filename=None,
-                   file_size=None, num_rows=None, num_errors=0):
-        """Insert one job into job tracker and get ID back."""
-        job = Job(
-            file_type_id=filetype,
-            job_status_id=status,
-            job_type_id=type_id,
-            submission_id=submission,
-            original_filename=filename,
-            file_size=file_size,
-            number_of_rows=num_rows,
-            number_of_errors=num_errors
-        )
-        if job_id:
-            job.job_id = job_id
-        sess.add(job)
-        sess.commit()
-        return job
 
     @staticmethod
     def insert_file(sess, job_id, status):
@@ -1291,20 +1058,20 @@ class FileTests(BaseTestAPI):
         return ch.certify_history_id
 
     @classmethod
-    def setup_file_generation_submission(cls, sess, submission_id=None):
+    def setup_file_generation_submission(cls, sess, submission_id):
         """Create jobs for D, E, and F files."""
         submission_id = cls.generation_submission_id if not submission_id else submission_id
         submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
 
         # Create D1 jobs ready for generation route to be called
-        cls.insert_job(
+        insert_job(
             sess,
             FILE_TYPE_DICT['award_procurement'],
             JOB_STATUS_DICT['ready'],
             JOB_TYPE_DICT['file_upload'],
             submission.submission_id
         )
-        award_roc_val_job = cls.insert_job(
+        award_roc_val_job = insert_job(
             sess,
             FILE_TYPE_DICT['award_procurement'],
             JOB_STATUS_DICT['waiting'],
@@ -1312,14 +1079,14 @@ class FileTests(BaseTestAPI):
             submission.submission_id
         )
         # Create E and F jobs ready for check route
-        exec_comp_job = cls.insert_job(
+        exec_comp_job = insert_job(
             sess,
             FILE_TYPE_DICT['executive_compensation'],
             JOB_STATUS_DICT['finished'],
             JOB_TYPE_DICT['file_upload'],
             submission.submission_id
         )
-        sub_award_job = cls.insert_job(
+        sub_award_job = insert_job(
             sess,
             FILE_TYPE_DICT['sub_award'],
             JOB_STATUS_DICT['invalid'],
@@ -1329,14 +1096,14 @@ class FileTests(BaseTestAPI):
         sub_award_job.error_message = "File was invalid"
 
         # Create D2 jobs
-        cls.insert_job(
+        insert_job(
             sess,
             FILE_TYPE_DICT['award'],
             JOB_STATUS_DICT['finished'],
             JOB_TYPE_DICT['file_upload'],
             submission.submission_id
         )
-        cls.insert_job(
+        insert_job(
             sess,
             FILE_TYPE_DICT['award'],
             JOB_STATUS_DICT['invalid'],
@@ -1362,13 +1129,13 @@ class FileTests(BaseTestAPI):
         }
 
         for job_key, values in job_values.items():
-            job = FileTests.insert_job(
+            job = insert_job(
                 sess,
                 filetype=values[0],
                 status=values[1],
                 type_id=values[2],
                 submission=row_error_submission_id,
-                filename=values[3],
+                original_filename=values[3],
                 file_size=values[4],
                 num_rows=values[5]
             )
@@ -1401,13 +1168,13 @@ class FileTests(BaseTestAPI):
         approp_job = None
 
         for job_key, values in job_values.items():
-            job = FileTests.insert_job(
+            job = insert_job(
                 sess,
                 filetype=values[0],
                 status=values[1],
                 type_id=values[2],
                 submission=submission_id,
-                filename=values[3],
+                original_filename=values[3],
                 file_size=values[4],
                 num_rows=values[5]
             )
@@ -1499,14 +1266,14 @@ class FileTests(BaseTestAPI):
         """Setup jobs table for checking validator unit test error reports."""
         finished = JOB_STATUS_DICT['finished']
         csv_validation = JOB_TYPE_DICT['csv_record_validation']
-        FileTests.insert_job(sess, filetype=FILE_TYPE_DICT['award'], status=finished, type_id=csv_validation,
-                             submission=error_report_submission_id)
-        FileTests.insert_job(sess, filetype=FILE_TYPE_DICT['award_financial'], status=finished, type_id=csv_validation,
-                             submission=error_report_submission_id)
-        FileTests.insert_job(sess, filetype=FILE_TYPE_DICT['appropriations'], status=finished, type_id=csv_validation,
-                             submission=error_report_submission_id)
-        FileTests.insert_job(sess, filetype=FILE_TYPE_DICT['program_activity'], status=finished, type_id=csv_validation,
-                             submission=error_report_submission_id)
+        insert_job(sess, filetype=FILE_TYPE_DICT['award'], status=finished, type_id=csv_validation,
+                   submission=error_report_submission_id)
+        insert_job(sess, filetype=FILE_TYPE_DICT['award_financial'], status=finished, type_id=csv_validation,
+                   submission=error_report_submission_id)
+        insert_job(sess, filetype=FILE_TYPE_DICT['appropriations'], status=finished, type_id=csv_validation,
+                   submission=error_report_submission_id)
+        insert_job(sess, filetype=FILE_TYPE_DICT['program_activity'], status=finished, type_id=csv_validation,
+                   submission=error_report_submission_id)
 
     @classmethod
     def setup_file_data(cls, sess, submission_id):
@@ -1514,7 +1281,7 @@ class FileTests(BaseTestAPI):
         ready = JOB_STATUS_DICT['ready']
         csv_validation = JOB_TYPE_DICT['csv_record_validation']
 
-        job = FileTests.insert_job(
+        job = insert_job(
             sess,
             filetype=FILE_TYPE_DICT['award'],
             status=ready,
@@ -1524,7 +1291,7 @@ class FileTests(BaseTestAPI):
         # everything is fine
         FileTests.insert_file(sess, job.job_id, FILE_STATUS_DICT['complete'])
 
-        job = FileTests.insert_job(
+        job = insert_job(
             sess,
             filetype=FILE_TYPE_DICT['award_financial'],
             status=ready,
@@ -1534,7 +1301,7 @@ class FileTests(BaseTestAPI):
         # bad header
         FileTests.insert_file(sess, job.job_id, FILE_STATUS_DICT['unknown_error'])
 
-        job = FileTests.insert_job(
+        job = insert_job(
             sess,
             filetype=FILE_TYPE_DICT['appropriations'],
             status=ready,

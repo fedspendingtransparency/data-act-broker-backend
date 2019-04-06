@@ -1,5 +1,5 @@
 import logging
-import boto
+import boto3
 import os
 import pandas as pd
 import argparse
@@ -8,7 +8,7 @@ from datetime import datetime
 from dataactcore.models.domainModels import DUNS
 from dataactcore.utils.parentDuns import sam_config_is_valid
 from dataactcore.utils.duns import load_duns_by_row
-from dataactvalidator.scripts.loaderUtils import clean_data
+from dataactvalidator.scripts.loader_utils import clean_data
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
@@ -176,9 +176,9 @@ def main():
     logger.info('Retrieving historical DUNS file')
     start = datetime.now()
     if CONFIG_BROKER["use_aws"]:
-        s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-        s3bucket = s3connection.lookup(CONFIG_BROKER["archive_bucket"])
-        duns_file = s3bucket.get_key("DUNS_export_deduped.csv").generate_url(expires_in=10000)
+        s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+        duns_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['archive_bucket'],
+                                                                    'Key': "DUNS_export_deduped.csv"}, ExpiresIn=10000)
     else:
         duns_file = os.path.join(CONFIG_BROKER["broker_files"], "DUNS_export_deduped.csv")
 

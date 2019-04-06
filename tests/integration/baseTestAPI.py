@@ -7,19 +7,19 @@ from webtest import TestApp
 from dataactbroker.app import create_app as create_broker_app
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import create_user_with_password, get_password_hash
-from dataactcore.models.domainModels import CGAC
+from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.userModel import User, UserAffiliation
-from dataactcore.scripts.databaseSetup import drop_database
-from dataactcore.scripts.setupUserDB import setup_user_db
-from dataactcore.scripts.setupJobTrackerDB import setup_job_tracker_db
-from dataactcore.scripts.setupErrorDB import setup_error_db
-from dataactcore.scripts.setupValidationDB import setup_validation_db
-from dataactcore.scripts.databaseSetup import create_database, run_migrations
+from dataactcore.scripts.database_setup import drop_database
+from dataactcore.scripts.setup_user_db import setup_user_db
+from dataactcore.scripts.setup_job_tracker_db import setup_job_tracker_db
+from dataactcore.scripts.setup_error_db import setup_error_db
+from dataactcore.scripts.setup_validation_db import setup_validation_db
+from dataactcore.scripts.database_setup import create_database, run_migrations
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import dataactcore.config
-from dataactbroker.scripts.setupEmails import setup_emails
+from dataactbroker.scripts.setup_emails import setup_emails
 from dataactvalidator.health_check import create_app as create_validator_app
-from dataactcore.models.lookups import PERMISSION_TYPE_DICT
+from dataactcore.models.lookups import ALL_PERMISSION_TYPES_DICT
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
@@ -58,7 +58,8 @@ class BaseTestAPI(unittest.TestCase):
                 'admin_user': 'data.act.tester.1@gmail.com',
                 'agency_user': 'data.act.test.2@gmail.com',
                 'agency_user_2': 'data.act.test.3@gmail.com',
-                'no_permissions_user': 'data.act.tester.4@gmail.com'
+                'no_permissions_user': 'data.act.tester.4@gmail.com',
+                'editfabs_user': 'data.act.test.5@gmail.com'
             }
             user_password = '!passw0rdUp!'
             admin_password = '@pprovedPassw0rdy'
@@ -71,15 +72,25 @@ class BaseTestAPI(unittest.TestCase):
             sess.commit()
 
             cgac = CGAC(cgac_code='000', agency_name='Example Agency')
+            sess.add(cgac)
+            sess.commit()
+
+            frec = FREC(frec_code='0001', cgac_id=cgac.cgac_id, agency_name='Example FREC')
+            sess.add(frec)
+            sess.commit()
+            sub_tier = SubTierAgency(cgac_id=cgac.cgac_id, frec_id=frec.frec_id, sub_tier_agency_code='0000',
+                                     sub_tier_agency_name='Example Sub Tier')
+            sess.add(sub_tier)
 
             # set up users for status tests
-            def add_user(email, name, username, website_admin=False):
+            def add_user(email, name, username, permission_type=ALL_PERMISSION_TYPES_DICT['writer'],
+                         website_admin=False):
                 user = UserFactory(
                     email=email, website_admin=website_admin,
                     name=name, username=username,
                     affiliations=[UserAffiliation(
                         cgac=cgac,
-                        permission_type_id=PERMISSION_TYPE_DICT['writer']
+                        permission_type_id=permission_type
                     )]
                 )
                 user.salt, user.password_hash = get_password_hash(user_password, Bcrypt())
@@ -87,6 +98,8 @@ class BaseTestAPI(unittest.TestCase):
 
             add_user(test_users['agency_user'], "Test User", "testUser")
             add_user(test_users['agency_user_2'], "Test User 2", "testUser2")
+            add_user(test_users['editfabs_user'], "Fabs Writer", "fabsWriter",
+                     permission_type=ALL_PERMISSION_TYPES_DICT['editfabs'])
 
             # add new users
             create_user_with_password(test_users["admin_user"], admin_password, Bcrypt(), website_admin=True)

@@ -1,7 +1,6 @@
+from datetime import datetime, date, timezone
 import factory
 from factory import fuzzy
-
-from datetime import date
 
 from dataactcore.models import jobModels
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
@@ -23,6 +22,7 @@ class SubmissionFactory(factory.Factory):
     publishable = False
     number_of_errors = 0
     number_of_warnings = 0
+    d2_submission = False
 
 
 class JobStatusFactory(factory.Factory):
@@ -129,19 +129,18 @@ class SubmissionWindowFactory(factory.Factory):
     application_type = factory.SubFactory(ApplicationTypeFactory)
 
 
-class FileRequestFactory(factory.Factory):
+class FileGenerationFactory(factory.Factory):
     class Meta:
-        model = jobModels.FileRequest
+        model = jobModels.FileGeneration
 
-    file_request_id = fuzzy.FuzzyInteger(9999)
+    file_generation_id = fuzzy.FuzzyInteger(9999)
     request_date = fuzzy.FuzzyDate(date(2010, 1, 1))
-    job_id = fuzzy.FuzzyInteger(9999)
-    job = factory.SubFactory(JobFactory)
-    parent_job_id = fuzzy.FuzzyInteger(9999)
     start_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     end_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     agency_code = fuzzy.FuzzyText()
-    file_type = fuzzy.FuzzyText()
+    agency_type = fuzzy.FuzzyChoice({'awarding', 'funding'})
+    file_type = fuzzy.FuzzyChoice({'D1', 'D2'})
+    file_path = fuzzy.FuzzyText()
     is_cached_file = fuzzy.FuzzyChoice((False, True))
 
 
@@ -149,4 +148,13 @@ class RevalidationThresholdFactory(factory.Factory):
     class Meta:
         model = jobModels.RevalidationThreshold
 
-    revalidation_date = fuzzy.FuzzyDate(date(2010, 1, 1))
+    revalidation_date = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
+
+
+class QuarterlyRevalidationThresholdFactory(factory.Factory):
+    class Meta:
+        model = jobModels.QuarterlyRevalidationThreshold
+
+    year = fuzzy.FuzzyInteger(2010, 3000)
+    quarter = fuzzy.FuzzyChoice((1, 2, 3, 4))
+    window_start = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))

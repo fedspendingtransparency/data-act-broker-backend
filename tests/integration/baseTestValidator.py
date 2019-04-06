@@ -1,21 +1,18 @@
 import unittest
 from datetime import datetime, timedelta
-import os
 from random import randint
 
-import boto.s3
 from webtest import TestApp
-from boto.s3.key import Key
 
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.scripts.databaseSetup import drop_database
-from dataactcore.scripts.setupJobTrackerDB import setup_job_tracker_db
-from dataactcore.scripts.setupErrorDB import setup_error_db
-from dataactcore.scripts.setupValidationDB import setup_validation_db
+from dataactcore.scripts.database_setup import drop_database
+from dataactcore.scripts.setup_job_tracker_db import setup_job_tracker_db
+from dataactcore.scripts.setup_error_db import setup_error_db
+from dataactcore.scripts.setup_validation_db import setup_validation_db
 from dataactcore.models.jobModels import Submission
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
-from dataactcore.scripts.databaseSetup import create_database, run_migrations
+from dataactcore.scripts.database_setup import create_database, run_migrations
 import dataactcore.config
 
 
@@ -87,31 +84,3 @@ class BaseTestValidator(unittest.TestCase):
         sess.add(sub)
         sess.commit()
         return sub.submission_id
-
-    @classmethod
-    def upload_file(cls, filename, user):
-        """ Upload file to S3 and return S3 filename"""
-        if len(filename.strip()) == 0:
-            return ""
-
-        bucket_name = CONFIG_BROKER['aws_bucket']
-        region_name = CONFIG_BROKER['aws_region']
-
-        full_path = os.path.join(CONFIG_BROKER['path'], "tests", "integration", "data", filename)
-
-        if cls.local:
-            # Local version just stores full path in job tracker
-            return full_path
-        else:
-            # Create file names for S3
-            s3_file_name = str(user) + "/" + filename
-
-            if cls.uploadFiles:
-                # Use boto to put files on S3
-                s3conn = boto.s3.connect_to_region(region_name)
-                key = Key(s3conn.get_bucket(bucket_name))
-                key.key = s3_file_name
-                bytes_written = key.set_contents_from_filename(full_path)
-
-                assert(bytes_written > 0)
-            return s3_file_name
