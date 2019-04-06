@@ -80,13 +80,15 @@ You should get valid responses from each command, reporting the version.
 Next, ensure you have the latest build of the DATA Act Broker images, based on your updated source code. Run the following to instruct docker to rebuild the images used by Broker from the source code.
 _NOTE: This uses **two** source code repositories that you downloaded at the beginning: `data-act-broker-backend` and `data-act-broker-web-app`_
 
+_:bulb: TIP: From this point forward you'll see syntax like `docker-compose -f docker-compose.yml -f docker-compose.frontend.yml <cmd> <args>`. Referencing the _two_ files with `-f` concatenates their contents together, allowing us to run the backend _and_ the frontend containers. If you only wanted to run commands for/against backend containers, you can drop the `-f` syntax, and just use `docker-compose <cmd> <args>`._
+
 ```
-$ docker-compose build
+$ docker-compose -f docker-compose.yml -f docker-compose.frontend.yml build
 ```
 
 Now start the containers using these built images:
 ```
-$ docker-compose up
+$ docker-compose -f docker-compose.yml -f docker-compose.frontend.yml up
 ```
 _This command will:_
 
@@ -112,6 +114,7 @@ _**To the frontend web app:**_
 Browse to http://localhost:3000
 
 Take note of these useful commands when working with Docker Compose:
+_Be sure to add in `-f docker-compose.yml -f docker-compose.frontend.yml` to the command to have it apply to backend and frontend containers_
 
 - `docker-compose up --detach` - _run your containers in the background, without writing out the logs to the console_
 - `docker-compose logs` - _view the latest logs from running containers_
