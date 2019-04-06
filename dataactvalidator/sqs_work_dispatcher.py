@@ -1,4 +1,5 @@
 import logging
+import inspect
 import json
 import psutil as ps
 import signal
@@ -177,11 +178,12 @@ class SQSWorkDispatcher:
         return self._dispatch(job, job_args, worker_process_name, exit_handler)
 
     def dispatch_by_message_attribute(self, message_transformer, additional_job_args=(),
-                                      worker_process_name=None, exit_handler=None):
+                                      worker_process_name=None):
         """
         Use a provided function to derive the callable job and its arguments from attributes within the queue message
 
-        :param message_transformer: The callable function that returns a job and arguments given a queue message
+        :param message_transformer: The callable function that returns a tuple of (job, job_args) or (job,
+               job_args, exit_handler) if an exit_handler is required
         :param additional_job_args: Additional arguments to provide to the callable, along with those from the message
         :param worker_process_name: Name given to the newly created child process. If not already set, defaults to
                the name of the provided job callable
@@ -192,7 +194,9 @@ class SQSWorkDispatcher:
         self._dequeue_message(self._long_poll_seconds)
         if self._current_sqs_message is None:
             return False
-        job, msg_args = message_transformer(self._current_sqs_message)
+        results = message_transformer(self._current_sqs_message)
+        job, msg_args = results[:2]
+        exit_handler = None if not len(results) == 3 else results[2] # assign optional exit_handler
         log_job_message(
             logger=self._logger,
             message="Got job [{}] and msg_args [{}]".format(job, msg_args),
@@ -414,7 +418,12 @@ class SQSWorkDispatcher:
                 try:
                     with ExecutionTimeout(self._exit_handling_timeout):
                         # Call _exit_handler callable to do cleanup
-                        self._exit_handler(*self._job_args)
+                        arg_spec = inspect.getfullargspec(self._exit_handler)
+                        if arg_spec.varkw == "kwargs":
+                            # it accepts kwargs, so pass along the message in case it's needed
+                            self._exit_handler(*self._job_args, queue_message=self._current_sqs_message)
+                        else:
+                            self._exit_handler(*self._job_args)
                 except TimeoutError:
                     if not is_retry:
                         log_job_message(

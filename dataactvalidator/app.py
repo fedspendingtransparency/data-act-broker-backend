@@ -60,15 +60,22 @@ def run_app():
         while True:
             dispatcher = SQSWorkDispatcher(queue, allow_retries=False)
 
+            def file_generation_logging_cleanup(file_gen_id):
+                logger.warning("CLEANUP: performing cleanup as job handling file generation is exiting")
+
+            def validation_job_logging_cleanup(job_id, agency_code, queue_message=None):
+                logger.warning("CLEANUP: performing cleanup as validation job is exiting. "
+                               "For message {}".format(queue_message))
+
             def choose_job_by_message_attributes(message):
                 msg_attr = message.message_attributes
                 if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
                     # Generating a file
-                    return validator_process_file_generation, (message.body,)
+                    return validator_process_file_generation, (message.body,), file_generation_logging_cleanup
                 else:
                     # Running validations (or generating a file from a Job)
                     a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
-                    return validator_process_job, (message.body, a_agency_code)
+                    return validator_process_job, (message.body, a_agency_code), validation_job_logging_cleanup
 
             found_message = dispatcher.dispatch_by_message_attribute(choose_job_by_message_attributes)
 
