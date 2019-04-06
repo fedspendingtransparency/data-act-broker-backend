@@ -1,9 +1,9 @@
 DATA Act Broker Installation and Setup
 ====
 
-The easiest way to run a local DATA Act Broker is to use our Docker images. Essentially, the images are a packaged version of the broker backend components that is pre-configured and will run in an isolated environment.
+The easiest way to run a local DATA Act Broker is to use our Docker images. The images are a packaged version broker components that is pre-configured and will run in an isolated environment.
 
-If you're a developer who wants to run the broker on your machine and make changes to the code, please see the project's contributing guide: [CONTRIBUTING.md](CONTRIBUTING.md "project contributing guide").
+_If you're a developer who wants to run the broker on your machine and make changes to the code, please see the project's contributing guide after completing this install guide: [CONTRIBUTING.md](CONTRIBUTING.md "project contributing guide")._
 
 At a glance, setup steps are:
 
@@ -12,16 +12,14 @@ At a glance, setup steps are:
 3. Run the containers using Docker
 4. Seed the database with data
 
-At this point you will have a functioning backend API component and validator component. To interact with the broker through a web browser, install the frontend application
-
-**Assumptions**
+**Requirements**
 
 * You are able to install software on your local machine
 * You have `git` installed on your machine and are able to clone code repositories from GitHub. If this isn't the case, the easiest way to get started is to install [GitHub Desktop](https://desktop.github.com/ "GitHub desktop"), available for Windows or Mac.
 * You have `docker` installed and running on your machine, with`docker-compose`. If not, get [Docker Desktop](https://www.docker.com/products/docker-desktop.)
 * You are familiar with opening a terminal on your machine and using the command line as needed.
 
-## Code
+## Get the Source Code
 Create a base directory for the Broker code repositories
 
 ```
@@ -31,30 +29,28 @@ $ git clone https://github.com/fedspendingtransparency/data-act-broker-web-app.g
 $ cd data-act-broker-backend
 ```
 
-## Config
-Before running the broker, you'll need to provide a few configuration options. Each module consuming configuration data in the broker gets values for that configuration data from three config files within the `dataactcore/` folder:
+## Set Configuration Values
+Before running the broker, you'll need to set a few configuration values. Broker backend components get their configuration data from files in the `dataactcore/` folder:
 
-* `config.yml`: Default config parameters common to instances of all broker environment types (_e.g._, production, staging, development, local).
-* `<instance>_config.yml`: Environment instance-specific config parameters specific to a particular broker environment instance (_e.g._, location of the development database, url for the development broker instance). Values in this file override their corresponding values in `config.yml`.
-* `<instance>_secrets.yml`: Sensitive config values specific to a broker environment (_e.g._, database passwords).
+* `config.yml` - Default config parameters common to instances of all broker environment types (_e.g._, production, staging, development, local).
+* `<instance>_config.yml` - Environment instance-specific config parameters specific to a particular broker environment instance (_e.g._, location of the development database, url for the development broker instance). Values in this file override their corresponding values in `config.yml`.
+* `<instance>_secrets.yml` - Sensitive config values specific to a broker environment (_e.g._, database passwords).
 
 At startup, the broker looks for an environment variable called `env` and will use that to set the environment instance name. If there is no `env` environment variable, the broker will set the instance name to `local` and look for `local_config.yml` and `local_secrets.yml`.
 
-For example, when `env` is set to or defaults to `local`, these are the list of files needed to complete setup.
+For example, when `env` is set to `local` (or defaults to `local`), these are the list of files needed to complete setup.
 
-```
-        dataactcore/config.yml
-        dataactcore/local_config.yml
-        dataactcore/local_secrets.yml
+- `dataactcore/config.yml`
+- `dataactcore/local_config.yml`
+- `dataactcore/local_secrets.yml`
 
-        dataactvalidator/config/agency_codes_list.csv
-        dataactvalidator/config/cars_tas.csv
-        dataactvalidator/config/cgac.csv
-        dataactvalidator/config/object_class.csv
-        dataactvalidator/config/program_activity.csv
-```
+- `dataactvalidator/config/agency_codes_list.csv`
+- `dataactvalidator/config/cars_tas.csv`
+- `dataactvalidator/config/cgac.csv`
+- `dataactvalidator/config/object_class.csv`
+- `dataactvalidator/config/program_activity.csv`
 
-To get up and running quickly, you can use _example_ config and data files that are provided, for a local instance. To do so, run the copy commands below _(run from `data-act-broker-backend` folder)_:
+To get up and running quickly, use _"example"_ config and data files provided with the source code. To do so, run the copy commands below _(run from `data-act-broker-backend` folder)_:
 
 _**Copy Config Files**_
 
@@ -88,22 +84,22 @@ _NOTE: This uses **two** source code repositories that you downloaded at the beg
 $ docker-compose build
 ```
 
-Now start the containers using these built images. 
+Now start the containers using these built images:
 ```
 $ docker-compose up
 ```
-_This command will: _
+_This command will:_
 
-- _spin up the PostgreSQL database as a container named `dataact-broker-db`_
-- _spin up the Broker backend API component as a container named `dataact-broker-backend`_
-- _spin up the Broker Validator component as a containeir named `dataact-broker-validator`_
-- _spin up the Broker frontend JavaScript application as a container named `dataact-broker-frontend`_
+- _spin up the *PostgreSQL database* as a container named `dataact-broker-db`_
+- _spin up the *Broker backend API* component as a container named `dataact-broker-backend`_
+- _spin up the *Broker Validator* component as a containeir named `dataact-broker-validator`_
+- _spin up the *Broker frontend* JavaScript application as a container named `dataact-broker-frontend`_
 
-It may take about 30 seconds for all containers to report as running and ready.
+It may take about 30+ seconds for all containers to report as running and ready.
 
-Test connectivity:
+### Test Connectivity
 
-* To the API:
+_**To the API:**_
 ```
 $ curl http://localhost:9999/v1/current_user/
 ```
@@ -112,44 +108,45 @@ $ curl http://localhost:9999/v1/current_user/
 ```
 _(This is fine, we haven't loaded data yet)_
 
-* To the frontend web app: brows to http://localhost:3000
+_**To the frontend web app:**_
+Browse to http://localhost:3000
 
-Take note of these commands are useful when working with Docker Compose:
+Take note of these useful commands when working with Docker Compose:
 
-- `docker-compose up --detach` - runs your containers in the background, without writing out the logs to the console
-- `docker-compose logs` - view the latest logs from running containers
-- `docker logs <container-name>` - view the latest logs for just one container
-- `docker-compose logs -tf` or `docker logs <container-name> -tf` - tail live logs of container(s)
-- `docker-compose up --deteach --no-deps --force-recreate <container-name>` recreate and restart a single container (for example, if source code for it changed)
-- `docker-compose down` shuts down all your local containers and removes them. This may help debug some problems. You can always spin up your containers again by doing `docker-compose up -d`.
-- `docker-compose build` rebuilds your base image. example: you would do this if your `requirements.txt` changes
-- `docker-compose ps` shows you the info about containers running including which ports they are listening on mapped to
+- `docker-compose up --detach` - _run your containers in the background, without writing out the logs to the console_
+- `docker-compose logs` - _view the latest logs from running containers_
+- `docker logs <container-name>` - _view the latest logs for just one container_
+- `docker-compose logs -tf` or `docker logs <container-name> -tf` - _tail live logs of container(s)_
+- `docker-compose up --deteach --no-deps --force-recreate <container-name>` _recreate and restart a single container (for example, if source code for it changed)_
+- `docker-compose down` - _shut down all your local containers and remove them. This may help debug some problems. You can always spin up your containers again by doing `docker-compose up -d`._
+- `docker-compose build` _rebuild your base images. example: you would do this if your `requirements.txt` changed or NPM packages change for the frontend app_
+- `docker-compose ps` - _show you the info about containers running, including which ports they are listening on mapped to_
 
 To attach to one of your running containers, and run shell commands from within it:
 ```
-$ `docker exec -it <container-name> /bin/bash`
+$ docker exec -it <container-name> /bin/bash
 ```
 
-This will take you to the workspace directory within the container. This directory should have your source code repository mounted so changes to source code on your local machine are reflected within the container. Once attached to the container, run arbitrary commands within that environment, like loading data to the database.
+This will take you to the workspace directory within the container. This directory should have your source code repository mounted so changes to source code on your host machine are reflected within the container. Once attached to the container, run arbitrary commands within that environment, like loading data to the database.
 
 ## Loading Data
 For the final step before you can use the Broker, you will need to create a local admin user, and then initialize your database with data.
 
-_NOTE: Many of the commands below use the format `docker exec -it dataact-broker-backend <cmd>`. You can alternatively run them by first attaching to the container with `docker exec -it dataact-broker-backend /bin/bash`, and then from within the container run `<cmd>` on the command line.
+_:bulb: TIP: Many of the commands below use the format `docker exec -it dataact-broker-backend <cmd>`. You can alternatively run them by first attaching to the container with `docker exec -it dataact-broker-backend /bin/bash`, and then from within the container run `<cmd>` on the command line._
 
 **Create a User**
 ```bash
 $ docker exec -it dataact-broker-backend python dataactcore/scripts/initialize.py -a
 ```
-This creates a local admin user that you can use to log in. The Broker utilizes MAX.gov for login when using a remote server, but we cannot recieve their response locally so we use a username and password for local development login. The administrative user created will utilize the credentials defined in your `config.yml` file.
+This creates a local admin user that you can use to log in. The Broker utilizes MAX.gov for login when using a remote server, but we cannot recieve their response locally so we use a username and password for local development login. The credentials for the user created are the values you have configured in the `db.admin_email` and `db.admin_password` config params in `config.yml` or overridden in `local_config.yml`.
 
-Now try to browse to http://localhost:3000, and login with `valid.email@domain.com` and `password` (or whatever values you have configured in the `db.admin_email` and `db.admin_password` config params in `config.yml` or overridden in `local_config.yml`. You should get past the login screen to the home screen.
+Now try to browse to http://localhost:3000, and login with the configured credentials (`valid.email@domain.com` / `password`). You should get past the login screen to the home screen.
 
 **Initialize Database**
 ```bash
 $ docker exec -it dataact-broker-backend python dataactcore/scripts/initialize.py -i
 ```
-This loads the information needed to validate data submissions: schemas, rules, and domain values such as object classes and account codes. You can view what each function does [here](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/dataactcore/scripts/initialize.py), but the functions called by `initialize.py -i` are as follows:
+This loads the information needed to validate data submissions: schemas, rules, and reference data such as object classes and account codes. You can view what each function does [here](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/dataactcore/scripts/initialize.py), but the functions called by `initialize.py -i` are as follows:
 
 ```python
 setup_db()
