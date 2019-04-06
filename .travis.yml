@@ -8,7 +8,7 @@ script:
   - cp dataactcore/local_config_example.yml dataactcore/local_config.yml
   - cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
   - |
-    docker-compose run --rm dataact-broker \
+    docker-compose run --rm dataact-broker-backend \
       /bin/sh -c " \
       cd ./dataactcore; sleep 9s; alembic upgrade head; \
       cd ../; flake8 && \
