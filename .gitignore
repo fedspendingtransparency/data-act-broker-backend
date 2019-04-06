@@ -16,6 +16,7 @@ dataactbroker/venv
 dataactbroker/errorLog
 dataactbroker/responseErrorLog
 .venv/ 
+.python-version
 .DS_Store
 tests/validatorResponse
 tests/test.json
