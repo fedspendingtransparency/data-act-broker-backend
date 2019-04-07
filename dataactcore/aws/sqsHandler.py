@@ -1,4 +1,5 @@
 import boto3
+from itertools import islice
 import json
 
 from dataactcore.config import CONFIG_BROKER
@@ -19,7 +20,8 @@ class SQSMockQueue:
                          VisibilityTimeout=30, MaxNumberOfMessages=1):  # noqa
         sess = GlobalDB.db().session
         messages = []
-        for sqs in sess.query(SQS):
+        # Limit returned messages by MaxNumberOfMessages: start=0, stop=MaxNumberOfMessages
+        for sqs in islice(sess.query(SQS).order_by(SQS.sqs_id), 0, MaxNumberOfMessages):
             messages.append(SQSMockMessage(sqs))
         return messages
 
