@@ -1,5 +1,4 @@
 from dataactcore.aws.sqsHandler import sqs_queue
-from dataactvalidator.sqs_work_dispatcher import SQSWorkDispatcher
 from tests.integration.baseTestValidator import BaseTestValidator
 
 
@@ -31,6 +30,3 @@ class SQSTests(BaseTestValidator):
     #         task_status = "complete"
     #
     #     dispatcher.dispatch(do_some_work)
-
-
-

@@ -15,7 +15,7 @@ class SQSMockQueue:
         return {"ResponseMetadata": {"HTTPStatusCode": 200}}
 
     @staticmethod
-    def receive_messages(WaitTimeSeconds, MessageAttributeNames=None,
+    def receive_messages(WaitTimeSeconds, MessageAttributeNames=None,   # noqa
                          VisibilityTimeout=30, MaxNumberOfMessages=1):  # noqa
         sess = GlobalDB.db().session
         messages = []

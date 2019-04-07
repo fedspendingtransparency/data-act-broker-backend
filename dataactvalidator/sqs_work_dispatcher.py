@@ -196,7 +196,7 @@ class SQSWorkDispatcher:
             return False
         results = message_transformer(self._current_sqs_message)
         job, msg_args = results[:2]
-        exit_handler = None if not len(results) == 3 else results[2] # assign optional exit_handler
+        exit_handler = None if not len(results) == 3 else results[2]  # assign optional exit_handler
         log_job_message(
             logger=self._logger,
             message="Got job [{}] and msg_args [{}]".format(job, msg_args),
@@ -257,7 +257,8 @@ class SQSWorkDispatcher:
         Return the message back into its original queue for other consumers to process it.
 
         Does this by making it immediately visible (it was always there, just invisible).
-        See also: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html#terminating-message-visibility-timeout
+        See also: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/
+                  sqs-visibility-timeout.html#terminating-message-visibility-timeout
         """
         self._set_message_visibility(0)
 
