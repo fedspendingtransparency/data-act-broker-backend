@@ -1,4 +1,5 @@
 from dataactcore.aws.sqsHandler import sqs_queue
+from dataactvalidator.sqs_work_dispatcher import SQSWorkDispatcher
 from tests.integration.baseTestValidator import BaseTestValidator
 
 
@@ -14,3 +15,22 @@ class SQSTests(BaseTestValidator):
         self.assertNotEqual(messages, [])
         for message in messages:
             message.delete()
+
+    # def test_sqs_work_dispatched(self):
+    #     """Tests that the SQSWorkDispatcher can execute work successfully on a child worker process"""
+    #     queue = sqs_queue()
+    #     queue.send_message(MessageBody="1234")
+    #
+    #     dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process", allow_retries=False,
+    #                                    monitor_sleep_time=1)
+    #     task_status = "incomplete"
+    #
+    #     def do_some_work(task_id):
+    #         self.assertEquals(task_id, "1234")  # assert the message body is passed in as arg by default
+    #         # makes this a closure, closing over the state of the outer var, so it can be updated
+    #         task_status = "complete"
+    #
+    #     dispatcher.dispatch(do_some_work)
+
+
+
