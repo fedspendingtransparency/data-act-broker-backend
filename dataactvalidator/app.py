@@ -322,17 +322,13 @@ def cleanup_validation(job_id):
             boolean whether or not it should run again
     """
     sess = GlobalDB.db().session
-    logger.info('Cleaning up validation: {}'.format(job_id))
 
     job = sess.query(Job).filter(Job.job_id == job_id).one_or_none()
     if job and job.job_status_id in RUNNING_STATUSES:
         if job.job_status_id not in READY_STATUSES:
-            logger.info('Marking as waiting: {}'.format(job_id))
             job.job_status_id = JOB_STATUS_DICT['waiting']
             sess.commit()
-        logger.info('Redoing validation: {}'.format(job_id))
         return True
-    logger.info('Not redoing validation: {}'.format(job_id))
     return False
 
 
