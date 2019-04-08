@@ -1,5 +1,4 @@
 import logging
-import time
 
 from dateutil.relativedelta import relativedelta
 
@@ -72,7 +71,6 @@ class FileGenerationManager:
             })
         elif self.job.file_type.letter_name in ['A', 'E', 'F']:
             log_data['job_id'] = self.job.job_id
-            time.sleep(60*3)
             mark_job_status(self.job.job_id, 'running')
 
             if self.job.file_type.letter_name == 'A':

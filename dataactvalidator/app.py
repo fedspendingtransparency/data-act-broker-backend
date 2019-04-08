@@ -3,7 +3,6 @@ import csv
 import time
 import traceback
 import signal
-import os
 import sys
 
 from flask import Flask, g, current_app
@@ -19,7 +18,6 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager
-from dataactbroker.helpers.generation_helper import reset_generation_jobs
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 
@@ -60,9 +58,10 @@ def run_app():
         # Future: Override config w/ environment variable, if set
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
-        signal.signal(signal.SIGHUP, cleanup)
-        signal.signal(signal.SIGTERM, cleanup)
-        signal.signal(signal.SIGTSTP, cleanup)
+        if not local:
+            signal.signal(signal.SIGHUP, cleanup)
+            signal.signal(signal.SIGTERM, cleanup)
+            signal.signal(signal.SIGTSTP, cleanup)
 
         queue = sqs_queue()
 
@@ -311,6 +310,7 @@ def cleanup_generation(file_gen_id):
             sess.commit()
             return True
     return False
+
 
 def cleanup_validation(job_id):
     """ Cleans up validation task if to be reused

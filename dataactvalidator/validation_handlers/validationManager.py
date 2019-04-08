@@ -3,7 +3,6 @@ import csv
 import logging
 import os
 import traceback
-import time
 
 from datetime import datetime
 
