@@ -263,10 +263,10 @@ def cleanup(sig, frame):
         queue = sqs_queue()
 
         for message in current_messages:
-            logger.info('Resending message: {}'.format(message.body))
-            retry_message(queue, message)
             logger.info('Deleting message: {}'.format(message.body))
             message.delete()
+            logger.info('Resending message: {}'.format(message.body))
+            retry_message(queue, message)
 
         sys.exit(0)
 
