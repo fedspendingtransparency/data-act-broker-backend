@@ -299,10 +299,10 @@ def cleanup_generation(file_gen_id):
     """
     sess = GlobalDB.db().session
 
-    gen = sess.query(FileGeneration).filter(FileGeneration.file_generation_id == file_gen_id)
-    if not gen.file_path:
+    gen = sess.query(FileGeneration).filter(FileGeneration.file_generation_id == file_gen_id).one_or_none()
+    if gen and not gen.file_path:
         return True
-    else:
+    elif gen:
         running_jobs = sess.query(Job).filter(Job.file_generation_id == file_gen_id,
                                               Job.job_status_id.in_(RUNNING_STATUSES))
         if running_jobs.count() > 0:
@@ -324,8 +324,8 @@ def cleanup_validation(job_id):
     sess = GlobalDB.db().session
     logger.info('Cleaning up validation: {}'.format(job_id))
 
-    job = sess.query(Job).filter(Job.job_id == job_id)
-    if job.job_status_id not in RUNNING_STATUSES:
+    job = sess.query(Job).filter(Job.job_id == job_id).one_or_none()
+    if job and job.job_status_id not in RUNNING_STATUSES:
         if job.job_status_id not in READY_STATUSES:
             logger.info('Marking as waiting: {}'.format(job_id))
             job.job_status_id = JOB_STATUS_DICT['waiting']
