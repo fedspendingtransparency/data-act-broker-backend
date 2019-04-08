@@ -325,7 +325,7 @@ def cleanup_validation(job_id):
     logger.info('Cleaning up validation: {}'.format(job_id))
 
     job = sess.query(Job).filter(Job.job_id == job_id).one_or_none()
-    if job and job.job_status_id not in RUNNING_STATUSES:
+    if job and job.job_status_id in RUNNING_STATUSES:
         if job.job_status_id not in READY_STATUSES:
             logger.info('Marking as waiting: {}'.format(job_id))
             job.job_status_id = JOB_STATUS_DICT['waiting']
