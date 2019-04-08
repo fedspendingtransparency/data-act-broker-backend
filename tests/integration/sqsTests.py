@@ -27,7 +27,6 @@ class SQSTests(BaseTestValidator):
 
         dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process", allow_retries=False,
                                        monitor_sleep_time=1)
-        task_status = "incomplete"
 
         def do_some_work(task_id):
             self.assertEqual(1234, task_id)  # assert the message body is passed in as arg by default
