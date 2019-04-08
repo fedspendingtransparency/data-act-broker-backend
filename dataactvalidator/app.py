@@ -296,19 +296,23 @@ def cleanup_generation(file_gen_id):
             boolean whether or not it should run again
     """
     sess = GlobalDB.db().session
+    retry = False
 
     gen = sess.query(FileGeneration).filter(FileGeneration.file_generation_id == file_gen_id).one_or_none()
     if gen and not gen.file_path:
-        return True
+        retry = True
     elif gen:
         running_jobs = sess.query(Job).filter(Job.file_generation_id == file_gen_id,
                                               Job.job_status_id.in_(RUNNING_STATUSES))
-        if running_jobs.count() > 0:
+        retry = (running_jobs.count() > 0)
+        if retry:
             gen.file_path = None
             gen.is_cached_file = False
             sess.commit()
-            return True
-    return False
+
+    if retry:
+        logger.info('Retrying file generation: {}'.format(file_gen_id))
+    return retry
 
 
 def cleanup_validation(job_id):
@@ -321,14 +325,18 @@ def cleanup_validation(job_id):
             boolean whether or not it should run again
     """
     sess = GlobalDB.db().session
+    retry = False
 
     job = sess.query(Job).filter(Job.job_id == job_id).one_or_none()
     if job and job.job_status_id in RUNNING_STATUSES:
         if job.job_status_id not in READY_STATUSES:
             job.job_status_id = JOB_STATUS_DICT['waiting']
             sess.commit()
-        return True
-    return False
+        retry = True
+
+    if retry:
+        logger.info('Retrying validation: {}'.format(job_id))
+    return retry
 
 
 if __name__ == "__main__":
