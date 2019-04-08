@@ -680,6 +680,8 @@ class ValidationManager:
 
         # set job status to running and do validations
         mark_job_status(job_id, "running")
+        import time
+        time.sleep(60 * 3)
         if job_type_name == 'csv_record_validation':
             self.run_validation(job)
         elif job_type_name == 'validation':

@@ -72,6 +72,8 @@ class FileGenerationManager:
         elif self.job.file_type.letter_name in ['A', 'E', 'F']:
             log_data['job_id'] = self.job.job_id
             mark_job_status(self.job.job_id, 'running')
+            import time
+            time.sleep(60 * 3)
 
             if self.job.file_type.letter_name == 'A':
                 if not agency_code:
@@ -117,6 +119,8 @@ class FileGenerationManager:
 
         log_data['message'] = 'Writing {} file CSV: {}'.format(self.file_type, original_filename)
         logger.info(log_data)
+        import time
+        time.sleep(60 * 3)
 
         query_utils = {
             "sess": self.sess, "file_utils": file_utils, "agency_code": self.file_generation.agency_code,
