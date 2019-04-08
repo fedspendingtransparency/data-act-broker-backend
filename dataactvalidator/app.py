@@ -70,6 +70,7 @@ def run_app():
         while True:
             # Grabs one (or more) messages from the queue
             messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
+            logger.info("Messages received: {}".format(messages))
             current_messages = messages
             for message in messages:
                 logger.info("Message received: %s", message.body)
@@ -91,6 +92,7 @@ def run_app():
 
             # When you receive an empty response from the queue, wait a second before trying again
             if len(messages) == 0:
+                current_messages = []
                 time.sleep(1)
 
 
