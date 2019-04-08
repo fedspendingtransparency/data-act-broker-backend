@@ -69,7 +69,6 @@ def run_app():
         while True:
             # Grabs one (or more) messages from the queue
             messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
-            logger.info("Messages received: {}".format(messages))
             current_messages = messages
             for message in messages:
                 logger.info("Message received: %s", message.body)
