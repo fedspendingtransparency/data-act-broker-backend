@@ -4,6 +4,7 @@ import time
 import traceback
 import signal
 import sys
+import os
 
 from flask import Flask, g, current_app
 
@@ -33,6 +34,12 @@ current_messages = []
 exited = False
 READY_STATUSES = [JOB_STATUS_DICT['waiting'], JOB_STATUS_DICT['ready']]
 RUNNING_STATUSES = READY_STATUSES + [JOB_STATUS_DICT['running']]
+
+MOUNT_DRIVE = os.path.join(CONFIG_BROKER['path'], 'results_drive')
+
+def log_to_mount_drive(message):
+    with open(os.path.join(MOUNT_DRIVE, 'app.log'), 'a') as app_log:
+        app_log.write(message + '\n')
 
 
 def create_app():
@@ -71,7 +78,7 @@ def run_app():
             messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
             current_messages = messages
             for message in messages:
-                logger.info("Message received: %s", message.body)
+                log_to_mount_drive("Message received: {}".format(message.body))
 
                 msg_attr = message.message_attributes
                 cleanup_flag = (msg_attr and msg_attr.get('cleanup_flag', {}).get('StringValue') == '1')
@@ -256,14 +263,15 @@ def cleanup(sig, frame):
     if not exited:
         exited = True
 
-        logger.info('Unexpected shutdown (SIG: {}). Cleaning up current messages.'.format(sig))
+        log_to_mount_drive('Unexpected shutdown (SIG: {}). Cleaning up current messages.'.format(sig))
 
         queue = sqs_queue()
 
         for message in current_messages:
-            logger.info('Deleting message: {}'.format(message.body))
+            log_to_mount_drive('Message Attributes: {}'.format(message.message_attributes))
+            log_to_mount_drive('Deleting message: {}'.format(message.body))
             message.delete()
-            logger.info('Resending message: {}'.format(message.body))
+            log_to_mount_drive('Resending message: {}'.format(message.body))
             retry_message(queue, message)
 
         sys.exit(0)
@@ -311,7 +319,7 @@ def cleanup_generation(file_gen_id):
             sess.commit()
 
     if retry:
-        logger.info('Retrying file generation: {}'.format(file_gen_id))
+        log_to_mount_drive('Retrying file generation: {}'.format(file_gen_id))
     return retry
 
 
@@ -335,7 +343,7 @@ def cleanup_validation(job_id):
         retry = True
 
     if retry:
-        logger.info('Retrying validation: {}'.format(job_id))
+        log_to_mount_drive('Retrying validation: {}'.format(job_id))
     return retry
 
 
