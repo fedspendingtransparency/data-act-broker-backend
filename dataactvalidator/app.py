@@ -66,7 +66,7 @@ def run_app():
         queue = sqs_queue()
 
         logger.info("Starting SQS polling")
-        while True:
+        while not exited:
             # Grabs one (or more) messages from the queue
             messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
             current_messages = messages
