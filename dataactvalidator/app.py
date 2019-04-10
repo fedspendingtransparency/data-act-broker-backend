@@ -39,7 +39,7 @@ MOUNT_DRIVE = os.path.join(CONFIG_BROKER['path'], 'results_drive')
 
 def log_to_mount_drive(message):
     with open(os.path.join(MOUNT_DRIVE, 'app.log'), 'a') as app_log:
-        app_log.write(message + '\n')
+        app_log.write('{}-{}:{}\n'.format(time.time(), os.getpid(), message))
 
 
 def create_app():
@@ -266,17 +266,12 @@ def cleanup(sig, frame):
         log_to_mount_drive('Unexpected shutdown (SIG: {}). Cleaning up current messages.'.format(sig))
 
         queue = sqs_queue()
-        log_to_mount_drive('got da queue: {}'.format(queue))
 
         for message in current_messages:
-            log_to_mount_drive('Message Attributes: {}'.format(message.message_attributes))
-            log_to_mount_drive('Deleting message: {}'.format(message.body))
-            message.delete()
-            log_to_mount_drive('Resending message: {}'.format(message.body))
-            try:
-                retry_message(queue, message)
-            except Exception as e:
-                log_to_mount_drive('EXCEPTION: {}'.format(e))
+            deleted_message = message.delete()
+            log_to_mount_drive('DELETED MESSAGE:{}'.format(deleted_message))
+            retried_messaged = retry_message(queue, message)
+            log_to_mount_drive('RETRIED MESSAGE:{}'.format(retried_messaged))
         sys.exit(0)
 
 
@@ -295,7 +290,7 @@ def retry_message(queue, message):
         message_attr = {}
     message_attr['cleanup_flag'] = {"DataType": "String", 'StringValue': '1'}
     log_to_mount_drive('Message Attributes: {}'.format(message_attr))
-    queue.send_message(MessageBody=message.body, MessageAttributes=message_attr)
+    return queue.send_message(MessageBody=message.body, MessageAttributes=message_attr)
 
 
 def cleanup_generation(file_gen_id):
