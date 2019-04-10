@@ -35,12 +35,11 @@ exited = False
 READY_STATUSES = [JOB_STATUS_DICT['waiting'], JOB_STATUS_DICT['ready']]
 RUNNING_STATUSES = READY_STATUSES + [JOB_STATUS_DICT['running']]
 
-# MOUNT_DRIVE = os.path.join(CONFIG_BROKER['path'], 'results_drive')
+MOUNT_DRIVE = os.path.join(CONFIG_BROKER['path'], 'results_drive')
 
 def log_to_mount_drive(message):
-    # with open(os.path.join(MOUNT_DRIVE, 'app.log'), 'a') as app_log:
-    #     app_log.write(message + '\n')
-    logger.info(message)
+    with open(os.path.join(MOUNT_DRIVE, 'app.log'), 'a') as app_log:
+        app_log.write(message + '\n')
 
 
 def create_app():
