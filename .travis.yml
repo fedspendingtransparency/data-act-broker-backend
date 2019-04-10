@@ -27,6 +27,7 @@ after_script:
   - pwd
   - ls -lath
   - cat .coverage
-  - ./cc-test-reporter after-build --coverage-input-type coverage.py --exit-code $TRAVIS_TEST_RESULT --debug
+  - ./cc-test-reporter after-build --coverage-input-type coverage.py --prefix ./tests --exit-code $TRAVIS_TEST_RESULT
+    --debug
   - docker-compose down
 
