@@ -66,8 +66,8 @@ def run_app():
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
         if not local:
-            signal.signal(signal.SIGHUP, cleanup)
-            signal.signal(signal.SIGTERM, cleanup)
+            # signal.signal(signal.SIGHUP, cleanup)
+            # signal.signal(signal.SIGTERM, cleanup)
             signal.signal(signal.SIGTSTP, cleanup)
 
         queue = sqs_queue()
