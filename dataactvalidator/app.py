@@ -266,14 +266,17 @@ def cleanup(sig, frame):
         log_to_mount_drive('Unexpected shutdown (SIG: {}). Cleaning up current messages.'.format(sig))
 
         queue = sqs_queue()
+        log_to_mount_drive('got da queue: {}'.format(queue))
 
         for message in current_messages:
             log_to_mount_drive('Message Attributes: {}'.format(message.message_attributes))
             log_to_mount_drive('Deleting message: {}'.format(message.body))
             message.delete()
             log_to_mount_drive('Resending message: {}'.format(message.body))
-            retry_message(queue, message)
-
+            try:
+                retry_message(queue, message)
+            except Exception as e:
+                log_to_mount_drive('EXCEPTION: {}'.format(e))
         sys.exit(0)
 
 
@@ -291,6 +294,7 @@ def retry_message(queue, message):
     if not message_attr:
         message_attr = {}
     message_attr['cleanup_flag'] = {"DataType": "String", 'StringValue': '1'}
+    log_to_mount_drive('Message Attributes: {}'.format(message_attr))
     queue.send_message(MessageBody=message.body, MessageAttributes=message_attr)
 
 
