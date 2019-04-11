@@ -1,5 +1,10 @@
 sudo: required
 
+language: python
+
+python:
+  - '3.5'
+
 services:
   - docker
 
@@ -12,25 +17,16 @@ script:
   - cp dataactcore/config_example.yml dataactcore/config.yml
   - cp dataactcore/local_config_example.yml dataactcore/local_config.yml
   - cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
-  - pwd
-  - ls -lath
-  - echo 'hi' > tests/coverage.xml
-  - echo 'hello' > .coverage
-#  - |
-#    docker-compose run --rm dataact-broker \
-#      /bin/sh -c " \
-#      cd ./dataactcore; sleep 9s; alembic upgrade head; \
-#      cd ../; flake8 && echo 'hi' > tests/coverage.xml && echo 'hello' > .coverage && \
-#      #py.test --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml; \
-#      ls -lath"
+  - |
+    docker-compose run --rm dataact-broker \
+      /bin/sh -c " \
+      cd ./dataactcore; sleep 9s; alembic upgrade head; \
+      cd ../; flake8 && \
+      py.test --cov=. --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml"
 
 
 after_script:
-  - pwd
-  - ls -lath
-  - cat .coverage
   - mv tests/coverage.xml coverage.xml
-  - ./cc-test-reporter after-build --coverage-input-type coverage.py --prefix tests --exit-code $TRAVIS_TEST_RESULT
-    --debug
-#  - docker-compose down
+  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+  - docker-compose down
 
