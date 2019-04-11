@@ -31,6 +31,6 @@ after_script:
   - cat .coverage
   - mv tests/coverage.xml coverage.xml
   - ./cc-test-reporter after-build --coverage-input-type coverage.py --prefix tests --exit-code $TRAVIS_TEST_RESULT
-    --debug $PWD/tests/coverage.xml
+    --debug
 #  - docker-compose down
 
