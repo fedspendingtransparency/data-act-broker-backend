@@ -15,6 +15,7 @@ import asyncio
 import datetime
 import time
 import re
+import json
 
 from sqlalchemy import func
 
@@ -1330,20 +1331,28 @@ def get_total_expected_records(base_url):
 
 
 def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-             country_list, last_run=None, threaded=False, start_date=None, end_date=None):
+             country_list, last_run=None, threaded=False, start_date=None, end_date=None, metrics_json=None):
     """ get the data from the atom feed based on contract/award type and the last time the script was run """
+    if not metrics_json:
+        metrics_json = {}
     data = []
     yesterday = now - datetime.timedelta(days=1)
     utcnow = datetime.datetime.utcnow()
     # if a date that the script was last successfully run is not provided, get all data
     if not last_run:
         params = 'SIGNED_DATE:[2016/10/01,' + yesterday.strftime('%Y/%m/%d') + '] '
+        metrics_json['start_date'] = '2016/10/01'
+        metrics_json['end_date'] = yesterday.strftime('%Y/%m/%d')
     # if a date that the script was last successfully run is provided, get data since that date
     else:
         last_run_date = last_run - relativedelta(days=1)
         params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
+        metrics_json['start_date'] = last_run_date.strftime('%Y/%m/%d')
+        metrics_json['end_date'] = yesterday.strftime('%Y/%m/%d')
         if start_date and end_date:
             params = 'LAST_MOD_DATE:[' + start_date + ',' + end_date + '] '
+            metrics_json['start_date'] = start_date
+            metrics_json['end_date'] = end_date
 
     base_url = feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"'
     logger.info('Starting get feed: %s', base_url)
@@ -1424,6 +1433,10 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                 raise Exception("Records retrieved != Total expected records\nExpected: {}\nRetrieved: {}"
                                 .format(total_expected_records, entries_processed))
             else:
+                if 'records_received' not in metrics_json:
+                    metrics_json['records_received'] = total_expected_records
+                else:
+                    metrics_json['records_received'] += total_expected_records
                 break
         else:
             data = []
@@ -1433,14 +1446,22 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
     logger.info("Processed %s: %s data", contract_type, award_type)
 
 
-def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_date=None):
+def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_date=None, metrics_json=None):
     """ Get data from the delete feed """
+    if not metrics_json:
+        metrics_json = {}
     data = []
     yesterday = now - datetime.timedelta(days=1)
     last_run_date = last_run - relativedelta(days=1)
     params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
     if start_date and end_date:
         params = 'LAST_MOD_DATE:[' + start_date + ',' + end_date + '] '
+        # If we just call deletes, we have to set the date. If we don't provide dates, some other part has to have run
+        # already so this is the only place it needs to get set.
+        if not metrics_json['start_date']:
+            metrics_json['start_date'] = start_date
+        if not metrics_json['end_date']:
+            metrics_json['end_date'] = end_date
 
     base_url = delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"'
     logger.info('Starting delete feed: %s', base_url)
@@ -1494,6 +1515,10 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
                 raise Exception("Records retrieved != Total expected records\nExpected: {}\nRetrieved: {}"
                                 .format(total_expected_records, len(listed_data)))
             else:
+                if 'deletes_received' not in metrics_json:
+                    metrics_json['deletes_received'] = total_expected_records
+                else:
+                    metrics_json['deletes_received'] += total_expected_records
                 break
         else:
             listed_data = []
@@ -1518,6 +1543,10 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
 
     # only need to delete values if there's something to delete
     if delete_list:
+        if 'records_deleted' not in metrics_json:
+            metrics_json['records_deleted'] = len(delete_list)
+        else:
+            metrics_json['records_deleted'] += len(delete_list)
         sess.query(DetachedAwardProcurement).\
             filter(DetachedAwardProcurement.detached_award_procurement_id.in_(delete_list)).\
             delete(synchronize_session=False)
@@ -1525,6 +1554,7 @@ def get_delete_data(contract_type, now, sess, last_run, start_date=None, end_dat
     # writing the file
     seconds = int((datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)).total_seconds())
     file_name = now.strftime('%m-%d-%Y') + "_delete_records_" + contract_type + "_" + str(seconds) + ".csv"
+    metrics_json['deleted_{}_records_file'.format(contract_type).lower()] = file_name
     headers = ["detached_award_procurement_id", "detached_award_proc_unique"]
     if CONFIG_BROKER["use_aws"]:
         s3client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
@@ -2341,6 +2371,17 @@ def main():
 
     award_types_award = ["BPA Call", "Definitive Contract", "Purchase Order", "Delivery Order"]
     award_types_idv = ["GWAC", "BOA", "BPA", "FSS", "IDC"]
+    metrics_json = {
+        'script_name': 'pull_fpds_data.py',
+        'records_received': 0,
+        'deletes_received': 0,
+        'records_deleted': 0,
+        'deleted_award_records_file': '',
+        'deleted_idv_records_file': '',
+        'start_date': '',
+        'end_date': '',
+        'start_time': str(now)
+    }
 
     # get and create list of sub tier agencies
     sub_tiers = sess.query(SubTierAgency).all()
@@ -2394,15 +2435,15 @@ def main():
         if args.other:
             for award_type in award_types_idv:
                 get_data("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-                         country_list)
+                         country_list, metrics_json=metrics_json)
             for award_type in award_types_award:
                 if award_type != "Delivery Order":
                     get_data("award", award_type, now, sess, sub_tier_list, county_by_name, county_by_code,
-                             state_code_list, country_list)
+                             state_code_list, country_list, metrics_json=metrics_json)
 
         elif args.delivery:
             get_data("award", "Delivery Order", now, sess, sub_tier_list, county_by_name, county_by_code,
-                     state_code_list, country_list)
+                     state_code_list, country_list, metrics_json=metrics_json)
 
         last_update = sess.query(FPDSUpdate).one_or_none()
 
@@ -2436,15 +2477,15 @@ def main():
 
         for award_type in award_types_idv:
             get_data("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-                     country_list, last_update, start_date=start_date, end_date=end_date)
+                     country_list, last_update, start_date=start_date, end_date=end_date, metrics_json=metrics_json)
 
         for award_type in award_types_award:
             get_data("award", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-                     country_list, last_update, start_date=start_date, end_date=end_date)
+                     country_list, last_update, start_date=start_date, end_date=end_date, metrics_json=metrics_json)
 
         # We also need to process the delete feed
-        get_delete_data("IDV", now, sess, last_update, start_date, end_date)
-        get_delete_data("award", now, sess, last_update, start_date, end_date)
+        get_delete_data("IDV", now, sess, last_update, start_date, end_date, metrics_json=metrics_json)
+        get_delete_data("award", now, sess, last_update, start_date, end_date, metrics_json=metrics_json)
         if not start_date and not end_date:
             sess.query(FPDSUpdate).update({"update_date": now}, synchronize_session=False)
 
@@ -2466,9 +2507,9 @@ def main():
             raise ValueError("Delete argument must be \"idv\", \"award\", or \"both\"")
 
         if del_idvs:
-            get_delete_data("IDV", now, sess, now, args.delete[1], args.delete[2])
+            get_delete_data("IDV", now, sess, now, args.delete[1], args.delete[2], metrics_json=metrics_json)
         if del_awards:
-            get_delete_data("award", now, sess, now, args.delete[1], args.delete[2])
+            get_delete_data("award", now, sess, now, args.delete[1], args.delete[2], metrics_json=metrics_json)
         sess.commit()
     elif args.files:
         logger.info("Starting file loads at: %s", str(datetime.datetime.now()))
@@ -2529,6 +2570,10 @@ def main():
 
         sess.commit()
         logger.info("Ending at: %s", str(datetime.datetime.now()))
+    metrics_json['duration'] = str(datetime.datetime.now() - now)
+
+    with open('pull_fpds_data_metrics.json', 'w+') as metrics_file:
+        json.dump(metrics_json, metrics_file)
 
     # TODO add a correct start date for "all" so we don't get ALL the data or too little of the data
     # TODO fine-tune indexing

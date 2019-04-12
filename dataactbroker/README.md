@@ -1519,7 +1519,7 @@ Possible HTTP Status Codes:
 - 401: Login required
 
 
-## Test Cases
+## Automated Tests
 
 ### Integration Tests
 

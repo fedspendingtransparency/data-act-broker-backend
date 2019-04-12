@@ -6,22 +6,22 @@
 broker:
 
     use_aws: false
-    full_url: http://0.0.0.0:3000
+    full_url: http://127.0.0.1:3000
     reply_to_email: valid.developer.email@domain.com
 
 services:
 
     debug: true
-    broker_api_host: 0.0.0.0
+    broker_api_host: 127.0.0.1
     broker_api_port: 9999
-    validator_host: 0.0.0.0
+    validator_host: 127.0.0.1
     validator_port: 8889
     error_report_path: /data-act/backend/data-act-broker-backend/temp/error_reports
 
 db:
 
     scheme: postgres
-    host: dataact-postgres
+    host: dataact-broker-db
     port: 5432
     base_db_name: postgres #This is the default db on the instance.
     db_name: data_broker
