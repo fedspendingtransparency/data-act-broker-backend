@@ -1,99 +1,97 @@
-## Public Domain
+Contributing Code to DATA Act Broker
+====
+_Follow the development process and checks below in order to promote candidate code changes to production._
 
-This project is in the public domain within the United States, and copyright and related rights in the work worldwide are waived through the CC0 1.0 Universal public domain dedication.
+### Git Workflow
 
-All contributions to this project will be released under the CC0 dedication. By submitting a pull request, you are agreeing to comply with this waiver of copyright interest.
+We use three main branches:
 
-## Git Workflow
+* `staging` - Stable code deployed to a staging version of the data broker
+* `development` - Code in development that is released to `staging` at the close of each sprint
+* `master` - Code on the production site. Code gets merged to this branch by the product owner once it has been tested on staging.
 
-All code to be merged should be submitted to `development` via a Github pull request. The pull request template is available [here](/pull_request_template.md "Pull Request Template").
+Only non-breaking, stable code is merged into `development` and promoted to higher branches in order to prevent disruptions to users and team members.
 
-## Continuous Integration
+All code to be merged should be submitted to the `development` branch via a GitHub pull request. The pull request template is available [here](/pull_request_template.md "Pull Request Template"), and faciliates code reviews and quality checks.
 
-Pull requests must pass Travis CI tests. See the [Travis configuration file](/.travis.yml "Travis Configuration").
+### Continuous Integration
 
-## Load or Update Domain Data
+Pull requests must pass all GitHub checks on the PR, including Travis CI tests. See the [Travis configuration file](/.travis.yml "Travis Configuration").
 
-You will need to run two scripts to setup the broker's backend components. From the `data-act-broker-backend` directory:
+To run tests locally, see documentation for each app:
+
+* [Broker API tests](../dataactbroker/README.md#automated-tests)
+* [Broker Validator tests](../dataactvalidator/README.md#automated-tests)
+
+### Concluding a Sprint
+
+At the conclusion of a sprint, new code merged into the `development` as part of approved PRs is merged into `staging`. It is then tested and merged in to `master` when ready, as part of its release to production.
+
+The DATA Act Broker contains several individual components. The section below walks through the process of getting the entire code base up and running.
+
+## Local Development Environment Setup
+_To run Broker locally, and test code changes, you must setup a local development environment_
+
+Start by following instructions in [INSTALL.md](INSTALL.md "broker install guide") to get all the broker components up and running as Docker containers in a local development environment. 
+
+_**Contributing to the Broker Website**_
+
+This setup should provide a running Broker frontend web application as a container, which you can browse to. If you want to contribute changes to the frontend application, see instructions for developing Broker Frontend in the [Broker web app code repository](https://github.com/fedspendingtransparency/data-act-broker-web-app "DATA Act broker web app").
+
+_**Pointing Containerized Broker at an Existing Postgres Database**_
+
+NOTE: If you would rather have your `dataact-broker-backend` and `dataact-broker-validator` containers to instead connect to PostgreSQL running on your host machine, you must change your config to route from within docker containers to your host IP. 
+* Change `db.host` config param in `local_config.yml` to `host.docker.internal` (or `docker.for.mac.host.internal` if using docker v `17.12.0`-`18.03.0`).
+* Change the `db.username` and `db.password` config params for your database in `local_secrets.yml`
+
+### Python Development
+_Setup python on your host machine to work with the source code and its dependent libraries_
+
+#### Requirements
+Ensure the following dependencies are installed and working prior to continuing:
+
+- [`python3`](https://docs.python-guide.org/starting/installation/#python-3-installation-guides)
+- [`pyenv`](https://github.com/pyenv/pyenv/#installation) using Python 3.5.x
+  - _NOTE: Read full install. `brew install` needs to be followed by additional steps to modify and source your `~/.bash_profile`_
+- `Bash` or another Unix Shell equivalent
+  - Bash is available on Windows as [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
+- Command line package manager
+  - Windows' WSL bash uses `apt-get`
+  - OSX users will use [`Homebrew`](https://brew.sh/)
+
+#### Setup
+Navigate to the base directory for the Broker backend source code repositories
+```bash
+$ cd data-act-broker-backend
+```
+
+Create and activate the virtual environment using `venv`, and ensure the right version of Python 3.5.x is being used (the latest RHEL package available for `python35u`, currently 3.5.5)
 
 ```bash
-python dataactcore/scripts/initialize.py -i
-python dataactcore/scripts/initialize.py -a
+$ pyenv install 3.5.5
+$ pyenv local 3.5.5
+$ python -m venv .venv/broker-backend
+$ source .venv/broker-backend/bin/activate
 ```
 
-The first one creates the databases and loads the information needed to validate data submissions: schemas, rules, and domain values such as object classes and account codes. You can view what each function does [here](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/dataactcore/scripts/initialize.py), but the functions called by `initialize.py -i` are as follows:
-
-```python
-setup_db()
-load_sql_rules()
-load_domain_value_files(validator_config_path)
-load_agency_data(validator_config_path)
-load_tas_lookup()
-load_sf133()
-load_validator_schema()
-load_location_codes()
-load_zip_codes()
-load_offices()
-```
-
-The second script creates a local admin user that you can use to log in. The Broker utilizes MAX.gov for login when using a remote server, but we cannot recieve their response locally so we use a username and password for local development login. The administrative user created will utilize the credentials defined in your `config.yml` file.
-
-**Important Notes:**
-* By default, the broker installs with a small sample of [GTAS financial data](https://www.fiscal.treasury.gov/fsservices/gov/acctg/gtas/gtas_home.htm "GTAS"), which is used during the validation process. See the next section for more comprehensive options.
-
-#### Loading SF-133 data
-
-If you'd like to install the broker using real GTAS data for your agency, replace the sample file with data representing the GTAS periods you want to validate against (using the same headers and data format as the sample file). The files should be named `dataactvalidator/config/sf_133_yyyy_mm.csv`, where `yyyy` is the fiscal year, and `mm` is the fiscal year period. This is only necessary for local installs.
-
-If instead, you want to match the production environment (and are a developer on the DATA Act team), you can access our SF-133 files through S3. The data is sensitive, so we do not host it publicly. In the `prod-data-act-submission` bucket, within the `config` directory, you should see a series of `sf_133_yyyy_mm.csv` files. Download these and store them in your local `dataactvalidator/config` folder.
-
-Once you've placed those files, run:
+Your prompt should then look as below to show you are _in_ the virtual environment named `broker-backend` (_to exit that virtual environment, simply type `deactivate` at the prompt_).
 
 ```bash
-python dataactvalidator/scripts/load_sf133.py
-```
+(broker-backend) $
+``` 
 
-This will only load the new SF133 entries. To force load from your files, you can add the `-f` or `--force` flag:
+[`pip`](https://pip.pypa.io/en/stable/installing/) `install` application dependencies
 
+:bulb: _(try a different WiFi if your current one blocks dependency downloads)_
 ```bash
-python dataactvalidator/scripts/load_sf133.py -f
+(broker-backend) $ pip install -r requirements.txt
 ```
 
-This will take several minutes to process.
-
-#### CGAC, Object Class, and Program Activity data
-
-CGAC file location: `dataactvalidator/config/cgac.csv`
-
-Object Class file location: `dataactvalidator/config/object_class.csv`
-
-Program Activity file location: `dataactvalidator/config/program_activity.csv`
-
-To load these files:
-```bash
-python dataactcore/scripts/initialize.py -d
-```
-
-#### TAS data:
-
-TAS file location: `dataactvalidator/config/cars_tas.csv`
-
-To load TAS data:
-```bash
-python dataactcore/scripts/initialize.py -t
-```
-
-### Setup and Run Broker Website
-
-Once the DATA Act broker's backend is up and running, you may also want to stand up a local version of the broker website. The directions for doing that are in the [website project's code repository](https://github.com/fedspendingtransparency/data-act-broker-web-app "DATA Act broker website").
-
-After following the website setup directions, you can log in with the admin e-mail and password you set in the [broker's backend config file](#create-broker-config-file "config file setup") (`admin_email` and `admin_password`).
-
-## Database Migrations
+### Database Migrations
 
 If part of your DATA Act broker development involves changing the database models, use the following process for generating database migration files. We're using Alembic to create and run database migrations, which is installed as part of the broker.
 
-### Running Migrations
+#### Running Migrations
 
 Before doing your first migration, drop all tables and run
 ```bash
@@ -119,9 +117,17 @@ In order to revert to a specific revision run the following, where [revision] co
 $ alembic downgrade [revision]
 ```
 
-## Debugging
+### Configure Amazon Web Services (Optional)
 
-### Logging Configuration
+When running the broker, you have the option to use Amazon Web Services (AWS) to handle:
+
+* Storage of data submissions and validation reports (via S3 buckets).
+
+Using AWS is optional, and by default the broker will not use these services. If you'd like to use AWS, [follow these directions](AWS.md "set up Amazon Web Services") now.
+
+### Debugging
+
+#### Logging Configuration
 
 The default logging level for our loggers (and libraries we use) aren't always
 verbose enough. Luckily, we can change the settings for any logger in our
@@ -146,7 +152,7 @@ for more configuration details. Everything within `python_config` is imported
 via `dictConfig` (in addition to some standard settings defined in
 `dataactcore.logging`.
 
-### Adding log messages
+#### Adding log messages
 
 Of course, if nothing is being logged, you won't be able to see application state. To add log messages, you may need to create a logger at the top of the module (i.e. *.py file). We should use `__name__` to name the loggers after the modules they are used in.
 
@@ -170,3 +176,9 @@ except ValueError:
 
 See the Python [docs](https://docs.python.org/3.4/library/logging.html) for
 more info.
+
+## Public Domain License
+
+This project is in the public domain within the United States, and copyright and related rights in the work worldwide are waived through the CC0 1.0 Universal public domain dedication.
+
+All contributions to this project will be released under the CC0 dedication. By submitting a pull request, you are agreeing to comply with this waiver of copyright interest.

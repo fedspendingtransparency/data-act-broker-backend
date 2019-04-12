@@ -1,5 +1,6 @@
 .idea/*
 .cache/*
+.DS_Store
 dataactcore/.idea/*
 dataactcore/dbErrors.log
 *config.yml
@@ -14,6 +15,8 @@ node_modules
 dataactbroker/venv
 dataactbroker/errorLog
 dataactbroker/responseErrorLog
+.venv/ 
+.python-version
 .DS_Store
 tests/validatorResponse
 tests/test.json
@@ -38,5 +41,6 @@ dataactvalidator/config/program_activity.csv
 dataactvalidator/config/agency_codes_list.csv
 dataactvalidator/config/zips/zip4mst*
 temp/
+tmp/
 local-configs.yml
 local_configs.yml
