@@ -10,12 +10,12 @@ import multiprocessing as mp
 from botocore.exceptions import ClientError
 
 from dataactcore.aws.sqsHandler import sqs_queue
-from dataactvalidator.validator_logging import log_job_message
-
+from dataactvalidator.validator_logging import log_job_message, log_to_mount_drive
 
 # Not a complete list of signals
 # Only the following are allowed to be used with signal() on Windows
 #    SIGABRT, SIGFPE, SIGILL, SIGINT, SIGSEGV, SIGTERM, or SIGBREAK (windows only)
+# NOTE: 1-15 are relatively standard on unix platforms; > 15 can change from platform to platform
 BSD_SIGNALS = {
         1: "SIGHUP [1] (Hangup detected on controlling terminal or death of controlling process)",
         2: "SIGINT [2] (Interrupt from keyboard)",
@@ -23,10 +23,12 @@ BSD_SIGNALS = {
         4: "SIGILL [4] (Illegal Instruction)",
         6: "SIGABRT [6] (Abort signal from abort(3))",
         8: "SIGFPE [8] (Floating point exception)",
-        9: "SIGKILL [9] (non-catchable, non-ignorable kill)",
+        9: "SIGKILL [9] (Non-catchable, non-ignorable kill)",
         11: "SIGSEGV [11] (Invalid memory reference)",
-        14: "SIGALRM [12] (Timer signal from alarm(2))",
-        15: "SIGTERM [15] (software termination signal)",
+        14: "SIGALRM [14] (Timer signal from alarm(2))",
+        15: "SIGTERM [15] (Software termination signal)",
+        19: "SIGSTOP [19] (Suspend process execution)",  # NOTE: 17 on Mac OSX, 19 on RHEL
+        20: "SIGTSTP [20] (Interrupt from keyboard to suspend (CTRL-Z)",  # NOTE: 18 on Mac OSX, 20 on RHEL
     }
 if sys.platform == "win32":
     BSD_SIGNALS[0] = "CTRL_C_EVENT [0] (Quit detected on controlling terminal with CTRL-C)"
@@ -45,6 +47,10 @@ class SQSWorkDispatcher:
                         signal.SIGBREAK, signal.CTRL_C_EVENT, signal.CTRL_BREAK_EVENT]
     else:
         EXIT_SIGNALS = [signal.SIGHUP, signal.SIGABRT, signal.SIGINT, signal.SIGQUIT, signal.SIGTERM]
+        # NOTE: We are not handling signal.SIGSTOP or signal.SIGTSTP because those are suspensions.
+        # There may be valid cases to suspend and then later resume the process.
+        # It is even done here via multiprocessing.Process.suspend() to suspend during cleanup.
+        # So we do NOT want to handle that
 
     def __init__(
             self,
@@ -102,6 +108,11 @@ class SQSWorkDispatcher:
         # Map handler functions for each of the exit signals we want to handle on the parent dispatcher process
         for sig in self.EXIT_SIGNALS:
             signal.signal(sig, self._handle_exit_signal)
+
+    @property
+    def is_exiting(self):
+        """True when this parent dispatcher process has received a signal that will lead to the process exiting"""
+        return self._dispatcher_exiting
 
     def _dispatch(self, job, job_args, worker_process_name=None, exit_handler=None):
         """
@@ -218,6 +229,7 @@ class SQSWorkDispatcher:
         try:
             received_messages = self.sqs_queue_instance.receive_messages(
                 WaitTimeSeconds=wait_time,
+                AttributeNames=["All"],
                 MessageAttributeNames=["All"],
                 VisibilityTimeout=self._default_visibility_timeout,
                 MaxNumberOfMessages=1,
@@ -230,6 +242,8 @@ class SQSWorkDispatcher:
         if received_messages:
             self._current_sqs_message = received_messages[0]
             log_job_message(logger=self._logger, message="Message received: {}".format(self._current_sqs_message.body))
+            # TODO: remove diagnostic logging below
+            log_to_mount_drive("Message received: {}".format(self._current_sqs_message.body))
 
     def delete_message_from_queue(self):
         if self._current_sqs_message is None:
@@ -295,9 +309,14 @@ class SQSWorkDispatcher:
         dlq_name = dlq_arn.split(':')[-1]
         # Copy the message to the designated dead letter queue
         dlq = sqs_queue(queue_name=dlq_name)
+        # TODO: If Attributes is a writable dictionary, consider sending those too from the original message
+        # TODO: Like Retry Count. Other things probably should not go (e.g. DLQs msgs should not get a redrivepolicy)
+        # TODO: If Retry can't be set, log it before moving to DLQ
+        message_attr = self._current_sqs_message.message_attributes.copy() if \
+            self._current_sqs_message.message_attributes else {}
         dlq.send_message(
             MessageBody=self._current_sqs_message.body,
-            MessageAttributes=self._current_sqs_message.message_attributes
+            MessageAttributes=message_attr
         )
         self.delete_message_from_queue()
 
@@ -395,6 +414,8 @@ class SQSWorkDispatcher:
                     "Gracefully stopping job being worked".format(proc_label, signal_or_human),
             is_error=True
         )
+        # TODO: remove diagnostic logging below
+        log_to_mount_drive('Unexpected shutdown (SIG: {}). Cleaning up current messages.'.format(signal_or_human))
         try:
             worker = ps.Process(self._worker_process.pid)
 

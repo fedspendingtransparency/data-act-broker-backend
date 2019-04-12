@@ -1,3 +1,4 @@
+import logging
 from os import getpid, getppid
 
 import psutil
@@ -11,6 +12,10 @@ from dataactcore.interfaces.db import GlobalDB
 # DIAGNOSTIC CODE
 # - to to be used while under test, then removed
 # ============================================================
+import os
+from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
+import time
+
 def ensure_db_session_key(session):
     # info is a dictionary local to the session object
     if 'db_session_key' not in session.info:
@@ -25,6 +30,21 @@ def log_session_size(logger, job_id=None, checkpoint_name='<unspecified>'):
     )
     log_metadata_dict = {'memory': dict(psutil.Process().memory_full_info()._asdict())}
     log_job_message(logger, message, job_id, is_debug=True, other_params=log_metadata_dict)
+
+
+# Logging directly to file on mounted drive
+MOUNT_DRIVE = os.path.join(CONFIG_BROKER['path'], 'results_drive')
+
+local = CONFIG_BROKER['local']
+
+
+def log_to_mount_drive(message):
+    formatted_message = '{}-{}:{}\n'.format(time.time(), os.getpid(), message)
+    if not local:
+        with open(os.path.join(MOUNT_DRIVE, 'app.log'), 'a') as app_log:
+            app_log.write(formatted_message)
+    else:
+        log_job_message(logging.getLogger(__name__), formatted_message)
 # ============================================================
 
 

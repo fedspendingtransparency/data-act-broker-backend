@@ -16,7 +16,7 @@ class SQSMockQueue:
         return {"ResponseMetadata": {"HTTPStatusCode": 200}}
 
     @staticmethod
-    def receive_messages(WaitTimeSeconds, MessageAttributeNames=None,   # noqa
+    def receive_messages(WaitTimeSeconds, AttributeNames=None, MessageAttributeNames=None,   # noqa
                          VisibilityTimeout=30, MaxNumberOfMessages=1):  # noqa
         sess = GlobalDB.db().session
         messages = []
@@ -46,6 +46,10 @@ class SQSMockMessage:
     def change_visibility(self, VisibilityTimeout): # noqa
         # Do nothing
         pass
+
+    @property
+    def attributes(self):  # TODO: May need to do more handling of this to account for ApproximateReceiveCount attr
+        return {}
 
 
 def sqs_queue(region_name=CONFIG_BROKER['aws_region'], queue_name=CONFIG_BROKER['sqs_queue_name']):
