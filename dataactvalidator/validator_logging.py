@@ -1,4 +1,5 @@
 import logging
+from collections import OrderedDict
 from os import getpid, getppid
 
 import psutil
@@ -50,22 +51,24 @@ def log_to_mount_drive(message):
 
 def log_job_message(logger, message, job_id=None,
                     is_debug=False, is_warning=False, is_error=False, is_exception=False,
-                    other_params={}):
+                    include_memory_tracing=False, other_params={}):
     """Handles logging a message about a validator job, with additional job metadata"""
     ensure_db_session_key(GlobalDB.db().session)  # TODO: Remove diagnostic code
     log_dict = {
+        'message': message,
+        'message_type': 'Validator',
+        'job_id': job_id,
         'proc_id': getpid(),
         'parent_proc_id': getppid(),
-        'job_id': job_id,
-        'current_app': hex(id(current_app)) if current_app else None,
-        'flask.g': hex(id(g)) if g else None,
-        '_app_ctx_stack.__ident_func__': hex(_app_ctx_stack.__ident_func__()) if _app_ctx_stack else None,
-        'db_session_key': GlobalDB.db().session.info['db_session_key'] if 'db_session_key' in
-                                                                          GlobalDB.db().session.info else None,
-        'db_session': hex(id(GlobalDB.db().session)),
-        'message': message,
-        'message_type': 'Validator'
     }
+
+    if include_memory_tracing:
+        log_dict['current_app'] = hex(id(current_app)) if current_app else None
+        log_dict['flask.g'] = hex(id(g)) if g else None
+        log_dict['_app_ctx_stack.__ident_func__'] = hex(_app_ctx_stack.__ident_func__()) if _app_ctx_stack else None
+        log_dict['db_session_key'] = GlobalDB.db().session.info['db_session_key'] \
+            if 'db_session_key' in GlobalDB.db().session.info else None
+        log_dict['db_session'] = hex(id(GlobalDB.db().session))
 
     for param in other_params:
         if param not in log_dict:

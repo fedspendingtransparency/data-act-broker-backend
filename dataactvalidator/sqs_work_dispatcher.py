@@ -1,13 +1,14 @@
 import logging
 import inspect
 import json
+
 import psutil as ps
 import signal
 import sys
 import time
 import multiprocessing as mp
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, EndpointConnectionError
 
 from dataactcore.aws.sqsHandler import sqs_queue
 from dataactvalidator.validator_logging import log_job_message, log_to_mount_drive
@@ -106,6 +107,8 @@ class SQSWorkDispatcher:
             raise QueueWorkDispatcherError(msg)
 
         # Map handler functions for each of the exit signals we want to handle on the parent dispatcher process
+        # TODO: This will register signal handling for ANY process using this Python Interpreter/VM, including
+        # TODO: forked child processes. Figure out the signal-handling logic for children receiving signals
         for sig in self.EXIT_SIGNALS:
             signal.signal(sig, self._handle_exit_signal)
 
@@ -234,7 +237,7 @@ class SQSWorkDispatcher:
                 VisibilityTimeout=self._default_visibility_timeout,
                 MaxNumberOfMessages=1,
             )
-        except ClientError as exc:
+        except (EndpointConnectionError, ClientError) as exc:
             log_job_message(logger=self._logger, message="SQS connection issue. Investigate settings",
                             is_exception=True)
             raise SystemExit(1) from exc
@@ -361,6 +364,11 @@ class SQSWorkDispatcher:
                 log_job_message(logger=self._logger, message=message, is_error=True)
                 raise QueueWorkerProcessError(message)
             elif self._worker_process.exitcode < 0:
+                message = "Job worker process with PID [{}] exited due to signal with exit code: {}.".format(
+                    self._worker_process.pid,
+                    self._worker_process.exitcode
+                )
+                log_job_message(logger=self._logger, message=message, is_error=True)
                 # If process exits with a negative code, process was terminated by a signal since
                 # a Python subprocess returns the negative value of the signal.
                 signum = self._worker_process.exitcode * -1
