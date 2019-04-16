@@ -13,7 +13,10 @@ def test_column_headers(database):
 
 def test_success(database):
     """ LegalEntityCountryCode Field must contain a valid three character GENC Standard Edition 3.0 (Update 4)
-        country code. """
+        country code. U.S. Territories and Freely Associated States must be submitted with country code = USA and
+        their state code. They cannot be submitted with their GENC country code. See Appendix B of the Practices
+        and Procedures.
+    """
     cc_1 = CountryCode(country_code="USA", country_name="United States")
     cc_2 = CountryCode(country_code="UKR", country_name="Ukraine")
     det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA")
@@ -25,7 +28,10 @@ def test_success(database):
 
 def test_failure(database):
     """ LegalEntityCountryCode Field must contain a valid three character GENC Standard Edition 3.0 (Update 4)
-        country code. """
+        country code. U.S. Territories and Freely Associated States must be submitted with country code = USA and
+        their state code. They cannot be submitted with their GENC country code. See Appendix B of the Practices
+        and Procedures.
+    """
 
     det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="xyz")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="ABCD")

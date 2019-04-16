@@ -13,7 +13,10 @@ def test_column_headers(database):
 
 def test_success(database):
     """ PrimaryPlaceOfPerformanceCountryCode must contain a valid three character GENC Standard Edition 3.0 (Update 4)
-        country code for record type 1 and 2. """
+        country code for record type 1 and 2. U.S. Territories and Freely Associated States must be submitted with
+        country code = USA and their state code. They cannot be submitted with their GENC country code. See Appendix B
+        of the Practices and Procedures.
+    """
     cc_1 = CountryCode(country_code="USA", country_name="United States")
     cc_2 = CountryCode(country_code="UKR", country_name="Ukraine")
     det_award = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="USA", record_type=1)
@@ -26,7 +29,10 @@ def test_success(database):
 
 def test_failure(database):
     """ PrimaryPlaceOfPerformanceCountryCode must contain a valid three character GENC Standard Edition 3.0 (Update 4)
-        country code for record type 1 and 2. """
+        country code for record type 1 and 2. U.S. Territories and Freely Associated States must be submitted with
+        country code = USA and their state code. They cannot be submitted with their GENC country code. See Appendix B
+        of the Practices and Procedures.
+    """
 
     det_award = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="xyz", record_type=1)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="ABCD", record_type=2)
