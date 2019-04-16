@@ -217,7 +217,6 @@ class CountryCode(Base):
     country_code_id = Column(Integer, primary_key=True)
     country_code = Column(Text, nullable=False, index=True, unique=True)
     country_name = Column(Text, nullable=False)
-    territory_free_state = Column(Boolean, nullable=False, default=False, server_default="False")
 
 
 class ExecutiveCompensation(Base):
