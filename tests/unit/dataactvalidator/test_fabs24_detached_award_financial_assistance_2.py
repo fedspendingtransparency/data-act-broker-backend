@@ -17,8 +17,8 @@ def test_success(database):
         country code = USA and their state code. They cannot be submitted with their GENC country code. See Appendix B
         of the Practices and Procedures.
     """
-    cc_1 = CountryCode(country_code="USA", country_name="United States")
-    cc_2 = CountryCode(country_code="UKR", country_name="Ukraine")
+    cc_1 = CountryCode(country_code="USA", country_name="United States", territory_free_state=False)
+    cc_2 = CountryCode(country_code="UKR", country_name="Ukraine", territory_free_state=False)
     det_award = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="USA", record_type=1)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="uKr", record_type=2)
     det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="abc", record_type=3)
@@ -34,9 +34,11 @@ def test_failure(database):
         of the Practices and Procedures.
     """
 
+    cc_1 = CountryCode(country_code="ASM", country_name="AMERICAN SAMOA", territory_free_state=True)
     det_award = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="xyz", record_type=1)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="ABCD", record_type=2)
     det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="", record_type=2)
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="ASM", record_type=1)
 
-    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3])
-    assert errors == 3
+    errors = number_of_errors(_FILE, database, models=[cc_1, det_award, det_award_2, det_award_3, det_award_4])
+    assert errors == 4
