@@ -140,6 +140,8 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
 
                         for off_type in org.get('fhorgofficetypelist', []):
                             office_type = off_type['officetype'].lower()
+                            if office_type == 'financial assistance':
+                                office_type = 'grant'
                             if office_type in ['contracting', 'funding', 'grant']:
                                 setattr(new_office, office_type + '_office', True)
 
