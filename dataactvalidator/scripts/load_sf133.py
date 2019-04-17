@@ -175,7 +175,6 @@ def clean_sf133_data(filename, sf133_data):
             sf133_data: Data model to clean against
     """
     data = pd.read_csv(filename, dtype=str)
-    data_len = len(data.index)
     data = clean_data(
         data,
         sf133_data,
