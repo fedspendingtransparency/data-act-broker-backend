@@ -2,6 +2,7 @@ import os
 import logging
 
 import pandas as pd
+import numpy as np
 import boto3
 
 from dataactcore.config import CONFIG_BROKER
@@ -11,6 +12,11 @@ from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
+
+
+# Territories or freely associated states
+TERRITORIES_FREE_STATES = ["ASM", "XBK", "GUM", "XHO", "XJV", "XJA", "XKR", "XMW", "XNV", "MNP", "PRI", "XPL", "VIR",
+                           "XWK", "PLW", "FSM", "MHL"]
 
 
 def load_country_codes(base_path):
@@ -43,6 +49,8 @@ def load_country_codes(base_path):
         )
         # de-dupe
         data.drop_duplicates(subset=['country_code'], inplace=True)
+        # flag territories or freely associated states
+        data["territory_free_state"] = np.where(data["country_code"].isin(TERRITORIES_FREE_STATES), True, False)
         # insert to db
         table_name = CountryCode.__table__.name
         num = insert_dataframe(data, table_name, sess.connection())
