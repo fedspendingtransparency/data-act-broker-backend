@@ -35,6 +35,7 @@ def metric_counts(award_list, award_type, metrics):
 
 
 if __name__ == '__main__':
+    now = datetime.datetime.now()
     configure_logging()
     parser = argparse.ArgumentParser(description='Pull data from FSRS Feed')
     parser.add_argument('-p', '--procurement', action='store_true', help="Load just procurement awards")
@@ -44,7 +45,6 @@ if __name__ == '__main__':
 
     with create_app().app_context():
         logger.info("Begin loading FSRS data from FSRS API")
-        now = datetime.datetime.now()
         sess = GlobalDB.db().session
         args = parser.parse_args()
 
