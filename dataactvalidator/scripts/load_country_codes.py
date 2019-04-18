@@ -15,25 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 # Territories or freely associated states
-TERRITORIES_FREE_STATES = [
-    "ASM",
-    "XBK",
-    "GUM",
-    "XHO",
-    "XJV",
-    "XJA",
-    "XKR",
-    "XMW",
-    "XNV",
-    "MNP",
-    "PRI",
-    "XPL",
-    "VIR",
-    "XWK",
-    "PLW",
-    "FSM",
-    "MHL"
-]
+TERRITORIES_FREE_STATES = ["ASM", "XBK", "GUM", "XHO", "XJV", "XJA", "XKR", "XMW", "XNV", "MNP", "PRI", "XPL", "VIR",
+                           "XWK", "PLW", "FSM", "MHL"]
 
 
 def load_country_codes(base_path):
