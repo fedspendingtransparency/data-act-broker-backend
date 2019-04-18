@@ -1,7 +1,7 @@
--- PrimaryPlaceOfPerformanceCountryCode must contain a valid three character GENC Standard Edition 3.0 (Update 4)
--- country code for record type 1 and 2. U.S. Territories and Freely Associated States must be submitted with country
--- code = USA and their state code. They cannot be submitted with their GENC country code. See Appendix B of the
--- Practices and Procedures.
+-- PrimaryPlaceOfPerformanceCountryCode must contain a valid three character GENC country code for aggregate or
+-- non-aggregate records (RecordType = 1 or 2). U.S. Territories and Freely Associated States must be submitted with
+-- country code = USA and their state/territory code; they cannot be submitted with their GENC country code. For a
+-- list of these territories and more information, see Appendix B of the DAIMS Practices and Procedures.
 SELECT
     dafa.row_number,
     dafa.record_type,
