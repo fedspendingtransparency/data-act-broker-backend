@@ -14,8 +14,7 @@ def test_column_headers(database):
 def test_success(database):
     """ LegalEntityCountryCode must contain a valid three character GENC country code. U.S. Territories and Freely
         Associated States must be submitted with country code = USA and their state/territory code; they cannot be
-        submitted with their GENC country code. For a list of these territories and more information, see Appendix
-        B of the DAIMS Practices and Procedures.
+        submitted with their GENC country code.
     """
     cc_1 = CountryCode(country_code="USA", country_name="United States", territory_free_state=False)
     cc_2 = CountryCode(country_code="UKR", country_name="Ukraine", territory_free_state=False)
@@ -29,8 +28,7 @@ def test_success(database):
 def test_failure(database):
     """ LegalEntityCountryCode must contain a valid three character GENC country code. U.S. Territories and Freely
         Associated States must be submitted with country code = USA and their state/territory code; they cannot be
-        submitted with their GENC country code. For a list of these territories and more information, see Appendix B
-        of the DAIMS Practices and Procedures.
+        submitted with their GENC country code.
     """
     cc_1 = CountryCode(country_code="ASM", country_name="AMERICAN SAMOA", territory_free_state=True)
     det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="xyz")

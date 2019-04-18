@@ -1,7 +1,6 @@
 -- LegalEntityCountryCode must contain a valid three character GENC country code. U.S. Territories and Freely
 -- Associated States must be submitted with country code = USA and their state/territory code; they cannot be submitted
--- with their GENC country code. For a list of these territories and more information, see Appendix B of the DAIMS
--- Practices and Procedures.
+-- with their GENC country code.
 SELECT
     dafa.row_number,
     dafa.legal_entity_country_code
