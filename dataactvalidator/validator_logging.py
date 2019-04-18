@@ -41,7 +41,7 @@ local = CONFIG_BROKER['local']
 
 def log_to_mount_drive(message):
     formatted_message = '{}-{}:{}\n'.format(time.time(), os.getpid(), message)
-    if not local:
+    if False: # not local:
         with open(os.path.join(MOUNT_DRIVE, 'app.log'), 'a') as app_log:
             app_log.write(formatted_message)
     else:

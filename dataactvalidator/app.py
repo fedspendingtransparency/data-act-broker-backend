@@ -112,11 +112,11 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
             Any Exceptions raised by the FileGenerationManager
     """
     if is_retry and not cleanup_generation(file_gen_id):
+        # TODO: add logging here
         return  # Cleanup determined that retrying this job could not be allowed or is not necessary
 
     # TODO: Uncomment if you want to stall the job during kill-testing
-    # import time
-    # time.sleep(60 * 3)
+    time.sleep(60 * 3)
     sess = GlobalDB.db().session
     # TODO: Remove diagnostic code
 
@@ -191,11 +191,11 @@ def validator_process_job(job_id, agency_code, is_retry=False):
             Any Exceptions raised by the GenerationManager or ValidationManager, excluding those explicitly handled
     """
     if is_retry and not cleanup_validation(job_id):
+        # TODO: add logging here
         return  # Cleanup determined that retrying this job could not be allowed or is not necessary
 
     # TODO: Uncomment if you want to stall the job during kill-testing
-    # import time
-    # time.sleep(60 * 3)
+    time.sleep(60 * 3)
     sess = GlobalDB.db().session
     # TODO: Remove diagnostic code
     log_session_size(logger, job_id=job_id, checkpoint_name="start: validator_process_job(...)")
