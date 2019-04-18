@@ -10,5 +10,5 @@ WHERE submission_id={0}
         SELECT 1
         FROM country_code AS cc
         WHERE UPPER(dafa.legal_entity_country_code) = UPPER(cc.country_code)
-            AND cc.territory_free_state is FALSE
+            AND cc.territory_free_state IS FALSE
     );
