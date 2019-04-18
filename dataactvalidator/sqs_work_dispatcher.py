@@ -1,6 +1,7 @@
 import logging
 import inspect
 import json
+import os
 
 import psutil as ps
 import signal
@@ -94,6 +95,7 @@ class SQSWorkDispatcher:
         self._worker_process = None
         self._job_args = ()
         self._exit_handler = None
+        self._parent_dispatcher_pid = os.getppid()
 
         # Flag used to prevent handling an exit signal more than once, if multiple signals come in succession
         # True when the parent dispatcher process is handling one of the signals in EXIT_SIGNALS, otherwise False
@@ -107,8 +109,6 @@ class SQSWorkDispatcher:
             raise QueueWorkDispatcherError(msg)
 
         # Map handler functions for each of the exit signals we want to handle on the parent dispatcher process
-        # TODO: This will register signal handling for ANY process using this Python Interpreter/VM, including
-        # TODO: forked child processes. Figure out the signal-handling logic for children receiving signals
         for sig in self.EXIT_SIGNALS:
             signal.signal(sig, self._handle_exit_signal)
 
@@ -145,10 +145,23 @@ class SQSWorkDispatcher:
 
         # Use the 'fork' method to create a new child process.
         # This shares the same python interpreter and memory space and references as the parent process
-        # TODO: remove: Spawn a fresh python interpreter for the child process, to ensure separate memory spaces from
-        # parent proc
+        # A side-effect of that is that it inherits the signal-handlers of teh parent process. So wrap the job to be
+        # executed with some before-advice that resets the signal-handlers to python-defaults within the child process
         ctx = mp.get_context("fork")
-        self._worker_process = ctx.Process(name=self.worker_process_name, target=job, args=job_args)
+
+        def signal_reset_wrapper(func, args):
+            # Reset signal handling to defaults in process that calls this
+            for sig in self.EXIT_SIGNALS:
+                signal.signal(sig, signal.SIG_DFL)
+            # Then execute the given function with the given args
+            func(*args)
+
+        self._worker_process = ctx.Process(
+            name=self.worker_process_name,
+            target=signal_reset_wrapper,
+            args=(job, job_args),
+            daemon=True  # daemon=True ensures that if the parent dispatcher dies, it will kill this child worker
+        )
         self._worker_process.start()
         log_job_message(
             logger=self._logger,
@@ -364,21 +377,23 @@ class SQSWorkDispatcher:
                 log_job_message(logger=self._logger, message=message, is_error=True)
                 raise QueueWorkerProcessError(message)
             elif self._worker_process.exitcode < 0:
-                message = "Job worker process with PID [{}] exited due to signal with exit code: {}.".format(
-                    self._worker_process.pid,
-                    self._worker_process.exitcode
-                )
-                log_job_message(logger=self._logger, message=message, is_error=True)
                 # If process exits with a negative code, process was terminated by a signal since
                 # a Python subprocess returns the negative value of the signal.
                 signum = self._worker_process.exitcode * -1
                 # In the rare case where the child worker process's exit signal is detected before its parent
                 # process received the same signal, proceed with handling the child's exit signal
-                self._handle_exit_signal(signum=signum, frame=None, is_worker=True)
+                self._handle_exit_signal(signum=signum, frame=None, parent_dispatcher_signaled=False)
 
-    def _handle_exit_signal(self, signum, frame, is_worker=False, is_retry=False):
+    def _handle_exit_signal(self, signum, frame, parent_dispatcher_signaled=True, is_retry=False):
         """
-        Attempt to gracefully handle the exiting of the job as a result of receiving an exit signal
+        Attempt to gracefully handle the exiting of the job as a result of receiving an exit signal.
+
+        NOTE: This handler is only expected to be run from the parent dispatcher process. It is an error
+        condition if it is invoked from the child worker process. Signals received in the child worker
+        process should not have this handler registered for those signals. Because signal handlers registered for a
+        parent process are inherited by forked child processes (see: "man 7 signal" docs and search for "inherited"),
+        this handler will initially be registered for each of this class's EXIt_SIGNALS; however, those handlers
+        are reset to their default as the worker process is started by a wrapper function around the job to execute.
 
         The signal very likely indicates a non-error failure scenario from which the job might be restarted or rerun,
         if allowed. Handle cleanup, logging, job retry logic, etc.
@@ -393,9 +408,9 @@ class SQSWorkDispatcher:
 
         :param signum: number representing the signal received
         :param frame: Frame passed in with the signal
-        :param is_worker: If this handler is being called as a result of the child worker process exiting according
-               to one of the EXIT_SIGNALS, and not because the parent process received one of those signals. A rare
-               case.
+        :param parent_dispatcher_signaled: Assumed that this handler is being called as a result of signaling that
+               happened on the parent dispatcher process. If this was instead the parent detecting that the child
+               exited due to a signal, set this to False. Defaults to True.
         :param is_retry: If this is the 2nd and last try to handled the signal and perform pre-exit cleanup
         :raises QueueWorkerProcessError: When the _exit_handling function cannot be completed in time to perform
                 pre-exit cleanup
@@ -403,36 +418,66 @@ class SQSWorkDispatcher:
                 after handling the signal, in order to complete the exiting process
         :return: None
         """
-        if not is_worker:
-            # Make sure dispatcher is flagged to exit, even if an exit signal is already being handled
+        # If the process handling this signal is the same as the started worker process, this *is* the worker process
+        is_worker_process = os.getpid() == self._worker_process.pid
+
+        # If the signal is in BSD_SIGNALS, use the human-readable string, otherwise use the signal value
+        signal_or_human = BSD_SIGNALS.get(signum, signum)
+
+        if is_worker_process:
+            log_job_message(
+                logger=self._logger,
+                message="Worker process with PID [{}] received signal [{}] while running. "
+                        "It should not be handled in this exit signal handler, "
+                        "as it is meant to run from the parent dispatcher process."
+                        "Exiting worker process with original exit signal.".format(os.getpid(), signal_or_human),
+                is_warning=True
+            )
+            # TODO: remove diagnostic logging below
+            log_to_mount_drive('Unexpected shutdown of child worker process (SIG: {}).'.format(signal_or_human))
+            # Ensure the worker exits as would have occurred if not handling its signals
+            signal.signal(signum, signal.SIG_DFL)
+            os.kill(self._worker_process.pid, signum)
+        elif not parent_dispatcher_signaled:
+            log_job_message(
+                logger=self._logger,
+                message="Job worker process with PID [{}] exited due to signal with exit code: [{}]. "
+                        "Gracefully handling exit of job".format(
+                            self._worker_process.pid,
+                            self._worker_process.exitcode
+                        ),
+                is_error=True
+            )
+            # TODO: remove diagnostic logging below
+            log_to_mount_drive('Unexpected shutdown of child worker process (SIG: {}). '
+                               'Cleaning up current messages.'.format(signal_or_human))
+        else:  # dispatcher signaled
+            log_job_message(
+                logger=self._logger,
+                message="Parent dispatcher process with PID [{}] received signal [{}] while running. "
+                        "Gracefully stopping job being worked".format(os.getppid(), signal_or_human),
+                is_error=True
+            )
+            # TODO: remove diagnostic logging below
+            log_to_mount_drive('Unexpected shutdown of parent dispatcher process (SIG: {}). '
+                               'Cleaning up current messages.'.format(signal_or_human))
+            # Make sure the parent dispatcher process exits after handling the signal by setting this flag
             self._dispatcher_exiting = True
 
         if self._handling_exit_signal:
-            # Don't handle more than one exit signal
+            # Don't allow the parent dispatcher process to handle more than one exit signal
             return
 
         self._handling_exit_signal = True
 
-        # If the signal is in BSD_SIGNALS, use the human-readable string, otherwise use the signal value
-        signal_or_human = BSD_SIGNALS.get(signum, signum)
-        proc_label = "Worker" if is_worker else "Parent Dispatcher"
-        log_job_message(
-            logger=self._logger,
-            message="{} process received signal [{}]. "
-                    "Gracefully stopping job being worked".format(proc_label, signal_or_human),
-            is_error=True
-        )
-        # TODO: remove diagnostic logging below
-        log_to_mount_drive('Unexpected shutdown (SIG: {}). Cleaning up current messages.'.format(signal_or_human))
         try:
-            worker = ps.Process(self._worker_process.pid)
-
             # Extend message visibility for as long is given for the exit handling to process, so message does not get
             # prematurely returned to the queue or moved to the dead letter queue.
             # Give it a 5 second buffer in case retry mechanics put it over the timeout
             self._set_message_visibility(self._exit_handling_timeout + 5)
 
-            if self._worker_process.is_alive:
+            if self._worker_process.is_alive():
+                worker = ps.Process(self._worker_process.pid)
                 if not is_retry:
                     # Suspend the child worker process so it does not conflict with doing cleanup in the exit_handler
                     worker.suspend()
@@ -463,7 +508,7 @@ class SQSWorkDispatcher:
                                     "Retrying once.".format(self._exit_handling_timeout),
                             is_warning=True
                         )
-                        self._handle_exit_signal(signum, frame, is_worker, True)  # attempt retry
+                        self._handle_exit_signal(signum, frame, is_retry=True)  # attempt retry
                     else:
                         message = "Could not perform cleanup during exiting of job in allotted " \
                                     "_exit_handling_timeout ({}s) after 2 tries. " \
@@ -476,13 +521,32 @@ class SQSWorkDispatcher:
                         raise QueueWorkerProcessError()
 
             if self.allow_retries:
+                log_job_message(
+                    logger=self._logger,
+                    message="Dispatcher for this job allows retries of the message. "
+                            "Attempting to return message to its queue immediately."
+                )
                 self.surrender_message_to_other_consumers()
             else:
                 # Otherwise, attempt to send message directly to the dead letter queue
+                log_job_message(
+                    logger=self._logger,
+                    message="Dispatcher for this job does not allow message to be retried. "
+                            "Attempting to move message to its Dead Letter Queue."
+                )
                 self.move_message_to_dead_letter_queue()
-            if self._worker_process.is_alive:
+
+            # Now that SQS message has been handled, ensure worker process is dead
+            if self._worker_process.is_alive():
+                worker = ps.Process(self._worker_process.pid)
                 # Use kill instead of multiprocess.Process.terminate() or psutil.Process.terminate(), since each of
                 # those send a signal.SIGTERM which is not as immediate and final as kill (signal.SIGKILL)
+                log_job_message(
+                    logger=self._logger,
+                    message="Message handled. Now killing worker process with PID [{}] "
+                            "as it is alive but has no more work to do.".format(worker.pid),
+                    is_debug=True
+                )
                 worker.kill()
         finally:
             self._handling_exit_signal = False
@@ -490,7 +554,15 @@ class SQSWorkDispatcher:
                 # An exit signal was received by the parent dispatcher process.
                 # Continue with exiting the parent process, as per the original signal, after having handled it
                 # TODO: Test that the exit code is negative value of the signal handled.
-                # TODO: If not, provide the handled signal's negative value as an arg
+                # TODO: If not, provide the handled signal's negative value as an arg.
+                # TODO: NOTE: Just doing SystemExit(-singal.SIGXXX) or sys.exit(-singal.SIGXXX) does not seem to
+                # TODO: retain the negative exit code. test this
+                log_job_message(
+                    logger=self._logger,
+                    message="Exiting from parent dispatcher process with PID [{}] "
+                            "to culminate exit-handling of signal [{}]".format(os.getpid(), signal_or_human),
+                    is_debug=True
+                )
                 raise SystemExit
 
     def _set_message_visibility(self, new_visibility):

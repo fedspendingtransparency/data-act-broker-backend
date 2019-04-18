@@ -1,12 +1,13 @@
 import inspect
 import unittest
-
 import boto3
 import logging
 import multiprocessing as mp
 import os
 import signal
+import uuid
 
+from random import randint
 from botocore.config import Config
 from botocore.exceptions import EndpointConnectionError, ClientError
 from dataactcore.aws.sqsHandler import sqs_queue
@@ -16,6 +17,9 @@ from time import sleep
 
 
 class SQSWorkDispatcherTests(BaseTestValidator):
+    def tearDown(self):
+        sqs_queue().purge()  # clear any lingering messages in the queue between tests
+        super().tearDown()
 
     def test_default_dispatch_with_numeric_message_body_succeeds(self):
         """SQSWorkDispatcher can execute work on a numeric message body successfully
@@ -164,81 +168,162 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         # Worker process should have a failed (> 0)  exitcode
         self.assertGreater(dispatcher._worker_process.exitcode, 0)
 
-    @unittest.skip("Still need to fix runaway procs due to child proc handling signal. See TODOs")
-    def test_terminated_job_triggers_exit_signal_handling(self):
-        """The child worker process terminated exits the child process and fires a signal to be handled
+    @unittest.skip("Test is not provable with asserts. Reading STDOUT proves it, but a place to store shared state "
+                   "among processes other than STDOUT was not found to be asserted on.")
+    def test_separate_signal_handlers_for_child_process(self):
+        def fire_alarm():
+            print("firing alarm from PID {}".format(os.getpid()))
+            signal.setitimer(signal.ITIMER_REAL, 0.01)  # fire alarm in .01 sec
+            sleep(0.015)  # Wait for timer to fire signal.SIGALRM
 
-        - ...
+        fired = None
+
+        def handle_sig(sig, frame):
+            nonlocal fired
+            fired = [os.getpid(), sig]
+            print("handled signal from PID {} with fired = {}".format(os.getpid(), fired))
+
+        signal.signal(signal.SIGALRM, handle_sig)
+        fire_alarm()
+        self.assertIsNotNone(fired)
+        self.assertEqual(os.getpid(), fired[0], "PID of handled signal != this process's PID")
+        self.assertEqual(signal.SIGALRM, fired[1], "Signal handled was not signal.SIGALRM ({})".format(signal.SIGALRM))
+
+        child_proc = mp.Process(target=fire_alarm, daemon=True)
+        child_proc.start()
+        child_proc.join(1)
+
+        def signal_reset_wrapper(wrapped_func):
+            print("resetting signals in PID {} before calling {}".format(os.getpid(), wrapped_func))
+            signal.signal(signal.SIGALRM, signal.SIG_DFL)  # reset first
+            wrapped_func()
+
+        child_proc_with_cleared_signals = mp.Process(target=signal_reset_wrapper, args=(fire_alarm,), daemon=True)
+        child_proc_with_cleared_signals.start()
+        child_proc.join(1)
+
+        fire_alarm()  # prove that clearing in one child process, left the handler intact in the parent process
+
+    def test_terminated_job_triggers_exit_signal_handling_with_retry(self):
+        """The child worker process is terminated, and exits indicating the exit signal of the termination. The
+        parent monitors this, and initiates exit-handling. Because the dispatcher allows retries, this message
+        should be made receivable again on the queue.
         """
-        #with self.assertRaises(QueueWorkerProcessError) as ctx:
-        # TODO:FIX Child process runs endlessly as written
-
-        # TODO: Reason shown by logs here:
-        # TODO: It appearsPython signal handling is per Python Interpreter/VM, not per-process
-        # TODO: So both parent and child processes (when forked not spawned) will use the same VM and be subject
-        # TODO: to the same signal handlers
-        # TODO: Need to take this into account: child process receiving a signal will be sent to the SAME handler
         logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
         logger.setLevel(logging.DEBUG)
+
+        msg_body = randint(1111, 9998)
         queue = sqs_queue()
-        queue.send_message(MessageBody=1234)
+        queue.send_message(MessageBody=msg_body)
+
+        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process", allow_retries=True,
+                                       long_poll_seconds=0, monitor_sleep_time=0.05)
+
+        tq = mp.Queue()
+
+        terminator = mp.Process(
+            name="worker_terminator",
+            target=self._worker_terminator,
+            args=(tq, 0.05, logger),
+            daemon=True
+        )
+        terminator.start()  # start terminator
+        # Start dispatcher with work, and with the inter-process Queue so it can pass along its PID
+        # Passing its PID on this Queue will let the terminator know the worker to terminate
+        dispatcher.dispatch(self._work_to_be_terminated, additional_job_args=(tq,))
+        dispatcher._worker_process.join(2)  # wait at most 2 sec for the work to complete
+        terminator.join(1)  # ensure terminator completes within 3 seconds. Don't let it run away.
+
+        try:
+            # Worker process should have an exitcode less than zero
+            self.assertLess(dispatcher._worker_process.exitcode, 0)
+            self.assertEqual(dispatcher._worker_process.exitcode, -signal.SIGTERM)
+            # Message should NOT have been deleted from the queue, but available for receive again
+            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            self.assertIsNotNone(msgs)
+            self.assertTrue(len(msgs) == 1, "Should be only 1 message received from queue")
+            self.assertEqual(msg_body, msgs[0].body, "Should be the same message available for retry on the queue")
+        finally:
+            self._fail_runaway_processes(dispatcher._worker_process, terminator, logger)
+
+    @unittest.skip("Work in progress. Need to add to the backing SQSMockQueue to make this work for DLQ")
+    def test_terminated_job_triggers_exit_signal_handling_to_dlq(self):
+        """The child worker process is terminated, and exits indicating the exit signal of the termination. The
+        parent monitors this, and initiates exit-handling. Because the dispatcher does not allow retries, the
+        message is copied to teh dead letter queue, and deleted from the queue.
+        """
+        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger.setLevel(logging.DEBUG)
+
+        msg_body = randint(1111, 9998)
+        queue = sqs_queue()
+        queue.send_message(MessageBody=msg_body)
 
         dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process", allow_retries=False,
                                        long_poll_seconds=0, monitor_sleep_time=0.05)
 
         tq = mp.Queue()
 
-        def worker_terminator(terminate_queue: mp.Queue, sleep_interval=0):
-            logger.debug("Started worker_terminator. Waiting for the Queue to surface a PID to be terminated.")
-            # Wait until there is a worker in the given dispatcher to kill
-            pid = None
-            while not pid:
-                logger.debug("No work yet to be terminated. Waiting {} seconds".format(sleep_interval))
-                sleep(sleep_interval)
-                pid = terminate_queue.get()
-
-            # Process is running. Now terminate it with signal.SIGTERM
-            logger.debug("Found work to be terminated: Worker PID=[{}]".format(pid))
-            os.kill(pid, signal.SIGTERM)
-            logger.debug("Terminated worker with PID=[{}] using signal.SIGTERM".format(pid))
-
-        def sleepy_worker(task_id, inter_proc_queue: mp.Queue):
-            print("in worker before sleep")
-            print("running worker with pid {}".format(os.getpid()))
-
-            # Put PID of worker process in the queue to let worker_terminator proc know what to kill
-            inter_proc_queue.put(os.getpid())
-
-            sleep(0.25)
-            print("in worker after sleep")
-
-        terminator = mp.Process(name="worker_terminator", target=worker_terminator, args=(tq, 0.05))
+        terminator = mp.Process(
+            name="worker_terminator",
+            target=self._worker_terminator,
+            args=(tq, 0.05, logger),
+            daemon=True
+        )
         terminator.start()  # start terminator
         # Start dispatcher with work, and with the inter-process Queue so it can pass along its PID
         # Passing its PID on this Queue will let the terminator know the worker to terminate
-        dispatcher.dispatch(sleepy_worker, additional_job_args=(tq,))
-
+        dispatcher.dispatch(self._work_to_be_terminated, additional_job_args=(tq,))
         dispatcher._worker_process.join(2)  # wait at most 2 sec for the work to complete
-        terminator.join(2.1)  # ensure terminator completes within 3 seconds. Don't let it run away.
+        terminator.join(1)  # ensure terminator completes within 3 seconds. Don't let it run away.
 
         try:
             # Worker process should have an exitcode less than zero
-            print("Exit code = {}".format(dispatcher._worker_process.exitcode))
             self.assertLess(dispatcher._worker_process.exitcode, 0)
+            self.assertEqual(dispatcher._worker_process.exitcode, -signal.SIGTERM)
+            # Message SHOULD have been deleted from the queue
+            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            self.assertIsNotNone(msgs)
+            self.assertTrue(len(msgs) == 0, "Should be NO messages received from queue")
+            # TODO: Test that the "dead letter queue" has this message
         finally:
-            fail_with_runaway_proc = False
-            if dispatcher._worker_process.is_alive():
-                logger.warning("Dispatched worker process with PID {} did not complete in timeout. "
-                               "Killing it.".format(dispatcher._worker_process.pid))
-                os.kill(dispatcher._worker_process.pid, signal.SIGKILL)
-                fail_with_runaway_proc = True
-            if terminator.is_alive():
-                logger.warning("Terminator worker process with PID {} did not complete in timeout. "
-                               "Killing it.".format(terminator.pid))
-                os.kill(terminator.pid, signal.SIGKILL)
-                fail_with_runaway_proc = True
-            if fail_with_runaway_proc:
-                self.fail("Worker or its Terminator did not complete in timeout as expected. Test fails.")
+            self._fail_runaway_processes(dispatcher._worker_process, terminator, logger)
+
+    @classmethod
+    def _worker_terminator(cls, terminate_queue: mp.Queue, sleep_interval=0, logger=logging.getLogger(__name__)):
+        logger.debug("Started worker_terminator. Waiting for the Queue to surface a PID to be terminated.")
+        # Wait until there is a worker in the given dispatcher to kill
+        pid = None
+        while not pid:
+            logger.debug("No work yet to be terminated. Waiting {} seconds".format(sleep_interval))
+            sleep(sleep_interval)
+            pid = terminate_queue.get()
+
+        # Process is running. Now terminate it with signal.SIGTERM
+        logger.debug("Found work to be terminated: Worker PID=[{}]".format(pid))
+        os.kill(pid, signal.SIGTERM)
+        logger.debug("Terminated worker with PID=[{}] using signal.SIGTERM".format(pid))
+
+    @classmethod
+    def _work_to_be_terminated(cls, task_id, inter_proc_queue: mp.Queue):
+        # Put PID of worker process in the queue to let worker_terminator proc know what to kill
+        inter_proc_queue.put(os.getpid())
+        sleep(0.25)  # hang for a short period to ensure terminator has time to kill this
+
+    def _fail_runaway_processes(self, worker: mp.Process, terminator: mp.Process, logger):
+        fail_with_runaway_proc = False
+        if worker.is_alive():
+            logger.warning("Dispatched worker process with PID {} did not complete in timeout. "
+                           "Killing it.".format(worker.pid))
+            os.kill(worker.pid, signal.SIGKILL)
+            fail_with_runaway_proc = True
+        if terminator.is_alive():
+            logger.warning("Terminator worker process with PID {} did not complete in timeout. "
+                           "Killing it.".format(terminator.pid))
+            os.kill(terminator.pid, signal.SIGKILL)
+            fail_with_runaway_proc = True
+        if fail_with_runaway_proc:
+            self.fail("Worker or its Terminator did not complete in timeout as expected. Test fails.")
 
 
 

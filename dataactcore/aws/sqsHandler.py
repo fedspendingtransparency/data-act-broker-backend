@@ -31,6 +31,10 @@ class SQSMockQueue:
         sess.query(SQS).delete()
         sess.commit()
 
+    @property
+    def attributes(self):  # TODO: May need to do more handling of this to account for RedrivePolicy attr, etc.
+        return {}
+
 
 class SQSMockMessage:
     def __init__(self, sqs):
