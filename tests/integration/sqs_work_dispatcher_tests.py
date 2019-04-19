@@ -324,32 +324,3 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             fail_with_runaway_proc = True
         if fail_with_runaway_proc:
             self.fail("Worker or its Terminator did not complete in timeout as expected. Test fails.")
-
-    def test_dict_access(self):
-        md = MyMockDict()
-        self.assertIsInstance(md.attributes, dict)
-        self.assertIsInstance(md.thedict, dict)
-        self.assertIsInstance(md.my_dict, dict)
-        self.assertIsInstance(md.pub_dict, dict)
-        self.assertIsNone(md.attributes.get('key1'))
-        self.assertIsNone(md.thedict.get('key1'))
-        self.assertIsNone(md.my_dict.get('key1'))
-        self.assertIsNone(md.pub_dict.get('key1'))
-
-
-class MyMockDict():
-    def __init__(self):
-        self._my_dict = {}
-        self.pub_dict = {}
-
-    @property
-    def attributes(self):
-        return {}
-    
-    @property
-    def thedict(self):
-        return {}
-    
-    @property
-    def my_dict(self):
-        return self._my_dict

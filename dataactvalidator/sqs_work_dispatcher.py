@@ -327,14 +327,22 @@ class SQSWorkDispatcher:
         dlq_name = dlq_arn.split(':')[-1]
         # Copy the message to the designated dead letter queue
         dlq = sqs_queue(queue_name=dlq_name)
-        # TODO: If Attributes is a writable dictionary, consider sending those too from the original message
+        # TODO: If message.Attributes is a writable dictionary, consider sending those too from the original message
         # TODO: Like Retry Count. Other things probably should not go (e.g. DLQs msgs should not get a redrivepolicy)
         # TODO: If Retry can't be set, log it before moving to DLQ
         message_attr = self._current_sqs_message.message_attributes.copy() if \
             self._current_sqs_message.message_attributes else {}
-        dlq.send_message(
+        dlq_response = dlq.send_message(
             MessageBody=self._current_sqs_message.body,
             MessageAttributes=message_attr
+        )
+        log_job_message(
+            logger=self._logger,
+            message="Message sent to dead letter queue \"{}\" "
+                    "with [{}] response code. "
+                    "Now deleting message from origin queue".format(dlq_name,
+                                                                    dlq_response['ResponseMetadata']['HTTPStatusCode']),
+            is_debug=True
         )
         self.delete_message_from_queue()
 
@@ -343,19 +351,14 @@ class SQSWorkDispatcher:
         heartbeats = 0
         while monitor_process:
             monitor_process = False
-            log_job_message(
-                logger=self._logger,
-                message="Checking status of worker process with PID [{}]".format(self._worker_process.pid),
-                is_debug=True
-            )
             if self._worker_process.is_alive():
                 # Process still working. Send "heartbeat" to SQS so it may continue
                 if (heartbeats * self._monitor_sleep_time) >= self._sqs_heartbeat_log_period_seconds:
                     log_job_message(
                         logger=self._logger,
                         message="Job worker process with PID [{}] is still running. "
-                                "Extending VisibilityTimeout by {} seconds".format(self._worker_process.pid,
-                                                                                   self._default_visibility_timeout),
+                                "Renewing VisibilityTimeout of {} seconds".format(self._worker_process.pid,
+                                                                                  self._default_visibility_timeout),
                         is_debug=True
                     )
                     heartbeats = 0
