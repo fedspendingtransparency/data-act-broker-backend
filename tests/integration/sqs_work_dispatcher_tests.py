@@ -5,7 +5,6 @@ import logging
 import multiprocessing as mp
 import os
 import signal
-import uuid
 
 from random import randint
 from botocore.config import Config
@@ -152,7 +151,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         - Then a QueueWorkerProcessError exception is raised
         - And the exit code of the worker process is > 0
         """
-        with self.assertRaises(QueueWorkerProcessError) as ctx:
+        with self.assertRaises(QueueWorkerProcessError):
             queue = sqs_queue()
             queue.send_message(MessageBody=1234)
 
@@ -246,7 +245,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         finally:
             self._fail_runaway_processes(dispatcher._worker_process, terminator, logger)
 
-    #@unittest.skip("Work in progress. Need to add to the backing SQSMockQueue to make this work for DLQ")
+    # @unittest.skip("Work in progress. Need to add to the backing SQSMockQueue to make this work for DLQ")
     def test_terminated_job_triggers_exit_signal_handling_to_dlq(self):
         """The child worker process is terminated, and exits indicating the exit signal of the termination. The
         parent monitors this, and initiates exit-handling. Because the dispatcher does not allow retries, the

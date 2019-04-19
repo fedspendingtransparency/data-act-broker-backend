@@ -1,62 +1,12 @@
 import datetime
-import logging
-from collections import OrderedDict
 from os import getpid, getppid
 
-import psutil
-import uuid
-from flask import current_app, g, _app_ctx_stack
-
-from dataactcore.interfaces.db import GlobalDB
-
-
-# ============================================================
-# DIAGNOSTIC CODE
-# - to to be used while under test, then removed
-# ============================================================
-import os
-from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
-import time
-
-def ensure_db_session_key(session):
-    # info is a dictionary local to the session object
-    if 'db_session_key' not in session.info:
-        session.info['db_session_key'] = uuid.uuid4().hex
-
-
-def log_session_size(logger, job_id=None, checkpoint_name='<unspecified>'):
-    ensure_db_session_key(GlobalDB.db().session)
-    message = "Diagnostic on SQLAlchemy Session object [{}] at [{}]".format(
-        GlobalDB.db().session,
-        checkpoint_name,
-    )
-    log_metadata_dict = {'memory': dict(psutil.Process().memory_full_info()._asdict())}
-    log_job_message(logger, message, job_id, is_debug=True, other_params=log_metadata_dict)
-
-
-# Logging directly to file on mounted drive
-MOUNT_DRIVE = os.path.join(CONFIG_BROKER['path'], 'results_drive')
-MOUNT_DRIVE_EXISTS = os.path.exists(MOUNT_DRIVE)
-
-local = CONFIG_BROKER['local']
-
-
-def log_to_mount_drive(message):
-    formatted_message = '{}-{}:{}\n'.format(time.time(), os.getpid(), message)
-
-    if MOUNT_DRIVE_EXISTS:
-        with open(os.path.join(MOUNT_DRIVE, 'app.log'), 'a') as app_log:
-            app_log.write(formatted_message)
-    else:
-        log_job_message(logging.getLogger(__name__), formatted_message)
-# ============================================================
+from dataactcore.config import CONFIG_BROKER
 
 
 def log_job_message(logger, message, job_id=None,
-                    is_debug=False, is_warning=False, is_error=False, is_exception=False,
-                    include_memory_tracing=False, other_params={}):
+                    is_debug=False, is_warning=False, is_error=False, is_exception=False, other_params={}):
     """Handles logging a message about a validator job, with additional job metadata"""
-    ensure_db_session_key(GlobalDB.db().session)  # TODO: Remove diagnostic code
     log_dict = {
         'message': message,
         'message_type': 'Validator',
@@ -64,14 +14,6 @@ def log_job_message(logger, message, job_id=None,
         'proc_id': getpid(),
         'parent_proc_id': getppid(),
     }
-
-    if include_memory_tracing:
-        log_dict['current_app'] = hex(id(current_app)) if current_app else None
-        log_dict['flask.g'] = hex(id(g)) if g else None
-        log_dict['_app_ctx_stack.__ident_func__'] = hex(_app_ctx_stack.__ident_func__()) if _app_ctx_stack else None
-        log_dict['db_session_key'] = GlobalDB.db().session.info['db_session_key'] \
-            if 'db_session_key' in GlobalDB.db().session.info else None
-        log_dict['db_session'] = hex(id(GlobalDB.db().session))
 
     for param in other_params:
         if param not in log_dict:
@@ -93,8 +35,11 @@ def log_job_message(logger, message, job_id=None,
         log_dict["message_type"] = "ValidatorInfo"
         logger.info(log_dict)
 
-    if MOUNT_DRIVE_EXISTS:
-        with open(os.path.join(MOUNT_DRIVE, 'app.log'), 'a') as app_log:
+    # TODO: Remove diagnostic code
+    # For also logging to a file on an attached volume for later inspection
+    mount_drive = os.path.join(CONFIG_BROKER['path'], 'results_drive')
+    mount_drive_exists = os.path.exists(mount_drive)
+    if mount_drive_exists:
+        with open(os.path.join(mount_drive, 'app.log'), 'a') as app_log:
             app_log.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " " + __name__ + ": " +
                           str(log_dict))
-

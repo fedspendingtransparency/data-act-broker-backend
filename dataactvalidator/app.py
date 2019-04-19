@@ -22,7 +22,6 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 from dataactvalidator.validator_logging import log_job_message
 
-
 # DataDog Import (the below value gets changed via Ansible during deployment. DO NOT DELETE)
 USE_DATADOG = False
 
@@ -65,10 +64,10 @@ def run_app():
             # With cleanup handling engaged, allowing retries
             dispatcher = SQSWorkDispatcher(queue, allow_retries=False, long_poll_seconds=0)
 
-            def file_generation_logging_cleanup(file_gen_id):
+            def file_generation_logging_cleanup(file_gen_id):  # noqa
                 logger.warning("CLEANUP: performing cleanup as job handling file generation is exiting")
 
-            def validation_job_logging_cleanup(job_id, agency_code, is_retry, queue_message=None):
+            def validation_job_logging_cleanup(job_id, agency_code, is_retry, queue_message=None):  # noqa
                 logger.warning("CLEANUP: performing cleanup as validation job is exiting. "
                                "For message {}".format(queue_message))
 
@@ -87,9 +86,8 @@ def run_app():
                 else:
                     # Running validations (or generating a file from a Job)
                     a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
-                    return validator_process_job, \
-                           (message.body, a_agency_code, is_retry), \
-                           validation_job_logging_cleanup
+                    return validator_process_job, (message.body, a_agency_code, is_retry), \
+                        validation_job_logging_cleanup
 
             found_message = dispatcher.dispatch_by_message_attribute(choose_job_by_message_attributes)
 

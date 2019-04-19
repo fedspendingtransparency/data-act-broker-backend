@@ -8,7 +8,6 @@ from dataactcore.models.lookups import (FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, F
 from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.interfaces.db import GlobalDB
-from dataactvalidator.validator_logging import log_session_size
 
 logger = logging.getLogger(__name__)
 
@@ -307,9 +306,6 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
 
     # For each rule, execute sql for rule
     for rule in rules:
-
-        # TODO: Remove diagnostic code
-        log_session_size(logger, job_id=job.job_id, checkpoint_name="rule: validate_file_by_sql(...)")
         rule_start = datetime.now()
         logger.info({
             'message': 'Beginning SQL validation rule {} {}'.format(rule.query_name, log_string),
