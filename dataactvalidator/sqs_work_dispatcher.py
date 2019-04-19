@@ -109,6 +109,12 @@ class SQSWorkDispatcher:
                   "Otherwise job duplication can occur"
             raise QueueWorkDispatcherError(msg)
 
+        # TODO: Add a validation in here comparing self.allow_retries to whether the SQS queue iteself
+        # TODO: allows more than 1 receive on the message, based on the queue attributes. Fail if inconsistent.
+        # TODO: But - be careful, queues without a RedrivePolicy I think have unlimited retries even though a max
+        # TODO: is not set. So... if RedrivePolicy and policy.MaxRetries > 1 and self.allow_retries ...
+        # TODO: Also probably should validate the reverse case.
+        # TODO: May just be better to derive this "allow_retries" from the queue itself? Yes. Do that.
         # Map handler functions for each of the exit signals we want to handle on the parent dispatcher process
         for sig in self.EXIT_SIGNALS:
             signal.signal(sig, self._handle_exit_signal)
@@ -306,7 +312,7 @@ class SQSWorkDispatcher:
         if self._current_sqs_message is None:
             log_job_message(
                 logger=self._logger,
-                message="Unable to move SQS message to the dead letter queue. Not current message exists. "
+                message="Unable to move SQS message to the dead letter queue. No current message exists. "
                         "Message might have previously been moved, released, or deleted",
                 is_warning=True
             )
@@ -314,16 +320,19 @@ class SQSWorkDispatcher:
 
         redrive_policy = self.sqs_queue_instance.attributes.get("RedrivePolicy")
         if not redrive_policy:
-            raise QueueWorkDispatcherError("Failed to move message to dead letter queue. "
-                                           "Cannot get RedrivePolicy for SQS queue \"{}\". "
-                                           "It was not set, or was not included as an attribute to "
-                                           "be retrieved with this queue.".format(self.sqs_queue_instance))
+            error = "Failed to move message to dead letter queue. Cannot get RedrivePolicy for SQS queue \"{}\". " \
+                    "It was not set, or was not included as an attribute to be " \
+                    "retrieved with this queue.".format(self.sqs_queue_instance)
+            log_job_message(logger=self._logger, message=error, is_error=True)
+            raise QueueWorkDispatcherError(error)
         redrive_json = json.loads(redrive_policy)
         dlq_arn = redrive_json.get("deadLetterTargetArn")
         if not dlq_arn:
-            raise QueueWorkDispatcherError("Failed to move message to dead letter queue. "
-                                           "Cannot find a dead letter queue in the "
-                                           "RedrivePolicy for SQS queue \"{}\"".format(self.sqs_queue_instance))
+            error = "Failed to move message to dead letter queue. " \
+                    "Cannot find a dead letter queue in the RedrivePolicy " \
+                    "for SQS queue \"{}\"".format(self.sqs_queue_instance)
+            log_job_message(logger=self._logger, message=error, is_error=True)
+            raise QueueWorkDispatcherError(error)
         dlq_name = dlq_arn.split(':')[-1]
         # Copy the message to the designated dead letter queue
         dlq = sqs_queue(queue_name=dlq_name)
