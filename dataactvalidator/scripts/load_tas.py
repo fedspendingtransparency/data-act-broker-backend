@@ -54,7 +54,7 @@ original_mappings = {**unchanged_columns, **original}
 current_mappings = {**unchanged_columns, **current}
 
 
-def clean_tas(csv_path, metrics):
+def clean_tas(csv_path, metrics=None):
     """ Read a CSV into a dataframe, then use a configured `clean_data` and return the results
 
         Args:
@@ -64,6 +64,11 @@ def clean_tas(csv_path, metrics):
         Returns:
             pandas dataframe of clean data imported from the cars_tas csv
     """
+    if not metrics:
+        metrics = {
+            'records_provided': 0,
+            'duplicates_dropped': 0
+        }
     # Encoding accounts for cases where a column may include '\ufeff'
     data = pd.read_csv(csv_path, dtype=str, encoding='utf-8-sig')
     metrics['records_provided'] += len(data.index)
@@ -112,7 +117,10 @@ def update_tas_lookups(sess, csv_path, update_missing=[], metrics=None):
             metrics: an object containing information for the metrics file
     """
     if not metrics:
-        metrics = {}
+        metrics = {
+            'records_updated': 0,
+            'records_added': 0
+        }
     data = clean_tas(csv_path, metrics)
     add_existing_id(data)
 
