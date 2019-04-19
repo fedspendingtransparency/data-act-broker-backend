@@ -25,11 +25,11 @@ def load_object_class(base_path):
     now = datetime.datetime.now()
     metrics_json = {
         'script_name': 'load_object_class.py',
+        'start_time': str(now),
         'records_received': 0,
         'duplicates_dropped': 0,
         'records_deleted': 0,
-        'records_inserted': 0,
-        'start_time': str(now)
+        'records_inserted': 0
     }
     if CONFIG_BROKER["use_aws"]:
         s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])

@@ -101,7 +101,7 @@ def clean_tas(csv_path, metrics):
     return data.where(pd.notnull(data), None)
 
 
-def update_tas_lookups(sess, csv_path, update_missing=[], metrics={}):
+def update_tas_lookups(sess, csv_path, update_missing=[], metrics=None):
     """ Load TAS data from the provided CSV and replace/insert any TASLookups
 
         Args:
@@ -111,6 +111,8 @@ def update_tas_lookups(sess, csv_path, update_missing=[], metrics={}):
                             if the budget_function_code is null/none
             metrics: an object containing information for the metrics file
     """
+    if not metrics:
+        metrics = {}
     data = clean_tas(csv_path, metrics)
     add_existing_id(data)
 
@@ -161,11 +163,11 @@ def load_tas(backfill_historic=False):
     now = datetime.now()
     metrics_json = {
         'script_name': 'load_tas.py',
+        'start_time': str(now),
         'records_updated': 0,
         'records_added': 0,
         'records_provided': 0,
-        'duplicates_dropped': 0,
-        'start_time': str(now)
+        'duplicates_dropped': 0
     }
 
     if CONFIG_BROKER["use_aws"]:

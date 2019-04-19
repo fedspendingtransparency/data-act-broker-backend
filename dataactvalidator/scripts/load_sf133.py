@@ -31,9 +31,9 @@ def load_all_sf133(sf133_path=None, force_sf133_load=False):
     now = datetime.now()
     metrics_json = {
         'script_name': 'load_sf133.py',
+        'start_time': str(now),
         'records_deleted': 0,
-        'records_inserted': 0,
-        'start_time': str(now)
+        'records_inserted': 0
     }
     # get a list of SF 133 files to load
     sf133_list = get_sf133_list(sf133_path)
@@ -109,7 +109,7 @@ def update_tas_id(fiscal_year, fiscal_period):
     sess.commit()
 
 
-def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False, metrics={}):
+def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False, metrics=None):
     """ Load SF 133 (budget execution report) lookup table.
 
         Args:
@@ -119,7 +119,8 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False, met
             force_sf133_load: boolean to indicate whether to force a reload of the data
             metrics: an object containing information for the metrics file
     """
-
+    if not metrics:
+        metrics = {}
     with create_app().app_context():
         sess = GlobalDB.db().session
 

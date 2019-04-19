@@ -50,11 +50,11 @@ if __name__ == '__main__':
 
         metrics_json = {
             'script_name': 'load_fsrs.py',
+            'start_time': str(now),
             'procurement_awards': 0,
             'procurement_subawards': 0,
             'grant_awards': 0,
-            'grant_subawards': 0,
-            'start_time': str(now)
+            'grant_subawards': 0
         }
 
         # Setups state mapping for deriving state name

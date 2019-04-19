@@ -113,12 +113,12 @@ def load_program_activity_data(base_path):
 
     metrics_json = {
         'script_name': 'load_program_activity.py',
+        'start_time': str(now),
         'records_received': 0,
         'duplicates_dropped': 0,
         'invalid_records_dropped': 0,
         'records_deleted': 0,
-        'records_inserted': 0,
-        'start_time': str(now)
+        'records_inserted': 0
     }
 
     program_activity_file = get_program_activity_file(base_path)

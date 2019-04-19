@@ -288,14 +288,14 @@ def main():
 
     metrics_json = {
         'script_name': 'load_federal_hierarchy.py',
+        'start_time': str(now),
         'level_1_records': 0,
         'level_2_records': 0,
         'level_3_records': 0,
         'level_4_records': 0,
         'level_5_records': 0,
         'level_6_records': 0,
-        'level_7_records': 0,
-        'start_time': str(now)
+        'level_7_records': 0
     }
 
     # Handle the pull_date parameter

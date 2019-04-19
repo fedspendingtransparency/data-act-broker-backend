@@ -37,9 +37,9 @@ def main():
 
     metrics_json = {
         'script_name': 'get_fsrs_updates.py',
+        'start_time': str(now),
         'records_provided': 0,
-        'start_date': '',
-        'start_time': str(now)
+        'start_date': ''
     }
 
     if args.auto:

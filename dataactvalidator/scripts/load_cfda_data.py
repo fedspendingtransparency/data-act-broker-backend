@@ -84,8 +84,8 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
 
     metrics_json = {
         'script_name': 'load_cfda_data.py',
-        'new_records': 0,
-        'start_time': str(local_now)
+        'start_time': str(local_now),
+        'new_records': 0
     }
 
     def fix_program_number(n, decimals=3):
