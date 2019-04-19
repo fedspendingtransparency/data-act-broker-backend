@@ -6,6 +6,7 @@ import time
 import sys
 import math
 from datetime import datetime
+import json
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
@@ -66,7 +67,10 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
 
         Args:
             base_path: directory that contains the cfda values files.
+            load_local: boolean indicating whether to load from a local file or not
+            local_file_name: the name of the file if loading locally
     """
+    local_now = datetime.now()
     if not load_local:
         logger.info("Fetching CFDA file from {}".format(S3_CFDA_FILE))
         tmp_name = str(time.time()).replace(".", "") + "_cfda_program.csv"
@@ -76,8 +80,13 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
     else:
         filename = os.path.join(base_path, local_file_name)
     logger.info('Loading CFDA program file: ' + filename)
-    """Load country code lookup table."""
     model = CFDAProgram
+
+    metrics_json = {
+        'script_name': 'load_cfda_data.py',
+        'start_time': str(local_now),
+        'new_records': 0
+    }
 
     def fix_program_number(n, decimals=3):
         multiplier = 10 ** decimals
@@ -104,8 +113,8 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
 
         table_name = model.__table__.name
         current_data = pd.read_sql_table(table_name, sess.connection(), coerce_float=False)
-        # Now we need to overwrite the db's audit dates in the created dataframe, and
-        # also set all the  pks to 1, so they match
+        # Now we need to overwrite the db's audit dates in the created dataframe, and also set all the  pks to 1, so
+        # they match
         current_data = current_data.assign(cfda_program_id=1, created_at=now, updated_at=now)
         # pandas comparison requires everything to be in the same order
         current_data.sort_values('program_number', inplace=True)
@@ -123,13 +132,13 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         # need to reset the indexes now that we've done all this sorting, so that they match
         import_dataframe.reset_index(drop=True, inplace=True)
         current_data.reset_index(drop=True, inplace=True)
-        # My favorite part: When pandas pulls the data out of postgres, the program_number column
-        # is a Decimal. However, in adding it to the dataframe, this column loses precision.
-        # So for example, a program number  of 10.001 imports into the dataframe as 10.000999999999999.
-        # It also needs to be cast to astring, and padded with the right number of zeroes, as needed.
+        # My favorite part: When pandas pulls the data out of postgres, the program_number column is a Decimal. However,
+        # in adding it to the dataframe, this column loses precision. So for example, a program number  of 10.001
+        # imports into the dataframe as 10.000999999999999. It also needs to be cast to a string, and padded with the
+        # right number of zeroes, as needed.
         current_data['program_number'] = current_data['program_number'].apply(lambda x: fix_program_number(x))
-        # Finally, you can execute this and get True back if the data truly has not changed from the last
-        # time the CSV was loaded.
+        # Finally, you can execute this and get True back if the data truly has not changed from the last time the CSV
+        # was loaded.
         new_data = not import_dataframe.equals(current_data)
         if new_data:
             # insert to db
@@ -140,9 +149,15 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         os.remove(filename)
     if new_data:
         logger.info('{} records inserted to {}'.format(num, table_name))
+        metrics_json['new_records'] = num
     else:
         logger.info("Skipped cfda load, no new data.")
         sys.exit(3)
+
+    metrics_json['duration'] = str(datetime.now() - local_now)
+
+    with open('load_cfda_data_metrics.json', 'w+') as metrics_file:
+        json.dump(metrics_json, metrics_file)
 
 
 def main():

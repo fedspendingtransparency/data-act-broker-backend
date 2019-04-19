@@ -28,7 +28,7 @@ API_URL = CONFIG_BROKER['sam']['federal_hierarchy_api_url'].format(CONFIG_BROKER
 REQUESTS_AT_ONCE = 10
 
 
-def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_office):
+def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_office, metrics):
     """ Pull Office data from the Federal Hierarchy API and update the DB, return it as a file, or both.
 
         Args:
@@ -37,6 +37,8 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             update_db: Boolean; update the DB tables with the new data from the API.
             pull_all: Boolean; pull all historical data, instead of just the latest.
             updated_date_from: Date to pull data from. Defaults to the date of the most recently updated Office.
+            export_office: when provided, name of the file to export the office list to
+            metrics: an object containing information for the metrics file
     """
     logger.info('Starting feed: %s', API_URL.replace(CONFIG_BROKER['sam']['federal_hierarchy_api_key'], "[API_KEY]"))
     top_sub_levels = ["1", "2"]
@@ -74,6 +76,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
 
         # Retrieve the total count of expected records for this pull
         total_expected_records = json.loads(requests.get(url_with_params, timeout=60).text)['totalrecords']
+        metrics['level_{}_records'.format(str(level))] = total_expected_records
         logger.info('{} level-{} record(s) expected'.format(str(total_expected_records), str(level)))
         if total_expected_records == 0:
             empty_pull_count += 1
@@ -255,7 +258,7 @@ def get_with_exception_hand(url_string):
             resp = requests.get(url_string, timeout=request_timeout)
             break
         except (ConnectionResetError, ReadTimeoutError, requests.exceptions.ConnectionError,
-                requests.exceptions.ReadTimeout) as e:
+                requests.exceptions.ReadTimeout):
             exception_retries += 1
             request_timeout += 60
             if exception_retries < len(retry_sleep_times):
@@ -269,6 +272,7 @@ def get_with_exception_hand(url_string):
 
 
 def main():
+    now = datetime.now()
     parser = argparse.ArgumentParser(description='Pull data from the Federal Hierarchy API.')
     parser.add_argument('-a', '--all', help='Clear out the database and get historical data', action='store_true')
     parser.add_argument('-f', '--filename', help='Generate a local CSV file from the data.', nargs=1, type=str)
@@ -282,13 +286,25 @@ def main():
         logger.error("The -a and -d flags conflict, cannot use both at once.")
         sys.exit(1)
 
+    metrics_json = {
+        'script_name': 'load_federal_hierarchy.py',
+        'start_time': str(now),
+        'level_1_records': 0,
+        'level_2_records': 0,
+        'level_3_records': 0,
+        'level_4_records': 0,
+        'level_5_records': 0,
+        'level_6_records': 0,
+        'level_7_records': 0
+    }
+
     # Handle the pull_date parameter
     updated_date_from = None
     if args.pull_date:
         try:
             updated_date_from = args.pull_date[0]
             datetime.strptime(updated_date_from, "%Y-%m-%d")
-        except ValueError as e:
+        except ValueError:
             logger.error("The date given to the -d flag was not parseable.")
             sys.exit(1)
 
@@ -313,10 +329,16 @@ def main():
         sess.execute('''TRUNCATE TABLE office RESTART IDENTITY''')
 
     try:
-        pull_offices(sess, filename, not args.ignore_db, args.all, updated_date_from, export_office)
+        pull_offices(sess, filename, not args.ignore_db, args.all, updated_date_from, export_office, metrics_json)
     except Exception as e:
         logger.error(str(e))
         sys.exit(1)
+
+    metrics_json['duration'] = str(datetime.now() - now)
+
+    with open('load_federal_hierarchy_metrics.json', 'w+') as metrics_file:
+        json.dump(metrics_json, metrics_file)
+    logger.info("Script complete")
 
 
 if __name__ == '__main__':
