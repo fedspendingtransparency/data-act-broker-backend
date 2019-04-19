@@ -30,7 +30,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         queue = sqs_queue()
         queue.send_message(MessageBody=1234)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process", allow_retries=False,
+        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
                                        long_poll_seconds=1, monitor_sleep_time=1)
 
         def do_some_work(task_id):
@@ -56,7 +56,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         queue = sqs_queue()
         queue.send_message(MessageBody=1234)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process", allow_retries=False,
+        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
                                        long_poll_seconds=1, monitor_sleep_time=1)
 
         def do_some_work(task_id, category):
@@ -91,7 +91,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         message_attr = {"work_type": {"DataType": "String", "StringValue": "a"}}
         queue.send_message(MessageBody=1234, MessageAttributes=message_attr)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process", allow_retries=False,
+        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
                                        long_poll_seconds=1, monitor_sleep_time=1)
 
         def one_work(task_id):
@@ -133,7 +133,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             client_config = Config(connect_timeout=1, read_timeout=1)  # retries config not in v1.5.x
             sqs = boto3.resource('sqs', config=client_config)  # 'us-gov-west-1')
             queue = sqs.Queue("75f4f422-3866-4e4f-9dc9-5364e3de3eaf")
-            dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process", allow_retries=False,
+            dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
                                            long_poll_seconds=1, monitor_sleep_time=1)
             dispatcher.dispatch(lambda x: x*2)
         except (SystemExit, Exception) as e:
@@ -155,7 +155,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             queue = sqs_queue()
             queue.send_message(MessageBody=1234)
 
-            dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process", allow_retries=False,
+            dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
                                            long_poll_seconds=1, monitor_sleep_time=1)
 
             def fail_at_work(task_id):
@@ -215,8 +215,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         queue = sqs_queue()
         queue.send_message(MessageBody=msg_body)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process", allow_retries=True,
+        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
                                        long_poll_seconds=0, monitor_sleep_time=0.05)
+        dispatcher.sqs_queue_instance.max_receive_count = 2  # allow retries
 
         tq = mp.Queue()
 
@@ -258,7 +259,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         queue = sqs_queue()
         queue.send_message(MessageBody=msg_body)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process", allow_retries=False,
+        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
                                        long_poll_seconds=0, monitor_sleep_time=0.05)
 
         tq = mp.Queue()

@@ -12,6 +12,9 @@ from dataactcore.interfaces.db import GlobalDB
 class SQSMockQueue:
     UNITTEST_MOCK_DEAD_LETTER_QUEUE = "unittest-mock-dead-letter-queue"
 
+    def __init__(self, max_receive_count=1):
+        self.max_receive_count = max_receive_count
+
     @staticmethod
     def send_message(MessageBody, MessageAttributes=None):  # noqa
         sess = GlobalDB.db().session
@@ -38,8 +41,9 @@ class SQSMockQueue:
     @property
     def attributes(self):
         # TODO: May need to do more handling of this to account for RedrivePolicy attr, etc.
-        mock_dlq = '{{"deadLetterTargetArn": "FAKE_ARN:{}"}}'.format(self.UNITTEST_MOCK_DEAD_LETTER_QUEUE)
-        return {"RedrivePolicy": mock_dlq}
+        mock_redrive = '{{"deadLetterTargetArn": "FAKE_ARN:{}", ' \
+                       '"maxReceiveCount": {}}}'.format(self.UNITTEST_MOCK_DEAD_LETTER_QUEUE, self.max_receive_count)
+        return {"RedrivePolicy": mock_redrive}
 
 
 class SQSMockDeadLetterQueue:
@@ -81,7 +85,7 @@ class SQSMockMessage:
         return {}
 
 
-def sqs_queue(region_name=CONFIG_BROKER['aws_region'], queue_name=CONFIG_BROKER['sqs_queue_name']):
+def sqs_queue(region_name=CONFIG_BROKER['aws_region'], queue_name=CONFIG_BROKER['sqs_queue_name'], allow_retries=None):
     if CONFIG_BROKER['local']:
         if queue_name == SQSMockQueue.UNITTEST_MOCK_DEAD_LETTER_QUEUE:
             return SQSMockDeadLetterQueue()

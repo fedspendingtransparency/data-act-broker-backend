@@ -1,5 +1,5 @@
 import datetime
-from os import getpid, getppid
+import os
 
 from dataactcore.config import CONFIG_BROKER
 
@@ -11,8 +11,8 @@ def log_job_message(logger, message, job_id=None,
         'message': message,
         'message_type': 'Validator',
         'job_id': job_id,
-        'proc_id': getpid(),
-        'parent_proc_id': getppid(),
+        'proc_id': os.getpid(),
+        'parent_proc_id': os.getppid(),
     }
 
     for param in other_params:

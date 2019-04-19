@@ -58,7 +58,6 @@ class SQSWorkDispatcher:
             self,
             sqs_queue_instance,
             worker_process_name=None,
-            allow_retries=True,
             default_visibility_timeout=60,
             long_poll_seconds=10,
             monitor_sleep_time=5,
@@ -75,7 +74,6 @@ class SQSWorkDispatcher:
         :param sqs_queue_instance: the SQS queue to get work from
         :param worker_process_name: the name to give to the worker process. It will use the name of the callable job
                to be executed if not provided
-        :param allow_retries: if False, the message will not be returned to the queue for retries by other consumers
         :param default_visibility_timeout: how long until the message is made visible in the queue again,
                for other consumers. If it only allows 1 retry, this may end up directing it to the Dead Letter queue
                when the next consumer attempts to receive it.
@@ -86,7 +84,6 @@ class SQSWorkDispatcher:
         """
         self.sqs_queue_instance = sqs_queue_instance
         self.worker_process_name = worker_process_name
-        self.allow_retries = allow_retries
         self._default_visibility_timeout = default_visibility_timeout
         self._long_poll_seconds = long_poll_seconds
         self._monitor_sleep_time = monitor_sleep_time
@@ -109,12 +106,6 @@ class SQSWorkDispatcher:
                   "Otherwise job duplication can occur"
             raise QueueWorkDispatcherError(msg)
 
-        # TODO: Add a validation in here comparing self.allow_retries to whether the SQS queue iteself
-        # TODO: allows more than 1 receive on the message, based on the queue attributes. Fail if inconsistent.
-        # TODO: But - be careful, queues without a RedrivePolicy I think have unlimited retries even though a max
-        # TODO: is not set. So... if RedrivePolicy and policy.MaxRetries > 1 and self.allow_retries ...
-        # TODO: Also probably should validate the reverse case.
-        # TODO: May just be better to derive this "allow_retries" from the queue itself? Yes. Do that.
         # Map handler functions for each of the exit signals we want to handle on the parent dispatcher process
         for sig in self.EXIT_SIGNALS:
             signal.signal(sig, self._handle_exit_signal)
@@ -123,6 +114,19 @@ class SQSWorkDispatcher:
     def is_exiting(self):
         """True when this parent dispatcher process has received a signal that will lead to the process exiting"""
         return self._dispatcher_exiting
+
+    @property
+    def allow_retries(self):
+        """Determine from the provided queue if retries of messages should be performed
+
+        If False, the message will not be returned to the queue for retries by other consumers
+        """
+        redrive_policy = self.sqs_queue_instance.attributes.get("RedrivePolicy")
+        if not redrive_policy:
+            return True  # Messages in queues without a redrive policy basically have endless retries
+        redrive_json = json.loads(redrive_policy)
+        retries = redrive_json.get("maxReceiveCount")
+        return retries and retries > 1
 
     def _dispatch(self, job, job_args, worker_process_name=None, exit_handler=None):
         """
