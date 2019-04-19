@@ -3,6 +3,7 @@ import os
 import logging
 import argparse
 from datetime import datetime, timezone
+import json
 
 import pandas as pd
 import boto3
@@ -53,17 +54,24 @@ original_mappings = {**unchanged_columns, **original}
 current_mappings = {**unchanged_columns, **current}
 
 
-def clean_tas(csv_path):
+def clean_tas(csv_path, metrics=None):
     """ Read a CSV into a dataframe, then use a configured `clean_data` and return the results
 
         Args:
             csv_path: path of the car_tas csv to import
+            metrics: an object containing information for the metrics file
 
         Returns:
             pandas dataframe of clean data imported from the cars_tas csv
     """
+    if not metrics:
+        metrics = {
+            'records_provided': 0,
+            'duplicates_dropped': 0
+        }
     # Encoding accounts for cases where a column may include '\ufeff'
     data = pd.read_csv(csv_path, dtype=str, encoding='utf-8-sig')
+    metrics['records_provided'] += len(data.index)
     for column_mappings in [current_mappings, original_mappings]:
         try:
             data = clean_data(
@@ -93,11 +101,12 @@ def clean_tas(csv_path):
                 raise e
     # Drop all but the last instance of each account number
     data = data[~data.duplicated(subset=['account_num'], keep='last')]
+    metrics['duplicates_dropped'] += metrics['records_provided'] - len(data.index)
     data["account_num"] = pd.to_numeric(data['account_num'])
     return data.where(pd.notnull(data), None)
 
 
-def update_tas_lookups(sess, csv_path, update_missing=[]):
+def update_tas_lookups(sess, csv_path, update_missing=[], metrics=None):
     """ Load TAS data from the provided CSV and replace/insert any TASLookups
 
         Args:
@@ -105,8 +114,14 @@ def update_tas_lookups(sess, csv_path, update_missing=[]):
             csv_path: path of the car_tas csv to import
             update_missing: if provided, this list of account numbers will only update matching records
                             if the budget_function_code is null/none
+            metrics: an object containing information for the metrics file
     """
-    data = clean_tas(csv_path)
+    if not metrics:
+        metrics = {
+            'records_updated': 0,
+            'records_added': 0
+        }
+    data = clean_tas(csv_path, metrics)
     add_existing_id(data)
 
     old_data = data[data['existing_id'].notnull()]
@@ -128,6 +143,7 @@ def update_tas_lookups(sess, csv_path, update_missing=[]):
             sess.query(TASLookup).filter_by(account_num=row['account_num']).update(synchronize_session=False,
                                                                                    values=fill_in_updates)
         logger.info('%s records filled in', len(relevant_old_data.index))
+        metrics['records_updated'] += len(relevant_old_data.index)
     else:
         # instead of using the pandas to_sql dataframe method like some of the other domain load processes, iterate
         # through the dataframe rows so we can load using the orm model (note: toyed with the SQLAlchemy bulk load
@@ -138,6 +154,8 @@ def update_tas_lookups(sess, csv_path, update_missing=[]):
         for _, row in new_data.iterrows():
             sess.add(TASLookup(**row))
         logger.info('%s records in CSV, %s existing', len(data.index), sum(data['existing_id'].notnull()))
+        metrics['records_updated'] += len(old_data.index)
+        metrics['records_added'] += len(new_data.index)
 
     sess.commit()
 
@@ -150,6 +168,15 @@ def load_tas(backfill_historic=False):
     """
     # read TAS file to dataframe, to make sure all is well with the file before firing up a db transaction
     tas_files = []
+    now = datetime.now()
+    metrics_json = {
+        'script_name': 'load_tas.py',
+        'start_time': str(now),
+        'records_updated': 0,
+        'records_added': 0,
+        'records_provided': 0,
+        'duplicates_dropped': 0
+    }
 
     if CONFIG_BROKER["use_aws"]:
         # Storing version dictionaries in the list to prevent getting all the links at once and possibly work with
@@ -199,7 +226,12 @@ def load_tas(backfill_historic=False):
             logger.info('Working with latest remote cars_tas.csv')
         else:
             logger.info('Working with local cars_tas.csv')
-        update_tas_lookups(sess, tas_file, update_missing=update_missing)
+        update_tas_lookups(sess, tas_file, update_missing=update_missing, metrics=metrics_json)
+
+    metrics_json['duration'] = str(datetime.now() - now)
+
+    with open('load_tas_metrics.json', 'w+') as metrics_file:
+        json.dump(metrics_json, metrics_file)
 
 
 def add_existing_id(data):
@@ -219,9 +251,11 @@ def add_existing_id(data):
 
 def existing_id(row, existing):
     """ Check for a TASLookup which matches this `row` in the `existing` data.
+
         Args:
             row: row to check in
             existing: Dict[account_num, List[TASLookup]]
+
         Returns:
             account number for existing row
     """
@@ -234,6 +268,7 @@ def missing_records(sess):
 
         Args:
             sess: connection to the database
+
         Returns:
             list of account numbers representing records with empty values
     """

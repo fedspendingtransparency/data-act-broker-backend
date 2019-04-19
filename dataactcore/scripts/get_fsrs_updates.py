@@ -4,6 +4,8 @@ import logging
 import os
 import csv
 import boto3
+import datetime
+import json
 
 from dataactcore.logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
@@ -22,6 +24,7 @@ BUCKET_PREFIX = 'fsrs_award_extracts/'
 
 
 def main():
+    now = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Pull')
     parser.add_argument('--date',
                         help='Specify modified date in mm/dd/yyyy format. Overrides --auto option.',
@@ -31,6 +34,13 @@ def main():
                              'and uses that as the modified date.',
                         action='store_true')
     args = parser.parse_args()
+
+    metrics_json = {
+        'script_name': 'get_fsrs_updates.py',
+        'start_time': str(now),
+        'records_provided': 0,
+        'start_date': ''
+    }
 
     if args.auto:
         s3_resource = boto3.resource('s3', region_name='us-gov-west-1')
@@ -50,6 +60,8 @@ def main():
     if not mod_date:
         logger.error("Date or auto setting is required.")
         return
+
+    metrics_json['start_date'] = mod_date
 
     logger.info("Starting SQL query of financial assistance records from {} to present...".format(mod_date))
     sess = GlobalDB.db().session
@@ -122,9 +134,15 @@ def main():
                    'total_fed_funding_amount', 'base_obligation_date', 'project_description', 'last_modified_date']
         out_csv.writerow(headers)
         for row in results:
+            metrics_json['records_provided'] += 1
             out_csv.writerow(row)
     # close file
     csv_file.close()
+
+    metrics_json['duration'] = str(datetime.datetime.now() - now)
+
+    with open('get_fsrs_updates_metrics.json', 'w+') as metrics_file:
+        json.dump(metrics_json, metrics_file)
     logger.info("Script complete")
 
 
