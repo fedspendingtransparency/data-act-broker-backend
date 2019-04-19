@@ -1,3 +1,4 @@
+import datetime
 import logging
 from collections import OrderedDict
 from os import getpid, getppid
@@ -35,13 +36,15 @@ def log_session_size(logger, job_id=None, checkpoint_name='<unspecified>'):
 
 # Logging directly to file on mounted drive
 MOUNT_DRIVE = os.path.join(CONFIG_BROKER['path'], 'results_drive')
+MOUNT_DRIVE_EXISTS = os.path.exists(MOUNT_DRIVE)
 
 local = CONFIG_BROKER['local']
 
 
 def log_to_mount_drive(message):
     formatted_message = '{}-{}:{}\n'.format(time.time(), os.getpid(), message)
-    if False: # not local:
+
+    if MOUNT_DRIVE_EXISTS:
         with open(os.path.join(MOUNT_DRIVE, 'app.log'), 'a') as app_log:
             app_log.write(formatted_message)
     else:
@@ -89,3 +92,9 @@ def log_job_message(logger, message, job_id=None,
     else:
         log_dict["message_type"] = "ValidatorInfo"
         logger.info(log_dict)
+
+    if MOUNT_DRIVE_EXISTS:
+        with open(os.path.join(MOUNT_DRIVE, 'app.log'), 'a') as app_log:
+            app_log.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " " + __name__ + ": " +
+                          str(log_dict))
+
