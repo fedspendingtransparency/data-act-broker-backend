@@ -225,19 +225,22 @@ class SQSWorkDispatcher:
         :param additional_job_args: Additional arguments to provide to the callable, along with those from the message
         :param worker_process_name: Name given to the newly created child process. If not already set, defaults to
                the name of the provided job callable
-        :param exit_handler: a callable to be called when handling an `EXIT_SIGNAL` signal, giving the
-               opportunity to perform cleanup before the process exits. Gets the job_args passed to it when run
         :return: True if a message was found on the queue and dispatched, otherwise False if nothing on the queue
         """
         self._dequeue_message(self._long_poll_seconds)
         if self._current_sqs_message is None:
             return False
         results = message_transformer(self._current_sqs_message)
+
+        # exit_handler: a callable to be called when handling an `EXIT_SIGNAL` signal, giving the
+        # opportunity to perform cleanup before the process exits. Gets the job_args passed to it when run
+        # If provided in this method, it needs to be provided as an optional 3rd item of the
+        # message_transformer's returned tuple
+        exit_handler = None if not len(results) == 3 else results[2]  # assign 3rd return val as optional exit_handler
         job, msg_args = results[:2]
-        exit_handler = None if not len(results) == 3 else results[2]  # assign optional exit_handler
         log_job_message(
             logger=self._logger,
-            message="Got job [{}] and msg_args [{}]".format(job, msg_args),
+            message="Got job [{}] and msg_args [{}]. exit_handler = [{}]".format(job, msg_args, exit_handler),
             is_debug=True
         )
         if isinstance(msg_args, list) or isinstance(msg_args, tuple):

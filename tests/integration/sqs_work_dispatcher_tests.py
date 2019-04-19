@@ -246,7 +246,6 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         finally:
             self._fail_runaway_processes(dispatcher._worker_process, terminator, logger)
 
-    # @unittest.skip("Work in progress. Need to add to the backing SQSMockQueue to make this work for DLQ")
     def test_terminated_job_triggers_exit_signal_handling_to_dlq(self):
         """The child worker process is terminated, and exits indicating the exit signal of the termination. The
         parent monitors this, and initiates exit-handling. Because the dispatcher does not allow retries, the
@@ -285,7 +284,52 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             msgs = queue.receive_messages(WaitTimeSeconds=0)
             self.assertIsNotNone(msgs)
             self.assertTrue(len(msgs) == 0, "Should be NO messages received from queue")
-            # TODO: Test that the "dead letter queue" has this message
+            # TODO: Test that the "dead letter queue" has this message - maybe by asserting the log statement
+        finally:
+            self._fail_runaway_processes(dispatcher._worker_process, terminator, logger)
+
+    @unittest.skip("Work in progress")
+    def test_exit_handler_can_receive_queue_message_as_arg(self):
+        """Verify that exit_handlers provided whose signatures allow keyword args can receive the queue message
+        as a keyword arg"""
+        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger.setLevel(logging.DEBUG)
+
+        msg_body = randint(1111, 9998)
+        queue = sqs_queue()
+        queue.send_message(MessageBody=msg_body)
+
+        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
+                                       long_poll_seconds=0, monitor_sleep_time=0.05)
+
+        def exit_handler_with_msg(task_id, inter_proc_queue: mp.Queue, queue_message=2):  # noqa
+            logger.debug("CLEANUP: performing cleanup with exit_handler_with_msg({}, {}, {}".format(queue_message))
+            logger.debug("msg.body = {}".format(queue_message.body))
+
+        print(inspect.signature(exit_handler_with_msg).parameters['queue_message'].kind)
+        tq = mp.Queue()
+
+        terminator = mp.Process(
+            name="worker_terminator",
+            target=self._worker_terminator,
+            args=(tq, 0.05, logger),
+            daemon=True
+        )
+        terminator.start()  # start terminator
+        # Start dispatcher with work, and with the inter-process Queue so it can pass along its PID
+        # Passing its PID on this Queue will let the terminator know the worker to terminate
+        dispatcher.dispatch(self._work_to_be_terminated, additional_job_args=(tq,), exit_handler=exit_handler_with_msg)
+        dispatcher._worker_process.join(2)  # wait at most 2 sec for the work to complete
+        terminator.join(1)  # ensure terminator completes within 3 seconds. Don't let it run away.
+
+        try:
+            # Worker process should have an exitcode less than zero
+            self.assertLess(dispatcher._worker_process.exitcode, 0)
+            self.assertEqual(dispatcher._worker_process.exitcode, -signal.SIGTERM)
+            # Message SHOULD have been deleted from the queue
+            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            self.assertIsNotNone(msgs)
+            self.assertTrue(len(msgs) == 0, "Should be NO messages received from queue")
         finally:
             self._fail_runaway_processes(dispatcher._worker_process, terminator, logger)
 

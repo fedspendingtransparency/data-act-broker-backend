@@ -62,12 +62,15 @@ def run_app():
         keep_polling = True
         while keep_polling:
             # With cleanup handling engaged, allowing retries
-            dispatcher = SQSWorkDispatcher(queue, allow_retries=False, long_poll_seconds=0)
+            dispatcher = SQSWorkDispatcher(queue, long_poll_seconds=0)
 
+            # TODO: We can remove unnecessary logging during cleanup
             def file_generation_logging_cleanup(file_gen_id):  # noqa
                 logger.warning("CLEANUP: performing cleanup as job handling file generation is exiting")
 
+            # TODO: We can remove unnecessary logging during cleanup
             def validation_job_logging_cleanup(job_id, agency_code, is_retry, queue_message=None):  # noqa
+                # TODO: This test is still showing the queue_message coming through as None. Should be added
                 logger.warning("CLEANUP: performing cleanup as validation job is exiting. "
                                "For message {}".format(queue_message))
 
