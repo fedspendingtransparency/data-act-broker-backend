@@ -12,7 +12,7 @@ import multiprocessing as mp
 from botocore.exceptions import ClientError, EndpointConnectionError
 
 from dataactcore.aws.sqsHandler import sqs_queue
-from dataactvalidator.validator_logging import log_job_message, log_to_mount_drive
+from dataactvalidator.validator_logging import log_job_message
 
 # Not a complete list of signals
 # Only the following are allowed to be used with signal() on Windows
@@ -96,6 +96,7 @@ class SQSWorkDispatcher:
         self._job_args = ()
         self._exit_handler = None
         self._parent_dispatcher_pid = os.getppid()
+        self._sqs_heartbeat_log_period_seconds = 15  # log the heartbeat extension of visibility at most this often
 
         # Flag used to prevent handling an exit signal more than once, if multiple signals come in succession
         # True when the parent dispatcher process is handling one of the signals in EXIT_SIGNALS, otherwise False
@@ -258,8 +259,6 @@ class SQSWorkDispatcher:
         if received_messages:
             self._current_sqs_message = received_messages[0]
             log_job_message(logger=self._logger, message="Message received: {}".format(self._current_sqs_message.body))
-            # TODO: remove diagnostic logging below
-            log_to_mount_drive("Message received: {}".format(self._current_sqs_message.body))
 
     def delete_message_from_queue(self):
         if self._current_sqs_message is None:
@@ -282,15 +281,18 @@ class SQSWorkDispatcher:
             )
             raise QueueWorkDispatcherError() from exc
 
-    def surrender_message_to_other_consumers(self):
+    def surrender_message_to_other_consumers(self, delay=0):
         """
         Return the message back into its original queue for other consumers to process it.
 
         Does this by making it immediately visible (it was always there, just invisible).
         See also: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/
                   sqs-visibility-timeout.html#terminating-message-visibility-timeout
+
+        :param delay: How long to wait before message becomes visible to other consumers. Default is 0 seconds (
+               immediately consumable)
         """
-        self._set_message_visibility(0)
+        self._set_message_visibility(delay)
 
     def move_message_to_dead_letter_queue(self):
         """Move the current message to the Dead Letter Queue.
@@ -338,6 +340,7 @@ class SQSWorkDispatcher:
 
     def _monitor_work_progress(self):
         monitor_process = True
+        heartbeats = 0
         while monitor_process:
             monitor_process = False
             log_job_message(
@@ -347,12 +350,17 @@ class SQSWorkDispatcher:
             )
             if self._worker_process.is_alive():
                 # Process still working. Send "heartbeat" to SQS so it may continue
-                log_job_message(
-                    logger=self._logger,
-                    message="Job worker process with PID [{}] is still running. "
-                            "Extending VisibilityTimeout".format(self._worker_process.pid),
-                    is_debug=True
-                )
+                if (heartbeats * self._monitor_sleep_time) >= self._sqs_heartbeat_log_period_seconds:
+                    log_job_message(
+                        logger=self._logger,
+                        message="Job worker process with PID [{}] is still running. "
+                                "Extending VisibilityTimeout by {} seconds".format(self._worker_process.pid,
+                                                                                   self._default_visibility_timeout),
+                        is_debug=True
+                    )
+                    heartbeats = 0
+                else:
+                    heartbeats += 1
                 self._set_message_visibility(self._default_visibility_timeout)
                 time.sleep(self._monitor_sleep_time)
                 monitor_process = True
@@ -433,8 +441,7 @@ class SQSWorkDispatcher:
                         "Exiting worker process with original exit signal.".format(os.getpid(), signal_or_human),
                 is_warning=True
             )
-            # TODO: remove diagnostic logging below
-            log_to_mount_drive('Unexpected shutdown of child worker process (SIG: {}).'.format(signal_or_human))
+
             # Ensure the worker exits as would have occurred if not handling its signals
             signal.signal(signum, signal.SIG_DFL)
             os.kill(self._worker_process.pid, signum)
@@ -448,9 +455,7 @@ class SQSWorkDispatcher:
                         ),
                 is_error=True
             )
-            # TODO: remove diagnostic logging below
-            log_to_mount_drive('Unexpected shutdown of child worker process (SIG: {}). '
-                               'Cleaning up current messages.'.format(signal_or_human))
+
         else:  # dispatcher signaled
             log_job_message(
                 logger=self._logger,
@@ -458,9 +463,7 @@ class SQSWorkDispatcher:
                         "Gracefully stopping job being worked".format(os.getppid(), signal_or_human),
                 is_error=True
             )
-            # TODO: remove diagnostic logging below
-            log_to_mount_drive('Unexpected shutdown of parent dispatcher process (SIG: {}). '
-                               'Cleaning up current messages.'.format(signal_or_human))
+
             # Make sure the parent dispatcher process exits after handling the signal by setting this flag
             self._dispatcher_exiting = True
 

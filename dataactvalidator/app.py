@@ -1,5 +1,6 @@
 import logging
 import csv
+import inspect
 import time
 import traceback
 
@@ -19,11 +20,10 @@ from dataactvalidator.sqs_work_dispatcher import SQSWorkDispatcher
 from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
+from dataactvalidator.validator_logging import log_job_message
 
 
 # DataDog Import (the below value gets changed via Ansible during deployment. DO NOT DELETE)
-from dataactvalidator.validator_logging import log_session_size, log_to_mount_drive
-
 USE_DATADOG = False
 
 if USE_DATADOG:
@@ -63,12 +63,12 @@ def run_app():
         keep_polling = True
         while keep_polling:
             # With cleanup handling engaged, allowing retries
-            dispatcher = SQSWorkDispatcher(queue, allow_retries=True, long_poll_seconds=0)
+            dispatcher = SQSWorkDispatcher(queue, allow_retries=False, long_poll_seconds=0)
 
             def file_generation_logging_cleanup(file_gen_id):
                 logger.warning("CLEANUP: performing cleanup as job handling file generation is exiting")
 
-            def validation_job_logging_cleanup(job_id, agency_code, queue_message=None):
+            def validation_job_logging_cleanup(job_id, agency_code, is_retry, queue_message=None):
                 logger.warning("CLEANUP: performing cleanup as validation job is exiting. "
                                "For message {}".format(queue_message))
 
@@ -87,11 +87,13 @@ def run_app():
                 else:
                     # Running validations (or generating a file from a Job)
                     a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
-                    return validator_process_job, (message.body, a_agency_code, is_retry), validation_job_logging_cleanup
+                    return validator_process_job, \
+                           (message.body, a_agency_code, is_retry), \
+                           validation_job_logging_cleanup
 
             found_message = dispatcher.dispatch_by_message_attribute(choose_job_by_message_attributes)
 
-            # When you receive an empty response from the queue, wait a second before trying again
+            # When you receive an empty response from the queue, wait before trying again
             if not found_message:
                 time.sleep(5)
 
@@ -111,16 +113,27 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
         Raises:
             Any Exceptions raised by the FileGenerationManager
     """
-    if is_retry and not cleanup_generation(file_gen_id):
-        # TODO: add logging here
-        return  # Cleanup determined that retrying this job could not be allowed or is not necessary
+    if is_retry:
+        if cleanup_generation(file_gen_id):
+            log_job_message(
+                logger=logger,
+                message="Attempting a retry of {} after successful retry-cleanup.".format(inspect.stack()[0][3]),
+                job_id=file_gen_id,
+                is_debug=True
+            )
+        else:
+            log_job_message(
+                logger=logger,
+                message="Retry of {} found to be not necessary after cleanup. "
+                        "Returning from job with success.".format(inspect.stack()[0][3]),
+                job_id=file_gen_id,
+                is_debug=True
+            )
+            return
 
     # TODO: Uncomment if you want to stall the job during kill-testing
     time.sleep(60 * 3)
     sess = GlobalDB.db().session
-    # TODO: Remove diagnostic code
-
-    log_session_size(logger, job_id=file_gen_id, checkpoint_name="start: validator_process_file_generation(...)")
     file_generation = None
 
     try:
@@ -131,9 +144,6 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
 
         file_generation_manager = FileGenerationManager(sess, g.is_local, file_generation=file_generation)
         file_generation_manager.generate_file()
-
-        # TODO: Remove diagnostic code
-        log_session_size(logger, job_id=file_gen_id, checkpoint_name="end: validator_process_file_generation(...)")
 
     except Exception as e:
         # Log uncaught exceptions and fail all Jobs referencing this FileGeneration
@@ -190,15 +200,27 @@ def validator_process_job(job_id, agency_code, is_retry=False):
         Raises:
             Any Exceptions raised by the GenerationManager or ValidationManager, excluding those explicitly handled
     """
-    if is_retry and not cleanup_validation(job_id):
-        # TODO: add logging here
-        return  # Cleanup determined that retrying this job could not be allowed or is not necessary
+    if is_retry:
+        if cleanup_validation(job_id):
+            log_job_message(
+                logger=logger,
+                message="Attempting a retry of {} after successful retry-cleanup.".format(inspect.stack()[0][3]),
+                job_id=job_id,
+                is_debug=True
+            )
+        else:
+            log_job_message(
+                logger=logger,
+                message="Retry of {} found to be not necessary after cleanup. "
+                        "Returning from job with success.".format(inspect.stack()[0][3]),
+                job_id=job_id,
+                is_debug=True
+            )
+            return
 
     # TODO: Uncomment if you want to stall the job during kill-testing
     time.sleep(60 * 3)
     sess = GlobalDB.db().session
-    # TODO: Remove diagnostic code
-    log_session_size(logger, job_id=job_id, checkpoint_name="start: validator_process_job(...)")
     job = None
 
     try:
@@ -221,9 +243,6 @@ def validator_process_job(job_id, agency_code, is_retry=False):
             # Run validations
             validation_manager = ValidationManager(g.is_local, CONFIG_SERVICES['error_report_path'])
             validation_manager.validate_job(job.job_id)
-
-        # TODO: Remove diagnostic code
-        log_session_size(logger, job_id=job_id, checkpoint_name="end: validator_process_job(...)")
 
     except (ResponseException, csv.Error, UnicodeDecodeError, ValueError) as e:
         # Handle exceptions explicitly raised during validation
@@ -286,7 +305,7 @@ def cleanup_generation(file_gen_id):
             file_gen_id: file generation id
 
         Returns:
-            boolean whether or not it should run again
+            boolean whether or not it needs to be run again
     """
     sess = GlobalDB.db().session
     retry = False
@@ -302,10 +321,6 @@ def cleanup_generation(file_gen_id):
             gen.file_path = None
             gen.is_cached_file = False
             sess.commit()
-
-    if retry:
-        # TODO: replace diagnostic logging with real logging
-        log_to_mount_drive('Cleanup of file generation and allowing retry: {}'.format(file_gen_id))
     return retry
 
 
@@ -316,7 +331,7 @@ def cleanup_validation(job_id):
             job_id: ID of a Job
 
         Returns:
-            boolean whether or not it should run again
+            boolean whether or not it needs to be run again
     """
     sess = GlobalDB.db().session
     retry = False
@@ -327,10 +342,6 @@ def cleanup_validation(job_id):
             job.job_status_id = JOB_STATUS_DICT['waiting']
             sess.commit()
         retry = True
-
-    if retry:
-        # TODO: replace diagnostic logging with real logging
-        log_to_mount_drive('Cleanup of validation and allowing retry: {}'.format(job_id))
     return retry
 
 
