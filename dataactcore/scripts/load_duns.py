@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import paramiko
+import json
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -44,7 +45,7 @@ def get_client():
 
 
 def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False, benchmarks=False, table=DUNS,
-                     year=None):
+                     year=None, metrics=None):
     """ Process the SAM file found locally or remotely
 
         Args:
@@ -57,7 +58,11 @@ def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False,
             benchmarks: whether to log times
             table: the table to work from (could be DUNS/HistoricParentDuns)
             year: the year associated with the data (primarily for  HistoricParentDUNS loads)
+            metrics: dictionary representing metrics data for the load
     """
+    if not metrics:
+        metrics = {}
+
     file_path = os.path.join(root_dir, file_name)
     if not local:
         if sftp.sock.closed:
@@ -67,7 +72,7 @@ def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False,
         logger.info("Pulling {}".format(file_name))
         with open(file_path, "wb") as zip_file:
             sftp.getfo(''.join([REMOTE_SAM_DIR, '/', file_name]), zip_file)
-    parse_sam_file(file_path, sess, monthly=monthly, benchmarks=benchmarks, table=table, year=year)
+    parse_sam_file(file_path, sess, monthly=monthly, benchmarks=benchmarks, table=table, year=year, metrics=metrics)
     if not local:
         os.remove(file_path)
 
@@ -96,6 +101,8 @@ def get_parser():
 
 
 if __name__ == '__main__':
+    now = datetime.datetime.now()
+
     parser = get_parser()
     args = parser.parse_args()
 
@@ -106,6 +113,23 @@ if __name__ == '__main__':
     daily = args.daily
     benchmarks = args.benchmarks
     update = args.update
+
+    metrics = {
+        'script_name': 'load_duns.py',
+        'start_time': str(now),
+        'files_processed': [],
+        'records_received': 0,
+        'adds_received': 0,
+        'updates_received': 0,
+        'deletes_received': 0,
+        'records_ignored': 0,
+        'added_duns': [],
+        'updated_duns': [],
+        'records_added': 0,
+        'records_updated': 0,
+        'parent_rows_updated': 0,
+        'parent_update_date': None
+    }
 
     with create_app().app_context():
         configure_logging()
@@ -128,9 +152,9 @@ if __name__ == '__main__':
             logger.error("Local directory specified with a local file.")
             sys.exit(1)
         elif monthly:
-            parse_sam_file(monthly, sess=sess, monthly=True, benchmarks=benchmarks)
+            parse_sam_file(monthly, sess=sess, monthly=True, benchmarks=benchmarks, metrics=metrics)
         elif daily:
-            parse_sam_file(daily, sess=sess, benchmarks=benchmarks)
+            parse_sam_file(daily, sess=sess, benchmarks=benchmarks, metrics=metrics)
         else:
             # dealing with a local or remote directory
             if not local:
@@ -153,9 +177,10 @@ if __name__ == '__main__':
             if historic or update:
                 if historic:
                     if sorted_monthly_file_names:
-                        process_from_dir(root_dir, sorted_monthly_file_names[0],
-                                         sess, local, sftp, monthly=True, benchmarks=benchmarks)
-                        update_missing_parent_names(sess, updated_date=updated_date)
+                        process_from_dir(root_dir, sorted_monthly_file_names[0], sess, local, sftp, monthly=True,
+                                         benchmarks=benchmarks, metrics=metrics)
+                        metrics['parent_rows_updated'] = update_missing_parent_names(sess, updated_date=updated_date)
+                        metrics['parent_update_date'] = str(updated_date)
                     else:
                         logger.info("No monthly file found.")
 
@@ -179,9 +204,11 @@ if __name__ == '__main__':
 
                 if daily_files_after:
                     for daily_file in daily_files_after:
-                        process_from_dir(root_dir, daily_file, sess, local, sftp, benchmarks=benchmarks)
+                        process_from_dir(root_dir, daily_file, sess, local, sftp, benchmarks=benchmarks,
+                                         metrics=metrics)
 
-                    update_missing_parent_names(sess, updated_date=updated_date)
+                    metrics['parent_rows_updated'] = update_missing_parent_names(sess, updated_date=updated_date)
+                    metrics['parent_update_date'] = str(updated_date)
                 else:
                     logger.info("No daily file found.")
             elif historic_parent_duns:
@@ -194,12 +221,23 @@ if __name__ == '__main__':
                 for yearly_file in yearly_files:
                     year = re.findall(".*MONTHLY_(\d{4})\d{4}\.ZIP", yearly_file)[0]
                     process_from_dir(root_dir, yearly_file, sess, local, sftp, monthly=True, benchmarks=benchmarks,
-                                     table=HistoricParentDUNS, year=year)
+                                     table=HistoricParentDUNS, year=year, metrics=metrics)
             else:
                 if sorted_daily_file_names:
-                    process_from_dir(root_dir, sorted_daily_file_names[-1], sess, local, sftp, benchmarks=benchmarks)
+                    process_from_dir(root_dir, sorted_daily_file_names[-1], sess, local, sftp, benchmarks=benchmarks,
+                                     metrics=metrics)
 
-                    update_missing_parent_names(sess, updated_date=updated_date)
+                    metrics['parent_rows_updated'] = update_missing_parent_names(sess, updated_date=updated_date)
+                    metrics['parent_update_date'] = str(updated_date)
                 else:
                     logger.info("No daily file found.")
         sess.close()
+
+    metrics['records_added'] = len(set(metrics['added_duns']))
+    metrics['records_updated'] = len(set(metrics['updated_duns']) - set(metrics['added_duns']))
+    del metrics['added_duns']
+    del metrics['updated_duns']
+
+    metrics['duration'] = str(datetime.datetime.now() - now)
+    with open('load_duns_metrics.json', 'w+') as metrics_file:
+        json.dump(metrics, metrics_file)
