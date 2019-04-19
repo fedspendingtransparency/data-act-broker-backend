@@ -15,7 +15,7 @@ def test_column_headers(database):
 def test_success_ignore_null_pafa(database):
     """ Test that empty awarding office codes aren't matching invalid office codes from the base record. """
 
-    office = OfficeFactory(office_code='12345a', grant_office=True)
+    office = OfficeFactory(office_code='12345a', financial_assistance_office=True)
     # Base record has no awarding office code, future records don't affect it
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(awarding_office_code='', unique_award_key='zyxwv_123',
                                                            action_date='20181018', award_modification_amendme='0',
@@ -68,8 +68,8 @@ def test_success_ignore_null_pafa(database):
 def test_failure(database):
     """ Test fail that empty awarding office codes aren't matching invalid office codes from the base record. """
 
-    office_1 = OfficeFactory(office_code='12345a', grant_office=True)
-    office_2 = OfficeFactory(office_code='abcd', grant_office=False)
+    office_1 = OfficeFactory(office_code='12345a', financial_assistance_office=True)
+    office_2 = OfficeFactory(office_code='abcd', financial_assistance_office=False)
     # Invalid code in record
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(awarding_office_code='abc', unique_award_key='zyxwv_123',
                                                            action_date='20181018', award_modification_amendme='0',

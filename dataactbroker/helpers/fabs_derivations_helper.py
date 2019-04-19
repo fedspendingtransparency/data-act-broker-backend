@@ -301,7 +301,7 @@ def derive_office_data(obj, office_dict, sess):
             if not obj['awarding_office_code'] and first_transaction.awarding_office_code:
                 # Make sure the code we're copying is a valid awarding office code
                 award_office = office_dict.get(first_transaction.awarding_office_code)
-                if award_office and award_office['grant_office']:
+                if award_office and award_office['financial_assistance_office']:
                     obj['awarding_office_code'] = first_transaction.awarding_office_code
             if not obj['funding_office_code'] and first_transaction.funding_office_code:
                 # Make sure the code we're copying is a valid funding office code
