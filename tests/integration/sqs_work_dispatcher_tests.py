@@ -246,7 +246,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         finally:
             self._fail_runaway_processes(dispatcher._worker_process, terminator, logger)
 
-    @unittest.skip("Work in progress. Need to add to the backing SQSMockQueue to make this work for DLQ")
+    #@unittest.skip("Work in progress. Need to add to the backing SQSMockQueue to make this work for DLQ")
     def test_terminated_job_triggers_exit_signal_handling_to_dlq(self):
         """The child worker process is terminated, and exits indicating the exit signal of the termination. The
         parent monitors this, and initiates exit-handling. Because the dispatcher does not allow retries, the
@@ -325,6 +325,31 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         if fail_with_runaway_proc:
             self.fail("Worker or its Terminator did not complete in timeout as expected. Test fails.")
 
+    def test_dict_access(self):
+        md = MyMockDict()
+        self.assertIsInstance(md.attributes, dict)
+        self.assertIsInstance(md.thedict, dict)
+        self.assertIsInstance(md.my_dict, dict)
+        self.assertIsInstance(md.pub_dict, dict)
+        self.assertIsNone(md.attributes.get('key1'))
+        self.assertIsNone(md.thedict.get('key1'))
+        self.assertIsNone(md.my_dict.get('key1'))
+        self.assertIsNone(md.pub_dict.get('key1'))
 
 
+class MyMockDict():
+    def __init__(self):
+        self._my_dict = {}
+        self.pub_dict = {}
 
+    @property
+    def attributes(self):
+        return {}
+    
+    @property
+    def thedict(self):
+        return {}
+    
+    @property
+    def my_dict(self):
+        return self._my_dict
