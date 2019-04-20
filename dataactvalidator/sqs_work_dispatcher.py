@@ -86,7 +86,6 @@ class SQSWorkDispatcher:
         self.sqs_queue_instance = sqs_queue_instance
         self.worker_process_name = worker_process_name
         self._default_visibility_timeout = default_visibility_timeout
-        self._long_poll_seconds = long_poll_seconds
         self._monitor_sleep_time = monitor_sleep_time
         self._exit_handling_timeout = exit_handling_timeout
         self._current_sqs_message = None
@@ -95,6 +94,14 @@ class SQSWorkDispatcher:
         self._exit_handler = None
         self._parent_dispatcher_pid = os.getppid()
         self._sqs_heartbeat_log_period_seconds = 15  # log the heartbeat extension of visibility at most this often
+        self._long_poll_seconds = 0  # if nothing is set anywhere, it defaults to 0 (short-polling)
+
+        if long_poll_seconds:
+            self._long_poll_seconds = long_poll_seconds
+        else:  # Not set by caller. Must get default value in the queue
+            receive_message_wait_time_seconds = self.sqs_queue_instance.attributes.get("ReceiveMessageWaitTimeSeconds")
+            if receive_message_wait_time_seconds:
+                self._long_poll_seconds = receive_message_wait_time_seconds
 
         # Flag used to prevent handling an exit signal more than once, if multiple signals come in succession
         # True when the parent dispatcher process is handling one of the signals in EXIT_SIGNALS, otherwise False
@@ -319,6 +326,26 @@ class SQSWorkDispatcher:
         :param delay: How long to wait before message becomes visible to other consumers. Default is 0 seconds (
                immediately consumable)
         """
+        # Protect against the scenario where one of many consumers is in the midst of a long-poll when an exit signal
+        # is received. If they are in this position, and the message is returned to teh queue, they will dequeue it
+        # (receive it) when they should not have, because they should have been responding to the signal.
+        # They will respond to the signal, but not until after they return from receiving the message, and the message
+        # will be lost.
+        # So, so only make the message visible after any long-poll has returned
+        if self._long_poll_seconds and self._long_poll_seconds > 0:
+            delay = self._long_poll_seconds + 1
+
+        if self._current_sqs_message:
+            retried = 0
+            if self._current_sqs_message.attributes.get('ApproximateReceiveCount') is not None:
+                retried = int(self._current_sqs_message.attributes.get('ApproximateReceiveCount'))
+            log_job_message(
+                logger=self._logger,
+                message="Returning message to its queue for retry number {} in {} seconds. "
+                        "If this exceeds the configured number of retries in the queue, it "
+                        "will be moved to its Dead Letter Queue".format(retried + 1, delay),
+            )
+
         self._set_message_visibility(delay)
 
     def move_message_to_dead_letter_queue(self):
@@ -577,7 +604,7 @@ class SQSWorkDispatcher:
                 log_job_message(
                     logger=self._logger,
                     message="Dispatcher for this job allows retries of the message. "
-                            "Attempting to return message to its queue immediately."
+                            "Attempting to return message to its queue."
                 )
                 self.surrender_message_to_other_consumers()
             else:

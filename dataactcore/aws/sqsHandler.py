@@ -42,7 +42,7 @@ class SQSMockQueue:
     def attributes(self):
         mock_redrive = '{{"deadLetterTargetArn": "FAKE_ARN:{}", ' \
                        '"maxReceiveCount": {}}}'.format(self.UNITTEST_MOCK_DEAD_LETTER_QUEUE, self.max_receive_count)
-        return {"RedrivePolicy": mock_redrive}
+        return {"ReceiveMessageWaitTimeSeconds": 10, "RedrivePolicy": mock_redrive}
 
 
 class SQSMockDeadLetterQueue:

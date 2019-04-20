@@ -423,6 +423,53 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         finally:
             self._fail_runaway_processes(logger, worker=dispatcher._worker_process, terminator=terminator)
 
+    def test_default_to_queue_long_poll_works(self):
+        """Same as testing exit handling when allowing retries, but not setting the long_poll_seoconds value,
+        to leave it to the default setting.
+        """
+        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger.setLevel(logging.DEBUG)
+
+        msg_body = randint(1111, 9998)
+        queue = sqs_queue()
+        queue.send_message(MessageBody=msg_body)
+
+        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
+                                       monitor_sleep_time=0.05)
+        dispatcher.sqs_queue_instance.max_receive_count = 2  # allow retries
+
+        wq = mp.Queue()  # work tracking queue
+        tq = mp.Queue()  # termination queue
+
+        terminator = mp.Process(
+            name="worker_terminator",
+            target=self._worker_terminator,
+            args=(tq, 0.05, logger),
+            daemon=True
+        )
+        terminator.start()  # start terminator
+        # Start dispatcher with work, and with the inter-process Queue so it can pass along its PID
+        # Passing its PID on this Queue will let the terminator know the worker to terminate
+        dispatcher.dispatch(self._work_to_be_terminated, additional_job_args=(tq, wq))
+        dispatcher._worker_process.join(2)  # wait at most 2 sec for the work to complete
+        terminator.join(1)  # ensure terminator completes within 3 seconds. Don't let it run away.
+
+        try:
+            # Worker process should have an exitcode less than zero
+            self.assertLess(dispatcher._worker_process.exitcode, 0)
+            self.assertEqual(dispatcher._worker_process.exitcode, -signal.SIGTERM)
+            # Message should NOT have been deleted from the queue, but available for receive again
+            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            self.assertIsNotNone(msgs)
+            self.assertTrue(len(msgs) == 1, "Should be only 1 message received from queue")
+            self.assertEqual(msg_body, msgs[0].body, "Should be the same message available for retry on the queue")
+            # If the job function was called, it should have put the task_id (msg_body in this case) into the
+            # work_tracking_queue as its first queued item
+            work = wq.get_nowait()
+            self.assertEqual(msg_body, work, "Was expecting to find worker task_id (msg_body) tracked in the queue")
+        finally:
+            self._fail_runaway_processes(logger, worker=dispatcher._worker_process, terminator=terminator)
+
     @classmethod
     def _worker_terminator(cls, terminate_queue: mp.Queue, sleep_interval=0, logger=logging.getLogger(__name__)):
         logger.debug("Started worker_terminator. Waiting for the Queue to surface a PID to be terminated.")

@@ -62,7 +62,7 @@ def run_app():
         keep_polling = True
         while keep_polling:
             # With cleanup handling engaged, allowing retries
-            dispatcher = SQSWorkDispatcher(queue, long_poll_seconds=0)
+            dispatcher = SQSWorkDispatcher(queue)
 
             # TODO: We can remove unnecessary logging during cleanup
             def file_generation_logging_cleanup(file_gen_id):  # noqa
@@ -95,7 +95,7 @@ def run_app():
 
             # When you receive an empty response from the queue, wait before trying again
             if not found_message:
-                time.sleep(5)
+                time.sleep(1)
 
             # If this process is exiting, don't poll for more work
             keep_polling = not dispatcher.is_exiting
