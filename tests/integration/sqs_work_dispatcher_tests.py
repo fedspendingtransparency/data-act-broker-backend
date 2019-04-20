@@ -130,8 +130,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
     def test_faulty_queue_connection_raises_correct_exception(self):
         """When a queue cannot be connected to, it raises the appropriate exception"""
         try:
-            client_config = Config(connect_timeout=1, read_timeout=1)  # retries config not in v1.5.x
-            sqs = boto3.resource('sqs', config=client_config)  # 'us-gov-west-1')
+            # note: connection max retries config not in botocore v1.5.x
+            client_config = Config(region_name="us-gov-west-1", connect_timeout=1, read_timeout=1)
+            sqs = boto3.resource('sqs', config=client_config)
             queue = sqs.Queue("75f4f422-3866-4e4f-9dc9-5364e3de3eaf")
             dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
                                            long_poll_seconds=1, monitor_sleep_time=1)
@@ -219,7 +220,8 @@ class SQSWorkDispatcherTests(BaseTestValidator):
                                        long_poll_seconds=0, monitor_sleep_time=0.05)
         dispatcher.sqs_queue_instance.max_receive_count = 2  # allow retries
 
-        tq = mp.Queue()
+        wq = mp.Queue()  # work tracking queue
+        tq = mp.Queue()  # termination queue
 
         terminator = mp.Process(
             name="worker_terminator",
@@ -230,7 +232,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         terminator.start()  # start terminator
         # Start dispatcher with work, and with the inter-process Queue so it can pass along its PID
         # Passing its PID on this Queue will let the terminator know the worker to terminate
-        dispatcher.dispatch(self._work_to_be_terminated, additional_job_args=(tq,))
+        dispatcher.dispatch(self._work_to_be_terminated, additional_job_args=(tq, wq))
         dispatcher._worker_process.join(2)  # wait at most 2 sec for the work to complete
         terminator.join(1)  # ensure terminator completes within 3 seconds. Don't let it run away.
 
@@ -243,6 +245,10 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertIsNotNone(msgs)
             self.assertTrue(len(msgs) == 1, "Should be only 1 message received from queue")
             self.assertEqual(msg_body, msgs[0].body, "Should be the same message available for retry on the queue")
+            # If the job function was called, it should have put the task_id (msg_body in this case) into the
+            # work_tracking_queue as its first queued item
+            work = wq.get_nowait()
+            self.assertEqual(msg_body, work, "Was expecting to find worker task_id (msg_body) tracked in the queue")
         finally:
             self._fail_runaway_processes(dispatcher._worker_process, terminator, logger)
 
@@ -261,7 +267,8 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
                                        long_poll_seconds=0, monitor_sleep_time=0.05)
 
-        tq = mp.Queue()
+        wq = mp.Queue()  # work tracking queue
+        tq = mp.Queue()  # termination queue
 
         terminator = mp.Process(
             name="worker_terminator",
@@ -272,7 +279,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         terminator.start()  # start terminator
         # Start dispatcher with work, and with the inter-process Queue so it can pass along its PID
         # Passing its PID on this Queue will let the terminator know the worker to terminate
-        dispatcher.dispatch(self._work_to_be_terminated, additional_job_args=(tq,))
+        dispatcher.dispatch(self._work_to_be_terminated, additional_job_args=(tq, wq))
         dispatcher._worker_process.join(2)  # wait at most 2 sec for the work to complete
         terminator.join(1)  # ensure terminator completes within 3 seconds. Don't let it run away.
 
@@ -284,11 +291,14 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             msgs = queue.receive_messages(WaitTimeSeconds=0)
             self.assertIsNotNone(msgs)
             self.assertTrue(len(msgs) == 0, "Should be NO messages received from queue")
+            # If the job function was called, it should have put the task_id (msg_body in this case) into the
+            # work_tracking_queue as its first queued item
+            work = wq.get_nowait()
+            self.assertEqual(msg_body, work, "Was expecting to find worker task_id (msg_body) tracked in the queue")
             # TODO: Test that the "dead letter queue" has this message - maybe by asserting the log statement
         finally:
             self._fail_runaway_processes(dispatcher._worker_process, terminator, logger)
 
-    @unittest.skip("Work in progress")
     def test_exit_handler_can_receive_queue_message_as_arg(self):
         """Verify that exit_handlers provided whose signatures allow keyword args can receive the queue message
         as a keyword arg"""
@@ -302,23 +312,27 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
                                        long_poll_seconds=0, monitor_sleep_time=0.05)
 
-        def exit_handler_with_msg(task_id, inter_proc_queue: mp.Queue, queue_message=2):  # noqa
-            logger.debug("CLEANUP: performing cleanup with exit_handler_with_msg({}, {}, {}".format(queue_message))
+        def exit_handler_with_msg(task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue,  # noqa
+                                  queue_message=None):  # noqa
+            logger.debug("CLEANUP: performing cleanup with "
+                         "exit_handler_with_msg({}, {}, {}".format(task_id, termination_queue, queue_message))
             logger.debug("msg.body = {}".format(queue_message.body))
+            work_tracking_queue.put("exit_handling:{}".format(queue_message.body))  # track what we handled
 
-        print(inspect.signature(exit_handler_with_msg).parameters['queue_message'].kind)
-        tq = mp.Queue()
-
+        termination_queue = mp.Queue()
+        work_tracking_queue = mp.Queue()
         terminator = mp.Process(
             name="worker_terminator",
             target=self._worker_terminator,
-            args=(tq, 0.05, logger),
+            args=(termination_queue, 0.05, logger),
             daemon=True
         )
         terminator.start()  # start terminator
         # Start dispatcher with work, and with the inter-process Queue so it can pass along its PID
         # Passing its PID on this Queue will let the terminator know the worker to terminate
-        dispatcher.dispatch(self._work_to_be_terminated, additional_job_args=(tq,), exit_handler=exit_handler_with_msg)
+        dispatcher.dispatch(self._work_to_be_terminated,
+                            additional_job_args=(termination_queue, work_tracking_queue),
+                            exit_handler=exit_handler_with_msg)
         dispatcher._worker_process.join(2)  # wait at most 2 sec for the work to complete
         terminator.join(1)  # ensure terminator completes within 3 seconds. Don't let it run away.
 
@@ -330,6 +344,16 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             msgs = queue.receive_messages(WaitTimeSeconds=0)
             self.assertIsNotNone(msgs)
             self.assertTrue(len(msgs) == 0, "Should be NO messages received from queue")
+            # If the job function was called, it should have put the task_id (msg_body in this case) into the
+            # work_tracking_queue as its first queued item. FIFO queue, so it should be "first out"
+            work = work_tracking_queue.get_nowait()
+            self.assertEqual(msg_body, work, "Was expecting to find worker task_id (msg_body) tracked in the queue")
+            # If the exit_handler was called, and if it passed along args from the original worker, then it should
+            # have put the message body into the "work_tracker_queue" after work was started and exit occurred
+            exit_handling_work = work_tracking_queue.get_nowait()
+            self.assertEqual("exit_handling:{}".format(msg_body), exit_handling_work,
+                             "Was expecting to find tracking in the work_tracking_queue of the message being handled "
+                             "by the exit_handler")
         finally:
             self._fail_runaway_processes(dispatcher._worker_process, terminator, logger)
 
@@ -349,9 +373,12 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         logger.debug("Terminated worker with PID=[{}] using signal.SIGTERM".format(pid))
 
     @classmethod
-    def _work_to_be_terminated(cls, task_id, inter_proc_queue: mp.Queue):
-        # Put PID of worker process in the queue to let worker_terminator proc know what to kill
-        inter_proc_queue.put(os.getpid())
+    def _work_to_be_terminated(cls, task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue,
+                               *args, **kwargs):
+        # Put task_id in the work_tracking_queue so we know we saw this work
+        work_tracking_queue.put(task_id)
+        # Put PID of worker process in the termination_queue to let worker_terminator proc know what to kill
+        termination_queue.put(os.getpid())
         sleep(0.25)  # hang for a short period to ensure terminator has time to kill this
 
     def _fail_runaway_processes(self, worker: mp.Process, terminator: mp.Process, logger):

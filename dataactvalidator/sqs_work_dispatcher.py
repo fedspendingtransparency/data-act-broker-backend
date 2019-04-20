@@ -325,33 +325,41 @@ class SQSWorkDispatcher:
             )
             return
 
-        redrive_policy = self.sqs_queue_instance.attributes.get("RedrivePolicy")
-        if not redrive_policy:
-            error = "Failed to move message to dead letter queue. Cannot get RedrivePolicy for SQS queue \"{}\". " \
-                    "It was not set, or was not included as an attribute to be " \
-                    "retrieved with this queue.".format(self.sqs_queue_instance)
-            log_job_message(logger=self._logger, message=error, is_error=True)
-            raise QueueWorkDispatcherError(error)
-        redrive_json = json.loads(redrive_policy)
-        dlq_arn = redrive_json.get("deadLetterTargetArn")
-        if not dlq_arn:
-            error = "Failed to move message to dead letter queue. " \
-                    "Cannot find a dead letter queue in the RedrivePolicy " \
-                    "for SQS queue \"{}\"".format(self.sqs_queue_instance)
-            log_job_message(logger=self._logger, message=error, is_error=True)
-            raise QueueWorkDispatcherError(error)
-        dlq_name = dlq_arn.split(':')[-1]
-        # Copy the message to the designated dead letter queue
-        dlq = sqs_queue(queue_name=dlq_name)
-        # TODO: If message.Attributes is a writable dictionary, consider sending those too from the original message
-        # TODO: Like Retry Count. Other things probably should not go (e.g. DLQs msgs should not get a redrivepolicy)
-        # TODO: If Retry can't be set, log it before moving to DLQ
-        message_attr = self._current_sqs_message.message_attributes.copy() if \
-            self._current_sqs_message.message_attributes else {}
-        dlq_response = dlq.send_message(
-            MessageBody=self._current_sqs_message.body,
-            MessageAttributes=message_attr
-        )
+        try:
+            redrive_policy = self.sqs_queue_instance.attributes.get("RedrivePolicy")
+            if not redrive_policy:
+                error = "Failed to move message to dead letter queue. Cannot get RedrivePolicy for SQS queue \"{}\". " \
+                        "It was not set, or was not included as an attribute to be " \
+                        "retrieved with this queue.".format(self.sqs_queue_instance)
+                log_job_message(logger=self._logger, message=error, is_error=True)
+                raise QueueWorkDispatcherError(error)
+            redrive_json = json.loads(redrive_policy)
+            dlq_arn = redrive_json.get("deadLetterTargetArn")
+            if not dlq_arn:
+                error = "Failed to move message to dead letter queue. " \
+                        "Cannot find a dead letter queue in the RedrivePolicy " \
+                        "for SQS queue \"{}\"".format(self.sqs_queue_instance)
+                log_job_message(logger=self._logger, message=error, is_error=True)
+                raise QueueWorkDispatcherError(error)
+            dlq_name = dlq_arn.split(':')[-1]
+            # Copy the message to the designated dead letter queue
+            dlq = sqs_queue(queue_name=dlq_name)
+            # TODO: If message.Attributes is a writable dictionary, consider sending those too from the original message
+            # TODO: Like Retry Count. Other things probably should not go (e.g. DLQs msgs should not get a redrivepolicy)
+            # TODO: If Retry can't be set, log it before moving to DLQ
+            message_attr = self._current_sqs_message.message_attributes.copy() if \
+                self._current_sqs_message.message_attributes else {}
+            dlq_response = dlq.send_message(
+                MessageBody=self._current_sqs_message.body,
+                MessageAttributes=message_attr
+            )
+        except Exception as exc:
+            error = "Error occurred when parent dispatcher with PID [{}] tried to move the message " \
+                    "for worker process with PID [{}] to the dead letter queue.".format(os.getpid(),
+                                                                                        self._worker_process.pid)
+            log_job_message(logger=self._logger, message=error, is_exception=True)
+            raise QueueWorkDispatcherError(error) from exc
+
         log_job_message(
             logger=self._logger,
             message="Message sent to dead letter queue \"{}\" "
@@ -446,7 +454,7 @@ class SQSWorkDispatcher:
         :return: None
         """
         # If the process handling this signal is the same as the started worker process, this *is* the worker process
-        is_worker_process = os.getpid() == self._worker_process.pid
+        is_worker_process = self._worker_process and self._worker_process.pid == os.getpid()
 
         # If the signal is in BSD_SIGNALS, use the human-readable string, otherwise use the signal value
         signal_or_human = BSD_SIGNALS.get(signum, signum)
@@ -515,9 +523,11 @@ class SQSWorkDispatcher:
                 try:
                     with ExecutionTimeout(self._exit_handling_timeout):
                         # Call _exit_handler callable to do cleanup
+                        queue_message_param = inspect.signature(self._exit_handler).parameters.get("queue_message")
                         arg_spec = inspect.getfullargspec(self._exit_handler)
-                        if arg_spec.varkw == "kwargs":
-                            # it accepts kwargs, so pass along the message in case it's needed
+                        if queue_message_param or arg_spec.varkw == "kwargs":
+                            # it defines a param named "queue_message", or accepts kwargs,
+                            # so pass along the message as "queue_message" in  case it's needed
                             self._exit_handler(*self._job_args, queue_message=self._current_sqs_message)
                         else:
                             self._exit_handler(*self._job_args)
@@ -598,7 +608,7 @@ class SQSWorkDispatcher:
             return
         try:
             self._current_sqs_message.change_visibility(VisibilityTimeout=new_visibility)
-        except ClientError as exc:
+        except Exception as exc:
             message = "Unable to set VisibilityTimeout. " \
                       "Message might have previously been deleted upon completion or failure"
             log_job_message(logger=self._logger, message=message, is_exception=True)
