@@ -655,7 +655,6 @@ class SQSWorkDispatcher:
                                               "manual restart, or other remediation.".format(self._worker_process.pid,
                                                                                              signal_or_human))
 
-
     def _set_message_visibility(self, new_visibility):
         if self._current_sqs_message is None:
             log_job_message(
