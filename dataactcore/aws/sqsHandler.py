@@ -40,7 +40,6 @@ class SQSMockQueue:
 
     @property
     def attributes(self):
-        # TODO: May need to do more handling of this to account for RedrivePolicy attr, etc.
         mock_redrive = '{{"deadLetterTargetArn": "FAKE_ARN:{}", ' \
                        '"maxReceiveCount": {}}}'.format(self.UNITTEST_MOCK_DEAD_LETTER_QUEUE, self.max_receive_count)
         return {"RedrivePolicy": mock_redrive}

@@ -9,7 +9,7 @@ import sys
 import time
 import multiprocessing as mp
 
-from botocore.exceptions import ClientError, EndpointConnectionError
+from botocore.exceptions import ClientError, EndpointConnectionError, NoCredentialsError, NoRegionError
 
 from dataactcore.aws.sqsHandler import sqs_queue
 from dataactvalidator.validator_logging import log_job_message
@@ -59,7 +59,7 @@ class SQSWorkDispatcher:
             sqs_queue_instance,
             worker_process_name=None,
             default_visibility_timeout=60,
-            long_poll_seconds=10,
+            long_poll_seconds=None,
             monitor_sleep_time=5,
             exit_handling_timeout=30):
         """
@@ -78,6 +78,7 @@ class SQSWorkDispatcher:
                for other consumers. If it only allows 1 retry, this may end up directing it to the Dead Letter queue
                when the next consumer attempts to receive it.
         :param long_poll_seconds: if it should wait patiently for some time to receive a message when requesting.
+               Defaults to None, which means it should honor the value configured on the SQS queue
         :param monitor_sleep_time: periodicity to check up on the status of the worker process
         :param exit_handling_timeout: expected window of time during which cleanup should complete (not guaranteed).
                This for example would be the time to finish cleanup before the messages is re-queued or DLQ'd
@@ -203,6 +204,10 @@ class SQSWorkDispatcher:
                the name of the provided job callable
         :param exit_handler: a callable to be called when handling an `EXIT_SIGNAL` signal, giving the
                opportunity to perform cleanup before the process exits. Gets the job_args passed to it when run
+        :raises SystemExit(1): If it can't connect to the queue or receive messages
+        :raises QueueWorkerProcessError: Under various conditions where the child worker process fails to run the job
+        :raises QueueWorkDispatcherError: Under various conditions where the parent dispatcher process can't
+                orchestrate work execution, monitoring, or exit-signal-handling
         :return: True if a message was found on the queue and dispatched, otherwise False if nothing on the queue
         """
         self._dequeue_message(self._long_poll_seconds)
@@ -225,6 +230,10 @@ class SQSWorkDispatcher:
         :param additional_job_args: Additional arguments to provide to the callable, along with those from the message
         :param worker_process_name: Name given to the newly created child process. If not already set, defaults to
                the name of the provided job callable
+        :raises SystemExit(1): If it can't connect to the queue or receive messages
+        :raises QueueWorkerProcessError: Under various conditions where the child worker process fails to run the job
+        :raises QueueWorkDispatcherError: Under various conditions where the parent dispatcher process can't
+                orchestrate work execution, monitoring, or exit-signal-handling
         :return: True if a message was found on the queue and dispatched, otherwise False if nothing on the queue
         """
         self._dequeue_message(self._long_poll_seconds)
@@ -264,8 +273,13 @@ class SQSWorkDispatcher:
                 VisibilityTimeout=self._default_visibility_timeout,
                 MaxNumberOfMessages=1,
             )
-        except (EndpointConnectionError, ClientError) as exc:
-            log_job_message(logger=self._logger, message="SQS connection issue. Investigate settings",
+        except (EndpointConnectionError, ClientError, NoCredentialsError, NoRegionError) as conn_exc:
+            log_job_message(logger=self._logger, message="SQS connection issue. See Traceback and investigate settings",
+                            is_exception=True)
+            raise SystemExit(1) from conn_exc
+        except Exception as exc:
+            log_job_message(logger=self._logger, message="Unknown error occurred when attempting to receive messages "
+                                                         "from the queue. See Traceback",
                             is_exception=True)
             raise SystemExit(1) from exc
 
@@ -313,8 +327,10 @@ class SQSWorkDispatcher:
         Moves the message to the Dead Letter Queue associated with this worker's SQS queue via its RedrivePolicy.
         Then delete the message from its originating queue.
 
+        :raises
         :raises QueueWorkDispatcherError: Raise an error if there is no RedrivePolicy or a Dead Letter Queue is not
-                configured or specified for this queue.
+                configured, specified, or connectible for this queue.
+
         """
         if self._current_sqs_message is None:
             log_job_message(
@@ -449,8 +465,13 @@ class SQSWorkDispatcher:
         :param is_retry: If this is the 2nd and last try to handled the signal and perform pre-exit cleanup
         :raises QueueWorkerProcessError: When the _exit_handling function cannot be completed in time to perform
                 pre-exit cleanup
-        :raises SystemExit: If the parent dispatcher process received an exit signal, this is raised
-                after handling the signal, in order to complete the exiting process
+        :raises QueueWorkerProcessError: If only the child process died (not the parent dispatcher), but the message it
+                was working was moved to the Dead Letter Queue because the queue is not configured to allow retries,
+                raise an exception so the parent process might mark the job as failed with its normal error-handling
+                process
+        :raises SystemExit: If the parent dispatcher process received an exit signal, this should be raised
+                after handling the signal, as part of running os.kill of that process using the original signal number
+                that was originally handled
         :return: None
         """
         # If the process handling this signal is the same as the started worker process, this *is* the worker process
@@ -487,7 +508,7 @@ class SQSWorkDispatcher:
             log_job_message(
                 logger=self._logger,
                 message="Parent dispatcher process with PID [{}] received signal [{}] while running. "
-                        "Gracefully stopping job being worked".format(os.getppid(), signal_or_human),
+                        "Gracefully stopping job being worked".format(os.getpid(), signal_or_human),
                 is_error=True
             )
 
@@ -585,17 +606,28 @@ class SQSWorkDispatcher:
             if self._dispatcher_exiting:
                 # An exit signal was received by the parent dispatcher process.
                 # Continue with exiting the parent process, as per the original signal, after having handled it
-                # TODO: Test that the exit code is negative value of the signal handled.
-                # TODO: If not, provide the handled signal's negative value as an arg.
-                # TODO: NOTE: Just doing SystemExit(-singal.SIGXXX) or sys.exit(-singal.SIGXXX) does not seem to
-                # TODO: retain the negative exit code. test this
                 log_job_message(
                     logger=self._logger,
                     message="Exiting from parent dispatcher process with PID [{}] "
                             "to culminate exit-handling of signal [{}]".format(os.getpid(), signal_or_human),
                     is_debug=True
                 )
-                raise SystemExit
+                # Simply doing sys.exit or raise SystemExit, even with a given negative exit code won't exit this
+                # process with the negative signal value, as is the Python custom.
+                # So override the assigned handler for the signal we're handing, resetting it back to default,
+                # and kill the process using that signal to get it to exit as it would if we never handled it
+                signal.signal(signum, signal.SIG_DFL)
+                os.kill(os.getpid(), signum)
+            elif not self.allow_retries:
+                # If only the child process died, but the message it was working was moved to the Dead Letter Queue
+                # because the queue is not configured to allow retries, raise an exception so the parent process
+                # might mark the job as failed with its normal error-handling process
+                raise QueueWorkerProcessError("Worker process with PID [{}] was not able to complete its job due to "
+                                              "interruption from exit signal [{}]. The queue message for that job "
+                                              "was moved to the Dead Letter Queue, where it can be reviewed for a "
+                                              "manual restart, or other remediation.".format(self._worker_process.pid,
+                                                                                             signal_or_human))
+
 
     def _set_message_visibility(self, new_visibility):
         if self._current_sqs_message is None:

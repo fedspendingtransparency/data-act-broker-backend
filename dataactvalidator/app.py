@@ -70,7 +70,6 @@ def run_app():
 
             # TODO: We can remove unnecessary logging during cleanup
             def validation_job_logging_cleanup(job_id, agency_code, is_retry, queue_message=None):  # noqa
-                # TODO: This test is still showing the queue_message coming through as None. Should be added
                 logger.warning("CLEANUP: performing cleanup as validation job is exiting. "
                                "For message {}".format(queue_message))
 
