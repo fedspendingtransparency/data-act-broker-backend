@@ -101,7 +101,7 @@ class SQSWorkDispatcher:
         else:  # Not set by caller. Must get default value in the queue
             receive_message_wait_time_seconds = self.sqs_queue_instance.attributes.get("ReceiveMessageWaitTimeSeconds")
             if receive_message_wait_time_seconds:
-                self._long_poll_seconds = receive_message_wait_time_seconds
+                self._long_poll_seconds = int(receive_message_wait_time_seconds)
 
         # Flag used to prevent handling an exit signal more than once, if multiple signals come in succession
         # True when the parent dispatcher process is handling one of the signals in EXIT_SIGNALS, otherwise False
