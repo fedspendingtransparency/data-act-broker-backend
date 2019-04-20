@@ -325,6 +325,7 @@ class SQSWorkDispatcher:
             )
             return
 
+        dlq_name = "not discovered yet"
         try:
             redrive_policy = self.sqs_queue_instance.attributes.get("RedrivePolicy")
             if not redrive_policy:
@@ -333,6 +334,7 @@ class SQSWorkDispatcher:
                         "retrieved with this queue.".format(self.sqs_queue_instance)
                 log_job_message(logger=self._logger, message=error, is_error=True)
                 raise QueueWorkDispatcherError(error)
+
             redrive_json = json.loads(redrive_policy)
             dlq_arn = redrive_json.get("deadLetterTargetArn")
             if not dlq_arn:
@@ -342,11 +344,9 @@ class SQSWorkDispatcher:
                 log_job_message(logger=self._logger, message=error, is_error=True)
                 raise QueueWorkDispatcherError(error)
             dlq_name = dlq_arn.split(':')[-1]
+
             # Copy the message to the designated dead letter queue
             dlq = sqs_queue(queue_name=dlq_name)
-            # TODO: If message.Attributes is a writable dictionary, consider sending those too from the original message
-            # TODO: Like Retry Count. Other things probably should not go (e.g. DLQs msgs should not get a redrivepolicy)
-            # TODO: If Retry can't be set, log it before moving to DLQ
             message_attr = self._current_sqs_message.message_attributes.copy() if \
                 self._current_sqs_message.message_attributes else {}
             dlq_response = dlq.send_message(
@@ -355,8 +355,8 @@ class SQSWorkDispatcher:
             )
         except Exception as exc:
             error = "Error occurred when parent dispatcher with PID [{}] tried to move the message " \
-                    "for worker process with PID [{}] to the dead letter queue.".format(os.getpid(),
-                                                                                        self._worker_process.pid)
+                    "for worker process with PID [{}] " \
+                    "to the dead letter queue [{}].".format(os.getpid(), self._worker_process.pid, dlq_name)
             log_job_message(logger=self._logger, message=error, is_exception=True)
             raise QueueWorkDispatcherError(error) from exc
 
@@ -601,8 +601,8 @@ class SQSWorkDispatcher:
         if self._current_sqs_message is None:
             log_job_message(
                 logger=self._logger,
-                message="No SQS message to change visibility of. Message might have previously been released or "
-                        "deleted",
+                message="No SQS message to change visibility of. Message might have previously been released, "
+                        "deleted, or moved to dead letter queue.",
                 is_warning=True
             )
             return
