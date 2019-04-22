@@ -117,8 +117,6 @@ class FileGenerationManager:
 
         log_data['message'] = 'Writing {} file CSV: {}'.format(self.file_type, original_filename)
         logger.info(log_data)
-        import time
-        time.sleep(60 * 3)
 
         query_utils = {
             "sess": self.sess, "file_utils": file_utils, "agency_code": self.file_generation.agency_code,
