@@ -9,7 +9,7 @@ import psutil as ps
 
 from random import randint
 from botocore.config import Config
-from botocore.exceptions import EndpointConnectionError, ClientError
+from botocore.exceptions import EndpointConnectionError, ClientError, NoCredentialsError, NoRegionError
 from dataactcore.aws.sqsHandler import sqs_queue
 from dataactvalidator.sqs_work_dispatcher import SQSWorkDispatcher, QueueWorkerProcessError
 from tests.integration.baseTestValidator import BaseTestValidator
@@ -142,7 +142,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertIsInstance(e, SystemExit)
             self.assertIsNotNone(e.__cause__)
             self.assertTrue(isinstance(e.__cause__, EndpointConnectionError) or
-                            isinstance(e.__cause__, ClientError))
+                            isinstance(e.__cause__, ClientError) or
+                            isinstance(e.__cause__, NoRegionError) or
+                            isinstance(e.__cause__, NoCredentialsError))
 
     def test_failed_job_detected(self):
         """SQSWorkDispatcher handles failed work within the child process
