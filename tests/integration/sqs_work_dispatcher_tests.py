@@ -285,9 +285,10 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             # Start dispatcher with work, and with the inter-process Queue so it can pass along its PID
             # Passing its PID on this Queue will let the terminator know the worker to terminate
             dispatcher.dispatch(self._work_to_be_terminated, additional_job_args=(tq, wq))
-            dispatcher._worker_process.join(2)  # wait at most 2 sec for the work to complete
-            terminator.join(1)  # ensure terminator completes within 3 seconds. Don't let it run away.
 
+        # Ensure to wait on the processes to end with join
+        dispatcher._worker_process.join(2)  # wait at most 2 sec for the work to complete
+        terminator.join(1)  # ensure terminator completes within 3 seconds. Don't let it run away.
         self.assertTrue("SIGTERM" in str(err_ctx.exception), "QueueWorkerProcessError did not mention 'SIGTERM'.")
 
         try:
