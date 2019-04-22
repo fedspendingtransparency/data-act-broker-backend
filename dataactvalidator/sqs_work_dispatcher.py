@@ -523,10 +523,12 @@ class SQSWorkDispatcher:
         elif not parent_dispatcher_signaled:
             log_job_message(
                 logger=self._logger,
-                message="Job worker process with PID [{}] exited due to signal with exit code: [{}]. "
+                message="Job worker process with PID [{}] exited due to signal with exit code: [{}], "
+                        "after receiving exit signal [{}]. "
                         "Gracefully handling exit of job".format(
                             self._worker_process.pid,
-                            self._worker_process.exitcode
+                            self._worker_process.exitcode,
+                            signal_or_human
                         ),
                 is_error=True
             )
