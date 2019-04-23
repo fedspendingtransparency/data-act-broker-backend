@@ -6,6 +6,7 @@ import numpy as np
 import boto3
 import datetime
 import sys
+import json
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -44,8 +45,7 @@ def get_program_activity_file(base_path):
 
 
 def get_date_of_current_pa_upload(base_path):
-    """ Gets the last time the file was uploaded to S3, or alternatively the last time the local
-        file was modified.
+    """ Gets the last time the file was uploaded to S3, or alternatively the last time the local file was modified.
 
         Args:
             base_path: directory of domain config files
@@ -106,9 +106,20 @@ def load_program_activity_data(base_path):
         Args:
             base_path: directory of domain config files
     """
+    now = datetime.datetime.now()
     last_upload = get_date_of_current_pa_upload(base_path)
     if not (last_upload > get_stored_pa_last_upload()):
         return
+
+    metrics_json = {
+        'script_name': 'load_program_activity.py',
+        'start_time': str(now),
+        'records_received': 0,
+        'duplicates_dropped': 0,
+        'invalid_records_dropped': 0,
+        'records_deleted': 0,
+        'records_inserted': 0
+    }
 
     program_activity_file = get_program_activity_file(base_path)
 
@@ -153,17 +164,21 @@ def load_program_activity_data(base_path):
                 exit_if_nonlocal(5)
                 return
 
-        sess.query(ProgramActivity).delete()
+        metrics_json['records_deleted'] = sess.query(ProgramActivity).delete()
+        metrics_json['invalid_records_dropped'] = dropped_count
 
         # Lowercase Program Activity Name
         data['program_activity_name'] = data['program_activity_name'].apply(lambda x: lowercase_or_notify(x))
 
-        # because we're only loading a subset of program activity info,
-        # there will be duplicate records in the dataframe. this is ok,
-        # but need to de-duped before the db load. We also need to log them.
-        base_count = data.shape[0]
+        # because we're only loading a subset of program activity info, there will be duplicate records in the
+        # dataframe. this is ok, but need to de-duped before the db load. We also need to log them.
+        base_count = len(data.index)
+        metrics_json['records_received'] = base_count
         data.drop_duplicates(inplace=True)
-        logger.info("Dropped {} duplicate rows.".format(base_count - data.shape[0]))
+
+        dupe_count = base_count - len(data.index)
+        logger.info("Dropped {} duplicate rows.".format(dupe_count))
+        metrics_json['duplicates_dropped'] = dupe_count
 
         # insert to db
         table_name = ProgramActivity.__table__.name
@@ -172,6 +187,12 @@ def load_program_activity_data(base_path):
 
     set_stored_pa_last_upload(last_upload)
     logger.info('{} records inserted to {}'.format(num, table_name))
+    metrics_json['records_inserted'] = num
+
+    metrics_json['duration'] = str(datetime.datetime.now() - now)
+
+    with open('load_program_activity_metrics.json', 'w+') as metrics_file:
+        json.dump(metrics_json, metrics_file)
 
     if dropped_count > 0:
         exit_if_nonlocal(3)

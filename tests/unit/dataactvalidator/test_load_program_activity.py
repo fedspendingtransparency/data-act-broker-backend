@@ -2,9 +2,15 @@ from io import StringIO
 from unittest.mock import patch
 import datetime
 import pytest
+import os
 
 from dataactvalidator.scripts import load_program_activity
 from dataactcore.models.domainModels import ProgramActivity, ExternalDataType
+
+
+def remove_metrics_file():
+    if os.path.isfile('load_program_activity_metrics.json'):
+        os.remove('load_program_activity_metrics.json')
 
 
 @patch('dataactvalidator.scripts.load_program_activity.io.BytesIO')
@@ -22,6 +28,8 @@ def test_get_program_activity_file_aws(boto3, bytesio, monkeypatch):
             load_program_activity.PA_BUCKET, load_program_activity.PA_SUB_KEY+load_program_activity.PA_FILE_NAME
             ).get.assert_called_with(load_program_activity.PA_SUB_KEY+load_program_activity.PA_FILE_NAME)
 
+    remove_metrics_file()
+
 
 def test_get_program_activity_file_local(monkeypatch):
     """ Test obtaining the local file based on its path """
@@ -31,6 +39,8 @@ def test_get_program_activity_file_local(monkeypatch):
     pa_file = load_program_activity.get_program_activity_file('local_path')
 
     assert pa_file == 'local_path/DATA Act Program Activity List for Treas.csv'
+
+    remove_metrics_file()
 
 
 def test_set_get_pa_last_upload_existing(monkeypatch, database):
@@ -59,6 +69,8 @@ def test_set_get_pa_last_upload_existing(monkeypatch, database):
     stored_date = load_program_activity.get_stored_pa_last_upload()
     expected_date = datetime.datetime(2016, 12, 31, 0, 0, 0)
     assert stored_date == expected_date
+
+    remove_metrics_file()
 
 
 @patch('dataactvalidator.scripts.load_program_activity.set_stored_pa_last_upload')
@@ -91,6 +103,8 @@ def test_load_program_activity_data(mocked_get_pa_file, mocked_get_current_date,
     assert pa.program_activity_code == '1111'
     assert pa.program_activity_name == 'test name'
 
+    remove_metrics_file()
+
 
 @patch('dataactvalidator.scripts.load_program_activity.set_stored_pa_last_upload')
 @patch('dataactvalidator.scripts.load_program_activity.get_stored_pa_last_upload')
@@ -113,6 +127,8 @@ def test_load_program_activity_data_only_header(mocked_get_pa_file, mocked_get_c
         load_program_activity.load_program_activity_data('some_path')
 
     assert se.value.code == 4
+
+    remove_metrics_file()
 
 
 @patch('dataactvalidator.scripts.load_program_activity.set_stored_pa_last_upload')
@@ -137,6 +153,8 @@ def test_load_program_activity_data_no_header(mocked_get_pa_file, mocked_get_cur
 
     assert se.value.code == 4
 
+    remove_metrics_file()
+
 
 @patch('dataactvalidator.scripts.load_program_activity.set_stored_pa_last_upload')
 @patch('dataactvalidator.scripts.load_program_activity.get_stored_pa_last_upload')
@@ -157,3 +175,5 @@ def test_load_program_activity_data_empty_file(mocked_get_pa_file, mocked_get_cu
         load_program_activity.load_program_activity_data('some_path')
 
     assert se.value.code == 4
+
+    remove_metrics_file()

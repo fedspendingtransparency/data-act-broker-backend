@@ -157,7 +157,7 @@ db:
     # Host and port of db instance. Set to localhost if running locally or set
     # the remote address
     # host: broker-sbx.cvhpn1mlakcs.us-gov-west-1.rds.amazonaws.com
-    host: dataact-postgres
+    host: dataact-broker-db
     port: 5432
 
     # Set your username and password for the db instance

@@ -1,4 +1,6 @@
--- LegalEntityCountryCode Field must contain a valid three character GENC Standard Edition 3.0 (Update 4) country code.
+-- LegalEntityCountryCode must contain a valid three character GENC country code. U.S. Territories and Freely
+-- Associated States must be submitted with country code = USA and their state/territory code; they cannot be submitted
+-- with their GENC country code.
 SELECT
     dafa.row_number,
     dafa.legal_entity_country_code
@@ -8,4 +10,5 @@ WHERE submission_id={0}
         SELECT 1
         FROM country_code AS cc
         WHERE UPPER(dafa.legal_entity_country_code) = UPPER(cc.country_code)
+            AND cc.territory_free_state IS FALSE
     );

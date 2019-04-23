@@ -166,7 +166,7 @@ class OfficeFactory(factory.Factory):
     agency_code = fuzzy.FuzzyText()
     contracting_office = fuzzy.FuzzyChoice((False, True))
     funding_office = fuzzy.FuzzyChoice((False, True))
-    grant_office = fuzzy.FuzzyChoice((False, True))
+    financial_assistance_office = fuzzy.FuzzyChoice((False, True))
 
 
 class StatesFactory(factory.Factory):
