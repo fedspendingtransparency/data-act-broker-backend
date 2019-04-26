@@ -275,7 +275,7 @@ def load_zip_city_data(zip_city_file):
 
 def load_location_data(force_reload=False):
     """ Loads the city, county, state, citystate, and zipcity data.
-    
+
         Args:
             force_reload: reloads the tables even if there are no differences found in data
     """

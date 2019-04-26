@@ -41,7 +41,7 @@ def get_download_url():
 
 def download_and_extract_file(file_dir, file_url):
     """ Download the file from the given URL, extract the txt from the zip, delete the zip.
-    
+
         Args:
             file_dir: string indicating the directory the file is stored in
             file_url: the url to download the file from
