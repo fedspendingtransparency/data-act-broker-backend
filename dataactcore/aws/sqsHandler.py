@@ -80,11 +80,12 @@ class SQSMockMessage:
         pass
 
     @property
-    def attributes(self):  # TODO: May need to do more handling of this to account for ApproximateReceiveCount attr
+    def attributes(self):
+        # This is where more SQS message `attributes` can be mocked, e.g. ApproximateReceiveCount and others
         return {}
 
 
-def sqs_queue(region_name=CONFIG_BROKER['aws_region'], queue_name=CONFIG_BROKER['sqs_queue_name'], allow_retries=None):
+def sqs_queue(region_name=CONFIG_BROKER['aws_region'], queue_name=CONFIG_BROKER['sqs_queue_name']):
     if CONFIG_BROKER['local']:
         if queue_name == SQSMockQueue.UNITTEST_MOCK_DEAD_LETTER_QUEUE:
             return SQSMockDeadLetterQueue()

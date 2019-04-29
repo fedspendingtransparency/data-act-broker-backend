@@ -64,15 +64,6 @@ def run_app():
             # With cleanup handling engaged, allowing retries
             dispatcher = SQSWorkDispatcher(queue)
 
-            # TODO: We can remove unnecessary logging during cleanup
-            def file_generation_logging_cleanup(file_gen_id):  # noqa
-                logger.warning("CLEANUP: performing cleanup as job handling file generation is exiting")
-
-            # TODO: We can remove unnecessary logging during cleanup
-            def validation_job_logging_cleanup(job_id, agency_code, is_retry, queue_message=None):  # noqa
-                logger.warning("CLEANUP: performing cleanup as validation job is exiting. "
-                               "For message {}".format(queue_message))
-
             def choose_job_by_message_attributes(message):
                 # Determine if this is a retry of this message, in which case job execution should know so it can
                 # do cleanup before proceeding with the job
@@ -84,12 +75,11 @@ def run_app():
                 msg_attr = message.message_attributes
                 if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
                     # Generating a file
-                    return validator_process_file_generation, (message.body, is_retry), file_generation_logging_cleanup
+                    return validator_process_file_generation, (message.body, is_retry)
                 else:
                     # Running validations (or generating a file from a Job)
                     a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
-                    return validator_process_job, (message.body, a_agency_code, is_retry), \
-                        validation_job_logging_cleanup
+                    return validator_process_job, (message.body, a_agency_code, is_retry)
 
             found_message = dispatcher.dispatch_by_message_attribute(choose_job_by_message_attributes)
 
@@ -131,8 +121,6 @@ def validator_process_file_generation(file_gen_id, is_retry=False):
             )
             return
 
-    # TODO: Uncomment if you want to stall the job during kill-testing
-    time.sleep(60 * 3)
     sess = GlobalDB.db().session
     file_generation = None
 
@@ -218,8 +206,6 @@ def validator_process_job(job_id, agency_code, is_retry=False):
             )
             return
 
-    # TODO: Uncomment if you want to stall the job during kill-testing
-    time.sleep(60 * 3)
     sess = GlobalDB.db().session
     job = None
 

@@ -1,7 +1,4 @@
-import datetime
 import os
-
-from dataactcore.config import CONFIG_BROKER
 
 
 def log_job_message(logger, message, job_id=None,
@@ -34,12 +31,3 @@ def log_job_message(logger, message, job_id=None,
     else:
         log_dict["message_type"] = "ValidatorInfo"
         logger.info(log_dict)
-
-    # TODO: Remove diagnostic code
-    # For also logging to a file on an attached volume for later inspection
-    mount_drive = os.path.join(CONFIG_BROKER['path'], 'results_drive')
-    mount_drive_exists = os.path.exists(mount_drive)
-    if mount_drive_exists:
-        with open(os.path.join(mount_drive, 'app.log'), 'a') as app_log:
-            app_log.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " " + __name__ + ": " +
-                          str(log_dict))

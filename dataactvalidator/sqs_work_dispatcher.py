@@ -54,14 +54,8 @@ class SQSWorkDispatcher:
         # It is even done here via multiprocessing.Process.suspend() to suspend during cleanup.
         # So we do NOT want to handle that
 
-    def __init__(
-            self,
-            sqs_queue_instance,
-            worker_process_name=None,
-            default_visibility_timeout=60,
-            long_poll_seconds=None,
-            monitor_sleep_time=5,
-            exit_handling_timeout=30):
+    def __init__(self, sqs_queue_instance, worker_process_name=None, default_visibility_timeout=60,
+                 long_poll_seconds=None, monitor_sleep_time=5, exit_handling_timeout=30):
         """
         SQSWorkDispatcher object that is used to pull work from an SQS queue, and then dispatch it to be
         executed on a child worker process.
@@ -98,7 +92,7 @@ class SQSWorkDispatcher:
 
         if long_poll_seconds:
             self._long_poll_seconds = long_poll_seconds
-        else:  # Not set by caller. Must get default value in the queue
+        else:
             receive_message_wait_time_seconds = self.sqs_queue_instance.attributes.get("ReceiveMessageWaitTimeSeconds")
             if receive_message_wait_time_seconds:
                 self._long_poll_seconds = int(receive_message_wait_time_seconds)
@@ -148,8 +142,13 @@ class SQSWorkDispatcher:
                the name of the provided job callable
         :param callable exit_handler: a callable to be called when handling an `EXIT_SIGNAL` signal, giving the
                opportunity to perform cleanup before the process exits. Gets the job_args passed to it when run
-        :return: True if a message was found on the queue and dispatched, otherwise False if nothing on the queue
+        :raises AttributeError: If this is called before setting self._current_sqs_message
+        :raises Exceptions raised by `self._monitor_work_progress`
+        :return: True if a message was found on the queue and dispatched to completion, without error. Otherwise it
+        is an error condition and will raise an exception.
         """
+        if self._current_sqs_message is None:
+            raise AttributeError("Cannot dispatch work when there is no current message in self._current_sqs_message")
         self.worker_process_name = worker_process_name or self.worker_process_name or job.__name__
         log_job_message(
             logger=self._logger,
@@ -164,7 +163,7 @@ class SQSWorkDispatcher:
 
         # Use the 'fork' method to create a new child process.
         # This shares the same python interpreter and memory space and references as the parent process
-        # A side-effect of that is that it inherits the signal-handlers of teh parent process. So wrap the job to be
+        # A side-effect of that is that it inherits the signal-handlers of the parent process. So wrap the job to be
         # executed with some before-advice that resets the signal-handlers to python-defaults within the child process
         ctx = mp.get_context("fork")
 
@@ -268,9 +267,11 @@ class SQSWorkDispatcher:
     def _dequeue_message(self, wait_time):
         """
         Attempt to get a message from the queue.
+
+        It will set this message in the `self._current_sqs_message` field if received, otherwise it leaves that None
         :param wait_time: If no message is readily available, wait for this many seconds for one to arrive before
                returning
-        :return: 1 message from the queue if there are messages, otherwise return None
+        :return: None
         """
         try:
             received_messages = self.sqs_queue_instance.receive_messages(
@@ -327,7 +328,7 @@ class SQSWorkDispatcher:
                immediately consumable)
         """
         # Protect against the scenario where one of many consumers is in the midst of a long-poll when an exit signal
-        # is received. If they are in this position, and the message is returned to teh queue, they will dequeue it
+        # is received. If they are in this position, and the message is returned to the queue, they will dequeue it
         # (receive it) when they should not have, because they should have been responding to the signal.
         # They will respond to the signal, but not until after they return from receiving the message, and the message
         # will be lost.
@@ -470,7 +471,7 @@ class SQSWorkDispatcher:
         condition if it is invoked from the child worker process. Signals received in the child worker
         process should not have this handler registered for those signals. Because signal handlers registered for a
         parent process are inherited by forked child processes (see: "man 7 signal" docs and search for "inherited"),
-        this handler will initially be registered for each of this class's EXIt_SIGNALS; however, those handlers
+        this handler will initially be registered for each of this class's EXIT_SIGNALS; however, those handlers
         are reset to their default as the worker process is started by a wrapper function around the job to execute.
 
         The signal very likely indicates a non-error failure scenario from which the job might be restarted or rerun,

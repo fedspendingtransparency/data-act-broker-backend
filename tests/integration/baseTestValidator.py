@@ -1,4 +1,3 @@
-import logging
 import unittest
 from datetime import datetime, timedelta
 from random import randint
@@ -28,8 +27,6 @@ class BaseTestValidator(unittest.TestCase):
         # update application's db config options so unittests
         # run against test databases
         configure_logging()
-        # TODO remove log silencing
-        logging.getLogger("dataactcore.interfaces.db").setLevel(logging.CRITICAL)  # mostly silence logs for this
         suite = cls.__name__.lower()
         config = dataactcore.config.CONFIG_DB
         cls.num = randint(1, 9999)
