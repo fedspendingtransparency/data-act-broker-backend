@@ -171,9 +171,13 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         # Worker process should have a failed (> 0)  exitcode
         self.assertGreater(dispatcher._worker_process.exitcode, 0)
 
-    @unittest.skip("Test is not provable with asserts. Reading STDOUT proves it, but a place to store shared state "
-                   "among processes other than STDOUT was not found to be asserted on.")
     def test_separate_signal_handlers_for_child_process(self):
+        """Demonstrate (via log output) that a forked child process will inherit signal-handling of the parent
+        process, but that can be overridden, while maintaining the original signal handling of the parent.
+
+        NOTE: Test is not provable with asserts. Reading STDOUT proves it, but a place to store shared state among
+        processes other than STDOUT was not found to be asserted on.
+        """
         def fire_alarm():
             print("firing alarm from PID {}".format(os.getpid()))
             signal.setitimer(signal.ITIMER_REAL, 0.01)  # fire alarm in .01 sec
