@@ -282,9 +282,6 @@ class SQSWorkDispatcher:
             Args:
                 wait_time: If no message is readily available, wait for this many seconds for one to arrive before
                     returning
-
-            Returns:
-                None
         """
         try:
             # NOTE: Forcing MaxNumberOfMessages=1
@@ -317,6 +314,12 @@ class SQSWorkDispatcher:
             log_job_message(logger=self._logger, message="Message received: {}".format(self._current_sqs_message.body))
 
     def delete_message_from_queue(self):
+        """ Deletes the message from SQS. This is usually treated as a *successful* culmination of message handling,
+            so long as it was not previously copied to the Dead Letter Queue before deletion
+
+            Raises:
+                QueueWorkDispatcherError: If for some reason the boto3 delete() operation caused an error
+        """
         if self._current_sqs_message is None:
             log_job_message(
                 logger=self._logger,
@@ -376,9 +379,6 @@ class SQSWorkDispatcher:
 
             Moves the message to the Dead Letter Queue associated with this worker's SQS queue via its RedrivePolicy.
             Then delete the message from its originating queue.
-
-            Returns:
-                None
 
             Raises:
                 QueueWorkDispatcherError: Raise an error if there is no RedrivePolicy or a Dead Letter Queue is not
@@ -450,8 +450,6 @@ class SQSWorkDispatcher:
                    :exc:`QueueWorkerProcessError` to alert the caller.
                 4. It sees the child worker process exited with a < 0 exit code, indicating it received some kind of
                    signal. It calls the signal-handling code to handle this accordingly.
-
-            Returns: None
 
             Raises:
                 QueueWorkerProcessError: When the child worker process was found to have exited with a > 0 exit
@@ -536,9 +534,6 @@ class SQSWorkDispatcher:
                     happened on the parent dispatcher process. If this was instead the parent detecting that the child
                     exited due to a signal, set this to False. Defaults to True.
                 is_retry: If this is the 2nd and last try to handled the signal and perform pre-exit cleanup
-
-            Returns:
-                None
 
             Raises:
                 QueueWorkerProcessError: When the _exit_handling function cannot be completed in time to perform
@@ -757,6 +752,17 @@ class SQSWorkDispatcher:
                         "manual restart, or other remediation.".format(self._worker_process.pid, signal_or_human))
 
     def _set_message_visibility(self, new_visibility):
+        """ Sends a request back to the SQS API via boto3 to refresh the time that the currently-in-flight message
+            will be *invisible* to other consumers of the queue, such that they cannot also process it.
+
+            Examples:
+                If :param:`new_visibility` is 60, then in 60 seconds from when SQS receives the request, so long as
+                the ``VisibilityTimeout`` is not adjusted again, the in-flight message will reappear on the queue. It
+                will remain invisible until that time.
+
+            Raises:
+                QueueWorkDispatcherError: If for some reason the boto3 change_visibility() operation caused an error
+        """
         if self._current_sqs_message is None:
             log_job_message(
                 logger=self._logger,
