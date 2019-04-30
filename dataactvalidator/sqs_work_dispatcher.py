@@ -5,7 +5,6 @@ import os
 
 import psutil as ps
 import signal
-import sys
 import time
 import multiprocessing as mp
 
@@ -15,8 +14,6 @@ from dataactcore.aws.sqsHandler import sqs_queue
 from dataactvalidator.validator_logging import log_job_message
 
 # Not a complete list of signals
-# Only the following are allowed to be used with signal() on Windows
-#    SIGABRT, SIGFPE, SIGILL, SIGINT, SIGSEGV, SIGTERM, or SIGBREAK (windows only)
 # NOTE: 1-15 are relatively standard on unix platforms; > 15 can change from platform to platform
 BSD_SIGNALS = {
         1: "SIGHUP [1] (Hangup detected on controlling terminal or death of controlling process)",
@@ -32,10 +29,6 @@ BSD_SIGNALS = {
         19: "SIGSTOP [19] (Suspend process execution)",  # NOTE: 17 on Mac OSX, 19 on RHEL
         20: "SIGTSTP [20] (Interrupt from keyboard to suspend (CTRL-Z)",  # NOTE: 18 on Mac OSX, 20 on RHEL
     }
-if sys.platform == "win32":
-    BSD_SIGNALS[0] = "CTRL_C_EVENT [0] (Quit detected on controlling terminal with CTRL-C)"
-    BSD_SIGNALS[1] = "CTRL_BREAK_EVENT [1] (Quit detected on controlling terminal with CTRL-BREAK)"
-    BSD_SIGNALS[21] = "SIGBREAK [21] (Quit detected on controlling terminal with CTRL-BREAK)"
 
 
 class SQSWorkDispatcher:
@@ -43,16 +36,11 @@ class SQSWorkDispatcher:
 
     # Delineate each of the signals we want to handle, which represent a case where the work being performed
     # is prematurely halting, and the process will exit
-    EXIT_SIGNALS = []
-    if sys.platform == "win32":
-        EXIT_SIGNALS = [signal.SIGABRT, signal.SIGINT, signal.SIGQUIT, signal.SIGTERM,
-                        signal.SIGBREAK, signal.CTRL_C_EVENT, signal.CTRL_BREAK_EVENT]
-    else:
-        EXIT_SIGNALS = [signal.SIGHUP, signal.SIGABRT, signal.SIGINT, signal.SIGQUIT, signal.SIGTERM]
-        # NOTE: We are not handling signal.SIGSTOP or signal.SIGTSTP because those are suspensions.
-        # There may be valid cases to suspend and then later resume the process.
-        # It is even done here via multiprocessing.Process.suspend() to suspend during cleanup.
-        # So we do NOT want to handle that
+    EXIT_SIGNALS = [signal.SIGHUP, signal.SIGABRT, signal.SIGINT, signal.SIGQUIT, signal.SIGTERM]
+    # NOTE: We are not handling signal.SIGSTOP or signal.SIGTSTP because those are suspensions.
+    # There may be valid cases to suspend and then later resume the process.
+    # It is even done here via multiprocessing.Process.suspend() to suspend during cleanup.
+    # So we do NOT want to handle that
 
     def __init__(self, sqs_queue_instance, worker_process_name=None, default_visibility_timeout=60,
                  long_poll_seconds=None, monitor_sleep_time=5, exit_handling_timeout=30):
