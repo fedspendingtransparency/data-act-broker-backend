@@ -24,17 +24,17 @@ def get_download_url():
         Returns:
             Download URL and name (with date) of the file
     """
-    logger.info("Finding download URL.")
-    response = requests.get(BASE_URL + '/domestic/download_data.htm')
+    logger.info('Finding download URL.')
+    site_url = 'https://www.usgs.gov/core-science-systems/ngp/board-on-geographic-names/download-gnis-data'
+    response = requests.get(site_url)
     soup = BeautifulSoup(response.content, 'html.parser')
 
     links = soup.find_all('a')
 
-    # Look through the links until we find the one we need to download. Store the file name so we can access it later
+    # Look through the links until we find the one we need to download.
     for link in links:
-        matching = re.match('^/docs/federalcodes/(NationalFedCodes_\d{8})\.zip$', link.get('href'))
-        if matching:
-            return BASE_URL + link.get('href'), matching.group(1)
+        if link.get('href') and 'NationalFedCodes.zip' in link.get('href'):
+            return link.get('href')
 
     return None, None
 
@@ -46,15 +46,15 @@ def download_and_extract_file(file_dir, file_url):
             file_dir: string indicating the directory the file is stored in
             file_url: the url to download the file from
     """
-    logger.info("Downloading zip file.")
+    logger.info('Downloading zip file.')
     if not os.path.exists(file_dir):
         os.makedirs(file_dir)
 
     city_zip_file = os.path.join(file_dir, 'NationalFedCodes.zip')
     urllib.request.urlretrieve(file_url, city_zip_file)
 
-    logger.info("Extracting zip contents.")
-    with zipfile.ZipFile(city_zip_file, "r") as zip_file:
+    logger.info('Extracting zip contents.')
+    with zipfile.ZipFile(city_zip_file, 'r') as zip_file:
         zip_file.extractall(file_dir)
 
     os.remove(city_zip_file)
@@ -63,29 +63,36 @@ def download_and_extract_file(file_dir, file_url):
 def main():
     """ Scrapes geonames.usgs.gov to find the city file and download it. """
     start_time = datetime.datetime.now()
-    logger.info("Starting NationalFedCodes file retrieval.")
-    city_file_url, file_name = get_download_url()
+    logger.info('Starting NationalFedCodes file retrieval.')
+    city_file_url = get_download_url()
 
     # If a URL wasn't found, we want to exit without doing anything else
     if not city_file_url:
-        logger.error("No valid NationalFedCodes download url located")
+        logger.error('No valid NationalFedCodes download url located')
         sys.exit(1)
 
     city_file_dir = os.path.join(CONFIG_BROKER['path'], 'dataactvalidator', 'config')
     download_and_extract_file(city_file_dir, city_file_url)
 
-    city_file_path = os.path.join(city_file_dir, file_name + ".txt")
+    # Find the file we just downloaded, can't have any other versions of the file in the folder for this to work
+    file_name = ''
+    for dir_file in os.listdir(city_file_dir):
+        if re.match('NationalFedCodes_\d{8}\.txt', dir_file):
+            file_name = dir_file
+
+    city_file_path = os.path.join(city_file_dir, file_name)
 
     # Simply rename the file if it's local, upload and delete from local if not
     if not CONFIG_BROKER['use_aws']:
-        os.rename(city_file_path, os.path.join(city_file_dir, "NationalFedCodes.txt"))
+        os.rename(city_file_path, os.path.join(city_file_dir, 'NationalFedCodes.txt'))
     else:
-        logger.info("Uploading NationalFedCodes.txt to S3.")
+        logger.info('Uploading NationalFedCodes.txt to S3.')
         s3_resource = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
-        s3_resource.Object(CONFIG_BROKER['sf_133_bucket'], "NationalFedCodes.txt").put(Body=open(city_file_path, 'rb'))
+        s3_resource.Object(CONFIG_BROKER['sf_133_bucket'], 'NationalFedCodes.txt').put(Body=open(city_file_path, 'rb'))
+        # Still need to remove the file so when we get a new one we know which one to use
         os.remove(city_file_path)
 
-    logger.info("NationalFedCodes file retrieval completed in {} seconds.".format(datetime.datetime.now() - start_time))
+    logger.info('NationalFedCodes file retrieval completed in {} seconds.'.format(datetime.datetime.now() - start_time))
 
 
 if __name__ == '__main__':
