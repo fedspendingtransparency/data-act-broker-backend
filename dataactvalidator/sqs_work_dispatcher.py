@@ -594,12 +594,14 @@ class SQSWorkDispatcher:
             # Make sure the parent dispatcher process exits after handling the signal by setting this flag
             self._dispatcher_exiting = True
 
-        if self._handling_exit_signal:
-            # Don't allow the parent dispatcher process to handle more than one exit signal
+        if self._handling_exit_signal and not is_retry:
+            # Don't allow the parent dispatcher process to handle more than one exit signal, unless this is a retry
+            # of the first attempt
             return
 
         self._handling_exit_signal = True
 
+        exit_handling_failed = False  # flag to mark this kind of end-state of this handler
         try:
             # Extend message visibility for as long is given for the exit handling to process, so message does not get
             # prematurely returned to the queue or moved to the dead letter queue.
@@ -610,12 +612,32 @@ class SQSWorkDispatcher:
                 worker = ps.Process(self._worker_process.pid)
                 if not is_retry:
                     # Suspend the child worker process so it does not conflict with doing cleanup in the exit_handler
+                    log_job_message(
+                        logger=self._logger,
+                        message="Suspending worker process with PID [{}] during first try of exit_handler".format(
+                            self._worker_process.pid),
+                        is_debug=True
+                    )
                     worker.suspend()
                 else:
                     # This is try 2. The cleanup was not able to complete on try 1 with the worker process merely
                     # suspended. There could be some kind of transaction deadlock. Kill the worker to clear the way
                     # for cleanup retry
+                    log_job_message(
+                        logger=self._logger,
+                        message="Killing worker process with PID [{}] during second try of exit_handler".format(
+                            self._worker_process.pid),
+                        is_debug=True
+                    )
                     worker.kill()
+            else:
+                try_attempt = "second" if is_retry else "first"
+                log_job_message(
+                    logger=self._logger,
+                    message="Worker process with PID [{}] is not alive during {} try of exit_handler".format(
+                        self._worker_process.pid, try_attempt),
+                    is_debug=True
+                )
 
             if self._exit_handler is not None:
                 # Execute cleanup procedures to handle exiting of the worker process
@@ -632,6 +654,7 @@ class SQSWorkDispatcher:
                         else:
                             self._exit_handler(*self._job_args)
                 except TimeoutError:
+                    exit_handling_failed = True
                     if not is_retry:
                         log_job_message(
                             logger=self._logger,
@@ -640,7 +663,8 @@ class SQSWorkDispatcher:
                                     "Retrying once.".format(self._exit_handling_timeout),
                             is_warning=True
                         )
-                        self._handle_exit_signal(signum, frame, is_retry=True)  # attempt retry
+                        # Attempt retry
+                        self._handle_exit_signal(signum, frame, parent_dispatcher_signaled, is_retry=True)
                     else:
                         message = "Could not perform cleanup during exiting of job in allotted " \
                                     "_exit_handling_timeout ({}s) after 2 tries. " \
@@ -650,7 +674,16 @@ class SQSWorkDispatcher:
                             message=message,
                             is_error=True
                         )
-                        raise QueueWorkerProcessError()
+                        raise QueueWorkDispatcherError(message)
+                except Exception as exc:
+                    exit_handling_failed = True
+                    message = "Execution of exit_handler failed for unknown reason. See Traceback."
+                    log_job_message(
+                        logger=self._logger,
+                        message=message,
+                        is_exception=True
+                    )
+                    raise QueueWorkDispatcherError(message) from exc
 
             if self.allow_retries:
                 log_job_message(
@@ -681,31 +714,47 @@ class SQSWorkDispatcher:
                 )
                 worker.kill()
         finally:
-            self._handling_exit_signal = False
-            if self._dispatcher_exiting:
-                # An exit signal was received by the parent dispatcher process.
-                # Continue with exiting the parent process, as per the original signal, after having handled it
-                log_job_message(
-                    logger=self._logger,
-                    message="Exiting from parent dispatcher process with PID [{}] "
-                            "to culminate exit-handling of signal [{}]".format(os.getpid(), signal_or_human),
-                    is_debug=True
-                )
-                # Simply doing sys.exit or raise SystemExit, even with a given negative exit code won't exit this
-                # process with the negative signal value, as is the Python custom.
-                # So override the assigned handler for the signal we're handing, resetting it back to default,
-                # and kill the process using that signal to get it to exit as it would if we never handled it
-                signal.signal(signum, signal.SIG_DFL)
-                os.kill(os.getpid(), signum)
-            elif not self.allow_retries:
-                # If only the child process died, but the message it was working was moved to the Dead Letter Queue
-                # because the queue is not configured to allow retries, raise an exception so the caller
-                # might mark the job as failed with its normal error-handling process
-                raise QueueWorkerProcessError("Worker process with PID [{}] was not able to complete its job due to "
-                                              "interruption from exit signal [{}]. The queue message for that job "
-                                              "was moved to the Dead Letter Queue, where it can be reviewed for a "
-                                              "manual restart, or other remediation.".format(self._worker_process.pid,
-                                                                                             signal_or_human))
+            if exit_handling_failed:
+                # Don't perform final logic if we got here after failing to execute the exit handler
+                if is_retry:
+                    # 2nd time we've failed to process exit_handle? - log so and move to DLQ
+                    log_job_message(
+                        logger=self._logger,
+                        message="Graceful exit_handling failed after 2 attempts for job being worked by worker process "
+                                "with PID [{}]. An attempt to put message directly on the Dead Letter Queue will be "
+                                "made, because cleanup logic in the exit_handler could not be guaranteed "
+                                "(retrying a message without prior cleanup "
+                                "may compound problems).".format(self._worker_process.pid),
+                        is_error=True
+                    )
+                    self.move_message_to_dead_letter_queue()
+            else:
+                # exit_handler not provided, or processed successfully
+                self._handling_exit_signal = False
+                if self._dispatcher_exiting:
+                    # An exit signal was received by the parent dispatcher process.
+                    # Continue with exiting the parent process, as per the original signal, after having handled it
+                    log_job_message(
+                        logger=self._logger,
+                        message="Exiting from parent dispatcher process with PID [{}] "
+                                "to culminate exit-handling of signal [{}]".format(os.getpid(), signal_or_human),
+                        is_debug=True
+                    )
+                    # Simply doing sys.exit or raise SystemExit, even with a given negative exit code won't exit this
+                    # process with the negative signal value, as is the Python custom.
+                    # So override the assigned handler for the signal we're handing, resetting it back to default,
+                    # and kill the process using that signal to get it to exit as it would if we never handled it
+                    signal.signal(signum, signal.SIG_DFL)
+                    os.kill(os.getpid(), signum)
+                elif not self.allow_retries:
+                    # If only the child process died, but the message it was working was moved to the Dead Letter Queue
+                    # because the queue is not configured to allow retries, raise an exception so the caller
+                    # might mark the job as failed with its normal error-handling process
+                    raise QueueWorkerProcessError(
+                        "Worker process with PID [{}] was not able to complete its job due to "
+                        "interruption from exit signal [{}]. The queue message for that job "
+                        "was moved to the Dead Letter Queue, where it can be reviewed for a "
+                        "manual restart, or other remediation.".format(self._worker_process.pid, signal_or_human))
 
     def _set_message_visibility(self, new_visibility):
         if self._current_sqs_message is None:

@@ -10,7 +10,7 @@ from random import randint
 from botocore.config import Config
 from botocore.exceptions import EndpointConnectionError, ClientError, NoCredentialsError, NoRegionError
 from dataactcore.aws.sqsHandler import sqs_queue
-from dataactvalidator.sqs_work_dispatcher import SQSWorkDispatcher, QueueWorkerProcessError
+from dataactvalidator.sqs_work_dispatcher import SQSWorkDispatcher, QueueWorkerProcessError, QueueWorkDispatcherError
 from tests.integration.baseTestValidator import BaseTestValidator
 from time import sleep
 
@@ -253,7 +253,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertEqual(msg_body, msgs[0].body, "Should be the same message available for retry on the queue")
             # If the job function was called, it should have put the task_id (msg_body in this case) into the
             # work_tracking_queue as its first queued item
-            work = wq.get_nowait()
+            work = wq.get(True, 1)
             self.assertEqual(msg_body, work, "Was expecting to find worker task_id (msg_body) tracked in the queue")
         finally:
             self._fail_runaway_processes(logger, worker=dispatcher._worker_process, terminator=terminator)
@@ -304,7 +304,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertTrue(len(msgs) == 0, "Should be NO messages received from queue")
             # If the job function was called, it should have put the task_id (msg_body in this case) into the
             # work_tracking_queue as its first queued item
-            work = wq.get_nowait()
+            work = wq.get(True, 1)
             self.assertEqual(msg_body, work, "Was expecting to find worker task_id (msg_body) tracked in the queue")
             # TODO: Test that the "dead letter queue" has this message - maybe by asserting the log statement
         finally:
@@ -419,11 +419,11 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertEqual(msg_body, msgs[0].body, "Should be the same message available for retry on the queue")
             # If the job function was called, it should have put the task_id (msg_body in this case) into the
             # work_tracking_queue as its first queued item. FIFO queue, so it should be "first out"
-            work = work_tracking_queue.get_nowait()
+            work = work_tracking_queue.get(True, 1)
             self.assertEqual(msg_body, work, "Was expecting to find worker task_id (msg_body) tracked in the queue")
             # If the exit_handler was called, and if it passed along args from the original worker, then it should
             # have put the message body into the "work_tracker_queue" after work was started and exit occurred
-            exit_handling_work = work_tracking_queue.get_nowait()
+            exit_handling_work = work_tracking_queue.get(True, 1)
             self.assertEqual("exit_handling:{}".format(msg_body), exit_handling_work,
                              "Was expecting to find tracking in the work_tracking_queue of the message being handled "
                              "by the exit_handler")
@@ -471,10 +471,428 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self.assertEqual(msg_body, msgs[0].body, "Should be the same message available for retry on the queue")
             # If the job function was called, it should have put the task_id (msg_body in this case) into the
             # work_tracking_queue as its first queued item
-            work = wq.get_nowait()
+            work = wq.get(True, 1)
             self.assertEqual(msg_body, work, "Was expecting to find worker task_id (msg_body) tracked in the queue")
         finally:
             self._fail_runaway_processes(logger, worker=dispatcher._worker_process, terminator=terminator)
+
+    def test_hanging_cleanup_of_signaled_child_fails_dispatcher_and_sends_to_dlq(self):
+        """ When detecting the child worker process received an exit signal, and the parent dispatcher
+            process is handling cleanup and termination of the child worker process, if the cleanup hangs for longer
+            than the allowed exit_handling_timeout, it will short-circuit, and retry a 2nd time. If that also hangs
+            longer than exit_handling_timeout, the message will be put on the dead letter queue, deleted from the
+            origin queue, and :exc:`QueueWorkDispatcherError` will be raised stating unable to do exit handling
+        """
+        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger.setLevel(logging.DEBUG)
+
+        msg_body = randint(1111, 9998)
+        queue = sqs_queue()
+        queue.send_message(MessageBody=msg_body)
+        worker_sleep_interval = 0.05  # how long to "work"
+
+        def hanging_cleanup(task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue, queue_message):
+            work_tracking_queue.put_nowait("cleanup_start_{}".format(queue_message.body))
+            sleep(2.5)  # sleep for longer than the allowed time for exit handling
+            # Should never get to this point, since it should be short-circuited by exit_handling_timeout
+            work_tracking_queue.put_nowait("cleanup_end_{}".format(queue_message.body))
+
+        cleanup_timeout = int(worker_sleep_interval + 1)
+        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
+                                       long_poll_seconds=0, monitor_sleep_time=0.05,
+                                       exit_handling_timeout=cleanup_timeout)
+
+        wq = mp.Queue()  # work tracking queue
+        tq = mp.Queue()  # termination queue
+
+        terminator = mp.Process(
+            name="worker_terminator",
+            target=self._worker_terminator,
+            args=(tq, worker_sleep_interval, logger),
+            daemon=True
+        )
+        terminator.start()  # start terminator
+
+        with self.assertRaises(QueueWorkDispatcherError) as err_ctx:
+            # Start dispatcher with work, and with the inter-process Queue so it can pass along its PID
+            # Passing its PID on this Queue will let the terminator know the worker to terminate
+            dispatcher.dispatch(self._work_to_be_terminated, additional_job_args=(tq, wq), exit_handler=hanging_cleanup)
+
+        # Ensure to wait on the processes to end with join
+        dispatcher._worker_process.join(2)  # wait at most 2 sec for the work to complete
+        terminator.join(1)  # ensure terminator completes within 3 seconds. Don't let it run away.
+        timeout_error_fragment = "Could not perform cleanup during exiting " \
+                                 "of job in allotted _exit_handling_timeout ({}s)".format(cleanup_timeout)
+        self.assertTrue(timeout_error_fragment in str(err_ctx.exception),
+                        "QueueWorkDispatcherError did not mention exit_handling timeouts")
+        self.assertTrue("after 2 tries" in str(err_ctx.exception),
+                        "QueueWorkDispatcherError did not mention '2 tries'")
+
+        try:
+            # Worker process should have an exitcode less than zero
+            self.assertLess(dispatcher._worker_process.exitcode, 0)
+            self.assertEqual(dispatcher._worker_process.exitcode, -signal.SIGTERM)
+            # Message SHOULD have been deleted from the queue (after going to DLQ)
+            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            self.assertIsNotNone(msgs)
+            self.assertTrue(len(msgs) == 0, "Should be NO messages received from queue")
+            # If the job function was called, it should have put the task_id (msg_body in this case) into the
+            # work_tracking_queue as its first queued item
+            work = wq.get_nowait()
+            self.assertEqual(msg_body, work, "Was expecting to find worker task_id (msg_body) tracked in the queue")
+            cleanup_attempt_1 = wq.get(True, 1)
+            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_1,
+                             "Was expecting to find a trace of cleanup attempt 1 "
+                             "tracked in the work queue")
+            cleanup_attempt_2 = wq.get(True, 1)
+            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_2,
+                             "Was expecting to find a trace of cleanup attempt 2 "
+                             "tracked in the work queue")
+            self.assertTrue(wq.empty(), "There should be no more work tracked on the work Queue")
+            # TODO: Test that the "dead letter queue" has this message - maybe by asserting the log statement
+        finally:
+            self._fail_runaway_processes(logger, worker=dispatcher._worker_process, terminator=terminator)
+
+    def test_hanging_cleanup_of_signaled_parent_fails_dispatcher_and_sends_to_dlq(self):
+        """ When detecting the parent dispatcher process received an exit signal, and the parent dispatcher
+            process is handling cleanup and termination of the child worker process, if the cleanup hangs for longer
+            than the allowed exit_handling_timeout, it will short-circuit, and retry a 2nd time. If that also hangs
+            longer than exit_handling_timeout, the message will be put on the dead letter queue, deleted from the
+
+            Slight differences from :meth:`test_hanging_cleanup_fails_dispatcher_and_sends_to_dlq` is that the child
+            worker process is not "dead" when doing these exit_handling cleanups.
+        """
+        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger.setLevel(logging.DEBUG)
+
+        msg_body = randint(1111, 9998)
+        queue = sqs_queue()
+        queue.send_message(MessageBody=msg_body)
+        worker_sleep_interval = 0.05  # how long to "work"
+
+        def hanging_cleanup(task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue, queue_message):
+            work_tracking_queue.put_nowait("cleanup_start_{}".format(queue_message.body))
+            sleep(2.5)  # sleep for longer than the allowed time for exit handling
+            # Should never get to this point, since it should be short-circuited by exit_handling_timeout
+            work_tracking_queue.put_nowait("cleanup_end_{}".format(queue_message.body))
+
+        cleanup_timeout = int(worker_sleep_interval + 1)
+        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
+                                       long_poll_seconds=0, monitor_sleep_time=0.05,
+                                       exit_handling_timeout=cleanup_timeout)
+
+        wq = mp.Queue()  # work tracking queue
+        tq = mp.Queue()  # termination queue
+        eq = mp.Queue()  # error queue
+
+        def error_handling_dispatcher(work_dispatcher: SQSWorkDispatcher, error_queue: mp.Queue, **kwargs):
+            try:
+                work_dispatcher.dispatch(**kwargs)
+            except Exception as exc:
+                error_queue.put_nowait(exc)
+                raise exc
+
+        dispatch_kwargs = {"job": self._work_to_be_terminated,
+                           "additional_job_args": (tq, wq),
+                           "exit_handler": hanging_cleanup}
+        parent_dispatcher = mp.Process(target=error_handling_dispatcher, args=(dispatcher, eq), kwargs=dispatch_kwargs)
+        parent_dispatcher.start()
+
+        # block until worker is running, or fail in 3 seconds
+        work_done = wq.get(True, 3)
+        self.assertEqual(msg_body, work_done)
+
+        # block until received object indicating ready to be terminated, or fail in 1 second
+        worker_pid = tq.get(True, 1)
+        worker = ps.Process(worker_pid)
+        os.kill(parent_dispatcher.pid, signal.SIGTERM)
+
+        # simulate join(2). Wait at most 2 sec for work to complete
+        ps.wait_procs([worker], timeout=2)
+        parent_dispatcher.join(3)  # ensure dispatcher completes within 3 seconds. Don't let it run away.
+
+        self.assertFalse(eq.empty(), "No errors detected in parent dispatcher")
+        exc = eq.get_nowait()
+        self.assertIsInstance(exc, QueueWorkDispatcherError, "Error was not of type QueueWorkDispatcherError")
+
+        timeout_error_fragment = "Could not perform cleanup during exiting " \
+                                 "of job in allotted _exit_handling_timeout ({}s)".format(cleanup_timeout)
+        self.assertTrue(timeout_error_fragment in str(exc),
+                        "QueueWorkDispatcherError did not mention exit_handling timeouts")
+        self.assertTrue("after 2 tries" in str(exc),
+                        "QueueWorkDispatcherError did not mention '2 tries'")
+
+        try:
+            # Parent dispatcher process should have an exit code of 1, since it will have raised an exception and
+            # failed, rather than a graceful exit
+            self.assertEqual(parent_dispatcher.exitcode, 1)
+
+            # Message SHOULD have been deleted from the queue (after going to DLQ)
+            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            self.assertIsNotNone(msgs)
+            self.assertTrue(len(msgs) == 0, "Should be NO messages received from queue")
+            # If the job function was called, it should have put the task_id (msg_body in this case) into the
+            # work_tracking_queue as its first queued item
+            self.assertEqual(msg_body, work_done,
+                             "Was expecting to find worker task_id (msg_body) tracked in the queue")
+            cleanup_attempt_1 = wq.get(True, 1)
+            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_1,
+                             "Was expecting to find a trace of cleanup attempt 1 "
+                             "tracked in the work queue")
+            cleanup_attempt_2 = wq.get(True, 1)
+            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_2,
+                             "Was expecting to find a trace of cleanup attempt 2 "
+                             "tracked in the work queue")
+            self.assertTrue(wq.empty(), "There should be no more work tracked on the work Queue")
+            # TODO: Test that the "dead letter queue" has this message - maybe by asserting the log statement
+        finally:
+            if worker and worker.is_running():
+                logger.warning("Dispatched worker process with PID {} did not complete in timeout. "
+                               "Killing it.".format(worker.pid))
+                os.kill(worker.pid, signal.SIGKILL)
+                self.fail("Worker did not complete in timeout as expected. Test fails.")
+            self._fail_runaway_processes(logger, dispatcher=parent_dispatcher)
+
+    def test_cleanup_second_try_succeeds_after_killing_worker_with_dlq(self):
+        """ Simulate an exit_handler that interferes with work that was being done by the worker, to see that we can
+            kill it and resume trying the exit handler.
+
+            When detecting the parent dispatcher process received an exit signal, and the parent dispatcher
+            process is handling cleanup and termination of the child worker process, if the cleanup hangs for longer
+            than the allowed exit_handling_timeout, it will short-circuit, and retry a 2nd time. Before attempting
+            that second time, it will kill the worker process. This test configured the exit_handler to hang if the
+            worker is detected to still be alive, and proceeds with "cleanup" if it is detected as killed. It
+            therefore simulates successful cleanup on the 2nd try.
+        """
+        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger.setLevel(logging.DEBUG)
+
+        msg_body = randint(1111, 9998)
+        queue = sqs_queue()
+        queue.send_message(MessageBody=msg_body)
+        worker_sleep_interval = 0.05  # how long to "work"
+
+        def hanging_cleanup_if_worker_alive(task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue,
+                                            queue_message):
+            cleanup_logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+            cleanup_logger.warning("CLEANUP CLEANUP CLEANUP !!!!!!!!!!!!!!")
+
+            work_tracking_queue.put_nowait("cleanup_start_{}".format(queue_message.body))
+
+            # Get the PID of the worker off the termination_queue, then put it back on, as if it wasn't removed
+            worker_pid_during_cleanup = termination_queue.get(True, 1)
+            termination_queue.put_nowait(worker_pid_during_cleanup)
+
+            worker_during_cleanup = ps.Process(worker_pid_during_cleanup)
+
+            # Log what psutil sees of this worker. 'zombie' is what we're looking for if it was killed
+            cleanup_logger.warning("psutil.pid_exists({}) = {}".format(
+                worker_pid_during_cleanup, ps.pid_exists(worker_pid_during_cleanup)))
+            cleanup_logger.warning("worker_during_cleanup.is_running() = {} [PID={}]".format(
+                worker_during_cleanup.is_running(), worker_pid_during_cleanup))
+            cleanup_logger.warning("worker_during_cleanup.status() = {} [PID={}]".format(
+                worker_during_cleanup.status(), worker_pid_during_cleanup))
+            if worker_during_cleanup.status() != ps.STATUS_ZOMBIE:  # hang cleanup if worker is running
+                sleep(3.5)  # sleep for longer than the allowed time for exit handling
+                # Should not get to this point
+                work_tracking_queue.put_nowait("cleanup_end_with_live_worker_{}".format(queue_message.body))
+
+            # Should only get to this point if the worker was dead/killed when this cleanup ran
+            work_tracking_queue.put_nowait("cleanup_end_with_dead_worker_{}".format(queue_message.body))
+
+        cleanup_timeout = int(worker_sleep_interval + 3)
+        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
+                                       long_poll_seconds=0, monitor_sleep_time=0.05,
+                                       exit_handling_timeout=cleanup_timeout)
+
+        wq = mp.Queue()  # work tracking queue
+        tq = mp.Queue()  # termination queue
+        eq = mp.Queue()  # error queue
+
+        def error_handling_dispatcher(work_dispatcher: SQSWorkDispatcher, error_queue: mp.Queue, **kwargs):
+            try:
+                work_dispatcher.dispatch(**kwargs)
+            except Exception as exc:
+                error_queue.put_nowait(exc)
+                raise exc
+
+        dispatch_kwargs = {"job": self._work_to_be_terminated,
+                           "additional_job_args": (tq, wq),
+                           "exit_handler": hanging_cleanup_if_worker_alive}
+        parent_dispatcher = mp.Process(target=error_handling_dispatcher, args=(dispatcher, eq), kwargs=dispatch_kwargs)
+        parent_dispatcher.start()
+
+        # block until worker is running, or fail in 3 seconds
+        work_done = wq.get(True, 3)
+        self.assertEqual(msg_body, work_done)
+
+        # block until received object indicating ready to be terminated, or fail in 1 second
+        worker_pid = tq.get(True, 1)
+        # Put right back on termination queue as if not removed, so exit_handler can discover the worker process PID
+        # to perform its conditional hang-or-cleanup logic
+        tq.put(worker_pid)
+        worker = ps.Process(worker_pid)
+        os.kill(parent_dispatcher.pid, signal.SIGTERM)
+
+        # simulate join(2). Wait at most 2 sec for work to complete
+        ps.wait_procs([worker], timeout=2)
+        parent_dispatcher.join(3)  # ensure dispatcher completes within 3 seconds. Don't let it run away.
+
+        self.assertTrue(eq.empty(), "Errors detected in parent dispatcher")
+
+        try:
+            # Parent dispatcher process should have gracefully exited after receiving SIGTERM (exit code of -15)
+            self.assertEqual(parent_dispatcher.exitcode, -signal.SIGTERM)
+
+            # Message SHOULD have been deleted from the queue (after going to DLQ)
+            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            self.assertIsNotNone(msgs)
+            self.assertTrue(len(msgs) == 0, "Should be NO messages received from queue")
+            # If the job function was called, it should have put the task_id (msg_body in this case) into the
+            # work_tracking_queue as its first queued item
+            self.assertEqual(msg_body, work_done,
+                             "Was expecting to find worker task_id (msg_body) tracked in the queue")
+            cleanup_attempt_1 = wq.get(True, 1)
+            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_1,
+                             "Was expecting to find a trace of cleanup attempt 1 "
+                             "tracked in the work queue")
+            cleanup_attempt_2 = wq.get(True, 1)
+            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_2,
+                             "Was expecting to find a trace of cleanup attempt 2 "
+                             "tracked in the work queue")
+            cleanup_end = wq.get(True, 1)
+            self.assertEqual("cleanup_end_with_dead_worker_{}".format(msg_body), cleanup_end,
+                             "Was expecting to find a trace of cleanup reaching its end, "
+                             "after worker was killed (try 2)")
+            self.assertTrue(wq.empty(), "There should be no more work tracked on the work Queue")
+            # TODO: Test that the "dead letter queue" has this message - maybe by asserting the log statement
+        finally:
+            if worker and worker.is_running():
+                logger.warning("Dispatched worker process with PID {} did not complete in timeout. "
+                               "Killing it.".format(worker.pid))
+                os.kill(worker.pid, signal.SIGKILL)
+                self.fail("Worker did not complete in timeout as expected. Test fails.")
+            self._fail_runaway_processes(logger, dispatcher=parent_dispatcher)
+
+    def test_cleanup_second_try_succeeds_after_killing_worker_with_retry(self):
+        """ Same as :meth:`test_cleanup_second_try_succeeds_after_killing_worker_with_dlq`, but this queue allows
+            retries. Changes asserts to ensure the message gets retried after cleanup.
+        """
+        logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+        logger.setLevel(logging.DEBUG)
+
+        msg_body = randint(1111, 9998)
+        queue = sqs_queue()
+        queue.send_message(MessageBody=msg_body)
+        worker_sleep_interval = 0.05  # how long to "work"
+
+        def hanging_cleanup_if_worker_alive(task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue,
+                                            queue_message):
+            cleanup_logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
+            cleanup_logger.warning("CLEANUP CLEANUP CLEANUP !!!!!!!!!!!!!!")
+
+            work_tracking_queue.put_nowait("cleanup_start_{}".format(queue_message.body))
+
+            # Get the PID of the worker off the termination_queue, then put it back on, as if it wasn't removed
+            worker_pid_during_cleanup = termination_queue.get(True, 1)
+            termination_queue.put_nowait(worker_pid_during_cleanup)
+
+            worker_during_cleanup = ps.Process(worker_pid_during_cleanup)
+
+            # Log what psutil sees of this worker. 'zombie' is what we're looking for if it was killed
+            cleanup_logger.warning("psutil.pid_exists({}) = {}".format(
+                worker_pid_during_cleanup, ps.pid_exists(worker_pid_during_cleanup)))
+            cleanup_logger.warning("worker_during_cleanup.is_running() = {} [PID={}]".format(
+                worker_during_cleanup.is_running(), worker_pid_during_cleanup))
+            cleanup_logger.warning("worker_during_cleanup.status() = {} [PID={}]".format(
+                worker_during_cleanup.status(), worker_pid_during_cleanup))
+            if worker_during_cleanup.status() != ps.STATUS_ZOMBIE:  # hang cleanup if worker is running
+                sleep(3.5)  # sleep for longer than the allowed time for exit handling
+                # Should not get to this point
+                work_tracking_queue.put_nowait("cleanup_end_with_live_worker_{}".format(queue_message.body))
+
+            # Should only get to this point if the worker was dead/killed when this cleanup ran
+            work_tracking_queue.put_nowait("cleanup_end_with_dead_worker_{}".format(queue_message.body))
+
+        cleanup_timeout = int(worker_sleep_interval + 3)
+        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
+                                       long_poll_seconds=0, monitor_sleep_time=0.05,
+                                       exit_handling_timeout=cleanup_timeout)
+        dispatcher.sqs_queue_instance.max_receive_count = 2  # allow retries
+
+        wq = mp.Queue()  # work tracking queue
+        tq = mp.Queue()  # termination queue
+        eq = mp.Queue()  # error queue
+
+        def error_handling_dispatcher(work_dispatcher: SQSWorkDispatcher, error_queue: mp.Queue, **kwargs):
+            try:
+                work_dispatcher.dispatch(**kwargs)
+            except Exception as exc:
+                error_queue.put_nowait(exc)
+                raise exc
+
+        dispatch_kwargs = {"job": self._work_to_be_terminated,
+                           "additional_job_args": (tq, wq),
+                           "exit_handler": hanging_cleanup_if_worker_alive}
+        parent_dispatcher = mp.Process(target=error_handling_dispatcher, args=(dispatcher, eq), kwargs=dispatch_kwargs)
+        parent_dispatcher.start()
+
+        # block until worker is running, or fail in 3 seconds
+        work_done = wq.get(True, 3)
+        self.assertEqual(msg_body, work_done)
+
+        # block until received object indicating ready to be terminated, or fail in 1 second
+        worker_pid = tq.get(True, 1)
+        # Put right back on termination queue as if not removed, so exit_handler can discover the worker process PID
+        # to perform its conditional hang-or-cleanup logic
+        tq.put(worker_pid)
+        worker = ps.Process(worker_pid)
+        os.kill(parent_dispatcher.pid, signal.SIGTERM)
+
+        # simulate join(2). Wait at most 2 sec for work to complete
+        ps.wait_procs([worker], timeout=2)
+        parent_dispatcher.join(3)  # ensure dispatcher completes within 3 seconds. Don't let it run away.
+
+        self.assertTrue(eq.empty(), "Errors detected in parent dispatcher")
+
+        try:
+            # Parent dispatcher process should have gracefully exited after receiving SIGTERM (exit code of -15)
+            self.assertEqual(parent_dispatcher.exitcode, -signal.SIGTERM)
+
+            # Message should NOT have been deleted from the queue, but available for receive again
+            msgs = queue.receive_messages(WaitTimeSeconds=0)
+            self.assertIsNotNone(msgs)
+            self.assertTrue(len(msgs) == 1, "Should be only 1 message received from queue")
+            self.assertEqual(msg_body, msgs[0].body, "Should be the same message available for retry on the queue")
+            # If the job function was called, it should have put the task_id (msg_body in this case) into the
+            # work_tracking_queue as its first queued item
+            self.assertEqual(msg_body, work_done,
+                             "Was expecting to find worker task_id (msg_body) tracked in the queue")
+
+            # If the job function was called, it should have put the task_id (msg_body in this case) into the
+            # work_tracking_queue as its first queued item
+            self.assertEqual(msg_body, work_done,
+                             "Was expecting to find worker task_id (msg_body) tracked in the queue")
+            cleanup_attempt_1 = wq.get(True, 1)
+            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_1,
+                             "Was expecting to find a trace of cleanup attempt 1 "
+                             "tracked in the work queue")
+            cleanup_attempt_2 = wq.get(True, 1)
+            self.assertEqual("cleanup_start_{}".format(msg_body), cleanup_attempt_2,
+                             "Was expecting to find a trace of cleanup attempt 2 "
+                             "tracked in the work queue")
+            cleanup_end = wq.get(True, 1)
+            self.assertEqual("cleanup_end_with_dead_worker_{}".format(msg_body), cleanup_end,
+                             "Was expecting to find a trace of cleanup reaching its end, "
+                             "after worker was killed (try 2)")
+            self.assertTrue(wq.empty(), "There should be no more work tracked on the work Queue")
+        finally:
+            if worker and worker.is_running():
+                logger.warning("Dispatched worker process with PID {} did not complete in timeout. "
+                               "Killing it.".format(worker.pid))
+                os.kill(worker.pid, signal.SIGKILL)
+                self.fail("Worker did not complete in timeout as expected. Test fails.")
+            self._fail_runaway_processes(logger, dispatcher=parent_dispatcher)
 
     @classmethod
     def _worker_terminator(cls, terminate_queue: mp.Queue, sleep_interval=0, logger=logging.getLogger(__name__)):
