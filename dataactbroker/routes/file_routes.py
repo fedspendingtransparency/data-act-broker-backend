@@ -161,7 +161,10 @@ def add_file_routes(app, is_local, server_path):
         'cross_type': webargs_fields.String(validate=webargs_validate.OneOf(['program_activity', 'award_financial',
                                                                              'award_procurement', 'award']))
     })
-    def post_submission_report_url(submission, warning, file_type, cross_type):
+    def post_submission_report_url(submission, **kwargs):
+        warning = kwargs.get('warning')
+        file_type = kwargs.get('file_type')
+        cross_type = kwargs.get('cross_type')
         return submission_report_url(submission, bool(warning), file_type, cross_type)
 
     @app.route("/v1/get_file_url", methods=['GET'])
@@ -199,8 +202,12 @@ def add_file_routes(app, is_local, server_path):
                  'frec_code': webargs_fields.String(),
                  'reporting_fiscal_year': webargs_fields.String(required=True),
                  'reporting_fiscal_period': webargs_fields.String(required=True)})
-    def check_year_and_quarter(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period):
+    def check_year_and_quarter(**kwargs):
         """ Check if cgac (or frec) code, year, and quarter already has a published submission """
+        cgac_code = kwargs.get('cgac_code')
+        frec_code = kwargs.get('frec_code')
+        reporting_fiscal_year = kwargs.get('reporting_fiscal_year')
+        reporting_fiscal_period = kwargs.get('reporting_fiscal_period')
         return find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period)
 
     @app.route("/v1/certify_submission/", methods=['POST'])
