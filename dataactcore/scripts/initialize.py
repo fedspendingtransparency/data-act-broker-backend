@@ -101,10 +101,14 @@ def load_validator_schema():
     SchemaLoader.load_all_from_path(validator_config_path)
 
 
-def load_location_codes():
-    """Load city and county codes into the broker database."""
+def load_location_codes(force_reload):
+    """ Load city and county codes into the broker database.
+
+        Args:
+            force_reload: Boolean to force reloads of location data even if checks indicate no changes have been made
+    """
     logger.info('Loading location data')
-    load_location_data()
+    load_location_data(force_reload)
 
 
 def load_zip_codes():
@@ -142,6 +146,8 @@ def main():
     parser.add_argument('-z', '--load_zips', help='Load zip code data', action='store_true')
     parser.add_argument('-o', '--load_offices', help='Load FPDS Office Codes', action='store_true')
     parser.add_argument('-u', '--uncache_all_files', help='Un-cache file generation requests', action='store_true')
+    parser.add_argument('--force', help='Forces actions to occur in certain scripts regardless of checks',
+                        action='store_true')
     args = parser.parse_args()
 
     if args.initialize:
@@ -152,7 +158,7 @@ def main():
         load_tas_lookup()
         load_sf133()
         load_validator_schema()
-        load_location_codes()
+        load_location_codes(args.force)
         load_zip_codes()
         load_offices()
         return
@@ -194,11 +200,11 @@ def main():
         load_validator_schema()
 
     if args.load_location:
-        load_location_codes()
+        load_location_codes(args.force)
 
     if args.load_zips:
         load_zip_codes()
-        load_location_codes()
+        load_location_codes(args.force)
 
     if args.load_offices:
         load_offices()
