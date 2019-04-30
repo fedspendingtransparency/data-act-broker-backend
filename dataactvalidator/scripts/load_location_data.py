@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 import boto3
 import pandas as pd
@@ -32,12 +33,14 @@ def clean_data(data, field_map):
     return data
 
 
-def parse_city_file(city_file, sess):
+def parse_city_file(city_file):
     """ Parse the City file and insert all relevant rows into the database.
 
         Args:
             city_file: path/url to file to gather City data from
-            sess: database session
+
+        Returns:
+            The data in a pandas object, cleaned and sorted for insertion into the DB
     """
     # read the data and clean up the column names
     data = pd.read_csv(city_file, dtype=str, sep="|")
@@ -71,10 +74,7 @@ def parse_city_file(city_file, sess):
     # just sorting it how it started out
     data = data.sort_values(by=['feature_name'])
 
-    # insert data into table
-    num = insert_dataframe(data, CityCode.__table__.name, sess.connection())
-    logger.info('{} records inserted to city_code'.format(num))
-    sess.commit()
+    return data
 
 
 def parse_county_file(county_file, sess):
@@ -178,19 +178,54 @@ def parse_zip_city_file(f, sess):
     sess.commit()
 
 
-def load_city_data(city_file):
+def load_city_data(city_file, force_reload):
     """ Load data into the CityCode table
 
         Args:
             city_file: path/url to file to gather City data from
+            force_reload: boolean to determine if reload should happen whether there are differences or not
     """
-    sess = GlobalDB.db().session
-
-    # delete any data in the CityCode table
-    sess.query(CityCode).delete()
-
+    now = datetime.now()
     # parse the new city code data
-    parse_city_file(city_file, sess)
+    new_data = parse_city_file(city_file)
+
+    new_data_copy = new_data.copy(deep=True)
+    # Mock the pk and date columns that postgres creates. Set it universally to 1 and "now"
+    new_data_copy = new_data_copy.assign(city_code_id=1, created_at=now, updated_at=now)
+
+    sess = GlobalDB.db().session
+    current_data = pd.read_sql_table(CityCode.__table__.name, sess.connection(), coerce_float=False)
+    # Overwrite the db's dates and PKs so they match
+    current_data = current_data.assign(city_code_id=1, created_at=now, updated_at=now)
+
+    # pandas comparison requires everything to be in the same order
+    new_data_copy.sort_values(by=['state_code', 'city_code'], inplace=True)
+    current_data.sort_values(by=['state_code', 'city_code'], inplace=True)
+
+    # Columns have to be in order too
+    cols = new_data_copy.columns.tolist()
+    cols.sort()
+    new_data_copy = new_data_copy[cols]
+
+    cols = current_data.columns.tolist()
+    cols.sort()
+    current_data = current_data[cols]
+
+    # Reset indexes after sorting, so that they match
+    new_data_copy.reset_index(drop=True, inplace=True)
+    current_data.reset_index(drop=True, inplace=True)
+
+    if force_reload or not new_data_copy.equals(current_data):
+        logger.info('Differences found or reload forced, reloading city_code table.')
+        # delete any data in the CityCode table
+        sess.query(CityCode).delete()
+
+        # insert data into table
+        num = insert_dataframe(new_data, CityCode.__table__.name, sess.connection())
+        logger.info('{} records inserted to city_code'.format(num))
+        sess.commit()
+    else:
+        logger.info('No differences found, skipping city_code table reload.')
 
 
 def load_county_data(county_file):
@@ -238,7 +273,12 @@ def load_zip_city_data(zip_city_file):
     parse_zip_city_file(zip_city_file, sess)
 
 
-def load_location_data():
+def load_location_data(force_reload=False):
+    """ Loads the city, county, state, citystate, and zipcity data.
+
+        Args:
+            force_reload: reloads the tables even if there are no differences found in data
+    """
     if CONFIG_BROKER["use_aws"]:
         s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
         city_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
@@ -259,7 +299,7 @@ def load_location_data():
 
     with create_app().app_context():
         logger.info('Loading city data')
-        load_city_data(city_file)
+        load_city_data(city_file, force_reload)
         logger.info('Loading county data')
         load_county_data(county_file)
         logger.info('Loading state data')
@@ -270,4 +310,5 @@ def load_location_data():
 
 if __name__ == '__main__':
     configure_logging()
-    load_location_data()
+    reload = '--force' in sys.argv
+    load_location_data(reload)
