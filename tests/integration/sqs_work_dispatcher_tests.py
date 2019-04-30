@@ -1,5 +1,4 @@
 import inspect
-import unittest
 import boto3
 import logging
 import multiprocessing as mp
