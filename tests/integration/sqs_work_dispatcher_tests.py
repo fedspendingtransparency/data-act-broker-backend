@@ -21,11 +21,11 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         super().tearDown()
 
     def test_default_dispatch_with_numeric_message_body_succeeds(self):
-        """SQSWorkDispatcher can execute work on a numeric message body successfully
+        """ SQSWorkDispatcher can execute work on a numeric message body successfully
 
-        - Given a numeric message body
-        - When on a SQSWorkDispatcher.dispatch() is called
-        - Then the default message_transformer provides it as an argument to the job
+            - Given a numeric message body
+            - When on a SQSWorkDispatcher.dispatch() is called
+            - Then the default message_transformer provides it as an argument to the job
         """
         queue = sqs_queue()
         queue.send_message(MessageBody=1234)
@@ -80,12 +80,12 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         self.assertEqual(0, dispatcher._worker_process.exitcode)
 
     def test_dispatching_by_message_attribute_succeeds(self):
-        """SQSWorkDispatcher can read a message attribute to determine which function to call
+        """ SQSWorkDispatcher can read a message attribute to determine which function to call
 
-        - Given a message with a user-defined message attribute
-        - When on a SQSWorkDispatcher.dispatch_by_message_attribute() is called
-        - And a message_transformer is given to route execution based on that message attribute
-        - Then the correct function is executed
+            - Given a message with a user-defined message attribute
+            - When on a SQSWorkDispatcher.dispatch_by_message_attribute() is called
+            - And a message_transformer is given to route execution based on that message attribute
+            - Then the correct function is executed
         """
         queue = sqs_queue()
         message_attr = {"work_type": {"DataType": "String", "StringValue": "a"}}
@@ -146,13 +146,13 @@ class SQSWorkDispatcherTests(BaseTestValidator):
                             isinstance(e.__cause__, NoCredentialsError))
 
     def test_failed_job_detected(self):
-        """SQSWorkDispatcher handles failed work within the child process
+        """ SQSWorkDispatcher handles failed work within the child process
 
-        - Given a numeric message body
-        - When on a SQSWorkDispatcher.dispatch() is called
-        - And the function to execute in the child process fails
-        - Then a QueueWorkerProcessError exception is raised
-        - And the exit code of the worker process is > 0
+            - Given a numeric message body
+            - When on a SQSWorkDispatcher.dispatch() is called
+            - And the function to execute in the child process fails
+            - Then a QueueWorkerProcessError exception is raised
+            - And the exit code of the worker process is > 0
         """
         with self.assertRaises(QueueWorkerProcessError):
             queue = sqs_queue()
@@ -171,11 +171,11 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         self.assertGreater(dispatcher._worker_process.exitcode, 0)
 
     def test_separate_signal_handlers_for_child_process(self):
-        """Demonstrate (via log output) that a forked child process will inherit signal-handling of the parent
-        process, but that can be overridden, while maintaining the original signal handling of the parent.
+        """ Demonstrate (via log output) that a forked child process will inherit signal-handling of the parent
+            process, but that can be overridden, while maintaining the original signal handling of the parent.
 
-        NOTE: Test is not provable with asserts. Reading STDOUT proves it, but a place to store shared state among
-        processes other than STDOUT was not found to be asserted on.
+            NOTE: Test is not provable with asserts. Reading STDOUT proves it, but a place to store shared state among
+            processes other than STDOUT was not found to be asserted on.
         """
         def fire_alarm():
             print("firing alarm from PID {}".format(os.getpid()))
@@ -211,9 +211,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         fire_alarm()  # prove that clearing in one child process, left the handler intact in the parent process
 
     def test_terminated_job_triggers_exit_signal_handling_with_retry(self):
-        """The child worker process is terminated, and exits indicating the exit signal of the termination. The
-        parent monitors this, and initiates exit-handling. Because the dispatcher allows retries, this message
-        should be made receivable again on the queue.
+        """ The child worker process is terminated, and exits indicating the exit signal of the termination. The
+            parent monitors this, and initiates exit-handling. Because the dispatcher allows retries, this message
+            should be made receivable again on the queue.
         """
         logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
         logger.setLevel(logging.DEBUG)
@@ -259,9 +259,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self._fail_runaway_processes(logger, worker=dispatcher._worker_process, terminator=terminator)
 
     def test_terminated_job_triggers_exit_signal_handling_to_dlq(self):
-        """The child worker process is terminated, and exits indicating the exit signal of the termination. The
-        parent monitors this, and initiates exit-handling. Because the dispatcher does not allow retries, the
-        message is copied to teh dead letter queue, and deleted from the queue.
+        """ The child worker process is terminated, and exits indicating the exit signal of the termination. The
+            parent monitors this, and initiates exit-handling. Because the dispatcher does not allow retries, the
+            message is copied to teh dead letter queue, and deleted from the queue.
         """
         logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
         logger.setLevel(logging.DEBUG)
@@ -311,9 +311,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self._fail_runaway_processes(logger, worker=dispatcher._worker_process, terminator=terminator)
 
     def test_terminated_parent_dispatcher_exits_with_negative_signal_code(self):
-        """After a parent dispatcher process receives an exit signal, and kills its child worker process, it itself
-        exits. Verify that the exit code it exits with is the negative value of the signal received, consistent with
-        how Python handles this.
+        """ After a parent dispatcher process receives an exit signal, and kills its child worker process, it itself
+            exits. Verify that the exit code it exits with is the negative value of the signal received, consistent with
+            how Python handles this.
         """
         logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
         logger.setLevel(logging.DEBUG)
@@ -367,8 +367,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self._fail_runaway_processes(logger, dispatcher=parent_dispatcher)
 
     def test_exit_handler_can_receive_queue_message_as_arg(self):
-        """Verify that exit_handlers provided whose signatures allow keyword args can receive the queue message
-        as a keyword arg"""
+        """ Verify that exit_handlers provided whose signatures allow keyword args can receive the queue message
+            as a keyword arg
+        """
         logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
         logger.setLevel(logging.DEBUG)
 
@@ -430,8 +431,8 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             self._fail_runaway_processes(logger, worker=dispatcher._worker_process, terminator=terminator)
 
     def test_default_to_queue_long_poll_works(self):
-        """Same as testing exit handling when allowing retries, but not setting the long_poll_seoconds value,
-        to leave it to the default setting.
+        """ Same as testing exit handling when allowing retries, but not setting the long_poll_seoconds value,
+            to leave it to the default setting.
         """
         logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
         logger.setLevel(logging.DEBUG)
@@ -440,8 +441,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         queue = sqs_queue()
         queue.send_message(MessageBody=msg_body)
 
-        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
-                                       monitor_sleep_time=0.05)
+        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process", monitor_sleep_time=0.05)
         dispatcher.sqs_queue_instance.max_receive_count = 2  # allow retries
 
         wq = mp.Queue()  # work tracking queue

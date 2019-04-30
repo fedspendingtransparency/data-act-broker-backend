@@ -32,10 +32,21 @@ BSD_SIGNALS = {
 
 
 class SQSWorkDispatcher:
+    """ SQSWorkDispatcher object that is used to pull work from an SQS queue, and then dispatch it to be
+        executed on a child worker process.
+
+        This has the benefit of the worker process terminating after completion of the work, which will clear all
+        resources used during its execution, and return memory to the operating system. It also allows for periodically
+        monitoring the progress of the worker process from the parent process, and extending the SQS
+        VisibilityTimeout, so that the message is not prematurely terminated and/or moved to the Dead Letter Queue
+
+        Attributes:
+            EXIT_SIGNALS (List[int]): Delineates each of the signals we want to handle, which represent a case where
+                the work being performed is prematurely halting, and the process will exit
+
+    """
     _logger = logging.getLogger(__name__)
 
-    # Delineate each of the signals we want to handle, which represent a case where the work being performed
-    # is prematurely halting, and the process will exit
     EXIT_SIGNALS = [signal.SIGHUP, signal.SIGABRT, signal.SIGINT, signal.SIGQUIT, signal.SIGTERM]
     # NOTE: We are not handling signal.SIGSTOP or signal.SIGTSTP because those are suspensions.
     # There may be valid cases to suspend and then later resume the process.
@@ -45,25 +56,19 @@ class SQSWorkDispatcher:
     def __init__(self, sqs_queue_instance, worker_process_name=None, default_visibility_timeout=60,
                  long_poll_seconds=None, monitor_sleep_time=5, exit_handling_timeout=30):
         """
-        SQSWorkDispatcher object that is used to pull work from an SQS queue, and then dispatch it to be
-        executed on a child worker process.
-
-        This has the benefit of the worker process terminating after completion of the work, which will clear all
-        resources used during its execution, and return memory to the operating system. It also allows for periodically
-        monitoring the progress of the worker process from the parent process, and extending the SQS
-        VisibilityTimeout, so that the message is not prematurely terminated and/or moved to the Dead Letter Queue
-
-        :param sqs_queue_instance: the SQS queue to get work from
-        :param worker_process_name: the name to give to the worker process. It will use the name of the callable job
-               to be executed if not provided
-        :param default_visibility_timeout: how long until the message is made visible in the queue again,
-               for other consumers. If it only allows 1 retry, this may end up directing it to the Dead Letter queue
-               when the next consumer attempts to receive it.
-        :param long_poll_seconds: if it should wait patiently for some time to receive a message when requesting.
-               Defaults to None, which means it should honor the value configured on the SQS queue
-        :param monitor_sleep_time: periodicity to check up on the status of the worker process
-        :param exit_handling_timeout: expected window of time during which cleanup should complete (not guaranteed).
-               This for example would be the time to finish cleanup before the messages is re-queued or DLQ'd
+            Args:
+                sqs_queue_instance (SQS.Queue): the SQS queue to get work from
+                worker_process_name (str): the name to give to the worker process. It will use the name of the callable
+                    job to be executed if not provided
+                default_visibility_timeout (int): how long until the message is made visible in the queue again,
+                   for other consumers. If it only allows 1 retry, this may end up directing it to the Dead Letter queue
+                   when the next consumer attempts to receive it.
+                long_poll_seconds (int): if it should wait patiently for some time to receive a message when requesting.
+                   Defaults to None, which means it should honor the value configured on the SQS queue
+                monitor_sleep_time (float): periodicity to check up on the status of the worker process
+                exit_handling_timeout (int): expected window of time during which cleanup should complete (not
+                    guaranteed). This for example would be the time to finish cleanup before the messages is re-queued
+                    or DLQ'd
         """
         self.sqs_queue_instance = sqs_queue_instance
         self.worker_process_name = worker_process_name
@@ -102,14 +107,16 @@ class SQSWorkDispatcher:
 
     @property
     def is_exiting(self):
-        """True when this parent dispatcher process has received a signal that will lead to the process exiting"""
+        """ bool: True when this parent dispatcher process has received a signal that will lead to the process
+            exiting
+        """
         return self._dispatcher_exiting
 
     @property
     def allow_retries(self):
-        """Determine from the provided queue if retries of messages should be performed
+        """ bool: Determine from the provided queue if retries of messages should be performed
 
-        If False, the message will not be returned to the queue for retries by other consumers
+            If False, the message will not be returned to the queue for retries by other consumers
         """
         redrive_policy = self.sqs_queue_instance.attributes.get("RedrivePolicy")
         if not redrive_policy:
@@ -119,21 +126,27 @@ class SQSWorkDispatcher:
         return retries and retries > 1
 
     def _dispatch(self, job, job_args, worker_process_name=None, exit_handler=None):
-        """
-        Dispatch work to be performed in a newly started worker process
+        """ Dispatch work to be performed in a newly started worker process.
 
-        Execute the callable job that will run in a separate child worker process. The worker process
-        will be monitored so that heartbeats can be sent to SQS to allow it to keep going.
-        :param job: callable to use as the target of a the new child process
-        :param tuple job_args: arguments to be passed to the job
-        :param worker_process_name: Name given to the newly created child process. If not already set, defaults to
-               the name of the provided job callable
-        :param callable exit_handler: a callable to be called when handling an `EXIT_SIGNAL` signal, giving the
-               opportunity to perform cleanup before the process exits. Gets the job_args passed to it when run
-        :raises AttributeError: If this is called before setting self._current_sqs_message
-        :raises Exceptions raised by `self._monitor_work_progress`
-        :return: True if a message was found on the queue and dispatched to completion, without error. Otherwise it
-        is an error condition and will raise an exception.
+            Execute the callable job that will run in a separate child worker process. The worker process
+            will be monitored so that heartbeats can be sent to SQS to allow it to keep going.
+
+            Args:
+                job (Callable): callable to use as the target of a the new child process
+                job_args (tuple): arguments to be passed to the job
+                worker_process_name (str): Name given to the newly created child process. If not already set,
+                    defaults to the name of the provided job callable
+                exit_handler (callable): a callable to be called when handling an :attr:`EXIT_SIGNALS` signal,
+                    giving the opportunity to perform cleanup before the process exits. Gets the job_args passed to it
+                    when run
+
+            Returns:
+                bool: True if a message was found on the queue and dispatched to completion, without error. Otherwise it
+                    is an error condition and will raise an exception.
+
+            Raises:
+                AttributeError: If this is called before setting self._current_sqs_message
+                Others: Exceptions raised by :meth:`_monitor_work_progress`
         """
         if self._current_sqs_message is None:
             raise AttributeError("Cannot dispatch work when there is no current message in self._current_sqs_message")
@@ -182,27 +195,31 @@ class SQSWorkDispatcher:
 
     def dispatch(self, job, message_transformer=lambda x: x.body, additional_job_args=(),
                  worker_process_name=None, exit_handler=None):
-        """
-        Get work from the queue and dispatch it in a newly starter worker process
+        """ Get work from the queue and dispatch it in a newly starter worker process
 
-        Poll the queue for a message to work on. Combine that message with any
-        _additional_job_args passed into the constructor, and feed this complete set of arguments to the provided
-        callable job that will be executed in a separate worker process. The worker process will be monitored so that
-        heartbeats can be sent to the SQS to allow it to keep going.
+            Poll the queue for a message to work on. Combine that message with any
+            ``_additional_job_args`` passed into the constructor, and feed this complete set of arguments to the
+            provided callable job that will be executed in a separate worker process. The worker process will be
+            monitored so that heartbeats can be sent to the SQS to allow it to keep going.
 
-        :param job: the callable to execute as work for the job
-        :param message_transformer: A lambda to extract arguments to be passed to the callable from the queue message.
-               By default, a function that just returns the message body is used.
-        :param additional_job_args: Additional arguments to provide to the callable, along with those from the message
-        :param worker_process_name: Name given to the newly created child process. If not already set, defaults to
-               the name of the provided job callable
-        :param exit_handler: a callable to be called when handling an `EXIT_SIGNAL` signal, giving the
-               opportunity to perform cleanup before the process exits. Gets the job_args passed to it when run
-        :raises SystemExit(1): If it can't connect to the queue or receive messages
-        :raises QueueWorkerProcessError: Under various conditions where the child worker process fails to run the job
-        :raises QueueWorkDispatcherError: Under various conditions where the parent dispatcher process can't
-                orchestrate work execution, monitoring, or exit-signal-handling
-        :return: True if a message was found on the queue and dispatched, otherwise False if nothing on the queue
+            Args:
+                job (Callable[]): the callable to execute as work for the job
+                message_transformer: A lambda to extract arguments to be passed to the callable from the queue message.
+                    By default, a function that just returns the message body is used.
+                additional_job_args: Additional arguments to provide to the callable, along with those from the message
+                worker_process_name: Name given to the newly created child process. If not already set, defaults to
+                    the name of the provided job callable
+                exit_handler: a callable to be called when handling an :attr:`EXIT_SIGNALS` signal, giving the
+                    opportunity to perform cleanup before the process exits. Gets the job_args passed to it when run
+
+            Returns:
+                bool: True if a message was found on the queue and dispatched, otherwise False if nothing on the queue
+
+            Raises:
+                SystemExit(1): If it can't connect to the queue or receive messages
+                QueueWorkerProcessError: Under various conditions where the child worker process fails to run the job
+                QueueWorkDispatcherError: Under various conditions where the parent dispatcher process can't
+                    orchestrate work execution, monitoring, or exit-signal-handling
         """
         self._dequeue_message(self._long_poll_seconds)
         if self._current_sqs_message is None:
@@ -214,21 +231,26 @@ class SQSWorkDispatcher:
             job_args = (msg_args,) + additional_job_args
         return self._dispatch(job, job_args, worker_process_name, exit_handler)
 
-    def dispatch_by_message_attribute(self, message_transformer, additional_job_args=(),
-                                      worker_process_name=None):
-        """
-        Use a provided function to derive the callable job and its arguments from attributes within the queue message
+    def dispatch_by_message_attribute(self, message_transformer, additional_job_args=(), worker_process_name=None):
+        """ Use a provided function to derive the callable job and its arguments from attributes within the queue
+            message
 
-        :param message_transformer: The callable function that returns a tuple of (job, job_args) or (job,
-               job_args, exit_handler) if an exit_handler is required
-        :param additional_job_args: Additional arguments to provide to the callable, along with those from the message
-        :param worker_process_name: Name given to the newly created child process. If not already set, defaults to
-               the name of the provided job callable
-        :raises SystemExit(1): If it can't connect to the queue or receive messages
-        :raises QueueWorkerProcessError: Under various conditions where the child worker process fails to run the job
-        :raises QueueWorkDispatcherError: Under various conditions where the parent dispatcher process can't
-                orchestrate work execution, monitoring, or exit-signal-handling
-        :return: True if a message was found on the queue and dispatched, otherwise False if nothing on the queue
+            Args:
+                message_transformer (Callable[[SQS.Message], tuple): The callable function that returns a tuple of
+                    ``(job, job_args)`` or ``(job, job_args, exit_handler)`` if an exit_handler is required
+               additional_job_args (tuple): Additional arguments to provide to the callable, along with those from the
+                 message
+               worker_process_name (str): Name given to the newly created child process. If not already set, defaults to
+                    the name of the provided job callable
+
+            Raises:
+                SystemExit(1): If it can't connect to the queue or receive messages
+                QueueWorkerProcessError: Under various conditions where the child worker process fails to run the job
+                QueueWorkDispatcherError: Under various conditions where the parent dispatcher process can't
+                    orchestrate work execution, monitoring, or exit-signal-handling
+
+            Returns:
+                bool: True if a message was found on the queue and dispatched, otherwise False if nothing on the queue
         """
         self._dequeue_message(self._long_poll_seconds)
         if self._current_sqs_message is None:
@@ -253,15 +275,26 @@ class SQSWorkDispatcher:
         return self._dispatch(job, job_args, worker_process_name, exit_handler)
 
     def _dequeue_message(self, wait_time):
-        """
-        Attempt to get a message from the queue.
+        """ Attempt to get a single message from the queue.
 
-        It will set this message in the `self._current_sqs_message` field if received, otherwise it leaves that None
-        :param wait_time: If no message is readily available, wait for this many seconds for one to arrive before
-               returning
-        :return: None
+            It will set this message in the `self._current_sqs_message` field if received, otherwise it leaves that None
+
+            Args:
+                wait_time: If no message is readily available, wait for this many seconds for one to arrive before
+                    returning
+
+            Returns:
+                None
         """
         try:
+            # NOTE: Forcing MaxNumberOfMessages=1
+            # This will pull at most 1 message off the queue, or no messages. This dispatcher is built to dispatch
+            # one queue message at a time for work, such that one job at a time is handled by the child worker
+            # process. The best way to then scale up work-throughput is to have multiple consumers (e.g. multiple
+            # parent dispatcher processes on one machine, or multiple machines each running a parent dispatcher process)
+            # This may not be an ideal configuration for jobs that may expect to complete with sub-second performance,
+            # and handle a massive amount of message-throughput (e.g. 10+ messages/second, or 1M+ messages/day),
+            # where the added latency of connecting to the queue to fetch each message could add up.
             received_messages = self.sqs_queue_instance.receive_messages(
                 WaitTimeSeconds=wait_time,
                 AttributeNames=["All"],
@@ -305,15 +338,16 @@ class SQSWorkDispatcher:
             raise QueueWorkDispatcherError() from exc
 
     def surrender_message_to_other_consumers(self, delay=0):
-        """
-        Return the message back into its original queue for other consumers to process it.
+        """ Return the message back into its original queue for other consumers to process it.
 
-        Does this by making it immediately visible (it was always there, just invisible).
-        See also: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/
-                  sqs-visibility-timeout.html#terminating-message-visibility-timeout
+            Does this by making it immediately visible (it was always there, just invisible).
 
-        :param delay: How long to wait before message becomes visible to other consumers. Default is 0 seconds (
-               immediately consumable)
+            See Also:
+                https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html#terminating-message-visibility-timeout  # noqa
+
+            Args:
+                delay (int): How long to wait in seconds before message becomes visible to other consumers. Default
+                is 0 seconds (immediately consumable)
         """
         # Protect against the scenario where one of many consumers is in the midst of a long-poll when an exit signal
         # is received. If they are in this position, and the message is returned to the queue, they will dequeue it
@@ -338,15 +372,17 @@ class SQSWorkDispatcher:
         self._set_message_visibility(delay)
 
     def move_message_to_dead_letter_queue(self):
-        """Move the current message to the Dead Letter Queue.
+        """ Move the current message to the Dead Letter Queue.
 
-        Moves the message to the Dead Letter Queue associated with this worker's SQS queue via its RedrivePolicy.
-        Then delete the message from its originating queue.
+            Moves the message to the Dead Letter Queue associated with this worker's SQS queue via its RedrivePolicy.
+            Then delete the message from its originating queue.
 
-        :raises
-        :raises QueueWorkDispatcherError: Raise an error if there is no RedrivePolicy or a Dead Letter Queue is not
-                configured, specified, or connectible for this queue.
+            Returns:
+                None
 
+            Raises:
+                QueueWorkDispatcherError: Raise an error if there is no RedrivePolicy or a Dead Letter Queue is not
+                    configured, specified, or connectible for this queue.
         """
         if self._current_sqs_message is None:
             log_job_message(
@@ -403,6 +439,26 @@ class SQSWorkDispatcher:
         self.delete_message_from_queue()
 
     def _monitor_work_progress(self):
+        """ Tracks the running or exit status of the child worker process.
+
+            There are four scenarios it detects when monitoring:
+                1. It extends life of the process back at the queue if it detects the child worker process is still
+                   running
+                2. It sees the child worker process exited with a 0 exit code (success). It deletes the message from
+                   the queue and logs success.
+                3. It sees the child worker process exited with a > 0 exit code. Handles this and raises
+                   :exc:`QueueWorkerProcessError` to alert the caller.
+                4. It sees the child worker process exited with a < 0 exit code, indicating it received some kind of
+                   signal. It calls the signal-handling code to handle this accordingly.
+
+            Returns: None
+
+            Raises:
+                QueueWorkerProcessError: When the child worker process was found to have exited with a > 0 exit
+                    code.
+                Others: Anything raised by :meth:`_set_message_visibility`, :meth:`delete_message_from_queue`,
+                    or :meth:`_handle_exit_signal`
+        """
         monitor_process = True
         heartbeats = 0
         while monitor_process:
@@ -452,43 +508,48 @@ class SQSWorkDispatcher:
                 self._handle_exit_signal(signum=signum, frame=None, parent_dispatcher_signaled=False)
 
     def _handle_exit_signal(self, signum, frame, parent_dispatcher_signaled=True, is_retry=False):
-        """
-        Attempt to gracefully handle the exiting of the job as a result of receiving an exit signal.
+        """ Attempt to gracefully handle the exiting of the job as a result of receiving an exit signal.
 
-        NOTE: This handler is only expected to be run from the parent dispatcher process. It is an error
-        condition if it is invoked from the child worker process. Signals received in the child worker
-        process should not have this handler registered for those signals. Because signal handlers registered for a
-        parent process are inherited by forked child processes (see: "man 7 signal" docs and search for "inherited"),
-        this handler will initially be registered for each of this class's EXIT_SIGNALS; however, those handlers
-        are reset to their default as the worker process is started by a wrapper function around the job to execute.
+            NOTE: This handler is only expected to be run from the parent dispatcher process. It is an error
+            condition if it is invoked from the child worker process. Signals received in the child worker
+            process should not have this handler registered for those signals. Because signal handlers registered for a
+            parent process are inherited by forked child processes (see: "man 7 signal" docs and search for
+            "inherited"), this handler will initially be registered for each of this class's EXIT_SIGNALS; however,
+            those handlers are reset to their default as the worker process is started by a wrapper function around
+            the job to execute.
 
-        The signal very likely indicates a non-error failure scenario from which the job might be restarted or rerun,
-        if allowed. Handle cleanup, logging, job retry logic, etc.
-        NOTE: Order is important:
-            1. "Lock" (guard) this exit handler, to handle one exit signal only
-            2. Extend VisibilityTimeout by _exit_handling_timeout, to allow time for cleanup
-            3. Suspend child worker process, if alive, else skip (to not interfere with cleanup)
-            4. Execute pre-exit cleanup
-            5. Move the message (back to the queue, or to the dead letter queue)
-            6. Kill child worker process
-            7. Exit this parent dispatcher process if it received an exit signal
+            The signal very likely indicates a non-error failure scenario from which the job might be restarted or
+            rerun, if allowed. Handle cleanup, logging, job retry logic, etc.
+            NOTE: Order is important:
+                1. "Lock" (guard) this exit handler, to handle one exit signal only
+                2. Extend VisibilityTimeout by _exit_handling_timeout, to allow time for cleanup
+                3. Suspend child worker process, if alive, else skip (to not interfere with cleanup)
+                4. Execute pre-exit cleanup
+                5. Move the message (back to the queue, or to the dead letter queue)
+                6. Kill child worker process
+                7. Exit this parent dispatcher process if it received an exit signal
 
-        :param signum: number representing the signal received
-        :param frame: Frame passed in with the signal
-        :param parent_dispatcher_signaled: Assumed that this handler is being called as a result of signaling that
-               happened on the parent dispatcher process. If this was instead the parent detecting that the child
-               exited due to a signal, set this to False. Defaults to True.
-        :param is_retry: If this is the 2nd and last try to handled the signal and perform pre-exit cleanup
-        :raises QueueWorkerProcessError: When the _exit_handling function cannot be completed in time to perform
-                pre-exit cleanup
-        :raises QueueWorkerProcessError: If only the child process died (not the parent dispatcher), but the message it
-                was working was moved to the Dead Letter Queue because the queue is not configured to allow retries,
-                raise an exception so the parent process might mark the job as failed with its normal error-handling
-                process
-        :raises SystemExit: If the parent dispatcher process received an exit signal, this should be raised
-                after handling the signal, as part of running os.kill of that process using the original signal number
-                that was originally handled
-        :return: None
+            Args:
+                signum: number representing the signal received
+                frame: Frame passed in with the signal
+                parent_dispatcher_signaled: Assumed that this handler is being called as a result of signaling that
+                    happened on the parent dispatcher process. If this was instead the parent detecting that the child
+                    exited due to a signal, set this to False. Defaults to True.
+                is_retry: If this is the 2nd and last try to handled the signal and perform pre-exit cleanup
+
+            Returns:
+                None
+
+            Raises:
+                QueueWorkerProcessError: When the _exit_handling function cannot be completed in time to perform
+                    pre-exit cleanup
+                QueueWorkerProcessError: If only the child process died (not the parent dispatcher), but the message it
+                    was working was moved to the Dead Letter Queue because the queue is not configured to allow retries,
+                    raise an exception so the parent process might mark the job as failed with its normal error-handling
+                    process
+                SystemExit: If the parent dispatcher process received an exit signal, this should be raised
+                    after handling the signal, as part of running os.kill of that process using the original signal
+                    number that was originally handled
         """
         # If the process handling this signal is the same as the started worker process, this *is* the worker process
         is_worker_process = self._worker_process and self._worker_process.pid == os.getpid()
@@ -638,7 +699,7 @@ class SQSWorkDispatcher:
                 os.kill(os.getpid(), signum)
             elif not self.allow_retries:
                 # If only the child process died, but the message it was working was moved to the Dead Letter Queue
-                # because the queue is not configured to allow retries, raise an exception so the parent process
+                # because the queue is not configured to allow retries, raise an exception so the caller
                 # might mark the job as failed with its normal error-handling process
                 raise QueueWorkerProcessError("Worker process with PID [{}] was not able to complete its job due to "
                                               "interruption from exit signal [{}]. The queue message for that job "
@@ -665,15 +726,15 @@ class SQSWorkDispatcher:
 
 
 class QueueWorkerProcessError(Exception):
-    """Custom exception representing the scenario where the spawned worker process has failed
-     with a non-zero exit code, indicating some kind of failure.
+    """ Custom exception representing the scenario where the spawned worker process has failed
+        with a non-zero exit code, indicating some kind of failure.
     """
     pass
 
 
 class QueueWorkDispatcherError(Exception):
-    """Custom exception representing the scenario where the parent process dispatching to and monitoring the worker
-     process has failed with some kind of unexpected exception.
+    """ Custom exception representing the scenario where the parent process dispatching to and monitoring the worker
+        process has failed with some kind of unexpected exception.
     """
     pass
 
