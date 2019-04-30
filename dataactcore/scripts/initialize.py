@@ -146,7 +146,7 @@ def main():
     parser.add_argument('-z', '--load_zips', help='Load zip code data', action='store_true')
     parser.add_argument('-o', '--load_offices', help='Load FPDS Office Codes', action='store_true')
     parser.add_argument('-u', '--uncache_all_files', help='Un-cache file generation requests', action='store_true')
-    parser.add_argument('-f', '--force', help='Forces actions to occur in certain scripts regardless of checks',
+    parser.add_argument('--force', help='Forces actions to occur in certain scripts regardless of checks',
                         action='store_true')
     args = parser.parse_args()
 
