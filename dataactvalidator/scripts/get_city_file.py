@@ -22,7 +22,7 @@ def get_download_url():
     """ Does the actual scraping and finds the url to the download (including the file name)
 
         Returns:
-            Download URL and name (with date) of the file
+            Download URL of the file
     """
     logger.info('Finding download URL.')
     site_url = 'https://www.usgs.gov/core-science-systems/ngp/board-on-geographic-names/download-gnis-data'
@@ -36,7 +36,7 @@ def get_download_url():
         if link.get('href') and 'NationalFedCodes.zip' in link.get('href'):
             return link.get('href')
 
-    return None, None
+    return None
 
 
 def download_and_extract_file(file_dir, file_url):
