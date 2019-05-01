@@ -6,6 +6,8 @@ import pandas as pd
 from datetime import datetime
 import urllib.request
 
+from dataactbroker.helpers.pandas_helper import check_dataframe_diff
+
 from dataactcore.logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_BROKER
@@ -185,37 +187,13 @@ def load_city_data(city_file, force_reload):
             city_file: path/url to file to gather City data from
             force_reload: boolean to determine if reload should happen whether there are differences or not
     """
-    now = datetime.now()
+    sess = GlobalDB.db().session
     # parse the new city code data
     new_data = parse_city_file(city_file)
 
-    new_data_copy = new_data.copy(deep=True)
-    # Mock the pk and date columns that postgres creates. Set it universally to 1 and "now"
-    new_data_copy = new_data_copy.assign(city_code_id=1, created_at=now, updated_at=now)
+    diff_found = check_dataframe_diff(new_data, CityCode, 'city_code_id', ['state_code', 'city_code'])
 
-    sess = GlobalDB.db().session
-    current_data = pd.read_sql_table(CityCode.__table__.name, sess.connection(), coerce_float=False)
-    # Overwrite the db's dates and PKs so they match
-    current_data = current_data.assign(city_code_id=1, created_at=now, updated_at=now)
-
-    # pandas comparison requires everything to be in the same order
-    new_data_copy.sort_values(by=['state_code', 'city_code'], inplace=True)
-    current_data.sort_values(by=['state_code', 'city_code'], inplace=True)
-
-    # Columns have to be in order too
-    cols = new_data_copy.columns.tolist()
-    cols.sort()
-    new_data_copy = new_data_copy[cols]
-
-    cols = current_data.columns.tolist()
-    cols.sort()
-    current_data = current_data[cols]
-
-    # Reset indexes after sorting, so that they match
-    new_data_copy.reset_index(drop=True, inplace=True)
-    current_data.reset_index(drop=True, inplace=True)
-
-    if force_reload or not new_data_copy.equals(current_data):
+    if force_reload or diff_found:
         logger.info('Differences found or reload forced, reloading city_code table.')
         # delete any data in the CityCode table
         sess.query(CityCode).delete()
