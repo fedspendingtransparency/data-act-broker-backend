@@ -34,7 +34,7 @@ def add_generation_routes(app, is_local, server_path):
                                             error="Must be either awarding or funding if provided")
         )
     })
-    def generate_file(submission_id, **kwargs):
+    def generate_file(submission_id, file_type, **kwargs):
         """ Kick of a file generation, or retrieve the cached version of the file.
 
             Attributes:
@@ -44,7 +44,6 @@ def add_generation_routes(app, is_local, server_path):
                 end: the end date for the file to generate
                 agency_type: The type of agency (awarding or funding) to generate the file for
         """
-        file_type = kwargs.get('file_type')
         start = kwargs.get('start')
         end = kwargs.get('end')
         agency_type = kwargs.get('agency_type')
@@ -83,7 +82,7 @@ def add_generation_routes(app, is_local, server_path):
                                             error="Must be either awarding or funding if provided")
         )
     })
-    def generate_detached_file(**kwargs):
+    def generate_detached_file(file_type, **kwargs):
         """ Generate a file from external API, independent from a submission
 
             Attributes:
@@ -96,7 +95,6 @@ def add_generation_routes(app, is_local, server_path):
                 period: integer indicating the period to generate for (2-12)
                 agency_type: The type of agency (awarding or funding) to generate the file for
         """
-        file_type = kwargs.get('file_type')
         cgac_code = kwargs.get('cgac_code')
         frec_code = kwargs.get('frec_code')
         start = kwargs.get('start')
