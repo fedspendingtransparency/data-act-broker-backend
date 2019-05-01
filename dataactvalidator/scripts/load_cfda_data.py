@@ -111,7 +111,7 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         table_name = model.__table__.name
         # Check if there is new data to load
         new_data = check_dataframe_diff(import_data, model, 'cfda_program_id', ['program_number'],
-                                       lambda_funcs={'program_number': fix_program_number})
+                                        lambda_funcs={'program_number': fix_program_number})
         if new_data:
             # insert to db
             sess.query(model).delete()
