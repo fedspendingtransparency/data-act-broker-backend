@@ -8,8 +8,9 @@ _TAS = 'a7_appropriations_tas'
 
 
 def test_success(database):
-    """ Tests that SF 133 amount for line 1000 matches Appropriation budget_authority_unobligat_fyb
-        for the specified fiscal year and period """
+    """ Tests that SF 133 amount for line 1000 matches Appropriation budget_authority_unobligat_fyb for the specified
+        fiscal year and period
+    """
     tas_1 = "".join([_TAS, "_success"])
     tas_2 = "".join([_TAS, "_success_2"])
 
@@ -24,8 +25,9 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Tests that SF 133 amount for line 1000 does not match Appropriation budget_authority_unobligat_fyb
-        for the specified fiscal year and period """
+    """ Tests that SF 133 amount for line 1000 does not match Appropriation budget_authority_unobligat_fyb for the
+        specified fiscal year and period
+    """
     tas = "".join([_TAS, "_failure"])
 
     sf = SF133(line=1000, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
