@@ -18,4 +18,4 @@ FROM appropriation_a7_{0} AS approp
         AND sf.period = sub.reporting_fiscal_period
         AND sf.fiscal_year = sub.reporting_fiscal_year
 WHERE sf.line = 1000
-    AND approp.budget_authority_unobligat_fyb <> sf.amount;
+    AND COALESCE(approp.budget_authority_unobligat_fyb, 0) <> sf.amount;
