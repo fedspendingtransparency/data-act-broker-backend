@@ -8,6 +8,8 @@ import math
 from datetime import datetime
 import json
 
+from dataactbroker.helpers.pandas_helper import check_dataframe_diff
+
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import CFDAProgram
@@ -97,7 +99,6 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         configure_logging()
         sess = GlobalDB.db().session
 
-        now = datetime.utcnow()
         import_data = pd.read_csv(filename, dtype=str, encoding='cp1252', na_filter=False)
         import_data = clean_data(
             import_data,
@@ -107,39 +108,10 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         )
         import_data["published_date"] = format_date(import_data["published_date"])
         import_data["archived_date"] = format_date(import_data["archived_date"])
-        import_dataframe = import_data.copy(deep=True)
-        # To do the comparison, first we need to mock the pk column that postgres creates. We'll set it universally to 1
-        import_dataframe = import_dataframe.assign(cfda_program_id=1, created_at=now, updated_at=now)
-
         table_name = model.__table__.name
-        current_data = pd.read_sql_table(table_name, sess.connection(), coerce_float=False)
-        # Now we need to overwrite the db's audit dates in the created dataframe, and also set all the  pks to 1, so
-        # they match
-        current_data = current_data.assign(cfda_program_id=1, created_at=now, updated_at=now)
-        # pandas comparison requires everything to be in the same order
-        current_data.sort_values('program_number', inplace=True)
-        import_dataframe.sort_values('program_number', inplace=True)
-
-        # columns too
-        cols = import_dataframe.columns.tolist()
-        cols.sort()
-        import_dataframe = import_dataframe[cols]
-
-        cols = current_data.columns.tolist()
-        cols.sort()
-        current_data = current_data[cols]
-
-        # need to reset the indexes now that we've done all this sorting, so that they match
-        import_dataframe.reset_index(drop=True, inplace=True)
-        current_data.reset_index(drop=True, inplace=True)
-        # My favorite part: When pandas pulls the data out of postgres, the program_number column is a Decimal. However,
-        # in adding it to the dataframe, this column loses precision. So for example, a program number  of 10.001
-        # imports into the dataframe as 10.000999999999999. It also needs to be cast to a string, and padded with the
-        # right number of zeroes, as needed.
-        current_data['program_number'] = current_data['program_number'].apply(lambda x: fix_program_number(x))
-        # Finally, you can execute this and get True back if the data truly has not changed from the last time the CSV
-        # was loaded.
-        new_data = not import_dataframe.equals(current_data)
+        # Check if there is new data to load
+        new_data = check_dataframe_diff(import_data, model, 'cfda_program_id', ['program_number'],
+                                       lambda_funcs={'program_number': fix_program_number})
         if new_data:
             # insert to db
             sess.query(model).delete()
