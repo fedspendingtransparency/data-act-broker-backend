@@ -20,4 +20,4 @@ FROM appropriation_a11_{0} AS approp
 WHERE sf.line IN (1750, 1850)
 GROUP BY approp.row_number,
     approp.spending_authority_from_of_cpe
-HAVING approp.spending_authority_from_of_cpe <> SUM(sf.amount);
+HAVING COALESCE(approp.spending_authority_from_of_cpe, 0) <> SUM(sf.amount);
