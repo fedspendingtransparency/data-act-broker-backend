@@ -34,7 +34,10 @@ def check_dataframe_diff(new_data, model, id_col, sort_cols, lambda_funcs=None):
     sess = GlobalDB.db().session
     current_data = pd.read_sql_table(model.__table__.name, sess.connection(), coerce_float=False)
     # Drop the created_at and updated_at for the same reason as above, also drop the pk ID column for this table
-    current_data.drop([id_col, 'created_at', 'updated_at'], axis=1, inplace=True)
+    try:
+        current_data.drop([id_col, 'created_at', 'updated_at'], axis=1, inplace=True)
+    except ValueError:
+        logger.info('id column, created_at, or updated_at not found, drop skipped.')
 
     # pandas comparison requires everything to be in the same order
     new_data_copy.sort_values(by=sort_cols, inplace=True)
