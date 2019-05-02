@@ -1,6 +1,9 @@
 import pandas as pd
+import logging
 
 from dataactcore.interfaces.db import GlobalDB
+
+logger = logging.getLogger(__name__)
 
 
 def check_dataframe_diff(new_data, model, id_col, sort_cols, lambda_funcs=None):
@@ -23,7 +26,10 @@ def check_dataframe_diff(new_data, model, id_col, sort_cols, lambda_funcs=None):
     new_data_copy = new_data.copy(deep=True)
 
     # Drop the created_at and updated_at columns from the new data so they don't cause differences
-    new_data_copy.drop(['created_at', 'updated_at'], axis=1, inplace=True)
+    try:
+        new_data_copy.drop(['created_at', 'updated_at'], axis=1, inplace=True)
+    except ValueError:
+        logger.info('created_at or updated_at column not found, drop skipped.')
 
     sess = GlobalDB.db().session
     current_data = pd.read_sql_table(model.__table__.name, sess.connection(), coerce_float=False)
