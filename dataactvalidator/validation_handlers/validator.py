@@ -306,7 +306,6 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
 
     # For each rule, execute sql for rule
     for rule in rules:
-
         rule_start = datetime.now()
         logger.info({
             'message': 'Beginning SQL validation rule {} {}'.format(rule.query_name, log_string),
