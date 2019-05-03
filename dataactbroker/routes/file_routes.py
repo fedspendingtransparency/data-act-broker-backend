@@ -38,7 +38,8 @@ def add_file_routes(app, is_local, server_path):
     @convert_to_submission_id
     @requires_submission_perms('reader')
     @use_kwargs({'type': webargs_fields.String(missing='')})
-    def check_status(submission, type):
+    def check_status(submission, **kwargs):
+        type = kwargs.get('type')
         return get_status(submission, type)
 
     @app.route("/v1/submission_metadata/", methods=["GET"])
@@ -51,7 +52,8 @@ def add_file_routes(app, is_local, server_path):
     @convert_to_submission_id
     @requires_submission_perms('reader')
     @use_kwargs({'type': webargs_fields.String(missing='')})
-    def submission_data(submission, type):
+    def submission_data(submission, **kwargs):
+        type = kwargs.get('type')
         return get_submission_data(submission, type)
 
     @app.route("/v1/revalidation_threshold/", methods=["GET"])
@@ -82,8 +84,14 @@ def add_file_routes(app, is_local, server_path):
         'fabs': webargs_fields.Bool(missing=False),
         'filters': webargs_fields.Dict(keys=webargs_fields.String(), missing={})
     })
-    def list_submissions(page, limit, certified, sort, order, fabs, filters):
+    def list_submissions(certified, **kwargs):
         """ List submission IDs associated with the current user """
+        page = kwargs.get('page')
+        limit = kwargs.get('limit')
+        sort = kwargs.get('sort')
+        order = kwargs.get('order')
+        fabs = kwargs.get('fabs')
+        filters = kwargs.get('filters')
         return list_submissions_handler(page, limit, certified, sort, order, fabs, filters)
 
     @app.route("/v1/list_certifications/", methods=["POST"])
@@ -100,8 +108,9 @@ def add_file_routes(app, is_local, server_path):
         'is_warning': webargs_fields.Bool(missing=False)
     })
     @requires_submission_perms('reader')
-    def get_certified_file(submission, certified_files_history_id, is_warning):
+    def get_certified_file(submission, certified_files_history_id, **kwargs):
         """ Get the signed URL for the specified file history """
+        is_warning = kwargs.get('is_warning')
         return file_history_url(submission, certified_files_history_id, is_warning, is_local)
 
     @app.route("/v1/check_current_page/", methods=["GET"])
@@ -153,15 +162,17 @@ def add_file_routes(app, is_local, server_path):
     @app.route("/v1/submission/<int:submission_id>/report_url", methods=['GET'])
     @requires_submission_perms('reader')
     @use_kwargs({
-        'warning': webargs_fields.Bool(),
         'file_type': webargs_fields.String(
             required=True,
             validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys() - {'executive_compensation', 'sub_award'})
         ),
+        'warning': webargs_fields.Bool(),
         'cross_type': webargs_fields.String(validate=webargs_validate.OneOf(['program_activity', 'award_financial',
                                                                              'award_procurement', 'award']))
     })
-    def post_submission_report_url(submission, warning, file_type, cross_type):
+    def post_submission_report_url(submission, file_type, **kwargs):
+        warning = kwargs.get('warning')
+        cross_type = kwargs.get('cross_type')
         return submission_report_url(submission, bool(warning), file_type, cross_type)
 
     @app.route("/v1/get_file_url", methods=['GET'])
@@ -195,12 +206,14 @@ def add_file_routes(app, is_local, server_path):
 
     @app.route("/v1/check_year_quarter/", methods=["GET"])
     @requires_login
-    @use_kwargs({'cgac_code': webargs_fields.String(),
-                 'frec_code': webargs_fields.String(),
-                 'reporting_fiscal_year': webargs_fields.String(required=True),
-                 'reporting_fiscal_period': webargs_fields.String(required=True)})
-    def check_year_and_quarter(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period):
+    @use_kwargs({'reporting_fiscal_year': webargs_fields.String(required=True),
+                 'reporting_fiscal_period': webargs_fields.String(required=True),
+                 'cgac_code': webargs_fields.String(),
+                 'frec_code': webargs_fields.String()})
+    def check_year_and_quarter(reporting_fiscal_year, reporting_fiscal_period, **kwargs):
         """ Check if cgac (or frec) code, year, and quarter already has a published submission """
+        cgac_code = kwargs.get('cgac_code')
+        frec_code = kwargs.get('frec_code')
         return find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period)
 
     @app.route("/v1/certify_submission/", methods=['POST'])
@@ -214,5 +227,6 @@ def add_file_routes(app, is_local, server_path):
     @convert_to_submission_id
     @requires_submission_perms('writer', check_fabs='editfabs')
     @use_kwargs({'d2_submission': webargs_fields.Bool(missing=False)})
-    def restart_validation(submission, d2_submission):
+    def restart_validation(submission, **kwargs):
+        d2_submission = kwargs.get('d2_submission')
         return FileHandler.restart_validation(submission, d2_submission)
