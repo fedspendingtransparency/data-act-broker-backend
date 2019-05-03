@@ -44,6 +44,8 @@ class SQSWorkDispatcher:
             EXIT_SIGNALS (List[int]): Delineates each of the signals we want to handle, which represent a case where
                 the work being performed is prematurely halting, and the process will exit
 
+
+
     """
     _logger = logging.getLogger(__name__)
 
@@ -78,6 +80,7 @@ class SQSWorkDispatcher:
         self._current_sqs_message = None
         self._worker_process = None
         self._job_args = ()
+        self._job_kwargs = {}
         self._exit_handler = None
         self._parent_dispatcher_pid = os.getppid()
         self._sqs_heartbeat_log_period_seconds = 15  # log the heartbeat extension of visibility at most this often
@@ -125,7 +128,7 @@ class SQSWorkDispatcher:
         retries = redrive_json.get("maxReceiveCount")
         return retries and retries > 1
 
-    def _dispatch(self, job, job_args, worker_process_name=None, exit_handler=None):
+    def _dispatch(self, job, worker_process_name=None, exit_handler=None, *job_args, **job_kwargs):
         """ Dispatch work to be performed in a newly started worker process.
 
             Execute the callable job that will run in a separate child worker process. The worker process
@@ -133,12 +136,13 @@ class SQSWorkDispatcher:
 
             Args:
                 job (Callable): callable to use as the target of a the new child process
-                job_args (tuple): arguments to be passed to the job
                 worker_process_name (str): Name given to the newly created child process. If not already set,
                     defaults to the name of the provided job callable
                 exit_handler (callable): a callable to be called when handling an :attr:`EXIT_SIGNALS` signal,
                     giving the opportunity to perform cleanup before the process exits. Gets the job_args passed to it
                     when run
+                job_args (tuple): arguments to be passed to the job TODO update type/docs
+                job_kwargs (dict): keyword arguments to be passed to the job TODO update type/docs
 
             Returns:
                 bool: True if a message was found on the queue and dispatched to completion, without error. Otherwise it
@@ -154,13 +158,14 @@ class SQSWorkDispatcher:
         log_job_message(
             logger=self._logger,
             message="Creating and starting worker process named [{}] to invoke callable [{}] "
-                    "with arguments [{}]".format(self.worker_process_name, job, job_args)
+                    "with args={} and kwargs={}".format(self.worker_process_name, job, job_args, job_kwargs)
         )
 
         # Set the exit_handler function if provided, or reset to None
-        # Also save the job_args, which will be passed to the exit_handler
+        # Also save the job_args, and job_kwargs, which will be passed to the exit_handler
         self._exit_handler = exit_handler
         self._job_args = job_args
+        self._job_kwargs = job_kwargs
 
         # Use the 'fork' method to create a new child process.
         # This shares the same python interpreter and memory space and references as the parent process
@@ -168,17 +173,17 @@ class SQSWorkDispatcher:
         # executed with some before-advice that resets the signal-handlers to python-defaults within the child process
         ctx = mp.get_context("fork")
 
-        def signal_reset_wrapper(func, args):
+        def signal_reset_wrapper(func, args, kwargs):
             # Reset signal handling to defaults in process that calls this
             for sig in self.EXIT_SIGNALS:
                 signal.signal(sig, signal.SIG_DFL)
             # Then execute the given function with the given args
-            func(*args)
+            func(*args, **kwargs)
 
         self._worker_process = ctx.Process(
             name=self.worker_process_name,
             target=signal_reset_wrapper,
-            args=(job, job_args),
+            args=(job, job_args, job_kwargs),
             daemon=True  # daemon=True ensures that if the parent dispatcher dies, it will kill this child worker
         )
         self._worker_process.start()
@@ -193,24 +198,49 @@ class SQSWorkDispatcher:
         self._monitor_work_progress()
         return True
 
-    def dispatch(self, job, message_transformer=lambda x: x.body, additional_job_args=(),
-                 worker_process_name=None, exit_handler=None):
-        """ Get work from the queue and dispatch it in a newly starter worker process
+    def dispatch(self, job, *additional_job_args, message_transformer=lambda x: x.body, worker_process_name=None,
+                 exit_handler=None, **additional_job_kwargs):
+        """ Get work from the queue and dispatch it in a newly started worker process.
 
-            Poll the queue for a message to work on. Combine that message with any
-            ``_additional_job_args`` passed into the constructor, and feed this complete set of arguments to the
-            provided callable job that will be executed in a separate worker process. The worker process will be
-            monitored so that heartbeats can be sent to the SQS to allow it to keep going.
+            Poll the queue for a message to work on. Any additional (not named in the signature) args or additional
+            (not named in the signature) keyword-args will be combined with the args/kwargs provided by the
+            message_transformer. This complete set of arguments is provided to the callable :param:`job` that will be
+            executed in a separate worker process. The worker process will be monitored so that heartbeats can be
+            sent to the SQS to allow it to keep going.
 
             Args:
                 job (Callable[]): the callable to execute as work for the job
+                additional_job_args: Zero or many variadic args that are unnamed (not keyword) that may be
+                    passed along with those from the message to the callable job. NOTE: Passing args to the job this
+                    way can be done when needed, but it is preferred to use keyword-args to be more explicit what
+                    values are going to what args.
                 message_transformer: A lambda to extract arguments to be passed to the callable from the queue message.
-                    By default, a function that just returns the message body is used.
-                additional_job_args: Additional arguments to provide to the callable, along with those from the message
+                    By default, a function that just returns the message body is used. A provided transformer can
+                    return a single object as its arg, a tuple of args, or a dictionary of named args (which will
+                    be used as keyword-args in the job invocation). This is a keyword-only argument that can only be
+                    passed with its name: ``message_transformer=xxx``
                 worker_process_name: Name given to the newly created child process. If not already set, defaults to
-                    the name of the provided job callable
+                    the name of the provided job callable. This is a keyword-only argument that can only be
+                    passed with its name: ``worker_process_name=abc``
                 exit_handler: a callable to be called when handling an :attr:`EXIT_SIGNALS` signal, giving the
-                    opportunity to perform cleanup before the process exits. Gets the job_args passed to it when run
+                    opportunity to perform cleanup before the process exits. When invoked, it gets the same args passed
+                    to it that were passed to the :param:`job` callable.
+                additional_job_kwargs: Zero or many variadic keyword-args that may be passed along with those from
+                    the message to the callable job
+
+            Examples:
+                Given job function::
+
+                    def my_job(a, b, c, d):
+                        pass  # do something
+
+                The preferred way to dispatch it is with a message_transformer that returns a dictionary and,
+                if necessary, additional args passed as keyword args::
+
+                    dispatcher.dispatch(my_job,
+                                        message_transformer=lambda x: {"a": x.body, "b": db.get_org(x.body)},
+                                        c=some_tracking_id,
+                                        d=datetime.datetime.now())
 
             Returns:
                 bool: True if a message was found on the queue and dispatched, otherwise False if nothing on the queue
@@ -224,24 +254,45 @@ class SQSWorkDispatcher:
         self._dequeue_message(self._long_poll_seconds)
         if self._current_sqs_message is None:
             return False
+
+        job_args = ()
+        job_kwargs = additional_job_kwargs  # important that this be set as default, in case msg_args is not also a dict
         msg_args = message_transformer(self._current_sqs_message)
         if isinstance(msg_args, list) or isinstance(msg_args, tuple):
-            job_args = tuple(i for i in msg_args) + additional_job_args
+            job_args = tuple(msg_args) + additional_job_args
+        elif isinstance(msg_args, dict):
+            if msg_args.keys() & additional_job_kwargs.keys():
+                raise KeyError("message_transformer produces named keyword args that are duplicative of those in "
+                               "additional_job_kwargs and would be overwritten")
+            job_kwargs = {**msg_args, **additional_job_kwargs}
         else:
             job_args = (msg_args,) + additional_job_args
-        return self._dispatch(job, job_args, worker_process_name, exit_handler)
 
-    def dispatch_by_message_attribute(self, message_transformer, additional_job_args=(), worker_process_name=None):
+        return self._dispatch(job, worker_process_name, exit_handler, *job_args, **job_kwargs)
+
+    def dispatch_by_message_attribute(self, message_transformer, *additional_job_args, worker_process_name=None,
+                                      **additional_job_kwargs):
         """ Use a provided function to derive the callable job and its arguments from attributes within the queue
             message
 
             Args:
-                message_transformer (Callable[[SQS.Message], tuple): The callable function that returns a tuple of
-                    ``(job, job_args)`` or ``(job, job_args, exit_handler)`` if an exit_handler is required
-               additional_job_args (tuple): Additional arguments to provide to the callable, along with those from the
+                message_transformer (Callable[[SQS.Message], dict]): A callable function that returns a dict of::
+
+                    {
+                        'job': Callable,          # Required. The job to run
+                        'job_args': tuple,        # Optional. The job args as a list or tuple.
+                        'job_kwargs': dict,       # Optional. The job args as a mapping (dict). Preferred.
+                        'exit_handler': Callable  # Optional. A callable to be called when handling an
+                                                        :attr:`EXIT_SIGNALS` signal, giving the opportunity to
+                                                        perform cleanup before the process exits. Gets the ``job_args``
+                                                        and ``job_kwargs`` passed to it when run.
+                    }
+
+                worker_process_name (str): Name given to the newly created child process. If not already set, defaults
+                    to the name of the provided job callable
+                additional_job_args (tuple): Additional arguments to provide to the callable, along with those from the
                  message
-               worker_process_name (str): Name given to the newly created child process. If not already set, defaults to
-                    the name of the provided job callable
+                additional_job_kwargs (dict): TODO
 
             Raises:
                 SystemExit(1): If it can't connect to the queue or receive messages
@@ -255,24 +306,28 @@ class SQSWorkDispatcher:
         self._dequeue_message(self._long_poll_seconds)
         if self._current_sqs_message is None:
             return False
+
+        job_args = ()
+        job_kwargs = {}
         results = message_transformer(self._current_sqs_message)
 
-        # exit_handler: a callable to be called when handling an `EXIT_SIGNAL` signal, giving the
-        # opportunity to perform cleanup before the process exits. Gets the job_args passed to it when run
-        # If provided in this method, it needs to be provided as an optional 3rd item of the
-        # message_transformer's returned tuple
-        exit_handler = None if not len(results) == 3 else results[2]  # assign 3rd return val as optional exit_handler
-        job, msg_args = results[:2]
-        log_job_message(
-            logger=self._logger,
-            message="Got job [{}] and msg_args [{}]. exit_handler = [{}]".format(job, msg_args, exit_handler),
-            is_debug=True
-        )
+        # Get the result components
+        job = results["job"]
+        exit_handler = results.get("exit_handler")
+        msg_args = results.get("job_args") or ()
+        msg_kwargs = results.get("job_kwargs") or {}
+
         if isinstance(msg_args, list) or isinstance(msg_args, tuple):
-            job_args = tuple(i for i in msg_args) + additional_job_args
+            job_args = tuple(msg_args) + additional_job_args
         else:
-            job_args = (msg_args,) + additional_job_args
-        return self._dispatch(job, job_args, worker_process_name, exit_handler)
+            job_args = (msg_args,) + additional_job_args  # single element
+
+        if msg_kwargs.keys() & additional_job_kwargs.keys():
+            raise KeyError("message_transformer produces named keyword args that are duplicative of those in "
+                           "additional_job_kwargs and would be overwritten")
+        job_kwargs = {**msg_kwargs, **additional_job_kwargs}
+
+        return self._dispatch(job, worker_process_name, exit_handler, *job_args, **job_kwargs)
 
     def _dequeue_message(self, wait_time):
         """ Attempt to get a single message from the queue.
@@ -645,9 +700,21 @@ class SQSWorkDispatcher:
                         if queue_message_param or arg_spec.varkw == "kwargs":
                             # it defines a param named "queue_message", or accepts kwargs,
                             # so pass along the message as "queue_message" in  case it's needed
-                            self._exit_handler(*self._job_args, queue_message=self._current_sqs_message)
+                            log_job_message(
+                                logger=self._logger,
+                                message="Invoking job exit_handler [{}] with args={}, kwargs={}, "
+                                        "and queue_message={}".format(self._exit_handler, self._job_args,
+                                                                      self._job_kwargs, self._current_sqs_message)
+                            )
+                            self._exit_handler(*self._job_args, **self._job_kwargs,
+                                               queue_message=self._current_sqs_message)
                         else:
-                            self._exit_handler(*self._job_args)
+                            log_job_message(
+                                logger=self._logger,
+                                message="Invoking job exit_handler [{}] with args={} "
+                                        "and kwargs={}".format(self._exit_handler, self._job_args, self._job_kwargs)
+                            )
+                            self._exit_handler(*self._job_args, **self._job_kwargs)
                 except TimeoutError:
                     exit_handling_failed = True
                     if not is_retry:
