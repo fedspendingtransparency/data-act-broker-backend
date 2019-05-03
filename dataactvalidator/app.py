@@ -75,11 +75,17 @@ def run_app():
                 msg_attr = message.message_attributes
                 if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
                     # Generating a file
-                    return validator_process_file_generation, (message.body, is_retry)
+                    job_signature = {"_job": validator_process_file_generation,
+                                     "file_gen_id": message.body,
+                                     "is_retry": is_retry}
                 else:
                     # Running validations (or generating a file from a Job)
                     a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
-                    return validator_process_job, (message.body, a_agency_code, is_retry)
+                    job_signature = {"_job": validator_process_job,
+                                     "job_id": message.body,
+                                     "agency_code": a_agency_code,
+                                     "is_retry": is_retry}
+                return job_signature
 
             found_message = dispatcher.dispatch_by_message_attribute(choose_job_by_message_attributes)
 
