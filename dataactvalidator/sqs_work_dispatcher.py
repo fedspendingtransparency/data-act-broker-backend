@@ -201,7 +201,7 @@ class SQSWorkDispatcher:
         self._monitor_work_progress()
         return True
 
-    def dispatch(self, job, *additional_job_args, message_transformer=lambda x: x.body, worker_process_name=None,
+    def dispatch(self, job, *additional_job_args, message_transformer=lambda msg: msg.body, worker_process_name=None,
                  exit_handler=None, **additional_job_kwargs):
         """ Get work from the queue and dispatch it in a newly started worker process.
 
@@ -241,7 +241,7 @@ class SQSWorkDispatcher:
                 if necessary, additional args passed as keyword args::
 
                     dispatcher.dispatch(my_job,
-                                        message_transformer=lambda x: {"a": x.body, "b": db.get_org(x.body)},
+                                        message_transformer=lambda msg: {"a": msg.body, "b": db.get_org(msg.body)},
                                         c=some_tracking_id,
                                         d=datetime.datetime.now())
 
@@ -284,12 +284,17 @@ class SQSWorkDispatcher:
 
                     {
                         '_job': Callable,          # Required. The job to run
-                        '_job_args': tuple,        # Optional. The job args as a list or tuple.
-                        '_job_kwargs': dict,       # Optional. The job args as a mapping (dict). Preferred.
                         '_exit_handler': Callable  # Optional. A callable to be called when handling an
                                                         :attr:`EXIT_SIGNALS` signal, giving the opportunity to
                                                         perform cleanup before the process exits. Gets the ``job_args``
-                                                        and ``job_kwargs`` passed to it when run.
+                                                        and any other items in this dict as args passed to it when run.
+                        '_job_args': tuple,        # Optional. Partial or full collection of job args as a list or
+                                                        tuple.
+                        'named_job_arg1': Any,     # Optional. A named argument to be used as a keyword arg when
+                                                        calling the job. ``named_job_arg1`` is representative, and the
+                                                        actual names of the ``_job``'s params should be used here.
+                                                        This is the preferred way to pass args to the ``_job``
+                        'named_job_argN: Any       # Optional: Same as above. As many as are needed.
                     }
 
                 worker_process_name (str): Name given to the newly created child process. If not already set, defaults
@@ -307,13 +312,18 @@ class SQSWorkDispatcher:
                     def my_job(a, b, c, d):
                         pass  # do something
 
-                The preferred way to dispatch it is with a message_transformer that returns a dictionary and,
+                The preferred way to dispatch it is with a ``message_transformer`` that returns a dictionary and,
                 if necessary, additional args passed as keyword args::
 
-                    dispatcher.dispatch(my_job,
-                                        message_transformer=lambda x: {"a": x.body, "b": db.get_org(x.body)},
-                                        c=some_tracking_id,
-                                        d=datetime.datetime.now())
+                    def work_routing_message_transformer(msg):
+                        job = job_strategy_factory.from(msg.message_attributes["origin"]["StringValue"])
+                        return {"_job": job,
+                                "a": msg.body,
+                                "b": db.get_org(msg.body)}
+
+                    dispatcher.dispatch_by_message_attribute(work_routing_message_transformer,
+                                                             c=some_tracking_id,
+                                                             d=datetime.datetime.now())
 
             Returns:
                 bool: True if a message was found on the queue and dispatched, otherwise False if nothing on the queue
@@ -333,14 +343,13 @@ class SQSWorkDispatcher:
         results = message_transformer(self._current_sqs_message)
 
         def parse_message_transformer_results(_job, _exit_handler=None, _job_args=(), **_job_kwargs):
+            """ Use to map dictionary items to this functions params, and packs up remaining items in a separate
+                dictionary. Then returns the organized data as a 4-tuple
+            """
             return _job, _exit_handler, _job_args, _job_kwargs
 
         # Parse the result components from the returned dictionary
         job, exit_handler, msg_args, msg_kwargs = parse_message_transformer_results(**results)
-        # job = results["_job"]
-        # exit_handler = results.get("exit_handler")
-        # msg_args = results.get("job_args") or ()
-        # msg_kwargs = results.get("job_kwargs") or {}
 
         if isinstance(msg_args, list) or isinstance(msg_args, tuple):
             job_args = tuple(msg_args) + additional_job_args
