@@ -75,6 +75,40 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         # Worker process should have a successful (0) exitcode
         self.assertEqual(0, dispatcher._worker_process.exitcode)
 
+    def test_dispatch_with_single_dict_item_message_transformer_succeeds(self):
+        """ SQSWorkDispatcher can execute work on a numeric message body provided from the message
+            transformer as a dict
+
+            - Given a numeric message body
+            - When on a SQSWorkDispatcher.dispatch() is called
+            - And a message_transformer wraps that message body into a dict,
+                keyed by the name of the single param of the job
+            - Then the dispatcher provides the dict item's value to the job when invoked
+        """
+        queue = sqs_queue()
+        queue.send_message(MessageBody=1234)
+
+        dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
+                                       long_poll_seconds=1, monitor_sleep_time=1)
+
+        def do_some_work(task_id):
+            self.assertEqual(1234, task_id)  # assert the message body is passed in as arg by default
+
+            # The "work" we're doing is just putting something else on the queue
+            queue_in_use = sqs_queue()
+            queue_in_use.send_message(MessageBody=9999)
+
+        dispatcher.dispatch(do_some_work, message_transformer=lambda x: {"task_id": x.body})
+        dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
+
+        # Make sure the "work" was done
+        messages = queue.receive_messages(WaitTimeSeconds=1, MaxNumberOfMessages=10)
+        self.assertEqual(1, len(messages))
+        self.assertEqual(9999, messages[0].body)
+
+        # Worker process should have a successful (0) exitcode
+        self.assertEqual(0, dispatcher._worker_process.exitcode)
+
     def test_dispatch_with_multi_arg_message_transformer_succeeds(self):
         """ SQSWorkDispatcher can execute work when a message_transformer provides tuple-based args to use
 
@@ -268,9 +302,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         def work_one_or_two(message):
             msg_attr = message.message_attributes
             if msg_attr and msg_attr.get('work_type', {}).get('StringValue') == 'a':
-                return {"job": one_work, "job_args": (message.body,)}
+                return {"_job": one_work, "_job_args": (message.body,)}
             else:
-                return {"job": two_work, "job_args": (message.body,)}
+                return {"_job": two_work, "_job_args": (message.body,)}
 
         dispatcher.dispatch_by_message_attribute(work_one_or_two)
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
@@ -317,9 +351,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         def work_one_or_two(message):
             msg_attr = message.message_attributes
             if msg_attr and msg_attr.get('work_type', {}).get('StringValue') == 'a':
-                return {"job": one_work, "job_kwargs": {"task_id": message.body}}
+                return {"_job": one_work, "task_id": message.body}
             else:
-                return {"job": two_work, "job_kwargs": {"task_id": message.body}}
+                return {"_job": two_work, "task_id": message.body}
 
         dispatcher.dispatch_by_message_attribute(work_one_or_two)
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
@@ -368,9 +402,9 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         def work_one_or_two(message):
             msg_attr = message.message_attributes
             if msg_attr and msg_attr.get('work_type', {}).get('StringValue') == 'a':
-                return {"job": one_work, "job_args": (message.body,), "job_kwargs": {"category": "one work"}}
+                return {"_job": one_work, "_job_args": (message.body,), "category": "one work"}
             else:
-                return {"job": one_work, "job_args": (message.body,), "job_kwargs": {"category": "two work"}}
+                return {"_job": one_work, "_job_args": (message.body,), "category": "two work"}
 
         dispatcher.dispatch_by_message_attribute(work_one_or_two)
         dispatcher._worker_process.join(5)  # wait at most 5 sec for the work to complete
@@ -392,6 +426,7 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             - Then the correct function is executed
             - And it can get its args from the job_args item and keyword arguments for execution from the job_kwargs
                 item of the message_transformer's returned dictionary
+            - And can append to those additional args and additional kwargs
         """
         queue = sqs_queue()
         message_attr = {"work_type": {"DataType": "String", "StringValue": "a"}}
@@ -431,13 +466,13 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         def work_one_or_two(message):
             msg_attr = message.message_attributes
             if msg_attr and msg_attr.get('work_type', {}).get('StringValue') == 'a':
-                return {"job": one_work,
-                        "job_args": (message.body, "one work"),
-                        "job_kwargs": {"kwarg1": "my_kwarg_1"}}
+                return {"_job": one_work,
+                        "_job_args": (message.body, "one work"),
+                        "kwarg1": "my_kwarg_1"}
             else:
-                return {"job": one_work,
-                        "job_args": (message.body, "two work"),
-                        "job_kwargs": {"kwarg1": "my_kwarg_1"}}
+                return {"_job": one_work,
+                        "_job_args": (message.body, "two work"),
+                        "kwarg1": "my_kwarg_1"}
 
         dispatcher.dispatch_by_message_attribute(work_one_or_two, "my_extra_arg_1", "my_extra_arg_2",
                                                  xkwarg1="my_extra_kwarg_1", xkwarg2="my_extra_kwarg_2",

@@ -283,10 +283,10 @@ class SQSWorkDispatcher:
                 message as its argument and returns a dict of::
 
                     {
-                        'job': Callable,          # Required. The job to run
-                        'job_args': tuple,        # Optional. The job args as a list or tuple.
-                        'job_kwargs': dict,       # Optional. The job args as a mapping (dict). Preferred.
-                        'exit_handler': Callable  # Optional. A callable to be called when handling an
+                        '_job': Callable,          # Required. The job to run
+                        '_job_args': tuple,        # Optional. The job args as a list or tuple.
+                        '_job_kwargs': dict,       # Optional. The job args as a mapping (dict). Preferred.
+                        '_exit_handler': Callable  # Optional. A callable to be called when handling an
                                                         :attr:`EXIT_SIGNALS` signal, giving the opportunity to
                                                         perform cleanup before the process exits. Gets the ``job_args``
                                                         and ``job_kwargs`` passed to it when run.
@@ -300,6 +300,20 @@ class SQSWorkDispatcher:
                     :param:`additional_job_kwargs` to be more explicit what arg values are going to what params.
                 additional_job_kwargs: Zero or many variadic keyword-args that may be passed along with those from
                     the message to the callable job
+
+            Examples:
+                Given job function::
+
+                    def my_job(a, b, c, d):
+                        pass  # do something
+
+                The preferred way to dispatch it is with a message_transformer that returns a dictionary and,
+                if necessary, additional args passed as keyword args::
+
+                    dispatcher.dispatch(my_job,
+                                        message_transformer=lambda x: {"a": x.body, "b": db.get_org(x.body)},
+                                        c=some_tracking_id,
+                                        d=datetime.datetime.now())
 
             Returns:
                 bool: True if a message was found on the queue and dispatched, otherwise False if nothing on the queue
@@ -318,11 +332,15 @@ class SQSWorkDispatcher:
         job_kwargs = {}
         results = message_transformer(self._current_sqs_message)
 
-        # Get the result components
-        job = results["job"]
-        exit_handler = results.get("exit_handler")
-        msg_args = results.get("job_args") or ()
-        msg_kwargs = results.get("job_kwargs") or {}
+        def parse_message_transformer_results(_job, _exit_handler=None, _job_args=(), **_job_kwargs):
+            return _job, _exit_handler, _job_args, _job_kwargs
+
+        # Parse the result components from the returned dictionary
+        job, exit_handler, msg_args, msg_kwargs = parse_message_transformer_results(**results)
+        # job = results["_job"]
+        # exit_handler = results.get("exit_handler")
+        # msg_args = results.get("job_args") or ()
+        # msg_kwargs = results.get("job_kwargs") or {}
 
         if isinstance(msg_args, list) or isinstance(msg_args, tuple):
             job_args = tuple(msg_args) + additional_job_args
