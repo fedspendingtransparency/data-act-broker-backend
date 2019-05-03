@@ -51,6 +51,10 @@ DEFAULT_CONFIG = {
             'level': 'DEBUG',
             'propagate': True
         },
+        '__main__': {  # for the __main__ module within /dataactvalidator/app.py
+            'level': 'DEBUG',
+            'propagate': True
+        },
     }
 }
 

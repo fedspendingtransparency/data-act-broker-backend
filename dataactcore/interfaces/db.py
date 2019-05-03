@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 class _DB(namedtuple('_DB', ['engine', 'connection', 'scoped_session_maker', 'session'])):
     """Represents a database connection, from engine to session."""
     def close(self):
+        logger.debug("Explicitly closing SQLAlchemy database session object {}".format(self.session))
         self.session.close()
         self.scoped_session_maker.remove()
         self.connection.close()
@@ -25,6 +26,9 @@ class GlobalDB:
         but there are paths through the app which won't have access. In those
         situations, fall back to the non-threadsafe static member approach"""
         if flask.current_app:
+            # `current_app` and the "global" data store, `g` are only available when working within a Flask app context.
+            # See http://flask.pocoo.org/docs/1.0/appcontext/#storing-data for proper data access patterns given
+            # various app context life cycles
             return flask.g
         else:
             logger.warning("No current_app, falling back to non-threadsafe database connection")
