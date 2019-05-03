@@ -135,14 +135,17 @@ class SQSWorkDispatcher:
             will be monitored so that heartbeats can be sent to SQS to allow it to keep going.
 
             Args:
-                job (Callable): callable to use as the target of a the new child process
+                job (Callable): Callable to use as the target of a new child process
                 worker_process_name (str): Name given to the newly created child process. If not already set,
                     defaults to the name of the provided job callable
-                exit_handler (callable): a callable to be called when handling an :attr:`EXIT_SIGNALS` signal,
-                    giving the opportunity to perform cleanup before the process exits. Gets the job_args passed to it
-                    when run
-                job_args (tuple): arguments to be passed to the job TODO update type/docs
-                job_kwargs (dict): keyword arguments to be passed to the job TODO update type/docs
+                exit_handler: a callable to be called when handling an :attr:`EXIT_SIGNALS` signal, giving the
+                    opportunity to perform cleanup before the process exits. When invoked, it gets the same args passed
+                    to it that were passed to the :param:`job` callable.
+                job_args: Zero or many variadic args that are unnamed (not keyword) that can be
+                    passed to the callable job. NOTE: Passing args to the job this
+                    way can be done when needed, but it is preferred to use keyword-args through :param:`job_kwargs`
+                    to be more explicit what arg values are going to what params.
+                job_kwargs: Zero or many variadic keyword-args that can be passed to the callable job
 
             Returns:
                 bool: True if a message was found on the queue and dispatched to completion, without error. Otherwise it
@@ -212,8 +215,8 @@ class SQSWorkDispatcher:
                 job (Callable[]): the callable to execute as work for the job
                 additional_job_args: Zero or many variadic args that are unnamed (not keyword) that may be
                     passed along with those from the message to the callable job. NOTE: Passing args to the job this
-                    way can be done when needed, but it is preferred to use keyword-args to be more explicit what
-                    values are going to what args.
+                    way can be done when needed, but it is preferred to use keyword-args through
+                    :param:`additional_job_kwargs` to be more explicit what arg values are going to what params.
                 message_transformer: A lambda to extract arguments to be passed to the callable from the queue message.
                     By default, a function that just returns the message body is used. A provided transformer can
                     return a single object as its arg, a tuple of args, or a dictionary of named args (which will
@@ -276,7 +279,8 @@ class SQSWorkDispatcher:
             message
 
             Args:
-                message_transformer (Callable[[SQS.Message], dict]): A callable function that returns a dict of::
+                message_transformer (Callable[[SQS.Message], dict]): A callable function that takes in the SQS
+                message as its argument and returns a dict of::
 
                     {
                         'job': Callable,          # Required. The job to run
@@ -289,19 +293,22 @@ class SQSWorkDispatcher:
                     }
 
                 worker_process_name (str): Name given to the newly created child process. If not already set, defaults
-                    to the name of the provided job callable
-                additional_job_args (tuple): Additional arguments to provide to the callable, along with those from the
-                 message
-                additional_job_kwargs (dict): TODO
+                    to the name of the provided job Callable
+                additional_job_args: Zero or many variadic args that are unnamed (not keyword) that may be
+                    passed along with those from the message to the callable job. NOTE: Passing args to the job this
+                    way can be done when needed, but it is preferred to use keyword-args through
+                    :param:`additional_job_kwargs` to be more explicit what arg values are going to what params.
+                additional_job_kwargs: Zero or many variadic keyword-args that may be passed along with those from
+                    the message to the callable job
+
+            Returns:
+                bool: True if a message was found on the queue and dispatched, otherwise False if nothing on the queue
 
             Raises:
                 SystemExit(1): If it can't connect to the queue or receive messages
                 QueueWorkerProcessError: Under various conditions where the child worker process fails to run the job
                 QueueWorkDispatcherError: Under various conditions where the parent dispatcher process can't
                     orchestrate work execution, monitoring, or exit-signal-handling
-
-            Returns:
-                bool: True if a message was found on the queue and dispatched, otherwise False if nothing on the queue
         """
         self._dequeue_message(self._long_poll_seconds)
         if self._current_sqs_message is None:
