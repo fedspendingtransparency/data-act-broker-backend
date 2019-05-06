@@ -692,6 +692,7 @@ CGAC AGENCY CODE,FPDS DEPARTMENT ID,AGENCY NAME,AGENCY ABBREVIATION,REGISTERED I
 417,5920,National Endowment for the Arts,NEA,YES,YES,NIST (2008),5963,National Council on the Arts,NCA,,,,,,,,,False
 417,5920,National Endowment for the Arts,NEA,YES,YES,NIST (2008),5966,National Council on the Humanities,NCH,,,,,,,,,False
 418,5940,National Endowment for the Humanities,NEH,YES,YES,OMB File,5940,National Endowment for the Humanities,NEH,5902,National Endowment for the Humanities,,,YES,,,"CGAC conflict; will be resolved soon. Going to go ahead and replace 417 with 418, it's new CGAC",False
+418,5940,National Endowment for the Humanities,NEH,YES,YES,GSA,4340,National Endowment for the Humanities,NEH,5902,National Endowment for the Humanities,,,,,,Received request on 4/9 from FPDS/GSA to add this code. NEH's old code of 5940 was end-dated on 12/31/18. This 4340 code went into use on 10/1/18 and will be the new code henceforth.,False
 060,6000,Railroad Retirement Board,RRB,YES,YES,OMB File,6000,Railroad Retirement Board,RRB,6000,Railroad Retirement Board,GPO Acronym List,,YES,,,,False
 061,6100,Consumer Product Safety Commission,CPSC,YES,YES,OMB File,6100,Consumer Product Safety Commission,CPSC,6100,Consumer Product Safety Commission,GPO Acronym List,,YES,,,,False
 062,6201,Office of Special Counsel,OSC,YES,NO,Historical USAspending data,6200,Office of Special Counsel,OSC,6200,Office of Special Counsel,GPO Acronym List,,,,,,False

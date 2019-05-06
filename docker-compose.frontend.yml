@@ -1,0 +1,14 @@
+version: '3'
+services:
+  dataact-broker-frontend:
+    container_name: dataact-broker-frontend
+    image: dataact-broker-frontend
+    build:
+      context: ./../data-act-broker-web-app/
+    depends_on: 
+      - dataact-broker-backend
+    restart: on-failure:3 # 3 max attempt, and then it will stop restarting
+    ports: 
+      - "3000:3000"
+    volumes:
+      - ./../data-act-broker-web-app/:/data-act/frontend

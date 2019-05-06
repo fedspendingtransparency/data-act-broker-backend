@@ -1,16 +1,31 @@
 sudo: required
 
+language: python
+
+python:
+  - '3.5'
+
 services:
   - docker
+
+before_script:
+  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+  - chmod +x ./cc-test-reporter
+  - ./cc-test-reporter before-build
 
 script:
   - cp dataactcore/config_example.yml dataactcore/config.yml
   - cp dataactcore/local_config_example.yml dataactcore/local_config.yml
   - cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
   - |
-    docker-compose run --rm dataact-broker \
+    docker-compose run --rm dataact-broker-backend \
       /bin/sh -c " \
       cd ./dataactcore; sleep 9s; alembic upgrade head; \
       cd ../; flake8 && \
-      py.test --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml"
+      py.test --cov=. --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml"
   - docker-compose down
+
+
+after_script:
+  - mv tests/coverage.xml coverage.xml
+  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT

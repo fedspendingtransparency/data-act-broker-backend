@@ -70,11 +70,15 @@ def load_duns_by_row(data, sess, models, activated_models, benchmarks=False, tab
             activated_models: the DUNS objects that have been activated
             benchmarks: whether or not to log times
             table: the table to work from (could be DUNS/HistoricParentDuns)
+
+        Returns:
+            tuple of added and updated duns lists
     """
     # Disabling activation_check as we're using registration_date
     # data = activation_check(data, activated_models, benchmarks).where(pd.notnull(data), None)
-    update_duns(models, data, benchmarks=benchmarks, table=table)
+    added, updated = update_duns(models, data, benchmarks=benchmarks, table=table)
     sess.add_all(models.values())
+    return added, updated
 
 
 # Removed this function when adding registration_date
@@ -100,7 +104,12 @@ def update_duns(models, new_data, benchmarks=False, table=DUNS):
             new_data: the new data to update
             benchmarks: whether or not to log times
             table: the table to work from (could be DUNS/HistoricParentDuns)
+
+        Returns:
+            tuple of added and updated duns lists
     """
+    added = []
+    updated = []
     logger.info("Updating duns")
     if benchmarks:
         update_duns_start = time.time()
@@ -108,11 +117,15 @@ def update_duns(models, new_data, benchmarks=False, table=DUNS):
         awardee_or_recipient_uniqu = row['awardee_or_recipient_uniqu']
         if awardee_or_recipient_uniqu not in models:
             models[awardee_or_recipient_uniqu] = table()
+            added.append(awardee_or_recipient_uniqu)
+        else:
+            updated.append(awardee_or_recipient_uniqu)
         for field, value in row.items():
             if value:
                 setattr(models[awardee_or_recipient_uniqu], field, value)
     if benchmarks:
         logger.info("Updating duns took {} seconds".format(time.time() - update_duns_start))
+    return added, updated
 
 
 def clean_sam_data(data, table=DUNS):
@@ -150,7 +163,7 @@ def clean_sam_data(data, table=DUNS):
     }, {})
 
 
-def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS, year=None):
+def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS, year=None, metrics=None):
     """ Takes in a SAM file and adds the DUNS data to the database
 
         Args:
@@ -160,7 +173,20 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
             benchmarks: whether to log times
             table: the table to work from (could be DUNS/HistoricParentDuns)
             year: the year associated with the data (primarily for  HistoricParentDUNS loads)
+            metrics: dictionary representing metrics data for the load
     """
+    if not metrics:
+        metrics = {
+            'files_processed': [],
+            'records_received': 0,
+            'adds_received': 0,
+            'updates_received': 0,
+            'deletes_received': 0,
+            'records_ignored': 0,
+            'added_duns': [],
+            'updated_duns': []
+        }
+
     parse_start_time = time.time()
     logger.info("Starting file " + str(file_path))
 
@@ -210,7 +236,13 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
         skiplastrows = 2 if batches == 0 else 1
         last_block_size = ((nrows % block_size) or block_size)-skiplastrows
         batch = 0
-        added_rows = 0
+        rows_received = 0
+        adds_received = 0
+        updates_received = 0
+        deletes_received = 0
+        records_ignored = 0
+        added_duns = []
+        updated_duns = []
         while batch <= batches:
             skiprows = 1 if batch == 0 else (batch*block_size)
             nrows = (((batch+1)*block_size)-skiprows) if (batch < batches) else last_block_size
@@ -236,6 +268,15 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
                     # cleaning and replacing NaN/NaT with None's
                     csv_data = clean_sam_data(csv_data.where(pd.notnull(csv_data), None), table=table)
 
+                    delete_data = csv_data[csv_data.sam_extract_code == '1']
+                    deletes_received += len(delete_data.index)
+                    add_data = csv_data[csv_data.sam_extract_code == '2']
+                    adds_received += len(add_data.index)
+                    update_data = csv_data[csv_data.sam_extract_code == '3']
+                    updates_received += len(update_data.index)
+                    total_received_data = csv_data[csv_data.sam_extract_code.isin(['1', '2', '3'])]
+                    records_ignored += (nrows - len(total_received_data.index))
+
                     if monthly:
                         logger.info("Adding all monthly data with bulk load")
                         if benchmarks:
@@ -246,8 +287,8 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
                         insert_dataframe(csv_data, table.__table__.name, sess.connection())
                         if benchmarks:
                             logger.info("Bulk month load took {} seconds".format(time.time()-bulk_month_load))
+                        added_duns.extend(csv_data['awardee_or_recipient_uniqu'])
                     else:
-                        add_data = csv_data[csv_data.sam_extract_code == '2']
                         update_delete_data = csv_data[(csv_data.sam_extract_code == '3') |
                                                       (csv_data.sam_extract_code == '1')]
                         for dataframe in [add_data, update_delete_data]:
@@ -257,24 +298,39 @@ def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS,
                             try:
                                 logger.info("Attempting to bulk load add data")
                                 insert_dataframe(add_data, table.__table__.name, sess.connection())
+                                added_duns.extend(add_data['awardee_or_recipient_uniqu'])
                             except IntegrityError:
                                 logger.info("Bulk loading add data failed, loading add data by row")
                                 sess.rollback()
                                 models, activated_models = get_relevant_models(add_data, sess, benchmarks=benchmarks)
                                 logger.info("Loading add data ({} rows)".format(len(add_data.index)))
-                                load_duns_by_row(add_data, sess, models, activated_models, benchmarks=benchmarks,
-                                                 table=table)
+                                added, updated = load_duns_by_row(add_data, sess, models, activated_models,
+                                                                  benchmarks=benchmarks, table=table)
+                                added_duns.extend(added)
+                                updated_duns.extend(updated)
                         if not update_delete_data.empty:
                             models, activated_models = get_relevant_models(update_delete_data, sess,
                                                                            benchmarks=benchmarks)
                             logger.info("Loading update_delete data ({} rows)".format(len(update_delete_data.index)))
-                            load_duns_by_row(update_delete_data, sess, models, activated_models, benchmarks=benchmarks,
-                                             table=table)
+                            added, updated = load_duns_by_row(update_delete_data, sess, models, activated_models,
+                                                              benchmarks=benchmarks, table=table)
+                            added_duns.extend(added)
+                            updated_duns.extend(updated)
+
                     sess.commit()
 
-            added_rows += nrows
+            rows_received += nrows
             batch += 1
-            logger.info('%s DUNS records inserted', added_rows)
+            logger.info('%s DUNS records received', rows_received)
+
         if benchmarks:
             logger.info("Parsing {} took {} seconds with {} rows".format(dat_file_name, time.time()-parse_start_time,
-                                                                         added_rows))
+                                                                         rows_received))
+        metrics['files_processed'].append(dat_file_name)
+        metrics['records_received'] += rows_received
+        metrics['adds_received'] += adds_received
+        metrics['updates_received'] += updates_received
+        metrics['deletes_received'] += deletes_received
+        metrics['records_ignored'] += records_ignored
+        metrics['added_duns'].extend(added_duns)
+        metrics['updated_duns'].extend(updated_duns)
