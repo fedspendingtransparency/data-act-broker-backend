@@ -20,4 +20,4 @@ FROM appropriation_a9_{0} AS approp
 WHERE sf.line IN (1540, 1640)
 GROUP BY approp.row_number,
     approp.contract_authority_amount_cpe
-HAVING approp.contract_authority_amount_cpe <> SUM(sf.amount);
+HAVING COALESCE(approp.contract_authority_amount_cpe, 0) <> SUM(sf.amount);

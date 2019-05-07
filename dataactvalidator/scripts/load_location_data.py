@@ -1,9 +1,12 @@
 import os
+import sys
 import logging
 import boto3
 import pandas as pd
 from datetime import datetime
 import urllib.request
+
+from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 
 from dataactcore.logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
@@ -32,12 +35,14 @@ def clean_data(data, field_map):
     return data
 
 
-def parse_city_file(city_file, sess):
+def parse_city_file(city_file):
     """ Parse the City file and insert all relevant rows into the database.
 
         Args:
             city_file: path/url to file to gather City data from
-            sess: database session
+
+        Returns:
+            The data in a pandas object, cleaned and sorted for insertion into the DB
     """
     # read the data and clean up the column names
     data = pd.read_csv(city_file, dtype=str, sep="|")
@@ -71,18 +76,17 @@ def parse_city_file(city_file, sess):
     # just sorting it how it started out
     data = data.sort_values(by=['feature_name'])
 
-    # insert data into table
-    num = insert_dataframe(data, CityCode.__table__.name, sess.connection())
-    logger.info('{} records inserted to city_code'.format(num))
-    sess.commit()
+    return data
 
 
-def parse_county_file(county_file, sess):
+def parse_county_file(county_file):
     """ Parse the County file and insert all relevant rows into the database.
 
         Args:
             county_file: path/url to file to gather County data from
-            sess: database session
+
+        Returns:
+            The data in a pandas object, cleaned and sorted for insertion into the DB
     """
     # read the data and clean up the column names
     data = pd.read_csv(county_file, dtype=str, sep="|")
@@ -102,18 +106,17 @@ def parse_county_file(county_file, sess):
     now = datetime.utcnow()
     data = data.assign(created_at=now, updated_at=now)
 
-    # insert data into table
-    num = insert_dataframe(data, CountyCode.__table__.name, sess.connection())
-    logger.info('{} records inserted to county_code'.format(num))
-    sess.commit()
+    return data
 
 
-def parse_state_file(state_file, sess):
+def parse_state_file(state_file):
     """ Parse the State file and insert all relevant rows into the database.
 
         Args:
             state_file: path/url to file to gather State data from
-            sess: database session
+
+        Returns:
+            The data in a pandas object, cleaned and sorted for insertion into the DB
     """
     # read the data. Cleaning is in there in case something changes, doesn't really do anything now
     data = pd.read_csv(state_file, dtype=str)
@@ -127,24 +130,23 @@ def parse_state_file(state_file, sess):
     now = datetime.utcnow()
     data = data.assign(created_at=now, updated_at=now)
 
-    # insert data into table
-    num = insert_dataframe(data, States.__table__.name, sess.connection())
-    logger.info('{} records inserted to states'.format(num))
-    sess.commit()
+    return data
 
 
-def parse_zip_city_file(f, sess):
+def parse_zip_city_file(f):
     """ Parse the ZipCity file and insert all relevant rows into the database.
 
         Args:
             f: file to process
-            sess: database session
+
+        Returns:
+            The data in a pandas object, cleaned and sorted for insertion into the DB
     """
     line_size = 129
     chunk_size = 1024 * 10
     f.read(line_size)
 
-    data_array = {}
+    data_dict = {}
     curr_chunk = ""
 
     while True:
@@ -168,77 +170,128 @@ def parse_zip_city_file(f, sess):
             if curr_row[0] == "D":
                 zip_code = curr_row[1:6]
                 city_name = curr_row[62:90].strip()
-                data_array[zip_code] = {"zip_code": zip_code, "city_name": city_name}
+                data_dict[zip_code] = {"zip_code": zip_code, "city_name": city_name}
 
             # cut the current line out of the chunk we're processing
             curr_chunk = curr_chunk[line_size:]
 
-    sess.bulk_save_objects([ZipCity(**zip_data) for _, zip_data in data_array.items()])
-    logger.info('{} records inserted to zip_city'.format(len(data_array)))
-    sess.commit()
+    data = pd.DataFrame([[item['zip_code'], item['city_name']] for _, item in data_dict.items()],
+                        columns=['zip_code', 'city_name'])
+
+    # add created_at and updated_at columns
+    now = datetime.utcnow()
+    data = data.assign(created_at=now, updated_at=now)
+
+    return data
 
 
-def load_city_data(city_file):
+def load_city_data(city_file, force_reload):
     """ Load data into the CityCode table
 
         Args:
             city_file: path/url to file to gather City data from
+            force_reload: boolean to determine if reload should happen whether there are differences or not
     """
-    sess = GlobalDB.db().session
-
-    # delete any data in the CityCode table
-    sess.query(CityCode).delete()
-
     # parse the new city code data
-    parse_city_file(city_file, sess)
+    new_data = parse_city_file(city_file)
+
+    diff_found = check_dataframe_diff(new_data, CityCode, 'city_code_id', ['state_code', 'city_code'])
+
+    if force_reload or diff_found:
+        sess = GlobalDB.db().session
+        logger.info('Differences found or reload forced, reloading city_code table.')
+        # delete any data in the CityCode table
+        sess.query(CityCode).delete()
+
+        # insert data into table
+        num = insert_dataframe(new_data, CityCode.__table__.name, sess.connection())
+        logger.info('{} records inserted to city_code'.format(num))
+        sess.commit()
+    else:
+        logger.info('No differences found, skipping city_code table reload.')
 
 
-def load_county_data(county_file):
+def load_county_data(county_file, force_reload):
     """ Load data into the CountyCode table
 
         Args:
             county_file: path/url to file to gather County data from
+            force_reload: boolean to determine if reload should happen whether there are differences or not
     """
-    sess = GlobalDB.db().session
+    new_data = parse_county_file(county_file)
 
-    # delete any data in the CityCode table
-    sess.query(CountyCode).delete()
+    diff_found = check_dataframe_diff(new_data, CountyCode, 'county_code_id', ['county_number', 'state_code'])
 
-    # parse the new county code data
-    parse_county_file(county_file, sess)
+    if force_reload or diff_found:
+        sess = GlobalDB.db().session
+        logger.info('Differences found or reload forced, reloading county_code table.')
+        # delete any data in the CountyCode table
+        sess.query(CountyCode).delete()
+
+        # insert data into table
+        num = insert_dataframe(new_data, CountyCode.__table__.name, sess.connection())
+        logger.info('{} records inserted to county_code'.format(num))
+        sess.commit()
+    else:
+        logger.info('No differences found, skipping county_code table reload.')
 
 
-def load_state_data(state_file):
+def load_state_data(state_file, force_reload):
     """ Load data into the States table
 
         Args:
             state_file: path/url to file to gather State data from
+            force_reload: boolean to determine if reload should happen whether there are differences or not
     """
-    sess = GlobalDB.db().session
+    new_data = parse_state_file(state_file)
 
-    # delete any data in the States table
-    sess.query(States).delete()
+    diff_found = check_dataframe_diff(new_data, States, 'states_id', ['state_code'])
 
-    # parse the new state data
-    parse_state_file(state_file, sess)
+    if force_reload or diff_found:
+        sess = GlobalDB.db().session
+        logger.info('Differences found or reload forced, reloading states table.')
+        # delete any data in the States table
+        sess.query(States).delete()
+
+        # insert data into table
+        num = insert_dataframe(new_data, States.__table__.name, sess.connection())
+        logger.info('{} records inserted to states'.format(num))
+        sess.commit()
+    else:
+        logger.info('No differences found, skipping states table reload.')
 
 
-def load_zip_city_data(zip_city_file):
+def load_zip_city_data(zip_city_file, force_reload):
     """ Load data into the ZipCity table
 
         Args:
             zip_city_file: path/url to file to gather ZipCity data from
+            force_reload: boolean to determine if reload should happen whether there are differences or not
     """
-    sess = GlobalDB.db().session
+    new_data = parse_zip_city_file(zip_city_file)
 
-    # delete any data in the ZipCity table
-    sess.query(ZipCity).delete()
+    diff_found = check_dataframe_diff(new_data, ZipCity, 'zip_city_id', ['zip_code'])
 
-    # parse the new zip city data
-    parse_zip_city_file(zip_city_file, sess)
+    if force_reload or diff_found:
+        sess = GlobalDB.db().session
+        logger.info('Differences found or reload forced, reloading zip_city table.')
+        # delete any data in the ZipCity table
+        sess.query(ZipCity).delete()
+
+        # insert data into table
+        num = insert_dataframe(new_data, ZipCity.__table__.name, sess.connection())
+        logger.info('{} records inserted to zip_city'.format(num))
+        sess.commit()
+    else:
+        logger.info('No differences found, skipping zip_city table reload.')
 
 
-def load_location_data():
+def load_location_data(force_reload=False):
+    """ Loads the city, county, state, citystate, and zipcity data.
+
+        Args:
+            force_reload: reloads the tables even if there are no differences found in data
+    """
     if CONFIG_BROKER["use_aws"]:
         s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
         city_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
@@ -259,15 +312,16 @@ def load_location_data():
 
     with create_app().app_context():
         logger.info('Loading city data')
-        load_city_data(city_file)
+        load_city_data(city_file, force_reload)
         logger.info('Loading county data')
-        load_county_data(county_file)
+        load_county_data(county_file, force_reload)
         logger.info('Loading state data')
-        load_state_data(state_file)
+        load_state_data(state_file, force_reload)
         logger.info('Loading zip city data')
-        load_zip_city_data(zip_city_file)
+        load_zip_city_data(zip_city_file, force_reload)
 
 
 if __name__ == '__main__':
     configure_logging()
-    load_location_data()
+    reload = '--force' in sys.argv
+    load_location_data(reload)
