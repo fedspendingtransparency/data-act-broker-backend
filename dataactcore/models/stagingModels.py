@@ -1114,7 +1114,7 @@ class DetachedAwardFinancialAssistance(Base):
     record_type = Column(Integer, index=True)
     sai_number = Column(Text)
     uri = Column(Text, index=True)
-    is_valid = Column(Boolean, nullable=False, default="False", server_default="False")
+    is_valid = Column(Boolean, nullable=False, default=False, server_default="False")
     unique_award_key = Column(Text, index=True)
 
     def __init__(self, **kwargs):
