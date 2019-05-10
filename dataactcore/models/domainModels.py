@@ -154,9 +154,10 @@ class Office(Base):
     office_name = Column(Text)
     sub_tier_code = Column(Text, nullable=False, index=True)
     agency_code = Column(Text, nullable=False, index=True)
-    contracting_office = Column(Boolean, nullable=False, default=False, server_default="False")
-    funding_office = Column(Boolean, nullable=False, default=False, server_default="False")
-    financial_assistance_office = Column(Boolean, nullable=False, default=False, server_default="False")
+    contract_awards_office = Column(Boolean, nullable=False, default=False, server_default="False")
+    contract_funding_office = Column(Boolean, nullable=False, default=False, server_default="False")
+    financial_assistance_awards_office = Column(Boolean, nullable=False, default=False, server_default="False")
+    financial_assistance_funding_office = Column(Boolean, nullable=False, default=False, server_default="False")
 
 
 class ObjectClass(Base):
