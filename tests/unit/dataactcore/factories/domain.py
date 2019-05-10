@@ -246,6 +246,16 @@ class DunsFactory(factory.Factory):
     business_types_codes = ['A', 'B', 'C']
     ultimate_parent_unique_ide = fuzzy.FuzzyText()
     ultimate_parent_legal_enti = fuzzy.FuzzyText()
+    high_comp_officer1_full_na = fuzzy.FuzzyText()
+    high_comp_officer1_amount = fuzzy.FuzzyText()
+    high_comp_officer2_full_na = fuzzy.FuzzyText()
+    high_comp_officer2_amount = fuzzy.FuzzyText()
+    high_comp_officer3_full_na = fuzzy.FuzzyText()
+    high_comp_officer3_amount = fuzzy.FuzzyText()
+    high_comp_officer4_full_na = fuzzy.FuzzyText()
+    high_comp_officer4_amount = fuzzy.FuzzyText()
+    high_comp_officer5_full_na = fuzzy.FuzzyText()
+    high_comp_officer5_amount = fuzzy.FuzzyText()
 
 
 class StateCongressionalFactory(factory.Factory):
