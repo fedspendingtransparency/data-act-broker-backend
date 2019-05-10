@@ -3,6 +3,7 @@ import os
 import re
 import time
 import zipfile
+import paramiko
 from collections import OrderedDict
 
 import numpy as np
@@ -16,23 +17,39 @@ from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
-REMOTE_SAM_DIR = '/current/SAM/2_FOUO/UTF-8/'
+REMOTE_SAM_DUNS_DIR = '/current/SAM/2_FOUO/UTF-8/'
+REMOTE_SAM_EXEC_COMP_DIR = '/current/SAM/6_EXECCOMP/UTF-8'
 BUSINESS_TYPES_SEPARATOR = '~'
 
 
-def get_config():
-    """ Simply retrieves the config data of SAM sftp
+def get_client(ssh_key=None):
+    """ Connects to the SAM client and returns a usable object for interaction
 
         Returns:
-            Username, password, host, and port found in the configu file for the SAM sftp
+            client object to interact with the SAM service
     """
     sam_config = CONFIG_BROKER.get('sam_duns')
+    if not sam_config:
+        return None
+    host = sam_config.get('host_ssh') if ssh_key else sam_config.get('host')
+    port = sam_config.get('port')
+    username = sam_config.get('username')
+    password = sam_config.get('password')
 
-    if sam_config:
-        return sam_config.get('username'), sam_config.get('password'), sam_config.get('host'), \
-               sam_config.get('port')
+    if None in (host, port, username, password):
+        raise Exception("Missing config elements for connecting to SAM")
 
-    return None, None, None, None, None
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(
+        hostname=host,
+        port=port,
+        username=username,
+        password=password,
+        key_filename=ssh_key
+    )
+    return client
 
 
 def get_relevant_models(data, sess, benchmarks=False, table=DUNS):
@@ -163,8 +180,8 @@ def clean_sam_data(data, table=DUNS):
     }, {})
 
 
-def parse_sam_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS, year=None, metrics=None):
-    """ Takes in a SAM file and adds the DUNS data to the database
+def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, table=DUNS, year=None, metrics=None):
+    """ Takes in a DUNS file and adds the DUNS data to the database
 
         Args:
             file_path: the path to the SAM file
