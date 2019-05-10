@@ -139,12 +139,14 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
 
                         new_office = Office(office_code=org.get('aacofficecode'), office_name=org.get('fhorgname'),
                                             sub_tier_code=org.get('agencycode'), agency_code=agency_code,
-                                            funding_office=False, contracting_office=False,
-                                            financial_assistance_office=False)
+                                            contract_funding_office=False, contract_awards_office=False,
+                                            financial_assistance_awards_office=False,
+                                            financial_assistance_funding_office=False)
 
                         for off_type in org.get('fhorgofficetypelist', []):
                             office_type = off_type['officetype'].lower().replace(" ", "_")
-                            if office_type in ['contracting', 'funding', 'financial_assistance']:
+                            if office_type in ['contract_funding', 'contract_awards', 'financial_assistance_awards',
+                                               'financial_assistance_funding']:
                                 setattr(new_office, office_type + '_office', True)
 
                         offices[org.get('aacofficecode')] = new_office
