@@ -45,4 +45,4 @@ WHERE EXISTS (
 			SELECT 1
 			FROM office
 			WHERE UPPER(ac.awarding_office_code) = UPPER(office.office_code)
-			    AND office.financial_assistance_office IS TRUE));
+			    AND office.financial_assistance_awards_office IS TRUE));
