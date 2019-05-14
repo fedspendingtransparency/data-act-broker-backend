@@ -12,7 +12,6 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.stagingModels import DetachedAwardProcurement, PublishedAwardFinancialAssistance
 from dataactcore.models.domainModels import SF133, concat_tas_dict
-from dataactcore.utils import fileE
 
 from dataactvalidator.validation_handlers import file_generation_manager
 from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager
