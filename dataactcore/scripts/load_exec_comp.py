@@ -174,10 +174,12 @@ def get_parser():
             argument parser to be used for commandline
     """
     parser = argparse.ArgumentParser(description='Get data from SAM and update execution_compensation table')
-    group = parser.add_mutually_exclusive_group(required=True)
-    parser.add_argument('--historic', '-i', action='store_true', help='populate based on historical data')
-    group.add_argument('--local', '-l', type=str, default=None, help='local directory to work from')
-    group.add_argument('--ssh_key', '-k', type=str, default=None, help='private key used to access the API remotely')
+    scope = parser.add_mutually_exclusive_group(required=True)
+    scope.add_argument('--historic', '-i', action='store_true', help='reload from the first monthly file on')
+    scope.add_argument('--update', '-u', action='store_true', help='load only the latest daily file')
+    environ = parser.add_mutually_exclusive_group(required=True)
+    environ.add_argument('--local', '-l', type=str, default=None, help='local directory to work from')
+    environ.add_argument('--ssh_key', '-k', type=str, default=None, help='private key used to access the API remotely')
     return parser
 
 if __name__ == '__main__':
@@ -186,6 +188,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     historic = args.historic
+    update = args.update
     local = args.local
     ssh_key = args.ssh_key
 
@@ -213,5 +216,22 @@ if __name__ == '__main__':
             parse_exec_comp_file(sorted_monthly_file_names[0], sess, root_dir, sftp=sftp)
             for daily_file in sorted_daily_file_names:
                 parse_exec_comp_file(daily_file, sess, root_dir, sftp=sftp)
-        else:
-            parse_exec_comp_file(sorted_daily_file_names[-1], sess, root_dir, sftp=sftp)
+        elif update:
+            # Insert item into sorted file list with date of last sam mod
+            last_update = sess.query(DUNS.last_sam_mod_date). \
+                order_by(DUNS.last_sam_mod_date.desc()). \
+                filter(DUNS.last_sam_mod_date.isnot(None)). \
+                first()[0].strftime("%Y%m%d")
+            earliest_daily_file = re.sub("_DAILY_[0-9]{8}\.ZIP", "_DAILY_" +
+                                         last_update + ".ZIP", sorted_daily_file_names[0])
+            if earliest_daily_file:
+                sorted_full_list = sorted(sorted_daily_file_names + [earliest_daily_file])
+                daily_files_after = sorted_full_list[sorted_full_list.index(earliest_daily_file) + 1:]
+            else:
+                daily_files_after = sorted_daily_file_names
+
+            if daily_files_after:
+                for daily_file in daily_files_after:
+                    parse_exec_comp_file(daily_file, sess, root_dir, sftp=sftp)
+            else:
+                logger.info("No daily file found.")
