@@ -37,7 +37,7 @@ def get_client(ssh_key=None):
     password = sam_config.get('password') if not ssh_key else None
     pkey = None if not ssh_key else paramiko.RSAKey.from_private_key_file(ssh_key)
 
-    if None in (host, port, username) or None in (password, pkey):
+    if None in (host, port, username):
         raise Exception("Missing config elements for connecting to SAM")
 
     client = paramiko.SSHClient()
