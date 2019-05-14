@@ -20,7 +20,7 @@ from dataactvalidator.scripts.loader_utils import insert_dataframe
 logger = logging.getLogger(__name__)
 
 
-def parse_exec_comp_file(filename, sess, root_dir, sftp=None, metrics=None):
+def parse_exec_comp_file(filename, sess, root_dir, sftp=None, ssh_key=None, metrics=None):
     """ Parses the executive compensation file to update corresponding DUNS records
 
         Arguments:
@@ -28,6 +28,7 @@ def parse_exec_comp_file(filename, sess, root_dir, sftp=None, metrics=None):
             sess: database connection
             root_dir: working directory
             sftp: connection to remote server
+            ssh_key: ssh_key for reconnecting
             metrics: dictionary representing metrics of the script
     """
     if not metrics:
@@ -39,6 +40,10 @@ def parse_exec_comp_file(filename, sess, root_dir, sftp=None, metrics=None):
         }
 
     if sftp:
+        if sftp.sock.closed:
+            # Reconnect if channel is closed
+            ssh_client = get_client(ssh_key=ssh_key)
+            sftp = ssh_client.open_sftp()
         file = open(os.path.join(root_dir, filename), 'wb')
         sftp.getfo(''.join([REMOTE_SAM_EXEC_COMP_DIR, '/', filename]), file)
     else:
@@ -236,14 +241,13 @@ if __name__ == '__main__':
         sess = GlobalDB.db().session
         sftp = None
 
-        if not local:
+        if ssh_key:
             root_dir = CONFIG_BROKER['d_file_storage_path']
-
             client = get_client(ssh_key=ssh_key)
             sftp = client.open_sftp()
             # dirlist on remote host
             dirlist = sftp.listdir(REMOTE_SAM_EXEC_COMP_DIR)
-        else:
+        elif local:
             root_dir = local
             dirlist = os.listdir(local)
 
@@ -253,9 +257,10 @@ if __name__ == '__main__':
         sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match('.*DAILY_\d+', daily_file)])
 
         if historic:
-            parse_exec_comp_file(sorted_monthly_file_names[0], sess, root_dir, sftp=sftp, metrics=metrics)
+            parse_exec_comp_file(sorted_monthly_file_names[0], sess, root_dir, sftp=sftp, ssh_key=ssh_key,
+                                 metrics=metrics)
             for daily_file in sorted_daily_file_names:
-                parse_exec_comp_file(daily_file, sess, root_dir, sftp=sftp, metrics=metrics)
+                parse_exec_comp_file(daily_file, sess, root_dir, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
         elif update:
             # Insert item into sorted file list with date of last sam mod
             last_update = sess.query(DUNS.last_sam_mod_date). \
@@ -272,7 +277,7 @@ if __name__ == '__main__':
 
             if daily_files_after:
                 for daily_file in daily_files_after:
-                    parse_exec_comp_file(daily_file, sess, root_dir, sftp=sftp, metrics=metrics)
+                    parse_exec_comp_file(daily_file, sess, root_dir, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
             else:
                 logger.info("No daily file found.")
 
