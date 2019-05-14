@@ -6,6 +6,8 @@ import re
 from collections import OrderedDict
 import numpy as np
 import argparse
+import datetime
+import json
 
 from dataactcore.models.domainModels import DUNS
 from dataactcore.interfaces.db import GlobalDB
@@ -18,7 +20,7 @@ from dataactvalidator.scripts.loader_utils import insert_dataframe
 logger = logging.getLogger(__name__)
 
 
-def parse_exec_comp_file(filename, sess, root_dir, sftp=None):
+def parse_exec_comp_file(filename, sess, root_dir, sftp=None, metrics=None):
     """ Parses the executive compensation file to update corresponding DUNS records
 
         Arguments:
@@ -26,7 +28,15 @@ def parse_exec_comp_file(filename, sess, root_dir, sftp=None):
             sess: database connection
             root_dir: working directory
             sftp: connection to remote server
+            metrics: dictionary representing metrics of the script
     """
+    if not metrics:
+        metrics = {
+            'files_processed': [],
+            'records_received': 0,
+            'records_processed': 0,
+            'updated_duns': []
+        }
 
     if sftp:
         file = open(os.path.join(root_dir, filename), 'wb')
@@ -35,6 +45,7 @@ def parse_exec_comp_file(filename, sess, root_dir, sftp=None):
         file = open(os.path.join(root_dir, filename))
 
     logger.info('starting file ' + str(file.name))
+    metrics['files_processed'].append(str(file.name))
 
     csv_file = os.path.splitext(os.path.basename(file.name))[0]+'.dat'
     zfile = zipfile.ZipFile(file.name)
@@ -52,8 +63,10 @@ def parse_exec_comp_file(filename, sess, root_dir, sftp=None):
     csv_data = pd.read_csv(zfile.open(csv_file), dtype=str, header=None, skiprows=1, nrows=nrows, sep='|',
                            usecols=column_header_mapping_ordered.values(), names=column_header_mapping_ordered.keys())
     total_data = csv_data.copy()
+    metrics['records_received'] += len(total_data.index)
     total_data = total_data[total_data.awardee_or_recipient_uniqu.notnull() &
                             total_data.sam_extract.isin(['2', '3', 'A', 'E'])]
+    metrics['records_processed'] += len(total_data.index)
     del total_data['sam_extract']
     # Note: we're splitting these up cause it vastly saves memory parsing only the records that are populated
     blank_exec = total_data[total_data.exec_comp_str.isnull()]
@@ -74,7 +87,8 @@ def parse_exec_comp_file(filename, sess, root_dir, sftp=None):
     total_data = pd.concat([pop_exec, blank_exec])
     total_data.replace('', np.nan, inplace=True)
 
-    update_exec_comp_duns(sess, total_data)
+    updated_duns = update_exec_comp_duns(sess, total_data)
+    metrics['updated_duns'].extend(updated_duns)
 
     file.close()
     if sftp:
@@ -87,6 +101,9 @@ def update_exec_comp_duns(sess, exec_comp_data):
         Arguments:
             sess: database connection
             exec_comp_data: pandas dataframe representing exec comp data
+
+        Returns:
+            list of DUNS updated
     """
 
     logger.info('Making temp_exec_comp_update table')
@@ -110,6 +127,17 @@ def update_exec_comp_duns(sess, exec_comp_data):
     sess.execute('TRUNCATE TABLE temp_exec_comp_update;')
     insert_dataframe(exec_comp_data, 'temp_exec_comp_update', sess.connection())
 
+    # Note: this can work just by getting the row count from the following SQL
+    #       but this can run multiple times on possibly the same DUNS over several days,
+    #       so it'll be more accurate to keep track of which DUNS get updated
+    logger.info('Getting list of DUNS that will be updated for metrics')
+    update_sql = """
+        SELECT duns.awardee_or_recipient_uniqu
+        FROM duns
+        JOIN temp_exec_comp_update AS tecu ON duns.awardee_or_recipient_uniqu=tecu.awardee_or_recipient_uniqu;
+    """
+    duns_list = [row['awardee_or_recipient_uniqu'] for row in sess.execute(update_sql).fetchall()]
+
     logger.info('Updating DUNS based on temp_exec_comp_update')
     update_sql = """
         UPDATE duns
@@ -124,16 +152,16 @@ def update_exec_comp_duns(sess, exec_comp_data):
             high_comp_officer4_full_na = tecu.high_comp_officer4_full_na,
             high_comp_officer5_amount = tecu.high_comp_officer5_amount,
             high_comp_officer5_full_na = tecu.high_comp_officer5_amount
-        FROM temp_exec_comp_update as tecu
+        FROM temp_exec_comp_update AS tecu
         WHERE duns.awardee_or_recipient_uniqu=tecu.awardee_or_recipient_uniqu;
     """
-    result = sess.execute(update_sql)
-    logger.info('Updated {} DUNS records exec comp data'.format(result.rowcount))
+    sess.execute(update_sql)
 
     logger.info('Dropping temp_exec_comp_update')
     sess.execute('DROP TABLE temp_exec_comp_update;')
 
     sess.commit()
+    return duns_list
 
 
 def parse_exec_comp(exec_comp_str=None):
@@ -183,6 +211,8 @@ def get_parser():
     return parser
 
 if __name__ == '__main__':
+    now = datetime.datetime.now()
+
     configure_logging()
     parser = get_parser()
     args = parser.parse_args()
@@ -191,6 +221,16 @@ if __name__ == '__main__':
     update = args.update
     local = args.local
     ssh_key = args.ssh_key
+
+    metrics = {
+        'script_name': 'load_exec_duns.py',
+        'start_time': str(now),
+        'files_processed': [],
+        'records_received': 0,
+        'records_processed': 0,
+        'updated_duns': [],
+        'records_updated': 0
+    }
 
     with create_app().app_context():
         sess = GlobalDB.db().session
@@ -213,9 +253,9 @@ if __name__ == '__main__':
         sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match('.*DAILY_\d+', daily_file)])
 
         if historic:
-            parse_exec_comp_file(sorted_monthly_file_names[0], sess, root_dir, sftp=sftp)
+            parse_exec_comp_file(sorted_monthly_file_names[0], sess, root_dir, sftp=sftp, metrics=metrics)
             for daily_file in sorted_daily_file_names:
-                parse_exec_comp_file(daily_file, sess, root_dir, sftp=sftp)
+                parse_exec_comp_file(daily_file, sess, root_dir, sftp=sftp, metrics=metrics)
         elif update:
             # Insert item into sorted file list with date of last sam mod
             last_update = sess.query(DUNS.last_sam_mod_date). \
@@ -232,6 +272,13 @@ if __name__ == '__main__':
 
             if daily_files_after:
                 for daily_file in daily_files_after:
-                    parse_exec_comp_file(daily_file, sess, root_dir, sftp=sftp)
+                    parse_exec_comp_file(daily_file, sess, root_dir, sftp=sftp, metrics=metrics)
             else:
                 logger.info("No daily file found.")
+
+    metrics['records_updated'] = len(set(metrics['updated_duns']))
+    del metrics['updated_duns']
+
+    metrics['duration'] = str(datetime.datetime.now() - now)
+    with open('load_exec_comp_metrics.json', 'w+') as metrics_file:
+        json.dump(metrics, metrics_file)
