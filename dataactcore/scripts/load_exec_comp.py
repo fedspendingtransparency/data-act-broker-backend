@@ -72,7 +72,7 @@ def parse_exec_comp_file(filename, sess, root_dir, sftp=None):
 
     # setup the final dataframe
     total_data = pd.concat([pop_exec, blank_exec])
-    total_data.fillna('', inplace=True)
+    total_data.replace('', np.nan, inplace=True)
 
     update_exec_comp_duns(sess, total_data)
 
@@ -109,8 +109,6 @@ def update_exec_comp_duns(sess, exec_comp_data):
     # Truncating in case we didn't clear out this table after a failure in the script
     sess.execute('TRUNCATE TABLE temp_exec_comp_update;')
     insert_dataframe(exec_comp_data, 'temp_exec_comp_update', sess.connection())
-    sess.commit()
-    input('HOLDING')
 
     logger.info('Updating DUNS based on temp_exec_comp_update')
     update_sql = """
