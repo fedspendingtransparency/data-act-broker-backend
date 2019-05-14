@@ -14,6 +14,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import DUNS
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
+from dataactbroker.helpers.uri_helper import RetrieveFileFromUri
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,9 @@ BUSINESS_TYPES_SEPARATOR = '~'
 def get_client(ssh_key=None):
     """ Connects to the SAM client and returns a usable object for interaction
 
+        Arguments:
+            ssh_key: private ssh key to connect to the secure API
+
         Returns:
             client object to interact with the SAM service
     """
@@ -35,7 +39,10 @@ def get_client(ssh_key=None):
     port = sam_config.get('port')
     username = sam_config.get('username')
     password = sam_config.get('password')
-    pkey = None if not ssh_key else paramiko.RSAKey.from_private_key_file(ssh_key, password=password)
+    pkey = None
+    if ssh_key:
+        with RetrieveFileFromUri(ssh_key, binary_data=False).get_file_object() as key_obj:
+            pkey = paramiko.RSAKey.from_private_key(key_obj, password=password)
 
     if None in (host, port, username, password):
         raise Exception("Missing config elements for connecting to SAM")
