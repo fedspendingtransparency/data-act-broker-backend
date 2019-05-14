@@ -18,7 +18,7 @@ from dataactvalidator.validation_handlers import file_generation_manager
 from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager
 
 from tests.unit.dataactcore.factories.job import JobFactory, FileGenerationFactory, SubmissionFactory
-from tests.unit.dataactcore.factories.domain import TASFactory, SF133Factory
+from tests.unit.dataactcore.factories.domain import TASFactory, SF133Factory, DunsFactory
 from tests.unit.dataactcore.factories.staging import (
     AwardFinancialAssistanceFactory, AwardProcurementFactory, DetachedAwardProcurementFactory,
     PublishedAwardFinancialAssistanceFactory)
@@ -327,7 +327,9 @@ def test_generate_file_updates_jobs(monkeypatch, mock_broker_config_paths, datab
 
 @pytest.mark.usefixtures("job_constants")
 def test_generate_e_file_query(monkeypatch, mock_broker_config_paths, database):
-    """ Verify that generate_e_file makes an appropriate query (matching both D1 and D2 entries) """
+    """ Verify that generate_e_file makes an appropriate query (matching both D1 and D2 entries) and creates
+        a file matching the expected DUNS
+    """
     # Generate several file D1 entries, largely with the same submission_id, and with two overlapping DUNS. Generate
     # several D2 entries with the same submission_id as well
     sess = database.session
@@ -350,62 +352,30 @@ def test_generate_e_file_query(monkeypatch, mock_broker_config_paths, database):
         submission_id=sub.submission_id,
         awardee_or_recipient_uniqu=model.awardee_or_recipient_uniqu)
     unrelated = AwardProcurementFactory(submission_id=sub_2.submission_id)
-    sess.add_all(aps + afas + [model, same_duns, unrelated])
+    duns_list = [DunsFactory(awardee_or_recipient_uniqu=model.awardee_or_recipient_uniqu)]
+    duns_list.extend([DunsFactory(awardee_or_recipient_uniqu=ap.awardee_or_recipient_uniqu) for ap in aps])
+    duns_list.extend([DunsFactory(awardee_or_recipient_uniqu=afa.awardee_or_recipient_uniqu) for afa in afas])
+    sess.add_all(aps + afas + duns_list + [model, same_duns, unrelated])
     sess.commit()
 
-    monkeypatch.setattr(file_generation_manager.fileE, 'retrieve_rows', Mock(return_value=[]))
-
     file_gen_manager = FileGenerationManager(database.session, CONFIG_BROKER['local'], job=job)
     file_gen_manager.generate_file()
 
-    # [0][0] gives us the first, non-keyword args
-    call_args = file_generation_manager.fileE.retrieve_rows.call_args[0][0]
-    expected = [ap.awardee_or_recipient_uniqu for ap in aps]
-    expected.append(model.awardee_or_recipient_uniqu)
-    expected.extend(afa.awardee_or_recipient_uniqu for afa in afas)
-    assert list(sorted(call_args)) == list(sorted(expected))
+    # check headers
+    file_rows = read_file_rows(file_path)
+    assert file_rows[0] == ['AwardeeOrRecipientUniqueIdentifier', 'AwardeeOrRecipientLegalEntityName',
+                            'UltimateParentUniqueIdentifier', 'UltimateParentLegalEntityName',
+                            'HighCompOfficer1FullName', 'HighCompOfficer1Amount', 'HighCompOfficer2FullName',
+                            'HighCompOfficer2Amount', 'HighCompOfficer3FullName', 'HighCompOfficer3Amount',
+                            'HighCompOfficer4FullName', 'HighCompOfficer4Amount', 'HighCompOfficer5FullName',
+                            'HighCompOfficer5Amount']
 
-
-@pytest.mark.usefixtures("job_constants")
-def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
-    """ Verify that an appropriate CSV is written, based on fileE.Row's structure """
-    # Create an award so that we have _a_ duns
-    sub = SubmissionFactory()
-    database.session.add(sub)
-    database.session.commit()
-
-    ap = AwardProcurementFactory(submission_id=sub.submission_id)
-    database.session.add(ap)
-    database.session.commit()
-
-    file_path = str(mock_broker_config_paths['broker_files'].join('e_test1'))
-    job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                     file_type_id=FILE_TYPE_DICT['executive_compensation'], filename=file_path,
-                     original_filename='e_test1', submission_id=sub.submission_id)
-    database.session.add(job)
-    database.session.commit()
-
-    monkeypatch.setattr(file_generation_manager.fileE, 'row_to_dict', Mock())
-    file_generation_manager.fileE.row_to_dict.return_value = {}
-
-    monkeypatch.setattr(file_generation_manager.fileE, 'retrieve_rows', Mock())
-    file_generation_manager.fileE.retrieve_rows.return_value = [
-        fileE.Row('a', 'b', 'c', 'd', '1a', '1b', '2a', '2b', '3a', '3b', '4a', '4b', '5a', '5b'),
-        fileE.Row('A', 'B', 'C', 'D', '1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B')
-    ]
-
-    file_gen_manager = FileGenerationManager(database.session, CONFIG_BROKER['local'], job=job)
-    file_gen_manager.generate_file()
-
-    expected = [
-        ['AwardeeOrRecipientUniqueIdentifier', 'AwardeeOrRecipientLegalEntityName', 'UltimateParentUniqueIdentifier',
-         'UltimateParentLegalEntityName', 'HighCompOfficer1FullName', 'HighCompOfficer1Amount',
-         'HighCompOfficer2FullName', 'HighCompOfficer2Amount', 'HighCompOfficer3FullName', 'HighCompOfficer3Amount',
-         'HighCompOfficer4FullName', 'HighCompOfficer4Amount', 'HighCompOfficer5FullName', 'HighCompOfficer5Amount'],
-        ['a', 'b', 'c', 'd', '1a', '1b', '2a', '2b', '3a', '3b', '4a', '4b', '5a', '5b'],
-        ['A', 'B', 'C', 'D', '1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B']
-    ]
-    assert read_file_rows(file_path) == expected
+    # Check listed DUNS
+    expected = [[duns.awardee_or_recipient_uniqu, duns.legal_business_name, duns.ultimate_parent_unique_ide,
+                 duns.ultimate_parent_legal_enti, '', '', '', '', '', '', '', '', '', '']
+                for duns in duns_list]
+    received = [file_row for file_row in file_rows[1:]]
+    assert sorted(received) == list(sorted(expected))
 
 
 def read_file_rows(file_path):
