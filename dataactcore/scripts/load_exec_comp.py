@@ -193,7 +193,7 @@ def parse_exec_comp(exec_comp_str=None):
         for index, high_comp_officer in enumerate(high_comp_officers):
             index += 1
             exec_name, exec_title, exec_comp = high_comp_officer.split('^')
-            if exec_title.lower() not in unaccepted_titles:
+            if exec_title.lower() not in unaccepted_titles and exec_names.lower() not in unaccepted_titles:
                 exec_comp_data['high_comp_officer{}_full_na'.format(index)] = exec_name
                 exec_comp_data['high_comp_officer{}_amount'.format(index)] = exec_comp
 
