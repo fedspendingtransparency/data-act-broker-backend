@@ -188,7 +188,7 @@ def parse_exec_comp(exec_comp_str=None):
 
         # records have inconsistent values for Null
         # 'see note above' is excluded as it may contain relevant info
-        unaccepted_titles = ['x', 'n/a', 'na', 'null', 'none', '. . .', 'no one']
+        unaccepted_titles = ['x', 'n/a', 'na', 'null', 'none', '. . .', 'no one', 'no  one']
 
         for index, high_comp_officer in enumerate(high_comp_officers):
             index += 1
