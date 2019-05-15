@@ -152,7 +152,7 @@ def update_exec_comp_duns(sess, exec_comp_data):
     logger.info('Updating DUNS based on temp_exec_comp_update')
     update_sql = """
         UPDATE duns
-        SET 
+        SET
             high_comp_officer1_amount = tecu.high_comp_officer1_amount,
             high_comp_officer1_full_na = tecu.high_comp_officer1_full_na,
             high_comp_officer2_amount = tecu.high_comp_officer2_amount,
