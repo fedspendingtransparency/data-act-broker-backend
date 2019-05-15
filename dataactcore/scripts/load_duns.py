@@ -4,7 +4,6 @@ import logging
 import os
 import re
 import sys
-import paramiko
 import json
 
 from dataactcore.config import CONFIG_BROKER
@@ -12,36 +11,10 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import DUNS, HistoricParentDUNS
 from dataactcore.utils.parentDuns import sam_config_is_valid, update_missing_parent_names
-from dataactcore.utils.duns import get_config, parse_sam_file
+from dataactcore.utils.duns import get_client, parse_duns_file, REMOTE_SAM_DUNS_DIR
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
-
-REMOTE_SAM_DIR = '/current/SAM/2_FOUO/UTF-8/'
-
-
-def get_client():
-    """ Connects to the SAM client and returns a usable object for interaction
-
-        Returns:
-            client object to interact with the SAM service
-    """
-    username, password, host, port = get_config()
-
-    if None in (username, password):
-        logger.error("Missing config elements for connecting to SAM")
-        sys.exit(1)
-
-    client = paramiko.SSHClient()
-    client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(
-        hostname=host,
-        username=username,
-        password=password
-    )
-
-    return client
 
 
 def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False, benchmarks=False, table=DUNS,
@@ -71,8 +44,8 @@ def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False,
             sftp = ssh_client.open_sftp()
         logger.info("Pulling {}".format(file_name))
         with open(file_path, "wb") as zip_file:
-            sftp.getfo(''.join([REMOTE_SAM_DIR, '/', file_name]), zip_file)
-    parse_sam_file(file_path, sess, monthly=monthly, benchmarks=benchmarks, table=table, year=year, metrics=metrics)
+            sftp.getfo(''.join([REMOTE_SAM_DUNS_DIR, '/', file_name]), zip_file)
+    parse_duns_file(file_path, sess, monthly=monthly, benchmarks=benchmarks, table=table, year=year, metrics=metrics)
     if not local:
         os.remove(file_path)
 
@@ -152,9 +125,9 @@ if __name__ == '__main__':
             logger.error("Local directory specified with a local file.")
             sys.exit(1)
         elif monthly:
-            parse_sam_file(monthly, sess=sess, monthly=True, benchmarks=benchmarks, metrics=metrics)
+            parse_duns_file(monthly, sess=sess, monthly=True, benchmarks=benchmarks, metrics=metrics)
         elif daily:
-            parse_sam_file(daily, sess=sess, benchmarks=benchmarks, metrics=metrics)
+            parse_duns_file(daily, sess=sess, benchmarks=benchmarks, metrics=metrics)
         else:
             # dealing with a local or remote directory
             if not local:
@@ -163,7 +136,7 @@ if __name__ == '__main__':
                 ssh_client = get_client()
                 sftp = ssh_client.open_sftp()
                 # dirlist on remote host
-                dirlist = sftp.listdir(REMOTE_SAM_DIR)
+                dirlist = sftp.listdir(REMOTE_SAM_DUNS_DIR)
             else:
                 root_dir = local
                 dirlist = os.listdir(local)
