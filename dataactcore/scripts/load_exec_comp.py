@@ -162,7 +162,7 @@ def update_exec_comp_duns(sess, exec_comp_data):
             high_comp_officer4_amount = tecu.high_comp_officer4_amount,
             high_comp_officer4_full_na = tecu.high_comp_officer4_full_na,
             high_comp_officer5_amount = tecu.high_comp_officer5_amount,
-            high_comp_officer5_full_na = tecu.high_comp_officer5_amount,
+            high_comp_officer5_full_na = tecu.high_comp_officer5_full_na,
             last_exec_comp_mod_date = tecu.last_exec_comp_mod_date
         FROM temp_exec_comp_update AS tecu
         WHERE duns.awardee_or_recipient_uniqu=tecu.awardee_or_recipient_uniqu;
