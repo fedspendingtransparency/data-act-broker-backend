@@ -2,6 +2,7 @@ import boto3
 import requests
 import tempfile
 import urllib
+from dataactcore.config import CONFIG_BROKER
 
 VALID_SCHEMES = ("http", "https", "s3", "file", "")
 SCHEMA_HELP_TEXT = (
@@ -45,7 +46,7 @@ class RetrieveFileFromUri:
 
     def _handle_s3(self):
         file_path = self.parsed_url_obj.path[1:]  # remove leading '/' character
-        boto3_s3 = boto3.resource("s3")
+        boto3_s3 = boto3.resource("s3", region_name=CONFIG_BROKER['aws_region'])
         s3_bucket = boto3_s3.Bucket(self.parsed_url_obj.netloc)
 
         f = tempfile.SpooledTemporaryFile()  # Must be in binary mode (default)
