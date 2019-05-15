@@ -92,6 +92,11 @@ def parse_exec_comp_file(filename, sess, root_dir, sftp=None, ssh_key=None, metr
     # setup the final dataframe
     total_data = pd.concat([pop_exec, blank_exec])
     total_data.replace('', np.nan, inplace=True)
+    last_exec_comp_mod_date_str = re.findall('[0-9]{8}', filename)
+    if not last_exec_comp_mod_date_str:
+        raise Exception('Last Executive Compensation Mod Date not found in filename.')
+    last_exec_comp_mod_date = datetime.datetime.strptime(last_exec_comp_mod_date_str[0], '%Y%m%d').date()
+    total_data = total_data.assign(last_exec_comp_mod_date=last_exec_comp_mod_date)
 
     updated_duns = update_exec_comp_duns(sess, total_data)
     metrics['updated_duns'].extend(updated_duns)
@@ -124,7 +129,8 @@ def update_exec_comp_duns(sess, exec_comp_data):
             high_comp_officer4_amount TEXT,
             high_comp_officer4_full_na TEXT,
             high_comp_officer5_amount TEXT,
-            high_comp_officer5_full_na TEXT
+            high_comp_officer5_full_na TEXT,
+            last_exec_comp_mod_date DATE
         );
     """
     sess.execute(create_table_sql)
@@ -156,7 +162,8 @@ def update_exec_comp_duns(sess, exec_comp_data):
             high_comp_officer4_amount = tecu.high_comp_officer4_amount,
             high_comp_officer4_full_na = tecu.high_comp_officer4_full_na,
             high_comp_officer5_amount = tecu.high_comp_officer5_amount,
-            high_comp_officer5_full_na = tecu.high_comp_officer5_amount
+            high_comp_officer5_full_na = tecu.high_comp_officer5_amount,
+            last_exec_comp_mod_date = tecu.last_exec_comp_mod_date
         FROM temp_exec_comp_update AS tecu
         WHERE duns.awardee_or_recipient_uniqu=tecu.awardee_or_recipient_uniqu;
     """
@@ -267,11 +274,16 @@ if __name__ == '__main__':
             for daily_file in sorted_daily_file_names:
                 parse_exec_comp_file(daily_file, sess, root_dir, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
         elif update:
-            # Insert item into sorted file list with date of last sam mod
-            last_update = sess.query(DUNS.last_sam_mod_date). \
-                order_by(DUNS.last_sam_mod_date.desc()). \
-                filter(DUNS.last_sam_mod_date.isnot(None)). \
-                first()[0].strftime("%Y%m%d")
+            # Insert item into sorted file list with date of last exec comp load date
+            last_update = sess.query(DUNS.last_exec_comp_mod_date). \
+                order_by(DUNS.last_exec_comp_mod_date.desc()). \
+                filter(DUNS.last_exec_comp_mod_date.isnot(None)). \
+                first()
+            if not last_update:
+                raise Exception('No last executive compenstation mod date found in database. '
+                                'Please run historic loader first.')
+            else:
+                last_update = last_update[0].strftime("%Y%m%d")
             earliest_daily_file = re.sub("_DAILY_[0-9]{8}\.ZIP", "_DAILY_" +
                                          last_update + ".ZIP", sorted_daily_file_names[0])
             if earliest_daily_file:

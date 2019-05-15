@@ -39,6 +39,7 @@ def upgrade_data_broker():
     op.add_column('duns', sa.Column('high_comp_officer4_full_na', sa.Text(), nullable=True))
     op.add_column('duns', sa.Column('high_comp_officer5_amount', sa.Text(), nullable=True))
     op.add_column('duns', sa.Column('high_comp_officer5_full_na', sa.Text(), nullable=True))
+    op.add_column('duns', sa.Column('last_exec_comp_mod_date', sa.Date(), nullable=True))
     # ### end Alembic commands ###
 
 
@@ -54,5 +55,6 @@ def downgrade_data_broker():
     op.drop_column('duns', 'high_comp_officer2_amount')
     op.drop_column('duns', 'high_comp_officer1_full_na')
     op.drop_column('duns', 'high_comp_officer1_amount')
+    op.drop_column('duns', 'last_exec_comp_mod_date')
     # ### end Alembic commands ###
 

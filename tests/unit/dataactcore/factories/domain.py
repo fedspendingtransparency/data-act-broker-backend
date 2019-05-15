@@ -256,6 +256,7 @@ class DunsFactory(factory.Factory):
     high_comp_officer4_amount = fuzzy.FuzzyText()
     high_comp_officer5_full_na = fuzzy.FuzzyText()
     high_comp_officer5_amount = fuzzy.FuzzyText()
+    last_exec_comp_mod_date = fuzzy.FuzzyDate(date(2000, 1, 1), date(2020, 12, 31))
 
 
 class StateCongressionalFactory(factory.Factory):

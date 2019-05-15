@@ -278,6 +278,7 @@ class DUNS(Base):
     high_comp_officer4_amount = Column(Text)
     high_comp_officer5_full_na = Column(Text)
     high_comp_officer5_amount = Column(Text)
+    last_exec_comp_mod_date = Column(Date)
 
 
 class HistoricParentDUNS(Base):
