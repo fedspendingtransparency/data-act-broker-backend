@@ -30,6 +30,10 @@ def parse_exec_comp_file(filename, sess, root_dir, sftp=None, ssh_key=None, metr
             sftp: connection to remote server
             ssh_key: ssh_key for reconnecting
             metrics: dictionary representing metrics of the script
+
+        Raises:
+            Exception: couldn't extract the last exec comp modification date, this generally means the filename provided
+                doesn't match the expected format.
     """
     if not metrics:
         metrics = {
