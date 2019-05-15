@@ -39,34 +39,35 @@ def parse_exec_comp_file(filename, sess, root_dir, sftp=None, ssh_key=None, metr
             'updated_duns': []
         }
 
+    file_path = os.path.join(root_dir, filename)
     if sftp:
         if sftp.sock.closed:
             # Reconnect if channel is closed
             ssh_client = get_client(ssh_key=ssh_key)
             sftp = ssh_client.open_sftp()
-        file = open(os.path.join(root_dir, filename), 'wb')
-        sftp.getfo(''.join([REMOTE_SAM_EXEC_COMP_DIR, '/', filename]), file)
-    else:
-        file = open(os.path.join(root_dir, filename))
+        with open(os.path.join(root_dir, filename), 'wb') as file:
+            sftp.getfo(''.join([REMOTE_SAM_EXEC_COMP_DIR, '/', filename]), file)
 
-    logger.info('starting file ' + str(file.name))
-    metrics['files_processed'].append(str(file.name))
+    logger.info('starting file ' + file_path)
+    metrics['files_processed'].append(filename)
 
-    csv_file = os.path.splitext(os.path.basename(file.name))[0]+'.dat'
-    zfile = zipfile.ZipFile(file.name)
+    csv_file = os.path.splitext(filename)[0]+'.dat'
+    zfile = zipfile.ZipFile(file_path)
 
     # can't use skipfooter, pandas' c engine doesn't work with skipfooter and the python engine doesn't work with dtype
     nrows = 0
-    with zfile.open(csv_file) as f:
-        nrows = len(f.readlines()) - 2  # subtract the header and footer
+    with zfile.open(csv_file) as zip_file:
+        nrows = len(zip_file.readlines()) - 2  # subtract the header and footer
     column_header_mapping = {
         'awardee_or_recipient_uniqu': 0,
         'sam_extract': 4,
         'exec_comp_str': 89
     }
     column_header_mapping_ordered = OrderedDict(sorted(column_header_mapping.items(), key=lambda c: c[1]))
-    csv_data = pd.read_csv(zfile.open(csv_file), dtype=str, header=None, skiprows=1, nrows=nrows, sep='|',
-                           usecols=column_header_mapping_ordered.values(), names=column_header_mapping_ordered.keys())
+    with zfile.open(csv_file) as zip_file:
+        csv_data = pd.read_csv(zip_file, dtype=str, header=None, skiprows=1, nrows=nrows, sep='|',
+                               usecols=column_header_mapping_ordered.values(),
+                               names=column_header_mapping_ordered.keys())
     total_data = csv_data.copy()
     metrics['records_received'] += len(total_data.index)
     total_data = total_data[total_data.awardee_or_recipient_uniqu.notnull() &
@@ -95,7 +96,6 @@ def parse_exec_comp_file(filename, sess, root_dir, sftp=None, ssh_key=None, metr
     updated_duns = update_exec_comp_duns(sess, total_data)
     metrics['updated_duns'].extend(updated_duns)
 
-    file.close()
     if sftp:
         os.remove(os.path.join(root_dir, filename))
 
