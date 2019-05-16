@@ -28,6 +28,7 @@ from dataactvalidator.scripts.read_zips import read_zips
 from dataactvalidator.scripts.load_agencies import load_agency_data
 from dataactvalidator.scripts.load_offices import load_offices
 from dataactvalidator.scripts.load_program_activity import load_program_activity_data
+from dataactvalidator.scripts.load_quarterly_revalidation_threshold import load_quarterly_threshold
 
 logger = logging.getLogger(__name__)
 basePath = CONFIG_BROKER["path"]
@@ -125,6 +126,12 @@ def uncache_all_files():
         sess.commit()
 
 
+def load_quarterly_revalidation_threshold():
+    """ Load quarterly revalidation thresholds into the broker database. """
+    logger.info('Loading quarterly revalidation threshold data')
+    load_quarterly_threshold()
+
+
 def main():
     parser = argparse.ArgumentParser(description='Initialize the DATA Act Broker.')
     parser.add_argument('-i', '--initialize', help='Run all broker initialization tasks', action='store_true')
@@ -145,6 +152,8 @@ def main():
     parser.add_argument('-l', '--load_location', help='Load city and county codes', action='store_true')
     parser.add_argument('-z', '--load_zips', help='Load zip code data', action='store_true')
     parser.add_argument('-o', '--load_offices', help='Load FPDS Office Codes', action='store_true')
+    parser.add_argument('-qrt', '--load_quarterly_revalidation', help='Load Quarterly Revalidation Threshold',
+                        action='store_true')
     parser.add_argument('-u', '--uncache_all_files', help='Un-cache file generation requests', action='store_true')
     parser.add_argument('--force', help='Forces actions to occur in certain scripts regardless of checks',
                         action='store_true')
@@ -161,6 +170,7 @@ def main():
         load_location_codes(args.force)
         load_zip_codes()
         load_offices()
+        load_quarterly_revalidation_threshold()
         return
 
     if args.setup_db:
@@ -208,6 +218,9 @@ def main():
 
     if args.load_offices:
         load_offices()
+
+    if args.load_quarterly_revalidation:
+        load_quarterly_revalidation_threshold()
 
     if args.uncache_all_files:
         uncache_all_files()
