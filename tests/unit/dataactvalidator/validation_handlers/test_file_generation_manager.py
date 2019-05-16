@@ -325,7 +325,7 @@ def test_generate_file_updates_jobs(monkeypatch, mock_broker_config_paths, datab
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_generate_e_file_query(monkeypatch, mock_broker_config_paths, database):
+def test_generate_e_file(mock_broker_config_paths, database):
     """ Verify that generate_e_file makes an appropriate query (matching both D1 and D2 entries) and creates
         a file matching the expected DUNS
     """
@@ -371,7 +371,10 @@ def test_generate_e_file_query(monkeypatch, mock_broker_config_paths, database):
 
     # Check listed DUNS
     expected = [[duns.awardee_or_recipient_uniqu, duns.legal_business_name, duns.ultimate_parent_unique_ide,
-                 duns.ultimate_parent_legal_enti, '', '', '', '', '', '', '', '', '', '']
+                 duns.ultimate_parent_legal_enti, duns.high_comp_officer1_full_na, duns.high_comp_officer1_amount,
+                 duns.high_comp_officer2_full_na, duns.high_comp_officer2_amount, duns.high_comp_officer3_full_na,
+                 duns.high_comp_officer3_amount, duns.high_comp_officer4_full_na, duns.high_comp_officer4_amount,
+                 duns.high_comp_officer5_full_na, duns.high_comp_officer5_amount]
                 for duns in duns_list]
     received = [file_row for file_row in file_rows[1:]]
     assert sorted(received) == list(sorted(expected))

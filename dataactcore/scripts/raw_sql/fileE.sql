@@ -14,16 +14,16 @@ SELECT
     legal_business_name AS "AwardeeOrRecipientLegalEntityName",
     ultimate_parent_unique_ide AS "UltimateParentUniqueIdentifier",
     ultimate_parent_legal_enti AS "UltimateParentLegalEntityName",
-    NULL AS "HighCompOfficer1FullName",
-    NULL AS "HighCompOfficer1Amount",
-    NULL AS "HighCompOfficer2FullName",
-    NULL AS "HighCompOfficer2Amount",
-    NULL AS "HighCompOfficer3FullName",
-    NULL AS "HighCompOfficer3Amount",
-    NULL AS "HighCompOfficer4FullName",
-    NULL AS "HighCompOfficer4Amount",
-    NULL AS "HighCompOfficer5FullName",
-    NULL AS "HighCompOfficer5Amount"
+    high_comp_officer1_full_na AS "HighCompOfficer1FullName",
+    high_comp_officer1_amount AS "HighCompOfficer1Amount",
+    high_comp_officer2_full_na AS "HighCompOfficer2FullName",
+    high_comp_officer2_amount AS "HighCompOfficer2Amount",
+    high_comp_officer3_full_na AS "HighCompOfficer3FullName",
+    high_comp_officer3_amount AS "HighCompOfficer3Amount",
+    high_comp_officer4_full_na AS "HighCompOfficer4FullName",
+    high_comp_officer4_amount AS "HighCompOfficer4Amount",
+    high_comp_officer5_full_na AS "HighCompOfficer5FullName",
+    high_comp_officer5_amount AS "HighCompOfficer5Amount"
 FROM duns
 WHERE EXISTS (
     SELECT 1
