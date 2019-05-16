@@ -24,7 +24,7 @@ from tests.unit.dataactcore.factories.staging import (
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_generate_a(mock_broker_config_paths, database):
+def test_generate_a(database):
     sess = database.session
 
     agency_cgac = '097'
@@ -112,7 +112,7 @@ def test_generate_a(mock_broker_config_paths, database):
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_generate_awarding_d1(mock_broker_config_paths, database):
+def test_generate_awarding_d1(database):
     sess = database.session
     dap_model = DetachedAwardProcurementFactory
     dap_1 = dap_model(awarding_agency_code='123', action_date='20170101', detached_award_proc_unique='unique1')
@@ -154,7 +154,7 @@ def test_generate_awarding_d1(mock_broker_config_paths, database):
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_generate_funding_d1(mock_broker_config_paths, database):
+def test_generate_funding_d1(database):
     sess = database.session
     dap_model = DetachedAwardProcurementFactory
     dap_1 = dap_model(funding_agency_code='123', action_date='20170101', detached_award_proc_unique='unique1')
@@ -196,7 +196,7 @@ def test_generate_funding_d1(mock_broker_config_paths, database):
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_generate_awarding_d2(mock_broker_config_paths, database):
+def test_generate_awarding_d2(database):
     sess = database.session
     pafa = PublishedAwardFinancialAssistanceFactory
     pafa_1 = pafa(awarding_agency_code='123', action_date='20170101', afa_generated_unique='unique1', is_active=True)
@@ -238,7 +238,7 @@ def test_generate_awarding_d2(mock_broker_config_paths, database):
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_generate_funding_d2(mock_broker_config_paths, database):
+def test_generate_funding_d2(database):
     sess = database.session
     pafa = PublishedAwardFinancialAssistanceFactory
     pafa_1 = pafa(funding_agency_code='123', action_date='20170101', afa_generated_unique='unique1', is_active=True)
@@ -280,7 +280,7 @@ def test_generate_funding_d2(mock_broker_config_paths, database):
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_generate_file_updates_jobs(monkeypatch, mock_broker_config_paths, database):
+def test_generate_file_updates_jobs(monkeypatch, database):
     sess = database.session
     job1 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                       file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, original_filename=None,
