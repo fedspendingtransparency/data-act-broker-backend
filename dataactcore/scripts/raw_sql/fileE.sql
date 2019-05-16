@@ -1,4 +1,4 @@
-WITH submission_duns AS
+WITH submission_duns_{0} AS
     (SELECT awardee_or_recipient_uniqu
     FROM (
         SELECT DISTINCT awardee_or_recipient_uniqu
@@ -7,9 +7,16 @@ WITH submission_duns AS
         UNION
         SELECT DISTINCT awardee_or_recipient_uniqu
         FROM award_financial_assistance
-        WHERE submission_id = {0}) AS temp)
+        WHERE submission_id = {0}) AS temp),
+duns_list_{0} AS
+    (SELECT *
+    FROM duns
+    WHERE EXISTS (
+        SELECT 1
+        FROM submission_duns_{0} AS sd
+        WHERE sd.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
+    ))
 SELECT
-    DISTINCT ON (awardee_or_recipient_uniqu)
     awardee_or_recipient_uniqu AS "AwardeeOrRecipientUniqueIdentifier",
     legal_business_name AS "AwardeeOrRecipientLegalEntityName",
     ultimate_parent_unique_ide AS "UltimateParentUniqueIdentifier",
@@ -24,9 +31,11 @@ SELECT
     high_comp_officer4_amount AS "HighCompOfficer4Amount",
     high_comp_officer5_full_na AS "HighCompOfficer5FullName",
     high_comp_officer5_amount AS "HighCompOfficer5Amount"
-FROM duns
-WHERE EXISTS (
-    SELECT 1
-    FROM submission_duns
-    WHERE submission_duns.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
-)
+FROM (
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY
+            awardee_or_recipient_uniqu
+        ) AS row
+    FROM duns_list_{0}
+    ORDER BY duns_id DESC) AS tmp
+WHERE tmp.row = 1
