@@ -4,6 +4,7 @@ from random import randint
 
 from webtest import TestApp
 
+from dataactcore.logging import configure_logging
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.scripts.database_setup import drop_database
@@ -25,6 +26,7 @@ class BaseTestValidator(unittest.TestCase):
         # TODO: refactor into a pytest class fixtures and inject as necessary
         # update application's db config options so unittests
         # run against test databases
+        configure_logging()
         suite = cls.__name__.lower()
         config = dataactcore.config.CONFIG_DB
         cls.num = randint(1, 9999)

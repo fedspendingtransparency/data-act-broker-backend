@@ -34,7 +34,7 @@ def add_generation_routes(app, is_local, server_path):
                                             error="Must be either awarding or funding if provided")
         )
     })
-    def generate_file(submission_id, file_type, start, end, agency_type):
+    def generate_file(submission_id, file_type, **kwargs):
         """ Kick of a file generation, or retrieve the cached version of the file.
 
             Attributes:
@@ -44,6 +44,9 @@ def add_generation_routes(app, is_local, server_path):
                 end: the end date for the file to generate
                 agency_type: The type of agency (awarding or funding) to generate the file for
         """
+        start = kwargs.get('start')
+        end = kwargs.get('end')
+        agency_type = kwargs.get('agency_type')
         return generation_handler.generate_file(submission_id, file_type, start, end, agency_type)
 
     @app.route("/v1/check_generation_status/", methods=["GET"])
@@ -79,7 +82,7 @@ def add_generation_routes(app, is_local, server_path):
                                             error="Must be either awarding or funding if provided")
         )
     })
-    def generate_detached_file(file_type, cgac_code, frec_code, start, end, year, period, agency_type):
+    def generate_detached_file(file_type, **kwargs):
         """ Generate a file from external API, independent from a submission
 
             Attributes:
@@ -92,6 +95,13 @@ def add_generation_routes(app, is_local, server_path):
                 period: integer indicating the period to generate for (2-12)
                 agency_type: The type of agency (awarding or funding) to generate the file for
         """
+        cgac_code = kwargs.get('cgac_code')
+        frec_code = kwargs.get('frec_code')
+        start = kwargs.get('start')
+        end = kwargs.get('end')
+        year = kwargs.get('year')
+        period = kwargs.get('period')
+        agency_type = kwargs.get('agency_type')
         return generation_handler.generate_detached_file(file_type, cgac_code, frec_code, start, end, year, period,
                                                          agency_type)
 

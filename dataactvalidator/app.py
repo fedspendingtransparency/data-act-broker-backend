@@ -1,5 +1,6 @@
 import logging
 import csv
+import inspect
 import time
 import traceback
 
@@ -14,10 +15,12 @@ from dataactcore.models.jobModels import Job, FileGeneration
 from dataactcore.models.lookups import JOB_STATUS_DICT
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactvalidator.sqs_work_dispatcher import SQSWorkDispatcher
 
 from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
+from dataactvalidator.validator_logging import log_job_message
 
 # DataDog Import (the below value gets changed via Ansible during deployment. DO NOT DELETE)
 USE_DATADOG = False
@@ -27,6 +30,9 @@ if USE_DATADOG:
     from ddtrace.contrib.flask import TraceMiddleware
 
 logger = logging.getLogger(__name__)
+
+READY_STATUSES = [JOB_STATUS_DICT['waiting'], JOB_STATUS_DICT['ready']]
+RUNNING_STATUSES = READY_STATUSES + [JOB_STATUS_DICT['running']]
 
 
 def create_app():
@@ -53,39 +59,74 @@ def run_app():
         queue = sqs_queue()
 
         logger.info("Starting SQS polling")
-        while True:
-            # Grabs one (or more) messages from the queue
-            messages = queue.receive_messages(WaitTimeSeconds=10, MessageAttributeNames=['All'])
-            for message in messages:
-                logger.info("Message received: %s", message.body)
+        keep_polling = True
+        while keep_polling:
+            # With cleanup handling engaged, allowing retries
+            dispatcher = SQSWorkDispatcher(queue)
+
+            def choose_job_by_message_attributes(message):
+                # Determine if this is a retry of this message, in which case job execution should know so it can
+                # do cleanup before proceeding with the job
+                q_msg_attr = message.attributes  # the non-user-defined (queue-defined) attributes on the message
+                is_retry = False
+                if q_msg_attr.get('ApproximateReceiveCount') is not None:
+                    is_retry = int(q_msg_attr.get('ApproximateReceiveCount')) > 1
 
                 msg_attr = message.message_attributes
                 if msg_attr and msg_attr.get('validation_type', {}).get('StringValue') == 'generation':
                     # Generating a file
-                    validator_process_file_generation(message.body)
+                    job_signature = {"_job": validator_process_file_generation,
+                                     "file_gen_id": message.body,
+                                     "is_retry": is_retry}
                 else:
                     # Running validations (or generating a file from a Job)
                     a_agency_code = msg_attr.get('agency_code', {}).get('StringValue') if msg_attr else None
-                    validator_process_job(message.body, a_agency_code)
+                    job_signature = {"_job": validator_process_job,
+                                     "job_id": message.body,
+                                     "agency_code": a_agency_code,
+                                     "is_retry": is_retry}
+                return job_signature
 
-                # Delete from SQS once processed
-                message.delete()
+            found_message = dispatcher.dispatch_by_message_attribute(choose_job_by_message_attributes)
 
-            # When you receive an empty response from the queue, wait a second before trying again
-            if len(messages) == 0:
+            # When you receive an empty response from the queue, wait before trying again
+            if not found_message:
                 time.sleep(1)
 
+            # If this process is exiting, don't poll for more work
+            keep_polling = not dispatcher.is_exiting
 
-def validator_process_file_generation(file_gen_id):
+
+def validator_process_file_generation(file_gen_id, is_retry=False):
     """ Retrieves a FileGeneration object based on its ID, and kicks off a file generation. Handles errors by ensuring
         the FileGeneration (if exists) is no longer cached.
 
         Args:
             file_gen_id: ID of a FileGeneration object
+            is_retry: If this is not the very first time handling execution of this job. If True, cleanup is
+                      performed before proceeding to retry the job
 
         Raises:
             Any Exceptions raised by the FileGenerationManager
     """
+    if is_retry:
+        if cleanup_generation(file_gen_id):
+            log_job_message(
+                logger=logger,
+                message="Attempting a retry of {} after successful retry-cleanup.".format(inspect.stack()[0][3]),
+                job_id=file_gen_id,
+                is_debug=True
+            )
+        else:
+            log_job_message(
+                logger=logger,
+                message="Retry of {} found to be not necessary after cleanup. "
+                        "Returning from job with success.".format(inspect.stack()[0][3]),
+                job_id=file_gen_id,
+                is_debug=True
+            )
+            return
+
     sess = GlobalDB.db().session
     file_generation = None
 
@@ -140,17 +181,37 @@ def validator_process_file_generation(file_gen_id):
             raise e
 
 
-def validator_process_job(job_id, agency_code):
+def validator_process_job(job_id, agency_code, is_retry=False):
     """ Retrieves a Job based on its ID, and kicks off a validation. Handles errors by ensuring the Job (if exists) is
         no longer running.
 
         Args:
             job_id: ID of a Job
             agency_code: CGAC or FREC code for agency, only required for file generations by Job
+            is_retry: If this is not the very first time handling execution of this job. If True, cleanup is
+                      performed before proceeding to retry the job
 
         Raises:
             Any Exceptions raised by the GenerationManager or ValidationManager, excluding those explicitly handled
     """
+    if is_retry:
+        if cleanup_validation(job_id):
+            log_job_message(
+                logger=logger,
+                message="Attempting a retry of {} after successful retry-cleanup.".format(inspect.stack()[0][3]),
+                job_id=job_id,
+                is_debug=True
+            )
+        else:
+            log_job_message(
+                logger=logger,
+                message="Retry of {} found to be not necessary after cleanup. "
+                        "Returning from job with success.".format(inspect.stack()[0][3]),
+                job_id=job_id,
+                is_debug=True
+            )
+            return
+
     sess = GlobalDB.db().session
     job = None
 
@@ -227,6 +288,53 @@ def validator_process_job(job_id, agency_code):
             pass
 
         raise e
+
+
+def cleanup_generation(file_gen_id):
+    """ Cleans up generation task if to be reused
+
+        Args:
+            file_gen_id: file generation id
+
+        Returns:
+            boolean whether or not it needs to be run again
+    """
+    sess = GlobalDB.db().session
+    retry = False
+
+    gen = sess.query(FileGeneration).filter(FileGeneration.file_generation_id == file_gen_id).one_or_none()
+    if gen and not gen.file_path:
+        retry = True
+    elif gen:
+        running_jobs = sess.query(Job).filter(Job.file_generation_id == file_gen_id,
+                                              Job.job_status_id.in_(RUNNING_STATUSES))
+        retry = (running_jobs.count() > 0)
+        if retry:
+            gen.file_path = None
+            gen.is_cached_file = False
+            sess.commit()
+    return retry
+
+
+def cleanup_validation(job_id):
+    """ Cleans up validation task if to be reused
+
+        Args:
+            job_id: ID of a Job
+
+        Returns:
+            boolean whether or not it needs to be run again
+    """
+    sess = GlobalDB.db().session
+    retry = False
+
+    job = sess.query(Job).filter(Job.job_id == job_id).one_or_none()
+    if job and job.job_status_id in RUNNING_STATUSES:
+        if job.job_status_id not in READY_STATUSES:
+            job.job_status_id = JOB_STATUS_DICT['waiting']
+            sess.commit()
+        retry = True
+    return retry
 
 
 if __name__ == "__main__":
