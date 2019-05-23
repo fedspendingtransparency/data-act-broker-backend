@@ -28,7 +28,7 @@ from dataactcore.interfaces.function_bag import (
     get_lastest_certified_date)
 
 from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
-                                             Office)
+                                             Office, DUNS)
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileGeneration)
 from dataactcore.models.lookups import (
@@ -626,6 +626,7 @@ class FileHandler:
             cfda_dict = {}
             county_dict = {}
             office_dict = {}
+            exec_comp_dict = {}
 
             # This table is big enough that we want to only grab 2 columns
             offices = sess.query(Office.office_code, Office.office_name, Office.sub_tier_code, Office.agency_code,
@@ -674,6 +675,16 @@ class FileHandler:
                 state_dict[state.state_code.upper()] = state.state_name
             del states
 
+            duns_list = sess.query(DUNS).filter(DUNS.high_comp_officer1_full_na.isnot(None)).all()
+            for duns in duns_list:
+                exec_comp_dict[duns.awardee_or_recipient_uniqu] =\
+                    {'officer1_name': DUNS.high_comp_officer1_full_na, 'officer1_amt': DUNS.high_comp_officer1_amount,
+                     'officer2_name': DUNS.high_comp_officer2_full_na, 'officer2_amt': DUNS.high_comp_officer2_amount,
+                     'officer3_name': DUNS.high_comp_officer3_full_na, 'officer3_amt': DUNS.high_comp_officer3_amount,
+                     'officer4_name': DUNS.high_comp_officer4_full_na, 'officer4_amt': DUNS.high_comp_officer4_amount,
+                     'officer5_name': DUNS.high_comp_officer5_full_na, 'officer5_amt': DUNS.high_comp_officer5_amount}
+            del duns_list
+
             agency_codes_list = []
             row_count = 1
             loop_num = 0
@@ -699,7 +710,7 @@ class FileHandler:
                     temp_obj.pop('_sa_instance_state', None)
 
                     temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict,
-                                                county_dict, office_dict)
+                                                county_dict, office_dict, exec_comp_dict)
 
                     # if it's a correction or deletion row and an old row is active, update the old row to be inactive
                     if row.correction_delete_indicatr is not None:
