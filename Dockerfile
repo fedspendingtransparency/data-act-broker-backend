@@ -4,7 +4,6 @@ RUN apt-get -y update
 RUN apt-get install -y postgresql-client
 
 RUN pip install unittest-xml-reporting
-RUN pip install paramiko==2.4.1
 
 COPY requirements.txt /data-act/backend/requirements.txt
 COPY server_requirements.txt /data-act/backend/server_requirements.txt
