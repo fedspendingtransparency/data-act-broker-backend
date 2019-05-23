@@ -678,11 +678,11 @@ class FileHandler:
             duns_list = sess.query(DUNS).filter(DUNS.high_comp_officer1_full_na.isnot(None)).all()
             for duns in duns_list:
                 exec_comp_dict[duns.awardee_or_recipient_uniqu] =\
-                    {'officer1_name': DUNS.high_comp_officer1_full_na, 'officer1_amt': DUNS.high_comp_officer1_amount,
-                     'officer2_name': DUNS.high_comp_officer2_full_na, 'officer2_amt': DUNS.high_comp_officer2_amount,
-                     'officer3_name': DUNS.high_comp_officer3_full_na, 'officer3_amt': DUNS.high_comp_officer3_amount,
-                     'officer4_name': DUNS.high_comp_officer4_full_na, 'officer4_amt': DUNS.high_comp_officer4_amount,
-                     'officer5_name': DUNS.high_comp_officer5_full_na, 'officer5_amt': DUNS.high_comp_officer5_amount}
+                    {'officer1_name': duns.high_comp_officer1_full_na, 'officer1_amt': duns.high_comp_officer1_amount,
+                     'officer2_name': duns.high_comp_officer2_full_na, 'officer2_amt': duns.high_comp_officer2_amount,
+                     'officer3_name': duns.high_comp_officer3_full_na, 'officer3_amt': duns.high_comp_officer3_amount,
+                     'officer4_name': duns.high_comp_officer4_full_na, 'officer4_amt': duns.high_comp_officer4_amount,
+                     'officer5_name': duns.high_comp_officer5_full_na, 'officer5_amt': duns.high_comp_officer5_amount}
             del duns_list
 
             agency_codes_list = []
