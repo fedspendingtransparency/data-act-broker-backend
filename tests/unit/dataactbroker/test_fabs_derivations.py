@@ -683,6 +683,44 @@ def test_derive_parent_duns_no_parent_info(database):
     assert obj['ultimate_parent_unique_ide'] is None
 
 
+def test_derive_executive_compensation(database):
+    initialize_db_values(database)
+
+    # Test when values are null
+    obj = initialize_test_obj()
+    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
+                           OFFICE_DICT, EXEC_COMP_DICT)
+
+    # If the first 2 are null, the rest will be too
+    assert obj['high_comp_officer1_full_na'] is None
+    assert obj['high_comp_officer1_amount'] is None
+
+    # Test when DUNS doesn't have exec comp data associated
+    obj = initialize_test_obj(awardee_or_recipient_uniqu='345678901')
+    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
+                           OFFICE_DICT, EXEC_COMP_DICT)
+
+    # If the first 2 are null, the rest will be too
+    assert obj['high_comp_officer1_full_na'] is None
+    assert obj['high_comp_officer1_amount'] is None
+
+    # Test with DUNS that has exec comp data
+    obj = initialize_test_obj(awardee_or_recipient_uniqu='123456789')
+    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
+                           OFFICE_DICT, EXEC_COMP_DICT)
+
+    assert obj['high_comp_officer1_full_na'] == 'Officer 1'
+    assert obj['high_comp_officer1_amount'] == '15'
+    assert obj['high_comp_officer2_full_na'] == 'Officer 2'
+    assert obj['high_comp_officer2_amount'] == '77.12'
+    assert obj['high_comp_officer3_full_na'] == 'This is the third Officer'
+    assert obj['high_comp_officer3_amount'] is None
+    assert obj['high_comp_officer4_full_na'] is None
+    assert obj['high_comp_officer4_amount'] == '0'
+    assert obj['high_comp_officer5_full_na'] is None
+    assert obj['high_comp_officer5_amount'] is None
+
+
 def test_derive_labels(database):
     initialize_db_values(database)
 
