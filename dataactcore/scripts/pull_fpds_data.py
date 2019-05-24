@@ -976,6 +976,11 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
         for i in range(1, 6):
             obj['high_comp_officer{}_full_na'.format(i)] = exec_comp['officer{}_name'.format(i)]
             obj['high_comp_officer{}_amount'.format(i)] = exec_comp['officer{}_amt'.format(i)]
+    else:
+        # Need to make sure they're null in case this is updating and the DUNS has changed somehow
+        for i in range(1, 6):
+            obj['high_comp_officer{}_full_na'.format(i)] = None
+            obj['high_comp_officer{}_amount'.format(i)] = None
 
     # calculate unique award key
     if atom_type == 'award':
