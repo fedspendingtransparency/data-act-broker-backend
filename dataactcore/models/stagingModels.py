@@ -1056,6 +1056,16 @@ class DetachedAwardProcurement(Base):
     business_categories = Column(ARRAY(Text))
     ignore_updated_at = False
     unique_award_key = Column(Text, index=True)
+    high_comp_officer1_full_na = Column(Text)
+    high_comp_officer1_amount = Column(Text)
+    high_comp_officer2_full_na = Column(Text)
+    high_comp_officer2_amount = Column(Text)
+    high_comp_officer3_full_na = Column(Text)
+    high_comp_officer3_amount = Column(Text)
+    high_comp_officer4_full_na = Column(Text)
+    high_comp_officer4_amount = Column(Text)
+    high_comp_officer5_full_na = Column(Text)
+    high_comp_officer5_amount = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -1214,6 +1224,16 @@ class PublishedAwardFinancialAssistance(Base):
     submission_id = Column(Numeric, index=True)
     ignore_updated_at = False
     unique_award_key = Column(Text, index=True)
+    high_comp_officer1_full_na = Column(Text)
+    high_comp_officer1_amount = Column(Text)
+    high_comp_officer2_full_na = Column(Text)
+    high_comp_officer2_amount = Column(Text)
+    high_comp_officer3_full_na = Column(Text)
+    high_comp_officer3_amount = Column(Text)
+    high_comp_officer4_full_na = Column(Text)
+    high_comp_officer4_amount = Column(Text)
+    high_comp_officer5_full_na = Column(Text)
+    high_comp_officer5_amount = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

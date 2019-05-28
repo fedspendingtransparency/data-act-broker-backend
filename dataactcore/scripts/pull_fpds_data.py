@@ -31,7 +31,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import SubTierAgency, CountryCode, States, CountyCode, Zips
+from dataactcore.models.domainModels import SubTierAgency, CountryCode, States, CountyCode, Zips, DUNS
 from dataactcore.models.stagingModels import DetachedAwardProcurement
 from dataactcore.models.jobModels import FPDSUpdate
 
@@ -900,8 +900,23 @@ def calculate_legal_entity_fields(obj, sess, county_by_code, state_code_list, co
 
 
 def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list, country_list,
-                               atom_type):
-    """ calculate values that aren't in any feed but can be calculated """
+                               exec_comp_dict, atom_type):
+    """ Calculate values that aren't in any feed but can be calculated.
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+            sess: the database connection
+            sub_tier_list: a dictionary containing all the sub tier agency information keyed by sub tier agency code
+            county_by_name: a dictionary containing all county codes, keyed by state and county name
+            county_by_code: a dictionary containing all county names, keyed by state and county code
+            state_code_list: a dictionary containing all state names, keyed by state code
+            country_list: a dictionary containing all country names, keyed by country code
+            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by DUNS number
+            atom_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
+
+        Returns:
+            the object originally passed in with newly-calculated values added
+    """
     # we want to null out all the calculated columns in case this is an update to the records
     obj['awarding_agency_code'] = None
     obj['awarding_agency_name'] = None
@@ -955,6 +970,18 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
     # calculate business categories
     obj['business_categories'] = get_business_categories(row=obj, data_type='fpds')
 
+    # Calculate executive compensation data for the entry.
+    if obj['awardee_or_recipient_uniqu'] and obj['awardee_or_recipient_uniqu'] in exec_comp_dict.keys():
+        exec_comp = exec_comp_dict[obj['awardee_or_recipient_uniqu']]
+        for i in range(1, 6):
+            obj['high_comp_officer{}_full_na'.format(i)] = exec_comp['officer{}_name'.format(i)]
+            obj['high_comp_officer{}_amount'.format(i)] = exec_comp['officer{}_amt'.format(i)]
+    else:
+        # Need to make sure they're null in case this is updating and the DUNS has changed somehow
+        for i in range(1, 6):
+            obj['high_comp_officer{}_full_na'.format(i)] = None
+            obj['high_comp_officer{}_amount'.format(i)] = None
+
     # calculate unique award key
     if atom_type == 'award':
         unique_award_string_list = ['CONT_AWD']
@@ -988,8 +1015,24 @@ def calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_
     return obj
 
 
-def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by_code, state_code_list, country_list):
-    """ process the data coming in """
+def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by_code, state_code_list, country_list,
+                 exec_comp_dict):
+    """ Process the data coming in.
+
+        Args:
+            data: an object containing the data gathered from the feed
+            sess: the database connection
+            atom_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
+            sub_tier_list: a dictionary containing all the sub tier agency information keyed by sub tier agency code
+            county_by_name: a dictionary containing all county codes, keyed by state and county name
+            county_by_code: a dictionary containing all county names, keyed by state and county code
+            state_code_list: a dictionary containing all state names, keyed by state code
+            country_list: a dictionary containing all country names, keyed by country code
+            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by DUNS number
+
+        Returns:
+            An object containing the processed and calculated data.
+    """
     obj = {}
 
     if atom_type == "award":
@@ -1106,7 +1149,7 @@ def process_data(data, sess, atom_type, sub_tier_list, county_by_name, county_by
     obj = generic_values(data['genericTags'], obj)
 
     obj = calculate_remaining_fields(obj, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-                                     country_list, atom_type)
+                                     country_list, exec_comp_dict, atom_type)
 
     try:
         obj['last_modified'] = data['transactionInformation']['lastModifiedDate']
@@ -1207,13 +1250,29 @@ def process_delete_data(data, atom_type):
 
 
 def create_processed_data_list(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code,
-                               state_code_list, country_list):
+                               state_code_list, country_list, exec_comp_dict):
+    """ Create a list of processed data
+
+        Args:
+            data: an object containing the data gathered from the feed
+            sess: the database connection
+            contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
+            sub_tier_list: a dictionary containing all the sub tier agency information keyed by sub tier agency code
+            county_by_name: a dictionary containing all county codes, keyed by state and county name
+            county_by_code: a dictionary containing all county names, keyed by state and county code
+            state_code_list: a dictionary containing all state names, keyed by state code
+            country_list: a dictionary containing all country names, keyed by country code
+            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by DUNS number
+
+        Returns:
+            A list containing the processed and calculated data.
+    """
     data_list = []
     for value in data:
         tmp_obj = process_data(value['content'][contract_type], sess, atom_type=contract_type,
                                sub_tier_list=sub_tier_list, county_by_name=county_by_name,
                                county_by_code=county_by_code, state_code_list=state_code_list,
-                               country_list=country_list)
+                               country_list=country_list, exec_comp_dict=exec_comp_dict)
         data_list.append(tmp_obj)
     return data_list
 
@@ -1234,14 +1293,28 @@ def add_processed_data_list(data, sess):
 
 
 def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-                    country_list, now, threaded=False):
-    """ start the processing for data and add it to the DB """
+                    country_list, exec_comp_dict, now, threaded=False):
+    """ Start the processing for data and add it to the DB.
+
+        Args:
+            data: an object containing the data gathered from the feed
+            contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
+            sess: the database connection
+            sub_tier_list: a dictionary containing all the sub tier agency information keyed by sub tier agency code
+            county_by_name: a dictionary containing all county codes, keyed by state and county name
+            county_by_code: a dictionary containing all county names, keyed by state and county code
+            state_code_list: a dictionary containing all state names, keyed by state code
+            country_list: a dictionary containing all country names, keyed by country code
+            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by DUNS number
+            now: a timestamp indicating the time to set the updated_at to
+            threaded: a boolean indicating whether the process is running as a thread or not
+    """
     if threaded:
         for value in data:
             tmp_obj = process_data(value['content'][contract_type], sess, atom_type=contract_type,
                                    sub_tier_list=sub_tier_list, county_by_name=county_by_name,
                                    county_by_code=county_by_code, state_code_list=state_code_list,
-                                   country_list=country_list)
+                                   country_list=country_list, exec_comp_dict=exec_comp_dict)
             tmp_obj['updated_at'] = now
 
             insert_statement = insert(DetachedAwardProcurement).values(**tmp_obj).\
@@ -1252,7 +1325,7 @@ def process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, co
             tmp_obj = process_data(value['content'][contract_type], sess, atom_type=contract_type,
                                    sub_tier_list=sub_tier_list, county_by_name=county_by_name,
                                    county_by_code=county_by_code, state_code_list=state_code_list,
-                                   country_list=country_list)
+                                   country_list=country_list, exec_comp_dict=exec_comp_dict)
 
             try:
                 statement = insert(DetachedAwardProcurement).values(**tmp_obj)
@@ -1331,8 +1404,26 @@ def get_total_expected_records(base_url):
 
 
 def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-             country_list, last_run=None, threaded=False, start_date=None, end_date=None, metrics=None):
-    """ get the data from the atom feed based on contract/award type and the last time the script was run """
+             country_list, exec_comp_dict, last_run=None, threaded=False, start_date=None, end_date=None, metrics=None):
+    """ Get the data from the atom feed based on contract/award type and the last time the script was run.
+
+        Args:
+            contract_type: a string indicating whether the atom feed being checked is 'award' or 'IDV'
+            award_type: a string indicating what the award type of the feed being checked is
+            now: a timestamp indicating the time to set the updated_at to
+            sess: the database connection
+            sub_tier_list: a dictionary containing all the sub tier agency information keyed by sub tier agency code
+            county_by_name: a dictionary containing all county codes, keyed by state and county name
+            county_by_code: a dictionary containing all county names, keyed by state and county code
+            state_code_list: a dictionary containing all state names, keyed by state code
+            country_list: a dictionary containing all country names, keyed by country code
+            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by DUNS number
+            last_run: a date indicating the last time the pull was run
+            threaded: a boolean indicating whether the process is running as a thread or not
+            start_date: a date indicating the first date to pull from (must be provided with end_date)
+            end_date: a date indicating the last date to pull from (must be provided with start_date)
+            metrics: a dictionary to gather metrics for the script in
+    """
     if not metrics:
         metrics = {}
     data = []
@@ -1396,7 +1487,8 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
                     entries_processed += 1
             else:
                 data.extend(create_processed_data_list(entries_per_response, contract_type, sess, sub_tier_list,
-                                                       county_by_name, county_by_code, state_code_list, country_list))
+                                                       county_by_name, county_by_code, state_code_list, country_list,
+                                                       exec_comp_dict))
                 entries_processed += len(entries_per_response)
 
         if len(data) % SPOT_CHECK_COUNT == 0 and entries_processed > total_expected_records:
@@ -1419,7 +1511,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
 
             if last_run:
                 process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code,
-                                state_code_list, country_list, utcnow, threaded)
+                                state_code_list, country_list, exec_comp_dict, utcnow, threaded)
             else:
                 add_processed_data_list(data, sess)
 
@@ -2424,6 +2516,18 @@ def main():
         if re.match('^[A-Z\s]+$', county_code.county_name):
             county_by_name[county_code.state_code][county_name] = county_code.county_number
 
+    # get and create list of duns -> exec comp data mappings
+    exec_comp_dict = {}
+    duns_list = sess.query(DUNS).filter(DUNS.high_comp_officer1_full_na.isnot(None)).all()
+    for duns in duns_list:
+        exec_comp_dict[duns.awardee_or_recipient_uniqu] = \
+            {'officer1_name': duns.high_comp_officer1_full_na, 'officer1_amt': duns.high_comp_officer1_amount,
+             'officer2_name': duns.high_comp_officer2_full_na, 'officer2_amt': duns.high_comp_officer2_amount,
+             'officer3_name': duns.high_comp_officer3_full_na, 'officer3_amt': duns.high_comp_officer3_amount,
+             'officer4_name': duns.high_comp_officer4_full_na, 'officer4_amt': duns.high_comp_officer4_amount,
+             'officer5_name': duns.high_comp_officer5_full_na, 'officer5_amt': duns.high_comp_officer5_amount}
+    del duns_list
+
     if args.all:
         if (not args.delivery and not args.other) or (args.delivery and args.other):
             logger.error("When using the -a flag, please include either -d or -o "
@@ -2435,15 +2539,15 @@ def main():
         if args.other:
             for award_type in award_types_idv:
                 get_data("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-                         country_list, metrics=metrics_json)
+                         country_list, exec_comp_dict, metrics=metrics_json)
             for award_type in award_types_award:
                 if award_type != "Delivery Order":
                     get_data("award", award_type, now, sess, sub_tier_list, county_by_name, county_by_code,
-                             state_code_list, country_list, metrics=metrics_json)
+                             state_code_list, country_list, exec_comp_dict, metrics=metrics_json)
 
         elif args.delivery:
             get_data("award", "Delivery Order", now, sess, sub_tier_list, county_by_name, county_by_code,
-                     state_code_list, country_list, metrics=metrics_json)
+                     state_code_list, country_list, exec_comp_dict, metrics=metrics_json)
 
         last_update = sess.query(FPDSUpdate).one_or_none()
 
@@ -2477,11 +2581,13 @@ def main():
 
         for award_type in award_types_idv:
             get_data("IDV", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-                     country_list, last_update, start_date=start_date, end_date=end_date, metrics=metrics_json)
+                     country_list, exec_comp_dict, last_update, start_date=start_date, end_date=end_date,
+                     metrics=metrics_json)
 
         for award_type in award_types_award:
             get_data("award", award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-                     country_list, last_update, start_date=start_date, end_date=end_date, metrics=metrics_json)
+                     country_list, exec_comp_dict, last_update, start_date=start_date, end_date=end_date,
+                     metrics=metrics_json)
 
         # We also need to process the delete feed
         get_delete_data("IDV", now, sess, last_update, start_date, end_date, metrics=metrics_json)

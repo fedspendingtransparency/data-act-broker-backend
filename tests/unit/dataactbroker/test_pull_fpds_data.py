@@ -57,6 +57,11 @@ def test_calculate_remaining_fields(database):
                       'GU': {'123': 'GU COUNTY'}}
     state_codes = {'GA': 'GEORGIA', 'MD': 'MARYLAND', 'PR': 'PUERTO RICO', 'GU': 'GUAM'}
     country_list = {'USA': 'UNITED STATES'}
+    exec_comp = {'123456': {'officer1_name': 'officer 1', 'officer1_amt': '0',
+                            'officer2_name': 'officer 2', 'officer2_amt': '77.5',
+                            'officer3_name': 'officer 3', 'officer3_amt': None,
+                            'officer4_name': None, 'officer4_amt': '20',
+                            'officer5_name': None, 'officer5_amt': None}}
 
     # build business category values
     business_category_dict = {}
@@ -75,7 +80,8 @@ def test_calculate_remaining_fields(database):
                     'legal_entity_country_code': 'USA',
                     'legal_entity_country_name': 'UNITED STATES',
                     'legal_entity_state_code': 'GA',
-                    'legal_entity_state_descrip': 'GEORGIA'}
+                    'legal_entity_state_descrip': 'GEORGIA',
+                    'awardee_or_recipient_uniqu': None}
     tmp_obj_data.update(business_category_dict.copy())
     tmp_obj_data['emerging_small_business'] = 'Y'
     tmp_obj = pull_fpds_data.calculate_remaining_fields(tmp_obj_data,
@@ -85,6 +91,7 @@ def test_calculate_remaining_fields(database):
                                                         county_by_code,
                                                         state_codes,
                                                         country_list,
+                                                        exec_comp,
                                                         "award")
 
     tmp_obj_2_data = {'awarding_sub_tier_agency_c': None,
@@ -100,7 +107,8 @@ def test_calculate_remaining_fields(database):
                       'legal_entity_country_code': 'USA',
                       'legal_entity_country_name': 'UNITED STATES',
                       'legal_entity_state_code': 'GA',
-                      'legal_entity_state_descrip': 'GEORGIA'}
+                      'legal_entity_state_descrip': 'GEORGIA',
+                      'awardee_or_recipient_uniqu': '654321'}
     tmp_obj_2_data.update(business_category_dict.copy())
     tmp_obj_2_data['contracting_officers_deter'] = 'O'
     tmp_obj_2 = pull_fpds_data.calculate_remaining_fields(tmp_obj_2_data,
@@ -110,6 +118,7 @@ def test_calculate_remaining_fields(database):
                                                           county_by_code,
                                                           state_codes,
                                                           country_list,
+                                                          exec_comp,
                                                           "award")
 
     tmp_obj_3_data = {'awarding_sub_tier_agency_c': None,
@@ -125,7 +134,8 @@ def test_calculate_remaining_fields(database):
                       'legal_entity_country_code': 'GUM',
                       'legal_entity_country_name': 'GUAM',
                       'legal_entity_state_code': 'GA',
-                      'legal_entity_state_descrip': 'GEORGIA'}
+                      'legal_entity_state_descrip': 'GEORGIA',
+                      'awardee_or_recipient_uniqu': '123456'}
     tmp_obj_3_data.update(business_category_dict.copy())
     tmp_obj_3_data['alaskan_native_owned_corpo'] = 'True'
     tmp_obj_3 = pull_fpds_data.calculate_remaining_fields(tmp_obj_3_data,
@@ -135,6 +145,7 @@ def test_calculate_remaining_fields(database):
                                                           county_by_code,
                                                           state_codes,
                                                           country_list,
+                                                          exec_comp,
                                                           "award")
 
     assert tmp_obj['awarding_agency_code'] == '1700'
@@ -145,6 +156,8 @@ def test_calculate_remaining_fields(database):
     assert tmp_obj['legal_entity_county_name'] is None
     assert sorted(tmp_obj['business_categories']) == ['category_business', 'emerging_small_business', 'small_business',
                                                       'special_designations']
+    assert tmp_obj['high_comp_officer1_full_na'] is None
+    assert tmp_obj['high_comp_officer1_amount'] is None
     assert tmp_obj_2['funding_agency_code'] == '999'
     assert tmp_obj_2['funding_agency_name'] is None
     assert tmp_obj_2['place_of_perform_county_co'] is None
@@ -153,6 +166,8 @@ def test_calculate_remaining_fields(database):
     assert tmp_obj_2['legal_entity_county_code'] == '123'
     assert tmp_obj_2['legal_entity_county_name'] == 'COUNTY ONE'
     assert sorted(tmp_obj_2['business_categories']) == ['category_business', 'other_than_small_business']
+    assert tmp_obj_2['high_comp_officer1_full_na'] is None
+    assert tmp_obj_2['high_comp_officer1_amount'] is None
     assert tmp_obj_3['place_of_perform_country_c'] == 'USA'
     assert tmp_obj_3['place_of_perf_country_desc'] == 'UNITED STATES'
     assert tmp_obj_3['place_of_performance_state'] == 'PR'
@@ -167,6 +182,16 @@ def test_calculate_remaining_fields(database):
     assert tmp_obj_3['legal_entity_county_code'] == '123'
     assert tmp_obj_3['legal_entity_county_name'] == 'GU COUNTY'
     assert sorted(tmp_obj_3['business_categories']) == ['alaskan_native_owned_business', 'minority_owned_business']
+    assert tmp_obj_3['high_comp_officer1_full_na'] == 'officer 1'
+    assert tmp_obj_3['high_comp_officer1_amount'] == '0'
+    assert tmp_obj_3['high_comp_officer2_full_na'] == 'officer 2'
+    assert tmp_obj_3['high_comp_officer2_amount'] == '77.5'
+    assert tmp_obj_3['high_comp_officer3_full_na'] == 'officer 3'
+    assert tmp_obj_3['high_comp_officer3_amount'] is None
+    assert tmp_obj_3['high_comp_officer4_full_na'] is None
+    assert tmp_obj_3['high_comp_officer4_amount'] == '20'
+    assert tmp_obj_3['high_comp_officer5_full_na'] is None
+    assert tmp_obj_3['high_comp_officer5_amount'] is None
 
 
 def test_process_data(database):
@@ -184,10 +209,10 @@ def test_process_data(database):
 
     tmp_obj_award = pull_fpds_data.process_data(listed_data[0]['content']['award'], sess=sess, atom_type='award',
                                                 sub_tier_list={}, county_by_name={}, county_by_code={},
-                                                state_code_list={}, country_list={})
+                                                state_code_list={}, country_list={}, exec_comp_dict={})
     tmp_obj_idv = pull_fpds_data.process_data(listed_data[1]['content']['IDV'], sess=sess, atom_type='IDV',
                                               sub_tier_list={}, county_by_name={}, county_by_code={},
-                                              state_code_list={}, country_list={})
+                                              state_code_list={}, country_list={}, exec_comp_dict={})
 
     assert tmp_obj_award['piid'] == '0001'
     assert tmp_obj_award['major_program'] is None
