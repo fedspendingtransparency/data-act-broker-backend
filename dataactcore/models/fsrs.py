@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, func, Integer, String, Text, ARRAY, UniqueConstraint
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, func, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
@@ -182,8 +182,8 @@ class Subaward(Base):
     award_description = Column(Text)
     naics = Column(Text)
     naics_description = Column(Text)
-    cfda_numbers = Column(ARRAY(Text))
-    cfda_titles = Column(ARRAY(Text))
+    cfda_numbers = Column(Text)
+    cfda_titles = Column(Text)
     # File F - Subaward Data
     subaward_type = Column(Text, index=True)
     subaward_report_year = Column(Text)
