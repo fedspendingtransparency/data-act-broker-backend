@@ -26,7 +26,7 @@ def main():
     sorted_monthly_file_names = sorted([monthly_file for monthly_file in dirlist if re.match('.*MONTHLY_\d+',
                                                                                              monthly_file)])
 
-    print(sorted_monthly_file_names)
+    logger.info(sorted_monthly_file_names)
 
 if __name__ == '__main__':
     with create_app().app_context():
