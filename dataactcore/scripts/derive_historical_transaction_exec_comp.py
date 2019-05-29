@@ -55,6 +55,8 @@ def update_transactions(sess, exec_comp_data, file_date):
     logger.info('Dropping {}'.format(temp_table_name))
     sess.execute('DROP TABLE {};'.format(temp_table_name))
 
+    sess.commit()
+
 
 def main():
     logger.info('Starting historical transaction executive compensation backfill.')
@@ -72,7 +74,6 @@ def main():
     sorted_monthly_file_names = sorted([monthly_file for monthly_file in dirlist if re.match('.*MONTHLY_\d+',
                                                                                              monthly_file)])
 
-    logger.info(sorted_monthly_file_names)
     sess = GlobalDB.db().session
 
     for monthly_file in sorted_monthly_file_names:
