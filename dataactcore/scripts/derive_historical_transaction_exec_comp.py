@@ -22,7 +22,8 @@ def update_transactions(sess, exec_comp_data, file_date):
     """
 
     temp_table_name = 'temp_exec_comp_update'
-    create_temp_exec_comp_table(sess, temp_table_name, exec_comp_data)
+    pop_exec = exec_comp_data[exec_comp_data.exec_comp_str.notnull()]
+    create_temp_exec_comp_table(sess, temp_table_name, pop_exec)
 
     update_sql = """
             UPDATE {update_table}
