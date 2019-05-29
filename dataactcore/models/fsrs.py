@@ -269,5 +269,3 @@ class Subaward(Base):
     sub_recovery_model_q2 = Column(Text)
     sub_compensation_q1 = Column(Text)
     sub_compensation_q2 = Column(Text)
-
-    __table_args__ = (UniqueConstraint('prime_id', 'sub_id', name='unique_ids'),)

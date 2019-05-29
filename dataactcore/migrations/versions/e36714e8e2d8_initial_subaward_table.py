@@ -160,8 +160,7 @@ def upgrade_data_broker():
     sa.Column('sub_recovery_model_q2', sa.Text(), nullable=True),
     sa.Column('sub_compensation_q1', sa.Text(), nullable=True),
     sa.Column('sub_compensation_q2', sa.Text(), nullable=True),
-    sa.PrimaryKeyConstraint('prime_sub_id'),
-    sa.UniqueConstraint('prime_id', 'sub_id', name='unique_ids')
+    sa.PrimaryKeyConstraint('prime_sub_id')
     )
     op.create_index(op.f('ix_subaward_action_date'), 'subaward', ['action_date'], unique=False)
     op.create_index(op.f('ix_subaward_award_id'), 'subaward', ['award_id'], unique=False)
