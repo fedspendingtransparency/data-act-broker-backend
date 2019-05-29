@@ -40,7 +40,7 @@ def update_transactions(sess, exec_comp_data, file_date):
                 last_exec_comp_mod_date = tmp.last_exec_comp_mod_date
             FROM {table_name} AS tmp
             WHERE {update_table}.awardee_or_recipient_uniqu = tmp.awardee_or_recipient_uniqu
-                AND cast_as_date({update_table}.action_date) >= cast_as_date({file_date});
+                AND cast_as_date({update_table}.action_date) >= cast_as_date('{file_date}');
         """
     # Update FABS
     logger.info('Updating FABS based on {}, starting at {}'.format(temp_table_name, file_date))
