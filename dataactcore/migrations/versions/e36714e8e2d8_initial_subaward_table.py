@@ -38,7 +38,7 @@ def upgrade_data_broker():
     sa.Column('parent_award_id', sa.Text(), nullable=True),
     sa.Column('award_amount', sa.Text(), nullable=True),
     sa.Column('action_date', sa.Text(), nullable=True),
-    sa.Column('fy', sa.Integer(), nullable=True),
+    sa.Column('fy', sa.Text(), nullable=True),
     sa.Column('awarding_agency_code', sa.Text(), nullable=True),
     sa.Column('awarding_agency_name', sa.Text(), nullable=True),
     sa.Column('awarding_sub_tier_agency_c', sa.Text(), nullable=True),

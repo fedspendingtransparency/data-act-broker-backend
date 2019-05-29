@@ -144,7 +144,7 @@ class Subaward(Base):
     parent_award_id = Column(Text, index=True)
     award_amount = Column(Text)
     action_date = Column(Text, index=True)
-    fy = Column(Integer)
+    fy = Column(Text)
     awarding_agency_code = Column(Text, index=True)
     awarding_agency_name = Column(Text)
     awarding_sub_tier_agency_c = Column(Text, index=True)
