@@ -20,12 +20,11 @@ from dataactvalidator.scripts.loader_utils import insert_dataframe
 logger = logging.getLogger(__name__)
 
 
-def parse_exec_comp_file(filename, sess, root_dir, sftp=None, ssh_key=None, metrics=None):
+def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=None):
     """ Parses the executive compensation file to update corresponding DUNS records
 
         Arguments:
             filename: name of file to import
-            sess: database connection
             root_dir: working directory
             sftp: connection to remote server
             ssh_key: ssh_key for reconnecting
@@ -39,8 +38,7 @@ def parse_exec_comp_file(filename, sess, root_dir, sftp=None, ssh_key=None, metr
         metrics = {
             'files_processed': [],
             'records_received': 0,
-            'records_processed': 0,
-            'updated_duns': []
+            'records_processed': 0
         }
 
     file_path = os.path.join(root_dir, filename)
@@ -102,23 +100,27 @@ def parse_exec_comp_file(filename, sess, root_dir, sftp=None, ssh_key=None, metr
     last_exec_comp_mod_date = datetime.datetime.strptime(last_exec_comp_mod_date_str[0], '%Y%m%d').date()
     total_data = total_data.assign(last_exec_comp_mod_date=last_exec_comp_mod_date)
 
-    updated_duns = update_exec_comp_duns(sess, total_data)
-    metrics['updated_duns'].extend(updated_duns)
-
     if sftp:
         os.remove(os.path.join(root_dir, filename))
 
+    return total_data
 
-def update_exec_comp_duns(sess, exec_comp_data):
+
+def update_exec_comp_duns(sess, exec_comp_data, metrics=None):
     """ Takes in a dataframe of exec comp data and updates associated DUNS
 
         Arguments:
             sess: database connection
             exec_comp_data: pandas dataframe representing exec comp data
+            metrics: dictionary representing metrics of the script
 
         Returns:
             list of DUNS updated
     """
+    if not metrics:
+        metrics = {
+            'updated_duns': []
+        }
 
     logger.info('Making temp_exec_comp_update table')
     create_table_sql = """
@@ -177,7 +179,7 @@ def update_exec_comp_duns(sess, exec_comp_data):
     sess.execute('DROP TABLE temp_exec_comp_update;')
 
     sess.commit()
-    return duns_list
+    metrics['updated_duns'].extend(duns_list)
 
 
 def parse_exec_comp(exec_comp_str=None):
@@ -273,10 +275,13 @@ if __name__ == '__main__':
         sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match('.*DAILY_\d+', daily_file)])
 
         if historic:
-            parse_exec_comp_file(sorted_monthly_file_names[0], sess, root_dir, sftp=sftp, ssh_key=ssh_key,
-                                 metrics=metrics)
+            exec_comp_data = parse_exec_comp_file(sorted_monthly_file_names[0], root_dir, sftp=sftp, ssh_key=ssh_key,
+                                                  metrics=metrics)
+            update_exec_comp_duns(sess, exec_comp_data)
+
             for daily_file in sorted_daily_file_names:
-                parse_exec_comp_file(daily_file, sess, root_dir, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
+                exec_comp_data = parse_exec_comp_file(daily_file, root_dir, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
+                update_exec_comp_duns(sess, exec_comp_data)
         elif update:
             # Insert item into sorted file list with date of last exec comp load date
             last_update = sess.query(DUNS.last_exec_comp_mod_date). \
@@ -298,7 +303,9 @@ if __name__ == '__main__':
 
             if daily_files_after:
                 for daily_file in daily_files_after:
-                    parse_exec_comp_file(daily_file, sess, root_dir, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
+                    exec_comp_data = parse_exec_comp_file(daily_file, root_dir, sftp=sftp, ssh_key=ssh_key,
+                                                          metrics=metrics)
+                    update_exec_comp_duns(sess, exec_comp_data)
             else:
                 logger.info("No daily file found.")
 
