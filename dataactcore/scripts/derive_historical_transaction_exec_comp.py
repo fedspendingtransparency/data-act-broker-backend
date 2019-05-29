@@ -36,8 +36,7 @@ def update_transactions(sess, exec_comp_data, file_date):
                 high_comp_officer4_amount = tmp.high_comp_officer4_amount,
                 high_comp_officer4_full_na = tmp.high_comp_officer4_full_na,
                 high_comp_officer5_amount = tmp.high_comp_officer5_amount,
-                high_comp_officer5_full_na = tmp.high_comp_officer5_full_na,
-                last_exec_comp_mod_date = tmp.last_exec_comp_mod_date
+                high_comp_officer5_full_na = tmp.high_comp_officer5_full_na
             FROM {table_name} AS tmp
             WHERE {update_table}.awardee_or_recipient_uniqu = tmp.awardee_or_recipient_uniqu
                 AND cast_as_date({update_table}.action_date) >= cast_as_date('{file_date}');
