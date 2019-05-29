@@ -32,7 +32,7 @@ def upgrade_data_broker():
     op.create_table('subaward',
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
-    sa.Column('prime_sub_id', sa.Integer(), nullable=False),
+    sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('unique_award_key', sa.Text(), nullable=True),
     sa.Column('award_id', sa.Text(), nullable=True),
     sa.Column('parent_award_id', sa.Text(), nullable=True),
@@ -160,7 +160,7 @@ def upgrade_data_broker():
     sa.Column('sub_recovery_model_q2', sa.Text(), nullable=True),
     sa.Column('sub_compensation_q1', sa.Text(), nullable=True),
     sa.Column('sub_compensation_q2', sa.Text(), nullable=True),
-    sa.PrimaryKeyConstraint('prime_sub_id')
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_subaward_action_date'), 'subaward', ['action_date'], unique=False)
     op.create_index(op.f('ix_subaward_award_id'), 'subaward', ['award_id'], unique=False)

@@ -136,7 +136,7 @@ FSRSGrant.subawards = relationship(FSRSSubgrant, back_populates='parent')
 class Subaward(Base):
     """ Model for all subaward data """
     __tablename__ = "subaward"
-    prime_sub_id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)
 
     # File F - Prime Award Data
     unique_award_key = Column(Text, index=True)
