@@ -109,7 +109,7 @@ if __name__ == '__main__':
                 sys.exit(1)
 
             # Delete internal ids from subaward table
-            sess.query(Subaward.internal_id._in(updated_internal_ids)).delete()
+            sess.query(Subaward.internal_id.in_(updated_internal_ids)).delete()
 
             # Populate subaward table off new ids
             if len(sys.argv) <= 1:
