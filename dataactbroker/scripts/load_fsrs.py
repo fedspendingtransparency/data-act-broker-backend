@@ -72,13 +72,14 @@ if __name__ == '__main__':
         else:
             # Regular FSRS data load, starts where last load left off
             updated_internal_ids = []
-            min_procurement_id = SERVICE_MODEL[PROCUREMENT].next_id(sess)
-            min_grant_id = SERVICE_MODEL[GRANT].next_id(sess)
+            original_min_procurement_id = SERVICE_MODEL[PROCUREMENT].next_id(sess)
+            original_min_grant_id = SERVICE_MODEL[GRANT].next_id(sess)
             if len(sys.argv) <= 1:
                 awards = ['Starting']
                 while len(awards) > 0:
-                    procs = fetch_and_replace_batch(sess, PROCUREMENT, min_procurement_id, min_id=True)
-                    grants = fetch_and_replace_batch(sess, GRANT, min_grant_id, min_id=True)
+                    procs = fetch_and_replace_batch(sess, PROCUREMENT, SERVICE_MODEL[PROCUREMENT].next_id(sess),
+                                                    min_id=True)
+                    grants = fetch_and_replace_batch(sess, GRANT, SERVICE_MODEL[GRANT].next_id(sess), min_id=True)
                     awards = procs + grants
                     updated_internal_ids = [award.internal_id for award in awards]
                     log_fsrs_counts(awards)
@@ -112,8 +113,8 @@ if __name__ == '__main__':
 
             # Populate subaward table off new ids
             if len(sys.argv) <= 1:
-                populate_subaward_table(sess, 'procurements', min_id=min_procurement_id)
-                populate_subaward_table(sess, 'grants', min_id=min_grant_id)
+                populate_subaward_table(sess, 'procurements', min_id=original_min_procurement_id)
+                populate_subaward_table(sess, 'grants', min_id=original_min_grant_id)
             elif args.procurement and args.ids:
                 populate_subaward_table(sess, 'procurements', ids=args.ids)
             elif args.grants and args.ids:
