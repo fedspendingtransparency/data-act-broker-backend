@@ -301,7 +301,7 @@ def retrieve_batch(service_type, id, min_id=False):
     # Subtracting 1 from min_id since FSRS API starts one after value
     # If the last id is 50 for example the min_id is 51, the API will retrieve 52 and greater
     for report in new_client(service_type).service.getData(id=id-1)['reports']:
-        if (report['id'] == id and min_id) or not min_id:
+        if (report['id'] == id and not min_id) or min_id:
             as_dict = soap_to_dict(report)
             if service_type == PROCUREMENT:
                 yield to_prime_contract(as_dict)
