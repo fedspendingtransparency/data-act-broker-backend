@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def update_transactions(sess, exec_comp_data, file_date):
     """ Update FABS and FPDS transactions with historical executive compensation data.
-    
+
         Arguments:
             sess: database connection
             exec_comp_data: pandas dataframe representing exec comp data
