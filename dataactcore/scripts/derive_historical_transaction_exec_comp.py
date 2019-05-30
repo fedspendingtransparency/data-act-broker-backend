@@ -87,6 +87,7 @@ def main():
     pop_exec = exec_comp_data[exec_comp_data.high_comp_officer1_full_na.notnull()]
     logger.info('Num rows after cleanup: {}'.format(len(pop_exec.index)))
     create_temp_exec_comp_table(sess, temp_table_name, pop_exec)
+    sess.commit()
 
     # for monthly_file in sorted_monthly_file_names:
     #     file_date = re.match('.*(\d{8}).*', monthly_file).group(1)
