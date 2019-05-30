@@ -78,8 +78,7 @@ class _PrimeAwardAttributes:
 
     @classmethod
     def next_id(cls, sess):
-        """We'll often want to load "new" data -- anything with a later id
-        than the awards we have. Return that max id"""
+        # We'll often want to load "new" data -- anything with a later id than the awards we have. Return that max id.
         current = sess.query(func.max(cls.id)).one()[0] or -1
         return current + 1
 
