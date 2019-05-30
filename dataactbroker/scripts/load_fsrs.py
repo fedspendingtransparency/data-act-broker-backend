@@ -8,6 +8,8 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactbroker.fsrs import config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT, SERVICE_MODEL, \
     config_state_mappings
+from dataactcore.models.fsrs import Subaward
+from dataactcore.scripts.populate_subaward_table import populate_subaward_table
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -106,15 +108,16 @@ if __name__ == '__main__':
                 sys.exit(1)
 
             # Delete internal ids from subaward table
-            # sess.query(Subaward.internal_id._in(updated_internal_ids)).delete()
+            sess.query(Subaward.internal_id._in(updated_internal_ids)).delete()
 
             # Populate subaward table off new ids
-            # if not args.ids:
-                # base off old ids
-
-            # else:
-                # base off ids in list
-
+            if len(sys.argv) <= 1:
+                populate_subaward_table(sess, 'procurements', min_id=min_procurement_id)
+                populate_subaward_table(sess, 'grants', min_id=min_grant_id)
+            elif args.procurement and args.ids:
+                populate_subaward_table(sess, 'procurements', ids=args.ids)
+            elif args.grants and args.ids:
+                populate_subaward_table(sess, 'grants', ids=args.ids)
 
         # Deletes state mapping variable
         config_state_mappings()
