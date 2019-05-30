@@ -16,6 +16,7 @@ GRANT_SQL = os.path.join(RAW_SQL_DIR, 'populate_subaward_table_grants.sql')
 
 logger = logging.getLogger(__name__)
 
+
 def populate_subaward_table(sess, service_type, ids=None, min_id=None):
     """ Populates the subaward table based on the IDS (or min id) provided
 

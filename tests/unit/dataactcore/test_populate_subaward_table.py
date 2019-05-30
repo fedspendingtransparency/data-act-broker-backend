@@ -10,6 +10,7 @@ from tests.unit.dataactcore.factories.staging import PublishedAwardFinancialAssi
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.unit.dataactcore.factories.domain import DunsFactory, CountryCodeFactory
 
+
 def extract_cfda(field, type):
     """ Helper function representing the cfda psql functions """
     extracted_values = []
@@ -230,7 +231,7 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
     sess.commit()
 
     # Gather the sql
-    populate_subaward_table(sess, 'procurements', ids = [contract_awd.id, contract_idv.id])
+    populate_subaward_table(sess, 'procurements', ids=[contract_awd.id, contract_idv.id])
 
     # Get the records
     contracts_results = sess.query(Subaward).order_by(Subaward.unique_award_key).all()
@@ -445,7 +446,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     sess.commit()
 
     # Gather the sql
-    populate_subaward_table(sess, 'grants', ids = [grant_agg.id, grant_non.id])
+    populate_subaward_table(sess, 'grants', ids=[grant_agg.id, grant_non.id])
 
     # Get the records
     grants_results = sess.query(Subaward).order_by(Subaward.unique_award_key).all()
@@ -454,6 +455,6 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
 
     # Expected Results
     assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
-                          int_country, timestamp, 4) is True
+                                 int_country, timestamp, 4) is True
     assert compare_grant_results(grants_results[1], d2_non, grant_non, sub_grant_non, parent_duns, duns, dom_country,
-                          int_country, timestamp, 3) is True
+                                 int_country, timestamp, 3) is True

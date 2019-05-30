@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, func, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, func, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
