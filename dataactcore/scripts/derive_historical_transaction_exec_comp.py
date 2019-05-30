@@ -78,23 +78,12 @@ def main():
 
     sess = GlobalDB.db().session
 
-    # Testing something
-    logger.info('Testing with first file, no deleting or updating')
+    for monthly_file in sorted_monthly_file_names:
+        file_date = re.match('.*(\d{8}).*', monthly_file).group(1)
 
-    exec_comp_data = parse_exec_comp_file(sorted_monthly_file_names[0], root_dir, sftp=sftp, ssh_key=args.ssh_key)
-    temp_table_name = 'temp_exec_comp_update'
-    logger.info('Num rows before cleanup: {}'.format(len(exec_comp_data.index)))
-    pop_exec = exec_comp_data[exec_comp_data.high_comp_officer1_full_na.notnull()]
-    logger.info('Num rows after cleanup: {}'.format(len(pop_exec.index)))
-    create_temp_exec_comp_table(sess, temp_table_name, pop_exec)
-    sess.commit()
-
-    # for monthly_file in sorted_monthly_file_names:
-    #     file_date = re.match('.*(\d{8}).*', monthly_file).group(1)
-    #
-    #     logger.info('Starting {} monthly file'.format(file_date))
-    #     exec_comp_data = parse_exec_comp_file(monthly_file, root_dir, sftp=sftp, ssh_key=args.ssh_key)
-    #     update_transactions(sess, exec_comp_data, file_date)
+        logger.info('Starting {} monthly file'.format(file_date))
+        exec_comp_data = parse_exec_comp_file(monthly_file, root_dir, sftp=sftp, ssh_key=args.ssh_key)
+        update_transactions(sess, exec_comp_data, file_date)
 
 if __name__ == '__main__':
     with create_app().app_context():
