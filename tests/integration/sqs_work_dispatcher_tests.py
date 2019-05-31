@@ -1175,7 +1175,6 @@ class SQSWorkDispatcherTests(BaseTestValidator):
 
             worker_during_cleanup = ps.Process(worker_pid_during_cleanup)
 
-
             # Log what psutil sees of this worker. 'zombie' is what we're looking for if it was killed
             cleanup_logger.debug("psutil.pid_exists({}) = {}".format(
                 worker_pid_during_cleanup, ps.pid_exists(worker_pid_during_cleanup)))
