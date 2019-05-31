@@ -9,7 +9,7 @@ from dataactcore.logging import configure_logging
 from dataactbroker.fsrs import config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT, SERVICE_MODEL, \
     config_state_mappings
 from dataactcore.models.fsrs import Subaward
-from dataactcore.scripts.populate_subaward_table import populate_subaward_table
+from dataactcore.scripts.populate_subaward_table import populate_subaward_table, fix_broken_links
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -70,11 +70,16 @@ if __name__ == '__main__':
             logger.error("Cannot run both procurement and grant loads when specifying FSRS ids")
             sys.exit(1)
         else:
+
             # Regular FSRS data load, starts where last load left off
             updated_internal_ids = []
             original_min_procurement_id = SERVICE_MODEL[PROCUREMENT].next_id(sess)
             original_min_grant_id = SERVICE_MODEL[GRANT].next_id(sess)
             if len(sys.argv) <= 1:
+                # there may be more transaction data since we've last run, let's fix any links before importing new data
+                fix_broken_links(sess, PROCUREMENT)
+                fix_broken_links(sess, GRANT)
+
                 awards = ['Starting']
                 while len(awards) > 0:
                     procs = fetch_and_replace_batch(sess, PROCUREMENT, SERVICE_MODEL[PROCUREMENT].next_id(sess),
@@ -87,6 +92,8 @@ if __name__ == '__main__':
                     metric_counts(grants, 'grant', metrics_json)
 
             elif args.procurement and args.ids:
+                fix_broken_links(sess, PROCUREMENT)
+
                 for procurement_id in args.ids:
                     logger.info('Begin loading FSRS reports for procurement id {}'.format(procurement_id))
                     procs = fetch_and_replace_batch(sess, PROCUREMENT, procurement_id)
@@ -95,6 +102,8 @@ if __name__ == '__main__':
                     metric_counts(procs, 'procurement', metrics_json)
 
             elif args.grants and args.ids:
+                fix_broken_links(sess, GRANT)
+
                 for grant_id in args.ids:
                     logger.info('Begin loading FSRS reports for grant id {}'.format(grant_id))
                     grants = fetch_and_replace_batch(sess, GRANT, grant_id)
