@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from dataactcore.scripts.populate_subaward_table import populate_subaward_table
+from dataactcore.scripts.populate_subaward_table import populate_subaward_table, fix_broken_links
 from dataactbroker.helpers.generic_helper import fy
 from dataactcore.models.fsrs import Subaward
 from tests.unit.dataactcore.factories.fsrs import (FSRSGrantFactory, FSRSProcurementFactory, FSRSSubcontractFactory,
@@ -33,13 +33,13 @@ def reference_data(sess):
     return parent_duns, duns, dom_country, int_country
 
 
-def compare_contract_results(sub, d1, contract, sub_contract, parent_duns, duns, dom_country, int_country, timestamp,
-                             id):
+def compare_contract_results(sub, d1, contract, sub_contract, parent_duns, duns, dom_country, int_country, created_at,
+                             updated_at, debug=False):
     """ Helper function for contract results """
     attr = {
-        'created_at': timestamp,
-        'updated_at': timestamp,
-        'id': id,
+        'created_at': created_at,
+        'updated_at': updated_at,
+        'id': sub.id,
 
         'unique_award_key': d1.unique_award_key,
         'award_id': contract.contract_number,
@@ -171,6 +171,9 @@ def compare_contract_results(sub, d1, contract, sub_contract, parent_duns, duns,
         'sub_compensation_q1': None,
         'sub_compensation_q2': None,
     }
+    if debug and not (attr.items() <= sub.__dict__.items()):
+        print(sorted(attr.items()))
+        print(sorted(sub.__dict__.items()))
     return attr.items() <= sub.__dict__.items()
 
 
@@ -179,6 +182,8 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
         This will cover contracts records.
     """
     sess = database.session
+    sess.query(Subaward).delete(synchronize_session=False)
+    sess.commit()
 
     parent_duns, duns, dom_country, int_country = reference_data(sess)
 
@@ -231,26 +236,27 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
     sess.commit()
 
     # Gather the sql
-    populate_subaward_table(sess, 'procurements', ids=[contract_awd.id, contract_idv.id])
+    populate_subaward_table(sess, 'procurement_service', ids=[contract_awd.id, contract_idv.id])
 
     # Get the records
     contracts_results = sess.query(Subaward).order_by(Subaward.unique_award_key).all()
 
-    timestamp = contracts_results[0].created_at
+    created_at = updated_at = contracts_results[0].created_at
 
     # Expected Results
     assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, parent_duns, duns,
-                                    dom_country, int_country, timestamp, 1) is True
+                                    dom_country, int_country, created_at, updated_at) is True
     assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, parent_duns, duns,
-                                    dom_country, int_country, timestamp, 2) is True
+                                    dom_country, int_country, created_at, updated_at) is True
 
 
-def compare_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_country, int_country, timestamp, id):
+def compare_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_country, int_country, created_at,
+                          updated_at, debug=False):
     """ Helper function for grant results """
     attr = {
-        'created_at': timestamp,
-        'updated_at': timestamp,
-        'id': id,
+        'created_at': created_at,
+        'updated_at': updated_at,
+        'id': sub.id,
 
         'unique_award_key': d2.unique_award_key,
         'award_id': grant.fain,
@@ -382,6 +388,9 @@ def compare_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_coun
         'sub_compensation_q1': str(sub_grant.compensation_q1).lower(),
         'sub_compensation_q2': str(sub_grant.compensation_q2).lower(),
     }
+    if debug and not (attr.items() <= sub.__dict__.items()):
+        print(sorted(attr.items()))
+        print(sorted(sub.__dict__.items()))
     return attr.items() <= sub.__dict__.items()
 
 
@@ -391,6 +400,8 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     """
     # Setup - create awards, procurements/grants, subawards
     sess = database.session
+    sess.query(Subaward).delete(synchronize_session=False)
+    sess.commit()
 
     parent_duns, duns, dom_country, int_country = reference_data(sess)
 
@@ -446,15 +457,179 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     sess.commit()
 
     # Gather the sql
-    populate_subaward_table(sess, 'grants', ids=[grant_agg.id, grant_non.id])
+    populate_subaward_table(sess, 'grant_service', ids=[grant_agg.id, grant_non.id])
 
     # Get the records
     grants_results = sess.query(Subaward).order_by(Subaward.unique_award_key).all()
 
-    timestamp = grants_results[0].created_at
+    created_at = updated_at = grants_results[0].created_at
 
     # Expected Results
     assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
-                                 int_country, timestamp, 4) is True
+                                 int_country, created_at, updated_at) is True
     assert compare_grant_results(grants_results[1], d2_non, grant_non, sub_grant_non, parent_duns, duns, dom_country,
-                                 int_country, timestamp, 3) is True
+                                 int_country, created_at, updated_at) is True
+
+
+def test_fix_broken_links(database, monkeypatch):
+    """ Ensure that fix_broken_links works as intended """
+
+    # Setup - create awards, procurements/grants, subawards
+    sess = database.session
+    sess.query(Subaward).delete(synchronize_session=False)
+    sess.commit()
+
+    parent_duns, duns, dom_country, int_country = reference_data(sess)
+
+    # Setup - Grants
+    sub = SubmissionFactory(submission_id=1)
+    d2_non = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub.submission_id,
+        record_type='2',
+        unique_award_key='NON',
+        is_active=True
+    )
+    grant_non = FSRSGrantFactory(
+        fain=d2_non.fain,
+        awardee_address_country=int_country.country_code,
+        principle_place_country=dom_country.country_code,
+        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
+        obligation_date=datetime.now(),
+        date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
+    )
+    sub_grant_non = FSRSSubgrantFactory(
+        parent=grant_non,
+        awardee_address_country=dom_country.country_code,
+        principle_place_country=int_country.country_code,
+        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        duns=duns.awardee_or_recipient_uniqu,
+        subaward_date=datetime.now()
+    )
+    d2_agg = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub.submission_id,
+        record_type='1',
+        unique_award_key='AGG',
+        is_active=True
+    )
+    grant_agg = FSRSGrantFactory(
+        fain=d2_agg.fain,
+        awardee_address_country=int_country.country_code,
+        principle_place_country=dom_country.country_code,
+        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        cfda_numbers='00.003 CFDA 3',
+        obligation_date=datetime.now(),
+        date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
+    )
+    sub_grant_agg = FSRSSubgrantFactory(
+        parent=grant_agg,
+        awardee_address_country=dom_country.country_code,
+        principle_place_country=int_country.country_code,
+        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        duns=duns.awardee_or_recipient_uniqu,
+        subaward_date=datetime.now()
+    )
+
+    # Setup - Contracts
+    d1_awd = DetachedAwardProcurementFactory(
+        submission_id=sub.submission_id,
+        idv_type=None,
+        unique_award_key='AWD'
+    )
+    contract_awd = FSRSProcurementFactory(
+        contract_number=d1_awd.piid,
+        idv_reference_number=d1_awd.parent_award_id,
+        contracting_office_aid=d1_awd.awarding_sub_tier_agency_c,
+        company_address_country=dom_country.country_code,
+        principle_place_country=int_country.country_code,
+        duns=duns.awardee_or_recipient_uniqu,
+        date_signed=datetime.now(),
+        date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
+    )
+    sub_contract_awd = FSRSSubcontractFactory(
+        parent=contract_awd,
+        company_address_country=int_country.country_code,
+        principle_place_country=dom_country.country_code,
+        subcontract_date=datetime.now()
+    )
+    d1_idv = DetachedAwardProcurementFactory(
+        submission_id=sub.submission_id,
+        idv_type='C',
+        unique_award_key='IDV'
+    )
+    contract_idv = FSRSProcurementFactory(
+        contract_number=d1_idv.piid,
+        idv_reference_number=d1_idv.parent_award_id,
+        contracting_office_aid=d1_idv.awarding_sub_tier_agency_c,
+        company_address_country=dom_country.country_code,
+        principle_place_country=int_country.country_code,
+        duns=duns.awardee_or_recipient_uniqu,
+        date_signed=datetime.now(),
+        date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
+    )
+    sub_contract_idv = FSRSSubcontractFactory(
+        parent=contract_idv,
+        company_address_country=int_country.country_code,
+        principle_place_country=dom_country.country_code,
+        subcontract_date=datetime.now()
+    )
+
+    # Note: not including d1/d2 data
+    sess.add_all([sub, contract_awd, sub_contract_awd, contract_idv, sub_contract_idv])
+    sess.add_all([sub, grant_non, sub_grant_non, grant_agg, sub_grant_agg])
+    sess.commit()
+
+    populate_subaward_table(sess, 'procurement_service', ids=[contract_awd.id, contract_idv.id])
+    populate_subaward_table(sess, 'grant_service', ids=[grant_agg.id, grant_non.id])
+
+    contracts_results = sess.query(Subaward).order_by(Subaward.unique_award_key).\
+        filter(Subaward.subaward_type == 'sub-contract').all()
+    grants_results = sess.query(Subaward).order_by(Subaward.unique_award_key).\
+        filter(Subaward.subaward_type == 'sub-grant').all()
+    original_ids = [result.id for result in contracts_results + grants_results]
+
+    grant_created_at = grant_updated_at = grants_results[0].created_at
+    contract_created_at = contract_updated_at = contracts_results[0].created_at
+
+    # Expected Results - should be False as the award isn't provided
+    assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, parent_duns, duns,
+                                    dom_country, int_country, contract_created_at, contract_updated_at) is False
+    assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, parent_duns, duns,
+                                    dom_country, int_country, contract_created_at, contract_updated_at) is False
+    assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
+                                 int_country, grant_created_at, grant_updated_at) is False
+    assert compare_grant_results(grants_results[1], d2_non, grant_non, sub_grant_non, parent_duns, duns, dom_country,
+                                 int_country, grant_created_at, grant_updated_at) is False
+
+    # now add the awards and fix the broken links
+    sess.add_all([d1_awd, d2_non, d1_idv, d2_agg])
+    sess.commit()
+
+    updated_proc_count = fix_broken_links(sess, 'procurement_service')
+    updated_grant_count = fix_broken_links(sess, 'grant_service')
+
+    assert updated_proc_count == updated_grant_count == 2
+
+    contracts_results = sess.query(Subaward).order_by(Subaward.unique_award_key).\
+        filter(Subaward.subaward_type == 'sub-contract').all()
+    grants_results = sess.query(Subaward).order_by(Subaward.unique_award_key).\
+        filter(Subaward.subaward_type == 'sub-grant').all()
+    updated_ids = [result.id for result in contracts_results + grants_results]
+
+    contract_created_at = contracts_results[0].created_at
+    contract_updated_at = contracts_results[0].updated_at
+    grant_created_at = grants_results[0].created_at
+    grant_updated_at = grants_results[0].updated_at
+
+    # Expected Results - should now be True as the award is now available
+    assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, parent_duns, duns,
+                                    dom_country, int_country, contract_created_at, contract_updated_at) is True
+    assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, parent_duns, duns,
+                                    dom_country, int_country, contract_created_at, contract_updated_at) is True
+    assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
+                                 int_country, grant_created_at, grant_updated_at) is True
+    assert compare_grant_results(grants_results[1], d2_non, grant_non, sub_grant_non, parent_duns, duns, dom_country,
+                                 int_country, grant_created_at, grant_updated_at) is True
+
+    # Ensuring only updates occurred, no deletes/inserts
+    assert set(original_ids) == set(updated_ids)

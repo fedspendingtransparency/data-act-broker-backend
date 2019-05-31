@@ -9,12 +9,38 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.logging import configure_logging
 from dataactvalidator.health_check import create_app
+from dataactbroker.fsrs import GRANT, PROCUREMENT
 
 RAW_SQL_DIR = os.path.join(CONFIG_BROKER['path'], 'dataactcore', 'scripts', 'raw_sql')
-PROCUREMENT_SQL = os.path.join(RAW_SQL_DIR, 'populate_subaward_table_contracts.sql')
-GRANT_SQL = os.path.join(RAW_SQL_DIR, 'populate_subaward_table_grants.sql')
+POPULATE_PROCUREMENT_SQL = os.path.join(RAW_SQL_DIR, 'populate_subaward_table_contracts.sql')
+POPULATE_GRANT_SQL = os.path.join(RAW_SQL_DIR, 'populate_subaward_table_grants.sql')
+LINK_PROCUREMENT_SQL = os.path.join(RAW_SQL_DIR, 'link_broken_subaward_contracts.sql')
+LINK_GRANT_SQL = os.path.join(RAW_SQL_DIR, 'link_broken_subaward_grants.sql')
 
 logger = logging.getLogger(__name__)
+
+
+def extract_subaward_sql(service_type, data_change_type):
+    """ Gather the subaward SQL requested
+
+        Args:
+            service_type: type of service to ping ('procurement_service' or 'grant_service')
+            data_change_type: type of data change involving subawards ('populate' or 'link')
+
+        Raises:
+            Exception: service type is invalid
+            Exception: data change type is invalid
+    """
+    pop_sql_map = {PROCUREMENT: POPULATE_PROCUREMENT_SQL, GRANT: POPULATE_GRANT_SQL}
+    link_sql_map = {PROCUREMENT: LINK_PROCUREMENT_SQL, GRANT: LINK_GRANT_SQL}
+    if service_type not in pop_sql_map:
+        raise Exception('Invalid service type provided: {}'.format(service_type))
+    type_map = {'populate': pop_sql_map, 'link': link_sql_map}
+    if data_change_type not in type_map:
+        raise Exception('Invalid data change type provided: {}'.format(data_change_type))
+    with open(type_map[data_change_type][service_type], 'r') as sql_file:
+        sql = sql_file.read()
+    return sql
 
 
 def populate_subaward_table(sess, service_type, ids=None, min_id=None):
@@ -33,15 +59,7 @@ def populate_subaward_table(sess, service_type, ids=None, min_id=None):
     if (ids is not None and min_id is not None) or (ids is None and min_id is None):
         raise Exception('ids or min_id must be provided')
 
-    # Gather the populate subaward SQL
-    if service_type == 'procurements':
-        sql_file_path = PROCUREMENT_SQL
-    elif service_type == 'grants':
-        sql_file_path = GRANT_SQL
-    else:
-        raise Exception('Invalid service type provided: {}'.format(service_type))
-    with open(sql_file_path, 'r') as sql_file:
-        sql = sql_file.read()
+    sql = extract_subaward_sql(service_type, 'populate')
     if min_id is not None:
         operator = '>'
         values = min_id
@@ -56,6 +74,33 @@ def populate_subaward_table(sess, service_type, ids=None, min_id=None):
     inserted_count = inserted.rowcount
     logger.info('Inserted {} sub-{} to the subaward table'.format(inserted_count, service_type))
     return inserted_count
+
+
+def fix_broken_links(sess, service_type):
+    """ Attempts to resolve any unlinked subawards given the current data
+
+        Args:
+            sess: connection to the database
+            service_type: type of service to ping (usually 'procurement_service' or 'grant_service')
+
+        Raises:
+            Exception: service type is invalid
+    """
+    # get the broken links to delete later
+    subaward_type_map = {PROCUREMENT: 'sub-contract', GRANT: 'sub-grant'}
+    if service_type not in subaward_type_map:
+        raise Exception('Invalid service type provided: {}'.format(service_type))
+
+    sql = extract_subaward_sql(service_type, 'link')
+
+    # run the SQL
+    updated = sess.execute(sql)
+    sess.commit()
+
+    updated_count = updated.rowcount
+    logger.info('Updated {} sub-{} in the subaward table'.format(updated_count, service_type))
+    return updated_count
+
 
 if __name__ == '__main__':
     now = datetime.datetime.now()
@@ -84,9 +129,9 @@ if __name__ == '__main__':
             logger.error('FSRS types not provided. Please specify procurements, grants, or both.')
             sys.exit(1)
         if args.procurements:
-            service_types.append('procurements')
+            service_types.append(PROCUREMENT)
         if args.grants:
-            service_types.append('grants')
+            service_types.append(GRANT)
 
         records_inserted = 0
         for service_type in service_types:
