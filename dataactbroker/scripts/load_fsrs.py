@@ -81,7 +81,7 @@ if __name__ == '__main__':
                                                     min_id=True)
                     grants = fetch_and_replace_batch(sess, GRANT, SERVICE_MODEL[GRANT].next_id(sess), min_id=True)
                     awards = procs + grants
-                    updated_internal_ids = [award.internal_id for award in awards]
+                    updated_internal_ids.extend([award.internal_id for award in awards])
                     log_fsrs_counts(awards)
                     metric_counts(procs, 'procurement', metrics_json)
                     metric_counts(grants, 'grant', metrics_json)
@@ -90,7 +90,7 @@ if __name__ == '__main__':
                 for procurement_id in args.ids:
                     logger.info('Begin loading FSRS reports for procurement id {}'.format(procurement_id))
                     procs = fetch_and_replace_batch(sess, PROCUREMENT, procurement_id)
-                    updated_internal_ids = [award.internal_id for award in procs]
+                    updated_internal_ids.extend([award.internal_id for award in procs])
                     log_fsrs_counts(procs)
                     metric_counts(procs, 'procurement', metrics_json)
 
@@ -98,7 +98,7 @@ if __name__ == '__main__':
                 for grant_id in args.ids:
                     logger.info('Begin loading FSRS reports for grant id {}'.format(grant_id))
                     grants = fetch_and_replace_batch(sess, GRANT, grant_id)
-                    updated_internal_ids = [award.internal_id for award in grants]
+                    updated_internal_ids.extend([award.internal_id for award in grants])
                     log_fsrs_counts(grants)
                     metric_counts(grants, 'grant', metrics_json)
             else:
@@ -109,7 +109,7 @@ if __name__ == '__main__':
                 sys.exit(1)
 
             # Delete internal ids from subaward table
-            sess.query(Subaward.internal_id.in_(updated_internal_ids)).delete()
+            sess.query(Subaward.internal_id.in_(list(set(updated_internal_ids)))).delete()
 
             # Populate subaward table off new ids
             if len(sys.argv) <= 1:
