@@ -289,11 +289,11 @@ if __name__ == '__main__':
         if historic:
             exec_comp_data = parse_exec_comp_file(sorted_monthly_file_names[0], root_dir, sftp=sftp, ssh_key=ssh_key,
                                                   metrics=metrics)
-            update_exec_comp_duns(sess, exec_comp_data)
+            update_exec_comp_duns(sess, exec_comp_data, metrics=metrics)
 
             for daily_file in sorted_daily_file_names:
                 exec_comp_data = parse_exec_comp_file(daily_file, root_dir, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
-                update_exec_comp_duns(sess, exec_comp_data)
+                update_exec_comp_duns(sess, exec_comp_data, metrics=metrics)
         elif update:
             # Insert item into sorted file list with date of last exec comp load date
             last_update = sess.query(DUNS.last_exec_comp_mod_date). \
@@ -317,7 +317,7 @@ if __name__ == '__main__':
                 for daily_file in daily_files_after:
                     exec_comp_data = parse_exec_comp_file(daily_file, root_dir, sftp=sftp, ssh_key=ssh_key,
                                                           metrics=metrics)
-                    update_exec_comp_duns(sess, exec_comp_data)
+                    update_exec_comp_duns(sess, exec_comp_data, metrics=metrics)
             else:
                 logger.info("No daily file found.")
 
