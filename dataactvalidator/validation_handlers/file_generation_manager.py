@@ -1,4 +1,5 @@
 import logging
+import os
 
 from dateutil.relativedelta import relativedelta
 
@@ -7,13 +8,11 @@ from dataactbroker.helpers.generation_helper import a_file_query, d_file_query, 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.function_bag import mark_job_status
-from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.models.jobModels import Job
-from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
-from dataactcore.utils import fileA, fileD1, fileD2, fileE, fileF
+from dataactcore.utils import fileA, fileD1, fileD2, fileF
 from dataactcore.utils.responseException import ResponseException
 
-from dataactvalidator.filestreaming.csv_selection import write_csv, write_stream_query, write_query_to_file
+from dataactvalidator.filestreaming.csv_selection import write_stream_query, write_query_to_file
 
 logger = logging.getLogger(__name__)
 
@@ -142,29 +141,20 @@ class FileGenerationManager:
                     'submission_id': self.job.submission_id, 'file_type': 'executive_compensation'}
         logger.info(log_data)
 
-        d1 = self.sess.query(AwardProcurement.awardee_or_recipient_uniqu).\
-            filter(AwardProcurement.submission_id == self.job.submission_id).\
-            distinct()
-        d2 = self.sess.query(AwardFinancialAssistance.awardee_or_recipient_uniqu).\
-            filter(AwardFinancialAssistance.submission_id == self.job.submission_id).\
-            distinct()
-        duns_set = {r.awardee_or_recipient_uniqu for r in d1.union(d2)}
-        duns_list = list(duns_set)    # get an order
+        # Get the raw SQL to work with
+        sql_dir = os.path.join(CONFIG_BROKER["path"], "dataactcore", "scripts", "raw_sql")
+        with open(os.path.join(sql_dir, 'fileE.sql'), 'r') as file_e:
+            file_e_sql = file_e.read()
 
-        rows = []
-        for i in range(0, len(duns_list), 100):
-            rows.extend(fileE.retrieve_rows(duns_list[i:i + 100]))
-
-        # Add rows to database here.
-        # TODO: This is a temporary solution until loading from SAM's SFTP has been resolved
-        for row in rows:
-            self.sess.merge(ExecutiveCompensation(**fileE.row_to_dict(row)))
-        self.sess.commit()
+        # Remove newlines (write_stream_query doesn't like them) and add the submission ID to the query
+        file_e_sql = file_e_sql.replace('\n', ' ')
+        file_e_sql = file_e_sql.format(self.job.submission_id)
 
         log_data['message'] = 'Writing E file CSV: {}'.format(self.job.original_filename)
         logger.info(log_data)
-
-        write_csv(self.job.original_filename, self.job.filename, self.is_local, fileE.Row._fields, rows)
+        # Generate the file and put in S3
+        write_stream_query(self.sess, file_e_sql, self.job.original_filename, self.job.filename, self.is_local,
+                           generate_headers=True, generate_string=False)
 
         log_data['message'] = 'Finished writing E file CSV: {}'.format(self.job.original_filename)
         logger.info(log_data)

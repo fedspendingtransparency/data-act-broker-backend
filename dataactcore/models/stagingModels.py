@@ -1,4 +1,4 @@
-from sqlalchemy import ARRAY, Boolean, Column, DateTime, ForeignKey, Index, Integer, Numeric, Text
+from sqlalchemy import ARRAY, Boolean, Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, Text
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
@@ -197,6 +197,7 @@ class AwardFinancial(Base):
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text, nullable=False, default=concat_tas, index=True)
     tas_id = Column(Integer, nullable=True, index=True)
+    general_ledger_post_date = Column(Date)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -377,6 +378,7 @@ class CertifiedAwardFinancial(Base):
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text)
     tas_id = Column(Integer)
+    general_ledger_post_date = Column(Date)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -1114,7 +1116,7 @@ class DetachedAwardFinancialAssistance(Base):
     record_type = Column(Integer, index=True)
     sai_number = Column(Text)
     uri = Column(Text, index=True)
-    is_valid = Column(Boolean, nullable=False, default="False", server_default="False")
+    is_valid = Column(Boolean, nullable=False, default=False, server_default="False")
     unique_award_key = Column(Text, index=True)
 
     def __init__(self, **kwargs):

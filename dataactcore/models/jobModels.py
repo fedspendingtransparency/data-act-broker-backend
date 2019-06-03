@@ -68,15 +68,15 @@ class Submission(Base):
     reporting_end_date = Column(Date)
     reporting_fiscal_year = Column(Integer, nullable=False, default=generate_fiscal_year, server_default='0')
     reporting_fiscal_period = Column(Integer, nullable=False, default=generate_fiscal_period, server_default='0')
-    is_quarter_format = Column(Boolean, nullable=False, default="False", server_default="False")
+    is_quarter_format = Column(Boolean, nullable=False, default=False, server_default="False")
     jobs = None
-    publishable = Column(Boolean, nullable=False, default="False", server_default="False")
+    publishable = Column(Boolean, nullable=False, default=False, server_default="False")
     publish_status_id = Column(Integer, ForeignKey("publish_status.publish_status_id", ondelete="SET NULL",
                                                    name="fk_publish_status_id"))
     publish_status = relationship("PublishStatus", uselist=False)
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
     number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
-    d2_submission = Column(Boolean, nullable=False, default="False", server_default="False")
+    d2_submission = Column(Boolean, nullable=False, default=False, server_default="False")
     certifying_user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL",
                                                     name="fk_submission_certifying_user"),
                                 nullable=True)

@@ -1,18 +1,11 @@
-from collections import namedtuple
 import logging
-from operator import attrgetter
 
 import urllib.error
-
-from dataactbroker.helpers.generic_helper import get_client
 
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.validationModels import FileColumn
-from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.lookups import FILE_TYPE_DICT
 
 
 logger = logging.getLogger(__name__)
@@ -99,88 +92,3 @@ def get_entities(client, duns_list):
         return result.listOfEntities.entity
     else:
         return []
-
-
-Row = namedtuple('Row', (
-    'AwardeeOrRecipientUniqueIdentifier',
-    'AwardeeOrRecipientLegalEntityName',
-    'UltimateParentUniqueIdentifier',
-    'UltimateParentLegalEntityName',
-    'HighCompOfficer1FullName',
-    'HighCompOfficer1Amount',
-    'HighCompOfficer2FullName',
-    'HighCompOfficer2Amount',
-    'HighCompOfficer3FullName',
-    'HighCompOfficer3Amount',
-    'HighCompOfficer4FullName',
-    'HighCompOfficer4Amount',
-    'HighCompOfficer5FullName',
-    'HighCompOfficer5Amount'))
-
-
-def suds_to_row(suds_obj):
-    """ Convert a Suds result object into a Row tuple. This accounts for the presence/absence of top-paid officers
-
-        Args:
-            suds_obj: a Suds object
-
-        Returns:
-            A row object containing all relevant data from the Suds object
-    """
-    comp = getattr(suds_obj.coreData, 'listOfExecutiveCompensationInformation',
-                   '')
-    officers = []
-    officer_data = getattr(comp, 'executiveCompensationDetail', [])
-    officer_data = sorted(officer_data, key=attrgetter('compensation'),
-                          reverse=True)
-    for data in officer_data:
-        officers.append(getattr(data, 'name', ''))
-        officers.append(getattr(data, 'compensation', ''))
-
-    # Only top 5
-    officers = officers[:10]
-    # Fill in any blanks
-    officers.extend([''] * (10 - len(officers)))
-
-    return Row(
-        suds_obj.entityIdentification.DUNS,
-        suds_obj.entityIdentification.legalBusinessName,
-        suds_obj.coreData.DUNSInformation.globalParentDUNS.DUNSNumber,
-        suds_obj.coreData.DUNSInformation.globalParentDUNS.legalBusinessName,
-        *officers
-    )
-
-
-def retrieve_rows(duns_list):
-    """ Soup-to-nuts creates a list of Row tuples from a set of DUNS numbers.
-
-        Args:
-            duns_list: A list of DUNS to search for
-    """
-    if config_valid():
-        return [suds_to_row(e) for e in get_entities(get_client(), duns_list)]
-    else:
-        logger.error({
-            'message': "Invalid sam config",
-            'message_type': 'CoreError'
-        })
-        return []
-
-
-def row_to_dict(row):
-    """ Converts a row into a dictionary that can be stored in the executive_compensation table.
-
-        Args:
-            row: A row of executive_compensation data
-    """
-    sess = GlobalDB.db().session
-    col_names = sess.query(FileColumn.name, FileColumn.name_short).\
-        filter(FileColumn.file_id == FILE_TYPE_DICT['executive_compensation']).all()
-    long_to_short_dict = {row.name: row.name_short for row in col_names}
-    row_dict = {}
-
-    for field in row._fields:
-        key = long_to_short_dict[field.lower()]
-        value = getattr(row, field)
-        row_dict[key] = value if not value else str(value)
-    return row_dict
