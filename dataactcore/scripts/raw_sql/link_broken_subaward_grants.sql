@@ -224,7 +224,7 @@ SET
     sub_recovery_model_q2 = NULL,
     sub_compensation_q1 = fsrs_subgrant.compensation_q1,
     sub_compensation_q2 = fsrs_subgrant.compensation_q2,
-    "updated_at" = now()
+    "updated_at" = NOW()
 
 FROM fsrs_grant
     JOIN fsrs_subgrant

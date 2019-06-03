@@ -358,8 +358,8 @@ SELECT
     NULL AS "sub_recovery_model_q2",
     fsrs_subgrant.compensation_q1 AS "sub_compensation_q1",
     fsrs_subgrant.compensation_q2 AS "sub_compensation_q2",
-    now() AS "created_at",
-    now() AS "updated_at"
+    NOW() AS "created_at",
+    NOW() AS "updated_at"
 
 FROM fsrs_grant
     JOIN fsrs_subgrant

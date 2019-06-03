@@ -298,8 +298,8 @@ SELECT
         fsrs_subcontract.recovery_model_q2 AS "sub_recovery_model_q2",
         NULL AS "sub_compensation_q1",
         NULL AS "sub_compensation_q2",
-        now() AS "created_at",
-        now() AS "updated_at"
+        NOW() AS "created_at",
+        NOW() AS "updated_at"
 
 FROM fsrs_procurement
     JOIN fsrs_subcontract
