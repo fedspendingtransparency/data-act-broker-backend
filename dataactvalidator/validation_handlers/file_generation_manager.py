@@ -165,7 +165,7 @@ class FileGenerationManager:
                     'submission_id': self.job.submission_id, 'file_type': 'sub_award'}
         logger.info(log_data)
 
-        f_file_contracts_query, f_file_grants_query = fileF.generate_f_file_queries(self.job.submission_id)
+        f_file_contracts_query = fileF.generate_f_file_query(self.job.submission_id)
 
         # writing locally first without uploading
         log_data['message'] = 'Writing F file contracts to CSV: {}'.format(self.job.original_filename)
@@ -173,12 +173,6 @@ class FileGenerationManager:
         local_f_file = self.job.filename if self.is_local else self.job.original_filename
         write_query_to_file(self.sess, f_file_contracts_query, local_f_file, generate_headers=True,
                             generate_string=False)
-
-        # writing locally again but then uploading
-        log_data['message'] = 'Writing F file grants to CSV: {}'.format(self.job.original_filename)
-        logger.info(log_data)
-        write_stream_query(self.sess, f_file_grants_query, self.job.original_filename, self.job.filename,
-                           self.is_local, generate_headers=False, generate_string=False)
 
         log_data['message'] = 'Finished writing F file CSV: {}'.format(self.job.original_filename)
         logger.info(log_data)
