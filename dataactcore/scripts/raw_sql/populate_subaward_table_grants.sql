@@ -22,8 +22,12 @@ WITH aw_pafa AS
         pafa.unique_award_key AS unique_award_key
     FROM published_award_financial_assistance AS pafa
     WHERE is_active IS TRUE
-        AND EXISTS (SELECT 1 FROM fsrs_grant WHERE fsrs_grant.fain = pafa.fain
-            AND fsrs_grant.id {0} {1})
+        AND EXISTS (
+            SELECT 1
+            FROM fsrs_grant
+            WHERE fsrs_grant.fain = pafa.fain
+                AND fsrs_grant.id {0} {1}
+        )
     ORDER BY pafa.fain, pafa.action_date),
 grant_pduns AS
     (SELECT grand_pduns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
@@ -237,8 +241,8 @@ SELECT
     fsrs_grant.awardee_address_state AS "legal_entity_state_code",
     fsrs_grant.awardee_address_state_name AS "legal_entity_state_name",
     CASE WHEN fsrs_grant.awardee_address_country = 'USA'
-        THEN fsrs_grant.awardee_address_zip
-        ELSE NULL
+         THEN fsrs_grant.awardee_address_zip
+         ELSE NULL
     END AS "legal_entity_zip",
     fsrs_grant.awardee_address_district AS "legal_entity_congressional",
     CASE WHEN fsrs_grant.awardee_address_country <> 'USA'
@@ -257,12 +261,12 @@ SELECT
     NULL AS "naics",
     NULL AS "naics_description",
     CASE WHEN fsrs_grant.cfda_numbers ~ ';'
-        THEN cfda_num_loop(fsrs_grant.cfda_numbers)
-        ELSE cfda_num(fsrs_grant.cfda_numbers)
+         THEN cfda_num_loop(fsrs_grant.cfda_numbers)
+         ELSE cfda_num(fsrs_grant.cfda_numbers)
     END AS "cfda_numbers",
     CASE WHEN fsrs_grant.cfda_numbers ~ ';'
-        THEN cfda_word_loop(fsrs_grant.cfda_numbers)
-        ELSE cfda_word(fsrs_grant.cfda_numbers)
+         THEN cfda_word_loop(fsrs_grant.cfda_numbers)
+         ELSE cfda_word(fsrs_grant.cfda_numbers)
     END AS "cfda_titles",
 
     -- File F Subawards
@@ -284,13 +288,13 @@ SELECT
     fsrs_subgrant.awardee_address_state AS "sub_legal_entity_state_code",
     fsrs_subgrant.awardee_address_state_name AS "sub_legal_entity_state_name",
     CASE WHEN fsrs_subgrant.awardee_address_country = 'USA'
-        THEN fsrs_subgrant.awardee_address_zip
-        ELSE NULL
+         THEN fsrs_subgrant.awardee_address_zip
+         ELSE NULL
     END AS "sub_legal_entity_zip",
     fsrs_subgrant.awardee_address_district AS "sub_legal_entity_congressional",
     CASE WHEN fsrs_subgrant.awardee_address_country <> 'USA'
-        THEN fsrs_subgrant.awardee_address_zip
-        ELSE NULL
+         THEN fsrs_subgrant.awardee_address_zip
+         ELSE NULL
     END AS "sub_legal_entity_foreign_posta",
     array_to_string(subgrant_duns.business_types_codes, ', ') AS "sub_business_types",
     fsrs_subgrant.principle_place_city AS "sub_place_of_perform_city_name",

@@ -16,10 +16,15 @@ WITH aw_dap AS
         dap.funding_agency_code AS funding_agency_code,
         dap.funding_agency_name AS funding_agency_name
     FROM detached_award_procurement AS dap
-    WHERE EXISTS (SELECT 1 FROM fsrs_procurement WHERE fsrs_procurement.contract_number = dap.piid
-        AND fsrs_procurement.idv_reference_number IS NOT DISTINCT FROM dap.parent_award_id
-        AND fsrs_procurement.contracting_office_aid = dap.awarding_sub_tier_agency_c)
-    ORDER BY dap.piid, dap.parent_award_id, dap.awarding_sub_tier_agency_c, dap.action_date)
+    WHERE EXISTS (
+        SELECT 1
+        FROM fsrs_procurement
+        WHERE fsrs_procurement.contract_number = dap.piid
+            AND fsrs_procurement.idv_reference_number IS NOT DISTINCT FROM dap.parent_award_id
+            AND fsrs_procurement.contracting_office_aid = dap.awarding_sub_tier_agency_c
+    )
+    ORDER BY dap.piid, dap.parent_award_id, dap.awarding_sub_tier_agency_c, dap.action_date
+    )
 UPDATE subaward
 SET
     unique_award_key = aw_dap.unique_award_key,
@@ -52,14 +57,14 @@ SET
     legal_entity_state_code = fsrs_procurement.company_address_state,
     legal_entity_state_name = fsrs_procurement.company_address_state_name,
     legal_entity_zip = CASE WHEN fsrs_procurement.company_address_country = 'USA'
-        THEN fsrs_procurement.company_address_zip
-        ELSE NULL
-    END,
+                            THEN fsrs_procurement.company_address_zip
+                            ELSE NULL
+                       END,
     legal_entity_congressional = fsrs_procurement.company_address_district,
     legal_entity_foreign_posta = CASE WHEN fsrs_procurement.company_address_country <> 'USA'
-        THEN fsrs_procurement.company_address_zip
-        ELSE NULL
-    END,
+                                      THEN fsrs_procurement.company_address_zip
+                                      ELSE NULL
+                                 END,
     business_types = fsrs_procurement.bus_types,
     place_of_perform_city_name = fsrs_procurement.principle_place_city,
     place_of_perform_state_code = fsrs_procurement.principle_place_state,
@@ -93,14 +98,14 @@ SET
     sub_legal_entity_state_code = fsrs_subcontract.company_address_state,
     sub_legal_entity_state_name = fsrs_subcontract.company_address_state_name,
     sub_legal_entity_zip = CASE WHEN fsrs_subcontract.company_address_country = 'USA'
-        THEN fsrs_subcontract.company_address_zip
-        ELSE NULL
-    END,
+                                THEN fsrs_subcontract.company_address_zip
+                                ELSE NULL
+                           END,
     sub_legal_entity_congressional = fsrs_subcontract.company_address_district,
     sub_legal_entity_foreign_posta = CASE WHEN fsrs_subcontract.company_address_country <> 'USA'
-        THEN fsrs_subcontract.company_address_zip
-        ELSE NULL
-    END,
+                                          THEN fsrs_subcontract.company_address_zip
+                                          ELSE NULL
+                                     END,
     sub_business_types = fsrs_subcontract.bus_types,
     sub_place_of_perform_city_name = fsrs_subcontract.principle_place_city,
     sub_place_of_perform_state_code = fsrs_subcontract.principle_place_state,
