@@ -109,7 +109,8 @@ if __name__ == '__main__':
     method = parser.add_mutually_exclusive_group(required=True)
     parser.add_argument('-p', '--procurements', action='store_true', help="Load just procurement awards")
     parser.add_argument('-g', '--grants', action='store_true', help="Load just grant awards")
-    method.add_argument('-b', '--backfill', action='store_true', help="Backfill")
+    method.add_argument('-m', '--min_id', type=int, nargs=1, help="Load all data from a minimum id (0 for complete"
+                                                                  " backfill)")
     method.add_argument('-i', '--ids', type=int, nargs='+',
                         help="Single or list of FSRS ids to populate the subaward table")
 
@@ -135,8 +136,8 @@ if __name__ == '__main__':
 
         records_inserted = 0
         for service_type in service_types:
-            if args.backfill:
-                records_inserted += populate_subaward_table(sess, service_type, min_id=0)
+            if args.min_id:
+                records_inserted += populate_subaward_table(sess, service_type, min_id=args.min_id[0])
             elif args.ids:
                 records_inserted += populate_subaward_table(sess, service_type, ids=args.ids)
 
