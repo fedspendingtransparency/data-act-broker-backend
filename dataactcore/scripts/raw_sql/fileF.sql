@@ -1,7 +1,19 @@
-WITH aw_sub AS
-    --- TODO: GET UNIQUE AWARD KEYS FROM SUBMISSION
-    FROM award_procurement
-    WHERE award_procurement.submission_id = {0})
+WITH submission_awards_{0} AS
+    (SELECT DISTINCT(unique_award_key)
+    FROM (
+        SELECT
+            dap.unique_award_key
+        FROM award_procurement AS ap
+        JOIN detached_award_procurement AS dap
+            ON dap.detached_award_proc_unique = ap.detached_award_proc_unique
+        WHERE ap.submission_id = {0}
+        UNION
+        SELECT
+            dafa.unique_award_key
+        FROM award_financial_assistance AS afa
+        JOIN detached_award_financial_assistance AS dafa
+            ON dafa.afa_generated_unique = afa.afa_generated_unique
+        WHERE afa.submission_id = {0}) AS temp)
 SELECT
     subaward.unique_award_key AS "PrimeAwardUniqueKey",
     subaward.award_id AS "PrimeAwardID",
@@ -88,6 +100,6 @@ SELECT
     subaward.sub_high_comp_officer4_amount AS "SubAwardeeHighCompOfficer4Amount",
     subaward.sub_high_comp_officer5_full_na AS "SubAwardeeHighCompOfficer5FullName",
     subaward.sub_high_comp_officer5_amount AS "SubAwardeeHighCompOfficer5Amount"
-FROM ap_sub
+FROM submission_awards_{0}
     JOIN subaward
-        ON subaward.unique_award_key = ap_sub.unique_award_key
+        ON subaward.unique_award_key = submission_awards_{0}.unique_award_key
