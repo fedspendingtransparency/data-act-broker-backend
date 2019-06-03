@@ -57,7 +57,7 @@ def populate_subaward_table(sess, service_type, ids=None, min_id=None):
             Exception: service type is invalid
     """
     if (ids is not None and min_id is not None) or (ids is None and min_id is None):
-        raise Exception('ids or min_id must be provided')
+        raise Exception('ids or min_id, but not both, must be provided')
 
     sql = extract_subaward_sql(service_type, 'populate')
     if min_id is not None:
