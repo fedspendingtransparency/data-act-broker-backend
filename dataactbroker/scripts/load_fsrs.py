@@ -70,7 +70,6 @@ if __name__ == '__main__':
             logger.error("Cannot run both procurement and grant loads when specifying FSRS ids")
             sys.exit(1)
         else:
-
             # Regular FSRS data load, starts where last load left off
             updated_internal_ids = []
             original_min_procurement_id = SERVICE_MODEL[PROCUREMENT].next_id(sess)
