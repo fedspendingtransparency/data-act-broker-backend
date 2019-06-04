@@ -20,12 +20,11 @@ from dataactvalidator.scripts.loader_utils import insert_dataframe
 logger = logging.getLogger(__name__)
 
 
-def parse_exec_comp_file(filename, sess, root_dir, sftp=None, ssh_key=None, metrics=None):
+def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=None):
     """ Parses the executive compensation file to update corresponding DUNS records
 
-        Arguments:
+        Args:
             filename: name of file to import
-            sess: database connection
             root_dir: working directory
             sftp: connection to remote server
             ssh_key: ssh_key for reconnecting
@@ -39,8 +38,7 @@ def parse_exec_comp_file(filename, sess, root_dir, sftp=None, ssh_key=None, metr
         metrics = {
             'files_processed': [],
             'records_received': 0,
-            'records_processed': 0,
-            'updated_duns': []
+            'records_processed': 0
         }
 
     file_path = os.path.join(root_dir, filename)
@@ -102,45 +100,61 @@ def parse_exec_comp_file(filename, sess, root_dir, sftp=None, ssh_key=None, metr
     last_exec_comp_mod_date = datetime.datetime.strptime(last_exec_comp_mod_date_str[0], '%Y%m%d').date()
     total_data = total_data.assign(last_exec_comp_mod_date=last_exec_comp_mod_date)
 
-    updated_duns = update_exec_comp_duns(sess, total_data)
-    metrics['updated_duns'].extend(updated_duns)
-
     if sftp:
         os.remove(os.path.join(root_dir, filename))
 
+    return total_data
 
-def update_exec_comp_duns(sess, exec_comp_data):
+
+def create_temp_exec_comp_table(sess, table_name, data):
+    """ Creates a temporary executive compensation table with the given name and data.
+
+        Args:
+            sess: database connection
+            table_name: what to name the table being created
+            data: pandas dataframe representing exec comp data
+    """
+    logger.info('Making {} table'.format(table_name))
+    create_table_sql = """
+            CREATE TABLE IF NOT EXISTS {} (
+                awardee_or_recipient_uniqu TEXT,
+                high_comp_officer1_amount TEXT,
+                high_comp_officer1_full_na TEXT,
+                high_comp_officer2_amount TEXT,
+                high_comp_officer2_full_na TEXT,
+                high_comp_officer3_amount TEXT,
+                high_comp_officer3_full_na TEXT,
+                high_comp_officer4_amount TEXT,
+                high_comp_officer4_full_na TEXT,
+                high_comp_officer5_amount TEXT,
+                high_comp_officer5_full_na TEXT,
+                last_exec_comp_mod_date DATE
+            );
+        """.format(table_name)
+    sess.execute(create_table_sql)
+    # Truncating in case we didn't clear out this table after a failure in the script
+    sess.execute('TRUNCATE TABLE {};'.format(table_name))
+    insert_dataframe(data, table_name, sess.connection())
+
+
+def update_exec_comp_duns(sess, exec_comp_data, metrics=None):
     """ Takes in a dataframe of exec comp data and updates associated DUNS
 
-        Arguments:
+        Args:
             sess: database connection
             exec_comp_data: pandas dataframe representing exec comp data
+            metrics: dictionary representing metrics of the script
 
         Returns:
             list of DUNS updated
     """
+    if not metrics:
+        metrics = {
+            'updated_duns': []
+        }
 
-    logger.info('Making temp_exec_comp_update table')
-    create_table_sql = """
-        CREATE TABLE IF NOT EXISTS temp_exec_comp_update (
-            awardee_or_recipient_uniqu TEXT,
-            high_comp_officer1_amount TEXT,
-            high_comp_officer1_full_na TEXT,
-            high_comp_officer2_amount TEXT,
-            high_comp_officer2_full_na TEXT,
-            high_comp_officer3_amount TEXT,
-            high_comp_officer3_full_na TEXT,
-            high_comp_officer4_amount TEXT,
-            high_comp_officer4_full_na TEXT,
-            high_comp_officer5_amount TEXT,
-            high_comp_officer5_full_na TEXT,
-            last_exec_comp_mod_date DATE
-        );
-    """
-    sess.execute(create_table_sql)
-    # Truncating in case we didn't clear out this table after a failure in the script
-    sess.execute('TRUNCATE TABLE temp_exec_comp_update;')
-    insert_dataframe(exec_comp_data, 'temp_exec_comp_update', sess.connection())
+    temp_table_name = 'temp_exec_comp_update'
+    create_temp_exec_comp_table(sess, temp_table_name, exec_comp_data)
 
     # Note: this can work just by getting the row count from the following SQL
     #       but this can run multiple times on possibly the same DUNS over several days,
@@ -173,17 +187,17 @@ def update_exec_comp_duns(sess, exec_comp_data):
     """
     sess.execute(update_sql)
 
-    logger.info('Dropping temp_exec_comp_update')
-    sess.execute('DROP TABLE temp_exec_comp_update;')
+    logger.info('Dropping {}'.format(temp_table_name))
+    sess.execute('DROP TABLE {};'.format(temp_table_name))
 
     sess.commit()
-    return duns_list
+    metrics['updated_duns'].extend(duns_list)
 
 
 def parse_exec_comp(exec_comp_str=None):
     """ Parses the executive compensation string into a dictionary for the ExecutiveCompensation data model
 
-        Arguments:
+        Args:
             exec_comp_str: the incoming compensation string
 
         Returns:
@@ -273,10 +287,13 @@ if __name__ == '__main__':
         sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match('.*DAILY_\d+', daily_file)])
 
         if historic:
-            parse_exec_comp_file(sorted_monthly_file_names[0], sess, root_dir, sftp=sftp, ssh_key=ssh_key,
-                                 metrics=metrics)
+            exec_comp_data = parse_exec_comp_file(sorted_monthly_file_names[0], root_dir, sftp=sftp, ssh_key=ssh_key,
+                                                  metrics=metrics)
+            update_exec_comp_duns(sess, exec_comp_data, metrics=metrics)
+
             for daily_file in sorted_daily_file_names:
-                parse_exec_comp_file(daily_file, sess, root_dir, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
+                exec_comp_data = parse_exec_comp_file(daily_file, root_dir, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
+                update_exec_comp_duns(sess, exec_comp_data, metrics=metrics)
         elif update:
             # Insert item into sorted file list with date of last exec comp load date
             last_update = sess.query(DUNS.last_exec_comp_mod_date). \
@@ -298,7 +315,9 @@ if __name__ == '__main__':
 
             if daily_files_after:
                 for daily_file in daily_files_after:
-                    parse_exec_comp_file(daily_file, sess, root_dir, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
+                    exec_comp_data = parse_exec_comp_file(daily_file, root_dir, sftp=sftp, ssh_key=ssh_key,
+                                                          metrics=metrics)
+                    update_exec_comp_duns(sess, exec_comp_data, metrics=metrics)
             else:
                 logger.info("No daily file found.")
 

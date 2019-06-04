@@ -20,21 +20,36 @@ g_state_by_code = {}
 
 
 def service_config(service_type):
-    """We use or {} instead of get(key, {}) as an empty config is converted
-    into None rather than an empty dict"""
+    """ We use or {} instead of get(key, {}) as an empty config is converted into None rather than an empty dict
+
+        Args:
+            service_type: type of service to ping (usually 'procurement_service' or 'grant_service')
+
+        Returns:
+            dictionary of config values for FSRS service
+    """
     fsrs_config = CONFIG_BROKER.get('fsrs') or {}
     return fsrs_config.get(service_type) or {}
 
 
 def config_valid():
+    """ Determine if the FSRS config values are valid
+
+        Returns:
+            bool representing if it's valid or not
+    """
     proc_wsdl = service_config(PROCUREMENT).get('wsdl')
     grant_wsdl = service_config(GRANT).get('wsdl')
     return bool(proc_wsdl) and bool(grant_wsdl)
 
 
 def config_state_mappings(sess=None, init=False):
-    """ Creates dictionary that maps state code to state name, deletes mapping when done"""
+    """ Creates dictionary that maps state code to state name, deletes mapping when done
 
+        Args:
+            sess: connection to database
+            init: whether to create or delete the global dictionary
+    """
     if init:
         global g_state_by_code
 
@@ -50,23 +65,30 @@ def config_state_mappings(sess=None, init=False):
 
 
 class ControlFilter(MessagePlugin):
-    """Suds (apparently) doesn't know how to decode certain control characters
-    like ^V (synchronous idle) and ^A (start of heading). As we don't really
-    care about these characters, swap them out for spaces. MessagePlugins are
-    Suds's mechanism to transform SOAP content before it gets parsed."""
+    """ Suds doesn't know how to decode certain control characters like ^V (synchronous idle) and ^A (start of heading).
+        As we don't really care about these characters, swap them out for spaces. MessagePlugins are Suds's mechanism to
+        transform SOAP content before it gets parsed. """
+
     @staticmethod
     def is_control(char):
-        """Unicode has a several "categories" related to "control" characters;
-        all of the categories begin with 'C'. Note that newlines _are_ a
-        control character; we're banking on this swap for spaces not being
-        super important.
-        http://www.unicode.org/reports/tr44/#GC_Values_Table
+        """ Unicode has a several "categories" related to "control" characters; all of the categories begin with 'C'.
+            Note that newlines are a control character; we're banking on this swap for spaces not being super important.
+            http://www.unicode.org/reports/tr44/#GC_Values_Table
+
+            Args:
+                char: the character to be reviewed
+
+            Returns:
+                bool of whether it's a control character
         """
         return unicodedata.category(char).startswith('C')
 
     def received(self, context):
-        """Overrides this method in MessagePlugin to replace control
-        characters with spaces"""
+        """ Overrides this method in MessagePlugin to replace control characters with spaces
+
+            Args:
+                context: object representing the reply via Suds
+        """
         with_controls = context.reply.decode('UTF-8')
         without_controls = ''.join(
             char if not self.is_control(char) else ' '
@@ -76,22 +98,31 @@ class ControlFilter(MessagePlugin):
 
 
 class ZeroDateFilter(MessagePlugin):
-    """Suds will automatically convert date/datetime fields into their
-    corresponding Python type (yay). This places an implicit constraint,
-    though, in that the dates need to pass Python requirements (such as being
-    having a year between 1 and 9999, month between 1 and 12, etc.). Account
-    for 0000-00-00 by swapping it for the similarly nonsensical (but
-    parseable) 0001-01-01"""
+    """ Suds will automatically convert date/datetime fields into their corresponding Python type. This places an
+        implicit constraint, though, in that the dates need to pass Python requirements (such as being having a year
+        between 1 and 9999, month between 1 and 12, etc.). Account for 0000-00-00 by swapping it for the 0001-01-01
+    """
+
     def received(self, context):
-        """Overrides this method in MessagePlugin"""
+        """ Overrides this method in MessagePlugin
+
+            Args:
+                context: object representing the reply via Suds
+        """
         original = context.reply.decode('UTF-8')
         modified = original.replace('0000-00-00', '0001-01-01')
         context.reply = modified.encode('UTF-8')
 
 
 def new_client(service_type):
-    """Make a `suds` client, accounting for ?wsdl suffixes, failing to import
-    appropriate schemas, and http auth"""
+    """ Make a `suds` client, accounting for ?wsdl suffixes, failing to import appropriate schemas, and http auth
+
+        Args:
+            service_type: type of service to ping (usually 'procurement_service' or 'grant_service')
+
+        Returns:
+            Client for FSRS service
+    """
     config = service_config(service_type)
     wsdl_url = config.get('wsdl', '')
     options = {'url': wsdl_url}
@@ -118,7 +149,14 @@ def new_client(service_type):
 
 
 def soap_to_dict(soap_obj):
-    """A recursive version of sudsobject.asdict"""
+    """ A recursive version of sudsobject.asdict
+
+        Args:
+            soap_obj: obj to recursively parse
+
+        Returns:
+            dict if object, list of values if list, else soap_obj
+    """
     if isinstance(soap_obj, sudsobject.Object):
         return {k: soap_to_dict(v) for k, v in soap_obj}
     elif isinstance(soap_obj, list):
@@ -147,8 +185,17 @@ _grantAddrs = ('principle_place', 'awardee_address')
 
 
 def flatten_soap_dict(simple_fields, address_fields, comma_field, soap_dict):
-    """For all four FSRS models, we need to copy over values, flatten address
-    data, flatten topPaid, convert comma fields"""
+    """ For all four FSRS models, copy over values, flatten address data, flatten topPaid, convert comma fields
+
+        Args:
+            simple_fields: fields to simply copy over without parsing
+            address_fields: fields that require to be flattened based on addresses
+            comma_field: field that has commas which should be converted to a list
+            soap_dict: dictionary to extract values from
+
+        Returns:
+            dictionary of attributes extracted from soap dict
+    """
     model_attrs = {}
     for field in simple_fields:
         model_attrs[field] = soap_dict.get(field)
@@ -175,6 +222,14 @@ def flatten_soap_dict(simple_fields, address_fields, comma_field, soap_dict):
 
 
 def to_prime_contract(soap_dict):
+    """ Extracts Prime Contract object from soap dictionary
+
+        Args:
+            soap_dict: soap dictionary to parse
+
+        Returns:
+            Prime Contract object
+    """
     model_attrs = flatten_soap_dict(_primeContract, _contractAddrs, 'bus_types', soap_dict)
     model_attrs['subawards'] = [to_subcontract(sub) for sub in soap_dict.get('subcontractors', [])]
 
@@ -186,11 +241,27 @@ def to_prime_contract(soap_dict):
 
 
 def to_subcontract(soap_dict):
+    """ Extracts Subcontract object from soap dictionary
+
+        Args:
+            soap_dict: soap dictionary to parse
+
+        Returns:
+            Subcontract object
+    """
     model_attrs = flatten_soap_dict(_subContract, _contractAddrs, 'bus_types', soap_dict)
     return FSRSSubcontract(**model_attrs)
 
 
 def to_prime_grant(soap_dict):
+    """ Extracts Prime Grant object from soap dictionary
+
+        Args:
+            soap_dict: soap dictionary to parse
+
+        Returns:
+            Prime Grant object
+    """
     model_attrs = flatten_soap_dict(_primeGrant, _grantAddrs, 'cfda_numbers', soap_dict)
     model_attrs['subawards'] = [to_subgrant(sub) for sub in soap_dict.get('subawardees', [])]
 
@@ -202,19 +273,35 @@ def to_prime_grant(soap_dict):
 
 
 def to_subgrant(soap_dict):
+    """ Extracts Subgrant object from soap dictionary
+
+        Args:
+            soap_dict: soap dictionary to parse
+
+        Returns:
+            Subgrant object
+    """
     model_attrs = flatten_soap_dict(_subGrant, _grantAddrs, 'cfda_numbers', soap_dict)
     return FSRSSubgrant(**model_attrs)
 
 
-def retrieve_batch(service_type, min_id, return_single_id):
-    """The FSRS web service returns records in batches (500 at a time).
-    Retrieve one such batch, converting each result (and sub-results) into
-    dicts"""
+def retrieve_batch(service_type, id, min_id=False):
+    """ The FSRS web service returns records in batches (500 at a time). Retrieve one such batch, converting each result
+        (and sub-results) into dicts.
+
+        Args:
+            service_type: type of service to ping (usually 'procurement_service' or 'grant_service')
+            id: id to specifically update, or minimum id to update all new records
+            min_id: whether the id provided was a minimum id and all records since then will be updated
+
+        Yields:
+            list of prime contracts or prime grants requested
+    """
 
     # Subtracting 1 from min_id since FSRS API starts one after value
     # If the last id is 50 for example the min_id is 51, the API will retrieve 52 and greater
-    for report in new_client(service_type).service.getData(id=min_id-1)['reports']:
-        if (report['id'] == min_id and return_single_id) or not return_single_id:
+    for report in new_client(service_type).service.getData(id=id-1)['reports']:
+        if (report['id'] == id and not min_id) or min_id:
             as_dict = soap_to_dict(report)
             if service_type == PROCUREMENT:
                 yield to_prime_contract(as_dict)
@@ -222,17 +309,18 @@ def retrieve_batch(service_type, min_id, return_single_id):
                 yield to_prime_grant(as_dict)
 
 
-def fetch_and_replace_batch(sess, service_type, min_id=None):
-    """Hit one of the FSRS APIs and replace any local records that match.
-    Returns the award models"""
+def fetch_and_replace_batch(sess, service_type, id, min_id=False):
+    """ Hit one of the FSRS APIs and replace any local records that match. Returns the award models.
+
+        Args:
+            sess: connection to database
+            service_type: type of service to ping (usually 'procurement_service' or 'grant_service')
+            id: id to specifically update, or minimum id to update all new records
+            min_id: whether the id provided was a minimum id and all records since then will be updated
+    """
     model = SERVICE_MODEL[service_type]
-    return_single_id = True
 
-    if min_id is None:
-        min_id = model.next_id(sess)
-        return_single_id = False
-
-    awards = list(retrieve_batch(service_type, min_id, return_single_id))
+    awards = list(retrieve_batch(service_type, id, min_id=min_id))
     ids = [a.internal_id for a in awards]
     sess.query(model).filter(model.internal_id.in_(ids)).delete(synchronize_session=False)
     sess.add_all(awards)
