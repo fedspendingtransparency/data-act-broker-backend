@@ -6,7 +6,10 @@ import json
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactbroker.fsrs import config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT, config_state_mappings
+from dataactbroker.fsrs import config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT, SERVICE_MODEL, \
+    config_state_mappings
+from dataactcore.models.fsrs import Subaward
+from dataactcore.scripts.populate_subaward_table import populate_subaward_table, fix_broken_links
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -65,29 +68,45 @@ if __name__ == '__main__':
             sys.exit(1)
         elif args.procurement and args.grants and args.ids:
             logger.error("Cannot run both procurement and grant loads when specifying FSRS ids")
+            sys.exit(1)
         else:
             # Regular FSRS data load, starts where last load left off
+            updated_internal_ids = []
+            original_min_procurement_id = SERVICE_MODEL[PROCUREMENT].next_id(sess)
+            original_min_grant_id = SERVICE_MODEL[GRANT].next_id(sess)
             if len(sys.argv) <= 1:
+                # there may be more transaction data since we've last run, let's fix any links before importing new data
+                fix_broken_links(sess, PROCUREMENT)
+                fix_broken_links(sess, GRANT)
+
                 awards = ['Starting']
                 while len(awards) > 0:
-                    procs = fetch_and_replace_batch(sess, PROCUREMENT)
-                    grants = fetch_and_replace_batch(sess, GRANT)
+                    procs = fetch_and_replace_batch(sess, PROCUREMENT, SERVICE_MODEL[PROCUREMENT].next_id(sess),
+                                                    min_id=True)
+                    grants = fetch_and_replace_batch(sess, GRANT, SERVICE_MODEL[GRANT].next_id(sess), min_id=True)
                     awards = procs + grants
+                    updated_internal_ids.extend([award.internal_id for award in awards])
                     log_fsrs_counts(awards)
                     metric_counts(procs, 'procurement', metrics_json)
                     metric_counts(grants, 'grant', metrics_json)
 
             elif args.procurement and args.ids:
+                fix_broken_links(sess, PROCUREMENT)
+
                 for procurement_id in args.ids:
                     logger.info('Begin loading FSRS reports for procurement id {}'.format(procurement_id))
                     procs = fetch_and_replace_batch(sess, PROCUREMENT, procurement_id)
+                    updated_internal_ids.extend([award.internal_id for award in procs])
                     log_fsrs_counts(procs)
                     metric_counts(procs, 'procurement', metrics_json)
 
             elif args.grants and args.ids:
+                fix_broken_links(sess, GRANT)
+
                 for grant_id in args.ids:
                     logger.info('Begin loading FSRS reports for grant id {}'.format(grant_id))
                     grants = fetch_and_replace_batch(sess, GRANT, grant_id)
+                    updated_internal_ids.extend([award.internal_id for award in grants])
                     log_fsrs_counts(grants)
                     metric_counts(grants, 'grant', metrics_json)
             else:
@@ -95,6 +114,19 @@ if __name__ == '__main__':
                     logger.error('Missing --ids argument when loading just procurement or grants awards')
                 else:
                     logger.error('Missing --procurement or --grants argument when loading specific award ids')
+                sys.exit(1)
+
+            # Delete internal ids from subaward table
+            sess.query(Subaward.internal_id.in_(list(set(updated_internal_ids)))).delete()
+
+            # Populate subaward table off new ids
+            if len(sys.argv) <= 1:
+                populate_subaward_table(sess, 'procurements', min_id=original_min_procurement_id)
+                populate_subaward_table(sess, 'grants', min_id=original_min_grant_id)
+            elif args.procurement and args.ids:
+                populate_subaward_table(sess, 'procurements', ids=args.ids)
+            elif args.grants and args.ids:
+                populate_subaward_table(sess, 'grants', ids=args.ids)
 
         # Deletes state mapping variable
         config_state_mappings()
