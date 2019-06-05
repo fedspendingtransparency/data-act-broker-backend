@@ -3,6 +3,7 @@ import sys
 import argparse
 import datetime
 import json
+from sqlalchemy import func
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
@@ -74,10 +75,12 @@ if __name__ == '__main__':
             updated_internal_ids = []
             original_min_procurement_id = SERVICE_MODEL[PROCUREMENT].next_id(sess)
             original_min_grant_id = SERVICE_MODEL[GRANT].next_id(sess)
+            last_updated_at = sess.query(func.max(Subaward.updated_at)).one_or_none()
             if len(sys.argv) <= 1:
                 # there may be more transaction data since we've last run, let's fix any links before importing new data
-                fix_broken_links(sess, PROCUREMENT)
-                fix_broken_links(sess, GRANT)
+                if last_updated_at:
+                    fix_broken_links(sess, PROCUREMENT, min_date=last_updated_at)
+                    fix_broken_links(sess, GRANT, min_date=last_updated_at)
 
                 awards = ['Starting']
                 while len(awards) > 0:
@@ -91,7 +94,8 @@ if __name__ == '__main__':
                     metric_counts(grants, 'grant', metrics_json)
 
             elif args.procurement and args.ids:
-                fix_broken_links(sess, PROCUREMENT)
+                if last_updated_at:
+                    fix_broken_links(sess, PROCUREMENT, min_date=last_updated_at)
 
                 for procurement_id in args.ids:
                     logger.info('Begin loading FSRS reports for procurement id {}'.format(procurement_id))
@@ -101,7 +105,8 @@ if __name__ == '__main__':
                     metric_counts(procs, 'procurement', metrics_json)
 
             elif args.grants and args.ids:
-                fix_broken_links(sess, GRANT)
+                if last_updated_at:
+                    fix_broken_links(sess, GRANT, min_date=last_updated_at)
 
                 for grant_id in args.ids:
                     logger.info('Begin loading FSRS reports for grant id {}'.format(grant_id))

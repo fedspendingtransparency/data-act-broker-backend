@@ -76,7 +76,7 @@ def populate_subaward_table(sess, service_type, ids=None, min_id=None):
     return inserted_count
 
 
-def fix_broken_links(sess, service_type):
+def fix_broken_links(sess, service_type, min_date=None):
     """ Attempts to resolve any unlinked subawards given the current data
 
         Args:
@@ -92,6 +92,8 @@ def fix_broken_links(sess, service_type):
         raise Exception('Invalid service type provided: {}'.format(service_type))
 
     sql = extract_subaward_sql(service_type, 'link')
+    min_date_sql = '' if min_date is None else 'AND updated_at >= \'{}\''.format(min_date)
+    sql = sql.format(min_date_sql)
 
     # run the SQL
     updated = sess.execute(sql)
