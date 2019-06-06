@@ -216,14 +216,14 @@ INSERT INTO subaward (
 SELECT
     -- File F Prime Awards
     aw_pafa.unique_award_key AS "unique_award_key",
-    fsrs_grant.fain AS "award_id",
+    grant_filtered.fain AS "award_id",
     NULL AS "parent_award_id",
-    fsrs_grant.total_fed_funding_amount AS "award_amount",
-    fsrs_grant.obligation_date AS "action_date",
+    grant_filtered.total_fed_funding_amount AS "award_amount",
+    grant_filtered.obligation_date AS "action_date",
     'FY' || fy(obligation_date) AS "fy",
     aw_pafa.awarding_agency_code AS "awarding_agency_code",
     aw_pafa.awarding_agency_name AS "awarding_agency_name",
-    fsrs_grant.federal_agency_id AS "awarding_sub_tier_agency_c",
+    grant_filtered.federal_agency_id AS "awarding_sub_tier_agency_c",
     aw_pafa.awarding_sub_tier_agency_n AS "awarding_sub_tier_agency_n",
     aw_pafa.awarding_office_code AS "awarding_office_code",
     aw_pafa.awarding_office_name AS "awarding_office_name",
@@ -233,50 +233,50 @@ SELECT
     aw_pafa.funding_sub_tier_agency_na AS "funding_sub_tier_agency_na",
     aw_pafa.funding_office_code AS "funding_office_code",
     aw_pafa.funding_office_name AS "funding_office_name",
-    fsrs_grant.duns AS "awardee_or_recipient_uniqu",
-    fsrs_grant.awardee_name AS "awardee_or_recipient_legal",
-    fsrs_grant.dba_name AS "dba_name",
-    fsrs_grant.parent_duns AS "ultimate_parent_unique_ide",
+    grant_filtered.duns AS "awardee_or_recipient_uniqu",
+    grant_filtered.awardee_name AS "awardee_or_recipient_legal",
+    grant_filtered.dba_name AS "dba_name",
+    grant_filtered.parent_duns AS "ultimate_parent_unique_ide",
     grant_pduns.legal_business_name AS "ultimate_parent_legal_enti",
-    fsrs_grant.awardee_address_country AS "legal_entity_country_code",
+    grant_filtered.awardee_address_country AS "legal_entity_country_code",
     le_country.country_name AS "legal_entity_country_name",
-    fsrs_grant.awardee_address_street AS "legal_entity_address_line1",
-    fsrs_grant.awardee_address_city AS "legal_entity_city_name",
-    fsrs_grant.awardee_address_state AS "legal_entity_state_code",
-    fsrs_grant.awardee_address_state_name AS "legal_entity_state_name",
-    CASE WHEN fsrs_grant.awardee_address_country = 'USA'
-         THEN fsrs_grant.awardee_address_zip
+    grant_filtered.awardee_address_street AS "legal_entity_address_line1",
+    grant_filtered.awardee_address_city AS "legal_entity_city_name",
+    grant_filtered.awardee_address_state AS "legal_entity_state_code",
+    grant_filtered.awardee_address_state_name AS "legal_entity_state_name",
+    CASE WHEN grant_filtered.awardee_address_country = 'USA'
+         THEN grant_filtered.awardee_address_zip
          ELSE NULL
     END AS "legal_entity_zip",
-    fsrs_grant.awardee_address_district AS "legal_entity_congressional",
-    CASE WHEN fsrs_grant.awardee_address_country <> 'USA'
-        THEN fsrs_grant.awardee_address_zip
+    grant_filtered.awardee_address_district AS "legal_entity_congressional",
+    CASE WHEN grant_filtered.awardee_address_country <> 'USA'
+        THEN grant_filtered.awardee_address_zip
         ELSE NULL
     END AS "legal_entity_foreign_posta",
     aw_pafa.business_types_desc AS "business_types",
-    fsrs_grant.principle_place_city AS "place_of_perform_city_name",
-    fsrs_grant.principle_place_state AS "place_of_perform_state_code",
-    fsrs_grant.principle_place_state_name AS "place_of_perform_state_name",
-    fsrs_grant.principle_place_zip AS "place_of_performance_zip",
-    fsrs_grant.principle_place_district AS "place_of_perform_congressio",
-    fsrs_grant.principle_place_country AS "place_of_perform_country_co",
+    grant_filtered.principle_place_city AS "place_of_perform_city_name",
+    grant_filtered.principle_place_state AS "place_of_perform_state_code",
+    grant_filtered.principle_place_state_name AS "place_of_perform_state_name",
+    grant_filtered.principle_place_zip AS "place_of_performance_zip",
+    grant_filtered.principle_place_district AS "place_of_perform_congressio",
+    grant_filtered.principle_place_country AS "place_of_perform_country_co",
     ppop_country.country_name AS "place_of_perform_country_na",
-    fsrs_grant.project_description AS "award_description",
+    grant_filtered.project_description AS "award_description",
     NULL AS "naics",
     NULL AS "naics_description",
-    CASE WHEN fsrs_grant.cfda_numbers ~ ';'
-         THEN cfda_num_loop(fsrs_grant.cfda_numbers)
-         ELSE cfda_num(fsrs_grant.cfda_numbers)
+    CASE WHEN grant_filtered.cfda_numbers ~ ';'
+         THEN cfda_num_loop(grant_filtered.cfda_numbers)
+         ELSE cfda_num(grant_filtered.cfda_numbers)
     END AS "cfda_numbers",
-    CASE WHEN fsrs_grant.cfda_numbers ~ ';'
-         THEN cfda_word_loop(fsrs_grant.cfda_numbers)
-         ELSE cfda_word(fsrs_grant.cfda_numbers)
+    CASE WHEN grant_filtered.cfda_numbers ~ ';'
+         THEN cfda_word_loop(grant_filtered.cfda_numbers)
+         ELSE cfda_word(grant_filtered.cfda_numbers)
     END AS "cfda_titles",
 
     -- File F Subawards
     'sub-grant' AS "subaward_type",
-    fsrs_grant.report_period_year AS "subaward_report_year",
-    fsrs_grant.report_period_mon AS "subaward_report_month",
+    grant_filtered.report_period_year AS "subaward_report_year",
+    grant_filtered.report_period_mon AS "subaward_report_month",
     fsrs_subgrant.subaward_num AS "subaward_number",
     fsrs_subgrant.subaward_amount AS "subaward_amount",
     fsrs_subgrant.subaward_date AS "sub_action_date",
@@ -321,33 +321,33 @@ SELECT
     fsrs_subgrant.top_paid_amount_5 AS "sub_high_comp_officer5_amount",
 
     -- File F Prime Awards
-    fsrs_grant.id AS "prime_id",
-    fsrs_grant.internal_id AS "internal_id",
-    fsrs_grant.date_submitted AS "date_submitted",
+    grant_filtered.id AS "prime_id",
+    grant_filtered.internal_id AS "internal_id",
+    grant_filtered.date_submitted AS "date_submitted",
     NULL AS "report_type",
     NULL AS "transaction_type",
     NULL AS "program_title",
     NULL AS "contract_agency_code",
     NULL AS "contract_idv_agency_code",
-    fsrs_grant.funding_agency_id AS "grant_funding_agency_id",
-    fsrs_grant.funding_agency_name AS "grant_funding_agency_name",
-    fsrs_grant.federal_agency_name AS "federal_agency_name",
+    grant_filtered.funding_agency_id AS "grant_funding_agency_id",
+    grant_filtered.funding_agency_name AS "grant_funding_agency_name",
+    grant_filtered.federal_agency_name AS "federal_agency_name",
     NULL AS "treasury_symbol",
-    fsrs_grant.dunsplus4 AS "dunsplus4",
+    grant_filtered.dunsplus4 AS "dunsplus4",
     NULL AS "recovery_model_q1",
     NULL AS "recovery_model_q2",
-    fsrs_grant.compensation_q1 AS "compensation_q1",
-    fsrs_grant.compensation_q2 AS "compensation_q2",
-    fsrs_grant.top_paid_fullname_1 AS "high_comp_officer1_full_na",
-    fsrs_grant.top_paid_amount_1 AS "high_comp_officer1_amount",
-    fsrs_grant.top_paid_fullname_2 AS "high_comp_officer2_full_na",
-    fsrs_grant.top_paid_amount_2 AS "high_comp_officer2_amount",
-    fsrs_grant.top_paid_fullname_3 AS "high_comp_officer3_full_na",
-    fsrs_grant.top_paid_amount_3 AS "high_comp_officer3_amount",
-    fsrs_grant.top_paid_fullname_4 AS "high_comp_officer4_full_na",
-    fsrs_grant.top_paid_amount_4 AS "high_comp_officer4_amount",
-    fsrs_grant.top_paid_fullname_5 AS "high_comp_officer5_full_na",
-    fsrs_grant.top_paid_amount_5 AS "high_comp_officer5_amount",
+    grant_filtered.compensation_q1 AS "compensation_q1",
+    grant_filtered.compensation_q2 AS "compensation_q2",
+    grant_filtered.top_paid_fullname_1 AS "high_comp_officer1_full_na",
+    grant_filtered.top_paid_amount_1 AS "high_comp_officer1_amount",
+    grant_filtered.top_paid_fullname_2 AS "high_comp_officer2_full_na",
+    grant_filtered.top_paid_amount_2 AS "high_comp_officer2_amount",
+    grant_filtered.top_paid_fullname_3 AS "high_comp_officer3_full_na",
+    grant_filtered.top_paid_amount_3 AS "high_comp_officer3_amount",
+    grant_filtered.top_paid_fullname_4 AS "high_comp_officer4_full_na",
+    grant_filtered.top_paid_amount_4 AS "high_comp_officer4_amount",
+    grant_filtered.top_paid_fullname_5 AS "high_comp_officer5_full_na",
+    grant_filtered.top_paid_amount_5 AS "high_comp_officer5_amount",
 
     -- File F Subawards
     fsrs_subgrant.id AS "sub_id",
@@ -369,23 +369,22 @@ SELECT
     NOW() AS "created_at",
     NOW() AS "updated_at"
 
-FROM fsrs_grant
+FROM grant_filtered
     JOIN fsrs_subgrant
-        ON fsrs_subgrant.parent_id = fsrs_grant.id
+        ON fsrs_subgrant.parent_id = grant_filtered.id
     LEFT OUTER JOIN aw_pafa
-        ON fsrs_grant.fain = aw_pafa.fain
+        ON grant_filtered.fain = aw_pafa.fain
     LEFT OUTER JOIN country_code AS le_country
-        ON fsrs_grant.awardee_address_country = le_country.country_code
+        ON grant_filtered.awardee_address_country = le_country.country_code
     LEFT OUTER JOIN country_code AS ppop_country
-        ON fsrs_grant.principle_place_country = ppop_country.country_code
+        ON grant_filtered.principle_place_country = ppop_country.country_code
     LEFT OUTER JOIN country_code AS sub_le_country
         ON fsrs_subgrant.awardee_address_country = sub_le_country.country_code
     LEFT OUTER JOIN country_code AS sub_ppop_country
         ON fsrs_subgrant.principle_place_country = sub_ppop_country.country_code
     LEFT OUTER JOIN grant_pduns
-        ON fsrs_grant.parent_duns = grant_pduns.awardee_or_recipient_uniqu
+        ON grant_filtered.parent_duns = grant_pduns.awardee_or_recipient_uniqu
     LEFT OUTER JOIN subgrant_pduns
         ON fsrs_subgrant.parent_duns = subgrant_pduns.awardee_or_recipient_uniqu
     LEFT OUTER JOIN subgrant_duns
         ON fsrs_subgrant.duns = subgrant_duns.awardee_or_recipient_uniqu
-WHERE fsrs_grant.id {0} {1}
