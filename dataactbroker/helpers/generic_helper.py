@@ -16,6 +16,10 @@ from dataactcore.utils.statusCode import StatusCode
 class StringLiteral(String):
     """ Teach SA how to literalize various things """
 
+    def __init__(self, *args, **kwargs):
+        self._enums = kwargs.pop('_enums', None)
+        super(StringLiteral, self).__init__(*args, **kwargs)
+
     def literal_processor(self, dialect):
         """ Overwritten method to populate variables in SQL """
 
