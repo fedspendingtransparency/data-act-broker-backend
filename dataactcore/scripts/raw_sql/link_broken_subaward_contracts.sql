@@ -9,7 +9,7 @@ WITH unlinked_subs AS
         FROM subaward
         WHERE subaward.unique_award_key IS NULL
             AND subaward.subaward_type = 'sub-contract'
-    )
+    ),
 aw_dap AS
     (SELECT DISTINCT ON (
             dap.piid,
@@ -37,7 +37,7 @@ aw_dap AS
         )
         {0}
     ORDER BY dap.piid, dap.parent_award_id, dap.awarding_sub_tier_agency_c, dap.action_date
-    ),
+    )
 UPDATE subaward
 SET
     unique_award_key = aw_dap.unique_award_key,

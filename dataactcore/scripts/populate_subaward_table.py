@@ -62,7 +62,7 @@ def populate_subaward_table(sess, service_type, ids=None, min_id=None):
     sql = extract_subaward_sql(service_type, 'populate')
     if min_id is not None:
         operator = '>'
-        values = min_id
+        values = min_id - 1
     else:
         operator = 'IN'
         values = '({})'.format(','.join([str(id) for id in ids]))
@@ -72,7 +72,8 @@ def populate_subaward_table(sess, service_type, ids=None, min_id=None):
     inserted = sess.execute(sql)
     sess.commit()
     inserted_count = inserted.rowcount
-    logger.info('Inserted {} sub-{} to the subaward table'.format(inserted_count, service_type))
+    award_type = service_type[:service_type.index('_')]
+    logger.info('Inserted {} sub-{}s to the subaward table'.format(inserted_count, award_type))
     return inserted_count
 
 
@@ -86,7 +87,8 @@ def fix_broken_links(sess, service_type, min_date=None):
         Raises:
             Exception: service type is invalid
     """
-    # get the broken links to delete later
+    award_type = service_type[:service_type.index('_')]
+    logger.info('Attempting to fix broken sub-{} links in the subaward table'.format(award_type))
     subaward_type_map = {PROCUREMENT: 'sub-contract', GRANT: 'sub-grant'}
     if service_type not in subaward_type_map:
         raise Exception('Invalid service type provided: {}'.format(service_type))
@@ -100,7 +102,7 @@ def fix_broken_links(sess, service_type, min_date=None):
     sess.commit()
 
     updated_count = updated.rowcount
-    logger.info('Updated {} sub-{} in the subaward table'.format(updated_count, service_type))
+    logger.info('Updated {} sub-{}s in the subaward table'.format(updated_count, award_type))
     return updated_count
 
 
