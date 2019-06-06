@@ -124,7 +124,7 @@ if __name__ == '__main__':
                     logger.error('Missing --procurement or --grants argument when loading specific award ids')
                 sys.exit(1)
 
-            # Populate subaward table off new ids
+            logger.info('Populating subaward table based off new data')
             new_procurements = (SERVICE_MODEL[PROCUREMENT].next_id(sess) > original_min_procurement_id)
             new_grants = (SERVICE_MODEL[GRANT].next_id(sess) > original_min_grant_id)
             proc_ids = list(set(updated_proc_internal_ids))
