@@ -1,4 +1,12 @@
-WITH aw_pafa AS
+WITH grant_filtered AS
+    (SELECT *
+        FROM fsrs_grant
+        WHERE fsrs_grant.id {0} {1}),
+subgrant_filtered AS
+    (SELECT *
+    FROM fsrs_subgrant
+    WHERE fsrs_subgrant.parent_id {0} {1}),
+aw_pafa AS
     (SELECT DISTINCT ON (
             pafa.fain
         )
@@ -24,9 +32,8 @@ WITH aw_pafa AS
     WHERE is_active IS TRUE
         AND EXISTS (
             SELECT 1
-            FROM fsrs_grant
-            WHERE fsrs_grant.fain = pafa.fain
-                AND fsrs_grant.id {0} {1}
+            FROM grant_filtered
+            WHERE grant_filtered.fain = pafa.fain
         )
     ORDER BY pafa.fain, pafa.action_date),
 grant_pduns AS
@@ -38,10 +45,9 @@ grant_pduns AS
             row_number() OVER (PARTITION BY
                 duns.awardee_or_recipient_uniqu
             ) AS row
-        FROM fsrs_grant
+        FROM grant_filtered
             LEFT OUTER JOIN duns
-                ON fsrs_grant.parent_duns = duns.awardee_or_recipient_uniqu
-                AND fsrs_grant.id {0} {1}
+                ON grant_filtered.parent_duns = duns.awardee_or_recipient_uniqu
         ORDER BY duns.activation_date DESC
      ) AS grand_pduns_from
     WHERE grand_pduns_from.row = 1),
@@ -54,10 +60,9 @@ subgrant_pduns AS (
             row_number() OVER (PARTITION BY
                 duns.awardee_or_recipient_uniqu
             ) AS row
-        FROM fsrs_subgrant
+        FROM subgrant_filtered
             LEFT OUTER JOIN duns
-                ON fsrs_subgrant.parent_duns = duns.awardee_or_recipient_uniqu
-                AND fsrs_subgrant.parent_id {0} {1}
+                ON subgrant_filtered.parent_duns = duns.awardee_or_recipient_uniqu
         ORDER BY duns.activation_date DESC
     ) AS sub_pduns_from
     WHERE sub_pduns_from.row = 1),
@@ -71,10 +76,9 @@ subgrant_duns AS (
             row_number() OVER (PARTITION BY
                 duns.awardee_or_recipient_uniqu
             ) AS row
-        FROM fsrs_subgrant
+        FROM subgrant_filtered
             LEFT OUTER JOIN duns
-                ON fsrs_subgrant.duns = duns.awardee_or_recipient_uniqu
-                AND fsrs_subgrant.parent_id {0} {1}
+                ON subgrant_filtered.duns = duns.awardee_or_recipient_uniqu
         ORDER BY duns.activation_date DESC
     ) AS sub_duns_from
     WHERE sub_duns_from.row = 1)
