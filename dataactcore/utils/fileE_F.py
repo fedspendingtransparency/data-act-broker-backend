@@ -7,6 +7,7 @@ FILE_MAPPING = {
     'F': os.path.join(SQL_DIR, 'fileF.sql')
 }
 
+
 def gather_file_sql(file_type, submission_id):
     """ Return raw queries representing the file requested
 
@@ -32,6 +33,7 @@ def gather_file_sql(file_type, submission_id):
     file_sql = file_sql.format(submission_id)
     return file_sql
 
+
 def generate_file_e_sql(submission_id):
     """ Return two raw queries representing the E File
 
@@ -42,6 +44,7 @@ def generate_file_e_sql(submission_id):
             raw string query representing File E data
     """
     return gather_file_sql('E', submission_id)
+
 
 def generate_file_f_sql(submission_id):
     """ Return raw query representing the F File

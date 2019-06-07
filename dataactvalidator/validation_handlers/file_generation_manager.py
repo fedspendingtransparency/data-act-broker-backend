@@ -1,5 +1,4 @@
 import logging
-import os
 
 from dateutil.relativedelta import relativedelta
 
@@ -12,7 +11,7 @@ from dataactcore.models.jobModels import Job
 from dataactcore.utils import fileA, fileD1, fileD2, fileE_F
 from dataactcore.utils.responseException import ResponseException
 
-from dataactvalidator.filestreaming.csv_selection import write_stream_query, write_query_to_file
+from dataactvalidator.filestreaming.csv_selection import write_stream_query
 
 logger = logging.getLogger(__name__)
 
