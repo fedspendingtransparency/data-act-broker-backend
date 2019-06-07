@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
         # Create a temporary table
         sess.execute("""CREATE TEMP TABLE duplicated_fabs AS
-                            SELECT UPPER(afa_generated_unique), MAX(submission_id) AS max_id
+                            SELECT UPPER(afa_generated_unique) as afa_generated_unique, MAX(submission_id) AS max_id
                             FROM published_award_financial_assistance
                             WHERE is_active IS TRUE
                             GROUP BY UPPER(afa_generated_unique)
