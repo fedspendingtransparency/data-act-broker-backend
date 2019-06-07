@@ -314,7 +314,7 @@ FROM procurement_filtered
         ON fsrs_subcontract.parent_id = procurement_filtered.id
     LEFT OUTER JOIN aw_dap
         ON (procurement_filtered.contract_number = aw_dap.piid
-        AND procurement_filtered.idv_reference_number IS NOT DISTINCT FROM aw_dap.parent_award_id
+        AND COALESCE(procurement_filtered.idv_reference_number, '') = COALESCE(aw_dap.parent_award_id, '')
         AND procurement_filtered.contracting_office_aid = aw_dap.awarding_sub_tier_agency_c)
     LEFT OUTER JOIN country_code AS le_country
         ON procurement_filtered.company_address_country = le_country.country_code

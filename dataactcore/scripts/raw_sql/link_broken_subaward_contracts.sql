@@ -32,7 +32,7 @@ aw_dap AS
         SELECT 1
         FROM unlinked_subs
         WHERE unlinked_subs.award_id = dap.piid
-            AND unlinked_subs.parent_award_id IS NOT DISTINCT FROM dap.parent_award_id
+            AND COALESCE(unlinked_subs.parent_award_id, '') = COALESCE(dap.parent_award_id, '')
             AND unlinked_subs.awarding_sub_tier_agency_c = dap.awarding_sub_tier_agency_c
         )
         {0}
@@ -50,6 +50,6 @@ SET
 FROM unlinked_subs
     JOIN aw_dap
         ON (unlinked_subs.award_id = aw_dap.piid
-        AND unlinked_subs.parent_award_id IS NOT DISTINCT FROM aw_dap.parent_award_id
+        AND COALESCE(unlinked_subs.parent_award_id, '') = COALESCE(aw_dap.parent_award_id, '')
         AND unlinked_subs.awarding_sub_tier_agency_c = aw_dap.awarding_sub_tier_agency_c)
 WHERE subaward.id = unlinked_subs.id;
