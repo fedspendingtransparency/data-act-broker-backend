@@ -588,7 +588,8 @@ class FileHandler:
             valid_sub_rows = sess.query(dafa.afa_generated_unique).\
                 filter(dafa.submission_id == submission_id, dafa.is_valid.is_(True)).cte('valid_sub_rows')
             publishing_subs = sess.query(dafa.submission_id).\
-                join(valid_sub_rows, valid_sub_rows.c.afa_generated_unique == dafa.afa_generated_unique).\
+                join(valid_sub_rows,
+                     func.upper(valid_sub_rows.c.afa_generated_unique) == func.upper(dafa.afa_generated_unique)).\
                 join(Submission, Submission.submission_id == dafa.submission_id).\
                 filter(dafa.is_valid.is_(True),
                        dafa.submission_id != submission_id,
@@ -609,7 +610,8 @@ class FileHandler:
                 filter(dafa.is_valid.is_(True),
                        dafa.submission_id == submission_id,
                        func.coalesce(func.upper(dafa.correction_delete_indicatr), '').notin_(['C', 'D'])).\
-                join(pafa, and_(dafa.afa_generated_unique == pafa.afa_generated_unique, pafa.is_active.is_(True))).\
+                join(pafa, and_(func.upper(dafa.afa_generated_unique) == func.upper(pafa.afa_generated_unique),
+                                pafa.is_active.is_(True))).\
                 count()
             if colliding_rows > 0:
                 raise ResponseException("1 or more rows in this submission were already published (in a separate "
@@ -714,12 +716,13 @@ class FileHandler:
 
                     # if it's a correction or deletion row and an old row is active, update the old row to be inactive
                     if row.correction_delete_indicatr is not None:
-                        check_row = sess.query(PublishedAwardFinancialAssistance).\
-                            filter_by(afa_generated_unique=row.afa_generated_unique, is_active=True).one_or_none()
+                        check_row = sess.query(pafa).\
+                            filter(func.upper(pafa.afa_generated_unique) == row.afa_generated_unique.upper(),
+                                   pafa.is_active.is_(True)).one_or_none()
                         if check_row:
                             # just creating this as a variable because flake thinks the row is too long
                             row_id = check_row.published_award_financial_assistance_id
-                            sess.query(PublishedAwardFinancialAssistance).\
+                            sess.query(pafa).\
                                 filter_by(published_award_financial_assistance_id=row_id).\
                                 update({"is_active": False, "updated_at": row.modified_at}, synchronize_session=False)
 
