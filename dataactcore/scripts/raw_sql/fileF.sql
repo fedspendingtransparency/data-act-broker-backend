@@ -22,7 +22,7 @@ submission_awards_{0} AS
     SELECT *
     FROM subaward
     WHERE EXISTS (SELECT 1
-        FROM afa_sub_{0}  AS afa
+        FROM afa_sub_{0} AS afa
         WHERE subaward.award_id = afa.fain
             AND subaward.subaward_type = 'sub-grant'
     ))
