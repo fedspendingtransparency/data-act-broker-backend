@@ -3,32 +3,29 @@ WITH ap_sub_{0} AS (
         parent_award_id,
         awarding_sub_tier_agency_c
     FROM award_procurement
-    WHERE submission_id = {0}
-),
+    WHERE submission_id = {0}),
 afa_sub_{0} AS (
     SELECT fain
     FROM award_financial_assistance
-    WHERE submission_id = {0}
-),
+    WHERE submission_id = {0}),
 submission_awards_{0} AS
     (SELECT *
-    FROM (
-        SELECT *
-        FROM subaward
-        WHERE EXISTS (SELECT 1
-            FROM ap_sub AS ap
-            WHERE subaward.award_id = ap.piid
-                AND subaward.parent_award_id IS NOT DISTINCT FROM ap.parent_award_id
-                AND subaward.awarding_sub_tier_agency_c = ap.awarding_sub_tier_agency_c
-                AND subaward.subaward_type = 'sub-contract')
-        UNION
-        SELECT *
-        FROM subaward
-        WHERE EXISTS (SELECT 1
-            FROM afa_sub AS afa
-            WHERE subaward.award_id = afa.fain
-                AND subaward.subaward_type = 'sub-grant')
-    ) as temp)
+    FROM subaward
+    WHERE EXISTS (SELECT 1
+        FROM ap_sub_{0} AS ap
+        WHERE subaward.award_id = ap.piid
+            AND COALESCE(subaward.parent_award_id, '') = COALESCE(ap.parent_award_id, '')
+            AND subaward.awarding_sub_tier_agency_c = ap.awarding_sub_tier_agency_c
+            AND subaward.subaward_type = 'sub-contract'
+    )
+    UNION
+    SELECT *
+    FROM subaward
+    WHERE EXISTS (SELECT 1
+        FROM afa_sub_{0}  AS afa
+        WHERE subaward.award_id = afa.fain
+            AND subaward.subaward_type = 'sub-grant'
+    ))
 SELECT
     unique_award_key AS "PrimeAwardUniqueKey",
     award_id AS "PrimeAwardID",
