@@ -6,8 +6,7 @@ WITH unlinked_subs AS
             award_id
         FROM subaward
         WHERE subaward.unique_award_key IS NULL
-            AND subaward.subaward_type = 'sub-grant'
-    ),
+            AND subaward.subaward_type = 'sub-grant'),
 aw_pafa AS
     (SELECT DISTINCT ON (
             pafa.fain

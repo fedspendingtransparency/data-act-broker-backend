@@ -8,8 +8,7 @@ WITH unlinked_subs AS
             awarding_sub_tier_agency_c
         FROM subaward
         WHERE subaward.unique_award_key IS NULL
-            AND subaward.subaward_type = 'sub-contract'
-    ),
+            AND subaward.subaward_type = 'sub-contract'),
 aw_dap AS
     (SELECT DISTINCT ON (
             dap.piid,
@@ -36,8 +35,7 @@ aw_dap AS
             AND unlinked_subs.awarding_sub_tier_agency_c = dap.awarding_sub_tier_agency_c
         )
         {0}
-    ORDER BY dap.piid, dap.parent_award_id, dap.awarding_sub_tier_agency_c, dap.action_date
-    )
+    ORDER BY dap.piid, dap.parent_award_id, dap.awarding_sub_tier_agency_c, dap.action_date)
 UPDATE subaward
 SET
     unique_award_key = aw_dap.unique_award_key,
@@ -51,5 +49,6 @@ FROM unlinked_subs
     JOIN aw_dap
         ON (unlinked_subs.award_id = aw_dap.piid
         AND COALESCE(unlinked_subs.parent_award_id, '') = COALESCE(aw_dap.parent_award_id, '')
-        AND unlinked_subs.awarding_sub_tier_agency_c = aw_dap.awarding_sub_tier_agency_c)
+        AND unlinked_subs.awarding_sub_tier_agency_c = aw_dap.awarding_sub_tier_agency_c
+        )
 WHERE subaward.id = unlinked_subs.id;
