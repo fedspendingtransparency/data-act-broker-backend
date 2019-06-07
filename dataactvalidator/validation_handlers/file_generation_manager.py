@@ -9,7 +9,7 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.models.jobModels import Job
-from dataactcore.utils import fileA, fileD1, fileD2, fileF
+from dataactcore.utils import fileA, fileD1, fileD2, fileE_F
 from dataactcore.utils.responseException import ResponseException
 
 from dataactvalidator.filestreaming.csv_selection import write_stream_query, write_query_to_file
@@ -141,14 +141,7 @@ class FileGenerationManager:
                     'submission_id': self.job.submission_id, 'file_type': 'executive_compensation'}
         logger.info(log_data)
 
-        # Get the raw SQL to work with
-        sql_dir = os.path.join(CONFIG_BROKER["path"], "dataactcore", "scripts", "raw_sql")
-        with open(os.path.join(sql_dir, 'fileE.sql'), 'r') as file_e:
-            file_e_sql = file_e.read()
-
-        # Remove newlines (write_stream_query doesn't like them) and add the submission ID to the query
-        file_e_sql = file_e_sql.replace('\n', ' ')
-        file_e_sql = file_e_sql.format(self.job.submission_id)
+        file_e_sql = fileE_F.generate_file_e_sql(self.job.submission_id)
 
         log_data['message'] = 'Writing E file CSV: {}'.format(self.job.original_filename)
         logger.info(log_data)
@@ -165,14 +158,14 @@ class FileGenerationManager:
                     'submission_id': self.job.submission_id, 'file_type': 'sub_award'}
         logger.info(log_data)
 
-        f_file_contracts_query = fileF.generate_f_file_query(self.job.submission_id)
+        file_f_sql = fileE_F.generate_file_f_sql(self.job.submission_id)
 
         # writing locally first without uploading
-        log_data['message'] = 'Writing F file contracts to CSV: {}'.format(self.job.original_filename)
+        log_data['message'] = 'Writing F file CSV: {}'.format(self.job.original_filename)
         logger.info(log_data)
-        local_f_file = self.job.filename if self.is_local else self.job.original_filename
-        write_query_to_file(self.sess, f_file_contracts_query, local_f_file, generate_headers=True,
-                            generate_string=False)
+        # Generate the file and put in S3
+        write_stream_query(self.sess, file_f_sql, self.job.original_filename, self.job.filename, self.is_local,
+                           generate_headers=True, generate_string=False)
 
         log_data['message'] = 'Finished writing F file CSV: {}'.format(self.job.original_filename)
         logger.info(log_data)
