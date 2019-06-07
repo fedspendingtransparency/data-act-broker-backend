@@ -24,7 +24,7 @@ aw_dap AS
         SELECT 1
         FROM procurement_filtered
         WHERE procurement_filtered.contract_number = dap.piid
-            AND procurement_filtered.idv_reference_number IS NOT DISTINCT FROM dap.parent_award_id
+            AND COALESCE(procurement_filtered.idv_reference_number, '') = COALESCE(dap.parent_award_id, '')
             AND procurement_filtered.contracting_office_aid = dap.awarding_sub_tier_agency_c
     )
     ORDER BY dap.piid, dap.parent_award_id, dap.awarding_sub_tier_agency_c, dap.action_date
