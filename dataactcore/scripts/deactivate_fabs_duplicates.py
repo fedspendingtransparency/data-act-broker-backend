@@ -3,10 +3,6 @@ import logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 
-from dataactcore.models.jobModels import CertifiedFilesHistory, CertifyHistory, Submission
-from dataactcore.models.userModel import User  # noqa
-from dataactcore.models.lookups import PUBLISH_STATUS_DICT
-
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
