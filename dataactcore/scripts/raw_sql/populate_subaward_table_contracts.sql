@@ -158,61 +158,61 @@ INSERT INTO subaward (
 )
 SELECT
     aw_dap.unique_award_key AS "unique_award_key",
-    procurement_filtered.contract_number AS "award_id",
-    procurement_filtered.idv_reference_number AS "parent_award_id",
-    procurement_filtered.dollar_obligated AS "award_amount",
-    procurement_filtered.date_signed AS "action_date",
-    'FY' || fy(procurement_filtered.date_signed) AS "fy",
+    fsrs_procurement.contract_number AS "award_id",
+    fsrs_procurement.idv_reference_number AS "parent_award_id",
+    fsrs_procurement.dollar_obligated AS "award_amount",
+    fsrs_procurement.date_signed AS "action_date",
+    'FY' || fy(fsrs_procurement.date_signed) AS "fy",
     aw_dap.awarding_agency_code AS "awarding_agency_code",
     aw_dap.awarding_agency_name AS "awarding_agency_name",
-    procurement_filtered.contracting_office_aid AS "awarding_sub_tier_agency_c",
-    procurement_filtered.contracting_office_aname AS "awarding_sub_tier_agency_n",
-    procurement_filtered.contracting_office_id AS "awarding_office_code",
-    procurement_filtered.contracting_office_name AS "awarding_office_name",
+    fsrs_procurement.contracting_office_aid AS "awarding_sub_tier_agency_c",
+    fsrs_procurement.contracting_office_aname AS "awarding_sub_tier_agency_n",
+    fsrs_procurement.contracting_office_id AS "awarding_office_code",
+    fsrs_procurement.contracting_office_name AS "awarding_office_name",
     aw_dap.funding_agency_code AS "funding_agency_code",
     aw_dap.funding_agency_name AS "funding_agency_name",
-    procurement_filtered.funding_agency_id AS "funding_sub_tier_agency_co",
-    procurement_filtered.funding_agency_name AS "funding_sub_tier_agency_na",
-    procurement_filtered.funding_office_id AS "funding_office_code",
-    procurement_filtered.funding_office_name AS "funding_office_name",
-    procurement_filtered.duns AS "awardee_or_recipient_uniqu",
-    procurement_filtered.company_name AS "awardee_or_recipient_legal",
-    procurement_filtered.dba_name AS "dba_name",
-    procurement_filtered.parent_duns AS "ultimate_parent_unique_ide",
-    procurement_filtered.parent_company_name AS "ultimate_parent_legal_enti",
-    procurement_filtered.company_address_country AS "legal_entity_country_code",
+    fsrs_procurement.funding_agency_id AS "funding_sub_tier_agency_co",
+    fsrs_procurement.funding_agency_name AS "funding_sub_tier_agency_na",
+    fsrs_procurement.funding_office_id AS "funding_office_code",
+    fsrs_procurement.funding_office_name AS "funding_office_name",
+    fsrs_procurement.duns AS "awardee_or_recipient_uniqu",
+    fsrs_procurement.company_name AS "awardee_or_recipient_legal",
+    fsrs_procurement.dba_name AS "dba_name",
+    fsrs_procurement.parent_duns AS "ultimate_parent_unique_ide",
+    fsrs_procurement.parent_company_name AS "ultimate_parent_legal_enti",
+    fsrs_procurement.company_address_country AS "legal_entity_country_code",
     le_country.country_name AS "legal_entity_country_name",
-    procurement_filtered.company_address_street AS "legal_entity_address_line1",
-    procurement_filtered.company_address_city AS "legal_entity_city_name",
-    procurement_filtered.company_address_state AS "legal_entity_state_code",
-    procurement_filtered.company_address_state_name AS "legal_entity_state_name",
-    CASE WHEN procurement_filtered.company_address_country = 'USA'
-         THEN procurement_filtered.company_address_zip
+    fsrs_procurement.company_address_street AS "legal_entity_address_line1",
+    fsrs_procurement.company_address_city AS "legal_entity_city_name",
+    fsrs_procurement.company_address_state AS "legal_entity_state_code",
+    fsrs_procurement.company_address_state_name AS "legal_entity_state_name",
+    CASE WHEN fsrs_procurement.company_address_country = 'USA'
+         THEN fsrs_procurement.company_address_zip
          ELSE NULL
     END AS "legal_entity_zip",
-    procurement_filtered.company_address_district AS "legal_entity_congressional",
-    CASE WHEN procurement_filtered.company_address_country <> 'USA'
-         THEN procurement_filtered.company_address_zip
+    fsrs_procurement.company_address_district AS "legal_entity_congressional",
+    CASE WHEN fsrs_procurement.company_address_country <> 'USA'
+         THEN fsrs_procurement.company_address_zip
          ELSE NULL
     END AS "legal_entity_foreign_posta",
-    procurement_filtered.bus_types AS "business_types",
-    procurement_filtered.principle_place_city AS "place_of_perform_city_name",
-    procurement_filtered.principle_place_state AS "place_of_perform_state_code",
-    procurement_filtered.principle_place_state_name AS "place_of_perform_state_name",
-    procurement_filtered.principle_place_zip AS "place_of_performance_zip",
-    procurement_filtered.principle_place_district AS "place_of_perform_congressio",
-    procurement_filtered.principle_place_country AS "place_of_perform_country_co",
+    fsrs_procurement.bus_types AS "business_types",
+    fsrs_procurement.principle_place_city AS "place_of_perform_city_name",
+    fsrs_procurement.principle_place_state AS "place_of_perform_state_code",
+    fsrs_procurement.principle_place_state_name AS "place_of_perform_state_name",
+    fsrs_procurement.principle_place_zip AS "place_of_performance_zip",
+    fsrs_procurement.principle_place_district AS "place_of_perform_congressio",
+    fsrs_procurement.principle_place_country AS "place_of_perform_country_co",
     ppop_country.country_name AS "place_of_perform_country_na",
     aw_dap.award_description AS "award_description",
-    procurement_filtered.naics AS "naics",
+    fsrs_procurement.naics AS "naics",
     aw_dap.naics_description AS "naics_description",
     NULL AS "cfda_numbers",
     NULL AS "cfda_titles",
 
     -- File F Subawards
     'sub-contract' AS "subaward_type",
-    procurement_filtered.report_period_year AS "subaward_report_year",
-    procurement_filtered.report_period_mon AS "subaward_report_month",
+    fsrs_procurement.report_period_year AS "subaward_report_year",
+    fsrs_procurement.report_period_mon AS "subaward_report_month",
     fsrs_subcontract.subcontract_num AS "subaward_number",
     fsrs_subcontract.subcontract_amount AS "subaward_amount",
     fsrs_subcontract.subcontract_date AS "sub_action_date",
@@ -257,33 +257,33 @@ SELECT
     fsrs_subcontract.top_paid_amount_5 AS "sub_high_comp_officer5_amount",
 
     -- File F Prime Awards
-    procurement_filtered.id AS "prime_id",
-    procurement_filtered.internal_id AS "internal_id",
-    procurement_filtered.date_submitted AS "date_submitted",
-    procurement_filtered.report_type AS "report_type",
-    procurement_filtered.transaction_type AS "transaction_type",
-    procurement_filtered.program_title AS "program_title",
-    procurement_filtered.contract_agency_code AS "contract_agency_code",
-    procurement_filtered.contract_idv_agency_code AS "contract_idv_agency_code",
+    fsrs_procurement.id AS "prime_id",
+    fsrs_procurement.internal_id AS "internal_id",
+    fsrs_procurement.date_submitted AS "date_submitted",
+    fsrs_procurement.report_type AS "report_type",
+    fsrs_procurement.transaction_type AS "transaction_type",
+    fsrs_procurement.program_title AS "program_title",
+    fsrs_procurement.contract_agency_code AS "contract_agency_code",
+    fsrs_procurement.contract_idv_agency_code AS "contract_idv_agency_code",
     NULL AS "grant_funding_agency_id",
     NULL AS "grant_funding_agency_name",
     NULL AS "federal_agency_name",
-    procurement_filtered.treasury_symbol AS "treasury_symbol",
+    fsrs_procurement.treasury_symbol AS "treasury_symbol",
     NULL AS "dunsplus4",
-    procurement_filtered.recovery_model_q1 AS "recovery_model_q1",
-    procurement_filtered.recovery_model_q2 AS "recovery_model_q2",
+    fsrs_procurement.recovery_model_q1 AS "recovery_model_q1",
+    fsrs_procurement.recovery_model_q2 AS "recovery_model_q2",
     NULL AS "compensation_q1",
     NULL AS "compensation_q2",
-    procurement_filtered.top_paid_fullname_1 AS "high_comp_officer1_full_na",
-    procurement_filtered.top_paid_amount_1 AS "high_comp_officer1_amount",
-    procurement_filtered.top_paid_fullname_2 AS "high_comp_officer2_full_na",
-    procurement_filtered.top_paid_amount_2 AS "high_comp_officer2_amount",
-    procurement_filtered.top_paid_fullname_3 AS "high_comp_officer3_full_na",
-    procurement_filtered.top_paid_amount_3 AS "high_comp_officer3_amount",
-    procurement_filtered.top_paid_fullname_4 AS "high_comp_officer4_full_na",
-    procurement_filtered.top_paid_amount_4 AS "high_comp_officer4_amount",
-    procurement_filtered.top_paid_fullname_5 AS "high_comp_officer5_full_na",
-    procurement_filtered.top_paid_amount_5 AS "high_comp_officer5_amount",
+    fsrs_procurement.top_paid_fullname_1 AS "high_comp_officer1_full_na",
+    fsrs_procurement.top_paid_amount_1 AS "high_comp_officer1_amount",
+    fsrs_procurement.top_paid_fullname_2 AS "high_comp_officer2_full_na",
+    fsrs_procurement.top_paid_amount_2 AS "high_comp_officer2_amount",
+    fsrs_procurement.top_paid_fullname_3 AS "high_comp_officer3_full_na",
+    fsrs_procurement.top_paid_amount_3 AS "high_comp_officer3_amount",
+    fsrs_procurement.top_paid_fullname_4 AS "high_comp_officer4_full_na",
+    fsrs_procurement.top_paid_amount_4 AS "high_comp_officer4_amount",
+    fsrs_procurement.top_paid_fullname_5 AS "high_comp_officer5_full_na",
+    fsrs_procurement.top_paid_amount_5 AS "high_comp_officer5_amount",
 
     -- File F Subawards
     fsrs_subcontract.id AS "sub_id",
@@ -305,19 +305,19 @@ SELECT
     NOW() AS "created_at",
     NOW() AS "updated_at"
 
-FROM procurement_filtered
+FROM fsrs_procurement
     JOIN fsrs_subcontract
-        ON fsrs_subcontract.parent_id = procurement_filtered.id
+        ON fsrs_subcontract.parent_id = fsrs_procurement.id
     LEFT OUTER JOIN aw_dap
-        ON (procurement_filtered.contract_number = aw_dap.piid
-        AND COALESCE(procurement_filtered.idv_reference_number, '') = COALESCE(aw_dap.parent_award_id, '')
-        AND procurement_filtered.contracting_office_aid = aw_dap.awarding_sub_tier_agency_c
-        )
+        ON (fsrs_procurement.contract_number = aw_dap.piid
+        AND COALESCE(fsrs_procurement.idv_reference_number, '') = COALESCE(aw_dap.parent_award_id, '')
+        AND fsrs_procurement.contracting_office_aid = aw_dap.awarding_sub_tier_agency_c)
     LEFT OUTER JOIN country_code AS le_country
-        ON procurement_filtered.company_address_country = le_country.country_code
+        ON fsrs_procurement.company_address_country = le_country.country_code
     LEFT OUTER JOIN country_code AS ppop_country
-        ON procurement_filtered.principle_place_country = ppop_country.country_code
+        ON fsrs_procurement.principle_place_country = ppop_country.country_code
     LEFT OUTER JOIN country_code AS sub_le_country
         ON fsrs_subcontract.company_address_country = sub_le_country.country_code
     LEFT OUTER JOIN country_code AS sub_ppop_country
         ON fsrs_subcontract.principle_place_country = sub_ppop_country.country_code
+WHERE fsrs_procurement.id {0} {1}
