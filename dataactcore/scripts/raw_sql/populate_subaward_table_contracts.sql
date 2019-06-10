@@ -1,8 +1,4 @@
-WITH procurement_filtered AS
-    (SELECT *
-    FROM fsrs_procurement
-    WHERE fsrs_procurement.id {0} {1}),
-aw_dap AS
+WITH aw_dap AS
     (SELECT DISTINCT ON (
             dap.piid,
             dap.parent_award_id,
@@ -22,10 +18,11 @@ aw_dap AS
     FROM detached_award_procurement AS dap
     WHERE EXISTS (
         SELECT 1
-        FROM procurement_filtered
-        WHERE procurement_filtered.contract_number = dap.piid
-            AND COALESCE(procurement_filtered.idv_reference_number, '') = COALESCE(dap.parent_award_id, '')
-            AND procurement_filtered.contracting_office_aid = dap.awarding_sub_tier_agency_c
+        FROM fsrs_procurement
+        WHERE fsrs_procurement.contract_number = dap.piid
+            AND COALESCE(fsrs_procurement.idv_reference_number, '') = COALESCE(dap.parent_award_id, '')
+            AND fsrs_procurement.contracting_office_aid = dap.awarding_sub_tier_agency_c
+            AND fsrs_procurement.id {0} {1}
     )
     ORDER BY dap.piid, dap.parent_award_id, dap.awarding_sub_tier_agency_c, dap.action_date)
 INSERT INTO subaward (
