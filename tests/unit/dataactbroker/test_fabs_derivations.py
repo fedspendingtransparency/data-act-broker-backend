@@ -28,12 +28,12 @@ COUNTY_DICT = {'NY001': 'Test County'}
 OFFICE_DICT = {'033103': {'office_name': 'Office',
                           'sub_tier_code': '1234',
                           'agency_code': '000',
-                          'financial_assistance_office': True,
+                          'financial_assistance_awards_office': True,
                           'funding_office': True},
                '654321': {'office_name': 'Office',
                           'sub_tier_code': '1234',
                           'agency_code': '000',
-                          'financial_assistance_office': False,
+                          'financial_assistance_awards_office': False,
                           'funding_office': False}}
 
 EXEC_COMP_DICT = {'123456789': {'officer1_name': 'Officer 1',

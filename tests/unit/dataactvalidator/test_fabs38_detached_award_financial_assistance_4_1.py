@@ -16,7 +16,7 @@ def test_success(database):
         designated specifically as an Assistance/Grant Office in the hierarchy.
     """
 
-    office = OfficeFactory(office_code='12345a', financial_assistance_office=True)
+    office = OfficeFactory(office_code='12345a', financial_assistance_awards_office=True)
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='12345a')
     # test ignore case
     det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='12345A')
@@ -31,8 +31,8 @@ def test_failure(database):
         designated specifically as an Assistance/Grant Office in the hierarchy.
     """
 
-    office_1 = OfficeFactory(office_code='123456', financial_assistance_office=True)
-    office_2 = OfficeFactory(office_code='987654', financial_assistance_office=False)
+    office_1 = OfficeFactory(office_code='123456', financial_assistance_awards_office=True)
+    office_2 = OfficeFactory(office_code='987654', financial_assistance_awards_office=False)
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='12345')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='1234567')
     # Test fail if grant office is false even if code matches
