@@ -16,13 +16,19 @@ def test_success(database):
         designated specifically as a Funding Office in the hierarchy.
     """
 
-    office = OfficeFactory(office_code='12345a', funding_office=True)
+    office_1 = OfficeFactory(office_code='12345a', contract_funding_office=True,
+                             financial_assistance_funding_office=False)
+    office_2 = OfficeFactory(office_code='12345b', contract_funding_office=False,
+                             financial_assistance_funding_office=True)
     det_award_1 = DetachedAwardFinancialAssistanceFactory(funding_office_code='12345a')
     # test case insensitive
     det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_office_code='12345A')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_office_code='')
     det_award_4 = DetachedAwardFinancialAssistanceFactory(funding_office_code=None)
-    errors = number_of_errors(_FILE, database, models=[office, det_award_1, det_award_2, det_award_3, det_award_4])
+    # Testing second type of funding office
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(funding_office_code='12345b')
+    errors = number_of_errors(_FILE, database, models=[office_1, office_2, det_award_1, det_award_2, det_award_3,
+                                                       det_award_4, det_award_5])
     assert errors == 0
 
 
@@ -31,8 +37,10 @@ def test_failure(database):
         designated specifically as a Funding Office in the hierarchy.
     """
 
-    office_1 = OfficeFactory(office_code='123456', funding_office=True)
-    office_2 = OfficeFactory(office_code='987654', funding_office=False)
+    office_1 = OfficeFactory(office_code='123456', contract_funding_office=True,
+                             financial_assistance_funding_office=True)
+    office_2 = OfficeFactory(office_code='987654', contract_funding_office=False,
+                             financial_assistance_funding_office=False)
     det_award_1 = DetachedAwardFinancialAssistanceFactory(funding_office_code='12345')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_office_code='1234567')
     # Test fail if funding office is false even if code matches

@@ -15,7 +15,10 @@ def test_column_headers(database):
 def test_success_ignore_null_pafa(database):
     """ Test that empty funding office codes aren't matching invalid office codes from the base record. """
 
-    office = OfficeFactory(office_code='12345a', funding_office=True)
+    office_1 = OfficeFactory(office_code='12345a', contract_funding_office=True,
+                             financial_assistance_funding_office=False)
+    office_2 = OfficeFactory(office_code='12345b', contract_funding_office=False,
+                             financial_assistance_funding_office=True)
     # Base record has no funding office code, future records don't affect it
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(funding_office_code='', unique_award_key='zyxwv_123',
                                                            action_date='20181018', award_modification_amendme='0',
@@ -35,7 +38,7 @@ def test_success_ignore_null_pafa(database):
     pub_award_5 = PublishedAwardFinancialAssistanceFactory(funding_office_code='abc', unique_award_key='4321_cba',
                                                            action_date='20181018', award_modification_amendme='0',
                                                            is_active=False)
-    pub_award_6 = PublishedAwardFinancialAssistanceFactory(funding_office_code='12345a', unique_award_key='4321_cba',
+    pub_award_6 = PublishedAwardFinancialAssistanceFactory(funding_office_code='12345b', unique_award_key='4321_cba',
                                                            action_date='20181019', award_modification_amendme='1',
                                                            is_active=True)
 
@@ -59,17 +62,19 @@ def test_success_ignore_null_pafa(database):
     det_award_5 = DetachedAwardFinancialAssistanceFactory(funding_office_code='', unique_award_key='4321_cba',
                                                           action_date='20181020', award_modification_amendme='2',
                                                           correction_delete_indicatr=None)
-    errors = number_of_errors(_FILE, database, models=[office, pub_award_1, pub_award_2, pub_award_3, pub_award_4,
-                                                       pub_award_5, pub_award_6, det_award_1, det_award_2, det_award_3,
-                                                       det_award_4, det_award_5])
+    errors = number_of_errors(_FILE, database, models=[office_1, office_2, pub_award_1, pub_award_2, pub_award_3,
+                                                       pub_award_4, pub_award_5, pub_award_6, det_award_1, det_award_2,
+                                                       det_award_3, det_award_4, det_award_5])
     assert errors == 0
 
 
 def test_failure(database):
     """ Test fail that empty funding office codes aren't matching invalid office codes from the base record. """
 
-    office_1 = OfficeFactory(office_code='12345a', funding_office=True)
-    office_2 = OfficeFactory(office_code='abcd', funding_office=False)
+    office_1 = OfficeFactory(office_code='12345a', contract_funding_office=True,
+                             financial_assistance_funding_office=True)
+    office_2 = OfficeFactory(office_code='abcd', contract_funding_office=False,
+                             financial_assistance_funding_office=False)
     # Invalid code in record
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(funding_office_code='abc', unique_award_key='zyxwv_123',
                                                            action_date='20181018', award_modification_amendme='0',
