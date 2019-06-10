@@ -10,5 +10,5 @@ WHERE submission_id = {0}
         SELECT 1
         FROM office
         WHERE UPPER(office.office_code) = UPPER(dafa.awarding_office_code)
-            AND office.financial_assistance_office = TRUE
+            AND office.financial_assistance_awards_office = TRUE
     );
