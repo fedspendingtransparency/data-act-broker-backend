@@ -632,13 +632,16 @@ class FileHandler:
 
             # This table is big enough that we want to only grab 2 columns
             offices = sess.query(Office.office_code, Office.office_name, Office.sub_tier_code, Office.agency_code,
-                                 Office.financial_assistance_office, Office.funding_office).all()
+                                 Office.financial_assistance_awards_office, Office.contract_funding_office,
+                                 Office.financial_assistance_funding_office).all()
             for office in offices:
                 office_dict[office.office_code] = {'office_name': office.office_name,
                                                    'sub_tier_code': office.sub_tier_code,
                                                    'agency_code': office.agency_code,
-                                                   'financial_assistance_office': office.financial_assistance_office,
-                                                   'funding_office': office.funding_office}
+                                                   'financial_assistance_awards_office':
+                                                       office.financial_assistance_awards_office,
+                                                   'funding_office': (office.contract_funding_office or
+                                                                      office.financial_assistance_funding_office)}
             del offices
 
             counties = sess.query(CountyCode).all()

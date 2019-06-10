@@ -10,5 +10,6 @@ WHERE submission_id = {0}
         SELECT 1
         FROM office
         WHERE UPPER(office.office_code) = UPPER(dafa.funding_office_code)
-            AND office.funding_office = TRUE
+            AND (office.contract_funding_office = TRUE
+                OR office.financial_assistance_funding_office = TRUE)
     );
