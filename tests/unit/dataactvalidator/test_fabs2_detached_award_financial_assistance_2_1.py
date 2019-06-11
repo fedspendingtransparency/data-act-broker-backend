@@ -15,7 +15,8 @@ def test_column_headers(database):
 def test_success(database):
     """ The combination of FAIN, AwardModificationAmendmentNumber, URI, and AwardingSubTierAgencyCode must be unique
         from currently published ones unless the record is a correction or deletion
-        (i.e., if CorrectionDeleteIndicator = C or D). Ignores inactive records"""
+        (i.e., if CorrectionDeleteIndicator = C or D). Ignores inactive records
+    """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(afa_generated_unique="ama1asta1fain1uri1",
                                                           correction_delete_indicatr=None)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(afa_generated_unique="ama1asta1fain2uri1",
@@ -46,13 +47,17 @@ def test_success(database):
 def test_failure(database):
     """ The combination of FAIN, AwardModificationAmendmentNumber, URI, and AwardingSubTierAgencyCode must be unique
         from currently published ones unless the record is a correction or deletion
-        (i.e., if CorrectionDeleteIndicator = C or D). """
+        (i.e., if CorrectionDeleteIndicator = C or D).
+    """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(afa_generated_unique="ama1asta1fain1uri1",
                                                           correction_delete_indicatr=None)
-    pub_award_1 = PublishedAwardFinancialAssistanceFactory(afa_generated_unique="ama1asta1fain1uri1",
+    # Test that capitalization differences don't affect the error
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(afa_generated_unique="amA1asta1faiN1uri1",
+                                                          correction_delete_indicatr=None)
+    pub_award_1 = PublishedAwardFinancialAssistanceFactory(afa_generated_unique="ama1asTa1fain1uri1",
                                                            correction_delete_indicatr=None,
                                                            is_active=True)
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, pub_award_1])
-    assert errors == 1
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, pub_award_1])
+    assert errors == 2

@@ -26,10 +26,10 @@ if __name__ == '__main__':
 
         # Create a temporary table
         sess.execute("""CREATE TEMP TABLE duplicated_fabs AS
-                            SELECT afa_generated_unique, MAX(submission_id) AS max_id
+                            SELECT UPPER(afa_generated_unique) as afa_generated_unique, MAX(submission_id) AS max_id
                             FROM published_award_financial_assistance
                             WHERE is_active IS TRUE
-                            GROUP BY afa_generated_unique
+                            GROUP BY UPPER(afa_generated_unique)
                             HAVING COUNT(1) > 1""")
 
         logger.info("Table created, determining which submissions have been affected.")
@@ -39,7 +39,7 @@ if __name__ == '__main__':
                                     WHERE is_active IS TRUE
                                     AND EXISTS (SELECT 1
                                                 FROM duplicated_fabs AS df
-                                                WHERE df.afa_generated_unique = pafa.afa_generated_unique)""")
+                                                WHERE df.afa_generated_unique = UPPER(pafa.afa_generated_unique))""")
         affected_submissions = []
         for row in executed:
             affected_submissions.append(row['submission_id'])
@@ -55,7 +55,7 @@ if __name__ == '__main__':
                                     WHERE is_active IS TRUE
                                         AND EXISTS (SELECT 1
                                             FROM duplicated_fabs AS df
-                                            WHERE df.afa_generated_unique = pafa.afa_generated_unique
+                                            WHERE df.afa_generated_unique = UPPER(pafa.afa_generated_unique)
                                                 AND df.max_id != pafa.submission_id)""")
 
         logger.info("Deleted {} duplicate rows from published_award_financial_assistance. Determining if any "
