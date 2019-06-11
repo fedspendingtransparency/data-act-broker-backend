@@ -43,7 +43,7 @@ def get_client(ssh_key=None):
         with RetrieveFileFromUri(ssh_key, binary_data=False).get_file_object() as key_obj:
             pkey = paramiko.RSAKey.from_private_key(key_obj, password=sam_config.get('ssh_key_password'))
     else:
-        host = sam_config('host')
+        host = sam_config.get('host')
         username = sam_config.get('username')
         password = sam_config.get('password')
         pkey = None
