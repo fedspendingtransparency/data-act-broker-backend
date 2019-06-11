@@ -35,17 +35,20 @@ def get_client(ssh_key=None):
     sam_config = CONFIG_BROKER.get('sam_duns')
     if not sam_config:
         return None
-    host = sam_config.get('host') if not ssh_key else sam_config.get('host_ssh')
-    port = sam_config.get('port')
-    username = sam_config.get('username')
-    password = sam_config.get('password')
-    ssh_key_password = sam_config.get('ssh_key_password')
-    pkey = None
-    if ssh_key:
-        with RetrieveFileFromUri(ssh_key, binary_data=False).get_file_object() as key_obj:
-            pkey = paramiko.RSAKey.from_private_key(key_obj, password=ssh_key_password)
 
-    if None in (host, port, username, ssh_key_password, password):
+    if ssh_key:
+        host = sam_config.get('host_ssh')
+        username = sam_config.get('username_ssh')
+        password = sam_config.get('password_ssh')
+        with RetrieveFileFromUri(ssh_key, binary_data=False).get_file_object() as key_obj:
+            pkey = paramiko.RSAKey.from_private_key(key_obj, password=sam_config.get('ssh_key_password'))
+    else:
+        host = sam_config('host')
+        username = sam_config.get('username')
+        password = sam_config.get('password')
+        pkey = None
+
+    if None in (host, username, password) or ssh_key and not pkey:
         raise Exception("Missing config elements for connecting to SAM")
 
     client = paramiko.SSHClient()
@@ -53,7 +56,6 @@ def get_client(ssh_key=None):
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(
         hostname=host,
-        port=port,
         username=username,
         password=password,
         pkey=pkey
