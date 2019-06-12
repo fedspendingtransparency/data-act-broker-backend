@@ -310,7 +310,7 @@ FROM fsrs_procurement
         ON fsrs_subcontract.parent_id = fsrs_procurement.id
     LEFT OUTER JOIN aw_dap
         ON (fsrs_procurement.contract_number = aw_dap.piid
-        AND fsrs_procurement.idv_reference_number IS NOT DISTINCT FROM dap.parent_award_id
+        AND fsrs_procurement.idv_reference_number IS NOT DISTINCT FROM aw_dap.parent_award_id
         AND fsrs_procurement.contracting_office_aid = aw_dap.awarding_sub_tier_agency_c)
     LEFT OUTER JOIN country_code AS le_country
         ON fsrs_procurement.company_address_country = le_country.country_code
