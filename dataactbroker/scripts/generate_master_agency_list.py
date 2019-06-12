@@ -10,9 +10,14 @@ from dataactbroker.helpers.uri_helper import RetrieveFileFromUri
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
+from dataactvalidator.scripts.loader_utils import pad_function, insert_dataframe
 
 logger = logging.getLogger(__name__)
+
+def pad_columns(df, pad_column_dict):
+    for column in pad_column_dict:
+        df[column] = df[column].apply(pad_function, args=(pad_column_dict[column], True))
+    return df
 
 def load_temp_agency_list(sess, agency_list_path):
     """ Loads agency_list.csv into a temporary table named temp_agency_list
@@ -22,22 +27,22 @@ def load_temp_agency_list(sess, agency_list_path):
             agency_list_path: uri to agency list csv
     """
     logger.info('Loading agency_list.csv')
-    agency_list_mappings = {
-        'cgac_agency_code': 'cgac',
-        'fpds_department_id': 'fpds_dep_id',
-        'agency_name': 'name',
-        'agency_abbreviation': 'abbreviation',
-        'sub_tier_code': 'subtier_code',
-        'sub_tier_name': 'subtier_name'
-    }
+    agency_list_col_names = [
+        'cgac',
+        'fpds_dep_id',
+        'name',
+        'abbreviation',
+        'subtier_code',
+        'subtier_name'
+    ]
     with RetrieveFileFromUri(agency_list_path, 'r').get_file_object() as f:
-        agency_list_df = pd.read_csv(f, dtype=str)
-    agency_list_df = clean_data(
-        agency_list_df,
-        None,
-        agency_list_mappings,
-        {}
-    )
+        agency_list_df = pd.read_csv(f, dtype=str, skiprows=1, names=agency_list_col_names)
+    pad_column_dict = {
+        'cgac': 3,
+        'fpds_dep_id': 4,
+        'subtier_code': 4
+    }
+    agency_list_df = pad_columns(agency_list_df, pad_column_dict)
     create_temp_agency_list_table(sess, agency_list_df)
 
 
@@ -56,9 +61,7 @@ def create_temp_agency_list_table(sess, data):
                 name text,
                 abbreviation text,
                 subtier_code text,
-                subtier_name text,
-                created_at date,
-                updated_at date
+                subtier_name text
             );
         """
     sess.execute(create_table_sql)
@@ -76,35 +79,36 @@ def load_temp_agency_list_codes(sess, agency_list_codes):
             agency_list_path: uri to agency list csv
     """
     logger.info('Loading agency_list_codes.csv')
-    agency_list_codes_mappings = {
-        'cgac_agency_code': 'cgac',
-        'fpds_department_id': 'fpds_dep_id',
-        'agency_name': 'name',
-        'agency_abbreviation': 'abbreviation',
-        'registered_in_broker': 'registered_broker',
-        'registered_in_asp': 'registered_asp',
-        'original_source_for_cgac_or_subtier': 'original_source',
-        'subtier_code': 'subtier_code',
-        'subtier_name': 'subtier_name',
-        'subtier_abbreviation': 'subtier_abbr',
-        'frec': 'frec',
-        'frec_entity_description': 'frec_entity_desc',
-        'subtieracronymsource': 'subtier_source',
-        'subtier_appears_in_data_in_fpds_or_asp?': 'subtier_in_fpds_asp',
-        'agency_name_(original)': 'original_name',
-        'subtier_name_(original)': 'original_subtier_name',
-        'comment': 'comment',
-        'is_frec': 'is_frec'
-    }
+    agency_list_codes_names = [
+        'cgac',
+        'fpds_dep_id',
+        'name',
+        'abbreviation',
+        'registered_broker',
+        'registered_asp',
+        'original_source',
+        'subtier_code',
+        'subtier_name',
+        'subtier_abbr',
+        'frec',
+        'frec_entity_desc',
+        'subtier_source',
+        'subtier_in_fpds_asp',
+        'subtier_registered_asp',
+        'original_name',
+        'original_subtier_name',
+        'comment',
+        'is_frec'
+    ]
     with RetrieveFileFromUri(agency_list_codes, 'r').get_file_object() as f:
-        agency_list_codes_df = pd.read_csv(f, dtype=str)
-    agency_list_codes_df = clean_data(
-        agency_list_codes_df,
-        None,
-        agency_list_codes_mappings,
-        {}
-    )
-    create_temp_agency_list_table(sess, agency_list_codes_df)
+        agency_list_codes_df = pd.read_csv(f, dtype=str, skiprows=1, names=agency_list_codes_names)
+    pad_column_dict = {
+        'cgac': 3,
+        'fpds_dep_id': 4,
+        'subtier_code': 4
+    }
+    agency_list_codes_df = pad_columns(agency_list_codes_df, pad_column_dict)
+    create_temp_agency_list_codes_table(sess, agency_list_codes_df)
 
 
 def create_temp_agency_list_codes_table(sess, data):
@@ -131,13 +135,11 @@ def create_temp_agency_list_codes_table(sess, data):
                 frec_entity_desc text,
                 subtier_source text,
                 subtier_in_fpds_asp text,
-                registered_asp2 text,
+                subtier_registered_asp text,
                 original_name text,
                 original_subtier_name text,
                 comment text,
-                is_frec text,
-                created_at date,
-                updated_at date
+                is_frec text
             );
         """
     sess.execute(create_table_sql)
