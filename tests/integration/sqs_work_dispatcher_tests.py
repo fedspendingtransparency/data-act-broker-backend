@@ -1033,13 +1033,20 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         queue = sqs_queue()
         queue.send_message(MessageBody=msg_body)
         worker_sleep_interval = 0.05  # how long to "work"
+        cleanup_timeout = int(worker_sleep_interval + 3)  # how long to allow cleanup to run, max (integer seconds)
 
         def hanging_cleanup_if_worker_alive(task_id, termination_queue: mp.Queue, work_tracking_queue: mp.Queue,
                                             queue_message):
             cleanup_logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
-            cleanup_logger.warning("CLEANUP CLEANUP CLEANUP !!!!!!!!!!!!!!")
+            cleanup_logger.setLevel(logging.DEBUG)
+            cleanup_logger.debug("CLEANUP CLEANUP CLEANUP !!!!!!!!!!!!!!")
 
             work_tracking_queue.put_nowait("cleanup_start_{}".format(queue_message.body))
+
+            sleep_before_cleanup = 0.25
+            cleanup_logger.debug("Sleeping for {} seconds to allow worker process state to stabilize before "
+                                 "inspecting it during this cleanup.".format(sleep_before_cleanup))
+            sleep(sleep_before_cleanup)
 
             # Get the PID of the worker off the termination_queue, then put it back on, as if it wasn't removed
             worker_pid_during_cleanup = termination_queue.get(True, 1)
@@ -1048,21 +1055,20 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             worker_during_cleanup = ps.Process(worker_pid_during_cleanup)
 
             # Log what psutil sees of this worker. 'zombie' is what we're looking for if it was killed
-            cleanup_logger.warning("psutil.pid_exists({}) = {}".format(
+            cleanup_logger.debug("psutil.pid_exists({}) = {}".format(
                 worker_pid_during_cleanup, ps.pid_exists(worker_pid_during_cleanup)))
-            cleanup_logger.warning("worker_during_cleanup.is_running() = {} [PID={}]".format(
+            cleanup_logger.debug("worker_during_cleanup.is_running() = {} [PID={}]".format(
                 worker_during_cleanup.is_running(), worker_pid_during_cleanup))
-            cleanup_logger.warning("worker_during_cleanup.status() = {} [PID={}]".format(
+            cleanup_logger.debug("worker_during_cleanup.status() = {} [PID={}]".format(
                 worker_during_cleanup.status(), worker_pid_during_cleanup))
             if worker_during_cleanup.status() != ps.STATUS_ZOMBIE:  # hang cleanup if worker is running
-                sleep(3.5)  # sleep for longer than the allowed time for exit handling
-                # Should not get to this point
-                work_tracking_queue.put_nowait("cleanup_end_with_live_worker_{}".format(queue_message.body))
+                sleep(cleanup_timeout + 0.5)  # sleep for longer than the allowed time for exit handling
+                # Should not get to this point, since the timeout wrapper should interrupt during the above sleep
+                work_tracking_queue.put("cleanup_end_with_live_worker_{}".format(queue_message.body))
+            else:
+                # Should only get to this point if the worker was dead/killed when this cleanup ran
+                work_tracking_queue.put("cleanup_end_with_dead_worker_{}".format(queue_message.body))
 
-            # Should only get to this point if the worker was dead/killed when this cleanup ran
-            work_tracking_queue.put_nowait("cleanup_end_with_dead_worker_{}".format(queue_message.body))
-
-        cleanup_timeout = int(worker_sleep_interval + 3)
         dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
                                        long_poll_seconds=0, monitor_sleep_time=0.05,
                                        exit_handling_timeout=cleanup_timeout)
@@ -1153,9 +1159,15 @@ class SQSWorkDispatcherTests(BaseTestValidator):
         def hanging_cleanup_if_worker_alive(task_id, termination_queue: mp.Queue, work_tracking_queue: mp.SimpleQueue,
                                             queue_message, cleanup_timeout=cleanup_timeout):
             cleanup_logger = logging.getLogger(__name__ + "." + inspect.stack()[0][3])
-            cleanup_logger.warning("CLEANUP CLEANUP CLEANUP !!!!!!!!!!!!!!")
+            cleanup_logger.setLevel(logging.DEBUG)
+            cleanup_logger.debug("CLEANUP CLEANUP CLEANUP !!!!!!!!!!!!!!")
 
             work_tracking_queue.put("cleanup_start_{}".format(queue_message.body))
+
+            sleep_before_cleanup = 0.25
+            cleanup_logger.debug("Sleeping for {} seconds to allow worker process state to stabilize before "
+                                 "inspecting it during this cleanup.".format(sleep_before_cleanup))
+            sleep(sleep_before_cleanup)
 
             # Get the PID of the worker off the termination_queue, then put it back on, as if it wasn't removed
             worker_pid_during_cleanup = termination_queue.get(True, 1)
@@ -1164,19 +1176,19 @@ class SQSWorkDispatcherTests(BaseTestValidator):
             worker_during_cleanup = ps.Process(worker_pid_during_cleanup)
 
             # Log what psutil sees of this worker. 'zombie' is what we're looking for if it was killed
-            cleanup_logger.warning("psutil.pid_exists({}) = {}".format(
+            cleanup_logger.debug("psutil.pid_exists({}) = {}".format(
                 worker_pid_during_cleanup, ps.pid_exists(worker_pid_during_cleanup)))
-            cleanup_logger.warning("worker_during_cleanup.is_running() = {} [PID={}]".format(
-                worker_during_cleanup.is_running(), worker_pid_during_cleanup))
-            cleanup_logger.warning("worker_during_cleanup.status() = {} [PID={}]".format(
-                worker_during_cleanup.status(), worker_pid_during_cleanup))
+            cleanup_logger.debug("worker_during_cleanup.is_running() = {} [PID={}]".format(
+                worker_during_cleanup.is_running(), worker_during_cleanup.pid))
+            cleanup_logger.debug("worker_during_cleanup.status() = {} [PID={}]".format(
+                worker_during_cleanup.status(), worker_during_cleanup.pid))
             if worker_during_cleanup.status() != ps.STATUS_ZOMBIE:  # hang cleanup if worker is running
                 sleep(cleanup_timeout + 0.5)  # sleep for longer than the allowed time for exit handling
-                # Should not get to this point
+                # Should not get to this point, since the timeout wrapper should interrupt during the above sleep
                 work_tracking_queue.put("cleanup_end_with_live_worker_{}".format(queue_message.body))
-
-            # Should only get to this point if the worker was dead/killed when this cleanup ran
-            work_tracking_queue.put("cleanup_end_with_dead_worker_{}".format(queue_message.body))
+            else:
+                # Should only get to this point if the worker was dead/killed when this cleanup ran
+                work_tracking_queue.put("cleanup_end_with_dead_worker_{}".format(queue_message.body))
 
         dispatcher = SQSWorkDispatcher(queue, worker_process_name="Test Worker Process",
                                        long_poll_seconds=0, monitor_sleep_time=0.05,

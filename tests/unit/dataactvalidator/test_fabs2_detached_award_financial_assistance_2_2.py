@@ -15,7 +15,8 @@ def test_column_headers(database):
 def test_success(database):
     """ The unique combination of FAIN, AwardModificationAmendmentNumber, URI, and AwardingSubTierAgencyCode must exist
         as a currently published record when the record is a correction (i.e., if CorrectionDeleteIndicator = C).
-        Ignore all other CorrectionDeleteIndicators in this rule. """
+        Ignore all other CorrectionDeleteIndicators in this rule.
+    """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(afa_generated_unique="ama1asta1fain1uri1",
                                                           correction_delete_indicatr=None)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(afa_generated_unique="ama1asta1fain2uri1",
@@ -41,17 +42,21 @@ def test_success(database):
 def test_failure(database):
     """ The unique combination of FAIN, AwardModificationAmendmentNumber, URI, and AwardingSubTierAgencyCode must exist
         as a currently published record when the record is a correction (i.e., if CorrectionDeleteIndicator = C).
-        Ignore all other CorrectionDeleteIndicators in this rule. """
+        Ignore all other CorrectionDeleteIndicators in this rule.
+    """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(afa_generated_unique="ama1asta1fain2uri1",
+                                                          correction_delete_indicatr="C")
+    # Test that capitalization differences don't affect the error
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(afa_generated_unique="amA1astA1faiN2uri1",
                                                           correction_delete_indicatr="C")
 
     pub_award_1 = PublishedAwardFinancialAssistanceFactory(afa_generated_unique="ama1asta1fain1uri1",
                                                            correction_delete_indicatr=None,
                                                            is_active=True)
-    pub_award_2 = PublishedAwardFinancialAssistanceFactory(afa_generated_unique="ama1asta1fain2uri1",
+    pub_award_2 = PublishedAwardFinancialAssistanceFactory(afa_generated_unique="ama1asta1fain2Uri1",
                                                            correction_delete_indicatr=None,
                                                            is_active=False)
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, pub_award_1, pub_award_2])
-    assert errors == 1
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, pub_award_1, pub_award_2])
+    assert errors == 2

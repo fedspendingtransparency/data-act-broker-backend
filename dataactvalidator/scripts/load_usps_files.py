@@ -54,7 +54,7 @@ def get_file_info(sess, download_list_response_body):
     last_load_date_obj = sess.query(ExternalDataLoadDate).\
         filter_by(external_data_type_id=EXTERNAL_DATA_TYPE_DICT['usps_download']).first()
 
-    fulfilled_date = datetime.strptime(latest_file['fulfilled'], '%Y-%m-%d').date()
+    fulfilled_date = datetime.strptime(latest_file['fulfilled'], '%Y-%m-%d')
 
     if last_load_date_obj and last_load_date_obj.last_load_date >= fulfilled_date:
         # if there is a last load date, check it against the latest file's fulfilled date
@@ -62,7 +62,7 @@ def get_file_info(sess, download_list_response_body):
         logger.info('Latest file already loaded. No further action will be taken. Exiting...')
         sys.exit(3)
 
-    return latest_file['fileid'], fulfilled_date, last_load_date_obj
+    return latest_file['fileid'], fulfilled_date.date(), last_load_date_obj
 
 
 def get_payload_string(obj_request_body):

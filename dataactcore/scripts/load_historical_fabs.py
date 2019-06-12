@@ -497,9 +497,9 @@ def set_active_rows(sess):
         "FROM (SELECT DISTINCT pafa.published_award_financial_assistance_id " +
         "FROM published_award_financial_assistance AS pafa " +
         "INNER JOIN (SELECT max(modified_at) AS modified_at, afa_generated_unique " +
-        "FROM published_award_financial_assistance GROUP BY afa_generated_unique) sub_pafa " +
+        "FROM published_award_financial_assistance GROUP BY UPPER(afa_generated_unique)) sub_pafa " +
         "ON pafa.modified_at = sub_pafa.modified_at AND " +
-        "COALESCE(pafa.afa_generated_unique, '') = COALESCE(sub_pafa.afa_generated_unique, '') " +
+        "UPPER(COALESCE(pafa.afa_generated_unique, '')) = UPPER(COALESCE(sub_pafa.afa_generated_unique, '')) " +
         "WHERE COALESCE(UPPER(pafa.correction_delete_indicatr), '') != 'D') AS selected " +
         "WHERE all_pafa.published_award_financial_assistance_id = selected.published_award_financial_assistance_id"
     )
