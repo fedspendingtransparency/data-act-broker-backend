@@ -15,9 +15,19 @@ from dataactvalidator.scripts.loader_utils import pad_function, insert_dataframe
 logger = logging.getLogger(__name__)
 
 def pad_columns(df, pad_column_dict):
+    """ Zero-pads columns in the dataframe provided
+
+        Args:
+            df: pandas dataframe
+            pad_column_dict: dictionary of columns to pad {'column name': 4}
+
+        Returns:
+            updated dataframe
+    """
     for column in pad_column_dict:
         df[column] = df[column].apply(pad_function, args=(pad_column_dict[column], True))
     return df
+
 
 def load_temp_agency_list(sess, agency_list_path):
     """ Loads agency_list.csv into a temporary table named temp_agency_list
@@ -71,12 +81,12 @@ def create_temp_agency_list_table(sess, data):
     sess.commit()
 
 
-def load_temp_agency_list_codes(sess, agency_list_codes):
+def load_temp_agency_list_codes(sess, agency_list_codes_path):
     """ Loads agency_list_codes.csv into a temporary table named temp_agency_list_codes
 
         Args:
             sess: database connection
-            agency_list_path: uri to agency list csv
+            agency_list_codes_path: uri to agency codes list csv
     """
     logger.info('Loading agency_list_codes.csv')
     agency_list_codes_names = [
@@ -100,7 +110,7 @@ def load_temp_agency_list_codes(sess, agency_list_codes):
         'comment',
         'is_frec'
     ]
-    with RetrieveFileFromUri(agency_list_codes, 'r').get_file_object() as f:
+    with RetrieveFileFromUri(agency_list_codes_path, 'r').get_file_object() as f:
         agency_list_codes_df = pd.read_csv(f, dtype=str, skiprows=1, names=agency_list_codes_names)
     pad_column_dict = {
         'cgac': 3,
@@ -116,7 +126,7 @@ def create_temp_agency_list_codes_table(sess, data):
 
         Args:
             sess: database connection
-            data: pandas dataframe representing the agency list csv
+            data: pandas dataframe representing the agency codes list csv
     """
     logger.info('Making temp temp_agency_list_codes table')
     create_table_sql = """
@@ -149,10 +159,67 @@ def create_temp_agency_list_codes_table(sess, data):
     sess.commit()
 
 
+def merge_broker_lists():
+    """ Pulls in agencies from agency_list.csv that are not in agency_codes_list.csv """
+    merge_sql = """
+        INSERT INTO temp_agency_list_codes (
+            "cgac",
+            "fpds_dep_id",
+            "name",
+            "abbreviation",
+            "registered_broker",
+            "registered_asp",
+            "original_source",
+            "subtier_code",
+            "subtier_name",
+            "subtier_abbr",
+            "frec",
+            "frec_entity_desc",
+            "subtier_source",
+            "subtier_in_fpds_asp",
+            "subtier_registered_asp",
+            "original_name",
+            "original_subtier_name",
+            "comment",
+            "is_frec"
+        )
+        SELECT 
+            tal.cgac AS cgac,
+            tal.fpds_dep_id AS fpds_dep_id,
+            tal.name AS name,
+            tal.abbreviation AS abbreviation,
+            NULL AS registered_broker,
+            NULL AS registered_asp,
+            NULL AS original_source,
+            tal.subtier_code AS subtier_code,
+            tal.subtier_name AS subtier_name,
+            NULL AS subtier_abbr,
+            NULL AS frec,
+            NULL AS frec_entity_desc,
+            NULL AS subtier_source,
+            NULL AS subtier_in_fpds_asp,
+            NULL AS subtier_registered_asp,
+            NULL AS original_name,
+            NULL AS original_subtier_name,
+            'pulled from agency_list.csv' AS comment,
+            FALSE AS is_frec
+        FROM temp_agency_list AS tal
+        LEFT OUTER JOIN temp_agency_list_codes talc
+            ON (tal.cgac = talc.cgac
+            AND tal.subtier_code = talc.subtier_code
+        )
+        WHERE (talc.cgac IS NULL OR tal.subtier_code IS NULL);
+    """
+    inserted_rows = sess.execute(merge_sql)
+    sess.commit()
+    logger.info('Added {} rows from agency_list.csv to agency_codes_list.csv'.format(inserted_rows.rowcount))
+
+
 def generate_master_agency_list(sess, agency_list, agency_list_codes):
+    """ Main script algorithm that generates the master agency list """
     load_temp_agency_list(sess, agency_list)
     load_temp_agency_list_codes(sess, agency_list_codes)
-    # TODO: MERGE THE TWO AND EXPORT
+    merge_broker_lists()
 
 if __name__ == '__main__':
     now = datetime.datetime.now()
