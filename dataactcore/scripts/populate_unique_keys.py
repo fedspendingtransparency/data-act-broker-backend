@@ -120,7 +120,7 @@ if __name__ == '__main__':
                                 func.concat('CONT_IDV_', func.coalesce(dap.piid, '-none-'),
                                             '_', func.coalesce(dap.agency_id, '-none-')))
             else:
-                # awards
+                # transactions
                 if 'award' in types:
                     update_keys(dap, 'FPDS', key_type, 'award', years,
                                 func.concat(func.coalesce(dap.agency_id, '-none-'), '_',
