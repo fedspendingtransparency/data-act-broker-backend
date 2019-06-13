@@ -1,14 +1,13 @@
 import os
 import logging
+import requests
 
 import pandas as pd
-import boto3
 import datetime
 import json
 
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 
-from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CountryCode
 
@@ -38,18 +37,19 @@ def load_country_codes(base_path, force_reload=False):
         'duplicates_dropped': 0,
         'records_inserted': 0
     }
-    if CONFIG_BROKER["use_aws"]:
-        s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-        filename = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
-                                                                   'Key': "country_codes.csv"}, ExpiresIn=600)
-    else:
-        filename = os.path.join(base_path, "country_codes.csv")
-
-    logger.info('Loading country codes file: country_codes.csv')
 
     with create_app().app_context():
         sess = GlobalDB.db().session
 
+        country_code_file = 'https://files.usaspending.gov/reference_data/country_codes.csv'
+        logger.info('Loading country codes file from {}'.format(country_code_file))
+
+        # Get data from public S3 bucket
+        r = requests.get(country_code_file, allow_redirects=True)
+        filename = os.path.join(base_path, 'country_codes.csv')
+        open(filename, 'wb').write(r.content)
+
+        # Parse data
         data = pd.read_csv(filename, dtype=str)
         metrics_json['records_provided'] = len(data.index)
         data = clean_data(
@@ -81,6 +81,9 @@ def load_country_codes(base_path, force_reload=False):
             logger.info('{} records inserted to country_code table'.format(num))
         else:
             logger.info('No differences found, skipping country_code table reload.')
+
+        # Delete file once we're done
+        os.remove(filename)
 
     metrics_json['duration'] = str(datetime.datetime.now() - now)
 
