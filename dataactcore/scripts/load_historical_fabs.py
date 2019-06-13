@@ -487,7 +487,8 @@ def generate_unique_string(row):
     ama = row['award_modification_amendme'] if row['award_modification_amendme'] is not None else '-none-'
     fain = row['fain'] if row['fain'] is not None else '-none-'
     uri = row['uri'] if row['uri'] is not None else '-none-'
-    return ama + "_" + astac + "_" + fain + "_" + uri
+    cfda = row['cfda_number'] if row['cfda_number'] is not None else '-none-'
+    return astac + '_' + fain + '_' + uri + '_' + cfda + '_' + ama
 
 
 def set_active_rows(sess):
