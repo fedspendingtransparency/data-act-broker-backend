@@ -2,10 +2,6 @@ from dataactcore.config import CONFIG_BROKER
 import os
 
 SQL_DIR = os.path.join(CONFIG_BROKER["path"], "dataactcore", "scripts", "raw_sql")
-FILE_MAPPING = {
-    'E': os.path.join(SQL_DIR, 'fileE.sql'),
-    'F': os.path.join(SQL_DIR, 'fileF.sql')
-}
 
 
 def gather_file_sql(file_type, submission_id):
@@ -21,11 +17,11 @@ def gather_file_sql(file_type, submission_id):
         Raises:
             ValueError: invalid file_type
     """
-    if file_type not in FILE_MAPPING:
+    if file_type not in ['E', 'F']:
         raise ValueError('Invalid valid type: {}'.format(file_type))
 
     # Get the raw SQL to work with
-    with open(FILE_MAPPING[file_type], 'r') as sql_file:
+    with open(os.path.join(SQL_DIR, 'file{}.sql'.format(file_type)), 'r') as sql_file:
         file_sql = sql_file.read()
 
     # Remove newlines (write_stream_query doesn't like them) and add the submission ID to the query
