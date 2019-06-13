@@ -2,6 +2,7 @@ import argparse
 import logging
 import datetime
 import pandas as pd
+import numpy as np
 
 
 from dataactbroker.helpers.uri_helper import RetrieveFileFromUri
@@ -207,7 +208,7 @@ def merge_broker_lists():
             ON (tal.cgac = talc.cgac
             AND tal.subtier_code = talc.subtier_code
         )
-        WHERE (talc.cgac IS NULL OR tal.subtier_code IS NULL);
+        WHERE (talc.cgac IS NULL OR talc.subtier_code IS NULL);
     """
     inserted_rows = sess.execute(merge_sql)
     sess.commit()
@@ -256,6 +257,7 @@ def load_temp_authoritative_agency_list(sess, authoritative_agency_list_path):
         'subtier_code': 4
     }
     authoritative_agency_list_df = pad_columns(authoritative_agency_list_df, pad_column_dict)
+    authoritative_agency_list_df = authoritative_agency_list_df.assign(comment=np.nan)
     create_temp_authoritative_agency_list_table(sess, authoritative_agency_list_df)
 
 
@@ -292,7 +294,8 @@ def create_temp_authoritative_agency_list_table(sess, data):
             mission text,
             website text,
             congressional_justification text,
-            icon_filename text
+            icon_filename text,
+            comment text
         );
     """
     sess.execute(create_table_sql)
@@ -302,12 +305,82 @@ def create_temp_authoritative_agency_list_table(sess, data):
     sess.commit()
 
 
+def merge_broker_website_lists():
+    """ Pulls in agencies from the merged broker_agency_list that are not in authoritative_agency_list.csv """
+    merge_sql = """
+        INSERT INTO temp_authoritative_agency_list (
+            "cgac",
+            "fpds_dep_id",
+            "name",
+            "abbreviation",
+            "registered_broker",
+            "registered_asp",
+            "original_source",
+            "subtier_code",
+            "subtier_name",
+            "subtier_abbr",
+            "admin_org_name",
+            "admin_org",
+            "frec",
+            "frec_entity_desc",
+            "subtier_source",
+            "subtier_in_fpds_asp",
+            "subtier_registered_asp",
+            "original_name",
+            "original_subtier_name",
+            "is_frec",
+            "mission",
+            "website",
+            "congressional_justification",
+            "icon_filename",
+            "comment"
+        )
+        SELECT
+            talc.cgac AS cgac,
+            talc.fpds_dep_id AS fpds_dep_id,
+            talc.name AS name,
+            talc.abbreviation AS abbreviation,
+            talc.registered_broker AS registered_broker,
+            talc.registered_asp AS registered_asp,
+            talc.original_source AS original_source,
+            talc.subtier_code AS subtier_code,
+            talc.subtier_name AS subtier_name,
+            talc.subtier_abbr AS subtier_abbr,
+            NULL AS admin_org_name,
+            NULL AS admin_org,
+            talc.frec AS frec,
+            talc.frec_entity_desc AS frec_entity_desc,
+            talc.subtier_source AS subtier_source,
+            talc.subtier_in_fpds_asp AS subtier_in_fpds_asp,
+            talc.subtier_registered_asp AS subtier_registered_asp,
+            talc.original_name AS original_name,
+            talc.original_subtier_name AS original_subtier_name,
+            talc.is_frec AS is_frec,
+            NULL AS mission,
+            NULL AS website,
+            NULL AS congressional_justification,
+            NULL AS icon_filename,
+            talc.comment AS comment
+        FROM temp_agency_list_codes AS talc
+        LEFT OUTER JOIN temp_authoritative_agency_list taal
+            ON (talc.cgac = taal.cgac
+            AND talc.subtier_code = taal.subtier_code
+        )
+        WHERE (taal.cgac IS NULL OR taal.subtier_code IS NULL);
+    """
+    inserted_rows = sess.execute(merge_sql)
+    sess.commit()
+    logger.info('Added {} rows from the merged broker agency list to authoritative_agency_list.csv'
+                .format(inserted_rows.rowcount))
+
+
 def generate_master_agency_list(sess, agency_list, agency_list_codes, authoritative_agency_list):
     """ Main script algorithm that generates the master agency list """
     load_temp_agency_list(sess, agency_list)
     load_temp_agency_list_codes(sess, agency_list_codes)
     merge_broker_lists()
     load_temp_authoritative_agency_list(sess, authoritative_agency_list)
+    merge_broker_website_lists()
 
 
 if __name__ == '__main__':
