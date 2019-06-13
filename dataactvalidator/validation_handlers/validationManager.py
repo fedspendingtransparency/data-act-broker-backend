@@ -329,10 +329,11 @@ class ValidationManager:
                                 record['awarding_sub_tier_agency_c'] = office_list.get(office_code)
 
                             # Create afa_generated_unique
-                            record['afa_generated_unique'] = (record['award_modification_amendme'] or '-none-') + "_" +\
-                                                             (record['awarding_sub_tier_agency_c'] or '-none-') + "_" +\
+                            record['afa_generated_unique'] = (record['awarding_sub_tier_agency_c'] or '-none-') + "_" +\
                                                              (record['fain'] or '-none-') + "_" + \
-                                                             (record['uri'] or '-none-')
+                                                             (record['uri'] or '-none-') + "_" + \
+                                                             (record['cfda_number'] or '-none-') + "_" + \
+                                                             (record['award_modification_amendme'] or '-none-')
                             # Create unique_award_key
                             if str(record['record_type']) == '1':
                                 unique_award_key_list = ['ASST_AGG', record['uri'] or '-none-']
