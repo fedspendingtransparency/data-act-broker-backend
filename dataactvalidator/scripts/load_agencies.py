@@ -1,8 +1,8 @@
 import os
 import logging
+import requests
 
 import pandas as pd
-import boto3
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -204,6 +204,7 @@ def load_sub_tier_agencies(file_name):
     condition = data["FPDS DEPARTMENT ID"] == data["SUBTIER CODE"]
     data.loc[condition, "PRIORITY"] = 1
     data.loc[~condition, "PRIORITY"] = 2
+    data.replace({'TRUE': True, 'FALSE': False}, inplace=True)
 
     # clean data
     data = clean_data(
@@ -236,24 +237,25 @@ def load_agency_data(base_path):
         Args:
             base_path: directory that contains the agency files
     """
-    if CONFIG_BROKER["use_aws"]:
-        s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-        agency_list_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
-                                                                           'Key': "agency_list.csv"}, ExpiresIn=600)
-        cascading_agency_list_file = s3_client.generate_presigned_url('get_object',
-                                                                      {'Bucket': CONFIG_BROKER['sf_133_bucket'],
-                                                                       'Key': "agency_codes_list.csv"}, ExpiresIn=600)
-    else:
-        agency_list_file = os.path.join(base_path, "agency_list.csv")
-        cascading_agency_list_file = os.path.join(base_path, "agency_codes_list.csv")
+    agency_codes_url = 'https://files.usaspending.gov/reference_data/agency_codes.csv'
+    logger.info('Loading agency codes file from {}'.format(agency_codes_url))
 
+    # Get data from public S3 bucket
+    r = requests.get(agency_codes_url, allow_redirects=True)
+    agency_codes_file = os.path.join(base_path, 'agency_codes.csv')
+    open(agency_codes_file, 'wb').write(r.content)
+
+    # Parse data
     with create_app().app_context():
         logger.info('Loading CGAC')
-        load_cgac(agency_list_file)
+        load_cgac(agency_codes_file)
         logger.info('Loading FREC')
-        load_frec(cascading_agency_list_file)
+        load_frec(agency_codes_file)
         logger.info('Loading Sub Tier Agencies')
-        load_sub_tier_agencies(cascading_agency_list_file)
+        load_sub_tier_agencies(agency_codes_file)
+
+    # Delete file once we're done
+    os.remove(agency_codes_file)
 
 
 if __name__ == '__main__':
