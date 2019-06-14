@@ -50,12 +50,12 @@ def clean_dataframe(df):
     df = pad_columns(df, pad_column_dict)
 
     # Move explanatory subtier codes to comments
-    subsumed_subtier = 'Subsumed under DOD submissions. Not listed here so as to avoid dupliation.'
+    subsumed_subtier_old = 'Subsumed under DOD submissions. Not listed here so as to avoid dupliation.'
+    subsumed_subtier_new = 'Agency has numerous subtiers subsumed under DOD (097) submissions.'
     if 'comment' in df.columns:
-        df.loc[df['subtier_code'] == subsumed_subtier, 'comment'] = \
-            'Subtier s{} duplication.'.format(subsumed_subtier[1:-12])
-    df.loc[df['subtier_code'] == subsumed_subtier, 'subtier_code'] = np.nan
-    df.loc[df['subtier_name'] == subsumed_subtier, 'subtier_name'] = np.nan
+        df.loc[df['subtier_code'] == subsumed_subtier_old, 'comment'] = subsumed_subtier_new
+    df.loc[df['subtier_code'] == subsumed_subtier_old, 'subtier_code'] = np.nan
+    df.loc[df['subtier_name'] == subsumed_subtier_old, 'subtier_name'] = np.nan
 
     # replace unknowns with nans
     unknowns = ['Unknown (may not exist)', 'Unknown (May Not Exist)']
