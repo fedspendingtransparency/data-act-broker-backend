@@ -215,14 +215,16 @@ def merge_broker_lists():
     logger.info('Added {} rows from agency_list.csv to agency_codes_list.csv'.format(inserted_rows.rowcount))
 
 
-def load_temp_authoritative_agency_list(sess, authoritative_agency_list_path):
-    """ Loads authoritative_agency_list.csv into a temporary table named temp_authoritative_agency_list
+def load_temp_authoritative_agency_list(sess, authoritative_agency_list_path, user_selectable_agency_list_path):
+    """ Loads authoritative_agency_list.csv and user_selectable_agency_list.csv into a temporary table named
+    temp_authoritative_agency_list
 
         Args:
             sess: database connection
             authoritative_agency_list_path: uri to authoritative agency list csv
+            user_selectable_agency_list_path: uri to user_selectable_agency_list.csv
     """
-    logger.info('Loading authoritative_agency_list.csv')
+    logger.info('Loading authoritative_agency_list.csv and user_selectable_agency_list.csv')
     authoritative_agency_list_names = [
         'cgac',
         'fpds_dep_id',
@@ -251,14 +253,22 @@ def load_temp_authoritative_agency_list(sess, authoritative_agency_list_path):
     ]
     with RetrieveFileFromUri(authoritative_agency_list_path, 'r').get_file_object() as f:
         authoritative_agency_list_df = pd.read_csv(f, dtype=str, skiprows=1, names=authoritative_agency_list_names)
+    with RetrieveFileFromUri(user_selectable_agency_list_path, 'r').get_file_object() as f:
+        user_selectable_agency_list_df = pd.read_csv(f, dtype=str, skiprows=1, names=authoritative_agency_list_names)
     pad_column_dict = {
         'cgac': 3,
         'fpds_dep_id': 4,
         'subtier_code': 4
     }
     authoritative_agency_list_df = pad_columns(authoritative_agency_list_df, pad_column_dict)
-    authoritative_agency_list_df = authoritative_agency_list_df.assign(comment=np.nan)
-    create_temp_authoritative_agency_list_table(sess, authoritative_agency_list_df)
+    user_selectable_agency_list_df = pad_columns(user_selectable_agency_list_df, pad_column_dict)
+    merged = authoritative_agency_list_df.merge(user_selectable_agency_list_df, on=['cgac', 'subtier_code'],
+                                                how='left', suffixes=('', '_drop'), indicator=True)
+    merged['user_selectable'] = np.where(merged._merge == 'both', True, False)
+    to_drop = [x + '_drop' for x in authoritative_agency_list_names if x not in ['cgac', 'subtier_code']] + ['_merge']
+    merged.drop(to_drop, axis=1, inplace=True)
+    merged = merged.assign(comment=np.nan)
+    create_temp_authoritative_agency_list_table(sess, merged)
 
 
 def create_temp_authoritative_agency_list_table(sess, data):
@@ -295,6 +305,7 @@ def create_temp_authoritative_agency_list_table(sess, data):
             website text,
             congressional_justification text,
             icon_filename text,
+            user_selectable boolean,
             comment text
         );
     """
@@ -333,6 +344,7 @@ def merge_broker_website_lists():
             "website",
             "congressional_justification",
             "icon_filename",
+            "user_selectable",
             "comment"
         )
         SELECT
@@ -360,6 +372,7 @@ def merge_broker_website_lists():
             NULL AS website,
             NULL AS congressional_justification,
             NULL AS icon_filename,
+            FALSE AS user_selectable,
             talc.comment AS comment
         FROM temp_agency_list_codes AS talc
         LEFT OUTER JOIN temp_authoritative_agency_list taal
@@ -374,12 +387,21 @@ def merge_broker_website_lists():
                 .format(inserted_rows.rowcount))
 
 
-def generate_master_agency_list(sess, agency_list, agency_list_codes, authoritative_agency_list):
-    """ Main script algorithm that generates the master agency list """
+def generate_master_agency_list(sess, agency_list, agency_list_codes, authoritative_agency_list,
+                                user_selectable_agency_list):
+    """ Main script algorithm that generates the master agency list
+
+        Args:
+            sess: database connection
+            agency_list: broker's agency_list.csv
+            agency_list_codes: broker's agency_list_codes.csv
+            authoritative_agency_list: website's authoritative_agency_list.csv
+            user_selectable_agency_list: website's user_selectable_agency_list.csv
+    """
     load_temp_agency_list(sess, agency_list)
     load_temp_agency_list_codes(sess, agency_list_codes)
     merge_broker_lists()
-    load_temp_authoritative_agency_list(sess, authoritative_agency_list)
+    load_temp_authoritative_agency_list(sess, authoritative_agency_list, user_selectable_agency_list)
     merge_broker_website_lists()
 
 
@@ -391,13 +413,16 @@ if __name__ == '__main__':
     parser.add_argument('-al', '--agency_list', type=str, required=True, help="URI for agency_list.csv")
     parser.add_argument('-aal', '--authoritative_agency_list', type=str, required=True,
                         help="URI for authoritative_agency_list.csv")
+    parser.add_argument('-usal', '--user_selectable_agency_list', type=str, required=True,
+                        help="URI for user_selectable_agency_list.csv")
 
     with create_app().app_context():
         logger.info("Begin generating master agency list")
         sess = GlobalDB.db().session
         args = parser.parse_args()
 
-        generate_master_agency_list(sess, args.agency_list, args.agency_list_codes, args.authoritative_agency_list)
+        generate_master_agency_list(sess, args.agency_list, args.agency_list_codes, args.authoritative_agency_list,
+                                    args.user_selectable_agency_list)
 
         duration = str(datetime.datetime.now() - now)
         logger.info("Generating master agency list took {} seconds".format(duration))
