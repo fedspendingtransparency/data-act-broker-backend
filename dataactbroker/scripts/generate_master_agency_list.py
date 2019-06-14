@@ -26,7 +26,43 @@ def pad_columns(df, pad_column_dict):
             updated dataframe
     """
     for column in pad_column_dict:
-        df[column] = df[column].apply(pad_function, args=(pad_column_dict[column], True))
+        if column in df.columns:
+            df[column] = df[column].apply(pad_function, args=(pad_column_dict[column], True))
+    return df
+
+
+def clean_dataframe(df):
+    """ Cleans the dataframe for consistency and linkages
+
+        Args:
+            df: pandas dataframe
+
+        Returns:
+            updated dataframe
+    """
+    # zero pad columns
+    pad_column_dict = {
+        'cgac': 3,
+        'fpds_dep_id': 4,
+        'frec': 4,
+        'subtier_code': 4
+    }
+    df = pad_columns(df, pad_column_dict)
+
+    # Move explanatory subtier codes to comments
+    subsumed_subtier = 'Subsumed under DOD submissions. Not listed here so as to avoid dupliation.'
+    if 'comment' in df.columns:
+        df.loc[df['subtier_code'] == subsumed_subtier, 'comment'] = \
+            'Subtier s{} duplication.'.format(subsumed_subtier[1:-12])
+    df.loc[df['subtier_code'] == subsumed_subtier, 'subtier_code'] = np.nan
+    df.loc[df['subtier_name'] == subsumed_subtier, 'subtier_name'] = np.nan
+
+    # replace unknowns with nans
+    unknowns = ['Unknown (may not exist)', 'Unknown (May Not Exist)']
+    df = df.replace(unknowns, np.nan)
+
+    # replace empty strings with nans
+    df = df.replace(r'^\s+$', np.nan, regex=True)
     return df
 
 
@@ -48,12 +84,7 @@ def load_temp_agency_list(sess, agency_list_path):
     ]
     with RetrieveFileFromUri(agency_list_path, 'r').get_file_object() as f:
         agency_list_df = pd.read_csv(f, dtype=str, skiprows=1, names=agency_list_col_names)
-    pad_column_dict = {
-        'cgac': 3,
-        'fpds_dep_id': 4,
-        'subtier_code': 4
-    }
-    agency_list_df = pad_columns(agency_list_df, pad_column_dict)
+    agency_list_df = clean_dataframe(agency_list_df)
     create_temp_agency_list_table(sess, agency_list_df)
 
 
@@ -113,13 +144,7 @@ def load_temp_agency_list_codes(sess, agency_list_codes_path):
     ]
     with RetrieveFileFromUri(agency_list_codes_path, 'r').get_file_object() as f:
         agency_list_codes_df = pd.read_csv(f, dtype=str, skiprows=1, names=agency_list_codes_names)
-    pad_column_dict = {
-        'cgac': 3,
-        'fpds_dep_id': 4,
-        'frec': 4,
-        'subtier_code': 4
-    }
-    agency_list_codes_df = pad_columns(agency_list_codes_df, pad_column_dict)
+    agency_list_codes_df = clean_dataframe(agency_list_codes_df)
     create_temp_agency_list_codes_table(sess, agency_list_codes_df)
 
 
@@ -211,10 +236,10 @@ def merge_broker_lists(sess):
             FALSE AS is_frec
         FROM temp_agency_list AS tal
         LEFT OUTER JOIN temp_agency_list_codes talc
-            ON (tal.cgac = talc.cgac
-            AND tal.subtier_code = talc.subtier_code
+            ON (tal.cgac IS NOT DISTINCT FROM talc.cgac
+            AND tal.subtier_code IS NOT DISTINCT FROM talc.subtier_code
         )
-        WHERE (talc.cgac IS NULL OR talc.subtier_code IS NULL);
+        WHERE (talc.cgac IS NULL AND talc.subtier_code IS NULL);
     """
     inserted_rows = sess.execute(merge_sql)
     sess.commit()
@@ -261,20 +286,16 @@ def load_temp_authoritative_agency_list(sess, authoritative_agency_list_path, us
         authoritative_agency_list_df = pd.read_csv(f, dtype=str, skiprows=1, names=authoritative_agency_list_names)
     with RetrieveFileFromUri(user_selectable_agency_list_path, 'r').get_file_object() as f:
         user_selectable_agency_list_df = pd.read_csv(f, dtype=str, skiprows=1, names=authoritative_agency_list_names)
-    pad_column_dict = {
-        'cgac': 3,
-        'fpds_dep_id': 4,
-        'frec': 4,
-        'subtier_code': 4
-    }
-    authoritative_agency_list_df = pad_columns(authoritative_agency_list_df, pad_column_dict)
-    user_selectable_agency_list_df = pad_columns(user_selectable_agency_list_df, pad_column_dict)
+    authoritative_agency_list_df = authoritative_agency_list_df.assign(comment=np.nan)
+    authoritative_agency_list_df = clean_dataframe(authoritative_agency_list_df)
+    user_selectable_agency_list_df = user_selectable_agency_list_df.assign(comment=np.nan)
+    user_selectable_agency_list_df = clean_dataframe(user_selectable_agency_list_df)
     merged = authoritative_agency_list_df.merge(user_selectable_agency_list_df, on=['cgac', 'subtier_code'],
                                                 how='left', suffixes=('', '_drop'), indicator=True)
     merged['user_selectable'] = np.where(merged._merge == 'both', True, False)
-    to_drop = [x + '_drop' for x in authoritative_agency_list_names if x not in ['cgac', 'subtier_code']] + ['_merge']
+    to_drop = [x + '_drop' for x in authoritative_agency_list_names if x not in ['cgac', 'subtier_code']]
+    to_drop.extend(['_merge', 'comment_drop'])
     merged.drop(to_drop, axis=1, inplace=True)
-    merged = merged.assign(comment=np.nan)
     create_temp_authoritative_agency_list_table(sess, merged)
 
 
@@ -387,10 +408,10 @@ def merge_broker_website_lists(sess):
             talc.comment AS comment
         FROM temp_agency_list_codes AS talc
         LEFT OUTER JOIN temp_authoritative_agency_list taal
-            ON (talc.cgac = taal.cgac
-            AND talc.subtier_code = taal.subtier_code
+            ON (talc.cgac IS NOT DISTINCT FROM taal.cgac
+            AND talc.subtier_code IS NOT DISTINCT FROM taal.subtier_code
         )
-        WHERE (taal.cgac IS NULL OR taal.subtier_code IS NULL);
+        WHERE (taal.cgac IS NULL AND taal.subtier_code IS NULL);
     """
     inserted_rows = sess.execute(merge_sql)
     sess.commit()
@@ -432,7 +453,7 @@ def export_master_agency_list(sess, export_filename):
             congressional_justification AS "CONGRESSIONAL JUSTIFICATION",
             icon_filename AS "ICON FILENAME",
             UPPER(user_selectable::text) AS "USER SELECTABLE ON USASPENDING.GOV",
-            "comment" AS "COMMENT"
+            comment AS "COMMENT"
         FROM temp_authoritative_agency_list
         ORDER BY cgac, subtier_code
     """
@@ -452,6 +473,7 @@ def remove_temp_tables(sess):
     logger.info('Cleaning up temporary tables')
     sess.execute(drop_query)
     sess.commit()
+
 
 def generate_master_agency_list(sess, agency_list, agency_list_codes, authoritative_agency_list,
                                 user_selectable_agency_list, export_filename):
