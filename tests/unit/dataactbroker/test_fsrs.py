@@ -177,7 +177,7 @@ def test_fetch_and_replace_batch_saves_data(no_award_db, monkeypatch):
     monkeypatch.setattr(fsrs, 'retrieve_batch', Mock(return_value=[award1, award2]))
 
     assert no_award_db.query(FSRSProcurement).count() == 0
-    fsrs.fetch_and_replace_batch(no_award_db, fsrs.PROCUREMENT)
+    fsrs.fetch_and_replace_batch(no_award_db, fsrs.PROCUREMENT, id=award1.internal_id, min_id=True)
     assert no_award_db.query(FSRSProcurement).count() == 2
     assert no_award_db.query(FSRSSubcontract).count() == 5
 
@@ -196,7 +196,7 @@ def test_fetch_and_replace_batch_overrides_data(no_award_db, monkeypatch):
     award2.subawards = [FSRSSubgrantFactory()]
     monkeypatch.setattr(fsrs, 'retrieve_batch', Mock(return_value=[award1, award2]))
 
-    fsrs.fetch_and_replace_batch(no_award_db, fsrs.GRANT)
+    fsrs.fetch_and_replace_batch(no_award_db, fsrs.GRANT, id=award1.internal_id, min_id=True)
     assert fetch_duns(1) == 'To Be Replaced'
     assert fetch_duns(2) == 'Not Altered'
     # 5 subawards, 4 from award1 and 1 from award2
@@ -207,7 +207,7 @@ def test_fetch_and_replace_batch_overrides_data(no_award_db, monkeypatch):
     award3 = FSRSGrantFactory(id=3, internal_id='12345', duns='Replaced')
     award3.subawards = [FSRSSubgrantFactory() for _ in range(2)]
     monkeypatch.setattr(fsrs, 'retrieve_batch', Mock(return_value=[award3]))
-    fsrs.fetch_and_replace_batch(no_award_db, fsrs.GRANT)
+    fsrs.fetch_and_replace_batch(no_award_db, fsrs.GRANT, id=award3.internal_id, min_id=True)
     assert fetch_duns(1) is None
     assert fetch_duns(2) == 'Not Altered'
     assert fetch_duns(3) == 'Replaced'

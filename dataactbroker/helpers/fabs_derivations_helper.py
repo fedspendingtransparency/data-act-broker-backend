@@ -439,6 +439,25 @@ def derive_parent_duns(obj, sess):
             obj['ultimate_parent_unique_ide'] = None
 
 
+def derive_executive_compensation(obj, exec_comp_dict):
+    """ Deriving Executive Compensation information from DUNS.
+
+        Args:
+            obj: a dictionary containing the details we need to derive from and to
+            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by DUNS number
+    """
+    if obj['awardee_or_recipient_uniqu'] and obj['awardee_or_recipient_uniqu'] in exec_comp_dict.keys():
+        exec_comp = exec_comp_dict[obj['awardee_or_recipient_uniqu']]
+
+        for i in range(1, 6):
+            obj['high_comp_officer{}_full_na'.format(i)] = exec_comp['officer{}_name'.format(i)]
+            obj['high_comp_officer{}_amount'.format(i)] = exec_comp['officer{}_amt'.format(i)]
+    else:
+        for i in range(1, 6):
+            obj['high_comp_officer{}_full_na'.format(i)] = None
+            obj['high_comp_officer{}_amount'.format(i)] = None
+
+
 def derive_labels(obj):
     """ Deriving labels for codes entered by the user
 
@@ -506,7 +525,8 @@ def set_active(obj):
         obj['is_active'] = True
 
 
-def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict, county_dict, office_dict):
+def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict, county_dict, office_dict,
+                     exec_comp_dict):
     """ Performs derivations related to publishing a FABS record on a single row
 
         Args:
@@ -518,6 +538,7 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
             cfda_dict: a dictionary containing data for all CFDA objects keyed by cfda number
             county_dict: a dictionary containing all the data for County objects keyed by state code + county number
             office_dict: a dictionary containing all the data for Offices objects keyed by code
+            exec_comp_dict: a dictionary containing all the data for Executive Compensation data keyed by DUNS number
 
         Returns:
             The obj dictionary initially passed in but without the job_id or detached_award_financial_assistance_id
@@ -571,6 +592,8 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
     split_ppop_zip(obj)
 
     derive_parent_duns(obj, sess)
+
+    derive_executive_compensation(obj, exec_comp_dict)
 
     derive_labels(obj)
 
