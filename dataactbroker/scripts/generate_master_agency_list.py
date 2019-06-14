@@ -10,6 +10,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import pad_function, insert_dataframe
+from dataactvalidator.filestreaming.csv_selection import write_query_to_file
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +116,7 @@ def load_temp_agency_list_codes(sess, agency_list_codes_path):
     pad_column_dict = {
         'cgac': 3,
         'fpds_dep_id': 4,
+        'frec': 4,
         'subtier_code': 4
     }
     agency_list_codes_df = pad_columns(agency_list_codes_df, pad_column_dict)
@@ -159,8 +161,12 @@ def create_temp_agency_list_codes_table(sess, data):
     sess.commit()
 
 
-def merge_broker_lists():
-    """ Pulls in agencies from agency_list.csv that are not in agency_codes_list.csv """
+def merge_broker_lists(sess):
+    """ Pulls in agencies from agency_list.csv that are not in agency_codes_list.csv
+
+        Args:
+            sess: database connection
+    """
     merge_sql = """
         INSERT INTO temp_agency_list_codes (
             "cgac",
@@ -258,6 +264,7 @@ def load_temp_authoritative_agency_list(sess, authoritative_agency_list_path, us
     pad_column_dict = {
         'cgac': 3,
         'fpds_dep_id': 4,
+        'frec': 4,
         'subtier_code': 4
     }
     authoritative_agency_list_df = pad_columns(authoritative_agency_list_df, pad_column_dict)
@@ -316,8 +323,12 @@ def create_temp_authoritative_agency_list_table(sess, data):
     sess.commit()
 
 
-def merge_broker_website_lists():
-    """ Pulls in agencies from the merged broker_agency_list that are not in authoritative_agency_list.csv """
+def merge_broker_website_lists(sess):
+    """ Pulls in agencies from the merged broker_agency_list that are not in authoritative_agency_list.csv
+
+        Args:
+            sess: database connection
+    """
     merge_sql = """
         INSERT INTO temp_authoritative_agency_list (
             "cgac",
@@ -387,8 +398,63 @@ def merge_broker_website_lists():
                 .format(inserted_rows.rowcount))
 
 
+def export_master_agency_list(sess, export_filename):
+    """ Export the master agency list
+
+        Args:
+            sess: database connection
+            export_filename: name of generated master agency list
+    """
+    export_query = """
+        SELECT
+            cgac AS "CGAC AGENCY CODE",
+            fpds_dep_id AS "FPDS DEPARTMENT ID",
+            name AS "AGENCY NAME",
+            abbreviation AS "AGENCY ABBREVIATION",
+            registered_broker AS "REGISTERED IN BROKER",
+            registered_asp AS "REGISTERED IN ASP",
+            original_source AS "ORIGINAL SOURCE FOR CGAC or SubTier",
+            subtier_code AS "SUBTIER CODE",
+            subtier_name AS "SUBTIER NAME",
+            subtier_abbr AS "SUBTIER ABBREVIATION",
+            admin_org_name AS "Admin Org Name",
+            admin_org AS "ADMIN_ORG",
+            frec AS "FREC",
+            frec_entity_desc AS "FREC Entity Description",
+            subtier_source AS "SubTierAcronymSource",
+            subtier_in_fpds_asp AS "SubTier appears in data in FPDS or ASP?",
+            subtier_registered_asp AS "REGISTERED IN ASP",
+            original_name AS "AGENCY NAME (ORIGINAL)",
+            original_subtier_name AS "SUBTIER NAME (ORIGINAL)",
+            is_frec AS "IS_FREC",
+            mission AS "MISSION",
+            website AS "WEBSITE",
+            congressional_justification AS "CONGRESSIONAL JUSTIFICATION",
+            icon_filename AS "ICON FILENAME",
+            UPPER(user_selectable::text) AS "USER SELECTABLE ON USASPENDING.GOV",
+            "comment" AS "COMMENT"
+        FROM temp_authoritative_agency_list
+        ORDER BY cgac, subtier_code
+    """
+    # Remove newlines for raw query writing
+    export_query = export_query.replace('\n', ' ')
+    logger.info('Generating master agency file: {}'.format(export_filename))
+    write_query_to_file(sess, export_query, export_filename, generate_headers=True, generate_string=False)
+
+
+def remove_temp_tables(sess):
+    """ Cleanup and remove temporary tables made via the script
+
+        Args:
+            sess: database connection
+    """
+    drop_query = 'DROP TABLE temp_agency_list, temp_agency_list_codes, temp_authoritative_agency_list;'
+    logger.info('Cleaning up temporary tables')
+    sess.execute(drop_query)
+    sess.commit()
+
 def generate_master_agency_list(sess, agency_list, agency_list_codes, authoritative_agency_list,
-                                user_selectable_agency_list):
+                                user_selectable_agency_list, export_filename):
     """ Main script algorithm that generates the master agency list
 
         Args:
@@ -397,12 +463,15 @@ def generate_master_agency_list(sess, agency_list, agency_list_codes, authoritat
             agency_list_codes: broker's agency_list_codes.csv
             authoritative_agency_list: website's authoritative_agency_list.csv
             user_selectable_agency_list: website's user_selectable_agency_list.csv
+            export_filename: name of generated master agency list
     """
     load_temp_agency_list(sess, agency_list)
     load_temp_agency_list_codes(sess, agency_list_codes)
-    merge_broker_lists()
+    merge_broker_lists(sess)
     load_temp_authoritative_agency_list(sess, authoritative_agency_list, user_selectable_agency_list)
-    merge_broker_website_lists()
+    merge_broker_website_lists(sess)
+    export_master_agency_list(sess, export_filename)
+    remove_temp_tables(sess)
 
 
 if __name__ == '__main__':
@@ -415,6 +484,8 @@ if __name__ == '__main__':
                         help="URI for authoritative_agency_list.csv")
     parser.add_argument('-usal', '--user_selectable_agency_list', type=str, required=True,
                         help="URI for user_selectable_agency_list.csv")
+    parser.add_argument('-e', '--export_filename', type=str, default='agency_codes.csv',
+                        help="Name of generated master agency list")
 
     with create_app().app_context():
         logger.info("Begin generating master agency list")
@@ -422,7 +493,7 @@ if __name__ == '__main__':
         args = parser.parse_args()
 
         generate_master_agency_list(sess, args.agency_list, args.agency_list_codes, args.authoritative_agency_list,
-                                    args.user_selectable_agency_list)
+                                    args.user_selectable_agency_list, args.export_filename)
 
         duration = str(datetime.datetime.now() - now)
         logger.info("Generating master agency list took {} seconds".format(duration))
