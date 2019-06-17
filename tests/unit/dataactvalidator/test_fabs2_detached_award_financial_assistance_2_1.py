@@ -13,7 +13,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ The combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA Number, and
+    """ The combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and
         AwardingSubTierAgencyCode must be unique from currently published ones unless the record is a correction or
         deletion (i.e., if CorrectionDeleteIndicator = C or D). Ignores inactive records
     """
@@ -45,7 +45,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ The combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA Number, and AwardingSubTierAgencyCode must
+    """ The combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and AwardingSubTierAgencyCode must
         be unique from currently published ones unless the record is a correction or deletion
         (i.e., if CorrectionDeleteIndicator = C or D).
     """

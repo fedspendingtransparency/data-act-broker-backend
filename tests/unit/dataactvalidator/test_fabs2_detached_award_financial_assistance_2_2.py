@@ -13,7 +13,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ The unique combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA Number, and
+    """ The unique combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and
         AwardingSubTierAgencyCode must exist as a currently published record when the record is a correction (i.e., if
         CorrectionDeleteIndicator = C). Ignore all other CorrectionDeleteIndicators in this rule.
     """
@@ -40,7 +40,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ The unique combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA Number, and
+    """ The unique combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and
         AwardingSubTierAgencyCode must exist as a currently published record when the record is a correction (i.e., if
         CorrectionDeleteIndicator = C). Ignore all other CorrectionDeleteIndicators in this rule.
     """

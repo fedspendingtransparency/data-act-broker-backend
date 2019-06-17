@@ -12,7 +12,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Tests that all combinations of FAIN, AwardModificationAmendmentNumber, URI, CFDA Number, and
+    """ Tests that all combinations of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and
         AwardingSubTierAgencyCode in File D2 (Detached Award Financial Assistance) are unique
     """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(afa_generated_unique='abc_def_ghi',
@@ -27,8 +27,9 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Tests that all combinations of FAIN, AwardModificationAmendmentNumber, URI, and AwardingSubTierAgencyCode
-        in File D2 (Detached Award Financial Assistance) are not unique. Make sure casing is ignored.
+    """ Tests that all combinations of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and
+        AwardingSubTierAgencyCode in File D2 (Detached Award Financial Assistance) are not unique. Make sure casing is
+        ignored.
     """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(afa_generated_unique='abc_def_ghi',

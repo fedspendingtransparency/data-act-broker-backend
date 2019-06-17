@@ -1,4 +1,4 @@
--- The unique combination of FAIN, AwardModificationAmendmentNumber, URI, and CFDA Number,
+-- The unique combination of FAIN, AwardModificationAmendmentNumber, URI, and CFDA_Number,
 -- AwardingSubTierAgencyCode must exist as a currently published record when the record is a correction (i.e., if
 -- CorrectionDeleteIndicator = C).
 SELECT
