@@ -13,6 +13,6 @@ WHERE dafa.submission_id = {0}
     AND NOT EXISTS (
         SELECT 1
         FROM published_award_financial_assistance AS pafa
-        WHERE dafa.afa_generated_unique = pafa.afa_generated_unique
+        WHERE UPPER(dafa.afa_generated_unique) = UPPER(pafa.afa_generated_unique)
             AND pafa.is_active = TRUE
     );
