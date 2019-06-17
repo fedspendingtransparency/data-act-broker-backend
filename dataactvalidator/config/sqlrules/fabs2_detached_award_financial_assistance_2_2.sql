@@ -1,5 +1,6 @@
--- The unique combination of FAIN, AwardModificationAmendmentNumber, URI, and AwardingSubTierAgencyCode must exist as
--- a currently published record when the record is a correction (i.e., if CorrectionDeleteIndicator = C).
+-- The unique combination of FAIN, AwardModificationAmendmentNumber, URI, and CFDA Number,
+-- AwardingSubTierAgencyCode must exist as a currently published record when the record is a correction (i.e., if
+-- CorrectionDeleteIndicator = C).
 SELECT
     dafa.row_number,
     dafa.fain,
