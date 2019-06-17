@@ -5,18 +5,17 @@ SELECT
     fain,
     award_modification_amendme,
     uri,
-    awarding_sub_tier_agency_c
+    awarding_sub_tier_agency_c,
+    cfda_number
 FROM (
     SELECT dafa.row_number,
         dafa.fain,
         dafa.award_modification_amendme,
         dafa.uri,
         dafa.awarding_sub_tier_agency_c,
+        dafa.cfda_number,
         ROW_NUMBER() OVER (PARTITION BY
-            dafa.fain,
-            dafa.award_modification_amendme,
-            dafa.uri,
-            dafa.awarding_sub_tier_agency_c
+            UPPER(dafa.afa_generated_unique)
         ) AS row
     FROM detached_award_financial_assistance AS dafa
     WHERE dafa.submission_id = {0}

@@ -6,6 +6,7 @@ SELECT
     dafa.award_modification_amendme,
     dafa.uri,
     dafa.awarding_sub_tier_agency_c,
+    dafa.cfda_number,
     dafa.correction_delete_indicatr
 FROM detached_award_financial_assistance AS dafa
 WHERE dafa.submission_id = {0}
