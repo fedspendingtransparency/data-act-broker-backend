@@ -1,5 +1,5 @@
--- The combination of FAIN, AwardModificationAmendmentNumber, URI, and AwardingSubTierAgencyCode must be unique
--- within the submission file.
+-- The combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and AwardingSubTierAgencyCode must be
+-- unique within the submission file.
 SELECT
     row_number,
     fain,
