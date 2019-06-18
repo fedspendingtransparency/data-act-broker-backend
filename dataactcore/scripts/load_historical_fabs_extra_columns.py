@@ -7,6 +7,8 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 
+from sqlalchemy import func
+
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -54,7 +56,8 @@ def parse_fabs_file_new_columns(f, sess):
                 if cdata is not None:
                     for _, row in cdata.iterrows():
                         sess.query(PublishedAwardFinancialAssistance).\
-                            filter_by(afa_generated_unique=row['afa_generated_unique']).\
+                            filter(func.upper(PublishedAwardFinancialAssistance.afa_generated_unique) ==
+                                   row['afa_generated_unique'].upper()).\
                             update({"awarding_office_code": row['awarding_office_code'],
                                     "awarding_office_name": row['awarding_office_name'],
                                     "funding_office_name": row['funding_office_name'],
@@ -131,7 +134,8 @@ def generate_unique_string(row):
     ama = row['award_modification_amendme'] if row['award_modification_amendme'] is not None else '-none-'
     fain = row['fain'] if row['fain'] is not None else '-none-'
     uri = row['uri'] if row['uri'] is not None else '-none-'
-    return ama + "_" + astac + "_" + fain + "_" + uri
+    # todo: if we ever need this script again, we have to check if they give us cfda number and add it here
+    return astac + '_' + fain + '_' + uri + '_-none-_' + ama
 
 
 def main():
