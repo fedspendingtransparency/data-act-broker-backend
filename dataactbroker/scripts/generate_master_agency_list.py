@@ -222,8 +222,8 @@ def merge_broker_lists(sess):
             NULL AS registered_broker,
             NULL AS registered_asp,
             NULL AS original_source,
-            tal.subtier_code AS subtier_code,
-            tal.subtier_name AS subtier_name,
+            NULL AS subtier_code,
+            NULL AS subtier_name,
             NULL AS subtier_abbr,
             NULL AS frec,
             NULL AS frec_entity_desc,
@@ -236,10 +236,9 @@ def merge_broker_lists(sess):
             FALSE AS is_frec
         FROM temp_agency_list AS tal
         LEFT OUTER JOIN temp_agency_list_codes talc
-            ON (tal.cgac IS NOT DISTINCT FROM talc.cgac
-            AND tal.subtier_code IS NOT DISTINCT FROM talc.subtier_code
+            ON tal.cgac IS NOT DISTINCT FROM talc.cgac
         )
-        WHERE (talc.cgac IS NULL AND talc.subtier_code IS NULL);
+        WHERE (talc.cgac IS NULL);
     """
     inserted_rows = sess.execute(merge_sql)
     sess.commit()
