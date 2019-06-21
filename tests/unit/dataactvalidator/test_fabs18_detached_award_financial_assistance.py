@@ -12,18 +12,21 @@ def test_column_headers(database):
 
 def test_success(database):
     """ BusinessTypes must be one to three letters in length. BusinessTypes values must be non-repeated letters
-        from A to X. """
+        from A to X.
+    """
     det_award = DetachedAwardFinancialAssistanceFactory(business_types="A")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(business_types="XB")
     det_award_3 = DetachedAwardFinancialAssistanceFactory(business_types="RCm")
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(business_types="rcm")
 
-    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3])
+    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3, det_award_4])
     assert errors == 0
 
 
 def test_failure(database):
     """ BusinessTypes must be one to three letters in length. BusinessTypes values must be non-repeated letters
-        from A to X. """
+        from A to X.
+    """
 
     # Test if it's somehow empty or has 4 letters (length test)
     det_award = DetachedAwardFinancialAssistanceFactory(business_types="")
@@ -44,6 +47,8 @@ def test_failure(database):
     # Test that only valid letters work
     det_award = DetachedAwardFinancialAssistanceFactory(business_types="ABY")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(business_types="C2")
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(business_types="c2d")
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(business_types="123")
 
-    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2])
-    assert errors == 2
+    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3, det_award_4])
+    assert errors == 4
