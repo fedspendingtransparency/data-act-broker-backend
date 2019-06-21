@@ -15,7 +15,7 @@ def test_success(database):
         USA doesn't affect success
     """
     det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA", legal_entity_zip_last4="12345")
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA",
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="UsA",
                                                           legal_entity_zip_last4="12345")
     det_award_3 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA", legal_entity_zip_last4=None)
     det_award_null = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="UK",
