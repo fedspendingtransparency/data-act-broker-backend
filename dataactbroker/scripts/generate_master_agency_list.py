@@ -192,6 +192,7 @@ def merge_broker_lists(sess):
         Args:
             sess: database connection
     """
+    # Adding any extra CGACs - not using FULL JOIN as the subtiers are outdated
     merge_sql = """
         INSERT INTO temp_agency_list_codes (
             "cgac",
@@ -235,14 +236,26 @@ def merge_broker_lists(sess):
             'pulled from agency_list.csv' AS comment,
             FALSE AS is_frec
         FROM temp_agency_list AS tal
-        LEFT OUTER JOIN temp_agency_list_codes talc
+        LEFT OUTER JOIN temp_agency_list_codes AS talc
             ON tal.cgac IS NOT DISTINCT FROM talc.cgac
-        )
         WHERE (talc.cgac IS NULL);
     """
     inserted_rows = sess.execute(merge_sql)
     sess.commit()
     logger.info('Added {} rows from agency_list.csv to agency_codes_list.csv'.format(inserted_rows.rowcount))
+
+    # Updating CGAC name and abbreviations from agency list
+    update_sql = """
+        UPDATE temp_agency_list_codes AS talc
+        SET
+            name = tal.name,
+            abbreviation = tal.abbreviation
+        FROM temp_agency_list AS tal
+        WHERE tal.cgac = talc.cgac;
+    """
+    updated_rows = sess.execute(update_sql)
+    sess.commit()
+    logger.info('Updated {} rows from agency_list.csv to agency_codes_list.csv'.format(updated_rows.rowcount))
 
 
 def load_temp_authoritative_agency_list(sess, authoritative_agency_list_path, user_selectable_agency_list_path):
@@ -350,72 +363,43 @@ def merge_broker_website_lists(sess):
             sess: database connection
     """
     merge_sql = """
-        INSERT INTO temp_authoritative_agency_list (
-            "cgac",
-            "fpds_dep_id",
-            "name",
-            "abbreviation",
-            "registered_broker",
-            "registered_asp",
-            "original_source",
-            "subtier_code",
-            "subtier_name",
-            "subtier_abbr",
-            "admin_org_name",
-            "admin_org",
-            "frec",
-            "frec_entity_desc",
-            "subtier_source",
-            "subtier_in_fpds_asp",
-            "subtier_registered_asp",
-            "original_name",
-            "original_subtier_name",
-            "is_frec",
-            "mission",
-            "website",
-            "congressional_justification",
-            "icon_filename",
-            "user_selectable",
-            "comment"
-        )
-        SELECT
-            talc.cgac AS cgac,
-            talc.fpds_dep_id AS fpds_dep_id,
-            talc.name AS name,
-            talc.abbreviation AS abbreviation,
-            talc.registered_broker AS registered_broker,
-            talc.registered_asp AS registered_asp,
-            talc.original_source AS original_source,
-            talc.subtier_code AS subtier_code,
-            talc.subtier_name AS subtier_name,
-            talc.subtier_abbr AS subtier_abbr,
-            NULL AS admin_org_name,
-            NULL AS admin_org,
-            talc.frec AS frec,
-            talc.frec_entity_desc AS frec_entity_desc,
-            talc.subtier_source AS subtier_source,
-            talc.subtier_in_fpds_asp AS subtier_in_fpds_asp,
-            talc.subtier_registered_asp AS subtier_registered_asp,
-            talc.original_name AS original_name,
-            talc.original_subtier_name AS original_subtier_name,
-            talc.is_frec AS is_frec,
-            NULL AS mission,
-            NULL AS website,
-            NULL AS congressional_justification,
-            NULL AS icon_filename,
-            FALSE AS user_selectable,
-            talc.comment AS comment
-        FROM temp_agency_list_codes AS talc
-        LEFT OUTER JOIN temp_authoritative_agency_list taal
-            ON (talc.cgac IS NOT DISTINCT FROM taal.cgac
-            AND talc.subtier_code IS NOT DISTINCT FROM taal.subtier_code
-        )
-        WHERE (taal.cgac IS NULL AND taal.subtier_code IS NULL);
+        CREATE TABLE IF NOT EXISTS temp_merged_lists AS  (
+            SELECT
+                COALESCE(taal.cgac, talc.cgac) AS cgac,
+                COALESCE(taal.fpds_dep_id, talc.fpds_dep_id) AS fpds_dep_id,
+                COALESCE(taal.name, talc.name) AS name,
+                COALESCE(taal.abbreviation, talc.abbreviation) AS abbreviation,
+                COALESCE(taal.registered_broker, talc.registered_broker) AS registered_broker,
+                COALESCE(taal.registered_asp, talc.registered_asp) AS registered_asp,
+                COALESCE(taal.original_source, talc.original_source) AS original_source,
+                COALESCE(taal.subtier_code, talc.subtier_code) AS subtier_code,
+                COALESCE(taal.subtier_name, talc.subtier_name) AS subtier_name,
+                COALESCE(taal.subtier_abbr, talc.subtier_abbr) AS subtier_abbr,
+                taal.admin_org_name AS admin_org_name,
+                taal.admin_org AS admin_org,
+                COALESCE(taal.frec, talc.frec) AS frec,
+                COALESCE(taal.frec_entity_desc, talc.frec_entity_desc) AS frec_entity_desc,
+                COALESCE(taal.subtier_source, talc.subtier_source) AS subtier_source,
+                COALESCE(taal.subtier_in_fpds_asp, talc.subtier_in_fpds_asp) AS subtier_in_fpds_asp,
+                COALESCE(taal.subtier_registered_asp, talc.subtier_registered_asp) AS subtier_registered_asp,
+                COALESCE(taal.original_name, talc.original_name) AS original_name,
+                COALESCE(taal.original_subtier_name, talc.original_subtier_name) AS original_subtier_name,
+                COALESCE(taal.is_frec, talc.is_frec) AS is_frec,
+                taal.mission AS mission,
+                taal.website AS website,
+                taal.congressional_justification AS congressional_justification,
+                taal.icon_filename AS icon_filename,
+                COALESCE(taal.user_selectable, 'FALSE') AS user_selectable,
+                COALESCE(taal.comment, talc.comment) AS comment
+            FROM temp_agency_list_codes AS talc
+            FULL OUTER JOIN temp_authoritative_agency_list taal
+                ON (COALESCE(talc.cgac,'') = COALESCE(taal.cgac, '')
+                AND COALESCE(talc.subtier_code, '') = COALESCE(taal.subtier_code, '')
+            )
+        );
     """
-    inserted_rows = sess.execute(merge_sql)
+    sess.execute(merge_sql)
     sess.commit()
-    logger.info('Added {} rows from the merged broker agency list to authoritative_agency_list.csv'
-                .format(inserted_rows.rowcount))
 
 
 def export_master_agency_list(sess, export_filename):
@@ -453,7 +437,7 @@ def export_master_agency_list(sess, export_filename):
             icon_filename AS "ICON FILENAME",
             UPPER(user_selectable::text) AS "USER SELECTABLE ON USASPENDING.GOV",
             comment AS "COMMENT"
-        FROM temp_authoritative_agency_list
+        FROM temp_merged_lists
         ORDER BY cgac, subtier_code
     """
     # Remove newlines for raw query writing
@@ -468,7 +452,8 @@ def remove_temp_tables(sess):
         Args:
             sess: database connection
     """
-    drop_query = 'DROP TABLE temp_agency_list, temp_agency_list_codes, temp_authoritative_agency_list;'
+    drop_query = 'DROP TABLE temp_agency_list, temp_agency_list_codes, temp_authoritative_agency_list, ' \
+                 'temp_merged_lists;'
     logger.info('Cleaning up temporary tables')
     sess.execute(drop_query)
     sess.commit()
