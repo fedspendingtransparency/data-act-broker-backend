@@ -1,6 +1,9 @@
 # Submission Process
 - **NOTE**: When pinging for status in any step, do not do it constantly, limit it to once every 10 seconds or longer.
 
+## Introduction
+While the Submission API has been designed to be as easy to understand as possible, it is intended to be used by those who are familiar with REST APIs and their request and authentication types. The Submission API provides the same functionality offered at broker.usaspending.gov. If you are unable to use the inbound api at broker-api.usaspending.gov based on this guide, please submit feedback to [Service Desk](https://servicedesk.usaspending.gov)
+
 ## Login Process
 
 ### Login to Max
