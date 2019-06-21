@@ -11,8 +11,9 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ LegalEntityForeignPostalCode must be blank for domestic recipients when LegalEntityCountryCode is 'USA' or
-        RecordType is 1. Foreign recipients don't affect success """
+    """ Test success LegalEntityForeignPostalCode must be blank for domestic recipients (LegalEntityCountryCode = USA)
+        and for aggregate records (RecordType = 1).
+    """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="Spain",
                                                           legal_entity_foreign_posta="12345",
@@ -23,7 +24,7 @@ def test_success(database):
     det_award_3 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="Peru",
                                                           legal_entity_foreign_posta=None,
                                                           record_type=3)
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA",
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="UsA",
                                                           legal_entity_foreign_posta=None,
                                                           record_type=2)
     det_award_5 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA",
@@ -35,10 +36,11 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ LegalEntityForeignPostalCode must be blank for domestic recipients when LegalEntityCountryCode is 'USA' or
-        RecordType is 1"""
+    """ Test failure LegalEntityForeignPostalCode must be blank for domestic recipients (LegalEntityCountryCode = USA)
+        and for aggregate records (RecordType = 1).
+    """
 
-    det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA",
+    det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="UsA",
                                                         legal_entity_foreign_posta="12345",
                                                         record_type=2)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="UKR",
