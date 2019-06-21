@@ -132,10 +132,11 @@ def load_frec(file_name):
         data,
         FREC,
         {"frec": "frec_code", "cgac_agency_code": "cgac_code", "frec_entity_description": "agency_name",
-         "agency_abbreviation": "agency_abbreviation"},
+         "agency_abbreviation": "agency_abbreviation", "frec_cgac_association": "frec_cgac"},
         {"frec": {"keep_null": False}, "cgac_code": {"pad_to_length": 3}, "frec_code": {"pad_to_length": 4}}
     )
     # de-dupe
+    data = data[data.frec_cgac=='TRUE']
     data.drop_duplicates(subset=['frec_code'], inplace=True)
     # create foreign key dicts
     cgac_dict = {str(cgac.cgac_code): cgac.cgac_id for

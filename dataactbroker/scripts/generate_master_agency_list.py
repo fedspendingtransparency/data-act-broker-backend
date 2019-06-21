@@ -390,7 +390,8 @@ def merge_broker_website_lists(sess):
                 taal.congressional_justification AS congressional_justification,
                 taal.icon_filename AS icon_filename,
                 COALESCE(taal.user_selectable, 'FALSE') AS user_selectable,
-                COALESCE(taal.comment, talc.comment) AS comment
+                COALESCE(taal.comment, talc.comment) AS comment,
+                'FALSE' AS frec_cgac
             FROM temp_agency_list_codes AS talc
             FULL OUTER JOIN temp_authoritative_agency_list taal
                 ON (COALESCE(talc.cgac,'') = COALESCE(taal.cgac, '')
@@ -398,6 +399,50 @@ def merge_broker_website_lists(sess):
             )
         );
     """
+    sess.execute(merge_sql)
+    sess.commit()
+
+
+def mark_cgac_frec_linkages(sess):
+    """ Adds an additional column to specify a FRECs designated CGAC
+
+            Args:
+                sess: database connection
+        """
+    dup_frecs = {
+        '0000': '002',
+        'DE00': '097',
+        '9552': '349',
+        '9512': '339',
+        '9513': '467'
+    }
+    dup_frec_keys = ', '.join('\'{}\''.format(dup_frec) for dup_frec in list(dup_frecs.keys()))
+    dup_frec_kv = ' OR '.join(['(frec=\'{}\' AND cgac=\'{}\')'.format(frec, cgac) for frec, cgac in dup_frecs.items()])
+    merge_sql = """
+        -- Mark all the general ones
+        WITH frec_cgacs AS (
+            SELECT
+                DISTINCT ON (frec)
+                cgac,
+                frec
+            FROM temp_merged_lists
+            WHERE frec NOT IN ({0})
+            ORDER BY frec
+        )
+        UPDATE temp_merged_lists AS tml
+        SET
+            frec_cgac = 'TRUE'
+        FROM frec_cgacs AS fc
+        WHERE fc.cgac = tml.cgac
+            AND fc.frec = tml.frec
+        ;
+        -- Mark the specific cases to overwrite
+        UPDATE temp_merged_lists AS tml
+        SET
+            frec_cgac = 'TRUE'
+        WHERE ({1})
+        ;
+        """.format(dup_frec_keys, dup_frec_kv)
     sess.execute(merge_sql)
     sess.commit()
 
@@ -436,7 +481,8 @@ def export_master_agency_list(sess, export_filename):
             congressional_justification AS "CONGRESSIONAL JUSTIFICATION",
             icon_filename AS "ICON FILENAME",
             UPPER(user_selectable::text) AS "USER SELECTABLE ON USASPENDING.GOV",
-            comment AS "COMMENT"
+            comment AS "COMMENT",
+            frec_cgac AS "FREC CGAC ASSOCIATION"
         FROM temp_merged_lists
         ORDER BY cgac, subtier_code
     """
@@ -476,6 +522,7 @@ def generate_master_agency_list(sess, agency_list, agency_list_codes, authoritat
     merge_broker_lists(sess)
     load_temp_authoritative_agency_list(sess, authoritative_agency_list, user_selectable_agency_list)
     merge_broker_website_lists(sess)
+    mark_cgac_frec_linkages(sess)
     export_master_agency_list(sess, export_filename)
     remove_temp_tables(sess)
 
