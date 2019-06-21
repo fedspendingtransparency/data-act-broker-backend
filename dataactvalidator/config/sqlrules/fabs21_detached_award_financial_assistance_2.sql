@@ -29,7 +29,7 @@ sub_tier_offices_{0} AS
 	WHERE EXISTS (
 	        SELECT 1
 		    FROM detached_award_financial_assistance_23_2_{0} AS dafa
-		    WHERE dafa.funding_sub_tier_agency_co = stac.sub_tier_code
+		    WHERE UPPER(dafa.funding_sub_tier_agency_co) = UPPER(stac.sub_tier_code)
 			    AND UPPER(dafa.funding_office_code) = UPPER(office.office_code)
 	))
 SELECT
@@ -41,6 +41,6 @@ WHERE NOT EXISTS (
         -- Find all funding sub tier agency and office codes that are not part of the valid pairings list
         SELECT 1
 	    FROM sub_tier_offices_{0} AS sto
-	    WHERE sto.sub_tier_code = dafa.funding_sub_tier_agency_co
+	    WHERE UPPER(sto.sub_tier_code) = UPPER(dafa.funding_sub_tier_agency_co)
 		    AND UPPER(sto.office_code) = UPPER(dafa.funding_office_code)
 	);
