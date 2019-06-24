@@ -11,10 +11,11 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Test success LegalEntityForeignCityName must be blank for domestic recipients when LegalEntityCountryCode is
-        'USA' or RecordType is 1"""
+    """ Test success LegalEntityForeignCityName must be blank for domestic recipients (LegalEntityCountryCode = USA) and
+        for aggregate records (RecordType = 1).
+    """
 
-    det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA",
+    det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="UsA",
                                                         legal_entity_foreign_city=None,
                                                         record_type=2)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA",
@@ -29,10 +30,11 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test failure LegalEntityForeignCityName must be blank for domestic recipients when LegalEntityCountryCode is
-        'USA' or RecordType is 1"""
+    """ Test failure LegalEntityForeignCityName must be blank for domestic recipients (LegalEntityCountryCode = USA) and
+        for aggregate records (RecordType = 1).
+    """
 
-    det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA",
+    det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="UsA",
                                                         legal_entity_foreign_city="New York",
                                                         record_type=2)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="UKR",
