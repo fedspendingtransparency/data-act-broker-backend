@@ -391,7 +391,8 @@ def merge_broker_website_lists(sess):
                 taal.icon_filename AS icon_filename,
                 COALESCE(taal.user_selectable, 'FALSE') AS user_selectable,
                 COALESCE(taal.comment, talc.comment) AS comment,
-                'FALSE' AS frec_cgac
+                'FALSE' AS frec_cgac,
+                'FALSE' AS toptier_flag
             FROM temp_agency_list_codes AS talc
             FULL OUTER JOIN temp_authoritative_agency_list taal
                 ON (COALESCE(talc.cgac,'') = COALESCE(taal.cgac, '')
@@ -418,7 +419,7 @@ def mark_cgac_frec_linkages(sess):
     }
     dup_frec_keys = ', '.join('\'{}\''.format(dup_frec) for dup_frec in list(dup_frecs.keys()))
     dup_frec_kv = ' OR '.join(['(frec=\'{}\' AND cgac=\'{}\')'.format(frec, cgac) for frec, cgac in dup_frecs.items()])
-    merge_sql = """
+    update_sql = """
         -- Mark all the general ones
         WITH frec_cgacs AS (
             SELECT
@@ -443,7 +444,25 @@ def mark_cgac_frec_linkages(sess):
         WHERE ({1})
         ;
         """.format(dup_frec_keys, dup_frec_kv)
-    sess.execute(merge_sql)
+    sess.execute(update_sql)
+    sess.commit()
+
+
+def mark_is_toptier(sess):
+    """ Adds an additional column to specify whether it's a toptier
+
+            Args:
+                sess: database connections
+        """
+    update_sql = """
+        UPDATE temp_merged_lists AS tml
+        SET
+            toptier_flag = 'TRUE'
+        WHERE (is_frec::bool IS TRUE AND subtier_name = frec_entity_desc)
+            OR (is_frec::bool IS FALSE AND subtier_name = name)
+        ;
+        """
+    sess.execute(update_sql)
     sess.commit()
 
 
@@ -475,14 +494,15 @@ def export_master_agency_list(sess, export_filename):
             subtier_registered_asp AS "REGISTERED IN ASP",
             original_name AS "AGENCY NAME (ORIGINAL)",
             original_subtier_name AS "SUBTIER NAME (ORIGINAL)",
+            toptier_flag AS "TOPTIER_FLAG",
             UPPER(is_frec) AS "IS_FREC",
+            frec_cgac AS "FREC CGAC ASSOCIATION",
+            UPPER(user_selectable::text) AS "USER SELECTABLE ON USASPENDING.GOV",
             mission AS "MISSION",
             website AS "WEBSITE",
             congressional_justification AS "CONGRESSIONAL JUSTIFICATION",
             icon_filename AS "ICON FILENAME",
-            UPPER(user_selectable::text) AS "USER SELECTABLE ON USASPENDING.GOV",
-            comment AS "COMMENT",
-            frec_cgac AS "FREC CGAC ASSOCIATION"
+            comment AS "COMMENT"
         FROM temp_merged_lists
         ORDER BY cgac, subtier_code
     """
@@ -523,6 +543,7 @@ def generate_master_agency_list(sess, agency_list, agency_list_codes, authoritat
     load_temp_authoritative_agency_list(sess, authoritative_agency_list, user_selectable_agency_list)
     merge_broker_website_lists(sess)
     mark_cgac_frec_linkages(sess)
+    mark_is_toptier(sess)
     export_master_agency_list(sess, export_filename)
     remove_temp_tables(sess)
 
