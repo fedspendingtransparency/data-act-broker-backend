@@ -102,7 +102,7 @@ def load_cgac(file_name, force_reload=False):
     data.drop_duplicates(subset=['cgac_code'], inplace=True)
 
     # compare to existing content in table
-    diff_found  = check_dataframe_diff(data, CGAC, 'cgac_id', ['cgac_code'],
+    diff_found = check_dataframe_diff(data, CGAC, 'cgac_id', ['cgac_code'],
                                       lambda_funcs=[('agency_abbreviation', extract_abbreviation),
                                                     ('agency_name', extract_name)])
 
@@ -186,11 +186,13 @@ def load_frec(file_name, force_reload=False):
     cgac_dict_flipped = {cgac_id: cgac_code for cgac_code, cgac_id in cgac_dict.items()}
 
     # compare to existing content in table
-    extract_cgac = lambda row: cgac_dict_flipped[row['cgac_id']] if row['cgac_id'] in cgac_dict_flipped else np.nan
-    diff_found  = check_dataframe_diff(data, FREC, 'frec_id', ['frec_code'], fk_cols=['cgac_id'],
-                                       lambda_funcs=[('agency_abbreviation', extract_abbreviation),
-                                                     ('agency_name', extract_name),
-                                                     ('cgac_code', extract_cgac)])
+    def extract_cgac(row):
+        return cgac_dict_flipped[row['cgac_id']] if row['cgac_id'] in cgac_dict_flipped else np.nan
+
+    diff_found = check_dataframe_diff(data, FREC, 'frec_id', ['frec_code'], fk_cols=['cgac_id'],
+                                      lambda_funcs=[('agency_abbreviation', extract_abbreviation),
+                                                    ('agency_name', extract_name),
+                                                    ('cgac_code', extract_cgac)])
     if force_reload or diff_found:
         # create foreign key dicts
 
@@ -203,7 +205,6 @@ def load_frec(file_name, force_reload=False):
         logger.info('%s FREC records inserted', len(models))
     else:
         logger.info('No differences found, skipping frec table reload.')
-
 
 
 def delete_missing_sub_tier_agencies(models, new_data):
@@ -283,13 +284,19 @@ def load_sub_tier_agencies(file_name, force_reload=False):
     frec_dict_flipped = {frec_id: frec_code for frec_code, frec_id in frec_dict.items()}
 
     # compare to existing content in table
-    int_to_float = lambda row: float(row['priority'])
-    extract_cgac = lambda row: cgac_dict_flipped[row['cgac_id']] if row['cgac_id'] in cgac_dict_flipped else np.nan
-    extract_frec = lambda row: frec_dict_flipped[row['frec_id']] if row['frec_id'] in frec_dict_flipped else np.nan
-    diff_found  = check_dataframe_diff(data, SubTierAgency, 'sub_tier_agency_id', ['sub_tier_agency_code'],
-                                       fk_cols=['cgac_id', 'frec_id'],
-                                       lambda_funcs=[('priority', int_to_float), ('cgac_code', extract_cgac),
-                                                     ('frec_code', extract_frec)])
+    def int_to_float(row):
+        return float(row['priority'])
+
+    def extract_cgac(row):
+        return cgac_dict_flipped[row['cgac_id']] if row['cgac_id'] in cgac_dict_flipped else np.nan
+
+    def extract_frec(row):
+        return frec_dict_flipped[row['frec_id']] if row['frec_id'] in frec_dict_flipped else np.nan
+
+    diff_found = check_dataframe_diff(data, SubTierAgency, 'sub_tier_agency_id', ['sub_tier_agency_code'],
+                                      fk_cols=['cgac_id', 'frec_id'],
+                                      lambda_funcs=[('priority', int_to_float), ('cgac_code', extract_cgac),
+                                                    ('frec_code', extract_frec)])
     if force_reload or diff_found:
         delete_missing_sub_tier_agencies(models, data)
         update_sub_tier_agencies(models, data, cgac_dict, frec_dict)
@@ -308,7 +315,7 @@ def load_agency_data(base_path, force_reload=False):
             base_path: directory that contains the agency files
             force_reload: whether to reload regardless
     """
-    agency_codes_url = 'https://files.usaspending.gov/reference_data/agency_codes.csv'
+    agency_codes_url = 'https://files.usaspending.gov/reference_data/agency_codes_test.csv'
     logger.info('Loading agency codes file from {}'.format(agency_codes_url))
 
     # Get data from public S3 bucket
