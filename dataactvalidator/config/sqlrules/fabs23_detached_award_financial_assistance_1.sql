@@ -8,5 +8,5 @@ WHERE submission_id = {0}
     AND NOT EXISTS (
         SELECT 1
         FROM sub_tier_agency AS sta
-        WHERE sta.sub_tier_agency_code = dafa.awarding_sub_tier_agency_c
+        WHERE UPPER(sta.sub_tier_agency_code) = UPPER(dafa.awarding_sub_tier_agency_c)
     );
