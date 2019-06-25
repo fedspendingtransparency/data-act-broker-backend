@@ -6,7 +6,7 @@ from dataactcore.interfaces.db import GlobalDB
 logger = logging.getLogger(__name__)
 
 
-def check_dataframe_diff(new_data, model, id_col, sort_cols, lambda_funcs=None):
+def check_dataframe_diff(new_data, model, id_col, sort_cols, fk_cols=None, lambda_funcs=None):
     """ Checks if 2 dataframes (the new data and the existing data for a model) are different.
 
         Args:
@@ -14,14 +14,17 @@ def check_dataframe_diff(new_data, model, id_col, sort_cols, lambda_funcs=None):
             model: The model to get the existing data from
             id_col: A string containing the name of the ID column to delete from the existing data
             sort_cols: An array containing the columns to sort on
-            lambda_funcs: A dict with the column to update as the key and the lambda function to be executed as
-                the value. As of now, it must take exactly 1 argument
+            fk_cols: An array containging the foreign key columns to delete from the existing data
+            lambda_funcs: An array of tuples (column to update, transformative lambda taking in a row argument)
+                          that will be processed in the order provided.
 
         Returns:
             True if there are differences between the two dataframes, false otherwise
     """
     if not lambda_funcs:
         lambda_funcs = {}
+    if not fk_cols:
+        fk_cols = []
 
     new_data_copy = new_data.copy(deep=True)
 
@@ -33,11 +36,16 @@ def check_dataframe_diff(new_data, model, id_col, sort_cols, lambda_funcs=None):
 
     sess = GlobalDB.db().session
     current_data = pd.read_sql_table(model.__table__.name, sess.connection(), coerce_float=False)
+
+    # Apply any lambda functions provided to update values if needed
+    for col_name, lambda_func in lambda_funcs:
+        current_data[col_name] = current_data.apply(lambda_func, axis=1)
+
     # Drop the created_at and updated_at for the same reason as above, also drop the pk ID column for this table
     try:
-        current_data.drop([id_col, 'created_at', 'updated_at'], axis=1, inplace=True)
+        current_data.drop([id_col, 'created_at', 'updated_at'] + fk_cols, axis=1, inplace=True)
     except ValueError:
-        logger.info('id column, created_at, or updated_at not found, drop skipped.')
+        logger.info('id column, fk_columns, created_at, or updated_at not found, drop skipped.')
 
     # pandas comparison requires everything to be in the same order
     new_data_copy.sort_values(by=sort_cols, inplace=True)
@@ -55,9 +63,5 @@ def check_dataframe_diff(new_data, model, id_col, sort_cols, lambda_funcs=None):
     # Reset indexes after sorting, so that they match
     new_data_copy.reset_index(drop=True, inplace=True)
     current_data.reset_index(drop=True, inplace=True)
-
-    # Apply any lambda functions provided to update values if needed
-    for col_name, lambda_func in lambda_funcs.items():
-        current_data[col_name] = current_data[col_name].apply(lambda x: lambda_func(x))
 
     return not new_data_copy.equals(current_data)
