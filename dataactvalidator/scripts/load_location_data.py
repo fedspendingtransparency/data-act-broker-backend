@@ -195,7 +195,7 @@ def load_city_data(city_file, force_reload):
     # parse the new city code data
     new_data = parse_city_file(city_file)
 
-    diff_found = check_dataframe_diff(new_data, CityCode, ['state_code', 'city_code'], del_cols=['city_code_id'])
+    diff_found = check_dataframe_diff(new_data, CityCode, ['city_code_id'], ['state_code', 'city_code'])
 
     if force_reload or diff_found:
         sess = GlobalDB.db().session
@@ -220,8 +220,7 @@ def load_county_data(county_file, force_reload):
     """
     new_data = parse_county_file(county_file)
 
-    diff_found = check_dataframe_diff(new_data, CountyCode, ['county_number', 'state_code'],
-                                      del_cols=['county_code_id'])
+    diff_found = check_dataframe_diff(new_data, CountyCode, ['county_code_id'], ['county_number', 'state_code'])
 
     if force_reload or diff_found:
         sess = GlobalDB.db().session
@@ -246,7 +245,7 @@ def load_state_data(state_file, force_reload):
     """
     new_data = parse_state_file(state_file)
 
-    diff_found = check_dataframe_diff(new_data, States, ['state_code'], del_cols=['states_id'])
+    diff_found = check_dataframe_diff(new_data, States, ['states_id'], ['state_code'])
 
     if force_reload or diff_found:
         sess = GlobalDB.db().session
@@ -271,7 +270,7 @@ def load_zip_city_data(zip_city_file, force_reload):
     """
     new_data = parse_zip_city_file(zip_city_file)
 
-    diff_found = check_dataframe_diff(new_data, ZipCity, ['zip_code'], del_cols=['zip_city_id'])
+    diff_found = check_dataframe_diff(new_data, ZipCity, ['zip_city_id'], ['zip_code'])
 
     if force_reload or diff_found:
         sess = GlobalDB.db().session

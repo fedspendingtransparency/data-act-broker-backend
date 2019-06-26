@@ -6,14 +6,14 @@ from dataactcore.interfaces.db import GlobalDB
 logger = logging.getLogger(__name__)
 
 
-def check_dataframe_diff(new_data, model, sort_cols, del_cols=None, lambda_funcs=None):
+def check_dataframe_diff(new_data, model, del_cols, sort_cols, lambda_funcs=None):
     """ Checks if 2 dataframes (the new data and the existing data for a model) are different.
 
         Args:
             new_data: dataframe containing the new data to compare
             model: The model to get the existing data from
-            sort_cols: An array containing the columns to sort on
             del_cols: An array containing the columns to delete from the existing data (usually id and foreign keys)
+            sort_cols: An array containing the columns to sort on
             lambda_funcs: An array of tuples (column to update, transformative lambda taking in a row argument)
                           that will be processed in the order provided.
 
@@ -22,8 +22,6 @@ def check_dataframe_diff(new_data, model, sort_cols, del_cols=None, lambda_funcs
     """
     if not lambda_funcs:
         lambda_funcs = {}
-    if not del_cols:
-        del_cols = []
 
     new_data_copy = new_data.copy(deep=True)
 
