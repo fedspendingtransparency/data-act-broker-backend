@@ -71,7 +71,7 @@ def downgrade_data_broker():
     op.drop_index('ix_fsrs_proc_idv_ref_upper', table_name='fsrs_procurement')
     op.drop_index('ix_fsrs_proc_contract_office_aid_upper', table_name='fsrs_procurement')
 
-    op.drop_index('ix_fsrs_asst_fain_upper', table_name='fsrs_grant')
+    op.drop_index('ix_fsrs_grant_fain_upper', table_name='fsrs_grant')
 
     op.drop_index('ix_subaward_award_id_upper', table_name='subaward')
     op.drop_index('ix_subaward_parent_award_id_upper', table_name='subaward')
@@ -92,6 +92,6 @@ def downgrade_data_broker():
     op.drop_index('ix_af_piid_upper', table_name='award_financial')
     op.drop_index('ix_af_parent_award_id_upper', table_name='award_financial')
     op.drop_index('ix_af_uri_upper', table_name='award_financial')
-    op.drop_index('ix_af_fain', table_name='award_financial')
+    op.drop_index('ix_af_fain_upper', table_name='award_financial')
     # ### end Alembic commands ###
 
