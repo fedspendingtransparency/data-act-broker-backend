@@ -6,15 +6,14 @@ from dataactcore.interfaces.db import GlobalDB
 logger = logging.getLogger(__name__)
 
 
-def check_dataframe_diff(new_data, model, id_col, sort_cols, fk_cols=None, lambda_funcs=None):
+def check_dataframe_diff(new_data, model, sort_cols, del_cols=None, lambda_funcs=None):
     """ Checks if 2 dataframes (the new data and the existing data for a model) are different.
 
         Args:
             new_data: dataframe containing the new data to compare
             model: The model to get the existing data from
-            id_col: A string containing the name of the ID column to delete from the existing data
             sort_cols: An array containing the columns to sort on
-            fk_cols: An array containging the foreign key columns to delete from the existing data
+            del_cols: An array containing the columns to delete from the existing data (usually id and foreign keys)
             lambda_funcs: An array of tuples (column to update, transformative lambda taking in a row argument)
                           that will be processed in the order provided.
 
@@ -23,8 +22,8 @@ def check_dataframe_diff(new_data, model, id_col, sort_cols, fk_cols=None, lambd
     """
     if not lambda_funcs:
         lambda_funcs = {}
-    if not fk_cols:
-        fk_cols = []
+    if not del_cols:
+        del_cols = []
 
     new_data_copy = new_data.copy(deep=True)
 
@@ -43,9 +42,10 @@ def check_dataframe_diff(new_data, model, id_col, sort_cols, fk_cols=None, lambd
 
     # Drop the created_at and updated_at for the same reason as above, also drop the pk ID column for this table
     try:
-        current_data.drop([id_col, 'created_at', 'updated_at'] + fk_cols, axis=1, inplace=True)
+        current_data.drop(['created_at', 'updated_at'] + del_cols, axis=1, inplace=True)
     except ValueError:
-        logger.info('id column, fk_columns, created_at, or updated_at not found, drop skipped.')
+        logger.info('created_at, updated_at, or at least one of the columns provided for deletion not found,'
+                    ' drop skipped.')
 
     # pandas comparison requires everything to be in the same order
     new_data_copy.sort_values(by=sort_cols, inplace=True)

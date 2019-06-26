@@ -102,7 +102,7 @@ def load_cgac(file_name, force_reload=False):
     data.drop_duplicates(subset=['cgac_code'], inplace=True)
 
     # compare to existing content in table
-    diff_found = check_dataframe_diff(data, CGAC, 'cgac_id', ['cgac_code'],
+    diff_found = check_dataframe_diff(data, CGAC, ['cgac_code'], del_cols=['cgac_id'],
                                       lambda_funcs=[('agency_abbreviation', extract_abbreviation),
                                                     ('agency_name', extract_name)])
 
@@ -189,7 +189,7 @@ def load_frec(file_name, force_reload=False):
     def extract_cgac(row):
         return cgac_dict_flipped[row['cgac_id']] if row['cgac_id'] in cgac_dict_flipped else np.nan
 
-    diff_found = check_dataframe_diff(data, FREC, 'frec_id', ['frec_code'], fk_cols=['cgac_id'],
+    diff_found = check_dataframe_diff(data, FREC, ['frec_code'], del_cols=['frec_id', 'cgac_id'],
                                       lambda_funcs=[('agency_abbreviation', extract_abbreviation),
                                                     ('agency_name', extract_name),
                                                     ('cgac_code', extract_cgac)])
@@ -293,8 +293,8 @@ def load_sub_tier_agencies(file_name, force_reload=False):
     def extract_frec(row):
         return frec_dict_flipped[row['frec_id']] if row['frec_id'] in frec_dict_flipped else np.nan
 
-    diff_found = check_dataframe_diff(data, SubTierAgency, 'sub_tier_agency_id', ['sub_tier_agency_code'],
-                                      fk_cols=['cgac_id', 'frec_id'],
+    diff_found = check_dataframe_diff(data, SubTierAgency, ['sub_tier_agency_code'],
+                                      del_cols=['sub_tier_agency_id', 'cgac_id', 'frec_id'],
                                       lambda_funcs=[('priority', int_to_float), ('cgac_code', extract_cgac),
                                                     ('frec_code', extract_frec)])
     if force_reload or diff_found:
