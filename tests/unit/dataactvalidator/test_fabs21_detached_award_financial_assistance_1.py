@@ -15,13 +15,14 @@ def test_success(database):
     """ FundingSubTierAgencyCode is an optional field, but when provided
     must be a valid 4-digit sub-tier agency code.  """
 
-    subcode = SubTierAgency(sub_tier_agency_code='0000', cgac_id='1')
+    subcode = SubTierAgency(sub_tier_agency_code='A000', cgac_id='1')
     cgac = CGAC(cgac_id='1', cgac_code='001', agency_name='test')
-    det_award = DetachedAwardFinancialAssistanceFactory(funding_sub_tier_agency_co='0000')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_sub_tier_agency_co=None)
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_sub_tier_agency_co='')
+    det_award = DetachedAwardFinancialAssistanceFactory(funding_sub_tier_agency_co='A000')
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_sub_tier_agency_co='a000')
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_sub_tier_agency_co=None)
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(funding_sub_tier_agency_co='')
 
-    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3, subcode, cgac])
+    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3, det_award_4, subcode, cgac])
     assert errors == 0
 
 

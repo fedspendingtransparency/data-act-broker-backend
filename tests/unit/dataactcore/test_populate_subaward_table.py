@@ -480,6 +480,8 @@ def test_fix_broken_links(database, monkeypatch):
     sess.commit()
 
     parent_duns, duns, dom_country, int_country = reference_data(sess)
+    min_date = '2019-06-06'
+    award_updated_at = '2019-06-07'
 
     # Setup - Grants
     sub = SubmissionFactory(submission_id=1)
@@ -487,7 +489,8 @@ def test_fix_broken_links(database, monkeypatch):
         submission_id=sub.submission_id,
         record_type='2',
         unique_award_key='NON',
-        is_active=True
+        is_active=True,
+        updated_at=award_updated_at
     )
     grant_non = FSRSGrantFactory(
         fain=d2_non.fain,
@@ -510,7 +513,8 @@ def test_fix_broken_links(database, monkeypatch):
         submission_id=sub.submission_id,
         record_type='1',
         unique_award_key='AGG',
-        is_active=True
+        is_active=True,
+        updated_at=award_updated_at
     )
     grant_agg = FSRSGrantFactory(
         fain=d2_agg.fain,
@@ -534,7 +538,8 @@ def test_fix_broken_links(database, monkeypatch):
     d1_awd = DetachedAwardProcurementFactory(
         submission_id=sub.submission_id,
         idv_type=None,
-        unique_award_key='AWD'
+        unique_award_key='AWD',
+        updated_at=award_updated_at
     )
     contract_awd = FSRSProcurementFactory(
         contract_number=d1_awd.piid,
@@ -555,7 +560,8 @@ def test_fix_broken_links(database, monkeypatch):
     d1_idv = DetachedAwardProcurementFactory(
         submission_id=sub.submission_id,
         idv_type='C',
-        unique_award_key='IDV'
+        unique_award_key='IDV',
+        updated_at=award_updated_at
     )
     contract_idv = FSRSProcurementFactory(
         contract_number=d1_idv.piid,
@@ -605,8 +611,8 @@ def test_fix_broken_links(database, monkeypatch):
     sess.add_all([d1_awd, d2_non, d1_idv, d2_agg])
     sess.commit()
 
-    updated_proc_count = fix_broken_links(sess, 'procurement_service')
-    updated_grant_count = fix_broken_links(sess, 'grant_service')
+    updated_proc_count = fix_broken_links(sess, 'procurement_service', min_date=min_date)
+    updated_grant_count = fix_broken_links(sess, 'grant_service', min_date=min_date)
 
     assert updated_proc_count == updated_grant_count == 2
 

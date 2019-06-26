@@ -134,7 +134,8 @@ def generate_unique_string(row):
     ama = row['award_modification_amendme'] if row['award_modification_amendme'] is not None else '-none-'
     fain = row['fain'] if row['fain'] is not None else '-none-'
     uri = row['uri'] if row['uri'] is not None else '-none-'
-    return ama + "_" + astac + "_" + fain + "_" + uri
+    # todo: if we ever need this script again, we have to check if they give us cfda number and add it here
+    return astac + '_' + fain + '_' + uri + '_-none-_' + ama
 
 
 def main():

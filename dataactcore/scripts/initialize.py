@@ -72,7 +72,7 @@ def load_sql_rules():
     LabelLoader.load_labels("validationLabels.csv")
 
 
-def load_domain_value_files(base_path):
+def load_domain_value_files(base_path, force=False):
     """Load domain values (Country codes, Program Activity, Object Class, CFDA)."""
     logger.info('Loading Object Class')
     load_object_class(base_path)
@@ -81,7 +81,7 @@ def load_domain_value_files(base_path):
     logger.info('Loading Program Activity')
     load_program_activity_data(base_path)
     logger.info('Loading Country codes')
-    load_country_codes(base_path)
+    load_country_codes(base_path, force)
 
 
 def load_sf133():
@@ -162,7 +162,7 @@ def main():
     if args.initialize:
         setup_db()
         load_sql_rules()
-        load_domain_value_files(validator_config_path)
+        load_domain_value_files(validator_config_path, args.force)
         load_agency_data(validator_config_path, args.force)
         load_tas_lookup()
         load_sf133()
@@ -183,10 +183,10 @@ def main():
         load_sql_rules()
 
     if args.update_domain:
-        load_domain_value_files(validator_config_path)
+        load_domain_value_files(validator_config_path, args.force)
 
     if args.update_country_codes:
-        load_country_codes(validator_config_path)
+        load_country_codes(validator_config_path, args.force)
 
     if args.update_object_class:
         load_object_class(validator_config_path)

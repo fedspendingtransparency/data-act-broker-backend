@@ -7,15 +7,15 @@ _FILE = 'fabs2_detached_award_financial_assistance_2_1'
 
 def test_column_headers(database):
     expected_subset = {"row_number", "fain", "award_modification_amendme", "uri", "awarding_sub_tier_agency_c",
-                       "correction_delete_indicatr"}
+                       "cfda_number", "correction_delete_indicatr"}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
 
 def test_success(database):
-    """ The combination of FAIN, AwardModificationAmendmentNumber, URI, and AwardingSubTierAgencyCode must be unique
-        from currently published ones unless the record is a correction or deletion
-        (i.e., if CorrectionDeleteIndicator = C or D). Ignores inactive records
+    """ The combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and
+        AwardingSubTierAgencyCode must be unique from currently published ones unless the record is a correction or
+        deletion (i.e., if CorrectionDeleteIndicator = C or D). Ignores inactive records
     """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(afa_generated_unique="ama1asta1fain1uri1",
                                                           correction_delete_indicatr=None)
@@ -45,8 +45,8 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ The combination of FAIN, AwardModificationAmendmentNumber, URI, and AwardingSubTierAgencyCode must be unique
-        from currently published ones unless the record is a correction or deletion
+    """ The combination of FAIN, AwardModificationAmendmentNumber, URI, CFDA_Number, and AwardingSubTierAgencyCode must
+        be unique from currently published ones unless the record is a correction or deletion
         (i.e., if CorrectionDeleteIndicator = C or D).
     """
 
