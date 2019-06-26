@@ -1074,6 +1074,11 @@ class DetachedAwardProcurement(Base):
         super(DetachedAwardProcurement, self).__init__(**clean_kwargs)
 
 
+Index("ix_dap_piid_upper", func.upper(DetachedAwardProcurement.piid))
+Index("ix_dap_parent_award_id_upper", func.upper(DetachedAwardProcurement.parent_award_id))
+Index("ix_dap_awarding_sub_tier_agency_c_upper", func.upper(DetachedAwardProcurement.awarding_sub_tier_agency_c))
+
+
 class DetachedAwardFinancialAssistance(Base):
     """Model for D2-Award (Financial Assistance)."""
     __tablename__ = "detached_award_financial_assistance"
@@ -1261,6 +1266,7 @@ Index("ix_pafa_uri_awarding_sub_tier_is_active",
       PublishedAwardFinancialAssistance.is_active,
       unique=False)
 
+Index("ix_pafa_fain", func.upper(PublishedAwardFinancialAssistance.fain))
 Index("ix_pafa_afa_generated_unique_upper", func.upper(PublishedAwardFinancialAssistance.afa_generated_unique))
 
 
