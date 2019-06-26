@@ -35,8 +35,9 @@ def check_dataframe_diff(new_data, model, del_cols, sort_cols, lambda_funcs=None
     current_data = pd.read_sql_table(model.__table__.name, sess.connection(), coerce_float=False)
 
     # Apply any lambda functions provided to update values if needed
-    for col_name, lambda_func in lambda_funcs:
-        current_data[col_name] = current_data.apply(lambda_func, axis=1)
+    if not current_data.empty:
+        for col_name, lambda_func in lambda_funcs:
+            current_data[col_name] = current_data.apply(lambda_func, axis=1)
 
     # Drop the created_at and updated_at for the same reason as above, also drop the pk ID column for this table
     try:
