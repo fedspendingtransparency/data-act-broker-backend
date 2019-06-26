@@ -19,9 +19,9 @@ WITH aw_dap AS
     WHERE EXISTS (
         SELECT 1
         FROM fsrs_procurement
-        WHERE fsrs_procurement.contract_number = dap.piid
-            AND fsrs_procurement.idv_reference_number IS NOT DISTINCT FROM dap.parent_award_id
-            AND fsrs_procurement.contracting_office_aid = dap.awarding_sub_tier_agency_c
+        WHERE UPPER(fsrs_procurement.contract_number) = UPPER(dap.piid)
+            AND UPPER(fsrs_procurement.idv_reference_number) IS NOT DISTINCT FROM UPPER(dap.parent_award_id)
+            AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(dap.awarding_sub_tier_agency_c)
             AND fsrs_procurement.id {0} {1}
     )
     ORDER BY dap.piid, dap.parent_award_id, dap.awarding_sub_tier_agency_c, dap.action_date)
@@ -309,15 +309,15 @@ FROM fsrs_procurement
     JOIN fsrs_subcontract
         ON fsrs_subcontract.parent_id = fsrs_procurement.id
     LEFT OUTER JOIN aw_dap
-        ON (fsrs_procurement.contract_number = aw_dap.piid
-        AND fsrs_procurement.idv_reference_number IS NOT DISTINCT FROM aw_dap.parent_award_id
-        AND fsrs_procurement.contracting_office_aid = aw_dap.awarding_sub_tier_agency_c)
+        ON (UPPER(fsrs_procurement.contract_number) = UPPER(aw_dap.piid)
+        AND UPPER(fsrs_procurement.idv_reference_number) IS NOT DISTINCT FROM UPPER(aw_dap.parent_award_id)
+        AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(aw_dap.awarding_sub_tier_agency_c))
     LEFT OUTER JOIN country_code AS le_country
-        ON fsrs_procurement.company_address_country = le_country.country_code
+        ON UPPER(fsrs_procurement.company_address_country) = UPPER(le_country.country_code)
     LEFT OUTER JOIN country_code AS ppop_country
-        ON fsrs_procurement.principle_place_country = ppop_country.country_code
+        ON UPPER(fsrs_procurement.principle_place_country) = UPPER(ppop_country.country_code)
     LEFT OUTER JOIN country_code AS sub_le_country
-        ON fsrs_subcontract.company_address_country = sub_le_country.country_code
+        ON UPPER(fsrs_subcontract.company_address_country) = UPPER(sub_le_country.country_code)
     LEFT OUTER JOIN country_code AS sub_ppop_country
-        ON fsrs_subcontract.principle_place_country = sub_ppop_country.country_code
+        ON UPPER(fsrs_subcontract.principle_place_country) = UPPER(sub_ppop_country.country_code)
 WHERE fsrs_procurement.id {0} {1}
