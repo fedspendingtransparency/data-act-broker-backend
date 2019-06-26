@@ -13,15 +13,16 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Unique PIID, or combination of PIID/ParentAwardId, from file C exists in file D1 during the same reporting
-        period. Do not process if allocation transfer agency is not null and does not match agency ID """
+        period. Do not process if allocation transfer agency is not null and does not match agency ID.
+    """
 
-    af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
+    af = AwardFinancialFactory(piid='some_pIId', parent_award_id='some_parent_award_id',
                                allocation_transfer_agency=None, transaction_obligated_amou='12345')
     ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id')
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 0
 
-    af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
+    af = AwardFinancialFactory(piid='some_pIId', parent_award_id='some_parent_award_id',
                                allocation_transfer_agency=None, transaction_obligated_amou='12345')
     ap_1 = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id')
     ap_2 = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id')
@@ -34,14 +35,14 @@ def test_success(database):
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 0
 
-    af = AwardFinancialFactory(piid='some_piid', parent_award_id=None, allocation_transfer_agency=None,
+    af = AwardFinancialFactory(piid='some_pIId', parent_award_id=None, allocation_transfer_agency=None,
                                transaction_obligated_amou='12345')
     ap = AwardProcurementFactory(piid='some_piid', parent_award_id=None)
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 0
 
     # Not perform when no transaction obligated amount value in the field
-    af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
+    af = AwardFinancialFactory(piid='some_pIId', parent_award_id='some_parent_award_id',
                                allocation_transfer_agency=None, transaction_obligated_amou=None)
     ap = AwardProcurementFactory(piid='some_other_piid', parent_award_id='some_parent_award_id')
 
@@ -50,13 +51,13 @@ def test_success(database):
     # Not perform when no transaction obligated amount value in the field
     af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
                                allocation_transfer_agency=None, transaction_obligated_amou=None)
-    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_other_parent_award_id')
+    ap = AwardProcurementFactory(piid='some_pIId', parent_award_id='some_other_parent_award_id')
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 0
 
     af = AwardFinancialFactory(piid=None, parent_award_id=None, allocation_transfer_agency=None,
                                transaction_obligated_amou='12345')
-    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_other_parent_award_id')
+    ap = AwardProcurementFactory(piid='some_pIId', parent_award_id='some_other_parent_award_id')
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 0
 
@@ -64,17 +65,18 @@ def test_success(database):
     af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
                                allocation_transfer_agency='good', agency_identifier='red',
                                transaction_obligated_amou='12345')
-    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_other_parent_award_id')
+    ap = AwardProcurementFactory(piid='some_pIId', parent_award_id='some_other_parent_award_id')
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 0
 
 
 def test_failure(database):
     """ Test failure for unique PIID, or combination of PIID/ParentAwardId, from file C exists in file D1 during the
-        same reporting period. Do not process if allocation transfer agency is not null and does not match agency ID """
+        same reporting period. Do not process if allocation transfer agency is not null and does not match agency ID.
+    """
 
     # Perform when there's a transaction obligated amount value in the field
-    af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
+    af = AwardFinancialFactory(piid='some_pIId', parent_award_id='some_parent_award_id',
                                allocation_transfer_agency=None, transaction_obligated_amou='12345')
     ap = AwardProcurementFactory(piid='some_other_piid', parent_award_id='some_parent_award_id')
 
@@ -84,7 +86,7 @@ def test_failure(database):
     af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
                                allocation_transfer_agency='bad', agency_identifier='bad',
                                transaction_obligated_amou='12345')
-    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_other_parent_award_id')
+    ap = AwardProcurementFactory(piid='some_pIId', parent_award_id='some_other_parent_award_id')
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 1
 

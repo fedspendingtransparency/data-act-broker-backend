@@ -24,7 +24,7 @@ unioned_financial_procurement_c11_{0} AS
         AND NOT EXISTS (
             SELECT 1
             FROM award_procurement_c11_{0} AS ap
-            WHERE ap.piid = af1.piid
+            WHERE UPPER(ap.piid) = UPPER(af1.piid)
         )
     UNION
     SELECT piid,
@@ -34,7 +34,7 @@ unioned_financial_procurement_c11_{0} AS
         AND NOT EXISTS (
             SELECT 1
             FROM award_procurement_c11_{0} AS ap
-            WHERE ap.piid = af2.piid
+            WHERE UPPER(ap.piid) = UPPER(af2.piid)
                 AND COALESCE(ap.parent_award_id, '') = COALESCE(af2.parent_award_id, '')
         ))
 SELECT
@@ -54,6 +54,6 @@ WHERE af.transaction_obligated_amou IS NOT NULL
     AND EXISTS (
         SELECT 1
         FROM unioned_financial_procurement_c11_{0} AS ufc
-        WHERE af.piid = ufc.piid
+        WHERE UPPER(af.piid) = UPPER(ufc.piid)
             AND COALESCE(af.parent_award_id, '') = COALESCE(ufc.parent_award_id, '')
     );
