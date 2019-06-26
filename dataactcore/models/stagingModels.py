@@ -210,10 +210,6 @@ Index("ix_award_financial_tas_oc_pa",
       AwardFinancial.object_class,
       AwardFinancial.program_activity_code,
       unique=False)
-Index("ix_af_piid_upper", func.upper(AwardFinancial.piid))
-Index("ix_af_parent_award_id_upper", func.upper(AwardFinancial.parent_award_id))
-Index("ix_af_fain_upper", func.upper(AwardFinancial.fain))
-Index("ix_af_uri_upper", func.upper(AwardFinancial.uri))
 
 
 class CertifiedAppropriation(Base):
@@ -481,9 +477,6 @@ class AwardFinancialAssistance(Base):
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(AwardFinancialAssistance, self).__init__(**clean_kwargs)
-
-
-Index("ix_afa_fain_upper", func.upper(AwardFinancialAssistance.fain))
 
 
 class AwardProcurement(Base):
@@ -768,11 +761,6 @@ class AwardProcurement(Base):
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(AwardProcurement, self).__init__(**clean_kwargs)
-
-
-Index("ix_ap_piid_upper", func.upper(AwardProcurement.piid))
-Index("ix_ap_parent_award_id_upper", func.upper(AwardProcurement.parent_award_id))
-Index("ix_ap_awarding_sub_tier_agency_c_upper", func.upper(AwardProcurement.awarding_sub_tier_agency_c))
 
 
 class DetachedAwardProcurement(Base):
@@ -1278,7 +1266,7 @@ Index("ix_pafa_uri_awarding_sub_tier_is_active",
       PublishedAwardFinancialAssistance.is_active,
       unique=False)
 
-Index("ix_pafa_fain_upper", func.upper(PublishedAwardFinancialAssistance.fain))
+Index("ix_pafa_fain", func.upper(PublishedAwardFinancialAssistance.fain))
 Index("ix_pafa_afa_generated_unique_upper", func.upper(PublishedAwardFinancialAssistance.afa_generated_unique))
 
 
