@@ -7,25 +7,25 @@ WITH award_financial_c23_2_{0} AS
     allocation_transfer_agency,
     agency_identifier,
     transaction_obligated_amou,
-    parent_award_id
+    UPPER(parent_award_id) AS parent_award_id
     FROM award_financial
     WHERE submission_id = {0}),
 -- gather the grouped sum from the previous WITH (we need both so we can do the NOT EXISTS later)
 award_financial_grouped_c23_2_{0} AS
     (SELECT UPPER(piid) AS piid,
-    parent_award_id,
+    UPPER(parent_award_id) AS parent_award_id,
         COALESCE(SUM(transaction_obligated_amou), 0) AS sum_ob_amount
     FROM award_financial_c23_2_{0}
-    GROUP BY parent_award_id,
+    GROUP BY UPPER(parent_award_id),
         UPPER(piid)),
 -- gather the grouped sum for award procurement data
 award_procurement_c23_2_{0} AS
     (SELECT UPPER(piid) AS piid,
-    parent_award_id,
+    UPPER(parent_award_id) AS parent_award_id,
         COALESCE(SUM(federal_action_obligation), 0) AS sum_fed_amount
     FROM award_procurement
     WHERE submission_id = {0}
-    GROUP BY parent_award_id,
+    GROUP BY UPPER(parent_award_id),
         UPPER(piid))
 SELECT
     NULL AS row_number,

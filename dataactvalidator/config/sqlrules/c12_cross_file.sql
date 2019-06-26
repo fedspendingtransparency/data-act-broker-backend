@@ -23,5 +23,5 @@ WHERE ap.piid IS NOT NULL
         SELECT 1
         FROM award_financial_c12_{0} AS af
         WHERE UPPER(af.piid) = UPPER(ap.piid)
-            AND af.parent_award_id IS NOT DISTINCT FROM ap.parent_award_id
+            AND UPPER(af.parent_award_id) IS NOT DISTINCT FROM UPPER(ap.parent_award_id)
     );

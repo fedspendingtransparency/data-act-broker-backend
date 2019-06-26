@@ -16,13 +16,13 @@ def test_success(database):
         with zero FederalActionObligation.
     """
 
-    ap = AwardProcurementFactory(piid='some_pIId', parent_award_id='some_parent_award_id', federal_action_obligation=1)
-    af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id')
+    ap = AwardProcurementFactory(piid='some_pIId', parent_award_id='some_PArent_award_id', federal_action_obligation=1)
+    af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_AWard_id')
 
     assert number_of_errors(_FILE, database, models=[ap, af]) == 0
 
     # Rule shouldn't be checked if federal_action_obligation is null
-    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id',
+    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_PArent_award_id',
                                  federal_action_obligation=None)
 
     assert number_of_errors(_FILE, database, models=[ap]) == 0
@@ -39,12 +39,12 @@ def test_failure(database):
         except D1 records with zero FederalActionObligation.
     """
 
-    ap = AwardProcurementFactory(piid='some_pIId', parent_award_id='some_parent_award_id', federal_action_obligation=1)
-    af = AwardFinancialFactory(piid='some_other_piid', parent_award_id='some_parent_award_id')
+    ap = AwardProcurementFactory(piid='some_pIId', parent_award_id='some_parent_AWArd_id', federal_action_obligation=1)
+    af = AwardFinancialFactory(piid='some_other_piid', parent_award_id='some_pARent_award_id')
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 1
 
-    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id', federal_action_obligation=1)
-    af = AwardFinancialFactory(piid='some_pIId', parent_award_id='some_other_parent_award_id')
+    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_Parent_award_id', federal_action_obligation=1)
+    af = AwardFinancialFactory(piid='some_pIId', parent_award_id='some_other_parenT_award_id')
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 1
