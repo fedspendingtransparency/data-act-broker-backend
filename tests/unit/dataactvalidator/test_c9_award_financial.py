@@ -27,9 +27,9 @@ def test_equal_fain(database):
 def test_equal_uri(database):
     """ Tests that File D2 (award financial assistance) uri matches File C (award financial) uri. """
     tas = _TAS
-    afa = AwardFinancialAssistanceFactory(tas=tas, fain=None, uri='xyz', federal_action_obligation=1,
+    afa = AwardFinancialAssistanceFactory(tas=tas, fain=None, uri='xYz', federal_action_obligation=1,
                                           original_loan_subsidy_cost='1')
-    af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=None, uri=afa.uri)
+    af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=None, uri=afa.uri.lower())
 
     errors = number_of_errors(_FILE, database, models=[afa, af])
     assert errors == 0
@@ -51,9 +51,9 @@ def test_null_uri_fain(database):
 def test_both_fain_and_url_supplied(database):
     """ Tests File D2 (award financial assistance) having both uri and fain populated. """
     tas = _TAS
-    afa = AwardFinancialAssistanceFactory(tas=tas, fain='aBc', uri='xyz', federal_action_obligation=1,
+    afa = AwardFinancialAssistanceFactory(tas=tas, fain='aBc', uri='xYz', federal_action_obligation=1,
                                           original_loan_subsidy_cost='1')
-    af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=afa.fain.lower(), uri=afa.uri)
+    af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=afa.fain.lower(), uri=afa.uri.lower())
 
     errors = number_of_errors(_FILE, database, models=[afa, af])
     assert errors == 0

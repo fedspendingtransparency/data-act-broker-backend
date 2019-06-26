@@ -28,7 +28,7 @@ def test_equal_uri(database):
     """ Tests that File C (award financial) uri matches File D2 (award financial assistance) uri. """
     tas = _TAS
     af = AwardFinancialFactory(tas=tas, fain=None, uri='xyz', allocation_transfer_agency=None)
-    afa = AwardFinancialAssistanceFactory(tas=tas, submisson_id=af.submission_id, fain=None, uri='xyz',
+    afa = AwardFinancialAssistanceFactory(tas=tas, submisson_id=af.submission_id, fain=None, uri='xYz',
                                           allocation_transfer_agency=None)
 
     errors = number_of_errors(_FILE, database, models=[af, afa])
@@ -52,7 +52,7 @@ def test_both_fain_and_url_supplied(database):
     """ Tests File C (award financial) having both uri and fain populated. """
     tas = _TAS
     af = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency=None)
-    afa = AwardFinancialAssistanceFactory(tas=tas, submisson_id=af.submission_id, fain='aBc', uri='xyz',
+    afa = AwardFinancialAssistanceFactory(tas=tas, submisson_id=af.submission_id, fain='aBc', uri='xYz',
                                           allocation_transfer_agency=None)
 
     errors = number_of_errors(_FILE, database, models=[af, afa])

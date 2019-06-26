@@ -25,11 +25,12 @@ def test_success(database):
 
     # Simple sum
     af_1_row_1 = AwardFinancialFactory(transaction_obligated_amou=1100, uri=uri_1, allocation_transfer_agency=None)
-    af_1_row_2 = AwardFinancialFactory(transaction_obligated_amou=11, uri=uri_1, allocation_transfer_agency=None)
+    af_1_row_2 = AwardFinancialFactory(transaction_obligated_amou=11, uri=uri_1.lower(),
+                                       allocation_transfer_agency=None)
     # Non-ignored rows with a matching ATA/AID
     af_2_row_1 = AwardFinancialFactory(transaction_obligated_amou=9900, uri=uri_2, allocation_transfer_agency=None)
-    af_2_row_2 = AwardFinancialFactory(transaction_obligated_amou=99, uri=uri_2, allocation_transfer_agency="good",
-                                       agency_identifier="good")
+    af_2_row_2 = AwardFinancialFactory(transaction_obligated_amou=99, uri=uri_2.lower(),
+                                       allocation_transfer_agency="good", agency_identifier="good")
     # Ignored row with non-matching ATA/AID
     af_3 = AwardFinancialFactory(transaction_obligated_amou=8888, uri=uri_3, allocation_transfer_agency="good",
                                  agency_identifier="bad")
@@ -67,7 +68,8 @@ def test_failure(database):
 
     # Simple addition that doesn't add up right
     af_1_row_1 = AwardFinancialFactory(transaction_obligated_amou=1100, uri=uri_1, allocation_transfer_agency=None)
-    af_1_row_2 = AwardFinancialFactory(transaction_obligated_amou=11, uri=uri_1, allocation_transfer_agency=None)
+    af_1_row_2 = AwardFinancialFactory(transaction_obligated_amou=11, uri=uri_1.lower(),
+                                       allocation_transfer_agency=None)
     # Incorrect addition based on assistance type in AFA
     af_2 = AwardFinancialFactory(transaction_obligated_amou=9999, uri=uri_2, allocation_transfer_agency=None)
     # Don't ignore when ATA and AID match

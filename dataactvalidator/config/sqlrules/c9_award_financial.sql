@@ -38,5 +38,5 @@ WHERE ((afa.assistance_type NOT IN ('07', '08')
         SELECT 1
         FROM award_financial_c9_{0} AS af
         WHERE UPPER(COALESCE(afa.fain, '')) = UPPER(COALESCE(af.fain, ''))
-            AND COALESCE(afa.uri, '') = COALESCE(af.uri, '')
+            AND UPPER(COALESCE(afa.uri, '')) = UPPER(COALESCE(af.uri, ''))
     );
