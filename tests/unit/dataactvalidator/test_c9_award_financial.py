@@ -16,9 +16,9 @@ def test_column_headers(database):
 def test_equal_fain(database):
     """ Tests that File D2 (award financial assistance) fain matches File C (award financial) fain. """
     tas = _TAS
-    afa = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=1,
+    afa = AwardFinancialAssistanceFactory(tas=tas, fain='aBc', uri=None, federal_action_obligation=1,
                                           original_loan_subsidy_cost='1')
-    af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=afa.fain, uri=None)
+    af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=afa.fain.lower(), uri=None)
 
     errors = number_of_errors(_FILE, database, models=[afa, af])
     assert errors == 0
@@ -37,7 +37,8 @@ def test_equal_uri(database):
 
 def test_null_uri_fain(database):
     """ Tests File D2 (award financial assistance) and File C (award financial)
-        having NULL values for both fain and uri. """
+        having NULL values for both fain and uri.
+    """
     tas = _TAS
     afa = AwardFinancialAssistanceFactory(tas=tas, fain=None, uri=None, federal_action_obligation=1,
                                           original_loan_subsidy_cost='1')
@@ -50,9 +51,9 @@ def test_null_uri_fain(database):
 def test_both_fain_and_url_supplied(database):
     """ Tests File D2 (award financial assistance) having both uri and fain populated. """
     tas = _TAS
-    afa = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri='xyz', federal_action_obligation=1,
+    afa = AwardFinancialAssistanceFactory(tas=tas, fain='aBc', uri='xyz', federal_action_obligation=1,
                                           original_loan_subsidy_cost='1')
-    af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=afa.fain, uri=afa.uri)
+    af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=afa.fain.lower(), uri=afa.uri)
 
     errors = number_of_errors(_FILE, database, models=[afa, af])
     assert errors == 0
@@ -81,7 +82,7 @@ def test_unequal_uri(database):
 
 
 def test_unequal_fain_null(database):
-    """Tests non-NULL File D2 (award financial assistance) fain compared to a NULL fain in File C (award financial)."""
+    """ Tests non-NULL File D2 (award financial assistance) fain compared to NULL fain in File C (award financial). """
     tas = _TAS
     afa = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=1,
                                           original_loan_subsidy_cost='1')
@@ -103,8 +104,9 @@ def test_unequal_uri_null(database):
 
 
 def test_zero_federal_action_obligation_and_original_loan_subsidy_cost(database):
-    """ Tests that a single warning is thrown for both a federal action obligation of 0
-        and an original loan subsidy cost of 0 """
+    """ Tests that a single warning is thrown for both a federal action obligation of 0 and an original loan subsidy
+        cost of 0.
+    """
     tas = _TAS
     afa = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=0,
                                           original_loan_subsidy_cost='0')
@@ -115,13 +117,14 @@ def test_zero_federal_action_obligation_and_original_loan_subsidy_cost(database)
 
 
 def test_ignored_and_failed_federal_action_obligation_values(database):
-    """ Tests that a single warning is thrown for both a federal action obligation of 0
-        and an original loan subsidy cost of 0 """
+    """ Tests that a single warning is thrown for both a federal action obligation of 0 and an original loan subsidy
+        cost of 0.
+    """
 
     tas = _TAS
     afa = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=0,
                                           original_loan_subsidy_cost='1', assistance_type='08')
-    afa_2 = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=2,
+    afa_2 = AwardFinancialAssistanceFactory(tas=tas, fain='aBc', uri=None, federal_action_obligation=2,
                                             original_loan_subsidy_cost='1', assistance_type='09')
     af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=None, uri=None)
 
@@ -138,15 +141,16 @@ def test_ignored_and_failed_federal_action_obligation_values(database):
 
 
 def test_ignored_and_failed_original_loan_subsidy_cost_values(database):
-    """ Tests that a single warning is thrown for both a federal action obligation of 0
-        and an original loan subsidy cost of 0 """
+    """ Tests that a single warning is thrown for both a federal action obligation of 0 and an original loan subsidy
+        cost of 0.
+    """
 
     tas = _TAS
     afa = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=1,
                                           original_loan_subsidy_cost='0', assistance_type='09')
-    afa_2 = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=1,
+    afa_2 = AwardFinancialAssistanceFactory(tas=tas, fain='aBc', uri=None, federal_action_obligation=1,
                                             original_loan_subsidy_cost='-2.3', assistance_type='09')
-    afa_3 = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=1,
+    afa_3 = AwardFinancialAssistanceFactory(tas=tas, fain='abC', uri=None, federal_action_obligation=1,
                                             original_loan_subsidy_cost='2.3', assistance_type='08')
     af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=None, uri=None)
 
@@ -156,7 +160,7 @@ def test_ignored_and_failed_original_loan_subsidy_cost_values(database):
     # Test that this is ignored if assistance type is 08
     afa = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=1,
                                           original_loan_subsidy_cost='0', assistance_type='08')
-    afa_2 = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=1,
+    afa_2 = AwardFinancialAssistanceFactory(tas=tas, fain='aBc', uri=None, federal_action_obligation=1,
                                             original_loan_subsidy_cost='-2.3', assistance_type='08')
     af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=None, uri=None)
 
