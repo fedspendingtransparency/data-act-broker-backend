@@ -80,7 +80,7 @@ def derive_awarding_agency_data(obj, sub_tier_dict, office_dict):
     # If we have an office code (provided or derived), we can use that to get the names for the sub and top tiers and
     # the code for the top tier
     if obj['awarding_sub_tier_agency_c']:
-        sub_tier = sub_tier_dict.get(obj['awarding_sub_tier_agency_c'])
+        sub_tier = sub_tier_dict.get(obj['awarding_sub_tier_agency_c'].upper())
         obj['awarding_agency_code'] = sub_tier["frec_code"] if sub_tier["is_frec"] else sub_tier["cgac_code"]
         obj['awarding_agency_name'] = sub_tier["agency_name"]
         obj['awarding_sub_tier_agency_n'] = sub_tier["sub_tier_agency_name"]
@@ -104,7 +104,7 @@ def derive_funding_agency_data(obj, sub_tier_dict, office_dict):
         obj['funding_sub_tier_agency_co'] = office['sub_tier_code']
 
     if obj['funding_sub_tier_agency_co']:
-        sub_tier = sub_tier_dict.get(obj['funding_sub_tier_agency_co'])
+        sub_tier = sub_tier_dict.get(obj['funding_sub_tier_agency_co'].upper())
         obj['funding_agency_code'] = sub_tier["frec_code"] if sub_tier["is_frec"] else sub_tier["cgac_code"]
         obj['funding_agency_name'] = sub_tier["agency_name"]
         obj['funding_sub_tier_agency_na'] = sub_tier["sub_tier_agency_name"]
@@ -267,30 +267,31 @@ def derive_office_data(obj, office_dict, sess):
     if not obj['awarding_office_code'] or not obj['funding_office_code']:
         first_transaction = None
         pafa = PublishedAwardFinancialAssistance
+        awarding_sub_code = obj['awarding_sub_tier_agency_c'].upper() if obj['awarding_sub_tier_agency_c'] else None
         if obj['record_type'] == 1:
             # Get the minimum action date for this uri/AwardingSubTierCode combo
             min_action_date = sess.query(func.min(pafa.action_date).label("min_date")). \
-                filter(pafa.uri == obj['uri'], pafa.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
+                filter(pafa.uri == obj['uri'], func.upper(pafa.awarding_sub_tier_agency_c) == awarding_sub_code,
                        pafa.is_active.is_(True), pafa.record_type == 1).one()
             # If we have a minimum action date, get the office codes for the first entry that matches it
             if min_action_date.min_date:
                 first_transaction = sess.query(pafa.awarding_office_code, pafa.funding_office_code,
                                                pafa.award_modification_amendme).\
                     filter(pafa.uri == obj['uri'], pafa.is_active.is_(True),
-                           pafa.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
+                           func.upper(pafa.awarding_sub_tier_agency_c) == awarding_sub_code,
                            func.cast_as_date(pafa.action_date) == min_action_date.min_date,
                            pafa.record_type == 1).first()
         else:
             # Get the minimum action date for this fain/AwardingSubTierCode combo
             min_action_date = sess.query(func.min(func.cast(pafa.action_date, DATE)).label("min_date")).\
-                filter(pafa.fain == obj['fain'], pafa.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
+                filter(pafa.fain == obj['fain'], func.upper(pafa.awarding_sub_tier_agency_c) == awarding_sub_code,
                        pafa.is_active.is_(True), pafa.record_type != 1).one()
             # If we have a minimum action date, get the office codes for the first entry that matches it
             if min_action_date.min_date:
                 first_transaction = sess.query(pafa.awarding_office_code, pafa.funding_office_code,
                                                pafa.award_modification_amendme).\
                     filter(pafa.fain == obj['fain'], pafa.is_active.is_(True),
-                           pafa.awarding_sub_tier_agency_c == obj['awarding_sub_tier_agency_c'],
+                           func.upper(pafa.awarding_sub_tier_agency_c) == awarding_sub_code,
                            func.cast_as_date(pafa.action_date) == min_action_date.min_date,
                            pafa.record_type != 1).first()
 

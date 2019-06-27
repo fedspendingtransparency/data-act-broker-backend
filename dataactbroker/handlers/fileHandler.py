@@ -661,7 +661,7 @@ class FileHandler:
 
             sub_tiers = sess.query(SubTierAgency).all()
             for sub_tier in sub_tiers:
-                sub_tier_dict[sub_tier.sub_tier_agency_code] = {
+                sub_tier_dict[sub_tier.sub_tier_agency_code.upper()] = {
                     "is_frec": sub_tier.is_frec,
                     "cgac_code": sub_tier.cgac.cgac_code,
                     "frec_code": sub_tier.frec.frec_code,
