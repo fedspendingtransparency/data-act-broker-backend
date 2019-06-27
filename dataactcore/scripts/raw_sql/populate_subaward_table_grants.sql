@@ -1,6 +1,6 @@
 WITH aw_pafa AS
     (SELECT DISTINCT ON (
-            pafa.fain
+            UPPER(pafa.fain)
         )
         pafa.fain AS fain,
         pafa.uri AS uri,
@@ -25,10 +25,10 @@ WITH aw_pafa AS
         AND EXISTS (
             SELECT 1
             FROM fsrs_grant
-            WHERE fsrs_grant.fain = pafa.fain
+            WHERE UPPER(fsrs_grant.fain) = UPPER(pafa.fain)
                 AND fsrs_grant.id {0} {1}
         )
-    ORDER BY pafa.fain, pafa.action_date),
+    ORDER BY UPPER(pafa.fain), pafa.action_date),
 grant_pduns AS
     (SELECT grand_pduns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
         grand_pduns_from.legal_business_name AS legal_business_name
@@ -369,15 +369,15 @@ FROM fsrs_grant
     JOIN fsrs_subgrant
         ON fsrs_subgrant.parent_id = fsrs_grant.id
     LEFT OUTER JOIN aw_pafa
-        ON fsrs_grant.fain = aw_pafa.fain
+        ON UPPER(fsrs_grant.fain) = UPPER(aw_pafa.fain)
     LEFT OUTER JOIN country_code AS le_country
-        ON fsrs_grant.awardee_address_country = le_country.country_code
+        ON UPPER(fsrs_grant.awardee_address_country) = UPPER(le_country.country_code)
     LEFT OUTER JOIN country_code AS ppop_country
-        ON fsrs_grant.principle_place_country = ppop_country.country_code
+        ON UPPER(fsrs_grant.principle_place_country) = UPPER(ppop_country.country_code)
     LEFT OUTER JOIN country_code AS sub_le_country
-        ON fsrs_subgrant.awardee_address_country = sub_le_country.country_code
+        ON UPPER(fsrs_subgrant.awardee_address_country) = UPPER(sub_le_country.country_code)
     LEFT OUTER JOIN country_code AS sub_ppop_country
-        ON fsrs_subgrant.principle_place_country = sub_ppop_country.country_code
+        ON UPPER(fsrs_subgrant.principle_place_country) = UPPER(sub_ppop_country.country_code)
     LEFT OUTER JOIN grant_pduns
         ON fsrs_grant.parent_duns = grant_pduns.awardee_or_recipient_uniqu
     LEFT OUTER JOIN subgrant_pduns
