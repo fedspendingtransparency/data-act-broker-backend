@@ -17,25 +17,25 @@ award_procurement_c11_{0} AS
     WHERE submission_id = {0}),
 -- perform a union so we can have both of these conditions checked without using an OR
 unioned_financial_procurement_c11_{0} AS
-    (SELECT piid,
-        parent_award_id
+    (SELECT UPPER(piid) AS piid,
+        UPPER(parent_award_id) AS parent_award_id
     FROM award_financial_c11_{0} AS af1
     WHERE af1.parent_award_id IS NULL
         AND NOT EXISTS (
             SELECT 1
             FROM award_procurement_c11_{0} AS ap
-            WHERE ap.piid = af1.piid
+            WHERE UPPER(ap.piid) = UPPER(af1.piid)
         )
     UNION
-    SELECT piid,
-        parent_award_id
+    SELECT UPPER(piid) AS piid,
+        UPPER(parent_award_id) AS parent_award_id
     FROM award_financial_c11_{0} AS af2
     WHERE af2.parent_award_id IS NOT NULL
         AND NOT EXISTS (
             SELECT 1
             FROM award_procurement_c11_{0} AS ap
-            WHERE ap.piid = af2.piid
-                AND COALESCE(ap.parent_award_id, '') = COALESCE(af2.parent_award_id, '')
+            WHERE UPPER(ap.piid) = UPPER(af2.piid)
+                AND UPPER(COALESCE(ap.parent_award_id, '')) = UPPER(COALESCE(af2.parent_award_id, ''))
         ))
 SELECT
     af.row_number,
@@ -54,6 +54,6 @@ WHERE af.transaction_obligated_amou IS NOT NULL
     AND EXISTS (
         SELECT 1
         FROM unioned_financial_procurement_c11_{0} AS ufc
-        WHERE af.piid = ufc.piid
-            AND COALESCE(af.parent_award_id, '') = COALESCE(ufc.parent_award_id, '')
+        WHERE UPPER(af.piid) = ufc.piid
+            AND UPPER(COALESCE(af.parent_award_id, '')) = COALESCE(ufc.parent_award_id, '')
     );
