@@ -35,7 +35,7 @@ aw_dap AS
             AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) = UPPER(dap.awarding_sub_tier_agency_c)
         )
         {0}
-    ORDER BY dap.piid, dap.parent_award_id, dap.awarding_sub_tier_agency_c, dap.action_date)
+    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date)
 UPDATE subaward
 SET
     unique_award_key = aw_dap.unique_award_key,

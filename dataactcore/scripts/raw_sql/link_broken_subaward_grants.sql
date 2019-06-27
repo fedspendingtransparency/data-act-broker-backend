@@ -37,7 +37,7 @@ aw_pafa AS
             WHERE UPPER(unlinked_subs.award_id) = UPPER(pafa.fain)
         )
         {0}
-    ORDER BY pafa.fain, pafa.action_date)
+    ORDER BY UPPER(pafa.fain), pafa.action_date)
 UPDATE subaward
 SET
     -- File F Prime Awards

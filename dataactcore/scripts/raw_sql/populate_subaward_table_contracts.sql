@@ -1,8 +1,8 @@
 WITH aw_dap AS
     (SELECT DISTINCT ON (
-            dap.piid,
-            dap.parent_award_id,
-            dap.awarding_sub_tier_agency_c
+            UPPER(dap.piid),
+            UPPER(dap.parent_award_id),
+            UPPER(dap.awarding_sub_tier_agency_c)
         )
         dap.unique_award_key AS unique_award_key,
         dap.piid AS piid,
@@ -24,7 +24,7 @@ WITH aw_dap AS
             AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(dap.awarding_sub_tier_agency_c)
             AND fsrs_procurement.id {0} {1}
     )
-    ORDER BY dap.piid, dap.parent_award_id, dap.awarding_sub_tier_agency_c, dap.action_date)
+    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date)
 INSERT INTO subaward (
     "unique_award_key",
     "award_id",

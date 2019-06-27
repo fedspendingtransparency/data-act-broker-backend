@@ -1,6 +1,6 @@
 WITH aw_pafa AS
     (SELECT DISTINCT ON (
-            pafa.fain
+            UPPER(pafa.fain)
         )
         pafa.fain AS fain,
         pafa.uri AS uri,
@@ -28,7 +28,7 @@ WITH aw_pafa AS
             WHERE UPPER(fsrs_grant.fain) = UPPER(pafa.fain)
                 AND fsrs_grant.id {0} {1}
         )
-    ORDER BY pafa.fain, pafa.action_date),
+    ORDER BY UPPER(pafa.fain), pafa.action_date),
 grant_pduns AS
     (SELECT grand_pduns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
         grand_pduns_from.legal_business_name AS legal_business_name
