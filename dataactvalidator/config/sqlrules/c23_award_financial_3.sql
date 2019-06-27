@@ -4,20 +4,20 @@
 -- modifications. This rule does not apply if the ATA field is populated and is different from the Agency ID.
 WITH award_financial_c23_3_{0} AS
     (SELECT transaction_obligated_amou,
-        fain,
+        UPPER(fain) AS fain,
         allocation_transfer_agency,
         agency_identifier
     FROM award_financial
     WHERE submission_id = {0}),
 -- gather the grouped sum from the previous WITH (we need both so we can do the NOT EXISTS later)
 award_financial_grouped_c23_3_{0} AS
-    (SELECT fain,
+    (SELECT UPPER(fain) AS fain,
         COALESCE(SUM(transaction_obligated_amou), 0) AS sum_ob_amount
     FROM award_financial_c23_3_{0}
-    GROUP BY fain),
+    GROUP BY UPPER(fain)),
 -- gather the grouped sum for award financial assistance data
 award_financial_assistance_c23_3_{0} AS
-    (SELECT fain,
+    (SELECT UPPER(fain) AS fain,
         COALESCE(SUM(CASE WHEN COALESCE(assistance_type, '') IN ('07', '08')
                         THEN original_loan_subsidy_cost::NUMERIC
                         ELSE 0
@@ -28,7 +28,7 @@ award_financial_assistance_c23_3_{0} AS
                     END), 0) AS sum_fed_act_ob_amount
     FROM award_financial_assistance
     WHERE submission_id = {0}
-    GROUP BY fain)
+    GROUP BY UPPER(fain))
 SELECT
     NULL AS row_number,
     af.fain,
