@@ -147,7 +147,7 @@ def derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code, county_dict
             ppop_state_code: state code from the place of performance code
             county_dict: a dictionary containing all the data for County objects keyed by state code + county number
     """
-    if obj['place_of_performance_zip4a'] and obj['place_of_performance_zip4a'] != 'city-wide':
+    if obj['place_of_performance_zip4a'] and obj['place_of_performance_zip4a'].upper() != 'CITY-WIDE':
         zip_five = obj['place_of_performance_zip4a'][:5]
         zip_four = None
 
@@ -166,7 +166,8 @@ def derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code, county_dict
 
         # deriving PrimaryPlaceOfPerformanceCountyName/Code
         obj['place_of_perform_county_co'] = zip_info.county_number
-        obj['place_of_perform_county_na'] = county_dict.get(zip_info.state_abbreviation + zip_info.county_number)
+        obj['place_of_perform_county_na'] = county_dict.get(zip_info.state_abbreviation.upper() +
+                                                            zip_info.county_number)
 
         # deriving PrimaryPlaceOfPerformanceCityName
         city_info = sess.query(ZipCity).filter_by(zip_code=zip_five).one()
@@ -184,7 +185,8 @@ def derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code, county_dict
         elif re.match('^[A-Z]{2}\d{5}$', ppop_code) and not re.match('^[A-Z]{2}0{5}$', ppop_code):
             # getting city and county name
             city_code = ppop_code[-5:]
-            city_info = sess.query(CityCode).filter_by(city_code=city_code, state_code=ppop_state_code).first()
+            city_info = sess.query(CityCode).filter(CityCode.city_code == city_code,
+                                                    func.upper(CityCode.state_code) == ppop_state_code).first()
             obj['place_of_performance_city'] = city_info.feature_name
             obj['place_of_perform_county_co'] = city_info.county_number
             obj['place_of_perform_county_na'] = city_info.county_name
@@ -224,7 +226,7 @@ def derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, p
 
         # legal entity county data
         obj['legal_entity_county_code'] = zip_data.county_number
-        obj['legal_entity_county_name'] = county_dict.get(zip_data.state_abbreviation + zip_data.county_number)
+        obj['legal_entity_county_name'] = county_dict.get(zip_data.state_abbreviation.upper() + zip_data.county_number)
 
         # legal entity state data
         obj['legal_entity_state_code'] = zip_data.state_abbreviation
@@ -269,28 +271,30 @@ def derive_office_data(obj, office_dict, sess):
         pafa = PublishedAwardFinancialAssistance
         awarding_sub_code = obj['awarding_sub_tier_agency_c'].upper() if obj['awarding_sub_tier_agency_c'] else None
         if obj['record_type'] == 1:
+            uri = obj['uri'].upper() if obj['uri'] else None
             # Get the minimum action date for this uri/AwardingSubTierCode combo
             min_action_date = sess.query(func.min(pafa.action_date).label("min_date")). \
-                filter(pafa.uri == obj['uri'], func.upper(pafa.awarding_sub_tier_agency_c) == awarding_sub_code,
+                filter(func.upper(pafa.uri) == uri, func.upper(pafa.awarding_sub_tier_agency_c) == awarding_sub_code,
                        pafa.is_active.is_(True), pafa.record_type == 1).one()
             # If we have a minimum action date, get the office codes for the first entry that matches it
             if min_action_date.min_date:
                 first_transaction = sess.query(pafa.awarding_office_code, pafa.funding_office_code,
                                                pafa.award_modification_amendme).\
-                    filter(pafa.uri == obj['uri'], pafa.is_active.is_(True),
+                    filter(func.upper(pafa.uri) == uri, pafa.is_active.is_(True),
                            func.upper(pafa.awarding_sub_tier_agency_c) == awarding_sub_code,
                            func.cast_as_date(pafa.action_date) == min_action_date.min_date,
                            pafa.record_type == 1).first()
         else:
+            fain = obj['fain'].upper() if obj['fain'] else None
             # Get the minimum action date for this fain/AwardingSubTierCode combo
             min_action_date = sess.query(func.min(func.cast(pafa.action_date, DATE)).label("min_date")).\
-                filter(pafa.fain == obj['fain'], func.upper(pafa.awarding_sub_tier_agency_c) == awarding_sub_code,
+                filter(func.upper(pafa.fain) == fain, func.upper(pafa.awarding_sub_tier_agency_c) == awarding_sub_code,
                        pafa.is_active.is_(True), pafa.record_type != 1).one()
             # If we have a minimum action date, get the office codes for the first entry that matches it
             if min_action_date.min_date:
                 first_transaction = sess.query(pafa.awarding_office_code, pafa.funding_office_code,
                                                pafa.award_modification_amendme).\
-                    filter(pafa.fain == obj['fain'], pafa.is_active.is_(True),
+                    filter(func.upper(pafa.fain) == fain, pafa.is_active.is_(True),
                            func.upper(pafa.awarding_sub_tier_agency_c) == awarding_sub_code,
                            func.cast_as_date(pafa.action_date) == min_action_date.min_date,
                            pafa.record_type != 1).first()
@@ -336,8 +340,8 @@ def derive_le_city_code(obj, sess):
     """
     if obj['legal_entity_city_name'] and obj['legal_entity_state_code']:
         city_code = sess.query(CityCode).\
-            filter(func.lower(CityCode.feature_name) == func.lower(obj['legal_entity_city_name'].strip()),
-                   func.lower(CityCode.state_code) == func.lower(obj['legal_entity_state_code'].strip())).first()
+            filter(func.upper(CityCode.feature_name) == func.upper(obj['legal_entity_city_name'].strip()),
+                   func.upper(CityCode.state_code) == func.upper(obj['legal_entity_state_code'].strip())).first()
         if city_code:
             obj['legal_entity_city_code'] = city_code.city_code
         else:
