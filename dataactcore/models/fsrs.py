@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, func, Integer, String, Text
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, func, Integer, String, Text, Index
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
@@ -130,6 +130,11 @@ class FSRSSubgrant(Base, _GrantAttributes):
     subaward_num = Column(String)
 
 FSRSGrant.subawards = relationship(FSRSSubgrant, back_populates='parent')
+
+Index("ix_fsrs_proc_contract_number_upper", func.upper(FSRSProcurement.contract_number))
+Index("ix_fsrs_proc_idv_ref_upper", func.upper(FSRSProcurement.idv_reference_number))
+Index("ix_fsrs_proc_contract_office_aid_upper", func.upper(FSRSProcurement.contracting_office_aid))
+Index("ix_fsrs_grant_fain_upper", func.upper(FSRSGrant.fain))
 
 
 class Subaward(Base):
@@ -268,3 +273,7 @@ class Subaward(Base):
     sub_recovery_model_q2 = Column(Text)
     sub_compensation_q1 = Column(Text)
     sub_compensation_q2 = Column(Text)
+
+Index("ix_subaward_award_id_upper", func.upper(Subaward.award_id))
+Index("ix_subaward_parent_award_id_upper", func.upper(Subaward.parent_award_id))
+Index("ix_subaward_awarding_sub_tier_agency_c_upper", func.upper(Subaward.awarding_sub_tier_agency_c))
