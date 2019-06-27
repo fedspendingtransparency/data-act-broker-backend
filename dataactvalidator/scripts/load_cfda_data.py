@@ -90,9 +90,9 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         'new_records': 0
     }
 
-    def fix_program_number(n, decimals=3):
+    def fix_program_number(row, decimals=3):
         multiplier = 10 ** decimals
-        value = math.floor(n * multiplier + 0.5) / multiplier
+        value = math.floor(row['program_number'] * multiplier + 0.5) / multiplier
         return str(value).ljust(6, '0')
 
     with create_app().app_context():
@@ -110,8 +110,8 @@ def load_cfda_program(base_path, load_local=False, local_file_name="cfda_program
         import_data["archived_date"] = format_date(import_data["archived_date"])
         table_name = model.__table__.name
         # Check if there is new data to load
-        new_data = check_dataframe_diff(import_data, model, 'cfda_program_id', ['program_number'],
-                                        lambda_funcs={'program_number': fix_program_number})
+        new_data = check_dataframe_diff(import_data, model, ['cfda_program_id'], ['program_number'],
+                                        lambda_funcs=[('program_number', fix_program_number)])
         if new_data:
             # insert to db
             sess.query(model).delete()
