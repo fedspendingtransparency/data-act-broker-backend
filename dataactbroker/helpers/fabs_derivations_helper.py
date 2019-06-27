@@ -74,7 +74,7 @@ def derive_awarding_agency_data(obj, sub_tier_dict, office_dict):
 
     # If we have an office code and no sub tier code, use the office to derive the sub tier
     if obj['awarding_office_code'] and not obj['awarding_sub_tier_agency_c']:
-        office = office_dict.get(obj['awarding_office_code'])
+        office = office_dict.get(obj['awarding_office_code'].upper())
         obj['awarding_sub_tier_agency_c'] = office['sub_tier_code']
 
     # If we have an office code (provided or derived), we can use that to get the names for the sub and top tiers and
@@ -100,7 +100,7 @@ def derive_funding_agency_data(obj, sub_tier_dict, office_dict):
 
     # If we have an office code and no sub tier code, use the office to derive the sub tier
     if obj['funding_office_code'] and not obj['funding_sub_tier_agency_co']:
-        office = office_dict.get(obj['funding_office_code'])
+        office = office_dict.get(obj['funding_office_code'].upper())
         obj['funding_sub_tier_agency_co'] = office['sub_tier_code']
 
     if obj['funding_sub_tier_agency_co']:
@@ -300,24 +300,26 @@ def derive_office_data(obj, office_dict, sess):
             # No need to copy if new code isn't blank or old code is
             if not obj['awarding_office_code'] and first_transaction.awarding_office_code:
                 # Make sure the code we're copying is a valid awarding office code
-                award_office = office_dict.get(first_transaction.awarding_office_code)
+                award_office = office_dict.get(first_transaction.awarding_office_code.upper())
                 if award_office and award_office['financial_assistance_awards_office']:
                     obj['awarding_office_code'] = first_transaction.awarding_office_code
             if not obj['funding_office_code'] and first_transaction.funding_office_code:
                 # Make sure the code we're copying is a valid funding office code
-                fund_office = office_dict.get(first_transaction.funding_office_code)
+                fund_office = office_dict.get(first_transaction.funding_office_code.upper())
                 if fund_office and fund_office['funding_office']:
                     obj['funding_office_code'] = first_transaction.funding_office_code
 
     # Deriving awarding_office_name based off awarding_office_code
-    awarding_office_data = office_dict.get(obj['awarding_office_code'])
+    awarding_code = obj['awarding_office_code'].upper() if obj['awarding_office_code'] else None
+    awarding_office_data = office_dict.get(awarding_code)
     if awarding_office_data:
         obj['awarding_office_name'] = awarding_office_data['office_name']
     else:
         obj['awarding_office_name'] = None
 
     # Deriving funding_office_name based off funding_office_code
-    funding_office_data = office_dict.get(obj['funding_office_code'])
+    funding_code = obj['funding_office_code'].upper() if obj['funding_office_code'] else None
+    funding_office_data = office_dict.get(funding_code)
     if funding_office_data:
         obj['funding_office_name'] = funding_office_data['office_name']
     else:
