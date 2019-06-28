@@ -125,6 +125,9 @@ class FSRSSubgrantFactory(_GrantAttributes):
 
 
 class SubawardFactory(factory.Factory):
+    class Meta:
+        model = fsrs.Subaward
+
     unique_award_key = fuzzy.FuzzyText()
     award_id = fuzzy.FuzzyText()
     parent_award_id = fuzzy.FuzzyText()

@@ -1,4 +1,4 @@
-from sqlalchemy import ARRAY, Boolean, Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, Text
+from sqlalchemy import ARRAY, Boolean, Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, Text, func
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
@@ -1135,6 +1135,8 @@ class DetachedAwardFinancialAssistance(Base):
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(DetachedAwardFinancialAssistance, self).__init__(**clean_kwargs)
 
+Index("ix_dafa_afa_generated_unique_upper", func.upper(DetachedAwardFinancialAssistance.afa_generated_unique))
+
 
 class PublishedAwardFinancialAssistance(Base):
     """Model for D2-Award (Financial Assistance)."""
@@ -1258,6 +1260,8 @@ Index("ix_pafa_uri_awarding_sub_tier_is_active",
       PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c,
       PublishedAwardFinancialAssistance.is_active,
       unique=False)
+
+Index("ix_pafa_afa_generated_unique_upper", func.upper(PublishedAwardFinancialAssistance.afa_generated_unique))
 
 
 class FPDSContractingOffice(Base):
