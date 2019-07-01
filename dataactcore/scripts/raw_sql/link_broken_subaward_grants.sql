@@ -9,7 +9,7 @@ WITH unlinked_subs AS
             AND subaward.subaward_type = 'sub-grant'),
 aw_pafa AS
     (SELECT DISTINCT ON (
-            pafa.fain
+            UPPER(pafa.fain)
         )
         pafa.fain AS fain,
         pafa.uri AS uri,
@@ -34,10 +34,10 @@ aw_pafa AS
         AND EXISTS (
             SELECT 1
             FROM unlinked_subs
-            WHERE unlinked_subs.award_id = pafa.fain
+            WHERE UPPER(unlinked_subs.award_id) = UPPER(pafa.fain)
         )
         {0}
-    ORDER BY pafa.fain, pafa.action_date)
+    ORDER BY UPPER(pafa.fain), pafa.action_date)
 UPDATE subaward
 SET
     -- File F Prime Awards
@@ -56,5 +56,5 @@ SET
     business_types = aw_pafa.business_types_desc
 FROM unlinked_subs
      JOIN aw_pafa
-        ON unlinked_subs.award_id = aw_pafa.fain
+        ON UPPER(unlinked_subs.award_id) = UPPER(aw_pafa.fain)
 WHERE subaward.id = unlinked_subs.id;

@@ -35,10 +35,10 @@ WHERE af.transaction_obligated_amou IS NOT NULL
     AND NOT EXISTS (
         SELECT 1
         FROM award_financial_assistance_c8_{0} AS afa
-        WHERE af.fain = afa.fain
+        WHERE UPPER(af.fain) = UPPER(afa.fain)
     )
     AND NOT EXISTS (
         SELECT 1
         FROM award_financial_assistance_c8_{0} AS afa
-        WHERE af.uri = afa.uri
+        WHERE UPPER(af.uri) = UPPER(afa.uri)
     );

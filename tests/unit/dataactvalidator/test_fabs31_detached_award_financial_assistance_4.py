@@ -16,12 +16,13 @@ def test_pubished_date_success(database):
     """ For AssistanceType of 02, 03, 04, or 05 whose ActionDate is after October 1, 2010,
         AwardeeOrRecipientUniqueIdentifier must be found in our records, unless the record
         is an aggregate or PII-redacted non-aggregate record (RecordType=1 or 3) or individual recipient
-        (BusinessTypes includes 'P')."""
+        (BusinessTypes includes 'P').
+    """
 
     duns_1 = DUNS(awardee_or_recipient_uniqu="111111111")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111",
                                                           assistance_type="02", action_date="10/02/2010",
-                                                          record_type=2, business_types="A")
+                                                          record_type=2, business_types="a")
     # Different assistance type
     det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111112",
                                                           assistance_type="01", action_date="10/02/2010",
@@ -33,7 +34,7 @@ def test_pubished_date_success(database):
     # Handled by d31_1
     det_award_4 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111112",
                                                           assistance_type="03", action_date="10/02/2010",
-                                                          record_type=1, business_types="A")
+                                                          record_type=1, business_types="a")
     det_award_5 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111112",
                                                           assistance_type="03", action_date="10/02/2010",
                                                           record_type=3, business_types="A")
@@ -61,7 +62,8 @@ def test_pubished_date_failure(database):
     """ Test invalid for For AssistanceType of 02, 03, 04, or 05 whose ActionDate is after October 1, 2010,
         AwardeeOrRecipientUniqueIdentifier must be found in our records, unless the record is an aggregate
         or PII-redacted non-aggregate record (RecordType=1 or 3) or individual recipient
-        (BusinessTypes includes 'P')."""
+        (BusinessTypes includes 'P').
+    """
 
     duns_1 = DUNS(awardee_or_recipient_uniqu="111111111")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111112",
@@ -69,7 +71,7 @@ def test_pubished_date_failure(database):
                                                           record_type=2, business_types="A")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111113",
                                                           assistance_type="03", action_date="10/03/2010",
-                                                          record_type=2, business_types="A")
+                                                          record_type=2, business_types="a")
     det_award_3 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111114",
                                                           assistance_type="04", action_date="10/04/2010",
                                                           record_type=2, business_types="A")

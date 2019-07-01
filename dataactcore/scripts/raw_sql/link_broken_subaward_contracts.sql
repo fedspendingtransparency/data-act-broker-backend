@@ -11,9 +11,9 @@ WITH unlinked_subs AS
             AND subaward.subaward_type = 'sub-contract'),
 aw_dap AS
     (SELECT DISTINCT ON (
-            dap.piid,
-            dap.parent_award_id,
-            dap.awarding_sub_tier_agency_c
+            UPPER(dap.piid),
+            UPPER(dap.parent_award_id),
+            UPPER(dap.awarding_sub_tier_agency_c)
         )
         dap.unique_award_key AS unique_award_key,
         dap.piid AS piid,
@@ -30,12 +30,12 @@ aw_dap AS
     WHERE EXISTS (
         SELECT 1
         FROM unlinked_subs
-        WHERE unlinked_subs.award_id = dap.piid
-            AND COALESCE(unlinked_subs.parent_award_id, '') = COALESCE(dap.parent_award_id, '')
-            AND unlinked_subs.awarding_sub_tier_agency_c = dap.awarding_sub_tier_agency_c
+        WHERE UPPER(unlinked_subs.award_id) = UPPER(dap.piid)
+            AND COALESCE(UPPER(unlinked_subs.parent_award_id), '') = COALESCE(UPPER(dap.parent_award_id), '')
+            AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) = UPPER(dap.awarding_sub_tier_agency_c)
         )
         {0}
-    ORDER BY dap.piid, dap.parent_award_id, dap.awarding_sub_tier_agency_c, dap.action_date)
+    ORDER BY UPPER(dap.piid), UPPER(dap.parent_award_id), UPPER(dap.awarding_sub_tier_agency_c), dap.action_date)
 UPDATE subaward
 SET
     unique_award_key = aw_dap.unique_award_key,
@@ -47,8 +47,8 @@ SET
     naics_description = aw_dap.naics_description
 FROM unlinked_subs
     JOIN aw_dap
-        ON (unlinked_subs.award_id = aw_dap.piid
-        AND COALESCE(unlinked_subs.parent_award_id, '') = COALESCE(aw_dap.parent_award_id, '')
-        AND unlinked_subs.awarding_sub_tier_agency_c = aw_dap.awarding_sub_tier_agency_c
+        ON (UPPER(unlinked_subs.award_id) = UPPER(aw_dap.piid)
+        AND COALESCE(UPPER(unlinked_subs.parent_award_id), '') = COALESCE(UPPER(aw_dap.parent_award_id), '')
+        AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) = UPPER(aw_dap.awarding_sub_tier_agency_c)
         )
 WHERE subaward.id = unlinked_subs.id;

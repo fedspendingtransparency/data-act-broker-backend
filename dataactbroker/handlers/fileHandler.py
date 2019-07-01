@@ -635,13 +635,13 @@ class FileHandler:
                                  Office.financial_assistance_awards_office, Office.contract_funding_office,
                                  Office.financial_assistance_funding_office).all()
             for office in offices:
-                office_dict[office.office_code] = {'office_name': office.office_name,
-                                                   'sub_tier_code': office.sub_tier_code,
-                                                   'agency_code': office.agency_code,
-                                                   'financial_assistance_awards_office':
-                                                       office.financial_assistance_awards_office,
-                                                   'funding_office': (office.contract_funding_office or
-                                                                      office.financial_assistance_funding_office)}
+                code = office.office_code.upper()
+                office_dict[code] = {'office_name': office.office_name,
+                                     'sub_tier_code': office.sub_tier_code,
+                                     'agency_code': office.agency_code,
+                                     'financial_assistance_awards_office': office.financial_assistance_awards_office,
+                                     'funding_office': (office.contract_funding_office or
+                                                        office.financial_assistance_funding_office)}
             del offices
 
             counties = sess.query(CountyCode).all()
@@ -661,7 +661,7 @@ class FileHandler:
 
             sub_tiers = sess.query(SubTierAgency).all()
             for sub_tier in sub_tiers:
-                sub_tier_dict[sub_tier.sub_tier_agency_code] = {
+                sub_tier_dict[sub_tier.sub_tier_agency_code.upper()] = {
                     "is_frec": sub_tier.is_frec,
                     "cgac_code": sub_tier.cgac.cgac_code,
                     "frec_code": sub_tier.frec.frec_code,

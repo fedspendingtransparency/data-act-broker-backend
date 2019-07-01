@@ -65,7 +65,7 @@ def load_country_codes(base_path, force_reload=False):
         metrics_json['duplicates_dropped'] = metrics_json['records_provided'] - len(data.index)
 
         # compare to existing content in table
-        diff_found = check_dataframe_diff(data, CountryCode, 'country_code_id', ['country_code'],
+        diff_found = check_dataframe_diff(data, CountryCode, ['country_code_id'], ['country_code'],
                                           lambda_funcs={'territory_free_state': convert_bool_to_str})
 
         # insert to db if reload required

@@ -8,7 +8,7 @@ from tests.unit.dataactcore.factories.staging import PublishedAwardFinancialAssi
 STATE_DICT = {'NY': 'New York'}
 COUNTRY_DICT = {'USA': 'United States of America', 'GBR': 'Great Britain'}
 SUB_TIER_DICT = {
-    '1234': {
+    '12AB': {
         'is_frec': False,
         'cgac_code': '000',
         'frec_code': '0000',
@@ -25,13 +25,13 @@ SUB_TIER_DICT = {
 }
 CFDA_DICT = {'12.345': 'CFDA Title'}
 COUNTY_DICT = {'NY001': 'Test County'}
-OFFICE_DICT = {'033103': {'office_name': 'Office',
-                          'sub_tier_code': '1234',
+OFFICE_DICT = {'03AB03': {'office_name': 'Office',
+                          'sub_tier_code': '12Ab',
                           'agency_code': '000',
                           'financial_assistance_awards_office': True,
                           'funding_office': True},
                '654321': {'office_name': 'Office',
-                          'sub_tier_code': '1234',
+                          'sub_tier_code': '12Ab',
                           'agency_code': '000',
                           'financial_assistance_awards_office': False,
                           'funding_office': False}}
@@ -72,30 +72,30 @@ def initialize_db_values(db):
     duns_3 = DunsFactory(awardee_or_recipient_uniqu='345678901', ultimate_parent_unique_ide=None,
                          ultimate_parent_legal_enti=None)
     # record type 2 pafas
-    pafa_1 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='1234', fain='12345', uri='123456',
+    pafa_1 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='12aB', fain='12345', uri='123456',
                                                       action_date='04/28/2000', funding_office_code=None,
-                                                      awarding_office_code='033103', is_active=True, record_type=2,
+                                                      awarding_office_code='03aB03', is_active=True, record_type=2,
                                                       award_modification_amendme='0')
-    pafa_2 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='1234', fain='123456', uri='1234567',
-                                                      action_date='04/28/2000', funding_office_code='033103',
+    pafa_2 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='12aB', fain='123456', uri='1234567',
+                                                      action_date='04/28/2000', funding_office_code='03aB03',
                                                       awarding_office_code=None, is_active=True, record_type=2,
                                                       award_modification_amendme=None)
     # record type 1 pafas
-    pafa_3 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='1234', fain='54321', uri='654321',
+    pafa_3 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='12aB', fain='54321', uri='654321',
                                                       action_date='04/28/2000', funding_office_code=None,
-                                                      awarding_office_code='033103', is_active=True, record_type=1,
+                                                      awarding_office_code='03aB03', is_active=True, record_type=1,
                                                       award_modification_amendme=None)
-    pafa_4 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='1234', fain='654321', uri='7654321',
-                                                      action_date='04/28/2000', funding_office_code='033103',
+    pafa_4 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='12aB', fain='654321', uri='7654321',
+                                                      action_date='04/28/2000', funding_office_code='03aB03',
                                                       awarding_office_code=None, is_active=True, record_type=1,
                                                       award_modification_amendme='0')
     # record type 1 base pafa with invalid office codes
-    pafa_5 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='1234', fain='abcd', uri='efg',
+    pafa_5 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='12aB', fain='abcd', uri='efg',
                                                       action_date='04/28/2000', funding_office_code='123456',
                                                       awarding_office_code='123456', is_active=True, record_type=1,
                                                       award_modification_amendme='0')
     # record type 1 base pafa with valid office codes but they aren't grant or funding type
-    pafa_6 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='1234', fain='efg', uri='abcd',
+    pafa_6 = PublishedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='12aB', fain='efg', uri='abcd',
                                                       action_date='04/28/2000', funding_office_code='654321',
                                                       awarding_office_code='654321', is_active=True, record_type=1,
                                                       award_modification_amendme='0')
@@ -104,10 +104,10 @@ def initialize_db_values(db):
     db.session.commit()
 
 
-def initialize_test_obj(fao=None, nffa=None, cfda_num='00.000', sub_tier_code='1234', sub_fund_agency_code=None,
+def initialize_test_obj(fao=None, nffa=None, cfda_num='00.000', sub_tier_code='12aB', sub_fund_agency_code=None,
                         ppop_code='NY00000', ppop_zip4a=None, ppop_cd=None, le_zip5=None, le_zip4=None, record_type=2,
-                        award_mod_amend=None, fain=None, uri=None, cdi=None, awarding_office='033103',
-                        funding_office='033103', legal_congr=None, legal_city='WASHINGTON', primary_place_country='USA',
+                        award_mod_amend=None, fain=None, uri=None, cdi=None, awarding_office='03ab03',
+                        funding_office='03ab03', legal_congr=None, legal_city='WASHINGTON', primary_place_country='USA',
                         legal_country='USA', legal_foreign_city=None, detached_award_financial_assistance_id=None,
                         job_id=None, action_type=None, assist_type=None, busi_type=None, busi_fund=None,
                         awardee_or_recipient_uniqu=None):
@@ -187,7 +187,7 @@ def test_cfda_title(database):
 def test_awarding_agency_cgac(database):
     initialize_db_values(database)
 
-    obj = initialize_test_obj(sub_tier_code='1234')
+    obj = initialize_test_obj(sub_tier_code='12ab')
     obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
                            OFFICE_DICT, EXEC_COMP_DICT)
     assert obj['awarding_agency_code'] == '000'
@@ -304,7 +304,7 @@ def test_ppop_derivations(database):
     assert obj['place_of_performance_congr'] is None
 
     # when we don't have ppop_zip4a and ppop_code is in XX##### format
-    obj = initialize_test_obj(ppop_code='NY00001')
+    obj = initialize_test_obj(ppop_code='Ny00001')
     obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
                            OFFICE_DICT, EXEC_COMP_DICT)
     assert obj['place_of_perform_county_co'] == '001'
@@ -419,7 +419,7 @@ def test_derive_office_data(database):
     obj = initialize_test_obj(awarding_office=None, funding_office=None, fain='12345', award_mod_amend='1')
     obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
                            OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['awarding_office_code'] == '033103'
+    assert obj['awarding_office_code'] == '03aB03'
     assert obj['awarding_office_name'] == 'Office'
     assert obj['funding_office_code'] is None
     assert obj['funding_office_name'] is None
@@ -440,7 +440,7 @@ def test_derive_office_data(database):
                            OFFICE_DICT, EXEC_COMP_DICT)
     assert obj['awarding_office_code'] is None
     assert obj['awarding_office_name'] is None
-    assert obj['funding_office_code'] == '033103'
+    assert obj['funding_office_code'] == '03aB03'
     assert obj['funding_office_name'] == 'Office'
 
     # if office_code is not present, derive it from historical data (record type 1 uses uri, ignores fain)
@@ -449,7 +449,7 @@ def test_derive_office_data(database):
                               award_mod_amend='1')
     obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
                            OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['awarding_office_code'] == '033103'
+    assert obj['awarding_office_code'] == '03aB03'
     assert obj['awarding_office_name'] == 'Office'
     assert obj['funding_office_code'] is None
     assert obj['funding_office_name'] is None
@@ -472,7 +472,7 @@ def test_derive_office_data(database):
                            OFFICE_DICT, EXEC_COMP_DICT)
     assert obj['awarding_office_code'] is None
     assert obj['awarding_office_name'] is None
-    assert obj['funding_office_code'] == '033103'
+    assert obj['funding_office_code'] == '03aB03'
     assert obj['funding_office_name'] == 'Office'
 
     # if office_code is not present and valid uri is given but it's record type 2, everything should be empty
