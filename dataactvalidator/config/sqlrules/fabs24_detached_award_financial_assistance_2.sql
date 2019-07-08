@@ -13,4 +13,5 @@ WHERE submission_id={0}
         FROM country_code AS cc
         WHERE UPPER(dafa.place_of_perform_country_c) = UPPER(cc.country_code)
             AND cc.territory_free_state IS FALSE
-    );
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

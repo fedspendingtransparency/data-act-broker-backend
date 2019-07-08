@@ -14,7 +14,8 @@ WITH sub_tier_agency_codes_{0} AS
 detached_award_financial_assistance_23_2_{0} AS
 	(SELECT row_number,
 		funding_sub_tier_agency_co,
-		funding_office_code
+		funding_office_code,
+		correction_delete_indicatr
 	FROM detached_award_financial_assistance
 	WHERE submission_id = {0}
 		AND COALESCE(funding_sub_tier_agency_co, '') <> ''
@@ -43,4 +44,5 @@ WHERE NOT EXISTS (
 	    FROM sub_tier_offices_{0} AS sto
 	    WHERE UPPER(sto.sub_tier_code) = UPPER(dafa.funding_sub_tier_agency_co)
 		    AND UPPER(sto.office_code) = UPPER(dafa.funding_office_code)
-	);
+	)
+	AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
