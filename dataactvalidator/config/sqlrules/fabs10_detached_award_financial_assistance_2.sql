@@ -7,4 +7,5 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type IN (1, 3)
-    AND COALESCE(legal_entity_address_line1, '') <> '';
+    AND COALESCE(legal_entity_address_line1, '') <> ''
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

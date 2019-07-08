@@ -4,4 +4,5 @@ SELECT
     record_type
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND COALESCE(record_type, -1) NOT IN (1, 2, 3);
+    AND COALESCE(record_type, -1) NOT IN (1, 2, 3)
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
