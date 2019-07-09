@@ -13,4 +13,5 @@ WHERE submission_id = {0}
             OR UPPER(business_types) LIKE '%%P%%'
     )
     AND COALESCE(awardee_or_recipient_uniqu, '') <> ''
-    AND awardee_or_recipient_uniqu !~ '^\d\d\d\d\d\d\d\d\d$';
+    AND awardee_or_recipient_uniqu !~ '^\d\d\d\d\d\d\d\d\d$'
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

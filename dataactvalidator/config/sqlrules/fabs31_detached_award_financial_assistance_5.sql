@@ -51,7 +51,7 @@ WHERE NOT (dafa.record_type IN (1, 3)
     AND (CASE WHEN pg_temp.is_date(COALESCE(dafa.action_date, '0'))
             THEN CAST(dafa.action_date AS DATE)
         END) > CAST('10/01/2010' AS DATE)
-    AND (COALESCE(dafa.correction_delete_indicatr, '') <> 'C'
+    AND (UPPER(COALESCE(dafa.correction_delete_indicatr, '')) <> 'C'
         OR (CASE WHEN pg_temp.is_date(COALESCE(dafa.action_date, '0'))
                 THEN CAST(dafa.action_date AS DATE)
             END) >= CAST('01/01/2017' AS DATE)
@@ -70,4 +70,5 @@ WHERE NOT (dafa.record_type IN (1, 3)
                 AND (CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
                         THEN CAST(sub_dafa.action_date AS DATE)
                     END) < CAST(duns_short.expiration_date AS DATE)
-            );
+            )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
