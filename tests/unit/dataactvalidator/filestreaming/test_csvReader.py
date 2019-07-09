@@ -9,12 +9,12 @@ def test_count_and_set_headers_flex():
     """Verify that we are setting the correct flex headers"""
     reader = csvReader.CsvReader()
     csv_schema = [Mock(name_short='some_col'), Mock(name_short='other')]
-    header_row = ['ignored', 'flex_my_col', 'some_col', 'flex_other', 'some_col']
+    header_row = ['ignored', 'flex_my_col', 'flex test', 'space col', 'some_col', 'flex_other', 'some_col']
 
     result = reader.count_and_set_headers(csv_schema, header_row)
     assert result == {'some_col': 2, 'other': 0}
-    assert reader.expected_headers == [None, None, 'some_col', None, 'some_col']
-    assert reader.flex_headers == [None, 'flex_my_col', None, 'flex_other', None]
+    assert reader.expected_headers == [None, None, None, None, 'some_col', None, 'some_col']
+    assert reader.flex_headers == [None, 'flex_my_col', None, None, None, 'flex_other', None]
 
 
 def test_get_next_record_flex():
@@ -39,7 +39,7 @@ def test_normalize_headers():
     """
     # Verify names are properly lowercased and not mapped if long_headers is false
     headers = [
-        'AllocationTransferAgencyIdentifier', 'BeginningPeriodOfAvailability', 'flex_mycol', 'FLEX_(ANOTHER)'
+        'AllocationTransferAgencyIdentifier', 'BeginningPeriodOfAvailability', 'flex_mycol', 'FLEX_ANOTHER'
     ]
     mapping = {'allocationtransferagencyidentifier': 'ata', 'beginningperiodofavailability': 'boa'}
 
@@ -72,3 +72,22 @@ def test_normalize_headers():
     # Test for short special headers to be properly mapped
     result = csvReader.normalize_headers(headers, True, mapping)
     assert list(result) == ['drfpbpo', 'fvdllg', 'tbr', 'cdi', 'zip4a']
+
+    # Verify names are not mapped if they include extra characters (spaces, parentheses, etc.)
+    headers = [
+        'Allocation Transfer Agency Identifier', 'FLEX(ANOTHER)', 'LegalEntityZip+4'
+    ]
+    mapping = {'allocationtransferagencyidentifier': 'ata', 'legalentityzip+4': 'legal_entity_zip4'}
+
+    result = csvReader.normalize_headers(headers, True, mapping)
+    assert list(result) == [
+        'allocation transfer agency identifier', 'flex(another)', 'legal_entity_zip4'
+    ]
+
+    headers = [
+        'ata identifier', 'legal entity zip4'
+    ]
+    mapping = {'ata_identifier': 'ata', 'legalentityzip+4': 'legal_entity_zip4'}
+
+    result = csvReader.normalize_headers(headers, False, mapping)
+    assert list(result) == headers
