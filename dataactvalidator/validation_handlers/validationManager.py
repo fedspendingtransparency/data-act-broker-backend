@@ -35,7 +35,7 @@ from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactvalidator.filestreaming.csvReader import CsvReader
-from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
+from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner, StringCleaner
 
 from dataactvalidator.validation_handlers.errorInterface import ErrorInterface
 from dataactvalidator.validation_handlers.validator import Validator, cross_validate_sql, validate_file_by_sql
@@ -59,10 +59,11 @@ class ValidationManager:
 
         # create long-to-short (and vice-versa) column name mappings
         sess = GlobalDB.db().session
-        colnames = sess.query(FileColumn.name, FileColumn.name_short, FileColumn.file_id).all()
+        colnames = sess.query(FileColumn.daims_name, FileColumn.name, FileColumn.name_short, FileColumn.file_id).all()
 
         self.long_to_short_dict = {}
         self.short_to_long_dict = {}
+        self.daims_to_short_dict = {}
         # fill in long_to_short and short_to_long dicts
         for col in colnames:
             # Get long_to_short_dict filled in
@@ -74,6 +75,12 @@ class ValidationManager:
             if not self.short_to_long_dict.get(col.file_id):
                 self.short_to_long_dict[col.file_id] = {}
             self.short_to_long_dict[col.file_id][col.name_short] = col.name
+
+            # Get short_to_long_dict filled in
+            if not self.daims_to_short_dict.get(col.file_id):
+                self.daims_to_short_dict[col.file_id] = {}
+            clean_daims = StringCleaner.clean_string(col.daims_name, remove_extras=False)
+            self.daims_to_short_dict[col.file_id][clean_daims] = col.name_short
 
     def get_file_name(self, path):
         """ Return full path of error report based on provided name """
@@ -226,7 +233,7 @@ class ValidationManager:
 
             # Pull file and return info on whether it's using short or long col headers
             reader.open_file(region_name, bucket_name, file_name, fields, bucket_name,
-                             self.get_file_name(error_file_name), self.long_to_short_dict[job.file_type_id],
+                             self.get_file_name(error_file_name), self.daims_to_short_dict[job.file_type_id],
                              is_local=self.is_local)
 
             # list to keep track of rows that fail validations

@@ -23,6 +23,7 @@ class FileColumn(Base):
     file = relationship("FileType", uselist=False)
     field_types_id = Column(Integer, ForeignKey("field_type.field_type_id"), nullable=True)
     field_type = relationship("FieldType", uselist=False)
+    daims_name = Column(Text, nullable=True)
     name = Column(Text, nullable=True)
     name_short = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
