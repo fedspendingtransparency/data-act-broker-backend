@@ -64,6 +64,8 @@ class ValidationManager:
         self.long_to_short_dict = {}
         self.short_to_long_dict = {}
         self.daims_to_short_dict = {}
+        self.short_to_daims_dict = {}
+
         # fill in long_to_short and short_to_long dicts
         for col in colnames:
             # Get long_to_short_dict filled in
@@ -76,11 +78,16 @@ class ValidationManager:
                 self.short_to_long_dict[col.file_id] = {}
             self.short_to_long_dict[col.file_id][col.name_short] = col.name
 
-            # Get short_to_long_dict filled in
+            # Get daims_to_short_dict filled in
             if not self.daims_to_short_dict.get(col.file_id):
                 self.daims_to_short_dict[col.file_id] = {}
             clean_daims = StringCleaner.clean_string(col.daims_name, remove_extras=False)
             self.daims_to_short_dict[col.file_id][clean_daims] = col.name_short
+
+            # Get short_to_daims_dict filled in
+            if not self.short_to_daims_dict.get(col.file_id):
+                self.short_to_daims_dict[col.file_id] = {}
+            self.short_to_daims_dict[col.file_id][col.name_short] = col.daims_name
 
     def get_file_name(self, path):
         """ Return full path of error report based on provided name """
@@ -234,7 +241,7 @@ class ValidationManager:
             # Pull file and return info on whether it's using short or long col headers
             reader.open_file(region_name, bucket_name, file_name, fields, bucket_name,
                              self.get_file_name(error_file_name), self.daims_to_short_dict[job.file_type_id],
-                             is_local=self.is_local)
+                             self.short_to_daims_dict[job.file_type_id], is_local=self.is_local)
 
             # list to keep track of rows that fail validations
             error_rows = []
