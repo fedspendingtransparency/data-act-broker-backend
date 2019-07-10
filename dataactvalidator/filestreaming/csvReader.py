@@ -10,6 +10,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
+from dataactcore.utils.stringCleaner import StringCleaner
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
 
@@ -42,7 +43,7 @@ class CsvReader(object):
 
         return self.filename
 
-    def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict,
+    def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, daims_to_short_dict,
                   is_local=False):
         """ Opens file and prepares to read each record, mapping entries to specified column names
 
@@ -53,7 +54,7 @@ class CsvReader(object):
                 csv_schema: list of FileColumn objects for this file type
                 bucket_name: bucket to send errors to
                 error_filename: filename for error report
-                long_to_short_dict: mapping of long to short schema column names
+                daims_to_short_dict: mapping of daims to short schema column names
                 is_local: Boolean of whether the app is being run locally or not
         """
 
@@ -83,8 +84,8 @@ class CsvReader(object):
 
         # create the header
         header_row = next(csv.reader([header_line], quotechar='"', dialect='excel', delimiter=self.delimiter))
-        long_headers = use_long_headers(header_row, long_to_short_dict)
-        header_row = list(normalize_headers(header_row, long_headers, long_to_short_dict))
+        daims_headers = use_daims_headers(header_row, daims_to_short_dict)
+        header_row = list(normalize_headers(header_row, daims_headers, daims_to_short_dict))
 
         expected_header_counts = self.count_and_set_headers(csv_schema, header_row)
 
@@ -92,7 +93,7 @@ class CsvReader(object):
 
         self.handle_missing_duplicate_headers(expected_header_counts, bucket_name, error_filename)
 
-        return long_headers
+        return daims_headers
 
     @staticmethod
     def write_file_level_error(bucket_name, filename, header, error_content, is_local):
@@ -102,7 +103,7 @@ class CsvReader(object):
                 bucket_name: Name of the S3 bucket to write to if not local
                 filename: Name (including path) of the file to write
                 header: The header line for the file
-                error_content
+                error_content: list of lines representing content for the error file
                 is_local: boolean indicating if the file is to be written locally or to S3
         """
         if is_local:
@@ -223,8 +224,16 @@ class CsvReader(object):
         self.write_file_level_error(bucket_name, error_filename, self.header_report_headers, error_text, self.is_local)
 
     def count_and_set_headers(self, csv_schema, header_row):
-        """Track how many times we've seen a field we were expecting and set self.expected_headers and
-        self.flex_headers"""
+        """ Track how many times we've seen a field we were expecting and set self.expected_headers and
+            self.flex_headers
+
+            Args:
+                csv_schema: list of FileColumn objects for this file type
+                header_row: an array of the file headers given
+
+            Returns:
+                expected field dict {[expected field name]: [header count])
+        """
         self.expected_headers = []
         self.flex_headers = []
 
@@ -266,31 +275,39 @@ class CsvReader(object):
         return os.path.getsize(self.filename)
 
 
-def use_long_headers(header_row, long_to_short_dict):
-    """Check to see if header contains long or short column names"""
+def use_daims_headers(header_row, daims_to_short_dict):
+    """ Check to see if header contains daims or short column names
+
+        Args:
+            header_row: an array of the file headers given
+            daims_to_short_dict: a dictionary containing a mapping from daims headers to short ones for this file type
+
+        Returns:
+            bool representing whether to use daims or short column names (True for daims)
+    """
     col_matches = 0
     for value in header_row:
-        if FieldCleaner.clean_name(value) in long_to_short_dict:
+        if StringCleaner.clean_string(value, remove_extras=False) in daims_to_short_dict:
             col_matches += 1
     # if most of column headers are in the long format, we'll treat the file as having long headers
     return col_matches > .5 * len(header_row)
 
 
-def normalize_headers(header_row, long_headers, long_to_short_dict):
-    """ Clean the headers (remove extra spaces and lowercase) and convert them to short headers if we're given long
+def normalize_headers(header_row, daims_headers, daims_to_short_dict):
+    """ Clean the headers (lowercase) and convert them to short headers if we're given long
         headers
 
         Args:
             header_row: an array of the file headers given
-            long_headers: boolean indicating if we're using the long versions of the headers (True for long)
-            long_to_short_dict: a dictionary containing a mapping from long headers to short ones for this file type
+            daims_headers: boolean indicating if we're using the daims versions of the headers (True for daims)
+            daims_to_short_dict: a dictionary containing a mapping from daims headers to short ones for this file type
 
         Yields:
-            A string containing the cleaned header name (converted to short version if long versions were provided and
+            A string containing the cleaned header name (converted to short version if daims versions were provided and
             there is a mapping for that header).
     """
     for header in header_row:
-        header = FieldCleaner.clean_name(header)
+        header = StringCleaner.clean_string(header, remove_extras=False)
         # Replace headers that don't match DB but are allowed by the broker with their DB matches
         if header == 'deobligationsrecoveriesrefundsofprioryearbyprogramobjectclass_cpe':
             header = 'deobligationsrecoveriesrefundsdofprioryearbyprogramobjectclass_cpe'
@@ -304,8 +321,8 @@ def normalize_headers(header_row, long_headers, long_to_short_dict):
             header = 'place_of_performance_zip4a'
 
         # yield the short header when applicable, otherwise yield the cleaned header, whatever it is
-        if long_headers and header in long_to_short_dict:
-            yield FieldCleaner.clean_name(long_to_short_dict[header])
+        if daims_headers and header in daims_to_short_dict:
+            yield FieldCleaner.clean_name(daims_to_short_dict[header])
         else:
             yield header
 
