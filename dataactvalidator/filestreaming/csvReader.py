@@ -1,8 +1,8 @@
 import csv
 import os
 import tempfile
-
 import boto3
+from collections import OrderedDict
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.stagingModels import FlexField
@@ -240,7 +240,7 @@ class CsvReader(object):
         self.flex_headers = []
 
         # Track how many times we've seen a field we were expecting. Keyed by the shorter, machine-readable column names
-        expected_fields = {}
+        expected_fields = OrderedDict()
 
         for schema in csv_schema:
             expected_fields[FieldCleaner.clean_name(schema.name_short)] = 0

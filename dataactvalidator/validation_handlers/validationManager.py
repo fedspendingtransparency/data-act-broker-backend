@@ -217,7 +217,8 @@ class ValidationManager:
         sess.commit()
 
         # Get fields for this file
-        fields = sess.query(FileColumn).filter(FileColumn.file_id == FILE_TYPE_DICT[file_type]).all()
+        fields = sess.query(FileColumn).filter(FileColumn.file_id == FILE_TYPE_DICT[file_type])\
+            .order_by(FileColumn.daims_name.asc()).all()
 
         for field in fields:
             sess.expunge(field)
