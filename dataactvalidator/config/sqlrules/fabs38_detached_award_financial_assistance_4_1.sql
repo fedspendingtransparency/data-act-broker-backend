@@ -11,4 +11,5 @@ WHERE submission_id = {0}
         FROM office
         WHERE UPPER(office.office_code) = UPPER(dafa.awarding_office_code)
             AND office.financial_assistance_awards_office = TRUE
-    );
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

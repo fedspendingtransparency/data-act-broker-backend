@@ -2,7 +2,8 @@
 WITH detached_award_financial_assistance_d40_1_{0} AS
     (SELECT submission_id,
         row_number,
-        place_of_performance_code
+        place_of_performance_code,
+        correction_delete_indicatr
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT
@@ -17,4 +18,5 @@ WHERE SUBSTRING(dafa.place_of_performance_code, 3, 2) = '**'
         JOIN county_code
             ON SUBSTRING(sub_dafa.place_of_performance_code, 5, 3) = county_code.county_number
                 AND UPPER(SUBSTRING(sub_dafa.place_of_performance_code, 1, 2)) = county_code.state_code
-    );
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

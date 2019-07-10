@@ -15,3 +15,4 @@ WHERE submission_id = {0}
             AND UPPER(place_of_performance_code) <> '00FORGN'
         )
     )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
