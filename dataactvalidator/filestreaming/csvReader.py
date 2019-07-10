@@ -1,8 +1,8 @@
 import csv
 import os
 import tempfile
-
 import boto3
+from collections import OrderedDict
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.stagingModels import FlexField
@@ -44,7 +44,7 @@ class CsvReader(object):
         return self.filename
 
     def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, daims_to_short_dict,
-                  is_local=False):
+                  short_to_daims_dict, is_local=False):
         """ Opens file and prepares to read each record, mapping entries to specified column names
 
             Args:
@@ -55,6 +55,7 @@ class CsvReader(object):
                 bucket_name: bucket to send errors to
                 error_filename: filename for error report
                 daims_to_short_dict: mapping of daims to short schema column names
+                short_to_daims_dict: mapping of short to daims schema column names
                 is_local: Boolean of whether the app is being run locally or not
         """
 
@@ -91,7 +92,7 @@ class CsvReader(object):
 
         self.column_count = len(header_row)
 
-        self.handle_missing_duplicate_headers(expected_header_counts, bucket_name, error_filename)
+        self.handle_missing_duplicate_headers(expected_header_counts, bucket_name, error_filename, short_to_daims_dict)
 
         return daims_headers
 
@@ -192,16 +193,17 @@ class CsvReader(object):
 
         self.delimiter = "|" if header_line.count("|") != 0 else ","
 
-    def handle_missing_duplicate_headers(self, expected_fields, bucket_name, error_filename):
+    def handle_missing_duplicate_headers(self, expected_fields, bucket_name, error_filename, short_to_daims_dict):
         """ Check for missing or duplicated headers. If present, raise an exception with a meaningful message.
 
             Args:
                 expected_fields: a list of expected column headers
                 bucket_name: the name of the S3 bucket to write the error to
                 error_filename: the name of the error (including path) file to write to
+                short_to_daims_dict: mapping of short to daims schema column names
         """
-        missing_headers = [cell for cell, count in expected_fields.items() if count == 0]
-        duplicated_headers = [cell for cell, count in expected_fields.items() if count > 1]
+        missing_headers = [short_to_daims_dict[cell] for cell, count in expected_fields.items() if count == 0]
+        duplicated_headers = [short_to_daims_dict[cell] for cell, count in expected_fields.items() if count > 1]
 
         if missing_headers or duplicated_headers:
             self.write_missing_duplicated_headers(missing_headers, duplicated_headers, bucket_name, error_filename)
@@ -238,7 +240,7 @@ class CsvReader(object):
         self.flex_headers = []
 
         # Track how many times we've seen a field we were expecting. Keyed by the shorter, machine-readable column names
-        expected_fields = {}
+        expected_fields = OrderedDict()
 
         for schema in csv_schema:
             expected_fields[FieldCleaner.clean_name(schema.name_short)] = 0
