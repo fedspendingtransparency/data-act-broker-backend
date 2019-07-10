@@ -98,7 +98,6 @@ class SchemaLoader(object):
                 field_type : sets the type of data allowed in the column
                 padded_flag: True if this column should be padded
                 field_length: Maximum allowed length for this field
-
         """
         new_column = FileColumn()
         new_column.file = file_type
