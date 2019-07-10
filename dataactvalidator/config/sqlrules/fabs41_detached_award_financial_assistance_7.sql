@@ -6,4 +6,5 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type = 3
-    AND COALESCE(place_of_performance_zip4a, '') <> '';
+    AND COALESCE(place_of_performance_zip4a, '') <> ''
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

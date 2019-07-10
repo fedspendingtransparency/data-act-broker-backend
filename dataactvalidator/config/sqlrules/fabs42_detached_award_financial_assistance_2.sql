@@ -11,4 +11,5 @@ WHERE submission_id = {0}
     AND COALESCE(place_of_performance_forei, '') <> ''
     AND (UPPER(place_of_perform_country_c) = 'USA'
          OR record_type in (1, 3)
-    );
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
