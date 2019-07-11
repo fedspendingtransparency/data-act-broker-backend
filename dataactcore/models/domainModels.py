@@ -221,29 +221,6 @@ class CountryCode(Base):
     territory_free_state = Column(Boolean, nullable=False, default=False, server_default="False")
 
 
-class ExecutiveCompensation(Base):
-    """ File E """
-    __tablename__ = "executive_compensation"
-
-    executive_compensation_id = Column(Integer, primary_key=True)
-    awardee_or_recipient_uniqu = Column(Text)
-    awardee_or_recipient_legal = Column(Text)
-    ultimate_parent_unique_ide = Column(Text)
-    ultimate_parent_legal_enti = Column(Text)
-    high_comp_officer1_full_na = Column(Text)
-    high_comp_officer1_amount = Column(Text)
-    high_comp_officer2_full_na = Column(Text)
-    high_comp_officer2_amount = Column(Text)
-    high_comp_officer3_full_na = Column(Text)
-    high_comp_officer3_amount = Column(Text)
-    high_comp_officer4_full_na = Column(Text)
-    high_comp_officer4_amount = Column(Text)
-    high_comp_officer5_full_na = Column(Text)
-    high_comp_officer5_amount = Column(Text)
-    activation_date = Column(Date)
-    expiration_date = Column(Date)
-
-
 class DUNS(Base):
     """ DUNS Records """
     __tablename__ = "duns"
