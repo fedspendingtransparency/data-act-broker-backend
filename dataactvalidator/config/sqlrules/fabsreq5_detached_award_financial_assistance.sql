@@ -5,5 +5,5 @@ SELECT
     correction_delete_indicatr
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
-    AND COALESCE(legal_entity_country_code, '') = '';
+    AND COALESCE(legal_entity_country_code, '') = ''
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

@@ -5,5 +5,5 @@ SELECT
     correction_delete_indicatr
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
-    AND record_type IS NULL;
+    AND record_type IS NULL
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
