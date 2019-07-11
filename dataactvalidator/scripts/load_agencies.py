@@ -259,7 +259,7 @@ def load_sub_tier_agencies(file_name, force_reload=False):
     # read Sub Tier Agency values from csv
     data = pd.read_csv(file_name, dtype=str)
 
-    condition = data["FPDS DEPARTMENT ID"] == data["SUBTIER CODE"]
+    condition = data['TOPTIER_FLAG'] == 'TRUE'
     data.loc[condition, "PRIORITY"] = 1
     data.loc[~condition, "PRIORITY"] = 2
     data.replace({'TRUE': True, 'FALSE': False}, inplace=True)
