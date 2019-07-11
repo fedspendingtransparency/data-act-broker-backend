@@ -20,8 +20,9 @@ def test_success(database):
     det_award_3 = DetachedAwardFinancialAssistanceFactory(correction_delete_indicatr='d',
                                                           legal_entity_country_code=None)
     det_award_4 = DetachedAwardFinancialAssistanceFactory(correction_delete_indicatr='D', legal_entity_country_code='')
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(correction_delete_indicatr='D', legal_entity_country_code='U')
 
-    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3, det_award_4])
+    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3, det_award_4, det_award_5])
     assert errors == 0
 
 

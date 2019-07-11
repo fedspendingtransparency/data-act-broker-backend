@@ -18,8 +18,9 @@ def test_success(database):
     # Test ignoring for D records
     det_award_3 = DetachedAwardFinancialAssistanceFactory(correction_delete_indicatr='d', action_date=None)
     det_award_4 = DetachedAwardFinancialAssistanceFactory(correction_delete_indicatr='D', action_date='')
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(correction_delete_indicatr='D', action_date='20171001')
 
-    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3, det_award_4])
+    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3, det_award_4, det_award_5])
     assert errors == 0
 
 
