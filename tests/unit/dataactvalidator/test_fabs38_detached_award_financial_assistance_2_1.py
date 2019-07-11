@@ -43,9 +43,9 @@ def test_failure(database):
                              financial_assistance_funding_office=True)
     office_2 = OfficeFactory(office_code='987654', contract_funding_office=False,
                              financial_assistance_funding_office=False)
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(funding_office_code='12345')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_office_code='1234567')
+    det_award_1 = DetachedAwardFinancialAssistanceFactory(funding_office_code='12345', correction_delete_indicatr=None)
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_office_code='1234567', correction_delete_indicatr='')
     # Test fail if funding office is false even if code matches
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_office_code='987654')
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_office_code='987654', correction_delete_indicatr='c')
     errors = number_of_errors(_FILE, database, models=[office_1, office_2, det_award_1, det_award_2, det_award_3])
     assert errors == 3
