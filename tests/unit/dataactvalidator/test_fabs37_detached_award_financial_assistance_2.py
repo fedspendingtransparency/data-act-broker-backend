@@ -19,9 +19,9 @@ def test_pubished_date_success(database):
 
     cfda = CFDAProgram(program_number=12.340, published_date='20130427', archived_date='')
     det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.340', action_date='20140528',
-                                                          action_type='B', correction_delete_indicatr='B')
+                                                          action_type='b', correction_delete_indicatr='B')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.340', action_date='20140428',
-                                                          action_type='C', correction_delete_indicatr='')
+                                                          action_type='c', correction_delete_indicatr='')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.340', action_date='20140428',
                                                           action_type='D', correction_delete_indicatr=None)
     # Ignore correction delete indicator of D
@@ -32,11 +32,11 @@ def test_pubished_date_success(database):
 
     cfda = CFDAProgram(program_number=12.350, published_date='20130427', archived_date='20140427')
     det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.350', action_date='20130528',
-                                                          action_type='B', correction_delete_indicatr='B')
+                                                          action_type='b', correction_delete_indicatr='B')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.350', action_date='20130428',
                                                           action_type='C', correction_delete_indicatr='')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.350', action_date='20130428',
-                                                          action_type='D', correction_delete_indicatr=None)
+                                                          action_type='d', correction_delete_indicatr=None)
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, cfda])
     assert errors == 0
 
@@ -50,11 +50,11 @@ def test_pubished_date_failure(database):
 
     cfda = CFDAProgram(program_number=12.340, published_date='20130427', archived_date='')
     det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.340', action_date='20120528',
-                                                          action_type='B', correction_delete_indicatr='B')
+                                                          action_type='b', correction_delete_indicatr='B')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.340', action_date='20120427',
                                                           action_type='C', correction_delete_indicatr='')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.340', action_date='20120428',
-                                                          action_type='D', correction_delete_indicatr=None)
+                                                          action_type='d', correction_delete_indicatr=None)
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, cfda])
     assert errors == 3
 
@@ -62,7 +62,7 @@ def test_pubished_date_failure(database):
     det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.350', action_date='20120528',
                                                           action_type='B', correction_delete_indicatr='B')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.350', action_date='20150427',
-                                                          action_type='C', correction_delete_indicatr='')
+                                                          action_type='c', correction_delete_indicatr='')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.350', action_date='20150428',
                                                           action_type='D', correction_delete_indicatr=None)
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, cfda])
