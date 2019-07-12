@@ -10,4 +10,5 @@ WHERE submission_id = {0}
     AND (UPPER(legal_entity_country_code) = 'USA'
         OR record_type = 1
     )
-    AND COALESCE(legal_entity_foreign_city, '') <> '';
+    AND COALESCE(legal_entity_foreign_city, '') <> ''
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

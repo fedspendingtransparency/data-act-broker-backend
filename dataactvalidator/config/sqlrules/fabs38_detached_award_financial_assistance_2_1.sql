@@ -12,4 +12,5 @@ WHERE submission_id = {0}
         WHERE UPPER(office.office_code) = UPPER(dafa.funding_office_code)
             AND (office.contract_funding_office = TRUE
                 OR office.financial_assistance_funding_office = TRUE)
-    );
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

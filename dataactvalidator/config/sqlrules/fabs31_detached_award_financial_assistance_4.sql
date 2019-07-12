@@ -19,7 +19,8 @@ WITH detached_award_financial_assistance_fabs31_4_{0} AS
         action_date,
         awardee_or_recipient_uniqu,
         business_types,
-        record_type
+        record_type,
+        correction_delete_indicatr
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT
@@ -43,4 +44,5 @@ WHERE NOT (record_type IN (1, 3)
         SELECT 1
         FROM duns
         WHERE dafa.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
-    );
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

@@ -68,7 +68,6 @@ def derive_awarding_agency_data(obj, sub_tier_dict, office_dict):
             sub_tier_dict: a dictionary containing all the data for SubTierAgency objects keyed by sub tier code
             office_dict: a dictionary containing all the data for Office objects keyed by office code
     """
-    obj['awarding_agency_code'] = None
     obj['awarding_agency_name'] = None
     obj['awarding_sub_tier_agency_n'] = None
 
@@ -96,7 +95,6 @@ def derive_funding_agency_data(obj, sub_tier_dict, office_dict):
     """
     obj['funding_sub_tier_agency_na'] = None
     obj['funding_agency_name'] = None
-    obj['funding_agency_code'] = None
 
     # If we have an office code and no sub tier code, use the office to derive the sub tier
     if obj['funding_office_code'] and not obj['funding_sub_tier_agency_co']:
@@ -566,48 +564,52 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
     obj['legal_entity_city_name'] = None
     obj['place_of_performance_zip5'] = None
     obj['place_of_perform_zip_last4'] = None
+    obj['awarding_agency_code'] = None
+    obj['funding_agency_code'] = None
 
-    # deriving total_funding_amount
-    federal_action_obligation = obj['federal_action_obligation'] or 0
-    non_federal_funding_amount = obj['non_federal_funding_amount'] or 0
-    obj['total_funding_amount'] = federal_action_obligation + non_federal_funding_amount
+    # Don't do any of these derivations on deletion records
+    if not obj['correction_delete_indicatr'] or obj['correction_delete_indicatr'].upper() != 'D':
+        # deriving total_funding_amount
+        federal_action_obligation = obj['federal_action_obligation'] or 0
+        non_federal_funding_amount = obj['non_federal_funding_amount'] or 0
+        obj['total_funding_amount'] = federal_action_obligation + non_federal_funding_amount
 
-    derive_cfda(obj, cfda_dict, job_id, detached_award_financial_assistance_id)
+        derive_cfda(obj, cfda_dict, job_id, detached_award_financial_assistance_id)
 
-    derive_awarding_agency_data(obj, sub_tier_dict, office_dict)
+        derive_awarding_agency_data(obj, sub_tier_dict, office_dict)
 
-    derive_funding_agency_data(obj, sub_tier_dict, office_dict)
+        derive_funding_agency_data(obj, sub_tier_dict, office_dict)
 
-    ppop_code, ppop_state_code, ppop_state_name = derive_ppop_state(obj, state_dict)
+        ppop_code, ppop_state_code, ppop_state_name = derive_ppop_state(obj, state_dict)
 
-    derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code, county_dict)
+        derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code, county_dict)
 
-    derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, ppop_state_name, county_dict)
+        derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, ppop_state_name, county_dict)
 
-    derive_office_data(obj, office_dict, sess)
+        derive_office_data(obj, office_dict, sess)
 
-    derive_le_city_code(obj, sess)
+        derive_le_city_code(obj, sess)
 
-    derive_ppop_country_name(obj, country_dict)
+        derive_ppop_country_name(obj, country_dict)
 
-    derive_le_country_name(obj, country_dict)
+        derive_le_country_name(obj, country_dict)
 
-    derive_ppop_code(obj)
+        derive_ppop_code(obj)
 
-    derive_pii_redacted_ppop_data(obj)
+        derive_pii_redacted_ppop_data(obj)
 
-    split_ppop_zip(obj)
+        split_ppop_zip(obj)
 
-    derive_parent_duns(obj, sess)
+        derive_parent_duns(obj, sess)
 
-    derive_executive_compensation(obj, exec_comp_dict)
+        derive_executive_compensation(obj, exec_comp_dict)
 
-    derive_labels(obj)
+        derive_labels(obj)
+
+        # calculate business categories
+        obj['business_categories'] = get_business_categories(row=obj, data_type='fabs')
 
     set_active(obj)
-
-    # calculate business categories
-    obj['business_categories'] = get_business_categories(row=obj, data_type='fabs')
 
     obj['modified_at'] = datetime.utcnow()
 

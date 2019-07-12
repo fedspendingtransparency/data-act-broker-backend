@@ -1,15 +1,15 @@
 fieldname,fieldname_short,required,data_type,field_length
-ActionDate,action_date,ASP: Required,string,8
+ActionDate,action_date,ASP: Conditional per Validation Rule,string,8
 ActionType,action_type,ASP: Conditional per Validation Rule,string,1
-AssistanceType,assistance_type,ASP: Required,string,2
-AwardDescription,award_description,ASP: Required,string,18000
-AwardeeOrRecipientLegalEntityName,awardee_or_recipient_legal,ASP: Required,string,120
+AssistanceType,assistance_type,ASP: Conditional per Validation Rule,string,2
+AwardDescription,award_description,ASP: Conditional per Validation Rule,string,18000
+AwardeeOrRecipientLegalEntityName,awardee_or_recipient_legal,ASP: Conditional per Validation Rule,string,120
 AwardeeOrRecipientUniqueIdentifier,awardee_or_recipient_uniqu,ASP: Conditional per Validation Rule,string,9
 AwardingOfficeCode,awarding_office_code,ASP: Optional,string,6
-AwardingSubTierAgencyCode,awarding_sub_tier_agency_c,ASP: Required,string,4
+AwardingSubTierAgencyCode,awarding_sub_tier_agency_c,ASP: Conditional per Validation Rule,string,4
 AwardModificationAmendmentNumber,award_modification_amendme,ASP: Optional,string,25
-BusinessFundsIndicator,business_funds_indicator,ASP: Required,string,3
-BusinessTypes,business_types,ASP: Required,string,3
+BusinessFundsIndicator,business_funds_indicator,ASP: Conditional per Validation Rule,string,3
+BusinessTypes,business_types,ASP: Conditional per Validation Rule,string,3
 CFDA_Number,cfda_number,ASP: Required,string,7
 CorrectionDeleteIndicator,correction_delete_indicatr,ASP: Optional,string,1
 FaceValueOfDirectLoanOrLoanGuarantee,face_value_loan_guarantee,ASP: Conditional per Validation Rule,numeric,20
@@ -20,7 +20,7 @@ FundingSubTierAgencyCode,funding_sub_tier_agency_co,ASP: Optional,string,4
 LegalEntityAddressLine1,legal_entity_address_line1,ASP: Conditional per Validation Rule,string,150
 LegalEntityAddressLine2,legal_entity_address_line2,ASP: Optional,string,150
 LegalEntityCongressionalDistrict,legal_entity_congressional,ASP: Conditional per Validation Rule,string,2
-LegalEntityCountryCode,legal_entity_country_code,ASP: Required,string,3
+LegalEntityCountryCode,legal_entity_country_code,ASP: Conditional per Validation Rule,string,3
 LegalEntityForeignCityName,legal_entity_foreign_city,ASP: Conditional per Validation Rule,string,40
 LegalEntityForeignPostalCode,legal_entity_foreign_posta,ASP: Optional,string,50
 LegalEntityForeignProvinceName,legal_entity_foreign_provi,ASP: Optional,string,25
@@ -35,6 +35,6 @@ PrimaryPlaceOfPerformanceCongressionalDistrict,place_of_performance_congr,ASP: C
 PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Optional,string,3
 PrimaryPlaceOfPerformanceForeignLocationDescription,place_of_performance_forei,ASP: Conditional per Validation Rule,string,100
 PrimaryPlaceOfPerformanceZIP+4,place_of_performance_zip4a,ASP: Conditional per Validation Rule,string,10
-RecordType,record_type,ASP: Required,integer,1
+RecordType,record_type,ASP: Conditional per Validation Rule,integer,1
 SAI_Number,sai_number,ASP: Optional,string,50
 URI,uri,ASP: Conditional per Validation Rule,string,70

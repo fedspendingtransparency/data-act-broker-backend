@@ -11,4 +11,5 @@ WHERE submission_id = {0}
     AND record_type = 2
     AND (legal_entity_zip_last4 = ''
         OR legal_entity_zip_last4 IS NULL
-    );
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

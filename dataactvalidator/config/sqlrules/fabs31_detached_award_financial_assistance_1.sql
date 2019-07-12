@@ -12,4 +12,5 @@ WHERE submission_id = {0}
     AND (record_type IN (1, 3)
         OR UPPER(business_types) LIKE '%%P%%'
     )
-    AND COALESCE(awardee_or_recipient_uniqu, '') <> '';
+    AND COALESCE(awardee_or_recipient_uniqu, '') <> ''
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

@@ -5,7 +5,8 @@ WITH detached_award_financial_assistance_fabs39_1_{0} AS
     (SELECT submission_id,
         row_number,
         record_type,
-        place_of_performance_code
+        place_of_performance_code,
+        correction_delete_indicatr
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT
@@ -19,8 +20,7 @@ WHERE dafa.record_type IN (1, 2)
             AND UPPER(dafa.place_of_performance_code) <> '00FORGN'
             AND UPPER(dafa.place_of_performance_code) !~ '^[A-Z][A-Z]\*\*\*\*\*$'
             AND UPPER(dafa.place_of_performance_code) !~ '^[A-Z][A-Z]\*\*\d\d\d$'
-            AND UPPER(dafa.place_of_performance_code) !~ '^[A-Z][A-Z]\d\d\d\d\d$'
-            AND UPPER(dafa.place_of_performance_code) !~ '^[A-Z][A-Z]\d\d\d\dR$')
+            AND UPPER(dafa.place_of_performance_code) !~ '^[A-Z][A-Z]\d\d\d\d[\dR]$')
         OR (dafa.place_of_performance_code <> '00*****'
             AND UPPER(dafa.place_of_performance_code) <> '00FORGN'
             AND dafa.row_number NOT IN (
@@ -30,4 +30,5 @@ WHERE dafa.record_type IN (1, 2)
                     ON UPPER(SUBSTRING(sub_dafa.place_of_performance_code, 1, 2)) = states.state_code
             )
         )
-    );
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
