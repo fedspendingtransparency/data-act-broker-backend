@@ -17,8 +17,8 @@ from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 logger = logging.getLogger(__name__)
 
 
-def convert_bool_to_str(b_to_s):
-    return str(b_to_s)
+def convert_territory_bool_to_str(row):
+    return str(row['territory_free_state'])
 
 
 def load_country_codes(base_path, force_reload=False):
@@ -66,7 +66,7 @@ def load_country_codes(base_path, force_reload=False):
 
         # compare to existing content in table
         diff_found = check_dataframe_diff(data, CountryCode, ['country_code_id'], ['country_code'],
-                                          lambda_funcs={'territory_free_state': convert_bool_to_str})
+                                          lambda_funcs=[('territory_free_state', convert_territory_bool_to_str)])
 
         # insert to db if reload required
         if force_reload or diff_found:
