@@ -5,7 +5,8 @@ WITH detached_award_financial_assistance_fabs41_5_{0} AS
     (SELECT submission_id,
         row_number,
         place_of_performance_code,
-        place_of_performance_zip4a
+        place_of_performance_zip4a,
+        correction_delete_indicatr
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT
@@ -28,4 +29,5 @@ WHERE COALESCE(dafa.place_of_performance_zip4a, '') <> ''
         WHERE UPPER(LEFT(dafa.place_of_performance_code, 2)) = zips.state_abbreviation
             AND LEFT(dafa.place_of_performance_zip4a, 5) = zips.zip5
             AND RIGHT(dafa.place_of_performance_zip4a, 4) = zips.zip_last4
-    );
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

@@ -45,7 +45,7 @@ WHERE NOT (dafa.record_type IN (1, 3)
     )
     AND COALESCE(dafa.assistance_type, '') IN ('02', '03', '04', '05')
     AND dafa.action_type = 'A'
-    AND COALESCE(dafa.correction_delete_indicatr, '') = 'C'
+    AND UPPER(COALESCE(dafa.correction_delete_indicatr, '')) = 'C'
     AND dafa.awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
     AND (CASE WHEN pg_temp.is_date(COALESCE(dafa.action_date, '0'))
             THEN CAST(dafa.action_date AS DATE)

@@ -8,6 +8,6 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type IN (1, 2)
-    AND UPPER(place_of_performance_code) !~ '^[A-Z][A-Z]\d\d\d\d\d$'
-    AND UPPER(place_of_performance_code) !~ '^[A-Z][A-Z]\d\d\d\dR$'
-    AND COALESCE(place_of_performance_zip4a, '') <> '';
+    AND UPPER(place_of_performance_code) !~ '^[A-Z][A-Z]\d\d\d\d[\dR]$'
+    AND COALESCE(place_of_performance_zip4a, '') <> ''
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

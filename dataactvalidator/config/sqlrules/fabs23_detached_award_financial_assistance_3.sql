@@ -7,3 +7,4 @@ FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND COALESCE(awarding_sub_tier_agency_c, '') = ''
     AND COALESCE(awarding_office_code, '') = ''
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

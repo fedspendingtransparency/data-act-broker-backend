@@ -17,3 +17,4 @@ WHERE submission_id = {0}
         THEN action_date !~ '\d\d\d\d\d\d\d\d'
         ELSE TRUE
         END
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

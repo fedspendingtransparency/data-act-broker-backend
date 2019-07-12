@@ -6,4 +6,5 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type = 3
-    AND UPPER(awardee_or_recipient_legal) <> 'REDACTED DUE TO PII';
+    AND UPPER(awardee_or_recipient_legal) <> 'REDACTED DUE TO PII'
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

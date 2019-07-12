@@ -17,4 +17,5 @@ WHERE submission_id = {0}
     AND CASE WHEN pg_temp.is_date(COALESCE(period_of_performance_curr, '0'))
             THEN period_of_performance_curr !~ '\d\d\d\d\d\d\d\d'
             ELSE TRUE
-        END;
+        END
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

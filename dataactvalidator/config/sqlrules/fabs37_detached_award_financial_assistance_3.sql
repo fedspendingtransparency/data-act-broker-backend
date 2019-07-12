@@ -2,7 +2,8 @@
 WITH detached_award_financial_assistance_fabs37_1_{0} AS
     (SELECT submission_id,
         row_number,
-        cfda_number
+        cfda_number,
+        correction_delete_indicatr
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT
@@ -14,4 +15,5 @@ WHERE dafa.row_number NOT IN (
         FROM detached_award_financial_assistance_fabs37_1_{0} AS sub_dafa
             JOIN cfda_program AS cfda
                 ON sub_dafa.cfda_number = to_char(cfda.program_number, 'FM00.000')
-    );
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

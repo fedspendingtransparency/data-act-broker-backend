@@ -19,7 +19,8 @@ WITH detached_award_financial_assistance_fabs31_7_{0} AS
         awardee_or_recipient_uniqu,
         business_types,
         record_type,
-        submission_id
+        submission_id,
+        correction_delete_indicatr
     FROM detached_award_financial_assistance
     WHERE submission_id = {0}),
 duns_fabs31_7_{0} AS
@@ -63,4 +64,5 @@ WHERE NOT (dafa.record_type IN (1, 3)
                     THEN CAST(sub_dafa.action_date AS DATE)
                     END) < CAST(duns_short.expiration_date AS DATE)
                 )
-            );
+            )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

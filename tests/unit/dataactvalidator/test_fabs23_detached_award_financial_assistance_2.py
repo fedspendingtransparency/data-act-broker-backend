@@ -14,8 +14,8 @@ def test_column_headers(database):
 
 def test_success(database):
     """ If both are submitted, AwardingSubTierAgencyCode and AwardingOfficeCode must belong to the same
-        AwardingAgencyCode (per the Federal Hierarchy). Ignored if one or both are missing. """
-
+        AwardingAgencyCode (per the Federal Hierarchy). Ignored if one or both are missing.
+    """
     cgac = CGAC(cgac_id=1, cgac_code='001', agency_name='test')
     frec = FREC(frec_id=1, cgac_id=1, frec_code='0001', agency_name='test2')
     # sub tier codes are different on these offices to prove that we don't care if the office is under that sub tier
@@ -27,30 +27,39 @@ def test_success(database):
 
     # Same agency for cgac
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code,
-                                                          awarding_office_code=office_1.office_code)
+                                                          awarding_office_code=office_1.office_code,
+                                                          correction_delete_indicatr='')
     # Same agency for cgac (uppercased)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code.
                                                           upper(),
-                                                          awarding_office_code=office_1.office_code.upper())
+                                                          awarding_office_code=office_1.office_code.upper(),
+                                                          correction_delete_indicatr=None)
     # Same agency for frec
     det_award_3 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_2.sub_tier_agency_code,
-                                                          awarding_office_code=office_2.office_code)
+                                                          awarding_office_code=office_2.office_code,
+                                                          correction_delete_indicatr='c')
     # Missing sub tier code
     det_award_4 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='',
-                                                          awarding_office_code=office_2.office_code)
+                                                          awarding_office_code=office_2.office_code,
+                                                          correction_delete_indicatr='C')
     # Missing office code
     det_award_5 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code,
-                                                          awarding_office_code=None)
+                                                          awarding_office_code=None,
+                                                          correction_delete_indicatr='')
+    # Ignore correction delete indicator of D
+    det_award_6 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency_1.sub_tier_agency_code,
+                                                          awarding_office_code=office_2.office_code,
+                                                          correction_delete_indicatr='d')
 
     errors = number_of_errors(_FILE, database, models=[cgac, frec, office_1, office_2, agency_1, agency_2, det_award_1,
-                                                       det_award_2, det_award_3, det_award_4, det_award_5])
+                                                       det_award_2, det_award_3, det_award_4, det_award_5, det_award_6])
     assert errors == 0
 
 
 def test_failure(database):
     """ Test failure if both are submitted, AwardingSubTierAgencyCode and AwardingOfficeCode must belong to the same
-        AwardingAgencyCode (per the Federal Hierarchy). """
-
+        AwardingAgencyCode (per the Federal Hierarchy).
+    """
     cgac = CGAC(cgac_id=1, cgac_code='001', agency_name='test')
     frec = FREC(frec_id=1, cgac_id=1, frec_code='0001', agency_name='test2')
     office = OfficeFactory(office_code='123456', sub_tier_code='abcd', agency_code=cgac.cgac_code)
@@ -58,7 +67,8 @@ def test_failure(database):
 
     # Sub tier is FREC, office is based on CGAC, the numbers are different
     det_award = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency.sub_tier_agency_code,
-                                                        awarding_office_code=office.office_code)
+                                                        awarding_office_code=office.office_code,
+                                                        correction_delete_indicatr='')
 
     errors = number_of_errors(_FILE, database, models=[det_award, cgac, frec, office, agency])
     assert errors == 1
