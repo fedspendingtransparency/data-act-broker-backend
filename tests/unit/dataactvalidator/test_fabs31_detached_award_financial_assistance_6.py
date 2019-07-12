@@ -25,7 +25,7 @@ def test_pubished_date_success(database):
                                                           record_type=2, business_types='A',
                                                           correction_delete_indicatr='C')
     # Different assistant type
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', action_type='A',
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', action_type='a',
                                                           assistance_type='01', action_date='06/20/2015',
                                                           record_type=2, business_types='a',
                                                           correction_delete_indicatr='c')
@@ -35,7 +35,7 @@ def test_pubished_date_success(database):
                                                           record_type=2, business_types='A',
                                                           correction_delete_indicatr='C')
     # Handled by d31_1
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', action_type='A',
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', action_type='a',
                                                           assistance_type='03', action_date='06/20/2015',
                                                           record_type=1, business_types='A',
                                                           correction_delete_indicatr='C')
@@ -43,7 +43,7 @@ def test_pubished_date_success(database):
                                                           assistance_type='03', action_date='06/20/2015',
                                                           record_type=3, business_types='A',
                                                           correction_delete_indicatr='C')
-    det_award_6 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', action_type='A',
+    det_award_6 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', action_type='a',
                                                           assistance_type='04', action_date='06/20/2015',
                                                           record_type=2, business_types='P',
                                                           correction_delete_indicatr='c')
@@ -57,7 +57,7 @@ def test_pubished_date_success(database):
                                                           record_type=2, business_types='A',
                                                           correction_delete_indicatr='C')
     # Handled by d31_3
-    det_award_9 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='ABCDEFGHI', action_type='A',
+    det_award_9 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='ABCDEFGHI', action_type='a',
                                                           assistance_type='03', action_date='06/20/2015',
                                                           record_type=2, business_types='A',
                                                           correction_delete_indicatr='c')
@@ -67,7 +67,7 @@ def test_pubished_date_success(database):
                                                            record_type=2, business_types='A',
                                                            correction_delete_indicatr='C')
     # Handled by d31_5
-    det_award_11 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', action_type='A',
+    det_award_11 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', action_type='a',
                                                            assistance_type='05', action_date='06/20/2015',
                                                            record_type=2, business_types='a',
                                                            correction_delete_indicatr='D')
@@ -85,7 +85,7 @@ def test_pubished_date_success(database):
                                                            assistance_type='04', action_date='YYYYMMDD',
                                                            record_type=2, business_types='A',
                                                            correction_delete_indicatr='C')
-    det_award_15 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', action_type='A',
+    det_award_15 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu='111111111', action_type='a',
                                                            assistance_type='05', action_date='AAAAAAAAAA',
                                                            record_type=2, business_types='a',
                                                            correction_delete_indicatr='C')
@@ -112,7 +112,7 @@ def test_pubished_date_failure(database):
                                                           record_type=2, business_types='A',
                                                           correction_delete_indicatr='C')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(assistance_type='03', action_date='06/22/2016',
-                                                          awardee_or_recipient_uniqu='111111111', action_type='A',
+                                                          awardee_or_recipient_uniqu='111111111', action_type='a',
                                                           record_type=2, business_types='a',
                                                           correction_delete_indicatr='c')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(assistance_type='04', action_date='06/22/2016',
@@ -120,7 +120,7 @@ def test_pubished_date_failure(database):
                                                           record_type=2, business_types='A',
                                                           correction_delete_indicatr='C')
     det_award_4 = DetachedAwardFinancialAssistanceFactory(assistance_type='05', action_date='06/22/2016',
-                                                          awardee_or_recipient_uniqu='111111111', action_type='A',
+                                                          awardee_or_recipient_uniqu='111111111', action_type='a',
                                                           record_type=2, business_types='a',
                                                           correction_delete_indicatr='c')
 
