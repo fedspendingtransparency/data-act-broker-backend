@@ -13,9 +13,9 @@ submission_awards_{0} AS
     FROM subaward
     WHERE EXISTS (SELECT 1
         FROM ap_sub_{0} AS ap
-        WHERE subaward.award_id = ap.piid
-            AND COALESCE(subaward.parent_award_id, '') = COALESCE(ap.parent_award_id, '')
-            AND subaward.awarding_sub_tier_agency_c = ap.awarding_sub_tier_agency_c
+        WHERE UPPER(subaward.award_id) = UPPER(ap.piid)
+            AND COALESCE(UPPER(subaward.parent_award_id), '') = COALESCE(UPPER(ap.parent_award_id), '')
+            AND UPPER(subaward.awarding_sub_tier_agency_c) = UPPER(ap.awarding_sub_tier_agency_c)
             AND subaward.subaward_type = 'sub-contract'
     )
     UNION
@@ -23,7 +23,7 @@ submission_awards_{0} AS
     FROM subaward
     WHERE EXISTS (SELECT 1
         FROM afa_sub_{0} AS afa
-        WHERE subaward.award_id = afa.fain
+        WHERE UPPER(subaward.award_id) = UPPER(afa.fain)
             AND subaward.subaward_type = 'sub-grant'
     ))
 SELECT

@@ -25,7 +25,8 @@ def test_success(database):
 
     # Just some basic sums to make sure it works
     af_1_row_1 = AwardFinancialFactory(transaction_obligated_amou=1100, fain=fain_1, allocation_transfer_agency=None)
-    af_1_row_2 = AwardFinancialFactory(transaction_obligated_amou=11, fain=fain_1, allocation_transfer_agency=None)
+    af_1_row_2 = AwardFinancialFactory(transaction_obligated_amou=11, fain=fain_1.lower(),
+                                       allocation_transfer_agency=None)
     # Non-ignored rows with a matching ATA/AID
     af_2_row_1 = AwardFinancialFactory(transaction_obligated_amou=9900, fain=fain_2, allocation_transfer_agency=None)
     af_2_row_2 = AwardFinancialFactory(transaction_obligated_amou=99, fain=fain_2, allocation_transfer_agency="good",
@@ -37,7 +38,7 @@ def test_success(database):
     # Fain sums for AFA
     afa_1_row_1 = AwardFinancialAssistanceFactory(fain=fain_1, federal_action_obligation=-1100,
                                                   original_loan_subsidy_cost=None)
-    afa_1_row_2 = AwardFinancialAssistanceFactory(fain=fain_1, federal_action_obligation=-10,
+    afa_1_row_2 = AwardFinancialAssistanceFactory(fain=fain_1.lower(), federal_action_obligation=-10,
                                                   original_loan_subsidy_cost=None)
     # original loan subsidy cost used in this row because assistance type is '08'
     afa_1_row_3 = AwardFinancialAssistanceFactory(fain=fain_1, original_loan_subsidy_cost=-1, assistance_type='08',
@@ -68,7 +69,8 @@ def test_failure(database):
 
     # Simple addition that doesn't add up right
     af_1_row_1 = AwardFinancialFactory(transaction_obligated_amou=1100, fain=fain_1, allocation_transfer_agency=None)
-    af_1_row_2 = AwardFinancialFactory(transaction_obligated_amou=11, fain=fain_1, allocation_transfer_agency=None)
+    af_1_row_2 = AwardFinancialFactory(transaction_obligated_amou=11, fain=fain_1.lower(),
+                                       allocation_transfer_agency=None)
     # Incorrect addition based on assistance type in AFA
     af_2 = AwardFinancialFactory(transaction_obligated_amou=9999, fain=fain_2, allocation_transfer_agency=None)
     # Don't ignore when ATA and AID match
@@ -78,7 +80,7 @@ def test_failure(database):
     # Sum of this fain doesn't add up to af fain sum
     afa_1_row_1 = AwardFinancialAssistanceFactory(fain=fain_1, federal_action_obligation=-1100,
                                                   original_loan_subsidy_cost=None)
-    afa_1_row_2 = AwardFinancialAssistanceFactory(fain=fain_1, federal_action_obligation=-10,
+    afa_1_row_2 = AwardFinancialAssistanceFactory(fain=fain_1.lower(), federal_action_obligation=-10,
                                                   original_loan_subsidy_cost=None)
     # Both of these rows use the column that isn't filled in for summing so neither results in the correct number
     afa_2_row_1 = AwardFinancialAssistanceFactory(fain=fain_2, federal_action_obligation=-9999,

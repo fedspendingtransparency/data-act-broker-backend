@@ -13,7 +13,8 @@ def test_column_headers(database):
 
 def test_success(database):
     """ AwardeeOrRecipientUniqueIdentifier Field must be blank for aggregate and PII-redacted non-aggregate records
-        (RecordType=1 or 3) and individual recipients (BusinessTypes includes 'P'). """
+        (RecordType=1 or 3) and individual recipients (BusinessTypes includes 'P').
+    """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(record_type=1, business_types="ABP",
                                                           awardee_or_recipient_uniqu='')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(record_type=1, business_types="ABC",
@@ -45,7 +46,8 @@ def test_success(database):
 
 def test_failure(database):
     """ Test Failure for AwardeeOrRecipientUniqueIdentifier Field must be blank for aggregate and PII-redacted
-        non-aggregate records (RecordType=1 or 3) and individual recipients (BusinessTypes includes 'P'). """
+        non-aggregate records (RecordType=1 or 3) and individual recipients (BusinessTypes includes 'P').
+    """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(record_type=1, business_types="ABC",
                                                           awardee_or_recipient_uniqu='test')

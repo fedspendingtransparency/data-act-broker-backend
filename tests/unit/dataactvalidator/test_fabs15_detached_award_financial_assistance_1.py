@@ -11,9 +11,9 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Test success LegalEntityForeignCityName is required for foreign recipients
-    (i.e., when LegalEntityCountryCode != USA) for non-aggregate
-    and PII-redacted non-aggregate records (RecordType = 2 or 3)"""
+    """ Test success LegalEntityForeignCityName is required for foreign recipients (i.e., when
+        LegalEntityCountryCode != USA) for non-aggregate and PII-redacted non-aggregate records (RecordType = 2 or 3)
+    """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="Japan",
                                                           legal_entity_foreign_city="Tokyo",
@@ -24,7 +24,7 @@ def test_success(database):
     det_award_3 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA",
                                                           legal_entity_foreign_city=None,
                                                           record_type=2)
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA",
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="UsA",
                                                           legal_entity_foreign_city="",
                                                           record_type=3)
     det_award_5 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="UK",
@@ -40,9 +40,9 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test failure LegalEntityForeignCityName is required for foreign recipients
-    (i.e., when LegalEntityCountryCode != USA) for non-aggregate
-    and PII-redacted non-aggregate records (RecordType = 2 or 3)"""
+    """ Test failure LegalEntityForeignCityName is required for foreign recipients (i.e., when
+        LegalEntityCountryCode != USA) for non-aggregate and PII-redacted non-aggregate records (RecordType = 2 or 3)
+    """
 
     det_award = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="Japan",
                                                         legal_entity_foreign_city=None,

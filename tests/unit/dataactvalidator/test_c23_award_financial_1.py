@@ -23,33 +23,33 @@ def test_success(database):
     piid_3 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
 
     # First piid rows
-    af_1_row_1 = AwardFinancialFactory(transaction_obligated_amou=1100, piid=piid_1, parent_award_id='',
+    af_1_row_1 = AwardFinancialFactory(transaction_obligated_amou=1100, piid=piid_1.lower(), parent_award_id='',
                                        allocation_transfer_agency=None)
     af_1_row_2 = AwardFinancialFactory(transaction_obligated_amou=11, piid=piid_1, parent_award_id=None,
                                        allocation_transfer_agency=None)
     # Ignored because it has a paid
-    af_1_row_3 = AwardFinancialFactory(transaction_obligated_amou=11, piid=piid_1, parent_award_id="Test",
+    af_1_row_3 = AwardFinancialFactory(transaction_obligated_amou=11, piid=piid_1.upper(), parent_award_id="Test",
                                        allocation_transfer_agency=None)
 
     # Add a row for a different piid
-    af_2_row_1 = AwardFinancialFactory(transaction_obligated_amou=9900, piid=piid_2, parent_award_id=None,
+    af_2_row_1 = AwardFinancialFactory(transaction_obligated_amou=9900, piid=piid_2.lower(), parent_award_id=None,
                                        allocation_transfer_agency=None)
     # Matching ata/aid, not ignored
     af_2_row_2 = AwardFinancialFactory(transaction_obligated_amou=99, piid=piid_2, parent_award_id=None,
                                        allocation_transfer_agency="123", agency_identifier="123")
     # Not matching ata/aid, ignored
-    af_2_row_3 = AwardFinancialFactory(transaction_obligated_amou=10, piid=piid_2, parent_award_id=None,
+    af_2_row_3 = AwardFinancialFactory(transaction_obligated_amou=10, piid=piid_2.upper(), parent_award_id=None,
                                        allocation_transfer_agency="345", agency_identifier="123")
 
     # Third piid with all rows ignored because one has an ATA different from AID
-    af_3_row_1 = AwardFinancialFactory(transaction_obligated_amou=8888, piid=piid_3, parent_award_id=None,
+    af_3_row_1 = AwardFinancialFactory(transaction_obligated_amou=8888, piid=piid_3.lower(), parent_award_id=None,
                                        allocation_transfer_agency="123", agency_identifier="345")
     af_3_row_2 = AwardFinancialFactory(transaction_obligated_amou=8888, piid=piid_3, parent_award_id=None,
                                        allocation_transfer_agency=None)
 
     # Sum all of these should be equal to that of first piid
     ap_1_row_1 = AwardProcurementFactory(piid=piid_1, parent_award_id=None, federal_action_obligation=-1100)
-    ap_1_row_2 = AwardProcurementFactory(piid=piid_1, parent_award_id=None, federal_action_obligation=-10)
+    ap_1_row_2 = AwardProcurementFactory(piid=piid_1.lower(), parent_award_id=None, federal_action_obligation=-10)
     ap_1_row_3 = AwardProcurementFactory(piid=piid_1, parent_award_id=None, federal_action_obligation=-1)
     # Checking second piid
     ap_2 = AwardProcurementFactory(piid=piid_2, parent_award_id="1234", federal_action_obligation=-9999)

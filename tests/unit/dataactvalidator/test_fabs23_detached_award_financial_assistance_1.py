@@ -14,9 +14,9 @@ def test_column_headers(database):
 def test_success(database):
     """ AwardingSubTierAgencyCode must be a valid 4-digit sub-tier agency code. Doesn't fail when code not provided. """
 
-    agency = SubTierAgency(sub_tier_agency_code='0000', cgac_id='1')
+    agency = SubTierAgency(sub_tier_agency_code='a000', cgac_id='1')
     cgac = CGAC(cgac_id='1', cgac_code='001', agency_name='test')
-    det_award = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency.sub_tier_agency_code)
+    det_award = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=agency.sub_tier_agency_code.upper())
     det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=None)
     det_award_3 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='')
 
