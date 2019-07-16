@@ -268,7 +268,8 @@ class FileHandler:
                 bucket_name = CONFIG_BROKER["broker_files"] if self.is_local else CONFIG_BROKER["aws_bucket"]
                 if CONFIG_BROKER['use_aws']:
                     s3 = boto3.client('s3', region_name='us-gov-west-1')
-                    s3.upload_fileobj(file_ref, bucket_name, filename_key)
+                    extra_args = {'Metadata': {'email': current_user.email}}
+                    s3.upload_fileobj(file_ref, bucket_name, filename_key, ExtraArgs=extra_args)
                 else:
                     file_ref.save(filename_key)
                 with app.app_context():
@@ -511,7 +512,8 @@ class FileHandler:
             bucket_name = CONFIG_BROKER["broker_files"] if self.is_local else CONFIG_BROKER["aws_bucket"]
             if CONFIG_BROKER['use_aws']:
                 s3 = boto3.client('s3', region_name='us-gov-west-1')
-                s3.upload_fileobj(fabs, bucket_name, filename_key)
+                extra_args = {'Metadata': {'email': g.user.email}}
+                s3.upload_fileobj(fabs, bucket_name, filename_key, ExtraArgs=extra_args)
             else:
                 fabs.save(filename_key)
             json_response = self.finalize(job_dict["fabs_id"])

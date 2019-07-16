@@ -46,12 +46,12 @@ WHERE NOT (dafa.record_type IN (1, 3)
         OR UPPER(dafa.business_types) LIKE '%%P%%'
     )
     AND COALESCE(dafa.assistance_type, '') IN ('02', '03', '04', '05')
-    AND dafa.action_type = 'A'
+    AND UPPER(dafa.action_type) = 'A'
     AND dafa.awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
     AND (CASE WHEN pg_temp.is_date(COALESCE(dafa.action_date, '0'))
             THEN CAST(dafa.action_date AS DATE)
         END) > CAST('10/01/2010' AS DATE)
-    AND (COALESCE(dafa.correction_delete_indicatr, '') <> 'C'
+    AND (UPPER(COALESCE(dafa.correction_delete_indicatr, '')) <> 'C'
         OR (CASE WHEN pg_temp.is_date(COALESCE(dafa.action_date, '0'))
                 THEN CAST(dafa.action_date AS DATE)
             END) >= CAST('01/01/2017' AS DATE)
@@ -70,4 +70,5 @@ WHERE NOT (dafa.record_type IN (1, 3)
                 AND (CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
                         THEN CAST(sub_dafa.action_date AS DATE)
                     END) < CAST(duns_short.expiration_date AS DATE)
-            );
+            )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

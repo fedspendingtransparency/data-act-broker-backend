@@ -12,4 +12,5 @@ WHERE submission_id = {0}
         OR (period_of_performance_star IS NULL
             AND period_of_performance_curr IS NOT NULL
         )
-    );
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

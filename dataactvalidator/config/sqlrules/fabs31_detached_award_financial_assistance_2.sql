@@ -27,4 +27,5 @@ WHERE submission_id = {0}
             WHEN pg_temp.is_date(COALESCE(action_date, '0'))
             THEN CAST(action_date AS DATE)
         END) > CAST('10/01/2010' AS DATE)
-    AND COALESCE(awardee_or_recipient_uniqu, '') = '';
+    AND COALESCE(awardee_or_recipient_uniqu, '') = ''
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

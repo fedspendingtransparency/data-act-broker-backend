@@ -4,4 +4,5 @@ SELECT
     assistance_type
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND COALESCE(assistance_type, '') NOT IN ('02', '03', '04', '05', '06', '07', '08', '09', '10', '11');
+    AND COALESCE(assistance_type, '') NOT IN ('02', '03', '04', '05', '06', '07', '08', '09', '10', '11')
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

@@ -7,7 +7,8 @@ WITH detached_award_financial_assistance_fabs43_4_{0} AS
     (SELECT submission_id,
         row_number,
         place_of_performance_code,
-        place_of_performance_congr
+        place_of_performance_congr,
+        correction_delete_indicatr
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT
@@ -36,4 +37,5 @@ WHERE COALESCE(dafa.place_of_performance_code, '') <> ''
                 )
             )
             ELSE FALSE
-        END;
+        END
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

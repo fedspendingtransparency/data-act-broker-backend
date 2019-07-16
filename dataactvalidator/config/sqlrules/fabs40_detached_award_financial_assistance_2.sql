@@ -8,7 +8,8 @@ FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type = 1
     AND NOT (
-    UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\d\d\d$'
-    OR UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\*\*\*$'
-    OR UPPER(place_of_performance_code) = '00FORGN'
-    );
+        UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\d\d\d$'
+        OR UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\*\*\*$'
+        OR UPPER(place_of_performance_code) = '00FORGN'
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

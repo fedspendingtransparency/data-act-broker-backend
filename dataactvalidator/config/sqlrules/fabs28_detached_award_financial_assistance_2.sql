@@ -8,4 +8,5 @@ WHERE submission_id = {0}
     AND assistance_type <> '07'
     AND assistance_type <> '08'
     AND face_value_loan_guarantee IS NOT NULL
-    AND face_value_loan_guarantee <> 0;
+    AND face_value_loan_guarantee <> 0
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

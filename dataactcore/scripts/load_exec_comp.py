@@ -195,13 +195,13 @@ def update_exec_comp_duns(sess, exec_comp_data, metrics=None):
 
 
 def parse_exec_comp(exec_comp_str=None):
-    """ Parses the executive compensation string into a dictionary for the ExecutiveCompensation data model
+    """ Parses the executive compensation string into a dictionary of exec comp data
 
         Args:
             exec_comp_str: the incoming compensation string
 
         Returns:
-            dictionary for the ExecutiveCompensation data model
+            dictionary of exec comp data
     """
     exec_comp_data = OrderedDict()
     for index in range(1, 6):

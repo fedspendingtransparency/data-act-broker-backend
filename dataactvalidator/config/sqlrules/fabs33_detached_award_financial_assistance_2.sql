@@ -19,4 +19,5 @@ WHERE submission_id = {0}
         OR (CASE WHEN pg_temp.is_date(COALESCE(period_of_performance_curr, '0'))
                 THEN CAST(period_of_performance_curr AS DATE)
             END) > CAST('20991231' AS DATE)
-    );
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

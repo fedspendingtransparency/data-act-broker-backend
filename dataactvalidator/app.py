@@ -253,12 +253,14 @@ def validator_process_job(job_id, agency_code, is_retry=False):
             job.error_message = str(e)
             if job.filename is not None:
                 error_type = ValidationError.unknownError
+                extra_info = None
                 if isinstance(e, UnicodeDecodeError):
                     error_type = ValidationError.encodingError
                 elif isinstance(e, ResponseException):
                     error_type = e.errorType
+                    extra_info = e.extraInfo
 
-                write_file_error(job.job_id, job.filename, error_type)
+                write_file_error(job.job_id, job.filename, error_type, extra_info=extra_info)
 
             mark_job_status(job.job_id, 'invalid')
         else:
