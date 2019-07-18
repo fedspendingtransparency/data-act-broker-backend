@@ -16,7 +16,7 @@ from sqlalchemy import func
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import Office, SubTierAgency
+from dataactcore.models.domainModels import Office, SubTierAgency, CGAC
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
@@ -143,7 +143,9 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                         if not org.get('aacofficecode') or not org.get('agencycode') or not agency_code:
                             # Item from Fed Hierarchy is missing necessary data, ignore it
                             continue
-
+                        # store all the cgacs/subtiers loaded in from this run, to be filtered later
+                        metrics['missing_cgacs'].append(agency_code)
+                        metrics['missing_subtier_codes'].append(org.get('agencycode'))
                         new_office = Office(office_code=org.get('aacofficecode'), office_name=org.get('fhorgname'),
                                             sub_tier_code=org.get('agencycode'), agency_code=agency_code,
                                             contract_funding_office=False, contract_awards_office=False,
@@ -303,7 +305,9 @@ def main():
         'level_4_records': 0,
         'level_5_records': 0,
         'level_6_records': 0,
-        'level_7_records': 0
+        'level_7_records': 0,
+        'missing_cgacs': [],
+        'missing_subtier_codes': []
     }
 
     # Handle the pull_date parameter
@@ -341,6 +345,12 @@ def main():
     except Exception as e:
         logger.error(str(e))
         sys.exit(1)
+
+    # find if there were any new cgacs/subtiers added
+    all_cgacs = [cgac.cgac_code for cgac in sess.query(CGAC.cgac_code)]
+    all_subtiers = [subtier.sub_tier_agency_code for subtier in sess.query(SubTierAgency.sub_tier_agency_code)]
+    metrics_json['missing_cgacs'] = list(set(metrics_json['missing_cgacs']) - set(all_cgacs))
+    metrics_json['missing_subtier_codes'] = list(set(metrics_json['missing_subtier_codes']) - set(all_subtiers))
 
     metrics_json['duration'] = str(datetime.now() - now)
 
