@@ -322,13 +322,23 @@ def legislative_mandates_values(data, obj):
                  'materialsSuppliesArticlesEquipment': 'materials_supplies_article'}
 
     additional_reporting = None
-    ar_values = data.get('listOfAdditionalReportingValues')
-    if ar_values:
-        ar_values = ar_values['additionalReportingValue']
+    try:
+        ar_dicts = data['listOfAdditionalReportingValues']['additionalReportingValue']
+    except (KeyError, TypeError):
+        ar_dicts = None
+    if ar_dicts:
         # if there is only one dict, convert it to a list of one dict
-        if isinstance(ar_values, dict):
-            ar_values = [ar_values]
-        ars = ['{}: {}'.format(extract_text(ar_dict), ar_dict['@description']) for ar_dict in ar_values]
+        if isinstance(ar_dicts, dict):
+            ar_dicts = [ar_dicts]
+        ars = []
+        for ar_dict in ar_dicts:
+            ar_value = extract_text(ar_dict)
+            try:
+                ar_desc = ar_dict['@description']
+            except (KeyError, TypeError):
+                ar_desc = None
+            ar_str = ar_value if ar_desc is None else '{}: {}'.format(ar_value, ar_desc)
+            ars.append(ar_str)
         additional_reporting = '; '.join(ars)
     obj['additional_reporting'] = additional_reporting
 
