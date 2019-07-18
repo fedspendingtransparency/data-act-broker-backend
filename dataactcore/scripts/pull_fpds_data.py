@@ -319,7 +319,8 @@ def legislative_mandates_values(data, obj):
                  'interagencyContractingAuthority': 'interagency_contracting_au',
                  'otherStatutoryAuthority': 'other_statutory_authority',
                  'laborStandards': 'labor_standards',
-                 'materialsSuppliesArticlesEquipment': 'materials_supplies_article'}
+                 'materialsSuppliesArticlesEquipment': 'materials_supplies_article',
+                 'AdditionalReporting': 'additional_reporting'}
 
     for key, value in value_map.items():
         try:
