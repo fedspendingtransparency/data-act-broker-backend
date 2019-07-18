@@ -319,8 +319,18 @@ def legislative_mandates_values(data, obj):
                  'interagencyContractingAuthority': 'interagency_contracting_au',
                  'otherStatutoryAuthority': 'other_statutory_authority',
                  'laborStandards': 'labor_standards',
-                 'materialsSuppliesArticlesEquipment': 'materials_supplies_article',
-                 'AdditionalReporting': 'additional_reporting'}
+                 'materialsSuppliesArticlesEquipment': 'materials_supplies_article'}
+
+    additional_reporting = None
+    ar_values = data.get('listOfAdditionalReportingValues')
+    if ar_values:
+        ar_values = ar_values['additionalReportingValue']
+        # if there is only one dict, convert it to a list of one dict
+        if isinstance(ar_values, dict):
+            ar_values = [ar_values]
+        ars = ['{}: {}'.format(extract_text(ar_dict), ar_dict['@description']) for ar_dict in ar_values]
+        additional_reporting = '; '.join(ars)
+    obj['additional_reporting'] = additional_reporting
 
     for key, value in value_map.items():
         try:
