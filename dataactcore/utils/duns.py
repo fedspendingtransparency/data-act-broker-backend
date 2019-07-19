@@ -362,6 +362,7 @@ def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=No
             'records_processed': 0
         }
 
+    file_path = os.path.join(root_dir, filename)
     logger.info('starting file ' + file_path)
     metrics['files_processed'].append(filename)
 
