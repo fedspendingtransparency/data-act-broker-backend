@@ -104,27 +104,10 @@ def load_duns_by_row(data, sess, models, activated_models, benchmarks=False, tab
         Returns:
             tuple of added and updated duns lists
     """
-    # Disabling activation_check as we're using registration_date
-    # data = activation_check(data, activated_models, benchmarks).where(pd.notnull(data), None)
     added, updated = update_duns(models, data, benchmarks=benchmarks, table=table)
     sess.add_all(models.values())
     return added, updated
 
-
-# Removed this function when adding registration_date
-# def activation_check(data, activated_models, benchmarks=False):
-#     # if activation_date's already set, keep it, otherwise update it (default)
-#     logger.info("going through activation check")
-#     if benchmarks:
-#         activation_check_start = time.time()
-#     lambda_func = (lambda duns_num: pd.Series([activated_models[duns_num].activation_date
-#                                                if duns_num in activated_models else np.nan]))
-#     data = data.assign(old_activation_date=data["awardee_or_recipient_uniqu"].apply(lambda_func))
-#     data.loc[pd.notnull(data["old_activation_date"]), "activation_date"] = data["old_activation_date"]
-#     del data["old_activation_date"]
-#     if benchmarks:
-#         logger.info("Activation check took {} seconds".format(time.time()-activation_check_start))
-#     return data
 
 def update_duns(models, new_data, benchmarks=False, table=DUNS):
     """ Modify existing models or create new ones
