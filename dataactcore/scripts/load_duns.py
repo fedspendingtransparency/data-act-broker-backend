@@ -9,7 +9,7 @@ import json
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import DUNS, HistoricParentDUNS
+from dataactcore.models.domainModels import DUNS
 from dataactcore.utils.parentDuns import sam_config_is_valid, update_missing_parent_names
 from dataactcore.utils.duns import get_client, parse_duns_file, REMOTE_SAM_DUNS_DIR
 from dataactvalidator.health_check import create_app
@@ -17,8 +17,7 @@ from dataactvalidator.health_check import create_app
 logger = logging.getLogger(__name__)
 
 
-def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False, benchmarks=False, table=DUNS,
-                     year=None, metrics=None):
+def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False, benchmarks=False, metrics=None):
     """ Process the SAM file found locally or remotely
 
         Args:
@@ -29,8 +28,6 @@ def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False,
             sftp: the sftp client to pull the CSV from
             monthly: whether it's a monthly file
             benchmarks: whether to log times
-            table: the table to work from (could be DUNS/HistoricParentDuns)
-            year: the year associated with the data (primarily for  HistoricParentDUNS loads)
             metrics: dictionary representing metrics data for the load
     """
     if not metrics:
@@ -45,7 +42,7 @@ def process_from_dir(root_dir, file_name, sess, local, sftp=None, monthly=False,
         logger.info("Pulling {}".format(file_name))
         with open(file_path, "wb") as zip_file:
             sftp.getfo(''.join([REMOTE_SAM_DUNS_DIR, '/', file_name]), zip_file)
-    parse_duns_file(file_path, sess, monthly=monthly, benchmarks=benchmarks, table=table, year=year, metrics=metrics)
+    parse_duns_file(file_path, sess, monthly=monthly, benchmarks=benchmarks, metrics=metrics)
     if not local:
         os.remove(file_path)
 
@@ -60,9 +57,6 @@ def get_parser():
                                                       'duns table. By default, it loads the latest daily file.')
     duns_parser.add_argument("--historic", "-i", action="store_true", help='load the oldest monthly zip and all the '
                                                                            'daily files afterwards from the directory.')
-    duns_parser.add_argument("--historic_parent_duns", "-hpd", action="store_true",
-                             help='Loads only the last monthly files of every year available into a separate '
-                                  'historic_parent_duns table')
     duns_parser.add_argument("--local", "-l", type=str, default=None, help='work from a local directory')
     duns_parser.add_argument("--monthly", "-m", type=str, default=None, help='load a local monthly file')
     duns_parser.add_argument("--daily", "-d", type=str, default=None, help='load a local daily file')
@@ -80,7 +74,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     historic = args.historic
-    historic_parent_duns = args.historic_parent_duns
     local = args.local
     monthly = args.monthly
     daily = args.daily
@@ -112,9 +105,6 @@ if __name__ == '__main__':
         wdsl_client = sam_config_is_valid()
         updated_date = datetime.date.today()
 
-        if historic_parent_duns and any([historic, local, monthly, daily, update]):
-            logger.error("Historic parent duns requires no other parameters be provided.")
-            sys.exit(1)
         if monthly and daily:
             logger.error("For loading a single local file, you must provide either monthly or daily.")
             sys.exit(1)
@@ -184,17 +174,6 @@ if __name__ == '__main__':
                     metrics['parent_update_date'] = str(updated_date)
                 else:
                     logger.info("No daily file found.")
-            elif historic_parent_duns:
-                yearly_files = [yearly_file for yearly_file in sorted_monthly_file_names
-                                if re.match(".*MONTHLY_\d{4}12\d{2}\.ZIP", yearly_file.upper())]
-                # Add the last monthly file if the last yearly file doesn't cover the current year
-                if (re.findall(".*MONTHLY_(\d{4})12\d{2}\.ZIP", yearly_files[-1])[0] != str(updated_date.year) and
-                        sorted_monthly_file_names[-1] != yearly_files[-1]):
-                    yearly_files.append(sorted_monthly_file_names[-1])
-                for yearly_file in yearly_files:
-                    year = re.findall(".*MONTHLY_(\d{4})\d{4}\.ZIP", yearly_file)[0]
-                    process_from_dir(root_dir, yearly_file, sess, local, sftp, monthly=True, benchmarks=benchmarks,
-                                     table=HistoricParentDUNS, year=year, metrics=metrics)
             else:
                 if sorted_daily_file_names:
                     process_from_dir(root_dir, sorted_daily_file_names[-1], sess, local, sftp, benchmarks=benchmarks,
