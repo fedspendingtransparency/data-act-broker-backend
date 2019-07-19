@@ -51,3 +51,8 @@ def insert_job(sess, filetype, status, type_id, submission, job_id=None, filenam
     sess.add(job)
     sess.commit()
     return job
+
+
+def get_submission(sess, sub_id):
+    """ Get back the requested submission """
+    return sess.query(Submission).filter_by(submission_id=sub_id).one_or_none()

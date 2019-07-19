@@ -1569,7 +1569,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
     return JsonResponse.create(StatusCode.OK, {
         'submissions': [serialize_submission(submission) for submission in query],
         'total': total_submissions,
-        'min_last_modified': str(min_last_mod)
+        'min_last_modified': str(min_last_mod) if min_last_mod else None
     })
 
 
