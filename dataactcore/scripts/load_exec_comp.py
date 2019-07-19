@@ -238,11 +238,11 @@ def get_parser():
     """
     parser = argparse.ArgumentParser(description='Get data from SAM and update execution_compensation table')
     scope = parser.add_mutually_exclusive_group(required=True)
-    scope.add_argument('--historic', '-i', action='store_true', help='reload from the first monthly file on')
-    scope.add_argument('--update', '-u', action='store_true', help='load only the latest daily file')
+    scope.add_argument('--historic', '-a', action='store_true', help='Reload from the first monthly file on')
+    scope.add_argument('--update', '-u', action='store_true', help='Load daily files since latest last_sam_mod_date')
     environ = parser.add_mutually_exclusive_group(required=True)
-    environ.add_argument('--local', '-l', type=str, default=None, help='local directory to work from')
-    environ.add_argument('--ssh_key', '-k', type=str, default=None, help='private key used to access the API remotely')
+    environ.add_argument('--local', '-l', type=str, default=None, help='Local directory to work from')
+    environ.add_argument('--ssh_key', '-k', type=str, default=None, help='Private key used to access the API remotely')
     return parser
 
 if __name__ == '__main__':
@@ -271,6 +271,7 @@ if __name__ == '__main__':
         sess = GlobalDB.db().session
         sftp = None
 
+        # dealing with a local or remote directory
         if ssh_key:
             root_dir = CONFIG_BROKER['d_file_storage_path']
             client = get_client(ssh_key=ssh_key)
@@ -281,45 +282,47 @@ if __name__ == '__main__':
             root_dir = local
             dirlist = os.listdir(local)
 
-        # generate chronological list of daily files
-        sorted_monthly_file_names = sorted([monthly_file for monthly_file in dirlist if re.match('.*MONTHLY_\d+',
-                                                                                                 monthly_file)])
-        sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match('.*DAILY_\d+', daily_file)])
+        # generate chronological list of daily and monthly files
+        sorted_monthly_file_names = sorted([monthly_file for monthly_file in dirlist if re.match('.*MONTHLY_\d+\.ZIP',
+                                                                                                 monthly_file.upper())])
+        sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match('.*DAILY_\d+\.ZIP',
+                                                                                           daily_file.upper())])
 
-        if historic:
+        # load in earliest monthly file for historic
+        if historic and sorted_monthly_file_names:
             exec_comp_data = parse_exec_comp_file(sorted_monthly_file_names[0], root_dir, sftp=sftp, ssh_key=ssh_key,
                                                   metrics=metrics)
             update_exec_comp_duns(sess, exec_comp_data, metrics=metrics)
 
-            for daily_file in sorted_daily_file_names:
-                exec_comp_data = parse_exec_comp_file(daily_file, root_dir, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
-                update_exec_comp_duns(sess, exec_comp_data, metrics=metrics)
-        elif update:
-            # Insert item into sorted file list with date of last exec comp load date
+        # load in daily files after depending on params
+        if sorted_daily_file_names:
+            # if update, make sure it's been done once before
             last_update = sess.query(DUNS.last_exec_comp_mod_date). \
                 order_by(DUNS.last_exec_comp_mod_date.desc()). \
                 filter(DUNS.last_exec_comp_mod_date.isnot(None)). \
                 first()
-            if not last_update:
+            if update and not last_update:
                 raise Exception('No last executive compenstation mod date found in database. '
                                 'Please run historic loader first.')
-            else:
+
+            # determine which daily files to load
+            earliest_daily_file = None
+            if historic and sorted_monthly_file_names:
+                earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
+            elif update:
                 last_update = last_update[0].strftime("%Y%m%d")
-            earliest_daily_file = re.sub("_DAILY_[0-9]{8}\.ZIP", "_DAILY_" +
-                                         last_update + ".ZIP", sorted_daily_file_names[0])
+                earliest_daily_file = re.sub("_DAILY_[0-9]{8}\.ZIP", "_DAILY_" +
+                                             last_update + ".ZIP", sorted_daily_file_names[0])
+            daily_files_after = sorted_daily_file_names
             if earliest_daily_file:
                 sorted_full_list = sorted(sorted_daily_file_names + [earliest_daily_file])
                 daily_files_after = sorted_full_list[sorted_full_list.index(earliest_daily_file) + 1:]
-            else:
-                daily_files_after = sorted_daily_file_names
 
-            if daily_files_after:
-                for daily_file in daily_files_after:
-                    exec_comp_data = parse_exec_comp_file(daily_file, root_dir, sftp=sftp, ssh_key=ssh_key,
-                                                          metrics=metrics)
-                    update_exec_comp_duns(sess, exec_comp_data, metrics=metrics)
-            else:
-                logger.info("No daily file found.")
+            # load daily files
+            for daily_file in daily_files_after:
+                exec_comp_data = parse_exec_comp_file(daily_file, root_dir, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
+                update_exec_comp_duns(sess, exec_comp_data, metrics=metrics)
+        sess.close()
 
     metrics['records_updated'] = len(set(metrics['updated_duns']))
     del metrics['updated_duns']
