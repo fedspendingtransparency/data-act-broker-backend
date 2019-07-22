@@ -117,7 +117,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                 # We get errors back as regular JSON, need to catch them somewhere
                 if response_dict.get('error'):
                     err = response_dict.get('error')
-                    logger.error("An error of type {} occurred. Message: {}".format(err['code'], err['message']))
+                    logger.error("An error occurred: {}".format(err))
                     sys.exit(2)
 
                 # Process the entry if it isn't an error
