@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 from flask import g
 from sqlalchemy import func, or_, desc
+from sqlalchemy.sql.expression import case
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (sum_number_of_errors_for_job_list, get_last_validated_date,
@@ -121,7 +122,8 @@ def get_submission_metadata(submission):
     # Get metadata for FABS submissions
     fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
 
-    number_of_rows = sess.query(func.sum(Job.number_of_rows)).\
+    # We need to ignore one row from each job for the header
+    number_of_rows = sess.query(func.sum(case([(Job.number_of_rows > 0, Job.number_of_rows-1)], else_=0))).\
         filter_by(submission_id=submission.submission_id).\
         scalar() or 0
 
@@ -232,7 +234,7 @@ def job_to_dict(job):
         'job_type': job.job_type_name,
         'filename': job.original_filename,
         'file_size': job.file_size,
-        'number_of_rows': job.number_of_rows,
+        'number_of_rows': job.number_of_rows - 1 if job.number_of_rows else 0,
         'file_type': job.file_type_name or ''
     }
 
