@@ -35,7 +35,7 @@ def process_from_dir(root_dir, file_name, sess, sftp=None, ssh_key=None, metrics
             ssh_client = get_client(ssh_key=ssh_key)
             sftp = ssh_client.open_sftp()
         logger.info("Pulling {}".format(file_name))
-        with open(os.path.join(root_dir, file_name), 'wb') as zip_file:
+        with open(file_path, 'wb') as zip_file:
             sftp.getfo(''.join([REMOTE_SAM_EXEC_COMP_DIR, '/', file_name]), zip_file)
     exec_comp_data = parse_exec_comp_file(file_name, root_dir, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
     update_exec_comp_duns(sess, exec_comp_data, metrics=metrics)
