@@ -414,9 +414,6 @@ def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=No
     last_exec_comp_mod_date = datetime.datetime.strptime(last_exec_comp_mod_date_str[0], '%Y%m%d').date()
     total_data = total_data.assign(last_exec_comp_mod_date=last_exec_comp_mod_date)
 
-    if sftp:
-        os.remove(os.path.join(root_dir, filename))
-
     return total_data
 
 
