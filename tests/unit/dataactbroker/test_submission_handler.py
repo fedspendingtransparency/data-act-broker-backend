@@ -300,7 +300,7 @@ def test_get_submission_data_dabs(database):
         'job_type': job.job_type_name,
         'filename': job.original_filename,
         'file_size': job.file_size,
-        'number_of_rows': job.number_of_rows-1,
+        'number_of_rows': job.number_of_rows - 1,
         'file_type': job.file_type_name,
         'file_status': "",
         'error_type': "",
