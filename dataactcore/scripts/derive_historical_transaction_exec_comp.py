@@ -5,8 +5,7 @@ import re
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.scripts.load_exec_comp import parse_exec_comp_file, create_temp_exec_comp_table
-from dataactcore.utils.duns import get_client, REMOTE_SAM_EXEC_COMP_DIR
+from dataactcore.utils.duns import get_client, REMOTE_SAM_EXEC_COMP_DIR, parse_exec_comp_file, create_temp_exec_comp_table
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
