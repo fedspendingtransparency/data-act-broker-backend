@@ -529,7 +529,7 @@ class FileTests(BaseTestAPI):
             self.assertIn("duplicated_header_two", approp_job["duplicated_headers"])
             # Check file size and number of rows
             self.assertEqual(approp_job["file_size"], 2345)
-            self.assertEqual(approp_job["number_of_rows"], 567)
+            self.assertEqual(approp_job["number_of_rows"], 566)
 
             # Check error metadata for specified error
             rule_error_data = None
