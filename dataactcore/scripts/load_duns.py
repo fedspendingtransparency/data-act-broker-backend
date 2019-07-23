@@ -157,6 +157,8 @@ if __name__ == '__main__':
     del metrics['added_duns']
     del metrics['updated_duns']
 
+    logger.info('Added {} records and updated {} records'.format(metrics['records_added'], metrics['records_updated']))
+
     metrics['duration'] = str(datetime.datetime.now() - now)
     with open('load_duns_metrics.json', 'w+') as metrics_file:
         json.dump(metrics, metrics_file)
