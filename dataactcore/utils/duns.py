@@ -170,12 +170,13 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     adds_received = len(add_data.index)
     update_data = total_data[total_data.sam_extract_code == '3']
     updates_received = len(update_data.index)
-    del total_data["sam_extract_code"]
 
     # add deactivation_date column for delete records
     lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
     total_data = total_data.assign(deactivation_date=pd.Series([np.nan], name='deactivation_date')
                                if monthly else total_data["sam_extract_code"].apply(lambda_func))
+    del total_data["sam_extract_code"]
+    
     # convert business types string to array
     bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~')
                                           if isinstance(bt_raw, str)]]))
