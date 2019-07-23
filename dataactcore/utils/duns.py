@@ -274,7 +274,7 @@ def update_duns(sess, duns_data, metrics=None):
     updated_duns_list = [row['awardee_or_recipient_uniqu'] for row in sess.execute(update_sql).fetchall()]
 
     logger.info('Adding/updating DUNS based on temp_duns_update')
-    upsert_sql = """
+    insert_sql = """
         INSERT INTO duns (
             created_at,
             updated_at,
@@ -300,57 +300,42 @@ def update_duns(sess, duns_data, metrics=None):
             entity_structure
         )
         SELECT
-            tdu.updated_at,
-            tdu.updated_at,
-            tdu.awardee_or_recipient_uniqu,
-            COALESCE(tdu.activation_date, duns.activation_date),
-            COALESCE(tdu.expiration_date, duns.expiration_date),
-            COALESCE(tdu.deactivation_date, duns.deactivation_date),
-            COALESCE(tdu.registration_date, duns.registration_date),
-            COALESCE(tdu.last_sam_mod_date, duns.last_sam_mod_date),
-            COALESCE(tdu.legal_business_name, duns.legal_business_name),
-            COALESCE(tdu.dba_name, duns.dba_name),
-            COALESCE(tdu.ultimate_parent_unique_ide, 
-                                                       duns.ultimate_parent_unique_ide),
-            COALESCE(tdu.ultimate_parent_legal_enti, 
-                                                       duns.ultimate_parent_legal_enti),
-            COALESCE(tdu.address_line_1, duns.address_line_1),
-            COALESCE(tdu.address_line_2, duns.address_line_2),
-            COALESCE(tdu.city, duns.city),
-            COALESCE(tdu.state, duns.state),
-            COALESCE(tdu.zip, duns.zip),
-            COALESCE(tdu.zip4, duns.zip4),
-            COALESCE(tdu.country_code, duns.country_code),
-            COALESCE(tdu.congressional_district, duns.congressional_district),
-            COALESCE(tdu.business_types_codes, duns.business_types_codes),
-            COALESCE(excluded.entity_structure, duns.entity_structure)
+            *
         FROM temp_duns_update tdu
-        ON CONFLICT (awardee_or_recipient_uniqu) DO
-            UPDATE
-            SET
-                updated_at = excluded.updated_at,
-                activation_date = excluded.activation_date,
-                expiration_date = excluded.expiration_date,
-                deactivation_date = excluded.deactivation_date,
-                registration_date = excluded.registration_date,
-                last_sam_mod_date = excluded.last_sam_mod_date,
-                legal_business_name = excluded.legal_business_name,
-                dba_name = excluded.dba_name,
-                ultimate_parent_unique_ide = excluded.ultimate_parent_unique_ide,
-                ultimate_parent_legal_enti = excluded.ultimate_parent_legal_enti,
-                address_line_1 = excluded.address_line_1,
-                address_line_2 = excluded.address_line_2,
-                city = excluded.city,
-                state = excluded.state,
-                zip = excluded.zip,
-                zip4 = excluded.zip4,
-                country_code = excluded.country_code,
-                congressional_district = excluded.congressional_district,
-                business_types_codes = excluded.business_types_codes,
-                entity_structure = excluded.entity_structure
-            WHERE awardee_or_recipient_uniqu = excluded.awardee_or_recipient_uniqu;
+        WHERE NOT EXISTS (
+                SELECT 1
+                FROM duns
+                WHERE duns.awardee_or_recipient_uniqu = tdu.awardee_or_recipient_uniqu
+        );
     """
-    sess.execute(upsert_sql)
+    sess.execute(insert_sql)
+    update_sql = """
+        UPDATE duns
+        SET
+            updated_at = COALESCE(tdu.updated_at, duns.updated_at),
+            activation_date = COALESCE(tdu.activation_date, duns.activation_date),
+            expiration_date = COALESCE(tdu.expiration_date, duns.expiration_date),
+            deactivation_date = COALESCE(tdu.deactivation_date, duns.deactivation_date),
+            registration_date = COALESCE(tdu.registration_date, duns.registration_date),
+            last_sam_mod_date = COALESCE(tdu.last_sam_mod_date, duns.last_sam_mod_date),
+            legal_business_name = COALESCE(tdu.legal_business_name, duns.legal_business_name),
+            dba_name = COALESCE(tdu.dba_name, duns.dba_name),
+            ultimate_parent_unique_ide = COALESCE(tdu.ultimate_parent_unique_ide, duns.ultimate_parent_unique_ide),
+            ultimate_parent_legal_enti = COALESCE(tdu.ultimate_parent_legal_enti, duns.ultimate_parent_legal_enti),
+            address_line_1 = COALESCE(tdu.address_line_1, duns.address_line_1),
+            address_line_2 = COALESCE(tdu.address_line_2, duns.address_line_2),
+            city = COALESCE(tdu.city, duns.city),
+            state = COALESCE(tdu.state, duns.state),
+            zip = COALESCE(tdu.zip, duns.zip),
+            zip4 = COALESCE(tdu.zip4, duns.zip4),
+            country_code = COALESCE(tdu.country_code, duns.country_code),
+            congressional_district = COALESCE(tdu.congressional_district, duns.congressional_district),
+            business_types_codes = COALESCE(tdu.business_types_codes, duns.business_types_codes),
+            entity_structure = COALESCE(tdu.entity_structure, duns.entity_structure)
+        FROM temp_duns_update tdu
+        WHERE tdu.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu;
+    """
+    sess.execute(update_sql)
 
     logger.info('Dropping {}'.format(temp_table_name))
     sess.execute('DROP TABLE {};'.format(temp_table_name))
