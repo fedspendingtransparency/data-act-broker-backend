@@ -10,7 +10,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import DUNS
 from dataactcore.utils.parentDuns import update_missing_parent_names
-from dataactcore.utils.duns import get_client, parse_duns_file, REMOTE_SAM_DUNS_DIR
+from dataactcore.utils.duns import get_client, parse_duns_file, update_duns, REMOTE_SAM_DUNS_DIR
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,8 @@ def process_from_dir(root_dir, file_name, sess, sftp=None, monthly=False, benchm
         logger.info("Pulling {}".format(file_name))
         with open(file_path, "wb") as zip_file:
             sftp.getfo(''.join([REMOTE_SAM_DUNS_DIR, '/', file_name]), zip_file)
-    parse_duns_file(file_path, sess, monthly=monthly, benchmarks=benchmarks, metrics=metrics)
+    duns_data = parse_duns_file(file_path, sess, monthly=monthly, benchmarks=benchmarks, metrics=metrics)
+    update_duns(sess, duns_data, metrics=metrics)
     if sftp:
         os.remove(file_path)
 

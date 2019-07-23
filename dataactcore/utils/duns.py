@@ -13,7 +13,6 @@ from sqlalchemy.exc import IntegrityError
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import DUNS
-from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 from dataactbroker.helpers.uri_helper import RetrieveFileFromUri
 
@@ -64,80 +63,6 @@ def get_client(ssh_key=None):
         pkey=pkey
     )
     return client
-
-
-def get_relevant_models(data, sess, benchmarks=False):
-    """ Get a list of the duns we're gonna work off of to prevent multiple calls to the database
-
-        Args:
-            data: dataframe representing the original list of duns we have available
-            sess: the database connection
-            benchmarks: whether or not to log times
-
-        Returns:
-            A list of models, models which have been activatated
-    """
-    if benchmarks:
-        get_models = time.time()
-    logger.info("Getting relevant models")
-    duns_found = [duns.strip().zfill(9) for duns in list(data["awardee_or_recipient_uniqu"].unique())]
-    dun_objects_found = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu.in_(duns_found))
-    models = {duns.awardee_or_recipient_uniqu: duns for duns in dun_objects_found}
-    logger.info("Getting models with activation dates already set")
-    activated_models = {duns_num: duns for duns_num, duns in models.items() if duns.activation_date is not None}
-    if benchmarks:
-        logger.info("Getting models took {} seconds".format(time.time() - get_models))
-    return models, activated_models
-
-
-def load_duns_by_row(data, sess, models, activated_models, benchmarks=False):
-    """ Updates the DUNS in the database that match to the models provided
-
-        Args:
-            data: dataframe representing the original list of duns we have available
-            sess: the database connection
-            models: the DUNS objects representing the updated data
-            activated_models: the DUNS objects that have been activated
-            benchmarks: whether or not to log times
-
-        Returns:
-            tuple of added and updated duns lists
-    """
-    added, updated = update_duns(models, data, benchmarks=benchmarks)
-    sess.add_all(models.values())
-    return added, updated
-
-
-def update_duns(models, new_data, benchmarks=False):
-    """ Modify existing models or create new ones
-
-        Args:
-            models: the DUNS objects representing the updated data
-            new_data: the new data to update
-            benchmarks: whether or not to log times
-
-        Returns:
-            tuple of added and updated duns lists
-    """
-    added = []
-    updated = []
-    logger.info("Updating duns")
-    if benchmarks:
-        update_duns_start = time.time()
-    for _, row in new_data.iterrows():
-        awardee_or_recipient_uniqu = row['awardee_or_recipient_uniqu']
-        if awardee_or_recipient_uniqu not in models:
-            models[awardee_or_recipient_uniqu] = DUNS()
-            added.append(awardee_or_recipient_uniqu)
-        else:
-            updated.append(awardee_or_recipient_uniqu)
-        for field, value in row.items():
-            if value:
-                setattr(models[awardee_or_recipient_uniqu], field, value)
-    if benchmarks:
-        logger.info("Updating duns took {} seconds".format(time.time() - update_duns_start))
-    return added, updated
-
 
 def clean_sam_data(data):
     """ Wrapper around clean_data with the DUNS context
@@ -201,145 +126,212 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     dat_file_name = os.path.splitext(os.path.basename(file_path))[0]+'.dat'
     sam_file_type = "MONTHLY" if monthly else "DAILY"
     dat_file_date = re.findall(".*{}_(.*).dat".format(sam_file_type), dat_file_name)[0]
+    zfile = zipfile.ZipFile(file_path)
 
-    with create_app().app_context():
+    column_header_mapping = {
+        "awardee_or_recipient_uniqu": 0,
+        "sam_extract_code": 4,
+        "registration_date": 6,
+        "expiration_date": 7,
+        "last_sam_mod_date": 8,
+        "activation_date": 9,
+        "legal_business_name": 10,
+        "dba_name": 11,
+        "address_line_1": 14,
+        "address_line_2": 15,
+        "city": 16,
+        "state": 17,
+        "zip": 18,
+        "zip4": 19,
+        "country_code": 20,
+        "congressional_district": 21,
+        "entity_structure": 27,
+        "business_types_raw": 31,
+        "ultimate_parent_legal_enti": 186,
+        "ultimate_parent_unique_ide": 187
+    }
+    column_header_mapping_ordered = OrderedDict(sorted(column_header_mapping.items(), key=lambda c: c[1]))
 
-        column_header_mapping = {
-            "awardee_or_recipient_uniqu": 0,
-            "sam_extract_code": 4,
-            "registration_date": 6,
-            "expiration_date": 7,
-            "last_sam_mod_date": 8,
-            "activation_date": 9,
-            "legal_business_name": 10,
-            "dba_name": 11,
-            "address_line_1": 14,
-            "address_line_2": 15,
-            "city": 16,
-            "state": 17,
-            "zip": 18,
-            "zip4": 19,
-            "country_code": 20,
-            "congressional_district": 21,
-            "entity_structure": 27,
-            "business_types_raw": 31,
-            "ultimate_parent_legal_enti": 186,
-            "ultimate_parent_unique_ide": 187
+    nrows = 0
+    with zfile.open(dat_file_name) as dat_file:
+        nrows = len(dat_file.readlines()) - 2  # subtract the header and footer
+    with zfile.open(dat_file_name) as dat_file:
+        csv_data = pd.read_csv(dat_file, dtype=str, header=None, skiprows=1, nrows=nrows, sep='|',
+                               usecols=column_header_mapping_ordered.values(),
+                               names=column_header_mapping_ordered.keys(), quoting=3)
+    total_data = csv_data.copy()
+    rows_received = len(total_data.index)
+    logger.info('%s DUNS records received', rows_received)
+
+    total_data = total_data[total_data.awardee_or_recipient_uniqu.notnull() &
+                                     total_data.sam_extract_code.isin(['1', '2', '3'])]
+    rows_processed = len(total_data.index)
+    delete_data = total_data[total_data.sam_extract_code == '1']
+    deletes_received = len(delete_data.index)
+    add_data = total_data[total_data.sam_extract_code == '2']
+    adds_received = len(add_data.index)
+    update_data = total_data[total_data.sam_extract_code == '3']
+    updates_received = len(update_data.index)
+    del total_data["sam_extract_code"]
+
+    # add deactivation_date column for delete records
+    lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
+    total_data = total_data.assign(deactivation_date=pd.Series([np.nan], name='deactivation_date')
+                               if monthly else total_data["sam_extract_code"].apply(lambda_func))
+    # convert business types string to array
+    bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~')
+                                          if isinstance(bt_raw, str)]]))
+    total_data = total_data.assign(business_types_codes=total_data["business_types_raw"].apply(bt_func))
+    del total_data["business_types_raw"]
+
+    # cleaning and replacing NaN/NaT with None's
+    total_data = clean_sam_data(total_data.where(pd.notnull(total_data), None))
+
+    if benchmarks:
+        logger.info("Parsing {} took {} seconds with {} rows".format(dat_file_name, time.time()-parse_start_time,
+                                                                     rows_received))
+    metrics['files_processed'].append(dat_file_name)
+    metrics['records_received'] += rows_received
+    metrics['records_processed'] += rows_processed
+    metrics['adds_received'] += adds_received
+    metrics['updates_received'] += updates_received
+    metrics['deletes_received'] += deletes_received
+
+    return total_data
+
+def create_temp_duns_table(sess, table_name, data):
+    """ Creates a temporary duns table with the given name and data.
+
+        Args:
+            sess: database connection
+            table_name: what to name the table being created
+            data: pandas dataframe representing duns data
+    """
+    logger.info('Making {} table'.format(table_name))
+    create_table_sql = """
+            CREATE TABLE IF NOT EXISTS {} (
+                awardee_or_recipient_uniqu TEXT,
+                activation_date DATE,
+                deactivation_date DATE,
+                registration_date DATE,
+                last_sam_mod_date DATE,
+                legal_business_name TEXT,
+                dba_name TEXT,
+                ultimate_parent_unique_ide TEXT,
+                ultimate_parent_legal_enti TEXT,
+                address_line_1 TEXT,
+                address_line_2 TEXT,
+                city TEXT,
+                state TEXT,
+                zip TEXT,
+                zip4 TEXT,
+                country_code TEXT,
+                congressional_district TEXT,
+                business_types_codes TEXT[],
+                entity_structure TEXT
+            );
+        """.format(table_name)
+    sess.execute(create_table_sql)
+    # Truncating in case we didn't clear out this table after a failure in the script
+    sess.execute('TRUNCATE TABLE {};'.format(table_name))
+    insert_dataframe(data, table_name, sess.connection())
+
+
+def update_duns(sess, duns_data, metrics=None):
+    """ Takes in a dataframe of duns and adds/updates associated DUNS
+
+        Args:
+            sess: database connection
+            duns_data: pandas dataframe representing exec comp data
+            metrics: dictionary representing metrics of the script
+
+        Returns:
+            list of DUNS updated
+    """
+    if not metrics:
+        metrics = {
+            'added_duns': []
+            'updated_duns': []
         }
-        column_header_mapping_ordered = OrderedDict(sorted(column_header_mapping.items(), key=lambda c: c[1]))
 
-        # Initial sweep of the file to see rows and possibly what DUNS we're updating
-        if benchmarks:
-            initial_sweep = time.time()
-        nrows = 0
-        with zipfile.ZipFile(file_path) as zip_file:
-            with zip_file.open(dat_file_name) as dat_file:
-                nrows = len(dat_file.readlines())
-        if benchmarks:
-            logger.info("Initial sweep took {} seconds".format(time.time() - initial_sweep))
+    temp_table_name = 'temp_duns_update'
+    create_temp_duns_table(sess, temp_table_name, duns_data)
 
-        block_size = 10000
-        batches = (nrows-1)//block_size
-        # skip the first line again if the last batch is also the first batch
-        skiplastrows = 2 if batches == 0 else 1
-        last_block_size = ((nrows % block_size) or block_size)-skiplastrows
-        batch = 0
-        rows_received = 0
-        adds_received = 0
-        updates_received = 0
-        deletes_received = 0
-        records_ignored = 0
-        added_duns = []
-        updated_duns = []
-        while batch <= batches:
-            skiprows = 1 if batch == 0 else (batch*block_size)
-            nrows = (((batch+1)*block_size)-skiprows) if (batch < batches) else last_block_size
-            logger.info('Loading rows %s to %s', skiprows+1, nrows+skiprows)
+    logger.info('Getting list of DUNS that will be added/updated for metrics')
+    update_sql = """
+        SELECT tdu.awardee_or_recipient_uniqu
+        FROM temp_duns_update AS tdu
+        LEFT JOIN duns ON duns.awardee_or_recipient_uniqu=tdu.awardee_or_recipient_uniqu
+        WHERE duns.awardee_or_recipient_uniqu IS NULL;
+    """
+    added_duns_list = [row['awardee_or_recipient_uniqu'] for row in sess.execute(update_sql).fetchall()]
+    update_sql = """
+        SELECT duns.awardee_or_recipient_uniqu
+        FROM duns
+        JOIN temp_duns_update AS tdu ON duns.awardee_or_recipient_uniqu=tdu.awardee_or_recipient_uniqu;
+    """
+    updated_duns_list = [row['awardee_or_recipient_uniqu'] for row in sess.execute(update_sql).fetchall()]
 
-            with zipfile.ZipFile(file_path) as zip_file:
-                with zip_file.open(dat_file_name) as dat_file:
-                    csv_data = pd.read_csv(dat_file, dtype=str, header=None, skiprows=skiprows, nrows=nrows, sep='|',
-                                           usecols=column_header_mapping_ordered.values(),
-                                           names=column_header_mapping_ordered.keys(), quoting=3)
+    logger.info('Adding/updating DUNS based on temp_duns_update')
+    upsert_sql = """
+        INSERT INTO duns (
+            awardee_or_recipient_uniqu TEXT,
+            activation_date DATE,
+            deactivation_date DATE,
+            registration_date DATE,
+            last_sam_mod_date DATE,
+            legal_business_name TEXT,
+            dba_name TEXT,
+            ultimate_parent_unique_ide TEXT,
+            ultimate_parent_legal_enti TEXT,
+            address_line_1 TEXT,
+            address_line_2 TEXT,
+            city TEXT,
+            state TEXT,
+            zip TEXT,
+            zip4 TEXT,
+            country_code TEXT,
+            congressional_district TEXT,
+            business_types_codes TEXT[],
+            entity_structure TEXT
+        )
+        SELECT *
+        FROM temp_duns_update tdu
+        ON CONFLICT DO
+            UPDATE duns
+            SET
+                duns.activation_date = COALESCE(tdu.activation_date, duns.activation_date),
+                duns.deactivation_date = COALESCE(tdu.deactivation_date, duns.deactivation_date),
+                duns.registration_date = COALESCE(tdu.registration_date, duns.registration_date),
+                duns.last_sam_mod_date = COALESCE(tdu.last_sam_mod_date, duns.last_sam_mod_date),
+                duns.legal_business_name = COALESCE(tdu.legal_business_name, duns.legal_business_name),
+                duns.dba_name = COALESCE(tdu.dba_name, duns.dba_name),
+                duns.ultimate_parent_unique_ide = COALESCE(tdu.ultimate_parent_unique_ide, 
+                                                           duns.ultimate_parent_unique_ide),
+                duns.ultimate_parent_legal_enti = COALESCE(tdu.ultimate_parent_legal_enti, 
+                                                           duns.ultimate_parent_legal_enti),
+                duns.address_line_1 = COALESCE(tdu.address_line_1, duns.address_line_1),
+                duns.address_line_2 = COALESCE(tdu.address_line_2, duns.address_line_2),
+                duns.city = COALESCE(tdu.city, duns.city),
+                duns.state = COALESCE(tdu.state, duns.state),
+                duns.zip = COALESCE(tdu.zip, duns.zip),
+                duns.zip4 = COALESCE(tdu.zip4, duns.zip4),
+                duns.country_code = COALESCE(tdu.country_code, duns.country_code),
+                duns.congressional_district = COALESCE(tdu.congressional_district, duns.congressional_district),
+                duns.business_types_codes = COALESCE(tdu.business_types_codes, duns.business_types_codes),
+                duns.entity_structure = COALESCE(tdu.entity_structure, duns.entity_structure)
+            FROM temp_duns_update AS tdu
+            WHERE duns.awardee_or_recipient_uniqu = tdu.awardee_or_recipient_uniqu;
+    """
+    sess.execute(upsert_sql)
 
-                    # add deactivation_date column for delete records
-                    lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
-                    csv_data = csv_data.assign(deactivation_date=pd.Series([np.nan], name='deactivation_date')
-                                               if monthly else csv_data["sam_extract_code"].apply(lambda_func))
-                    # convert business types string to array
-                    bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~')
-                                                          if isinstance(bt_raw, str)]]))
-                    csv_data = csv_data.assign(business_types_codes=csv_data["business_types_raw"].apply(bt_func))
-                    del csv_data["business_types_raw"]
-                    # removing rows where DUNS number isn't even provided
-                    csv_data = csv_data.where(csv_data["awardee_or_recipient_uniqu"].notnull())
-                    # cleaning and replacing NaN/NaT with None's
-                    csv_data = clean_sam_data(csv_data.where(pd.notnull(csv_data), None))
+    logger.info('Dropping {}'.format(temp_table_name))
+    sess.execute('DROP TABLE {};'.format(temp_table_name))
 
-                    delete_data = csv_data[csv_data.sam_extract_code == '1']
-                    deletes_received += len(delete_data.index)
-                    add_data = csv_data[csv_data.sam_extract_code == '2']
-                    adds_received += len(add_data.index)
-                    update_data = csv_data[csv_data.sam_extract_code == '3']
-                    updates_received += len(update_data.index)
-                    total_received_data = csv_data[csv_data.sam_extract_code.isin(['1', '2', '3'])]
-                    records_ignored += (nrows - len(total_received_data.index))
+    sess.commit()
 
-                    if monthly:
-                        logger.info("Adding all monthly data with bulk load")
-                        if benchmarks:
-                            bulk_month_load = time.time()
-                        del csv_data["sam_extract_code"]
-                        insert_dataframe(csv_data, DUNS.__table__.name, sess.connection())
-                        if benchmarks:
-                            logger.info("Bulk month load took {} seconds".format(time.time()-bulk_month_load))
-                        added_duns.extend(csv_data['awardee_or_recipient_uniqu'])
-                    else:
-                        update_delete_data = csv_data[(csv_data.sam_extract_code == '3') |
-                                                      (csv_data.sam_extract_code == '1')]
-                        for dataframe in [add_data, update_delete_data]:
-                            del dataframe["sam_extract_code"]
-
-                        if not add_data.empty:
-                            try:
-                                logger.info("Attempting to bulk load add data")
-                                insert_dataframe(add_data, DUNS.__table__.name, sess.connection())
-                                added_duns.extend(add_data['awardee_or_recipient_uniqu'])
-                            except IntegrityError:
-                                logger.info("Bulk loading add data failed, loading add data by row")
-                                sess.rollback()
-                                models, activated_models = get_relevant_models(add_data, sess, benchmarks=benchmarks)
-                                logger.info("Loading add data ({} rows)".format(len(add_data.index)))
-                                added, updated = load_duns_by_row(add_data, sess, models, activated_models,
-                                                                  benchmarks=benchmarks)
-                                added_duns.extend(added)
-                                updated_duns.extend(updated)
-                        if not update_delete_data.empty:
-                            models, activated_models = get_relevant_models(update_delete_data, sess,
-                                                                           benchmarks=benchmarks)
-                            logger.info("Loading update_delete data ({} rows)".format(len(update_delete_data.index)))
-                            added, updated = load_duns_by_row(update_delete_data, sess, models, activated_models,
-                                                              benchmarks=benchmarks)
-                            added_duns.extend(added)
-                            updated_duns.extend(updated)
-
-                    sess.commit()
-
-            rows_received += nrows
-            batch += 1
-            logger.info('%s DUNS records received', rows_received)
-
-        if benchmarks:
-            logger.info("Parsing {} took {} seconds with {} rows".format(dat_file_name, time.time()-parse_start_time,
-                                                                         rows_received))
-        metrics['files_processed'].append(dat_file_name)
-        metrics['records_received'] += rows_received
-        metrics['adds_received'] += adds_received
-        metrics['updates_received'] += updates_received
-        metrics['deletes_received'] += deletes_received
-        metrics['records_ignored'] += records_ignored
-        metrics['added_duns'].extend(added_duns)
-        metrics['updated_duns'].extend(updated_duns)
+    metrics['added_duns'].extend(added_duns_list)
+    metrics['updated_duns'].extend(updated_duns_list)
 
 
 def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=None):
@@ -365,30 +357,30 @@ def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=No
 
     file_path = os.path.join(root_dir, filename)
     logger.info('starting file ' + file_path)
-    metrics['files_processed'].append(filename)
 
     csv_file = os.path.splitext(filename)[0]+'.dat'
     zfile = zipfile.ZipFile(file_path)
 
-    # can't use skipfooter, pandas' c engine doesn't work with skipfooter and the python engine doesn't work with dtype
-    nrows = 0
-    with zfile.open(csv_file) as zip_file:
-        nrows = len(zip_file.readlines()) - 2  # subtract the header and footer
     column_header_mapping = {
         'awardee_or_recipient_uniqu': 0,
         'sam_extract': 4,
         'exec_comp_str': 89
     }
     column_header_mapping_ordered = OrderedDict(sorted(column_header_mapping.items(), key=lambda c: c[1]))
-    with zfile.open(csv_file) as zip_file:
-        csv_data = pd.read_csv(zip_file, dtype=str, header=None, skiprows=1, nrows=nrows, sep='|',
+
+    # can't use skipfooter, pandas' c engine doesn't work with skipfooter and the python engine doesn't work with dtype
+    nrows = 0
+    with zfile.open(csv_file) as dat_file:
+        nrows = len(dat_file.readlines()) - 2  # subtract the header and footer
+    with zfile.open(csv_file) as dat_file:
+        csv_data = pd.read_csv(dat_file, dtype=str, header=None, skiprows=1, nrows=nrows, sep='|',
                                usecols=column_header_mapping_ordered.values(),
-                               names=column_header_mapping_ordered.keys())
+                               names=column_header_mapping_ordered.keys(), quoting=3)
     total_data = csv_data.copy()
-    metrics['records_received'] += len(total_data.index)
+    records_received = len(total_data.index)
     total_data = total_data[total_data.awardee_or_recipient_uniqu.notnull() &
                             total_data.sam_extract.isin(['2', '3', 'A', 'E'])]
-    metrics['records_processed'] += len(total_data.index)
+    records_processed = len(total_data.index)
     del total_data['sam_extract']
     # Note: we're splitting these up cause it vastly saves memory parsing only the records that are populated
     blank_exec = total_data[total_data.exec_comp_str.isnull()]
@@ -413,6 +405,10 @@ def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=No
         raise Exception('Last Executive Compensation Mod Date not found in filename.')
     last_exec_comp_mod_date = datetime.datetime.strptime(last_exec_comp_mod_date_str[0], '%Y%m%d').date()
     total_data = total_data.assign(last_exec_comp_mod_date=last_exec_comp_mod_date)
+
+    metrics['files_processed'].append(filename)
+    metrics['records_received'] += records_received
+    metrics['records_processed'] += records_processed
 
     return total_data
 
