@@ -208,6 +208,8 @@ def create_temp_duns_table(sess, table_name, data):
     logger.info('Making {} table'.format(table_name))
     create_table_sql = """
             CREATE TABLE IF NOT EXISTS {} (
+                created_at TIMESTAMP WITHOUT TIME ZONE,
+                updated_at TIMESTAMP WITHOUT TIME ZONE,
                 awardee_or_recipient_uniqu TEXT,
                 activation_date DATE,
                 expiration_date DATE,
@@ -227,9 +229,7 @@ def create_temp_duns_table(sess, table_name, data):
                 country_code TEXT,
                 congressional_district TEXT,
                 business_types_codes TEXT[],
-                entity_structure TEXT,
-                created_at TIMESTAMP WITHOUT TIME ZONE,
-                updated_at TIMESTAMP WITHOUT TIME ZONE
+                entity_structure TEXT
             );
         """.format(table_name)
     sess.execute(create_table_sql)
