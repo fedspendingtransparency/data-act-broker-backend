@@ -347,7 +347,7 @@ def update_duns(sess, duns_data, metrics=None):
                 country_code = excluded.country_code,
                 congressional_district = excluded.congressional_district,
                 business_types_codes = excluded.business_types_codes,
-                entity_structure = excluded.entity_structure,
+                entity_structure = excluded.entity_structure
             WHERE awardee_or_recipient_uniqu = excluded.awardee_or_recipient_uniqu;
     """
     sess.execute(upsert_sql)
