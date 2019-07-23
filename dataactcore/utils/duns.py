@@ -210,6 +210,7 @@ def create_temp_duns_table(sess, table_name, data):
             CREATE TABLE IF NOT EXISTS {} (
                 awardee_or_recipient_uniqu TEXT,
                 activation_date DATE,
+                expiration_date DATE,
                 deactivation_date DATE,
                 registration_date DATE,
                 last_sam_mod_date DATE,
@@ -275,6 +276,7 @@ def update_duns(sess, duns_data, metrics=None):
         INSERT INTO duns (
             awardee_or_recipient_uniqu TEXT,
             activation_date DATE,
+            expiration_date DATE,
             deactivation_date DATE,
             registration_date DATE,
             last_sam_mod_date DATE,
@@ -299,6 +301,7 @@ def update_duns(sess, duns_data, metrics=None):
             UPDATE duns
             SET
                 duns.activation_date = COALESCE(tdu.activation_date, duns.activation_date),
+                duns.expiration_date = COALESCE(tdu.expiration_date, duns.expiration_date),
                 duns.deactivation_date = COALESCE(tdu.deactivation_date, duns.deactivation_date),
                 duns.registration_date = COALESCE(tdu.registration_date, duns.registration_date),
                 duns.last_sam_mod_date = COALESCE(tdu.last_sam_mod_date, duns.last_sam_mod_date),
