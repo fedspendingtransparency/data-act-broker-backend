@@ -80,7 +80,6 @@ def clean_sam_data(data):
         "registration_date": "registration_date",
         "expiration_date": "expiration_date",
         "last_sam_mod_date": "last_sam_mod_date",
-        "sam_extract_code": "sam_extract_code",
         "legal_business_name": "legal_business_name",
         "dba_name": "dba_name",
         "address_line_1": "address_line_1",
@@ -176,7 +175,7 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     total_data = total_data.assign(deactivation_date=pd.Series([np.nan], name='deactivation_date')
                                if monthly else total_data["sam_extract_code"].apply(lambda_func))
     del total_data["sam_extract_code"]
-    
+
     # convert business types string to array
     bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~')
                                           if isinstance(bt_raw, str)]]))
