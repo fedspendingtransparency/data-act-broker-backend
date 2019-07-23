@@ -299,34 +299,56 @@ def update_duns(sess, duns_data, metrics=None):
             business_types_codes,
             entity_structure
         )
-        SELECT *
+        SELECT
+            tdu.updated_at,
+            tdu.updated_at,
+            tdu.awardee_or_recipient_uniqu,
+            COALESCE(tdu.activation_date, duns.activation_date),
+            COALESCE(tdu.expiration_date, duns.expiration_date),
+            COALESCE(tdu.deactivation_date, duns.deactivation_date),
+            COALESCE(tdu.registration_date, duns.registration_date),
+            COALESCE(tdu.last_sam_mod_date, duns.last_sam_mod_date),
+            COALESCE(tdu.legal_business_name, duns.legal_business_name),
+            COALESCE(tdu.dba_name, duns.dba_name),
+            COALESCE(tdu.ultimate_parent_unique_ide, 
+                                                       duns.ultimate_parent_unique_ide),
+            COALESCE(tdu.ultimate_parent_legal_enti, 
+                                                       duns.ultimate_parent_legal_enti),
+            COALESCE(tdu.address_line_1, duns.address_line_1),
+            COALESCE(tdu.address_line_2, duns.address_line_2),
+            COALESCE(tdu.city, duns.city),
+            COALESCE(tdu.state, duns.state),
+            COALESCE(tdu.zip, duns.zip),
+            COALESCE(tdu.zip4, duns.zip4),
+            COALESCE(tdu.country_code, duns.country_code),
+            COALESCE(tdu.congressional_district, duns.congressional_district),
+            COALESCE(tdu.business_types_codes, duns.business_types_codes),
+            COALESCE(excluded.entity_structure, duns.entity_structure)
         FROM temp_duns_update tdu
         ON CONFLICT (awardee_or_recipient_uniqu) DO
             UPDATE
             SET
-                duns.updated_at = excluded.updated_at,
-                duns.activation_date = COALESCE(excluded.activation_date, duns.activation_date),
-                duns.expiration_date = COALESCE(excluded.expiration_date, duns.expiration_date),
-                duns.deactivation_date = COALESCE(excluded.deactivation_date, duns.deactivation_date),
-                duns.registration_date = COALESCE(excluded.registration_date, duns.registration_date),
-                duns.last_sam_mod_date = COALESCE(excluded.last_sam_mod_date, duns.last_sam_mod_date),
-                duns.legal_business_name = COALESCE(excluded.legal_business_name, duns.legal_business_name),
-                duns.dba_name = COALESCE(excluded.dba_name, duns.dba_name),
-                duns.ultimate_parent_unique_ide = COALESCE(excluded.ultimate_parent_unique_ide, 
-                                                           duns.ultimate_parent_unique_ide),
-                duns.ultimate_parent_legal_enti = COALESCE(excluded.ultimate_parent_legal_enti, 
-                                                           duns.ultimate_parent_legal_enti),
-                duns.address_line_1 = COALESCE(excluded.address_line_1, duns.address_line_1),
-                duns.address_line_2 = COALESCE(excluded.address_line_2, duns.address_line_2),
-                duns.city = COALESCE(excluded.city, duns.city),
-                duns.state = COALESCE(excluded.state, duns.state),
-                duns.zip = COALESCE(excluded.zip, duns.zip),
-                duns.zip4 = COALESCE(excluded.zip4, duns.zip4),
-                duns.country_code = COALESCE(excluded.country_code, duns.country_code),
-                duns.congressional_district = COALESCE(excluded.congressional_district, duns.congressional_district),
-                duns.business_types_codes = COALESCE(excluded.business_types_codes, duns.business_types_codes),
-                duns.entity_structure = COALESCE(excluded.entity_structure, duns.entity_structure)
-            WHERE duns.awardee_or_recipient_uniqu = excluded.awardee_or_recipient_uniqu;
+                updated_at = excluded.updated_at,
+                activation_date = excluded.activation_date,
+                expiration_date = excluded.expiration_date,
+                deactivation_date = excluded.deactivation_date,
+                registration_date = excluded.registration_date,
+                last_sam_mod_date = excluded.last_sam_mod_date,
+                legal_business_name = excluded.legal_business_name,
+                dba_name = excluded.dba_name,
+                ultimate_parent_unique_ide = excluded.ultimate_parent_unique_ide,
+                ultimate_parent_legal_enti = excluded.ultimate_parent_legal_enti,
+                address_line_1 = excluded.address_line_1,
+                address_line_2 = excluded.address_line_2,
+                city = excluded.city,
+                state = excluded.state,
+                zip = excluded.zip,
+                zip4 = excluded.zip4,
+                country_code = excluded.country_code,
+                congressional_district = excluded.congressional_district,
+                business_types_codes = excluded.business_types_codes,
+                entity_structure = excluded.entity_structure,
+            WHERE awardee_or_recipient_uniqu = excluded.awardee_or_recipient_uniqu;
     """
     sess.execute(upsert_sql)
 
