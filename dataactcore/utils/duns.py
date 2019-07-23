@@ -227,7 +227,9 @@ def create_temp_duns_table(sess, table_name, data):
                 country_code TEXT,
                 congressional_district TEXT,
                 business_types_codes TEXT[],
-                entity_structure TEXT
+                entity_structure TEXT,
+                created_at TIMESTAMP WITHOUT TIME ZONE,
+                updated_at TIMESTAMP WITHOUT TIME ZONE
             );
         """.format(table_name)
     sess.execute(create_table_sql)
@@ -274,6 +276,8 @@ def update_duns(sess, duns_data, metrics=None):
     logger.info('Adding/updating DUNS based on temp_duns_update')
     upsert_sql = """
         INSERT INTO duns (
+            created_at TIMESTAMP WITHOUT TIME ZONE,
+            updated_at TIMESTAMP WITHOUT TIME ZONE,
             awardee_or_recipient_uniqu TEXT,
             activation_date DATE,
             expiration_date DATE,
@@ -300,6 +304,7 @@ def update_duns(sess, duns_data, metrics=None):
         ON CONFLICT DO
             UPDATE duns
             SET
+                duns.updated_at = tdu.updated_at,
                 duns.activation_date = COALESCE(tdu.activation_date, duns.activation_date),
                 duns.expiration_date = COALESCE(tdu.expiration_date, duns.expiration_date),
                 duns.deactivation_date = COALESCE(tdu.deactivation_date, duns.deactivation_date),
