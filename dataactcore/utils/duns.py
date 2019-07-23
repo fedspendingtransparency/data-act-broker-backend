@@ -302,7 +302,7 @@ def update_duns(sess, duns_data, metrics=None):
         SELECT *
         FROM temp_duns_update tdu
         ON CONFLICT DO
-            UPDATE duns
+            UPDATE
             SET
                 duns.updated_at = tdu.updated_at,
                 duns.activation_date = COALESCE(tdu.activation_date, duns.activation_date),
