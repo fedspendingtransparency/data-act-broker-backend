@@ -115,9 +115,7 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
             'adds_received': 0,
             'updates_received': 0,
             'deletes_received': 0,
-            'records_ignored': 0,
-            'added_duns': [],
-            'updated_duns': []
+            'records_ignored': 0
         }
 
     parse_start_time = time.time()
@@ -250,7 +248,7 @@ def update_duns(sess, duns_data, metrics=None):
     """
     if not metrics:
         metrics = {
-            'added_duns': []
+            'added_duns': [],
             'updated_duns': []
         }
 
