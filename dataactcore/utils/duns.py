@@ -301,7 +301,7 @@ def update_duns(sess, duns_data, metrics=None):
         )
         SELECT *
         FROM temp_duns_update tdu
-        ON CONFLICT DO
+        ON CONFLICT (awardee_or_recipient_uniqu) DO
             UPDATE
             SET
                 duns.updated_at = tdu.updated_at,
