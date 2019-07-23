@@ -326,7 +326,6 @@ def update_duns(sess, duns_data, metrics=None):
                 duns.congressional_district = COALESCE(tdu.congressional_district, duns.congressional_district),
                 duns.business_types_codes = COALESCE(tdu.business_types_codes, duns.business_types_codes),
                 duns.entity_structure = COALESCE(tdu.entity_structure, duns.entity_structure)
-            FROM temp_duns_update AS tdu
             WHERE duns.awardee_or_recipient_uniqu = tdu.awardee_or_recipient_uniqu;
     """
     sess.execute(upsert_sql)
