@@ -8,9 +8,6 @@ from sqlalchemy import and_, func
 from dataactbroker.helpers.sam_wsdl_helper import config_valid, get_entities
 from dataactbroker.helpers.generic_helper import get_client
 from dataactcore.models.domainModels import DUNS
-from dataactcore.utils.duns import load_duns_by_row
-from dataactcore.models.jobModels import FileType, Submission # noqa
-from dataactcore.models.userModel import User # noqa
 
 logger = logging.getLogger(__name__)
 
@@ -175,58 +172,3 @@ def update_missing_parent_names(sess, updated_date=None):
 
     sess.commit()
     return total_updated_count
-
-
-def get_duns_batches(client, sess, batch_start=None, batch_end=None, updated_date=None):
-    """ Updates DUNS table with parent duns and parent name information in 100 row batches.
-    batch_start, batch_end arg used to run separate loads concurrently
-    updated_date can specify duns rows to process at a certain updated_at date (used for daily DUNS load)
-
-        Args:
-            client: the SAM service client
-            sess: the database connection
-            batch_start: the batch number to start
-            batch_end: the batch number to end (for concurrent runs)
-            updated_date: the date to start importing from
-    """
-    # SAMS will only return 100 records at a time
-    block_size = 100
-    batch = batch_start or 0
-    duns_count = 0
-
-    # Retrieve DUNS count to calculate number of batches based on how many duns there are
-    # Only retrieving DUNS that aren't deactivated
-    duns = sess.query(DUNS).filter(DUNS.deactivation_date.is_(None))
-
-    if updated_date:
-        duns = duns.filter(DUNS.updated_at >= updated_date)
-
-    if not batch_end:
-        duns_count = duns.count()
-
-    batches = batch_end or duns_count//block_size
-
-    while batch <= batches:
-        start_batch = time.time()
-
-        logger.info('Beginning updating batch {}'.format(batch))
-
-        batch_start = batch * block_size
-        duns_to_update = duns.order_by(DUNS.duns_id).slice(batch_start, batch_start + block_size)
-
-        # DUNS rows that will be updated
-        models = {row.awardee_or_recipient_uniqu: row for row in duns_to_update}
-
-        duns_list = list(models.keys())
-
-        # Gets parent duns data from SAM API
-        duns_parent_df = get_parent_from_sam(client, duns_list)
-
-        load_duns_by_row(duns_parent_df, sess, models, None, benchmarks=False)
-
-        sess.commit()
-
-        logger.info('Finished batch {}: Updated {} rows in {} s'.format(batch, len(duns_parent_df.index),
-                                                                        time.time() - start_batch))
-
-        batch += 1
