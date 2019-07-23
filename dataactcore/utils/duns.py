@@ -111,10 +111,10 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
         metrics = {
             'files_processed': [],
             'records_received': 0,
+            'records_processed': 0,
             'adds_received': 0,
             'updates_received': 0,
-            'deletes_received': 0,
-            'records_ignored': 0
+            'deletes_received': 0
         }
 
     parse_start_time = time.time()
