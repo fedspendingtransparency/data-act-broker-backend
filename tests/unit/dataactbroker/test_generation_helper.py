@@ -28,7 +28,7 @@ def test_start_d_generation_submission_cached(database, monkeypatch):
         cgac_code=None, is_quarter_format=False, publishable=False, reporting_fiscal_year='2017')
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D2',
-        agency_code='1234', agency_type='awarding', is_cached_file=True, file_path=file_path)
+        agency_code='1234', agency_type='awarding', is_cached_file=True, file_path=file_path, file_format='csv')
     up_job = JobFactory(
         job_status_id=JOB_STATUS_DICT['waiting'], file_type_id=FILE_TYPE_DICT['award'], error_message=None,
         job_type_id=JOB_TYPE_DICT['file_upload'], filename=None, original_filename=None,
@@ -71,7 +71,8 @@ def test_start_d_generation_submission_change_request(database, monkeypatch):
         frec_code=None, is_quarter_format=False, publishable=False, reporting_fiscal_year='2017')
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D1',
-        agency_code='123', agency_type='awarding', is_cached_file=True, file_path=file_path, file_generation_id=1000)
+        agency_code='123', agency_type='awarding', is_cached_file=True, file_path=file_path, file_generation_id=1000,
+        file_format='csv')
     up_job = JobFactory(
         job_status_id=JOB_STATUS_DICT['waiting'], error_message=None, job_type_id=JOB_TYPE_DICT['file_upload'],
         file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, submission_id=submission.submission_id,
@@ -151,7 +152,7 @@ def test_retrieve_cached_file_generation(database):
         original_filename=None, file_generation_id=None)
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D2',
-        agency_code='123', agency_type='awarding', is_cached_file=True)
+        agency_code='123', agency_type='awarding', is_cached_file=True, file_format='csv')
     sess.add_all([job, file_gen])
     sess.commit()
 
@@ -184,7 +185,7 @@ def test_retrieve_cached_file_generation_end_date_diff(database):
         original_filename=None, file_generation_id=None)
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-30', file_type='D2',
-        agency_code='123', agency_type='awarding', is_cached_file=True)
+        agency_code='123', agency_type='awarding', is_cached_file=True, file_format='csv')
     sess.add_all([job, file_gen])
     sess.commit()
 
@@ -202,7 +203,7 @@ def test_retrieve_cached_file_generation_start_date_diff(database):
         original_filename=None, file_generation_id=None)
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-02', end_date='2017-01-31', file_type='D2',
-        agency_code='123', agency_type='awarding', is_cached_file=True)
+        agency_code='123', agency_type='awarding', is_cached_file=True, file_format='csv')
     sess.add_all([job, file_gen])
     sess.commit()
 
@@ -220,7 +221,7 @@ def test_retrieve_cached_file_generation_agency_code_diff(database):
         original_filename=None, file_generation_id=None)
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D2',
-        agency_code='124', agency_type='awarding', is_cached_file=True)
+        agency_code='124', agency_type='awarding', is_cached_file=True, file_format='csv')
     sess.add_all([job, file_gen])
     sess.commit()
 
@@ -238,7 +239,7 @@ def test_retrieve_cached_file_generation_agency_type_diff(database):
         original_filename=None, file_generation_id=None)
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D2',
-        agency_code='123', agency_type='awarding', is_cached_file=True)
+        agency_code='123', agency_type='awarding', is_cached_file=True, file_format='csv')
     sess.add_all([job, file_gen])
     sess.commit()
 
@@ -256,7 +257,7 @@ def test_retrieve_cached_file_generation_file_type_diff(database):
         original_filename=None, file_generation_id=None)
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D1',
-        agency_code='123', agency_type='awarding', is_cached_file=True)
+        agency_code='123', agency_type='awarding', is_cached_file=True, file_format='csv')
     sess.add_all([job, file_gen])
     sess.commit()
 
@@ -274,7 +275,7 @@ def test_retrieve_cached_file_generation_not_cached(database):
         original_filename=None, file_generation_id=None)
     file_gen = FileGenerationFactory(
         request_date=datetime.now().date(), start_date='2017-01-01', end_date='2017-01-31', file_type='D2',
-        agency_code='123', agency_type='awarding', is_cached_file=False)
+        agency_code='123', agency_type='awarding', is_cached_file=False, file_format='csv')
     sess.add_all([job, file_gen])
     sess.commit()
 
@@ -426,7 +427,7 @@ def test_copy_file_generation_to_job(monkeypatch, database):
 
     job = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                      file_type_id=FILE_TYPE_DICT['award'])
-    file_gen = FileGenerationFactory(file_type='D1', file_path=file_path)
+    file_gen = FileGenerationFactory(file_type='D1', file_path=file_path, file_format='csv')
     sess.add_all([job, file_gen])
     sess.commit()
 
