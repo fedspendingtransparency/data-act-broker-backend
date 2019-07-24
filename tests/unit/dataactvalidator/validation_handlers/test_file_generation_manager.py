@@ -122,7 +122,7 @@ def test_generate_awarding_d1(database):
     dap_5 = dap_model(awarding_agency_code='234', action_date='20170115', detached_award_proc_unique='unique5')
     file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
                                      file_type='D1', agency_code='123', agency_type='awarding', is_cached_file=True,
-                                     file_path=None)
+                                     file_path=None, file_format='csv')
     sess.add_all([dap_1, dap_2, dap_3, dap_4, dap_5, file_gen])
     sess.commit()
 
@@ -164,7 +164,7 @@ def test_generate_funding_d1(database):
     dap_5 = dap_model(funding_agency_code='234', action_date='20170115', detached_award_proc_unique='unique5')
     file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
                                      file_type='D1', agency_code='123', agency_type='funding', is_cached_file=True,
-                                     file_path=None)
+                                     file_path=None, file_format='csv')
     sess.add_all([dap_1, dap_2, dap_3, dap_4, dap_5, file_gen])
     sess.commit()
 
@@ -207,7 +207,7 @@ def test_generate_awarding_d2(database):
     pafa_6 = pafa(awarding_agency_code='234', action_date='20170115', afa_generated_unique='unique6', is_active=True)
     file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
                                      file_type='D2', agency_code='123', agency_type='awarding', is_cached_file=True,
-                                     file_path=None)
+                                     file_path=None, file_format='csv')
     sess.add_all([pafa_1, pafa_2, pafa_3, pafa_4, pafa_5, pafa_6, file_gen])
     sess.commit()
 
@@ -249,7 +249,7 @@ def test_generate_funding_d2(database):
     pafa_6 = pafa(funding_agency_code='234', action_date='20170115', afa_generated_unique='unique6', is_active=True)
     file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
                                      file_type='D2', agency_code='123', agency_type='funding', is_cached_file=True,
-                                     file_path=None)
+                                     file_path=None, file_format='csv')
     sess.add_all([pafa_1, pafa_2, pafa_3, pafa_4, pafa_5, pafa_6, file_gen])
     sess.commit()
 
@@ -291,9 +291,9 @@ def test_generate_file_updates_jobs(monkeypatch, database):
     job3 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                       file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, original_filename=None,
                       start_date='01/01/2017', end_date='01/31/2017')
-    file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017',
-                                     end_date='01/31/2017', file_type='D1', agency_code='123',
-                                     agency_type='awarding', is_cached_file=True, file_path=None)
+    file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
+                                     file_type='D1', agency_code='123', agency_type='awarding', is_cached_file=True,
+                                     file_path=None, file_format='csv')
     sess.add_all([job1, job2, job3, file_gen])
     sess.commit()
     job1.file_generation_id = file_gen.file_generation_id

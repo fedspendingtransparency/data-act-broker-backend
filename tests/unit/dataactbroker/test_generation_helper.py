@@ -156,7 +156,7 @@ def test_retrieve_cached_file_generation(database):
     sess.add_all([job, file_gen])
     sess.commit()
 
-    file_generation = retrieve_cached_file_generation(job, 'awarding', '123')
+    file_generation = retrieve_cached_file_generation(job, 'awarding', '123', 'csv')
     assert file_generation == file_gen
 
 
@@ -171,7 +171,7 @@ def test_retrieve_cached_file_generation_none(database):
     sess.add(job)
     sess.commit()
 
-    file_generation = retrieve_cached_file_generation(job, 'awarding', '123')
+    file_generation = retrieve_cached_file_generation(job, 'awarding', '123', 'csv')
     assert file_generation is None
 
 
@@ -189,7 +189,7 @@ def test_retrieve_cached_file_generation_end_date_diff(database):
     sess.add_all([job, file_gen])
     sess.commit()
 
-    file_generation = retrieve_cached_file_generation(job, 'awarding', '123')
+    file_generation = retrieve_cached_file_generation(job, 'awarding', '123', 'csv')
     assert file_generation is None
 
 
@@ -207,7 +207,7 @@ def test_retrieve_cached_file_generation_start_date_diff(database):
     sess.add_all([job, file_gen])
     sess.commit()
 
-    file_generation = retrieve_cached_file_generation(job, 'awarding', '123')
+    file_generation = retrieve_cached_file_generation(job, 'awarding', '123', 'csv')
     assert file_generation is None
 
 
@@ -225,7 +225,7 @@ def test_retrieve_cached_file_generation_agency_code_diff(database):
     sess.add_all([job, file_gen])
     sess.commit()
 
-    file_generation = retrieve_cached_file_generation(job, 'awarding', '123')
+    file_generation = retrieve_cached_file_generation(job, 'awarding', '123', 'csv')
     assert file_generation is None
 
 
@@ -243,7 +243,7 @@ def test_retrieve_cached_file_generation_agency_type_diff(database):
     sess.add_all([job, file_gen])
     sess.commit()
 
-    file_generation = retrieve_cached_file_generation(job, 'funding', '123')
+    file_generation = retrieve_cached_file_generation(job, 'funding', '123', 'csv')
     assert file_generation is None
 
 
@@ -261,7 +261,7 @@ def test_retrieve_cached_file_generation_file_type_diff(database):
     sess.add_all([job, file_gen])
     sess.commit()
 
-    file_generation = retrieve_cached_file_generation(job, 'awarding', '123')
+    file_generation = retrieve_cached_file_generation(job, 'awarding', '123', 'csv')
     assert file_generation is None
 
 
@@ -279,7 +279,7 @@ def test_retrieve_cached_file_generation_not_cached(database):
     sess.add_all([job, file_gen])
     sess.commit()
 
-    file_generation = retrieve_cached_file_generation(job, 'awarding', '123')
+    file_generation = retrieve_cached_file_generation(job, 'awarding', '123', 'csv')
     assert file_generation is None
 
 
