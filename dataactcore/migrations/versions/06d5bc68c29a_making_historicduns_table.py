@@ -1,13 +1,13 @@
-""" Making HistoricDuns table
+"""Making HistoricDuns table
 
-Revision ID: 4f13a4215113
+Revision ID: 06d5bc68c29a
 Revises: 653d47c65df8
-Create Date: 2019-07-24 20:10:34.804877
+Create Date: 2019-07-24 20:46:56.121706
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '4f13a4215113'
+revision = '06d5bc68c29a'
 down_revision = '653d47c65df8'
 branch_labels = None
 depends_on = None
@@ -39,6 +39,7 @@ def upgrade_data_broker():
     sa.Column('activation_date', sa.Date(), nullable=True),
     sa.Column('registration_date', sa.Date(), nullable=True),
     sa.Column('expiration_date', sa.Date(), nullable=True),
+    sa.Column('last_sam_mod_date', sa.Date(), nullable=True),
     sa.Column('address_line_1', sa.Text(), nullable=True),
     sa.Column('address_line_2', sa.Text(), nullable=True),
     sa.Column('city', sa.Text(), nullable=True),

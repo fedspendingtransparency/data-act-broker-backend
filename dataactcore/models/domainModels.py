@@ -270,6 +270,7 @@ class HistoricDUNS(Base):
     activation_date = Column(Date)
     registration_date = Column(Date)
     expiration_date = Column(Date)
+    last_sam_mod_date = Column(Date)
     address_line_1 = Column(Text)
     address_line_2 = Column(Text)
     city = Column(Text)
