@@ -6,8 +6,7 @@ import argparse
 from datetime import datetime
 
 from dataactcore.utils.parentDuns import sam_config_is_valid
-from dataactcore.utils.duns import clean_sam_data
-from dataactvalidator.scripts.loader_utils import insert_dataframe
+from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 from dataactcore.models.domainModels import HistoricDUNS
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
@@ -102,6 +101,7 @@ def update_duns_props(df, client):
     for duns_list in batch(all_duns, batch_size):
         logger.info("Gathering addtional data for historic DUNS records {}-{}".format(index, index + batch_size))
         duns_props_batch = dataactcore.utils.parentDuns.get_duns_props_from_sam(client, duns_list)
+        duns_props_batch.drop(column_headers[1:], axis=1, inplace=True, errors='ignore')
         # Adding in blank rows for DUNS where location data was not found
         added_duns_list = []
         if not duns_props_batch.empty:
@@ -143,9 +143,9 @@ def run_duns_batches(file, sess, client, block_size=10000):
         logger.info("Adding {} DUNS records from historic data".format(len(duns_to_load.index)))
         # get address info for incoming duns
         duns_to_load = update_duns_props(duns_to_load, client)
-        duns_to_load = clean_sam_data(duns_to_load)
+        duns_to_load = clean_data(duns_to_load, HistoricDUNS, column_mappings, {})
 
-        insert_dataframe(duns_to_load, HistoricDUNS, sess.connection())
+        insert_dataframe(duns_to_load, HistoricDUNS.__table__.name, sess.connection())
         sess.commit()
 
         logger.info("Finished updating {} DUNS rows in {} s".format(['updated_duns'],
