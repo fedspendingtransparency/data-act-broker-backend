@@ -33,7 +33,8 @@ props_columns = {
     'zip4': None,
     'country_code': None,
     'congressional_district': None,
-    'business_types_codes': []
+    'business_types_codes': [],
+    'dba_name': None
 }
 
 column_mappings = {x: x for x in column_headers + list(props_columns.keys())}
