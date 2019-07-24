@@ -32,6 +32,11 @@ def add_generation_routes(app, is_local, server_path):
             missing='awarding',
             validate=webargs_validate.OneOf(('awarding', 'funding'),
                                             error="Must be either awarding or funding if provided")
+        ),
+        'file_format': webargs_fields.String(
+            missing='csv',
+            validate=webargs_validate.OneOf(('csv', 'txt'),
+                                            error="Must be either csv or txt if provided")
         )
     })
     def generate_file(submission_id, file_type, **kwargs):
@@ -43,11 +48,13 @@ def add_generation_routes(app, is_local, server_path):
                 start: the start date for the file to generate
                 end: the end date for the file to generate
                 agency_type: The type of agency (awarding or funding) to generate the file for
+                file_format: determines if the file generated is a txt or a csv
         """
         start = kwargs.get('start')
         end = kwargs.get('end')
         agency_type = kwargs.get('agency_type')
-        return generation_handler.generate_file(submission_id, file_type, start, end, agency_type)
+        file_format = kwargs.get('file_format')
+        return generation_handler.generate_file(submission_id, file_type, start, end, agency_type, file_format)
 
     @app.route("/v1/check_generation_status/", methods=["GET"])
     @convert_to_submission_id
@@ -80,6 +87,11 @@ def add_generation_routes(app, is_local, server_path):
             missing='awarding',
             validate=webargs_validate.OneOf(('awarding', 'funding'),
                                             error="Must be either awarding or funding if provided")
+        ),
+        'file_format': webargs_fields.String(
+            missing='csv',
+            validate=webargs_validate.OneOf(('csv', 'txt'),
+                                            error="Must be either csv or txt if provided")
         )
     })
     def generate_detached_file(file_type, **kwargs):
@@ -94,6 +106,7 @@ def add_generation_routes(app, is_local, server_path):
                 year: integer indicating the year to generate for (YYYY)
                 period: integer indicating the period to generate for (2-12)
                 agency_type: The type of agency (awarding or funding) to generate the file for
+                file_format: determines if the file generated is a txt or a csv
         """
         cgac_code = kwargs.get('cgac_code')
         frec_code = kwargs.get('frec_code')
@@ -102,8 +115,9 @@ def add_generation_routes(app, is_local, server_path):
         year = kwargs.get('year')
         period = kwargs.get('period')
         agency_type = kwargs.get('agency_type')
+        file_format = kwargs.get('file_format')
         return generation_handler.generate_detached_file(file_type, cgac_code, frec_code, start, end, year, period,
-                                                         agency_type)
+                                                         agency_type, file_format)
 
     @app.route("/v1/check_detached_generation_status/", methods=["GET"])
     @requires_login

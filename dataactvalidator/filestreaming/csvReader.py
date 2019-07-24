@@ -80,7 +80,7 @@ class CsvReader(object):
             raise ResponseException("CSV file must have a header", StatusCode.CLIENT_ERROR,
                                     ValueError, ValidationError.singleRow)
 
-        self.set_csv_delimiter(header_line, bucket_name, error_filename)
+        self.delimiter = "|" if header_line.count("|") > header_line.count(",") else ","
         self.csv_reader = csv.reader(self.file, quotechar='"', dialect='excel', delimiter=self.delimiter)
 
         # create the header
@@ -170,28 +170,6 @@ class CsvReader(object):
             self.extra_line = True
 
         return line
-
-    def set_csv_delimiter(self, header_line, bucket_name, error_filename):
-        """ Try to determine the delimiter type, raising exceptions if we cannot figure it out.
-
-            Args:
-                header_line: the header line to read
-                bucket_name: the name of the S3 bucket to write the error to
-                error_filename: the name of the error (including path) file to write to
-        """
-        pipe_count = header_line.count("|")
-        comma_count = header_line.count(",")
-
-        if pipe_count != 0 and comma_count != 0:
-            # Write header error for mixed delimiter use
-            error_text = ['"Cannot use both \',\' and \'|\' as delimiters. Please choose one."']
-            self.write_file_level_error(bucket_name, error_filename, ["Error Type"], error_text, self.is_local)
-            raise ResponseException(
-                "Error in header row: CSV file must use only '|' or ',' as the delimiter", StatusCode.CLIENT_ERROR,
-                ValueError, ValidationError.headerError
-            )
-
-        self.delimiter = "|" if header_line.count("|") != 0 else ","
 
     def handle_missing_duplicate_headers(self, expected_fields, bucket_name, error_filename, short_to_daims_dict):
         """ Check for missing or duplicated headers. If present, raise an exception with a meaningful message.

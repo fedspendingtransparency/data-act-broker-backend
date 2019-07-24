@@ -51,7 +51,7 @@ def write_csv(file_name, upload_name, is_local, header, body):
 
 
 def write_stream_query(sess, query, local_filename, upload_name, is_local, header=None, generate_headers=False,
-                       generate_string=True, is_certified=False):
+                       generate_string=True, is_certified=False, file_format='csv'):
     """ Write file locally from a query, then stream it to S3
 
         Args:
@@ -64,6 +64,7 @@ def write_stream_query(sess, query, local_filename, upload_name, is_local, heade
             generate_headers: whether to generate headers based on the query (default False)
             generate_string: whether to extract the raw query from the queryset (default True)
             is_certified: True if writing to the certified bucket, False otherwise (default False)
+            file_format: determines if the file generated is a txt or a csv (default csv)
     """
     if is_local:
         local_filename = upload_name
@@ -75,7 +76,7 @@ def write_stream_query(sess, query, local_filename, upload_name, is_local, heade
     })
 
     write_query_to_file(sess, query, local_filename, header=header, generate_headers=generate_headers,
-                        generate_string=generate_string)
+                        generate_string=generate_string, file_format=file_format)
 
     logger.debug({
         'message': 'CSV written from query',
@@ -92,7 +93,8 @@ def write_stream_query(sess, query, local_filename, upload_name, is_local, heade
         os.remove(local_filename)
 
 
-def write_query_to_file(sess, query, local_filename, header=None, generate_headers=False, generate_string=True):
+def write_query_to_file(sess, query, local_filename, header=None, generate_headers=False, generate_string=True,
+                        file_format='csv'):
     """ Write file locally from a query
 
         Args:
@@ -102,14 +104,19 @@ def write_query_to_file(sess, query, local_filename, header=None, generate_heade
             header: value to write as the first line of the file if provided
             generate_headers: whether to generate headers based on the query
             generate_string: whether to extract the raw query from the queryset
+            file_format: determines if the file generated is a txt or a csv
     """
+
+    delimiter = ','
+    if file_format == 'txt':
+        delimiter = '|'
 
     # write base csv with headers
     # Note: while psql's copy command supports headers, some header lengths exceed the maximum label length (63)
     if header:
         with open(local_filename, 'w', newline='') as csv_file:
             # create local file and write headers
-            out_csv = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+            out_csv = csv.writer(csv_file, delimiter=delimiter, quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
             out_csv.writerow(header)
 
     # get the raw SQL equivalent

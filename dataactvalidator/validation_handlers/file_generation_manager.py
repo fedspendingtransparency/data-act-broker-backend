@@ -16,7 +16,7 @@ from dataactvalidator.filestreaming.csv_selection import write_stream_query
 logger = logging.getLogger(__name__)
 
 GEN_FILENAMES = {
-    'A': 'appropriations_data.csv', 'D1': 'd1_{}agency_data.csv', 'D2': 'd2_{}agency_data.csv',
+    'A': 'appropriations_data.csv', 'D1': 'd1_{}agency_data.{}', 'D2': 'd2_{}agency_data.{}',
     'E': 'executive_compensation_data.csv', 'F': 'sub_award_data.csv'
 }
 
@@ -49,7 +49,8 @@ class FileGenerationManager:
     def generate_file(self, agency_code=None):
         """ Generates a file based on the FileGeneration object and updates any Jobs referencing it """
         raw_filename = (GEN_FILENAMES[self.file_type] if not self.file_generation else
-                        GEN_FILENAMES[self.file_type].format(self.file_generation.agency_type))
+                        GEN_FILENAMES[self.file_type].format(self.file_generation.agency_type,
+                                                             self.file_generation.file_format))
         file_name = S3Handler.get_timestamped_filename(raw_filename)
         if self.is_local:
             file_path = "".join([CONFIG_BROKER['broker_files'], file_name])
@@ -96,7 +97,7 @@ class FileGenerationManager:
             'agency_code': self.file_generation.agency_code, 'agency_type': self.file_generation.agency_type,
             'start_date': self.file_generation.start_date, 'end_date': self.file_generation.end_date,
             'file_generation_id': self.file_generation.file_generation_id, 'file_type': self.file_type,
-            'file_path': file_path
+            'file_format': self.file_generation.file_format, 'file_path': file_path
         }
         logger.info(log_data)
 
@@ -113,7 +114,8 @@ class FileGenerationManager:
                 self.file_type))
         headers = [key for key in file_utils.mapping]
 
-        log_data['message'] = 'Writing {} file CSV: {}'.format(self.file_type, original_filename)
+        log_data['message'] = 'Writing {} file {}: {}'.format(self.file_type, self.file_generation.file_format.upper(),
+                                                              original_filename)
         logger.info(log_data)
 
         query_utils = {
@@ -123,7 +125,8 @@ class FileGenerationManager:
         logger.debug({'query_utils': query_utils})
 
         # Generate the file locally, then place in S3
-        write_stream_query(self.sess, d_file_query(query_utils), local_file, file_path, self.is_local, header=headers)
+        write_stream_query(self.sess, d_file_query(query_utils), local_file, file_path, self.is_local, header=headers,
+                           file_format=self.file_generation.file_format)
 
         log_data['message'] = 'Finished writing {} file CSV: {}'.format(self.file_type, original_filename)
         logger.info(log_data)
