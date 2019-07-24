@@ -9,7 +9,6 @@ from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
-from sqlalchemy.exc import IntegrityError
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import DUNS
@@ -63,6 +62,7 @@ def get_client(ssh_key=None):
         pkey=pkey
     )
     return client
+
 
 def clean_sam_data(data):
     """ Wrapper around clean_data with the DUNS context
@@ -161,7 +161,7 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     logger.info('%s DUNS records received', rows_received)
 
     total_data = total_data[total_data.awardee_or_recipient_uniqu.notnull() &
-                                     total_data.sam_extract_code.isin(['1', '2', '3'])]
+                            total_data.sam_extract_code.isin(['1', '2', '3'])]
     rows_processed = len(total_data.index)
     delete_data = total_data[total_data.sam_extract_code == '1']
     deletes_received = len(delete_data.index)
@@ -173,12 +173,11 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     # add deactivation_date column for delete records
     lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
     total_data = total_data.assign(deactivation_date=pd.Series([np.nan], name='deactivation_date')
-                               if monthly else total_data["sam_extract_code"].apply(lambda_func))
+                                   if monthly else total_data["sam_extract_code"].apply(lambda_func))
     del total_data["sam_extract_code"]
 
     # convert business types string to array
-    bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~')
-                                          if isinstance(bt_raw, str)]]))
+    bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~') if isinstance(bt_raw, str)]]))
     total_data = total_data.assign(business_types_codes=total_data["business_types_raw"].apply(bt_func))
     del total_data["business_types_raw"]
 
@@ -196,6 +195,7 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     metrics['deletes_received'] += deletes_received
 
     return total_data
+
 
 def create_temp_duns_table(sess, table_name, data):
     """ Creates a temporary duns table with the given name and data.

@@ -135,7 +135,7 @@ def update_missing_parent_names(sess, updated_date=None):
 
     # Query to find rows where the parent duns number is present, but there is no legal entity name
     missing_parent_name = sess.query(DUNS).filter(and_(func.coalesce(DUNS.ultimate_parent_legal_enti, '') == '',
-                                                        DUNS.ultimate_parent_unique_ide.isnot(None)))
+                                                       DUNS.ultimate_parent_unique_ide.isnot(None)))
 
     if updated_date:
         missing_parent_name = missing_parent_name.filter(DUNS.updated_at >= updated_date)
