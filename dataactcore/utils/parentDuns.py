@@ -28,81 +28,50 @@ def sam_config_is_valid():
         sys.exit(1)
 
 
-def get_name_from_sam(client, duns_list):
-    """ Calls SAM API to retrieve DUNS name by DUNS number. Returns DUNS info as Data Frame
+def get_duns_props_from_sam(client, duns_list):
+    """ Calls SAM API to retrieve DUNS data by DUNS number. Returns DUNS info as Data Frame
 
         Args:
             client: the SAM service client
             duns_list: list of DUNS to search
 
         Returns:
-            dataframe representing the DUNS and corresponding names
+            dataframe representing the DUNS props
     """
-    duns_name = [{
-        'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
-        'legal_business_name': (suds_obj.entityIdentification.legalBusinessName or '').upper()
+    duns_props_mappings = {
+        'awardee_or_recipient_uniqu': 'entityIdentification.DUNS',
+        'legal_business_name': 'entityIdentification.legalBusinessName',
+        'dba_name': 'entityIdentification.DBAName',
+        'ultimate_parent_unique_ide': 'coreData.DUNSInformation.globalParentDUNS.DUNSNumber',
+        'ultimate_parent_legal_enti': 'coreData.DUNSInformation.globalParentDUNS.legalBusinessName',
+        'address_line_1': 'coreData.businessInformation.physicalAddress.addressLine1',
+        'address_line_2': 'coreData.businessInformation.physicalAddress.addressLine2',
+        'city': 'coreData.businessInformation.physicalAddress.city',
+        'state': 'coreData.businessInformation.physicalAddress.stateOrProvince',
+        'zip': 'coreData.businessInformation.physicalAddress.ZIPCode',
+        'zip4': 'coreData.businessInformation.physicalAddress.ZIPCodePlus4',
+        'country_code': 'coreData.businessInformation.physicalAddress.country',
+        'congressional_district': 'coreData.businessInformation.physicalAddress.congressionalDistrict',
+        'business_types_codes': 'coreData.generalInformation.listOfBusinessTypes'
     }
-        for suds_obj in get_entities(client, duns_list)
-        if suds_obj.entityIdentification.legalBusinessName
-    ]
+    duns_props = []
+    for suds_obj in get_entities(client, duns_list):
+        duns_props_dict = {}
+        for duns_props_name, duns_prop_path in duns_props_mappings.items():
+            nested_obj = suds_obj
+            value = None
+            for nested_layer in duns_prop_path.split('.'):
+                nested_obj = getattr(nested_obj, nested_layer, None)
+                if not nested_obj:
+                    break
+                elif nested_layer == duns_prop_path.split('.')[-1]:
+                    value = nested_obj
+            if duns_props_name == 'business_types_codes':
+                value = [business_type.code for business_type in getattr(nested_obj, 'businessType', [])]
+            duns_props_dict[duns_props_name] = value
+        duns_props.append(duns_props_dict)
 
-    return pd.DataFrame(duns_name)
-
-
-def get_location_business_from_sam(client, duns_list):
-    """ Calls SAM API to retrieve DUNS location/business type data by DUNS number. Returns DUNS info as Data Frame
-
-        Args:
-            client: the SAM service client
-            duns_list: list of DUNS to search
-
-        Returns:
-            dataframe representing the DUNS and corresponding locations/business types
-    """
-    duns_name = [{
-        'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
-        'address_line_1': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'addressLine1', None),
-        'address_line_2': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'addressLine2', None),
-        'city': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'city', None),
-        'state': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'stateOrProvince', None),
-        'zip': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'ZIPCode', None),
-        'zip4': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'ZIPCodePlus4', None),
-        'country_code': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'country', None),
-        'congressional_district': getattr(suds_obj.coreData.businessInformation.physicalAddress,
-                                          'congressionalDistrict', None),
-        'business_types_codes': [business_type.code for business_type
-                                 in getattr(suds_obj.coreData.generalInformation.listOfBusinessTypes,
-                                            'businessType', [])],
-        'dba_name': getattr(suds_obj.coreData.DUNSInformation.DUNS, 'DBAName', None)
-    }
-        for suds_obj in get_entities(client, duns_list)
-    ]
-
-    return pd.DataFrame(duns_name)
-
-
-def get_parent_from_sam(client, duns_list):
-    """ Calls SAM API to retrieve parent DUNS data by DUNS number. Returns DUNS info as Data Frame
-
-        Args:
-            client: the SAM service client
-            duns_list: list of DUNS to search
-
-        Returns:
-            dataframe representing the DUNS and corresponding parent DUNS data
-    """
-    duns_parent = [{
-        'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
-        'ultimate_parent_unique_ide': suds_obj.coreData.DUNSInformation.globalParentDUNS.DUNSNumber,
-        'ultimate_parent_legal_enti': (suds_obj.coreData.DUNSInformation.globalParentDUNS.legalBusinessName
-                                       or '').upper()
-    }
-        for suds_obj in get_entities(client, duns_list)
-        if suds_obj.coreData.DUNSInformation.globalParentDUNS.DUNSNumber
-        or suds_obj.coreData.DUNSInformation.globalParentDUNS.legalBusinessName
-    ]
-
-    return pd.DataFrame(duns_parent)
+    return pd.DataFrame(duns_props)
 
 
 def update_missing_parent_names(sess, updated_date=None):

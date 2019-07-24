@@ -6,7 +6,9 @@ import argparse
 from datetime import datetime
 
 from dataactcore.utils.parentDuns import sam_config_is_valid
-from dataactcore.utils.duns import update_duns, clean_sam_data
+from dataactcore.utils.duns import clean_sam_data
+from dataactvalidator.scripts.loader_utils import insert_dataframe
+from dataactcore.models.domainModels import HistoricDUNS
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
@@ -34,7 +36,9 @@ props_columns = {
     'country_code': None,
     'congressional_district': None,
     'business_types_codes': [],
-    'dba_name': None
+    'dba_name': None,
+    'ultimate_parent_unique_ide': None,
+    'ultimate_parent_legal_enti': None
 }
 
 column_mappings = {x: x for x in column_headers + list(props_columns.keys())}
@@ -97,7 +101,7 @@ def update_duns_props(df, client):
     batch_size = 100
     for duns_list in batch(all_duns, batch_size):
         logger.info("Gathering addtional data for historic DUNS records {}-{}".format(index, index + batch_size))
-        duns_props_batch = dataactcore.utils.parentDuns.get_location_business_from_sam(client, duns_list)
+        duns_props_batch = dataactcore.utils.parentDuns.get_duns_props_from_sam(client, duns_list)
         # Adding in blank rows for DUNS where location data was not found
         added_duns_list = []
         if not duns_props_batch.empty:
@@ -141,8 +145,7 @@ def run_duns_batches(file, sess, client, block_size=10000):
         duns_to_load = update_duns_props(duns_to_load, client)
         duns_to_load = clean_sam_data(duns_to_load)
 
-        metrics = {}
-        update_duns(sess, duns_to_load, metrics=metrics)
+        insert_dataframe(duns_to_load, HistoricDUNS, sess.connection())
         sess.commit()
 
         logger.info("Finished updating {} DUNS rows in {} s".format(['updated_duns'],
