@@ -5,10 +5,8 @@ import pandas as pd
 import argparse
 from datetime import datetime
 
-from dataactcore.models.domainModels import DUNS
 from dataactcore.utils.parentDuns import sam_config_is_valid
-from dataactcore.utils.duns import load_duns_by_row
-from dataactvalidator.scripts.loader_utils import clean_data
+from dataactcore.utils.duns import update_duns, clean_sam_data
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
@@ -64,17 +62,6 @@ def remove_existing_duns(data, sess):
     return missing_duns
 
 
-def clean_duns_csv_data(data):
-    """ Simple wrapper around clean_data applied just for duns
-
-        Args:
-            data: dataframe representing the data to be cleaned
-
-        Returns:
-            a dataframe cleaned and to be imported to the database
-    """
-    return clean_data(data, DUNS, column_mappings, {})
-
 
 def batch(iterable, n=1):
     """ Simple function to create batches from a list
@@ -105,7 +92,10 @@ def update_duns_props(df, client):
     columns = ['awardee_or_recipient_uniqu'] + list(props_columns.keys())
     duns_props_df = pd.DataFrame(columns=columns)
     # SAM service only takes in batches of 100
-    for duns_list in batch(all_duns, 100):
+    index = 0
+    batch_size = 100
+    for duns_list in batch(all_duns, batch_size):
+        logger.info("Gathering addtional data for historic DUNS records {}-{}".format(index, index + batch_size))
         duns_props_batch = dataactcore.utils.parentDuns.get_location_business_from_sam(client, duns_list)
         # Adding in blank rows for DUNS where location data was not found
         added_duns_list = []
@@ -118,6 +108,7 @@ def update_duns_props(df, client):
             empty_duns_rows.append(empty_duns_row)
         duns_props_batch = duns_props_batch.append(pd.DataFrame(empty_duns_rows))
         duns_props_df = duns_props_df.append(duns_props_batch)
+        index += batch_size
     return pd.merge(df, duns_props_df, on=['awardee_or_recipient_uniqu'])
 
 
@@ -132,34 +123,28 @@ def run_duns_batches(file, sess, client, block_size=10000):
     """
     logger.info("Retrieving total rows from duns file")
     start = datetime.now()
-    row_count = len(pd.read_csv(file, skipinitialspace=True, header=None, encoding='latin1', quotechar='"',
-                                dtype=str, names=column_headers, skiprows=1))
+    duns_df = pd.read_csv(file, skipinitialspace=True, header=None,  encoding='latin1', quotechar='"',
+                                  dtype=str, names=column_headers, skiprows=1)
+    row_count = len(duns_df.index)
     logger.info("Retrieved row count of {} in {} s".format(row_count, (datetime.now()-start).total_seconds()))
 
-    duns_reader_obj = pd.read_csv(file, skipinitialspace=True, header=None,  encoding='latin1', quotechar='"',
-                                  dtype=str, names=column_headers, iterator=True, chunksize=block_size, skiprows=1)
+    start = datetime.now()
+    # Remove rows where awardee_or_recipient_uniqu is null
+    duns_df = duns_df[duns_df['awardee_or_recipient_uniqu'].notnull()]
+    # Ignore old DUNS we already have
+    duns_to_load = remove_existing_duns(duns_df, sess)
 
-    for duns_df in duns_reader_obj:
-        start = datetime.now()
-        # Remove rows where awardee_or_recipient_uniqu is null
-        duns_df = duns_df[duns_df['awardee_or_recipient_uniqu'].notnull()]
+    if not duns_to_load.empty:
+        logger.info("Adding {} DUNS records from historic data".format(len(duns_to_load.index)))
+        # get address info for incoming duns
+        duns_to_load = update_duns_props(duns_to_load, client)
+        duns_to_load = clean_sam_data(duns_to_load)
 
-        duns_to_load = remove_existing_duns(duns_df, sess)
-        duns_count = 0
+        metrics = {}
+        update_duns(sess, duns_to_load, metrics=metrics)
+        sess.commit()
 
-        # Only update database if there are DUNS from file missing in database
-        if not duns_to_load.empty:
-            duns_count = duns_to_load.shape[0]
-
-            # get address info for incoming duns
-            duns_to_load = update_duns_props(duns_to_load, client)
-
-            duns_to_load = clean_duns_csv_data(duns_to_load)
-            models = {}
-            load_duns_by_row(duns_to_load, sess, models, None)
-            sess.commit()
-
-        logger.info("Finished updating {} DUNS rows in {} s".format(duns_count,
+        logger.info("Finished updating {} DUNS rows in {} s".format(['updated_duns'],
                                                                     (datetime.now()-start).total_seconds()))
 
 
