@@ -72,7 +72,8 @@ def get_location_business_from_sam(client, duns_list):
                                           'congressionalDistrict', None),
         'business_types_codes': [business_type.code for business_type
                                  in getattr(suds_obj.coreData.generalInformation.listOfBusinessTypes,
-                                            'businessType', [])]
+                                            'businessType', [])],
+        'dba_name': getattr(suds_obj.coreData.DUNSInformation.DUNS, 'DBAName', None)
     }
         for suds_obj in get_entities(client, duns_list)
     ]
