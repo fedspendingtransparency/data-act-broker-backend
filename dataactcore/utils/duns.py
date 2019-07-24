@@ -163,19 +163,11 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     total_data = total_data[total_data.awardee_or_recipient_uniqu.notnull() &
                             total_data.sam_extract_code.isin(['1', '2', '3'])]
     rows_processed = len(total_data.index)
-    delete_data = total_data[total_data.sam_extract_code == '1']
-    deletes_received = len(delete_data.index)
-    add_data = total_data[total_data.sam_extract_code == '2']
-    adds_received = len(add_data.index)
-    update_data = total_data[total_data.sam_extract_code == '3']
-    updates_received = len(update_data.index)
 
     # add deactivation_date column for delete records
     lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
     total_data = total_data.assign(deactivation_date=pd.Series([np.nan], name='deactivation_date')
                                    if monthly else total_data["sam_extract_code"].apply(lambda_func))
-    del total_data["sam_extract_code"]
-
     # convert business types string to array
     bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~') if isinstance(bt_raw, str)]]))
     total_data = total_data.assign(business_types_codes=total_data["business_types_raw"].apply(bt_func))
@@ -183,6 +175,15 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
 
     # cleaning and replacing NaN/NaT with None's
     total_data = clean_sam_data(total_data.where(pd.notnull(total_data), None))
+
+    delete_data = total_data[total_data.sam_extract_code == '1']
+    deletes_received = len(delete_data.index)
+    add_data = total_data[total_data.sam_extract_code == '2']
+    adds_received = len(add_data.index)
+    update_data = total_data[total_data.sam_extract_code == '3']
+    updates_received = len(update_data.index)
+    add_update_data = total_data[total_data.sam_extract_code.isin(['2', '3'])]
+    del total_data["sam_extract_code"]
 
     if benchmarks:
         logger.info("Parsing {} took {} seconds with {} rows".format(dat_file_name, time.time()-parse_start_time,
@@ -194,7 +195,7 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     metrics['updates_received'] += updates_received
     metrics['deletes_received'] += deletes_received
 
-    return total_data
+    return add_update_data, delete_data
 
 
 def create_temp_duns_table(sess, table_name, data):
@@ -238,13 +239,14 @@ def create_temp_duns_table(sess, table_name, data):
     insert_dataframe(data, table_name, sess.connection())
 
 
-def update_duns(sess, duns_data, metrics=None):
+def update_duns(sess, duns_data, metrics=None, deletes=False):
     """ Takes in a dataframe of duns and adds/updates associated DUNS
 
         Args:
             sess: database connection
-            duns_data: pandas dataframe representing exec comp data
+            duns_data: pandas dataframe representing duns data
             metrics: dictionary representing metrics of the script
+            deletes: whether the data provided contains only delete records
 
         Returns:
             list of DUNS updated
@@ -309,32 +311,38 @@ def update_duns(sess, duns_data, metrics=None):
         );
     """
     sess.execute(insert_sql)
+    update_cols = """
+        updated_at = tdu.updated_at,
+        activation_date = tdu.activation_date,
+        expiration_date = tdu.expiration_date,
+        registration_date = tdu.registration_date,
+        last_sam_mod_date = tdu.last_sam_mod_date,
+        legal_business_name = tdu.legal_business_name,
+        dba_name = tdu.dba_name,
+        ultimate_parent_unique_ide = tdu.ultimate_parent_unique_ide,
+        ultimate_parent_legal_enti = tdu.ultimate_parent_legal_enti,
+        address_line_1 = tdu.address_line_1,
+        address_line_2 = tdu.address_line_2,
+        city = tdu.city,
+        state = tdu.state,
+        zip = tdu.zip,
+        zip4 = tdu.zip4,
+        country_code = tdu.country_code,
+        congressional_district = tdu.congressional_district,
+        business_types_codes = tdu.business_types_codes,
+        entity_structure = tdu.entity_structure
+    """
+    if deletes:
+        update_cols = """
+            deactivation_date = tdu.deactivation_date
+        """
     update_sql = """
         UPDATE duns
         SET
-            updated_at = COALESCE(tdu.updated_at, duns.updated_at),
-            activation_date = COALESCE(tdu.activation_date, duns.activation_date),
-            expiration_date = COALESCE(tdu.expiration_date, duns.expiration_date),
-            deactivation_date = COALESCE(tdu.deactivation_date, duns.deactivation_date),
-            registration_date = COALESCE(tdu.registration_date, duns.registration_date),
-            last_sam_mod_date = COALESCE(tdu.last_sam_mod_date, duns.last_sam_mod_date),
-            legal_business_name = COALESCE(tdu.legal_business_name, duns.legal_business_name),
-            dba_name = COALESCE(tdu.dba_name, duns.dba_name),
-            ultimate_parent_unique_ide = COALESCE(tdu.ultimate_parent_unique_ide, duns.ultimate_parent_unique_ide),
-            ultimate_parent_legal_enti = COALESCE(tdu.ultimate_parent_legal_enti, duns.ultimate_parent_legal_enti),
-            address_line_1 = COALESCE(tdu.address_line_1, duns.address_line_1),
-            address_line_2 = COALESCE(tdu.address_line_2, duns.address_line_2),
-            city = COALESCE(tdu.city, duns.city),
-            state = COALESCE(tdu.state, duns.state),
-            zip = COALESCE(tdu.zip, duns.zip),
-            zip4 = COALESCE(tdu.zip4, duns.zip4),
-            country_code = COALESCE(tdu.country_code, duns.country_code),
-            congressional_district = COALESCE(tdu.congressional_district, duns.congressional_district),
-            business_types_codes = COALESCE(tdu.business_types_codes, duns.business_types_codes),
-            entity_structure = COALESCE(tdu.entity_structure, duns.entity_structure)
+            {}
         FROM temp_duns_update tdu
         WHERE tdu.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu;
-    """
+    """.format(update_cols)
     sess.execute(update_sql)
 
     logger.info('Dropping {}'.format(temp_table_name))
