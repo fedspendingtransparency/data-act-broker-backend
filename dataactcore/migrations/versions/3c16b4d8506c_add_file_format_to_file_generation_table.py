@@ -48,5 +48,9 @@ def downgrade_data_broker():
     op.execute("""
             DROP TYPE generation_file_formats
         """)
+    op.execute("""
+            UPDATE file_generation
+            SET is_cached_file = False
+        """)
     # ### end Alembic commands ###
 
