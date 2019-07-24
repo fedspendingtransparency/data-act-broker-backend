@@ -259,6 +259,30 @@ class DUNS(Base):
     last_exec_comp_mod_date = Column(Date)
 
 
+class HistoricDUNS(Base):
+    """ Legacy DUNS Records with their latest updates"""
+    __tablename__ = "historic_duns"
+
+    duns_id = Column(Integer, primary_key=True)
+    awardee_or_recipient_uniqu = Column(Text, index=True)
+    legal_business_name = Column(Text)
+    dba_name = Column(Text)
+    activation_date = Column(Date)
+    registration_date = Column(Date)
+    expiration_date = Column(Date)
+    address_line_1 = Column(Text)
+    address_line_2 = Column(Text)
+    city = Column(Text)
+    state = Column(Text)
+    zip = Column(Text)
+    zip4 = Column(Text)
+    country_code = Column(Text)
+    congressional_district = Column(Text)
+    business_types_codes = Column(ARRAY(Text))
+    ultimate_parent_unique_ide = Column(Text)
+    ultimate_parent_legal_enti = Column(Text)
+
+
 class CFDAProgram(Base):
     __tablename__ = "cfda_program"
     cfda_program_id = Column(Integer, primary_key=True)
