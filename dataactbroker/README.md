@@ -1051,7 +1051,7 @@ This endpoint lists submissions for all agencies for which the current user is a
       "files": ["file1.csv", "file2.csv"],
       "agency": "Department of the Treasury (TREAS)"
       "status": "validation_successful",
-      "last_modified": "2016-08-31 12:59:37.053424",
+      "last_modified": "2016-08-30 12:59:37.053424",
       "publish_status": "published",
       "certifying_user": "Certifier",
       "certified_on": "2016-08-30 12:53:37.053424"
@@ -1073,13 +1073,15 @@ This endpoint lists submissions for all agencies for which the current user is a
       "certified_on": ""
     }
   ],
-  "total": 2
+  "total": 2,
+  "min_last_modified": "2016-08-30 12:59:37.053424"
 }
 ```
 
 ##### Response Attributes
 
 - `total` - An integer indicating the total submissions that match the provided parameters (including those that didn't fit within the limit)
+- `min_last_modified` - A string indicating the minimum last modified date for submissions with the same type (FABS/DABS) and certify status (certified/published, unpublished, both) as the request (additional filters do not affect this number)
 - `submissions` - An array of objects that contain details about submissions. Contents of each object are:
     - `submission_id` - an integer indicating ID of the submission
     - `reporting_start_date` - a string containing the start date of the submission (`YYYY-MM-DD`)

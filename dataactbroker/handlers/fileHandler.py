@@ -1502,6 +1502,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
         outerjoin(sub_query, Submission.submission_id == sub_query.c.submission_id).\
         filter(Submission.d2_submission.is_(is_fabs))
+    min_mod_query = sess.query(func.min(Submission.updated_at).label('min_last_mod_date')).\
+        filter(Submission.d2_submission.is_(is_fabs))
 
     # Limit the data coming back to only what the given user is allowed to see
     if not g.user.website_admin:
@@ -1514,13 +1516,16 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
         if frec_codes:
             affiliation_filters.append(Submission.frec_code.in_(frec_codes))
         query = query.filter(sa.or_(*affiliation_filters))
+        min_mod_query = min_mod_query.filter(sa.or_(*affiliation_filters))
 
     # Determine what types of submissions (published/unpublished/both) to display
     if certified != 'mixed':
         if certified == 'true':
             query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
+            min_mod_query = min_mod_query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
         else:
             query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
+            min_mod_query = min_mod_query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
 
     # Add additional filters where applicable
     if filters:
@@ -1557,12 +1562,14 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
     query = query.order_by(sort_order)
 
     total_submissions = query.count()
+    min_last_mod = min_mod_query.one()[0]
 
     query = query.slice(offset, offset + limit)
 
     return JsonResponse.create(StatusCode.OK, {
-        "submissions": [serialize_submission(submission) for submission in query],
-        "total": total_submissions
+        'submissions': [serialize_submission(submission) for submission in query],
+        'total': total_submissions,
+        'min_last_modified': str(min_last_mod) if min_last_mod else None
     })
 
 
