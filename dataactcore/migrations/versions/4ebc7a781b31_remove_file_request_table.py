@@ -47,7 +47,7 @@ def downgrade_data_broker():
     sa.Column('agency_code', sa.TEXT(), autoincrement=False, nullable=False),
     sa.Column('file_type', sa.TEXT(), autoincrement=False, nullable=False),
     sa.Column('is_cached_file', sa.BOOLEAN(), autoincrement=False, nullable=False),
-    sa.Column('agency_type', postgresql.ENUM('awarding', 'funding', name='agency_types'), server_default=sa.text("'awarding'::agency_types"), autoincrement=False, nullable=False),
+    sa.Column('agency_type', postgresql.ENUM('awarding', 'funding', name='agency_types', create_type=False), server_default=sa.text("'awarding'::agency_types"), autoincrement=False, nullable=False),
     sa.ForeignKeyConstraint(['job_id'], ['job.job_id'], name='fk_file_request_job_id', ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('file_request_id', name='file_request_pkey')
     )
