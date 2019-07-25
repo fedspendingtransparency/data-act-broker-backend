@@ -128,7 +128,9 @@ class FileGenerationManager:
         write_stream_query(self.sess, d_file_query(query_utils), local_file, file_path, self.is_local, header=headers,
                            file_format=self.file_generation.file_format)
 
-        log_data['message'] = 'Finished writing {} file CSV: {}'.format(self.file_type, original_filename)
+        log_data['message'] = 'Finished writing {} file {}: {}'.format(self.file_type,
+                                                                       self.file_generation.file_format.upper(),
+                                                                       original_filename)
         logger.info(log_data)
 
         self.file_generation.file_path = file_path

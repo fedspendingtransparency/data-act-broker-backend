@@ -70,7 +70,7 @@ def write_stream_query(sess, query, local_filename, upload_name, is_local, heade
         local_filename = upload_name
 
     logger.debug({
-        'message': 'Writing query to csv',
+        'message': 'Writing query to {}'.format(file_format),
         'message_type': 'BrokerDebug',
         'upload_name': upload_name
     })
@@ -79,7 +79,7 @@ def write_stream_query(sess, query, local_filename, upload_name, is_local, heade
                         generate_string=generate_string, file_format=file_format)
 
     logger.debug({
-        'message': 'CSV written from query',
+        'message': '{} written from query'.format(file_format.upper()),
         'message_type': 'BrokerDebug',
         'upload_name': upload_name
     })
@@ -127,7 +127,8 @@ def write_query_to_file(sess, query, local_filename, header=None, generate_heade
 
     # save psql command with query to a temp file
     # note: if we've been provded a header and wrote it, there's no need to add another
-    temp_sql_file, temp_sql_file_path = generate_temp_query_file(raw_query, header=generate_headers)
+    temp_sql_file, temp_sql_file_path = generate_temp_query_file(raw_query, header=generate_headers,
+                                                                 delimiter=delimiter)
 
     # run the psql command and cleanup
     database_string = str(sess.bind.url)
@@ -160,13 +161,14 @@ def stream_file_to_s3(upload_name, reader, is_certified=False):
     s3_resource.Object(bucket_name, upload_name).put(Body=reader)
 
 
-def generate_temp_query_file(query, header=True):
+def generate_temp_query_file(query, header=True, delimiter=','):
     """ Generates a temporary file containing the shell command to create the csv
         Reason for this being that the query can be too long for shell to process via subprocess
 
         Args:
             query: string query to populate the csv file
             header: include header in csv (includes column names or aliases if provided in query)
+            delimiter: determines if the file generated will be comma or pipe delimited
     """
     logger.debug('Creating PSQL Query: {}'.format(query))
 
@@ -174,7 +176,8 @@ def generate_temp_query_file(query, header=True):
     (temp_sql_file, temp_sql_file_path) = tempfile.mkstemp(prefix='b_sql_', dir='/tmp')
     with open(temp_sql_file_path, 'w') as file:
         with_header = ' HEADER' if header else ''
-        file.write('\copy ({}) To STDOUT with CSV{}'.format(query, with_header))
+        format_delimiter = 'delimiter \'|\' ' if delimiter == '|' else ''
+        file.write('\copy ({}) To STDOUT with {}CSV{}'.format(query, format_delimiter, with_header))
 
     return temp_sql_file, temp_sql_file_path
 
