@@ -7,7 +7,7 @@ from datetime import datetime
 
 from dataactcore.utils.parentDuns import sam_config_is_valid
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
-from dataactcore.models.domainModels import HistoricDUNS
+from dataactcore.models.domainModels import HistoricDUNS, DUNS
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
@@ -159,38 +159,125 @@ def run_duns_batches(file, sess, client, block_size=10000):
     logger.info("Imported {} historical duns".format(duns_added))
 
 
+def clean_historic_duns(sess):
+    """ Removes historic DUNS that now appear in SAM csvs
+
+        Args:
+            sess: the database connection
+    """
+    new_duns = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu == HistoricDUNS.awardee_or_recipient_uniqu,
+                                         DUNS.historic.is_(False)).all()
+    sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu.in_(new_duns), DUNS.historic.is_(True))\
+        .delete(synchronize_session=False)
+    sess.query(HistoricDUNS).filter(HistoricDUNS.awardee_or_recipient_uniqu.in_(new_duns))\
+        .delete(synchronize_session=False)
+    sess.commit()
+
+
+def import_historic_duns(sess):
+    """ Copy the historic DUNS to the DUNS table
+
+        Args:
+            sess: the database connection
+    """
+
+    logger.info('Copying historic duns values to DUNS table')
+    copy_sql = """
+        INSERT INTO duns (
+            created_at,
+            updated_at,
+            awardee_or_recipient_uniqu,
+            activation_date,
+            expiration_date,
+            registration_date,
+            last_sam_mod_date,
+            legal_business_name,
+            dba_name,
+            ultimate_parent_unique_ide,
+            ultimate_parent_legal_enti,
+            address_line_1,
+            address_line_2,
+            city,
+            state,
+            zip,
+            zip4,
+            country_code,
+            congressional_district,
+            business_types_codes,
+            historic
+        )
+        SELECT
+            created_at,
+            updated_at,
+            awardee_or_recipient_uniqu,
+            activation_date,
+            expiration_date,
+            registration_date,
+            last_sam_mod_date,
+            legal_business_name,
+            dba_name,
+            ultimate_parent_unique_ide,
+            ultimate_parent_legal_enti,
+            address_line_1,
+            address_line_2,
+            city,
+            state,
+            zip,
+            zip4,
+            country_code,
+            congressional_district,
+            business_types_codes,
+            TRUE
+        FROM historic_duns;
+    """
+    sess.execute(copy_sql)
+    sess.commit()
+    logger.info('Copied historic duns values to DUNS table')
+
+
 def main():
     """ Loads DUNS from the DUNS export file (comprised of DUNS pre-2014) """
     parser = argparse.ArgumentParser(description='Adding historical DUNS to Broker.')
-    parser.add_argument('-size', '--block_size', help='Number of rows to batch load', type=int,
-                        default=10000)
+    parser.add_argument('--block_size', '-s', help='Number of rows to batch load', type=int, default=10000)
+    parser.add_argument('--reload_file', '-r', action='store_true', help='Reload HistoricDUNS table from file and'
+                                                                         ' update from SAM')
     args = parser.parse_args()
+    reload_file = args.reload_file
+    block_size = args.block_size
 
     sess = GlobalDB.db().session
-    client = sam_config_is_valid()
 
-    logger.info('Retrieving historical DUNS file')
-    start = datetime.now()
-    if CONFIG_BROKER["use_aws"]:
-        s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-        duns_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['archive_bucket'],
-                                                                    'Key': "DUNS_export_deduped.csv"}, ExpiresIn=10000)
+    if reload_file:
+        client = sam_config_is_valid()
+
+        logger.info('Retrieving historical DUNS file')
+        start = datetime.now()
+        if CONFIG_BROKER["use_aws"]:
+            s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
+            duns_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['archive_bucket'],
+                                                                        'Key': "DUNS_export_deduped.csv"}, ExpiresIn=10000)
+        else:
+            duns_file = os.path.join(CONFIG_BROKER["broker_files"], "DUNS_export_deduped.csv")
+
+        if not duns_file:
+            raise OSError("No DUNS_export_deduped.csv found.")
+
+        logger.info("Retrieved historical DUNS file in {} s".format((datetime.now()-start).total_seconds()))
+
+        try:
+            run_duns_batches(duns_file, sess, client, block_size)
+        except Exception as e:
+            logger.exception(e)
+            sess.rollback()
     else:
-        duns_file = os.path.join(CONFIG_BROKER["broker_files"], "DUNS_export_deduped.csv")
+        # if we're using an old historic duns table, clean it up before importing
+        clean_historic_duns(sess)
 
-    if not duns_file:
-        raise OSError("No DUNS_export_deduped.csv found.")
+    # import the historic duns to the current DUNS table
+    import_historic_duns(sess)
 
-    logger.info("Retrieved historical DUNS file in {} s".format((datetime.now()-start).total_seconds()))
-
-    try:
-        run_duns_batches(duns_file, sess, client, args.block_size)
-    except Exception as e:
-        logger.exception(e)
-        sess.rollback()
-
-    logger.info("Updating historical DUNS complete")
     sess.close()
+    logger.info("Updating historical DUNS complete")
 
 
 if __name__ == '__main__':
