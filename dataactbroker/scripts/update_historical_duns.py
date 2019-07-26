@@ -134,6 +134,7 @@ def run_duns_batches(file, sess, client, block_size=10000):
     row_count = sum([len(duns_df.index) for duns_df in duns_dfs])
     logger.info("Retrieved row count of {} in {} s".format(row_count, (datetime.now()-start).total_seconds()))
 
+    duns_added = 0
     for duns_df in duns_dfs:
         # Remove rows where awardee_or_recipient_uniqu is null
         duns_df = duns_df[duns_df['awardee_or_recipient_uniqu'].notnull()]
@@ -147,12 +148,15 @@ def run_duns_batches(file, sess, client, block_size=10000):
             # get address info for incoming duns
             duns_to_load = update_duns_props(duns_to_load, client)
             duns_to_load = clean_data(duns_to_load, HistoricDUNS, column_mappings, {})
+            duns_added += len(duns_to_load.index)
 
             insert_dataframe(duns_to_load, HistoricDUNS.__table__.name, sess.connection())
             sess.commit()
 
             logger.info("Finished updating {} DUNS rows in {} s".format(len(duns_to_load.index),
                                                                         (datetime.now()-start).total_seconds()))
+
+    logger.info("Imported {} historical duns".format(duns_added))
 
 
 def main():
