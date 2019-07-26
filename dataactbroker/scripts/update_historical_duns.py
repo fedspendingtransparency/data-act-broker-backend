@@ -151,7 +151,7 @@ def run_duns_batches(file, sess, client, block_size=10000):
             insert_dataframe(duns_to_load, HistoricDUNS.__table__.name, sess.connection())
             sess.commit()
 
-            logger.info("Finished updating {} DUNS rows in {} s".format(['updated_duns'],
+            logger.info("Finished updating {} DUNS rows in {} s".format(len(duns_to_load.index),
                                                                         (datetime.now()-start).total_seconds()))
 
 
