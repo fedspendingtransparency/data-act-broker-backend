@@ -42,7 +42,7 @@ def process_from_dir(root_dir, file_name, sess, sftp=None, monthly=False, benchm
             sftp.getfo(''.join([REMOTE_SAM_DUNS_DIR, '/', file_name]), zip_file)
     add_update_data, delete_data = parse_duns_file(file_path, sess, monthly=monthly, benchmarks=benchmarks,
                                                    metrics=metrics)
-    if add_update_data
+    if add_update_data:
         update_duns(sess, add_update_data, metrics=metrics)
     if delete_data:
         update_duns(sess, delete_data, metrics=metrics, deletes=True)
