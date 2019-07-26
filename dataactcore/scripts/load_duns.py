@@ -40,8 +40,12 @@ def process_from_dir(root_dir, file_name, sess, sftp=None, monthly=False, benchm
         logger.info("Pulling {}".format(file_name))
         with open(file_path, "wb") as zip_file:
             sftp.getfo(''.join([REMOTE_SAM_DUNS_DIR, '/', file_name]), zip_file)
-    duns_data = parse_duns_file(file_path, sess, monthly=monthly, benchmarks=benchmarks, metrics=metrics)
-    update_duns(sess, duns_data, metrics=metrics)
+    add_update_data, delete_data = parse_duns_file(file_path, sess, monthly=monthly, benchmarks=benchmarks,
+                                                   metrics=metrics)
+    if add_update_data
+        update_duns(sess, add_update_data, metrics=metrics)
+    if delete_data:
+        update_duns(sess, delete_data, metrics=metrics, deletes=True)
     if sftp:
         os.remove(file_path)
 

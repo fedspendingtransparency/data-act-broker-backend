@@ -160,8 +160,7 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     rows_received = len(total_data.index)
     logger.info('%s DUNS records received', rows_received)
 
-    total_data = total_data[total_data.awardee_or_recipient_uniqu.notnull() &
-                            total_data.sam_extract_code.isin(['1', '2', '3'])]
+    total_data = total_data[total_data.awardee_or_recipient_uniqu.notnull()]
     rows_processed = len(total_data.index)
 
     # add deactivation_date column for delete records
@@ -176,14 +175,22 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     # cleaning and replacing NaN/NaT with None's
     total_data = clean_sam_data(total_data.where(pd.notnull(total_data), None))
 
-    delete_data = total_data[total_data.sam_extract_code == '1']
-    deletes_received = len(delete_data.index)
-    add_data = total_data[total_data.sam_extract_code == '2']
-    adds_received = len(add_data.index)
-    update_data = total_data[total_data.sam_extract_code == '3']
-    updates_received = len(update_data.index)
-    add_update_data = total_data[total_data.sam_extract_code.isin(['2', '3'])]
-    del total_data["sam_extract_code"]
+    if monthly:
+        add_update_data = total_data
+        adds_received = len(total_data.index)
+        updates_received = 0
+        deletes_received = 0
+        delete_data = None
+    else:
+        delete_data = total_data[total_data.sam_extract_code == '1']
+        deletes_received = len(delete_data.index)
+        add_data = total_data[total_data.sam_extract_code == '2']
+        adds_received = len(add_data.index)
+        update_data = total_data[total_data.sam_extract_code == '3']
+        updates_received = len(update_data.index)
+        add_update_data = total_data[total_data.sam_extract_code.isin(['2', '3'])]
+        del total_data["sam_extract_code"]
+
 
     if benchmarks:
         logger.info("Parsing {} took {} seconds with {} rows".format(dat_file_name, time.time()-parse_start_time,
