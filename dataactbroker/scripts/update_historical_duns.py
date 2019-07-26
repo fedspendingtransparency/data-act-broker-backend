@@ -128,28 +128,30 @@ def run_duns_batches(file, sess, client, block_size=10000):
     """
     logger.info("Retrieving total rows from duns file")
     start = datetime.now()
-    duns_df = pd.read_csv(file, skipinitialspace=True, header=None,  encoding='latin1', quotechar='"',
-                                  dtype=str, names=column_headers, skiprows=1)
-    row_count = len(duns_df.index)
+    duns_reader_obj = pd.read_csv(file, skipinitialspace=True, header=None,  encoding='latin1', quotechar='"',
+                                  dtype=str, names=column_headers, iterator=True, chunksize=block_size, skiprows=1)
+    row_count = sum([len(duns_df.index) for duns_df in duns_reader_obj])
     logger.info("Retrieved row count of {} in {} s".format(row_count, (datetime.now()-start).total_seconds()))
 
-    start = datetime.now()
-    # Remove rows where awardee_or_recipient_uniqu is null
-    duns_df = duns_df[duns_df['awardee_or_recipient_uniqu'].notnull()]
-    # Ignore old DUNS we already have
-    duns_to_load = remove_existing_duns(duns_df, sess)
+    for duns_df in duns_reader_obj:
+        # Remove rows where awardee_or_recipient_uniqu is null
+        duns_df = duns_df[duns_df['awardee_or_recipient_uniqu'].notnull()]
+        # Ignore old DUNS we already have
+        duns_to_load = remove_existing_duns(duns_df, sess)
 
-    if not duns_to_load.empty:
-        logger.info("Adding {} DUNS records from historic data".format(len(duns_to_load.index)))
-        # get address info for incoming duns
-        duns_to_load = update_duns_props(duns_to_load, client)
-        duns_to_load = clean_data(duns_to_load, HistoricDUNS, column_mappings, {})
+        if not duns_to_load.empty:
+            logger.info("Adding {} DUNS records from historic data".format(len(duns_to_load.index)))
+            start = datetime.now()
 
-        insert_dataframe(duns_to_load, HistoricDUNS.__table__.name, sess.connection())
-        sess.commit()
+            # get address info for incoming duns
+            duns_to_load = update_duns_props(duns_to_load, client)
+            duns_to_load = clean_data(duns_to_load, HistoricDUNS, column_mappings, {})
 
-        logger.info("Finished updating {} DUNS rows in {} s".format(['updated_duns'],
-                                                                    (datetime.now()-start).total_seconds()))
+            insert_dataframe(duns_to_load, HistoricDUNS.__table__.name, sess.connection())
+            sess.commit()
+
+            logger.info("Finished updating {} DUNS rows in {} s".format(['updated_duns'],
+                                                                        (datetime.now()-start).total_seconds()))
 
 
 def main():
