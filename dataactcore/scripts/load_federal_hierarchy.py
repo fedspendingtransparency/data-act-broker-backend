@@ -16,7 +16,7 @@ from sqlalchemy import func
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import Office, SubTierAgency, CGAC
+from dataactcore.models.domainModels import Office, SubTierAgency, CGAC, FREC
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
@@ -348,8 +348,9 @@ def main():
 
     # find if there were any new cgacs/subtiers added
     all_cgacs = [cgac.cgac_code for cgac in sess.query(CGAC.cgac_code)]
+    all_frecs = [frec.frec_code for frec in sess.query(FREC.frec_code)]
     all_subtiers = [subtier.sub_tier_agency_code for subtier in sess.query(SubTierAgency.sub_tier_agency_code)]
-    metrics_json['missing_cgacs'] = list(set(metrics_json['missing_cgacs']) - set(all_cgacs))
+    metrics_json['missing_cgacs'] = list(set(metrics_json['missing_cgacs']) - set(all_cgacs + all_frecs))
     metrics_json['missing_subtier_codes'] = list(set(metrics_json['missing_subtier_codes']) - set(all_subtiers))
 
     metrics_json['duration'] = str(datetime.now() - now)
