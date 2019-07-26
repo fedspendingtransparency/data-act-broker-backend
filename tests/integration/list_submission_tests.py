@@ -5,7 +5,7 @@ from dataactcore.models.lookups import PUBLISH_STATUS_DICT, FILE_TYPE_DICT, FILE
 from dataactvalidator.health_check import create_app
 
 from tests.integration.baseTestAPI import BaseTestAPI
-from tests.integration.integration_test_helper import insert_submission, insert_job
+from tests.integration.integration_test_helper import insert_submission, insert_job, get_submission
 
 
 class ListSubmissionTests(BaseTestAPI):
@@ -42,7 +42,8 @@ class ListSubmissionTests(BaseTestAPI):
             cls.certified_dabs_sub_id = insert_submission(sess, cls.admin_user_id, cgac_code="SYS",
                                                           start_date="10/2015", end_date="12/2015", is_quarter=True,
                                                           is_fabs=False,
-                                                          publish_status_id=PUBLISH_STATUS_DICT['published'])
+                                                          publish_status_id=PUBLISH_STATUS_DICT['published'],
+                                                          updated_at='01/01/2017')
 
             # Add a couple jobs for dabs files
             insert_job(sess, FILE_TYPE_DICT['appropriations'], FILE_STATUS_DICT['complete'],
@@ -57,15 +58,18 @@ class ListSubmissionTests(BaseTestAPI):
             # set up submissions for fabs
             cls.non_admin_fabs_sub_id = insert_submission(sess, cls.admin_user_id, cgac_code="SYS",
                                                           start_date="10/2015", end_date="12/2015", is_fabs=True,
-                                                          publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
+                                                          publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                                          updated_at='01/01/2016')
 
             cls.admin_fabs_sub_id = insert_submission(sess, cls.other_user_id, cgac_code="000", start_date="10/2015",
                                                       end_date="12/2015", is_fabs=True,
-                                                      publish_status_id=PUBLISH_STATUS_DICT['unpublished'])
+                                                      publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                                      updated_at='01/01/2000')
 
             cls.published_fabs_sub_id = insert_submission(sess, cls.other_user_id, cgac_code="000",
                                                           start_date="10/2015", end_date="12/2015", is_fabs=True,
-                                                          publish_status_id=PUBLISH_STATUS_DICT['published'])
+                                                          publish_status_id=PUBLISH_STATUS_DICT['published'],
+                                                          updated_at='01/02/2000')
 
             # Add a job for a FABS submission
             insert_job(sess, FILE_TYPE_DICT['fabs'], FILE_STATUS_DICT['complete'], JOB_TYPE_DICT['file_upload'],
@@ -90,14 +94,20 @@ class ListSubmissionTests(BaseTestAPI):
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id,
                                                   self.certified_dabs_sub_id})
+        self.assertEqual(response.json['min_last_modified'],
+                         str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at))
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "false"},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id})
+        self.assertEqual(response.json['min_last_modified'],
+                         str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at))
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "true"},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.certified_dabs_sub_id})
+        self.assertEqual(response.json['min_last_modified'],
+                         str(get_submission(self.session, self.certified_dabs_sub_id).updated_at))
 
     def test_list_submissions_dabs_non_admin(self):
         """ Test with DABS submissions for a non admin user. """
@@ -105,14 +115,19 @@ class ListSubmissionTests(BaseTestAPI):
         response = self.app.post_json("/v1/list_submissions/", {"certified": "mixed"},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id})
+        self.assertEqual(response.json['min_last_modified'],
+                         str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at))
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "false"},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id})
+        self.assertEqual(response.json['min_last_modified'],
+                         str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at))
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "true"},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), set())
+        self.assertEqual(response.json['min_last_modified'], None)
 
     def test_list_submissions_fabs_admin(self):
         """ Test with FABS submissions for an admin user. """
@@ -120,14 +135,20 @@ class ListSubmissionTests(BaseTestAPI):
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_fabs_sub_id, self.admin_fabs_sub_id,
                                                   self.published_fabs_sub_id})
+        self.assertEqual(response.json['min_last_modified'],
+                         str(get_submission(self.session, self.admin_fabs_sub_id).updated_at))
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "false", "fabs": True},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_fabs_sub_id, self.admin_fabs_sub_id})
+        self.assertEqual(response.json['min_last_modified'],
+                         str(get_submission(self.session, self.admin_fabs_sub_id).updated_at))
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "true", "fabs": True},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.published_fabs_sub_id})
+        self.assertEqual(response.json['min_last_modified'],
+                         str(get_submission(self.session, self.published_fabs_sub_id).updated_at))
 
     def test_list_submissions_fabs_non_admin(self):
         """ Test with FABS submissions for a non admin user. """
@@ -135,14 +156,20 @@ class ListSubmissionTests(BaseTestAPI):
         response = self.app.post_json("/v1/list_submissions/", {"certified": "mixed", "fabs": True},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.admin_fabs_sub_id, self.published_fabs_sub_id})
+        self.assertEqual(response.json['min_last_modified'],
+                         str(get_submission(self.session, self.admin_fabs_sub_id).updated_at))
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "false", "fabs": True},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.admin_fabs_sub_id})
+        self.assertEqual(response.json['min_last_modified'],
+                         str(get_submission(self.session, self.admin_fabs_sub_id).updated_at))
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "true", "fabs": True},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.published_fabs_sub_id})
+        self.assertEqual(response.json['min_last_modified'],
+                         str(get_submission(self.session, self.published_fabs_sub_id).updated_at))
 
     def test_list_submissions_filter_id(self):
         """ Test listing submissions with a submission_id filter applied. """
@@ -163,6 +190,9 @@ class ListSubmissionTests(BaseTestAPI):
         }
         response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), set())
+        # Proving that filters don't affect min last modified
+        self.assertEqual(response.json['min_last_modified'],
+                         str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at))
 
     def test_list_submissions_filter_date(self):
         """ Test listing submissions with a start and end date filter applied. """

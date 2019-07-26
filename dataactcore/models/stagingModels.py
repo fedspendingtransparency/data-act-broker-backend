@@ -1078,6 +1078,7 @@ class DetachedAwardProcurement(Base):
     high_comp_officer4_amount = Column(Text)
     high_comp_officer5_full_na = Column(Text)
     high_comp_officer5_amount = Column(Text)
+    additional_reporting = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

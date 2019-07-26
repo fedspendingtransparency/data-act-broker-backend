@@ -321,6 +321,27 @@ def legislative_mandates_values(data, obj):
                  'laborStandards': 'labor_standards',
                  'materialsSuppliesArticlesEquipment': 'materials_supplies_article'}
 
+    additional_reporting = None
+    try:
+        ar_dicts = data['listOfAdditionalReportingValues']['additionalReportingValue']
+    except (KeyError, TypeError):
+        ar_dicts = None
+    if ar_dicts:
+        # if there is only one dict, convert it to a list of one dict
+        if isinstance(ar_dicts, dict):
+            ar_dicts = [ar_dicts]
+        ars = []
+        for ar_dict in ar_dicts:
+            ar_value = extract_text(ar_dict)
+            try:
+                ar_desc = ar_dict['@description']
+            except (KeyError, TypeError):
+                ar_desc = None
+            ar_str = ar_value if ar_desc is None else '{}: {}'.format(ar_value, ar_desc)
+            ars.append(ar_str)
+        additional_reporting = '; '.join(ars)
+    obj['additional_reporting'] = additional_reporting
+
     for key, value in value_map.items():
         try:
             obj[value] = extract_text(data[key])

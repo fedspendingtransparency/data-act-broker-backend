@@ -122,7 +122,7 @@ def test_generate_awarding_d1(database):
     dap_5 = dap_model(awarding_agency_code='234', action_date='20170115', detached_award_proc_unique='unique5')
     file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
                                      file_type='D1', agency_code='123', agency_type='awarding', is_cached_file=True,
-                                     file_path=None)
+                                     file_path=None, file_format='csv')
     sess.add_all([dap_1, dap_2, dap_3, dap_4, dap_5, file_gen])
     sess.commit()
 
@@ -164,7 +164,7 @@ def test_generate_funding_d1(database):
     dap_5 = dap_model(funding_agency_code='234', action_date='20170115', detached_award_proc_unique='unique5')
     file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
                                      file_type='D1', agency_code='123', agency_type='funding', is_cached_file=True,
-                                     file_path=None)
+                                     file_path=None, file_format='csv')
     sess.add_all([dap_1, dap_2, dap_3, dap_4, dap_5, file_gen])
     sess.commit()
 
@@ -207,7 +207,7 @@ def test_generate_awarding_d2(database):
     pafa_6 = pafa(awarding_agency_code='234', action_date='20170115', afa_generated_unique='unique6', is_active=True)
     file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
                                      file_type='D2', agency_code='123', agency_type='awarding', is_cached_file=True,
-                                     file_path=None)
+                                     file_path=None, file_format='csv')
     sess.add_all([pafa_1, pafa_2, pafa_3, pafa_4, pafa_5, pafa_6, file_gen])
     sess.commit()
 
@@ -249,7 +249,7 @@ def test_generate_funding_d2(database):
     pafa_6 = pafa(funding_agency_code='234', action_date='20170115', afa_generated_unique='unique6', is_active=True)
     file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
                                      file_type='D2', agency_code='123', agency_type='funding', is_cached_file=True,
-                                     file_path=None)
+                                     file_path=None, file_format='csv')
     sess.add_all([pafa_1, pafa_2, pafa_3, pafa_4, pafa_5, pafa_6, file_gen])
     sess.commit()
 
@@ -280,6 +280,49 @@ def test_generate_funding_d2(database):
 
 
 @pytest.mark.usefixtures("job_constants")
+def test_generate_txt_d1(database):
+    sess = database.session
+    dap_model = DetachedAwardProcurementFactory
+    dap_1 = dap_model(awarding_agency_code='123', action_date='20170101', detached_award_proc_unique='unique1')
+    dap_2 = dap_model(awarding_agency_code='123', action_date='20170131', detached_award_proc_unique='unique2')
+    dap_3 = dap_model(awarding_agency_code='123', action_date='20170201', detached_award_proc_unique='unique3')
+    dap_4 = dap_model(awarding_agency_code='123', action_date='20161231', detached_award_proc_unique='unique4')
+    dap_5 = dap_model(awarding_agency_code='234', action_date='20170115', detached_award_proc_unique='unique5')
+    file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
+                                     file_type='D1', agency_code='123', agency_type='awarding', is_cached_file=True,
+                                     file_path=None, file_format='txt')
+    sess.add_all([dap_1, dap_2, dap_3, dap_4, dap_5, file_gen])
+    sess.commit()
+
+    file_gen_manager = FileGenerationManager(sess, CONFIG_BROKER['local'], file_generation=file_gen)
+    file_gen_manager.generate_file()
+
+    assert file_gen.file_path is not None
+
+    # check headers
+    file_rows = read_file_rows(file_gen.file_path, delimiter='|')
+    print(file_rows)
+    assert file_rows[0] == [key for key in file_generation_manager.fileD1.mapping]
+
+    # check body
+    dap_one = sess.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique1').first()
+    dap_two = sess.query(DetachedAwardProcurement).filter_by(detached_award_proc_unique='unique2').first()
+    expected1, expected2 = [], []
+    for value in file_generation_manager.fileD1.db_columns:
+        # loop through all values and format date columns
+        if value in ['period_of_performance_star', 'period_of_performance_curr', 'period_of_perf_potential_e',
+                     'ordering_period_end_date', 'action_date', 'last_modified', 'solicitation_date']:
+            expected1.append(re.sub(r"[-]", r"", str(dap_one.__dict__[value]))[0:8])
+            expected2.append(re.sub(r"[-]", r"", str(dap_two.__dict__[value]))[0:8])
+        else:
+            expected1.append(str(dap_one.__dict__[value]))
+            expected2.append(str(dap_two.__dict__[value]))
+
+    assert expected1 in file_rows
+    assert expected2 in file_rows
+
+
+@pytest.mark.usefixtures("job_constants")
 def test_generate_file_updates_jobs(monkeypatch, database):
     sess = database.session
     job1 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
@@ -291,9 +334,9 @@ def test_generate_file_updates_jobs(monkeypatch, database):
     job3 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                       file_type_id=FILE_TYPE_DICT['award_procurement'], filename=None, original_filename=None,
                       start_date='01/01/2017', end_date='01/31/2017')
-    file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017',
-                                     end_date='01/31/2017', file_type='D1', agency_code='123',
-                                     agency_type='awarding', is_cached_file=True, file_path=None)
+    file_gen = FileGenerationFactory(request_date=datetime.now().date(), start_date='01/01/2017', end_date='01/31/2017',
+                                     file_type='D1', agency_code='123', agency_type='awarding', is_cached_file=True,
+                                     file_path=None, file_format='csv')
     sess.add_all([job1, job2, job3, file_gen])
     sess.commit()
     job1.file_generation_id = file_gen.file_generation_id
@@ -380,8 +423,9 @@ def test_generate_e_file(mock_broker_config_paths, database):
     assert sorted(received) == list(sorted(expected))
 
 
-def read_file_rows(file_path):
+def read_file_rows(file_path, delimiter=','):
+    """ Helper to read the file rows in the provided file. """
     assert os.path.isfile(file_path)
 
     with open(file_path) as f:
-        return [row for row in csv.reader(f)]
+        return [row for row in csv.reader(f, delimiter=delimiter)]
