@@ -130,10 +130,11 @@ def run_duns_batches(file, sess, client, block_size=10000):
     start = datetime.now()
     duns_reader_obj = pd.read_csv(file, skipinitialspace=True, header=None,  encoding='latin1', quotechar='"',
                                   dtype=str, names=column_headers, iterator=True, chunksize=block_size, skiprows=1)
-    row_count = sum([len(duns_df.index) for duns_df in duns_reader_obj])
+    duns_dfs = [duns_df for duns_df in duns_reader_obj]
+    row_count = sum([len(duns_df.index) for duns_df in duns_dfs])
     logger.info("Retrieved row count of {} in {} s".format(row_count, (datetime.now()-start).total_seconds()))
 
-    for duns_df in duns_reader_obj:
+    for duns_df in duns_dfs:
         # Remove rows where awardee_or_recipient_uniqu is null
         duns_df = duns_df[duns_df['awardee_or_recipient_uniqu'].notnull()]
         # Ignore old DUNS we already have
