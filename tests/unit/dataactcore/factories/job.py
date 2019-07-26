@@ -142,6 +142,7 @@ class FileGenerationFactory(factory.Factory):
     file_type = fuzzy.FuzzyChoice({'D1', 'D2'})
     file_path = fuzzy.FuzzyText()
     is_cached_file = fuzzy.FuzzyChoice((False, True))
+    file_format = fuzzy.FuzzyChoice({'csv', 'txt'})
 
 
 class RevalidationThresholdFactory(factory.Factory):

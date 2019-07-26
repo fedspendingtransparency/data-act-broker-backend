@@ -1361,7 +1361,8 @@ This route sends a request to the backend to utilize the relevant external APIs 
     "file_type": "D1",
     "start": "01/01/2016",
     "end": "03/31/2016",
-    "agency_type": "awarding"
+    "agency_type": "awarding",
+    "file_format": "csv"
 }
 ```
 
@@ -1378,6 +1379,9 @@ This route sends a request to the backend to utilize the relevant external APIs 
 - `agency_type` - **optional, used only in D1/D2** - a string indicating if the file generated should be based on awarding or funding agency. Defaults to `awarding` if not provided. Only allowed values are:
     - `awarding`
     - `funding`
+- `file_format` - **optional, used only in D1/D2** - a string indicating if the file generated should be a comma delimited csv or a pipe delimited txt. Defaults to `csv` if not provided. Only allowed values are:
+    - `csv`
+    - `txt`
 
 #### Response (JSON)
 Response will be the same format as those which are returned in the `/v1/check_generation_status` endpoint.
@@ -1404,7 +1408,8 @@ This route sends a request to the backend to utilize the relevant external APIs 
     "end": "03/31/2016",
     "year": 2017,
     "period": 3,
-    "agency_type": "awarding"
+    "agency_type": "awarding",
+    "file_format": "csv"
 }
 ```
 
@@ -1422,9 +1427,12 @@ This route sends a request to the backend to utilize the relevant external APIs 
 - `period` - **required for A file generation** - an integer indicating the period for which to generate an A file
     - Allowed values: 2-12
     - 2 indicates November of the previous year, 12 indicates September of the selected year
-- `agency_type` - **optional** - a string indicating if the file generated should be based on awarding or funding agency. Ignored in A file generation. Defaults to `awarding` if not provided. Only allowed values are:
+- `agency_type` - **optional, used only in D1/D2** - a string indicating if the file generated should be based on awarding or funding agency. Defaults to `awarding` if not provided. Only allowed values are:
     - `awarding`
     - `funding`
+- `file_format` - **optional, used only in D1/D2** - a string indicating if the file generated should be a comma delimited csv or a pipe delimited txt. Defaults to `csv` if not provided. Only allowed values are:
+    - `csv`
+    - `txt`
 
 #### Response (JSON)
 Response will be the same format as those returned from `/v1/check_generation_status` endpoint with the exception that only D1, D2, and A files will ever be present, never E or F.
