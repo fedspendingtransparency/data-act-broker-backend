@@ -77,6 +77,7 @@ def get_entities(client, duns_list):
     while retries < max_retries:
         try:
             result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
+            break
         except urllib.error.HTTPError:
             logger.warning('SAM service might be temporarily down. Trying again in five seconds.')
             time.sleep(5)
