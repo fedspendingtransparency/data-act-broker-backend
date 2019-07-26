@@ -257,6 +257,7 @@ class DUNS(Base):
     high_comp_officer5_full_na = Column(Text)
     high_comp_officer5_amount = Column(Text)
     last_exec_comp_mod_date = Column(Date)
+    historic = Column(Boolean, default=False, server_default="False")
 
 
 class HistoricDUNS(Base):
