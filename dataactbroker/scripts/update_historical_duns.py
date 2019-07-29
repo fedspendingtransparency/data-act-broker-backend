@@ -165,13 +165,16 @@ def clean_historic_duns(sess):
         Args:
             sess: the database connection
     """
-    new_duns = sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu == HistoricDUNS.awardee_or_recipient_uniqu,
-                                         DUNS.historic.is_(False)).all()
-    sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu.in_(new_duns), DUNS.historic.is_(True))\
-        .delete(synchronize_session=False)
-    sess.query(HistoricDUNS).filter(HistoricDUNS.awardee_or_recipient_uniqu.in_(new_duns))\
-        .delete(synchronize_session=False)
-    sess.commit()
+    new_duns = list(sess.query(DUNS.awardee_or_recipient_uniqu).filter(
+        DUNS.awardee_or_recipient_uniqu == HistoricDUNS.awardee_or_recipient_uniqu, DUNS.historic.is_(False)).all())
+    if new_duns:
+        logger.info('Found {} new DUNS that were previously only available as a historic DUNS. Removing the historic'
+                    'records from both tables.'.format(len(new_duns)))
+        sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu.in_(new_duns), DUNS.historic.is_(True))\
+            .delete(synchronize_session=False)
+        sess.query(HistoricDUNS).filter(HistoricDUNS.awardee_or_recipient_uniqu.in_(new_duns))\
+            .delete(synchronize_session=False)
+        sess.commit()
 
 
 def import_historic_duns(sess):
@@ -207,28 +210,33 @@ def import_historic_duns(sess):
             historic
         )
         SELECT
-            created_at,
-            updated_at,
-            awardee_or_recipient_uniqu,
-            activation_date,
-            expiration_date,
-            registration_date,
-            last_sam_mod_date,
-            legal_business_name,
-            dba_name,
-            ultimate_parent_unique_ide,
-            ultimate_parent_legal_enti,
-            address_line_1,
-            address_line_2,
-            city,
-            state,
-            zip,
-            zip4,
-            country_code,
-            congressional_district,
-            business_types_codes,
+            hd.created_at,
+            hd.updated_at,
+            hd.awardee_or_recipient_uniqu,
+            hd.activation_date,
+            hd.expiration_date,
+            hd.registration_date,
+            hd.last_sam_mod_date,
+            hd.legal_business_name,
+            hd.dba_name,
+            hd.ultimate_parent_unique_ide,
+            hd.ultimate_parent_legal_enti,
+            hd.address_line_1,
+            hd.address_line_2,
+            hd.city,
+            hd.state,
+            hd.zip,
+            hd.zip4,
+            hd.country_code,
+            hd.congressional_district,
+            hd.business_types_codes,
             TRUE
-        FROM historic_duns;
+        FROM historic_duns hd
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM duns
+            WHERE duns.awardee_or_recipient_uniqu = hd.awardee_or_recipient_uniqu
+        );
     """
     sess.execute(copy_sql)
     sess.commit()
