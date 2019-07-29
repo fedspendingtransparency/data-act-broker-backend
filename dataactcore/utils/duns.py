@@ -73,28 +73,29 @@ def clean_sam_data(data):
         Returns:
             a cleaned/updated dataframe to be imported
     """
-    return clean_data(data, DUNS, {
-        "awardee_or_recipient_uniqu": "awardee_or_recipient_uniqu",
-        "activation_date": "activation_date",
-        "deactivation_date": "deactivation_date",
-        "registration_date": "registration_date",
-        "expiration_date": "expiration_date",
-        "last_sam_mod_date": "last_sam_mod_date",
-        "legal_business_name": "legal_business_name",
-        "dba_name": "dba_name",
-        "address_line_1": "address_line_1",
-        "address_line_2": "address_line_2",
-        "city": "city",
-        "state": "state",
-        "zip": "zip",
-        "zip4": "zip4",
-        "country_code": "country_code",
-        "congressional_district": "congressional_district",
-        "entity_structure": "entity_structure",
-        "business_types_codes": "business_types_codes",
-        "ultimate_parent_legal_enti": "ultimate_parent_legal_enti",
-        "ultimate_parent_unique_ide": "ultimate_parent_unique_ide"
-    }, {})
+    if not data.empty:
+        return clean_data(data, DUNS, {
+            "awardee_or_recipient_uniqu": "awardee_or_recipient_uniqu",
+            "activation_date": "activation_date",
+            "deactivation_date": "deactivation_date",
+            "registration_date": "registration_date",
+            "expiration_date": "expiration_date",
+            "last_sam_mod_date": "last_sam_mod_date",
+            "legal_business_name": "legal_business_name",
+            "dba_name": "dba_name",
+            "address_line_1": "address_line_1",
+            "address_line_2": "address_line_2",
+            "city": "city",
+            "state": "state",
+            "zip": "zip",
+            "zip4": "zip4",
+            "country_code": "country_code",
+            "congressional_district": "congressional_district",
+            "entity_structure": "entity_structure",
+            "business_types_codes": "business_types_codes",
+            "ultimate_parent_legal_enti": "ultimate_parent_legal_enti",
+            "ultimate_parent_unique_ide": "ultimate_parent_unique_ide"
+        }, {})
 
 
 def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=None):
@@ -160,37 +161,29 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     rows_received = len(total_data.index)
     logger.info('%s DUNS records received', rows_received)
 
-    total_data = total_data[total_data.awardee_or_recipient_uniqu.notnull()]
+    total_data = total_data[total_data['awardee_or_recipient_uniqu'].notnull()]
     rows_processed = len(total_data.index)
 
     # add deactivation_date column for delete records
     lambda_func = (lambda sam_extract: pd.Series([dat_file_date if sam_extract == "1" else np.nan]))
-    total_data = total_data.assign(deactivation_date=pd.Series([np.nan], name='deactivation_date')
-                                   if monthly else total_data["sam_extract_code"].apply(lambda_func))
+    total_data = total_data.assign(deactivation_date=total_data["sam_extract_code"].apply(lambda_func))
     # convert business types string to array
     bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~') if isinstance(bt_raw, str)]]))
     total_data = total_data.assign(business_types_codes=total_data["business_types_raw"].apply(bt_func))
     del total_data["business_types_raw"]
 
+    delete_data = total_data[total_data['sam_extract_code'] == '1']
+    deletes_received = len(delete_data.index)
+    add_data = total_data[total_data['sam_extract_code'].isin(['A', 'E', '2'])]
+    adds_received = len(add_data.index)
+    update_data = total_data[total_data['sam_extract_code'] == '3']
+    updates_received = len(update_data.index)
+    add_update_data = total_data[total_data['sam_extract_code'].isin(['A', 'E', '2', '3'])]
+    del total_data["sam_extract_code"]
+
     # cleaning and replacing NaN/NaT with None's
-    total_data = clean_sam_data(total_data.where(pd.notnull(total_data), None))
-
-    if monthly:
-        add_update_data = total_data
-        adds_received = len(total_data.index)
-        updates_received = 0
-        deletes_received = 0
-        delete_data = None
-    else:
-        delete_data = total_data[total_data.sam_extract_code == '1']
-        deletes_received = len(delete_data.index)
-        add_data = total_data[total_data.sam_extract_code == '2']
-        adds_received = len(add_data.index)
-        update_data = total_data[total_data.sam_extract_code == '3']
-        updates_received = len(update_data.index)
-        add_update_data = total_data[total_data.sam_extract_code.isin(['2', '3'])]
-        del total_data["sam_extract_code"]
-
+    add_update_data = clean_sam_data(add_update_data)
+    delete_data = clean_sam_data(delete_data)
 
     if benchmarks:
         logger.info("Parsing {} took {} seconds with {} rows".format(dat_file_name, time.time()-parse_start_time,
@@ -405,13 +398,13 @@ def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=No
                                names=column_header_mapping_ordered.keys(), quoting=3)
     total_data = csv_data.copy()
     records_received = len(total_data.index)
-    total_data = total_data[total_data.awardee_or_recipient_uniqu.notnull() &
-                            total_data.sam_extract.isin(['2', '3', 'A', 'E'])]
+    total_data = total_data[total_data['awardee_or_recipient_uniqu'].notnull() &
+                            total_data['sam_extract'].isin(['2', '3', 'A', 'E'])]
     records_processed = len(total_data.index)
     del total_data['sam_extract']
     # Note: we're splitting these up cause it vastly saves memory parsing only the records that are populated
-    blank_exec = total_data[total_data.exec_comp_str.isnull()]
-    pop_exec = total_data[total_data.exec_comp_str.notnull()]
+    blank_exec = total_data[total_data['exec_comp_str'].isnull()]
+    pop_exec = total_data[total_data['exec_comp_str'].notnull()]
 
     # parse out executive compensation from row 90 for populated records
     lambda_func = (lambda ecs: pd.Series(list(parse_exec_comp(ecs).values())))
