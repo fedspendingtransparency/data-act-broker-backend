@@ -299,10 +299,12 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
             country_code,
             congressional_district,
             business_types_codes,
-            entity_structure
+            entity_structure,
+            historic
         )
         SELECT
-            *
+            *,
+            FALSE
         FROM temp_duns_update tdu
         WHERE NOT EXISTS (
                 SELECT 1
@@ -330,16 +332,17 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
         country_code = tdu.country_code,
         congressional_district = tdu.congressional_district,
         business_types_codes = tdu.business_types_codes,
-        entity_structure = tdu.entity_structure
+        entity_structure = tdu.entity_structure,
     """
     if deletes:
         update_cols = """
-            deactivation_date = tdu.deactivation_date
+            deactivation_date = tdu.deactivation_date,
         """
     update_sql = """
         UPDATE duns
         SET
             {}
+            historic = FALSE
         FROM temp_duns_update tdu
         WHERE tdu.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu;
     """.format(update_cols)

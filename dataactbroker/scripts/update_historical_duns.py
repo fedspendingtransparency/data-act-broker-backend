@@ -170,8 +170,6 @@ def clean_historic_duns(sess):
     if new_duns:
         logger.info('Found {} new DUNS that were previously only available as a historic DUNS. Removing the historic'
                     'records from both tables.'.format(len(new_duns)))
-        sess.query(DUNS).filter(DUNS.awardee_or_recipient_uniqu.in_(new_duns), DUNS.historic.is_(True))\
-            .delete(synchronize_session=False)
         sess.query(HistoricDUNS).filter(HistoricDUNS.awardee_or_recipient_uniqu.in_(new_duns))\
             .delete(synchronize_session=False)
         sess.commit()
