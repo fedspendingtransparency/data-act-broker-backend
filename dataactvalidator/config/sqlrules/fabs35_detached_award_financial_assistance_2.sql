@@ -9,4 +9,5 @@ WHERE dafa.submission_id = {0}
         SELECT 1
         FROM zips AS z
         WHERE z.zip5 = dafa.legal_entity_zip5
-    );
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

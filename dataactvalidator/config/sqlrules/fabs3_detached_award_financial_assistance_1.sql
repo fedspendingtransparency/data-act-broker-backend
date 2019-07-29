@@ -8,4 +8,5 @@ WHERE submission_id = {0}
     AND record_type IN (2, 3)
     AND (action_type = ''
         OR action_type IS NULL
-    );
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

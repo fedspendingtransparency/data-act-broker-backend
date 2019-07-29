@@ -42,7 +42,7 @@ WHERE NOT EXISTS (
             )
             AND (COALESCE(af.object_class, '') = COALESCE(op.object_class, '')
                 OR (af.object_class IN ('0', '00', '000', '0000')
-                    AND af.object_class IN ('0', '00', '000', '0000')
+                    AND op.object_class IN ('0', '00', '000', '0000')
                 )
             )
     );

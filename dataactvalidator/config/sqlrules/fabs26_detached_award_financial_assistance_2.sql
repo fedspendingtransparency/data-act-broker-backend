@@ -7,4 +7,5 @@ FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND assistance_type <> '07'
     AND assistance_type <> '08'
-    AND federal_action_obligation IS NULL;
+    AND federal_action_obligation IS NULL
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

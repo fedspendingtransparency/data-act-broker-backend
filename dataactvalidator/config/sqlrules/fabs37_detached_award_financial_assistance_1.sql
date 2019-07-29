@@ -17,10 +17,8 @@ SELECT
     correction_delete_indicatr,
     action_date
 FROM detached_award_financial_assistance_fabs37_1_{0} AS dafa
-WHERE dafa.action_type = 'A'
-    AND (dafa.correction_delete_indicatr <> 'C'
-        OR dafa.correction_delete_indicatr IS NULL
-    )
+WHERE UPPER(dafa.action_type) = 'A'
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) NOT IN ('C', 'D')
     AND dafa.row_number NOT IN (
         SELECT DISTINCT sub_dafa.row_number
         FROM detached_award_financial_assistance_fabs37_1_{0} AS sub_dafa

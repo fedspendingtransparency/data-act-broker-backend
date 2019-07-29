@@ -19,7 +19,8 @@ WITH detached_award_financial_assistance_fabs31_7_{0} AS
         awardee_or_recipient_uniqu,
         business_types,
         record_type,
-        submission_id
+        submission_id,
+        correction_delete_indicatr
     FROM detached_award_financial_assistance
     WHERE submission_id = {0}),
 duns_fabs31_7_{0} AS
@@ -43,7 +44,7 @@ WHERE NOT (dafa.record_type IN (1, 3)
         OR UPPER(dafa.business_types) LIKE '%%P%%'
     )
     AND COALESCE(dafa.assistance_type, '') IN ('02', '03', '04', '05')
-    AND dafa.action_type IN ('B', 'C', 'D')
+    AND UPPER(dafa.action_type) IN ('B', 'C', 'D')
     AND dafa.awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
     AND (CASE WHEN pg_temp.is_date(COALESCE(dafa.action_date, '0'))
             THEN CAST(dafa.action_date AS DATE)
@@ -63,4 +64,5 @@ WHERE NOT (dafa.record_type IN (1, 3)
                     THEN CAST(sub_dafa.action_date AS DATE)
                     END) < CAST(duns_short.expiration_date AS DATE)
                 )
-            );
+            )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

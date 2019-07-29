@@ -20,15 +20,17 @@ def test_success(database):
                              financial_assistance_funding_office=False)
     office_2 = OfficeFactory(office_code='12345b', contract_funding_office=False,
                              financial_assistance_funding_office=True)
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(funding_office_code='12345a')
+    det_award_1 = DetachedAwardFinancialAssistanceFactory(funding_office_code='12345a', correction_delete_indicatr='')
     # test case insensitive
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_office_code='12345A')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_office_code='')
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(funding_office_code=None)
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_office_code='12345A', correction_delete_indicatr='c')
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_office_code='', correction_delete_indicatr=None)
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(funding_office_code=None, correction_delete_indicatr='C')
     # Testing second type of funding office
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(funding_office_code='12345b')
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(funding_office_code='12345b', correction_delete_indicatr='')
+    # Ignore correction delete indicator of D
+    det_award_6 = DetachedAwardFinancialAssistanceFactory(funding_office_code='1234567', correction_delete_indicatr='d')
     errors = number_of_errors(_FILE, database, models=[office_1, office_2, det_award_1, det_award_2, det_award_3,
-                                                       det_award_4, det_award_5])
+                                                       det_award_4, det_award_5, det_award_6])
     assert errors == 0
 
 
@@ -41,9 +43,9 @@ def test_failure(database):
                              financial_assistance_funding_office=True)
     office_2 = OfficeFactory(office_code='987654', contract_funding_office=False,
                              financial_assistance_funding_office=False)
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(funding_office_code='12345')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_office_code='1234567')
+    det_award_1 = DetachedAwardFinancialAssistanceFactory(funding_office_code='12345', correction_delete_indicatr=None)
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_office_code='1234567', correction_delete_indicatr='')
     # Test fail if funding office is false even if code matches
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_office_code='987654')
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_office_code='987654', correction_delete_indicatr='c')
     errors = number_of_errors(_FILE, database, models=[office_1, office_2, det_award_1, det_award_2, det_award_3])
     assert errors == 3

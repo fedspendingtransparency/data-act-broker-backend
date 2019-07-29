@@ -5,4 +5,5 @@ SELECT
     record_type
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND UPPER(COALESCE(action_type, '')) NOT IN ('', 'A', 'B', 'C', 'D') ;
+    AND UPPER(COALESCE(action_type, '')) NOT IN ('', 'A', 'B', 'C', 'D')
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

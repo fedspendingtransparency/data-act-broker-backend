@@ -9,4 +9,5 @@ WHERE dafa.submission_id = {0}
         SELECT 1
         FROM sub_tier_agency AS sta
         WHERE UPPER(sta.sub_tier_agency_code) = UPPER(dafa.funding_sub_tier_agency_co)
-    );
+    )
+    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
