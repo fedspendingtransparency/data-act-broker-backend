@@ -63,6 +63,11 @@ class Appropriation(Base):
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(Appropriation, self).__init__(**clean_kwargs)
 
+Index("ix_appropriation_tas_id_submission_id",
+      Appropriation.tas_id,
+      Appropriation.submission_id,
+      unique=False)
+
 
 class ObjectClassProgramActivity(Base):
     """Model for the object_class_program_activity table."""
@@ -132,6 +137,11 @@ Index("ix_oc_pa_tas_oc_pa",
       ObjectClassProgramActivity.tas,
       ObjectClassProgramActivity.object_class,
       ObjectClassProgramActivity.program_activity_code,
+      unique=False)
+
+Index("ix_oc_pa_tas_id_submission_id",
+      ObjectClassProgramActivity.tas_id,
+      ObjectClassProgramActivity.submission_id,
       unique=False)
 
 
