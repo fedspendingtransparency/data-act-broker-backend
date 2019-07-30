@@ -1,7 +1,7 @@
 import logging
 import time
 import urllib.error
-
+import suds
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
@@ -78,7 +78,7 @@ def get_entities(client, duns_list):
         try:
             result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
             break
-        except urllib.error.HTTPError:
+        except (urllib.error.HTTPError, suds.TypeNotFound):
             logger.warning('SAM service might be temporarily down. Trying again in five seconds.')
             time.sleep(5)
             retries += 1
