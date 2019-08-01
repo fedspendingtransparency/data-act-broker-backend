@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 # this will prevent suds from printing the entire XML on errors and generating lengthy logs
 logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 
+MAX_RETRIES = 10
+
 
 def config_valid():
     """ Does the config have the necessary bits for talking to the SAM SOAP API
@@ -76,8 +78,7 @@ def get_entities(client, duns_list):
     params.coreData.value = 'Y'
 
     retries = 0
-    max_retries = 5
-    while retries < max_retries:
+    while retries < MAX_RETRIES:
         try:
             result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
             break
@@ -85,7 +86,7 @@ def get_entities(client, duns_list):
             logger.warning('SAM service might be temporarily down. Trying again in five seconds.')
             time.sleep(5)
             retries += 1
-    if retries == max_retries:
+    if retries == MAX_RETRIES:
         raise ResponseException("Unable to contact SAM service, which may be experiencing downtime or intermittent "
                                 "performance issues. Please try again later.", StatusCode.NOT_FOUND)
 
