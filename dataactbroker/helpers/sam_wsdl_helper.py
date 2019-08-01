@@ -10,6 +10,8 @@ from dataactcore.config import CONFIG_BROKER
 
 
 logger = logging.getLogger(__name__)
+# this will prevent suds from printing the entire XML on errors and generating lengthy logs
+logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 
 
 def config_valid():
