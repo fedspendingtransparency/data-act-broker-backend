@@ -66,7 +66,6 @@ def remove_existing_duns(data, sess):
     return missing_duns
 
 
-
 def batch(iterable, n=1):
     """ Simple function to create batches from a list
 
@@ -102,7 +101,7 @@ def update_duns_props(df, client):
         logger.info("Gathering addtional data for historic DUNS records {}-{}".format(index, index + batch_size))
         duns_props_batch = dataactcore.utils.parentDuns.get_duns_props_from_sam(client, duns_list)
         duns_props_batch.drop(column_headers[1:], axis=1, inplace=True, errors='ignore')
-        # Adding in blank rows for DUNS where location data was not found
+        # Adding in blank rows for DUNS where data was not found
         added_duns_list = []
         if not duns_props_batch.empty:
             added_duns_list = [str(duns) for duns in duns_props_batch['awardee_or_recipient_uniqu'].tolist()]
@@ -261,7 +260,8 @@ def main():
         if CONFIG_BROKER["use_aws"]:
             s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
             duns_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['archive_bucket'],
-                                                                        'Key': "DUNS_export_deduped.csv"}, ExpiresIn=10000)
+                                                                        'Key': "DUNS_export_deduped.csv"},
+                                                         ExpiresIn=10000)
         else:
             duns_file = os.path.join(CONFIG_BROKER["broker_files"], "DUNS_export_deduped.csv")
 
