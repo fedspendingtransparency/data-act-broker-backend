@@ -64,3 +64,27 @@ class ErrorMetadata(Base):
     original_rule_label = Column(Text, nullable=True)
     severity_id = Column(Integer, ForeignKey("rule_severity.rule_severity_id", name="fk_error_severity_id"))
     severity = relationship("RuleSeverity")
+
+
+class CertifiedErrorMetadata(Base):
+    __tablename__ = "certified_error_metadata"
+
+    error_metadata_id = Column(Integer, primary_key=True)
+    job_id = Column(Integer, ForeignKey("job.job_id", name="fk_error_metadata_job", ondelete="CASCADE"))
+    job = relationship("Job", uselist=False, cascade="delete")
+    filename = Column(Text, nullable=True)
+    field_name = Column(Text)
+    error_type_id = Column(Integer, ForeignKey("error_type.error_type_id"), nullable=True)
+    error_type = relationship("ErrorType", uselist=False)
+    occurrences = Column(Integer)
+    first_row = Column(Integer)
+    rule_failed = Column(Text, nullable=True)
+    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_file_type_file_status_id"))
+    file_type = relationship("FileType", foreign_keys=[file_type_id])
+    # Second file type id is used in cross file errors
+    target_file_type_id = Column(Integer,
+                                 ForeignKey("file_type.file_type_id", name="fk_target_file_type_file_status_id"))
+    target_file_type = relationship("FileType", foreign_keys=[target_file_type_id])
+    original_rule_label = Column(Text, nullable=True)
+    severity_id = Column(Integer, ForeignKey("rule_severity.rule_severity_id", name="fk_error_severity_id"))
+    severity = relationship("RuleSeverity")
