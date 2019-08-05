@@ -307,7 +307,7 @@ curl -i -X POST
 
 **NOTE**: for monthly submissions, start/end date are the same
 
-##### Example Output:
+##### Response (JSON):
 ```
 {
   "success":"true",
@@ -362,8 +362,8 @@ This route will upload the file, then kick off the validation jobs. It will retu
 - `agency_code`: (string) sub tier agency code. Required if existing_submission_id is not included
 - `existing_submission_id`: (integer) ID of previous submission, use only if submitting an update.
 
-##### Example output:
-```json
+##### Response (JSON):
+```
 {
   "success":true,
   "submission_id":12
