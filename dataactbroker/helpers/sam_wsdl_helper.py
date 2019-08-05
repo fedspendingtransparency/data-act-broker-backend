@@ -15,8 +15,6 @@ logger = logging.getLogger(__name__)
 logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 logging.getLogger('suds.umx').setLevel(logging.CRITICAL)
 
-MAX_RETRIES = 10
-
 
 def config_valid():
     """ Does the config have the necessary bits for talking to the SAM SOAP API
@@ -79,18 +77,22 @@ def get_entities(client, duns_list):
     params = client.factory.create('requestedData')
     params.coreData.value = 'Y'
 
-    retries = 0
-    while retries < MAX_RETRIES:
+    exception_retries = -1
+    retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
+
+    while exception_retries < len(retry_sleep_times):
         try:
             result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
             break
         except (urllib.error.HTTPError, suds.TypeNotFound, http.client.IncompleteRead, socket.timeout):
-            logger.warning('SAM service might be temporarily down. Trying again in five seconds.')
-            time.sleep(5)
-            retries += 1
-    if retries == MAX_RETRIES:
-        raise ResponseException("Unable to contact SAM service, which may be experiencing downtime or intermittent "
-                                "performance issues. Please try again later.", StatusCode.NOT_FOUND)
+            exception_retries += 1
+            if exception_retries < len(retry_sleep_times):
+                logger.warning('SAM service might be temporarily down. Trying again in {} seconds.'
+                               .format(retry_sleep_times[exception_retries]))
+                time.sleep(retry_sleep_times[exception_retries])
+            else:
+                raise ResponseException("Unable to contact SAM service, which may be experiencing downtime or intermittent "
+                                        "performance issues. Please try again later.", StatusCode.NOT_FOUND)
 
     # If result is the string "-1" then our credentials aren't correct, inform the user of this
     if result == "-1":
