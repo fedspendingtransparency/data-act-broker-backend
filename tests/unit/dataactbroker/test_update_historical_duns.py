@@ -388,7 +388,7 @@ def test_clean_historic_duns(database, monkeypatch):
         sess.add(DUNS(awardee_or_recipient_uniqu=duns))
     sess.commit()
 
-    duns_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'DUNS_export_small.csv')
+    duns_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'historic_DUNS_export_small.csv')
 
     # normal run
     update_historical_duns.run_duns_batches(duns_file, sess, None, block_size=1)
