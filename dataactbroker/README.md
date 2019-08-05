@@ -1512,7 +1512,7 @@ Possible HTTP Status Codes:
 This route returns either a signed S3 URL to the generated file or, if the file is not yet ready or have failed to generate for other reasons, returns a status indicating that. This route is used for file generation **independent** from a submission.
 
 #### Sample Request (JSON)
-`/v1/check_detached_generation_status/job_id=1`
+`/v1/check_detached_generation_status/?job_id=1`
 
 ### Request Params
 - `job_id` - **required** - an integer corresponding the job_id for the generation. Provided in the response of the call to `generate_detached_file`
