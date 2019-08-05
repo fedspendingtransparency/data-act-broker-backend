@@ -203,6 +203,7 @@ Code blocks should be surrounded by three backticks, not indented.
 - All rules in the MD Files section should be followed
 - API Endpoints should be fourth-level headers (`####`)
 - Details about an API endpoint should be fifth-level headers (`#####`)
+- Required body values, params, and request values must go before non-required ones.
 
 ## GET Endpoints
 Sample GET endpoint:
@@ -230,7 +231,7 @@ Sample GET endpoint:
     ```
     
     ##### Response Attributes
-    - `response_1`: (int) what the response describes
+    - `response_1`: (integer) what the response describes
     - `response_2`: (string) what the second response describes. Possible values:
         - `The first one`: a value
         - `Another one`: a second value
@@ -261,7 +262,7 @@ Sample POST endpoint:
     Any general details (if needed) about the body. Otherwise leave this paragraph out.
     
     - `A`: (required, string) Does something.
-    - `B`: (int) Does other things
+    - `B`: (integer) Does other things
     
     ##### Response (JSON)
     ```
@@ -272,7 +273,7 @@ Sample POST endpoint:
     ```
     
     ##### Response Attributes
-    - `response_1`: (int) what the response describes
+    - `response_1`: (integer) what the response describes
     - `response_2`: (string) what the second response describes. Possible values:
         - `The first one`: a value
         - `Another one`: a second value

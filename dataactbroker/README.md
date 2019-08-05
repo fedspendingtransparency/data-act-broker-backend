@@ -266,7 +266,7 @@ For a new submission, all three files must be submitted. For corrections to an e
 For information on the CGAC and FREC parameters, see the note above in the "Background" section.
 
 ##### Additional Required Headers:
-- `Content-Type` - `"multipart/form-data"`
+- `Content-Type`: `"multipart/form-data"`
 
 ##### Example Curl Request For New Submission:
 ```
@@ -295,20 +295,20 @@ curl -i -X POST
 ```
 
 ##### Request Params:
-- `appropriations` - local path to file using @ notation
-- `program_activity` - local path to file using @ notation
-- `award_financial` - local path to file using @ notation
-- `cgac_code` - **required if not FREC** - string, CGAC of agency (null if FREC agency)
-- `frec_code` - **required if not CGAC** - string, FREC of agency (null if CGAC agency)
-- `is_quarter` - boolean (true for quarterly submissions)
-- `reporting_period_start_date` - string, starting date of submission (MM/YYYY)
-- `reporting_period_end_date` - string, ending date of submission (MM/YYYY)
-- `existing_submission_id:`- integer, id of previous submission, use only if submitting an update.
+- `cgac_code`: (required if not FREC, string) CGAC of agency (null if FREC agency)
+- `frec_code`: (required if not CGAC, string) FREC of agency (null if CGAC agency)
+- `appropriations`: (string) local path to file using @ notation
+- `program_activity`: (string) local path to file using @ notation
+- `award_financial`: (string) local path to file using @ notation
+- `is_quarter`: (boolean) True for quarterly submissions
+- `reporting_period_start_date`: (string) starting date of submission (MM/YYYY)
+- `reporting_period_end_date`: (string) ending date of submission (MM/YYYY)
+- `existing_submission_id`: (integer) ID of previous submission, use only if submitting an update.
 
 **NOTE**: for monthly submissions, start/end date are the same
 
 ##### Example Output:
-```json
+```
 {
   "success":"true",
   "submission_id": 123
@@ -316,8 +316,8 @@ curl -i -X POST
 ```
 
 ##### Response Attributes
-- `success ` - boolean, whether the creation was successful or not
-- `submission_id`: int, submission ID of the created or updated submission
+- `success `: (boolean) whether the creation was successful or not
+- `submission_id`: (integer) submission ID of the created or updated submission
 
 ##### Errors
 Possible HTTP Status Codes:
@@ -358,9 +358,9 @@ This route will upload the file, then kick off the validation jobs. It will retu
 ```
 
 ##### Request Params:
-- `agency_code` - string, sub tier agency code. Required if existing_submission_id is not included
-- `fabs` - **required** - local path to file using @ notation
-- `existing_submission_id` - integer, id of previous submission, use only if submitting an update.
+- `fabs`: (required, string) local path to file using @ notation
+- `agency_code`: (string) sub tier agency code. Required if existing_submission_id is not included
+- `existing_submission_id`: (integer) ID of previous submission, use only if submitting an update.
 
 ##### Example output:
 ```json
@@ -371,8 +371,8 @@ This route will upload the file, then kick off the validation jobs. It will retu
 ```
 
 ##### Response Attributes
-- `success ` - boolean, whether the creation was successful or not
-- `submission_id`: int, submission ID of the created or updated submission
+- `success`: (boolean) whether the creation was successful or not
+- `submission_id`: (integer) submission ID of the created or updated submission
 
 ##### Errors
 Possible HTTP Status Codes:
