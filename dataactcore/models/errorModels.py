@@ -69,7 +69,7 @@ class ErrorMetadata(Base):
 class CertifiedErrorMetadata(Base):
     __tablename__ = "certified_error_metadata"
 
-    error_metadata_id = Column(Integer, primary_key=True)
+    certified_error_metadata_id = Column(Integer, primary_key=True)
     job_id = Column(Integer, ForeignKey("job.job_id", name="fk_error_metadata_job", ondelete="CASCADE"))
     job = relationship("Job", uselist=False, cascade="delete")
     filename = Column(Text, nullable=True)

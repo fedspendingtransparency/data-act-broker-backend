@@ -32,7 +32,7 @@ def upgrade_data_broker():
     op.create_table('certified_error_metadata',
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
-    sa.Column('error_metadata_id', sa.Integer(), nullable=False),
+    sa.Column('certified_error_metadata_id', sa.Integer(), nullable=False),
     sa.Column('job_id', sa.Integer(), nullable=True),
     sa.Column('filename', sa.Text(), nullable=True),
     sa.Column('field_name', sa.Text(), nullable=True),
@@ -49,7 +49,7 @@ def upgrade_data_broker():
     sa.ForeignKeyConstraint(['job_id'], ['job.job_id'], name='fk_error_metadata_job', ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['severity_id'], ['rule_severity.rule_severity_id'], name='fk_error_severity_id'),
     sa.ForeignKeyConstraint(['target_file_type_id'], ['file_type.file_type_id'], name='fk_target_file_type_file_status_id'),
-    sa.PrimaryKeyConstraint('error_metadata_id')
+    sa.PrimaryKeyConstraint('certified_error_metadata_id')
     )
     # ### end Alembic commands ###
 
