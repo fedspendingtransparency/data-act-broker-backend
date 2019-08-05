@@ -146,7 +146,7 @@ def test_run_duns_batches(database, monkeypatch):
         sess.add(DUNS(awardee_or_recipient_uniqu=duns))
     sess.commit()
 
-    duns_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'DUNS_export_small.csv')
+    duns_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'historic_DUNS_export_small.csv')
 
     update_historical_duns.run_duns_batches(duns_file, sess, None, block_size=1)
 
@@ -228,7 +228,7 @@ def test_workflows(database, monkeypatch):
         sess.add(DUNS(awardee_or_recipient_uniqu=duns))
     sess.commit()
 
-    duns_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'DUNS_export_small.csv')
+    duns_file = os.path.join(CONFIG_BROKER['path'], 'tests', 'unit', 'data', 'historic_DUNS_export_small.csv')
 
     update_historical_duns.run_duns_batches(duns_file, sess, None, block_size=1)
     update_historical_duns.import_historic_duns(sess)
