@@ -11,6 +11,7 @@ from dataactbroker.handlers.submission_handler import (certify_dabs_submission, 
                                                        move_certified_data)
 
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
+from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
 from dataactcore.models.jobModels import CertifyHistory
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
@@ -578,7 +579,9 @@ def test_move_certified_data(database):
                                  spending_authority_from_of_cpe=2)
         ocpa = ObjectClassProgramActivity(submission_id=sub_1.submission_id, job_id=job_1.job_id, row_number=1)
         award_fin = AwardFinancial(submission_id=sub_1.submission_id, job_id=job_1.job_id, row_number=1)
-        sess.add_all([approp_1, approp_2, ocpa, award_fin])
+        error_1 = ErrorMetadata(job_id=job_1.job_id)
+        error_2 = ErrorMetadata(job_id=job_2.job_id)
+        sess.add_all([approp_1, approp_2, ocpa, award_fin, error_1, error_2])
         sess.commit()
 
         move_certified_data(sess, sub_1.submission_id)
@@ -588,11 +591,15 @@ def test_move_certified_data(database):
         assert len(approp_query) == 1
         assert approp_query[0].spending_authority_from_of_cpe == 2
 
-        # Make sure the other 2 got moved as well
+        # Make sure the others got moved as well
         ocpa_query = sess.query(CertifiedObjectClassProgramActivity).filter_by(submission_id=sub_1.submission_id).all()
         award_query = sess.query(CertifiedAwardFinancial).filter_by(submission_id=sub_1.submission_id).all()
+        # Query all job IDs but only one result should show up
+        error_query = sess.query(CertifiedErrorMetadata).\
+            filter(CertifiedErrorMetadata.job_id.in_([job_1.job_id, job_2.job_id])).all()
         assert len(ocpa_query) == 1
         assert len(award_query) == 1
+        assert len(error_query) == 1
 
         # Change the Appropriation data
         approp_1.spending_authority_from_of_cpe = 5
