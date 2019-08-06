@@ -30,8 +30,8 @@ def generate_dedupe_export(duns_file, dedupe_export_path):
             dedupe_export_path: path to the exported deduped file
     """
 
-    duns_df = pd.read_csv(duns_file, skipinitialspace=True, header=None, encoding='latin1', quotechar='"',
-                          dtype=str, names=column_headers, skiprows=1)
+    duns_df = pd.read_csv(duns_file, skipinitialspace=True, header=None, quotechar='"', dtype=str, names=column_headers,
+                          skiprows=1)
     duns_modified_df = duns_df.drop_duplicates(subset=['DUNS'], keep='last')
 
     duns_modified_df.to_csv(dedupe_export_path, columns=column_headers, index=False, quoting=csv.QUOTE_ALL)
