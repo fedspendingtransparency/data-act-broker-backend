@@ -91,8 +91,9 @@ def get_entities(client, duns_list):
                                .format(retry_sleep_times[exception_retries]))
                 time.sleep(retry_sleep_times[exception_retries])
             else:
-                raise ResponseException("Unable to contact SAM service, which may be experiencing downtime or intermittent "
-                                        "performance issues. Please try again later.", StatusCode.NOT_FOUND)
+                raise ResponseException("Unable to contact SAM service, which may be experiencing downtime or "
+                                        "intermittent performance issues. Please try again later.",
+                                        StatusCode.NOT_FOUND)
 
     # If result is the string "-1" then our credentials aren't correct, inform the user of this
     if result == "-1":
