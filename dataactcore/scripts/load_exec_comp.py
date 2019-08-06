@@ -15,6 +15,74 @@ from dataactcore.utils.duns import get_client, REMOTE_SAM_EXEC_COMP_DIR, parse_e
 logger = logging.getLogger(__name__)
 
 
+def process_exec_comp_dir(sess, historic, local, ssh_key, benchmarks=None, metrics=None):
+    """ Process the script arguments to figure out which files to process in which order
+
+        Args:
+            sess: the database connection
+            historic: whether to load in monthly file and daily files after, or just the latest daily files
+            local: path to local directory to process, if None, it will go though the remote SAM service
+            ssh_key: URI to ssh key used to pull exec comp files from SAM
+            benchmarks: whether to log times
+            metrics: dictionary representing metrics data for the load
+    """
+    if not metrics:
+        metrics = {}
+
+    sftp = None
+
+    # dealing with a local or remote directory
+    if not (local or ssh_key) or (local and ssh_key):
+        raise Exception('Please provide the local param or the ssh key.')
+    if ssh_key:
+        root_dir = CONFIG_BROKER['d_file_storage_path']
+        client = get_client(ssh_key=ssh_key)
+        sftp = client.open_sftp()
+        # dirlist on remote host
+        dirlist = sftp.listdir(REMOTE_SAM_EXEC_COMP_DIR)
+    elif local:
+        root_dir = local
+        dirlist = os.listdir(local)
+
+    # generate chronological list of daily and monthly files
+    sorted_monthly_file_names = sorted([monthly_file for monthly_file in dirlist if re.match('.*MONTHLY_\d+\.ZIP',
+                                                                                             monthly_file.upper())])
+    sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match('.*DAILY_\d+\.ZIP',
+                                                                                       daily_file.upper())])
+
+    # load in earliest monthly file for historic
+    if historic and sorted_monthly_file_names:
+        process_from_dir(root_dir, sorted_monthly_file_names[0], sess, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
+
+    # load in daily files after depending on params
+    if sorted_daily_file_names:
+        # if update, make sure it's been done once before
+        last_update = sess.query(DUNS.last_exec_comp_mod_date). \
+            order_by(DUNS.last_exec_comp_mod_date.desc()). \
+            filter(DUNS.last_exec_comp_mod_date.isnot(None)). \
+            first()
+        if not historic and not last_update:
+            raise Exception('No last executive compenstation mod date found in database. '
+                            'Please run historic loader first.')
+
+        # determine which daily files to load
+        earliest_daily_file = None
+        if historic and sorted_monthly_file_names:
+            earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
+        elif not historic:
+            last_update = last_update[0].strftime("%Y%m%d")
+            earliest_daily_file = re.sub("_DAILY_[0-9]{8}\.ZIP", "_DAILY_" +
+                                         last_update + ".ZIP", sorted_daily_file_names[0])
+        daily_files_after = sorted_daily_file_names
+        if earliest_daily_file:
+            sorted_full_list = sorted(sorted_daily_file_names + [earliest_daily_file])
+            daily_files_after = sorted_full_list[sorted_full_list.index(earliest_daily_file) + 1:]
+
+        # load daily files
+        for daily_file in daily_files_after:
+            process_from_dir(root_dir, daily_file, sess, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
+
+
 def process_from_dir(root_dir, file_name, sess, sftp=None, ssh_key=None, metrics=None):
     """ Process the SAM file found locally or remotely
 
@@ -82,56 +150,7 @@ if __name__ == '__main__':
 
     with create_app().app_context():
         sess = GlobalDB.db().session
-        sftp = None
-
-        # dealing with a local or remote directory
-        if ssh_key:
-            root_dir = CONFIG_BROKER['d_file_storage_path']
-            client = get_client(ssh_key=ssh_key)
-            sftp = client.open_sftp()
-            # dirlist on remote host
-            dirlist = sftp.listdir(REMOTE_SAM_EXEC_COMP_DIR)
-        elif local:
-            root_dir = local
-            dirlist = os.listdir(local)
-
-        # generate chronological list of daily and monthly files
-        sorted_monthly_file_names = sorted([monthly_file for monthly_file in dirlist if re.match('.*MONTHLY_\d+\.ZIP',
-                                                                                                 monthly_file.upper())])
-        sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if re.match('.*DAILY_\d+\.ZIP',
-                                                                                           daily_file.upper())])
-
-        # load in earliest monthly file for historic
-        if historic and sorted_monthly_file_names:
-            process_from_dir(root_dir, sorted_monthly_file_names[0], sess, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
-
-        # load in daily files after depending on params
-        if sorted_daily_file_names:
-            # if update, make sure it's been done once before
-            last_update = sess.query(DUNS.last_exec_comp_mod_date). \
-                order_by(DUNS.last_exec_comp_mod_date.desc()). \
-                filter(DUNS.last_exec_comp_mod_date.isnot(None)). \
-                first()
-            if update and not last_update:
-                raise Exception('No last executive compenstation mod date found in database. '
-                                'Please run historic loader first.')
-
-            # determine which daily files to load
-            earliest_daily_file = None
-            if historic and sorted_monthly_file_names:
-                earliest_daily_file = sorted_monthly_file_names[0].replace("MONTHLY", "DAILY")
-            elif update:
-                last_update = last_update[0].strftime("%Y%m%d")
-                earliest_daily_file = re.sub("_DAILY_[0-9]{8}\.ZIP", "_DAILY_" +
-                                             last_update + ".ZIP", sorted_daily_file_names[0])
-            daily_files_after = sorted_daily_file_names
-            if earliest_daily_file:
-                sorted_full_list = sorted(sorted_daily_file_names + [earliest_daily_file])
-                daily_files_after = sorted_full_list[sorted_full_list.index(earliest_daily_file) + 1:]
-
-            # load daily files
-            for daily_file in daily_files_after:
-                process_from_dir(root_dir, daily_file, sess, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
+        process_exec_comp_dir(sess, historic, local, ssh_key, metrics=metrics)
         sess.close()
 
     metrics['records_updated'] = len(set(metrics['updated_duns']))
