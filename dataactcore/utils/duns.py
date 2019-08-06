@@ -208,31 +208,31 @@ def create_temp_duns_table(sess, table_name, data):
     """
     logger.info('Making {} table'.format(table_name))
     create_table_sql = """
-            CREATE TABLE IF NOT EXISTS {} (
-                created_at TIMESTAMP WITHOUT TIME ZONE,
-                updated_at TIMESTAMP WITHOUT TIME ZONE,
-                awardee_or_recipient_uniqu TEXT,
-                activation_date DATE,
-                expiration_date DATE,
-                deactivation_date DATE,
-                registration_date DATE,
-                last_sam_mod_date DATE,
-                legal_business_name TEXT,
-                dba_name TEXT,
-                ultimate_parent_unique_ide TEXT,
-                ultimate_parent_legal_enti TEXT,
-                address_line_1 TEXT,
-                address_line_2 TEXT,
-                city TEXT,
-                state TEXT,
-                zip TEXT,
-                zip4 TEXT,
-                country_code TEXT,
-                congressional_district TEXT,
-                business_types_codes TEXT[],
-                entity_structure TEXT
-            );
-        """.format(table_name)
+        CREATE TABLE IF NOT EXISTS {} (
+            created_at TIMESTAMP WITHOUT TIME ZONE,
+            updated_at TIMESTAMP WITHOUT TIME ZONE,
+            awardee_or_recipient_uniqu TEXT,
+            activation_date DATE,
+            expiration_date DATE,
+            deactivation_date DATE,
+            registration_date DATE,
+            last_sam_mod_date DATE,
+            legal_business_name TEXT,
+            dba_name TEXT,
+            ultimate_parent_unique_ide TEXT,
+            ultimate_parent_legal_enti TEXT,
+            address_line_1 TEXT,
+            address_line_2 TEXT,
+            city TEXT,
+            state TEXT,
+            zip TEXT,
+            zip4 TEXT,
+            country_code TEXT,
+            congressional_district TEXT,
+            business_types_codes TEXT[],
+            entity_structure TEXT
+        );
+    """.format(table_name)
     sess.execute(create_table_sql)
     # Truncating in case we didn't clear out this table after a failure in the script
     sess.execute('TRUNCATE TABLE {};'.format(table_name))
@@ -410,18 +410,20 @@ def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=No
     pop_exec = total_data[total_data['exec_comp_str'].notnull()]
 
     # parse out executive compensation from row 90 for populated records
-    lambda_func = (lambda ecs: pd.Series(list(parse_exec_comp(ecs).values())))
-    parsed_data = pop_exec['exec_comp_str'].apply(lambda_func)
-    parsed_data.columns = list(parse_exec_comp().keys())
-    del pop_exec['exec_comp_str']
-    pop_exec = pop_exec.join(parsed_data)
+    if not pop_exec.empty:
+        lambda_func = (lambda ecs: pd.Series(list(parse_exec_comp(ecs).values())))
+        parsed_data = pop_exec['exec_comp_str'].apply(lambda_func)
+        parsed_data.columns = list(parse_exec_comp().keys())
+        pop_exec = pd.concat([pop_exec, parsed_data], axis=1)
+    else:
+        pop_exec = pop_exec.assign(**parse_exec_comp())
 
     # leave blanks
-    del blank_exec['exec_comp_str']
     blank_exec = blank_exec.assign(**parse_exec_comp())
 
     # setup the final dataframe
     total_data = pd.concat([pop_exec, blank_exec])
+    del total_data['exec_comp_str']
     total_data.replace('', np.nan, inplace=True)
     last_exec_comp_mod_date_str = re.findall('[0-9]{8}', filename)
     if not last_exec_comp_mod_date_str:
@@ -446,21 +448,21 @@ def create_temp_exec_comp_table(sess, table_name, data):
     """
     logger.info('Making {} table'.format(table_name))
     create_table_sql = """
-            CREATE TABLE IF NOT EXISTS {} (
-                awardee_or_recipient_uniqu TEXT,
-                high_comp_officer1_amount TEXT,
-                high_comp_officer1_full_na TEXT,
-                high_comp_officer2_amount TEXT,
-                high_comp_officer2_full_na TEXT,
-                high_comp_officer3_amount TEXT,
-                high_comp_officer3_full_na TEXT,
-                high_comp_officer4_amount TEXT,
-                high_comp_officer4_full_na TEXT,
-                high_comp_officer5_amount TEXT,
-                high_comp_officer5_full_na TEXT,
-                last_exec_comp_mod_date DATE
-            );
-        """.format(table_name)
+        CREATE TABLE IF NOT EXISTS {} (
+            awardee_or_recipient_uniqu TEXT,
+            high_comp_officer1_amount TEXT,
+            high_comp_officer1_full_na TEXT,
+            high_comp_officer2_amount TEXT,
+            high_comp_officer2_full_na TEXT,
+            high_comp_officer3_amount TEXT,
+            high_comp_officer3_full_na TEXT,
+            high_comp_officer4_amount TEXT,
+            high_comp_officer4_full_na TEXT,
+            high_comp_officer5_amount TEXT,
+            high_comp_officer5_full_na TEXT,
+            last_exec_comp_mod_date DATE
+        );
+    """.format(table_name)
     sess.execute(create_table_sql)
     # Truncating in case we didn't clear out this table after a failure in the script
     sess.execute('TRUNCATE TABLE {};'.format(table_name))
