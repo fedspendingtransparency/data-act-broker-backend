@@ -188,3 +188,100 @@ Spaces should be used in place of tabs for indentation, 4 spaces to a level
 
 ## Bullets
 Bulleted lists are denoted using `-`
+
+## Escaping
+All underscores not surrounded by backticks must be properly escaped
+
+## Code Blocks
+Code blocks should be surrounded by three backticks, not indented.
+- Exception: If three backticks are needed inside the code block, it is ok to create one using tabbing instead
+
+
+# API Documentation
+
+## General
+- All rules in the MD Files section should be followed
+- API Endpoints should be fourth-level headers (`####`)
+- Details about an API endpoint should be fifth-level headers (`#####`)
+- Required body values, params, and request values must go before non-required ones.
+
+## GET Endpoints
+Sample GET endpoint:
+
+    #### GET "/v1/end\_point/"
+    Details about endpoint
+    
+    ##### Sample Request
+    `/v1/end_point/?params=here&other=params`
+    
+    ##### Request Params
+    Any general details (if needed) about the params. Otherwise leave this paragraph out.
+    
+    - `params`: (required, string) This param does something. Acceptable values:
+        - `here`
+        - `there`
+    - `other`: (string) This param does other things
+    
+    ##### Response (JSON)
+    ```
+    {
+        "response_1": 1234,
+        "response_2": "Another one"
+    }
+    ```
+    
+    ##### Response Attributes
+    - `response_1`: (integer) what the response describes
+    - `response_2`: (string) what the second response describes. Possible values:
+        - `The first one`: a value
+        - `Another one`: a second value
+    
+    ##### Errors
+    Possible HTTP Status Codes:
+    
+    - 400:
+        - Reason 1 for 400 error
+        - Reason 2 for 400 error
+    - 404: Single reason for 404 error
+
+## POST Endpoints
+Sample POST endpoint:
+
+    #### POST "/v1/end\_point/"
+    Details about endpoint
+    
+    ##### Body (JSON)
+    ```
+        {
+            "A": "Contents",
+            "B": 1234
+        }
+    ```
+    
+    ##### Body Description
+    Any general details (if needed) about the body. Otherwise leave this paragraph out.
+    
+    - `A`: (required, string) Does something.
+    - `B`: (integer) Does other things
+    
+    ##### Response (JSON)
+    ```
+    {
+        "response_1": 1234,
+        "response_2": "Another one"
+    }
+    ```
+    
+    ##### Response Attributes
+    - `response_1`: (integer) what the response describes
+    - `response_2`: (string) what the second response describes. Possible values:
+        - `The first one`: a value
+        - `Another one`: a second value
+    
+    ##### Errors
+    Possible HTTP Status Codes:
+    
+    - 400:
+        - Reason 1 for 400 error
+        - Reason 2 for 400 error
+    - 404: Single reason for 404 error
