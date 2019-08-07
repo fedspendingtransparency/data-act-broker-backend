@@ -344,6 +344,7 @@ SELECT
     fsrs_grant.top_paid_amount_4 AS "high_comp_officer4_amount",
     fsrs_grant.top_paid_fullname_5 AS "high_comp_officer5_full_na",
     fsrs_grant.top_paid_amount_5 AS "high_comp_officer5_amount",
+    fsrs_grant.principle_place_street AS "place_of_perform_street",
 
     -- File F Subawards
     fsrs_subgrant.id AS "sub_id",
@@ -362,6 +363,8 @@ SELECT
     NULL AS "sub_recovery_model_q2",
     fsrs_subgrant.compensation_q1 AS "sub_compensation_q1",
     fsrs_subgrant.compensation_q2 AS "sub_compensation_q2",
+    fsrs_subgrant.principle_place_street AS "sub_place_of_perform_street",
+
     NOW() AS "created_at",
     NOW() AS "updated_at"
 

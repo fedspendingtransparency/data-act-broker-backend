@@ -284,6 +284,7 @@ SELECT
     fsrs_procurement.top_paid_amount_4 AS "high_comp_officer4_amount",
     fsrs_procurement.top_paid_fullname_5 AS "high_comp_officer5_full_na",
     fsrs_procurement.top_paid_amount_5 AS "high_comp_officer5_amount",
+    fsrs_procurement.principle_place_street AS "place_of_perform_street",
 
     -- File F Subawards
     fsrs_subcontract.id AS "sub_id",
@@ -302,6 +303,8 @@ SELECT
     fsrs_subcontract.recovery_model_q2 AS "sub_recovery_model_q2",
     NULL AS "sub_compensation_q1",
     NULL AS "sub_compensation_q2",
+    fsrs_subcontract.principle_place_street AS "sub_place_of_perform_street",
+
     NOW() AS "created_at",
     NOW() AS "updated_at"
 
