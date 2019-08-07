@@ -11,6 +11,7 @@ from dataactcore.interfaces.function_bag import (sum_number_of_errors_for_job_li
 
 from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT,
                                         FILE_TYPE_DICT)
+from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
                                           CertifyHistory, RevalidationThreshold, QuarterlyRevalidationThreshold)
@@ -540,9 +541,15 @@ def move_certified_data(sess, submission_id):
             sess: the database connection
             submission_id: The ID of the submission to move data for
     """
-    table_types = {'appropriation': [Appropriation, CertifiedAppropriation],
-                   'object_class_program_activity': [ObjectClassProgramActivity, CertifiedObjectClassProgramActivity],
-                   'award_financial': [AwardFinancial, CertifiedAwardFinancial]}
+    table_types = {'appropriation': [Appropriation, CertifiedAppropriation, 'submission'],
+                   'object_class_program_activity': [ObjectClassProgramActivity, CertifiedObjectClassProgramActivity,
+                                                     'submission'],
+                   'award_financial': [AwardFinancial, CertifiedAwardFinancial, 'submission'],
+                   'error_metadata': [ErrorMetadata, CertifiedErrorMetadata, 'job']}
+
+    # Get list of jobs so we can use them for filtering
+    job_list = sess.query(Job.job_id).filter_by(submission_id=submission_id).all()
+    job_list = [item[0] for item in job_list]
 
     for table_type, table_object in table_types.items():
         logger.info({
@@ -552,7 +559,10 @@ def move_certified_data(sess, submission_id):
         })
 
         # Delete the old certified data in the table
-        sess.query(table_object[1]).filter_by(submission_id=submission_id).delete()
+        if table_object[2] == 'submission':
+            sess.query(table_object[1]).filter_by(submission_id=submission_id).delete(synchronize_session=False)
+        else:
+            sess.query(table_object[1]).filter(table_object[1].job_id.in_(job_list)).delete(synchronize_session=False)
 
         logger.info({
             "message": "Moving certified data from {} table".format(table_type),
@@ -567,11 +577,21 @@ def move_certified_data(sess, submission_id):
 
         col_string = ", ".join(column_list)
 
+        insert_string = """
+            INSERT INTO certified_{} (created_at, updated_at, {})
+            SELECT NOW() AS created_at, NOW() AS updated_at, {}
+            FROM {}
+            WHERE
+        """.format(table_type, col_string, col_string, table_type)
+
+        # Filter by either submission ID or job IDs depending on the situation
+        if table_object[2] == 'submission':
+            insert_string += ' submission_id={}'.format(submission_id)
+        else:
+            insert_string += ' job_id IN ({})'.format(','.join(str(job) for job in job_list))
+
         # Move the certified data
-        sess.execute("INSERT INTO certified_{} (created_at, updated_at, {}) "
-                     "SELECT NOW() AS created_at, NOW() AS updated_at, {} "
-                     "FROM {} "
-                     "WHERE submission_id={}".format(table_type, col_string, col_string, table_type, submission_id))
+        sess.execute(insert_string)
 
 
 def certify_dabs_submission(submission, file_manager):
