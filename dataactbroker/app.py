@@ -87,7 +87,7 @@ def create_app():
             g.user = sess.query(User).filter_by(user_id=session['name']).one_or_none()
 
         # If the request is a POST we want to log the request body
-        if request.method == 'POST':
+        if request.method == 'POST' and request.headers.get('Content-Type'):
 
             request_body = {}
 
