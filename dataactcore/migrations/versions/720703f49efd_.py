@@ -1,14 +1,14 @@
 """empty message
 
-Revision ID: 6b4634624836
-Revises: 4ebc7a781b31, 3244aa7611ef
-Create Date: 2019-07-26 23:11:16.768086
+Revision ID: 720703f49efd
+Revises: 3244aa7611ef, 87d7a9b0ea7b
+Create Date: 2019-08-07 13:52:18.842336
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '6b4634624836'
-down_revision = ('4ebc7a781b31', '3244aa7611ef')
+revision = '720703f49efd'
+down_revision = ('3244aa7611ef', '87d7a9b0ea7b')
 branch_labels = None
 depends_on = None
 
