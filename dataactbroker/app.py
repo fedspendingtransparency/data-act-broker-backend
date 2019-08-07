@@ -86,14 +86,16 @@ def create_app():
         if session.get('name') is not None:
             g.user = sess.query(User).filter_by(user_id=session['name']).one_or_none()
 
+        content_type = request.headers.get('Content-Type')
+
         # If the request is a POST we want to log the request body
-        if request.method == 'POST' and request.headers.get('Content-Type') and 'login' not in request.url.lower():
+        if request.method == 'POST' and content_type and 'login' not in request.url.lower():
             request_body = {}
 
             # If request is json, turn it into a dict
-            if 'application/json' in request.headers['Content-Type']:
+            if 'application/json' in content_type:
                 request_body = json.loads(request.get_data().decode('utf8'))
-            elif 'multipart/form-data' in request.headers['Content-Type']:
+            elif 'multipart/form-data' in content_type:
                 # If request is a multipart request, get only the form portions of it
                 for key in request.form.keys():
                     request_body[key] = request.form[key]
