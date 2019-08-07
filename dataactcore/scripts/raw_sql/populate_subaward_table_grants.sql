@@ -190,6 +190,7 @@ INSERT INTO subaward (
     "high_comp_officer4_amount",
     "high_comp_officer5_full_na",
     "high_comp_officer5_amount",
+    "place_of_perform_street",
     "sub_id",
     "sub_parent_id",
     "sub_federal_agency_id",
@@ -206,6 +207,7 @@ INSERT INTO subaward (
     "sub_recovery_model_q2",
     "sub_compensation_q1",
     "sub_compensation_q2",
+    "sub_place_of_perform_street",
     "created_at",
     "updated_at"
 )
