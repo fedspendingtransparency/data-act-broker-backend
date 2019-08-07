@@ -87,8 +87,7 @@ def create_app():
             g.user = sess.query(User).filter_by(user_id=session['name']).one_or_none()
 
         # If the request is a POST we want to log the request body
-        if request.method == 'POST' and request.headers.get('Content-Type'):
-
+        if request.method == 'POST' and request.headers.get('Content-Type') and 'login' not in request.url.lower():
             request_body = {}
 
             # If request is json, turn it into a dict
@@ -100,7 +99,7 @@ def create_app():
                     request_body[key] = request.form[key]
 
             request_dict = {
-                'url': request.url,
+                'message': 'Request body for ' + request.url,
                 'body': request_body
             }
             logger.info(request_dict)
