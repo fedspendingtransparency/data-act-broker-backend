@@ -1,6 +1,4 @@
 from datetime import datetime
-from dataactcore.models.jobModels import Submission
-from dataactcore.models.views import SubmissionUpdatedView
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.userModel import User
