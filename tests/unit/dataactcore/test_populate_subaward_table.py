@@ -154,6 +154,7 @@ def compare_contract_results(sub, d1, contract, sub_contract, parent_duns, duns,
         'high_comp_officer4_amount': contract.top_paid_amount_4,
         'high_comp_officer5_full_na': contract.top_paid_fullname_5,
         'high_comp_officer5_amount': contract.top_paid_amount_5,
+        'place_of_perform_street': contract.principle_place_street,
         'sub_id': sub_contract.id,
         'sub_parent_id': sub_contract.parent_id,
         'sub_federal_agency_id': None,
@@ -170,6 +171,7 @@ def compare_contract_results(sub, d1, contract, sub_contract, parent_duns, duns,
         'sub_recovery_model_q2': str(sub_contract.recovery_model_q2).lower(),
         'sub_compensation_q1': None,
         'sub_compensation_q2': None,
+        'sub_place_of_perform_street': sub_contract.principle_place_street
     }
     if debug and not (attr.items() <= sub.__dict__.items()):
         print(sorted(attr.items()))
@@ -371,6 +373,7 @@ def compare_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_coun
         'high_comp_officer4_amount': grant.top_paid_amount_4,
         'high_comp_officer5_full_na': grant.top_paid_fullname_5,
         'high_comp_officer5_amount': grant.top_paid_amount_5,
+        'place_of_perform_street': grant.principle_place_street,
         'sub_id': sub_grant.id,
         'sub_parent_id': sub_grant.parent_id,
         'sub_federal_agency_id': sub_grant.federal_agency_id,
@@ -387,6 +390,7 @@ def compare_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_coun
         'sub_recovery_model_q2': None,
         'sub_compensation_q1': str(sub_grant.compensation_q1).lower(),
         'sub_compensation_q2': str(sub_grant.compensation_q2).lower(),
+        'sub_place_of_perform_street': sub_grant.principle_place_street
     }
     if debug and not (attr.items() <= sub.__dict__.items()):
         print(sorted(attr.items()))
