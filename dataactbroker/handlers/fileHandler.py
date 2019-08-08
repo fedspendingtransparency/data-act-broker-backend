@@ -1342,12 +1342,13 @@ def get_error_metrics(submission):
         return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
 
-def add_list_submission_filters(query, filters):
+def add_list_submission_filters(query, filters, submission_updated_view):
     """ Add provided filters to the list_submission query
 
         Args:
             query: already existing query to add to
             filters: provided filters
+            submission_updated_view: The view containing the max updated_at dates for all submissions
 
         Returns:
             The query updated with the valid provided filters
@@ -1390,7 +1391,8 @@ def add_list_submission_filters(query, filters):
                 raise ResponseException("Last modified start date cannot be greater than the end date",
                                         StatusCode.CLIENT_ERROR)
 
-            query = query.filter(Submission.updated_at >= start_date, Submission.updated_at < end_date)
+            query = query.filter(submission_updated_view.updated_at >= start_date,
+                                 submission_updated_view.updated_at < end_date)
         elif mod_dates:
             raise ResponseException("last_modified_range filter must be null or an object", StatusCode.CLIENT_ERROR)
     # Agency code filter
@@ -1502,7 +1504,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
         outerjoin(sub_query, Submission.submission_id == sub_query.c.submission_id).\
         filter(Submission.d2_submission.is_(is_fabs))
-    min_mod_query = sess.query(func.min(Submission.updated_at).label('min_last_mod_date')).\
+    min_mod_query = sess.query(func.min(submission_updated_view.updated_at).label('min_last_mod_date')). \
+        join(Submission, submission_updated_view.submission_id == Submission.submission_id).\
         filter(Submission.d2_submission.is_(is_fabs))
 
     # Limit the data coming back to only what the given user is allowed to see
@@ -1530,7 +1533,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
     # Add additional filters where applicable
     if filters:
         try:
-            query = add_list_submission_filters(query, filters)
+            query = add_list_submission_filters(query, filters, submission_updated_view)
         except (ResponseException, ValueError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
 
