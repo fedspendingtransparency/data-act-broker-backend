@@ -52,17 +52,20 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             'fhorgid', 'fhorgname', 'fhorgtype', 'description', 'level', 'status', 'region', 'categoryid',
             'effectivestartdate', 'effectiveenddate', 'createdby', 'createddate', 'updatedby', 'lastupdateddate',
             'fhdeptindagencyorgid', 'fhagencyorgname', 'agencycode', 'oldfpdsofficecode', 'aacofficecode',
-            'cgaclist_0_cgac', 'fhorgofficetypelist_0_officetype', 'fhorgofficetypelist_0_officetypestartdate',
+            'cgaclist_0_cgac', 'cgaclist_1_cgac', 'cgaclist_2_cgac', 'cgaclist_3_cgac', 'cgaclist_4_cgac',
+            'fhorgofficetypelist_0_officetype', 'fhorgofficetypelist_0_officetypestartdate',
             'fhorgofficetypelist_0_officetypeenddate', 'fhorgofficetypelist_1_officetype',
             'fhorgofficetypelist_1_officetypestartdate', 'fhorgofficetypelist_1_officetypeenddate',
             'fhorgofficetypelist_2_officetype', 'fhorgofficetypelist_2_officetypestartdate',
-            'fhorgofficetypelist_2_officetypeenddate', 'fhorgaddresslist_0_city', 'fhorgaddresslist_0_state',
-            'fhorgaddresslist_0_country_code', 'fhorgaddresslist_0_addresstype', 'fhorgnamehistory_0_fhorgname',
-            'fhorgnamehistory_0_effectivedate', 'fhorgparenthistory_0_fhfullparentpathid',
-            'fhorgparenthistory_0_fhfullparentpathname', 'fhorgparenthistory_0_effectivedate', 'links_0_href',
-            'links_0_rel', 'links_1_href', 'links_1_rel', 'links_2_href', 'links_2_rel']
+            'fhorgofficetypelist_2_officetypeenddate', 'fhorgofficetypelist_3_officetype',
+            'fhorgofficetypelist_3_officetypeenddate', 'fhorgofficetypelist_3_officetypestartdate',
+            'fhorgaddresslist_0_city', 'fhorgaddresslist_0_state', 'fhorgaddresslist_0_country_code',
+            'fhorgaddresslist_0_addresstype', 'fhorgnamehistory_0_fhorgname', 'fhorgnamehistory_0_effectivedate',
+            'fhorgparenthistory_0_fhfullparentpathid', 'fhorgparenthistory_0_fhfullparentpathname',
+            'fhorgparenthistory_0_effectivedate', 'links_0_href', 'links_0_rel', 'links_1_href', 'links_1_rel',
+            'links_2_href', 'links_2_rel']
         with open(filename, 'w+') as f:
-            csv_writer = csv.writer(f, delimiter=',', quotechar='', quoting=csv.QUOTE_ALL)
+            csv_writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
             csv_writer.writerow(file_headers)
 
     empty_pull_count = 0
@@ -153,7 +156,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                                             financial_assistance_funding_office=False)
 
                         for off_type in org.get('fhorgofficetypelist', []):
-                            office_type = off_type['officetype'].lower().replace('' '', '_')
+                            office_type = off_type['officetype'].lower().replace(' ', '_')
                             if office_type in ['contract_funding', 'contract_awards', 'financial_assistance_awards',
                                                'financial_assistance_funding']:
                                 setattr(new_office, office_type + '_office', True)
