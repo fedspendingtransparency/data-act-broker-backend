@@ -260,24 +260,6 @@ class ApplicationType(Base):
     application_name = Column(Text, nullable=False)
 
 
-class FileRequest(Base):
-    __tablename__ = "file_request"
-
-    file_request_id = Column(Integer, primary_key=True)
-    request_date = Column(Date, nullable=False, index=True)
-    job_id = Column(Integer, ForeignKey("job.job_id", ondelete="CASCADE", name="fk_file_request_job_id"),
-                    nullable=False)
-    job = relationship("Job", uselist=False)
-    parent_job_id = Column(Integer, nullable=True, index=True)
-    start_date = Column(Date, nullable=False, index=True)
-    end_date = Column(Date, nullable=False, index=True)
-    agency_code = Column(Text, nullable=False, index=True)
-    agency_type = Column(Enum('awarding', 'funding', name='agency_types'), nullable=False, index=True,
-                         default='awarding', server_default='awarding')
-    file_type = Column(Text, nullable=False, index=True)
-    is_cached_file = Column(Boolean, nullable=False, default=False)
-
-
 class FileGeneration(Base):
     __tablename__ = "file_generation"
 
@@ -292,3 +274,5 @@ class FileGeneration(Base):
                        default='D1', server_default='D1')
     file_path = Column(Text)
     is_cached_file = Column(Boolean, nullable=False, default=False)
+    file_format = Column(Enum('csv', 'txt', name='generation_file_format'), nullable=False, index=True,
+                         default='csv', server_default='csv')

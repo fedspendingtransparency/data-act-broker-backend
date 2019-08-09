@@ -26,7 +26,7 @@ VALIDATION_STATUS_MAP = {"waiting": "waiting", "ready": "waiting", "running": "w
                          "failed": "failed", "invalid": "failed"}
 
 
-def start_d_generation(job, start_date, end_date, agency_type, agency_code=None):
+def start_d_generation(job, start_date, end_date, agency_type, agency_code=None, file_format='csv'):
     """ Validates the start and end dates of the generation, updates the submission's publish status and progress (if
         its not detached generation), and sends the job information to SQS.
 
@@ -36,6 +36,7 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
             end_date: String to parse as the end date of the generation
             agency_type: Type of Agency to generate files by: "awarding" or "funding"
             agency_code: Agency code for detached D file generations
+            file_format: determines if the file generated is a txt or a csv
     """
     if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
         raise ResponseException("Start or end date cannot be parsed into a date of format MM/DD/YYYY",
@@ -53,7 +54,7 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
 
     mark_job_status(job.job_id, 'waiting')
 
-    file_generation = retrieve_cached_file_generation(job, agency_type, agency_code)
+    file_generation = retrieve_cached_file_generation(job, agency_type, agency_code, file_format)
     if file_generation:
         try:
             copy_file_generation_to_job(job, file_generation, g.is_local)
@@ -67,7 +68,8 @@ def start_d_generation(job, start_date, end_date, agency_type, agency_code=None)
         # Create new FileGeneration and reset Jobs
         file_generation = FileGeneration(
             request_date=datetime.now().date(), start_date=job.start_date, end_date=job.end_date,
-            file_type=job.file_type.letter_name, agency_code=agency_code, agency_type=agency_type, is_cached_file=True)
+            file_type=job.file_type.letter_name, agency_code=agency_code, agency_type=agency_type,
+            file_format=file_format, is_cached_file=True)
         sess.add(file_generation)
         sess.commit()
 
@@ -195,13 +197,14 @@ def check_file_generation(job_id):
     return response_dict
 
 
-def retrieve_cached_file_generation(job, agency_type, agency_code):
+def retrieve_cached_file_generation(job, agency_type, agency_code, file_format):
     """ Retrieves a cached FileGeneration for the D file request, if there is one.
 
         Args:
             job: Upload Job for the generation file
-            agency_type: Type of Agency to generate files by: "awarding" or "funding"
+            agency_type: Type of Agency to generate files by: 'awarding' or 'funding'
             agency_code: Agency code to generate file for
+            file_format: File format to generate file in (txt or csv)
 
         Returns:
             FileGeneration object matching the criteria, or None
@@ -220,7 +223,8 @@ def retrieve_cached_file_generation(job, agency_type, agency_code):
     file_gen = sess.query(FileGeneration).filter(
         FileGeneration.start_date == job.start_date, FileGeneration.end_date == job.end_date,
         FileGeneration.agency_code == agency_code,  FileGeneration.agency_type == agency_type,
-        FileGeneration.file_type == job.file_type.letter_name, FileGeneration.is_cached_file.is_(True)).one_or_none()
+        FileGeneration.file_type == job.file_type.letter_name, FileGeneration.is_cached_file.is_(True),
+        FileGeneration.file_format == file_format).one_or_none()
 
     if file_gen and (file_gen.file_type == 'D1' and file_gen.request_date < fpds_date):
         # Uncache expired D1 FileGeneration
