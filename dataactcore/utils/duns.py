@@ -187,6 +187,11 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     add_update_data = clean_sam_data(add_update_data)
     delete_data = clean_sam_data(delete_data)
 
+    # drop DUNS duplicates, taking only the last one
+    # Note: this accounts for CSVs with the same DUNS with both delete and update records
+    add_update_data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], keep='last', inplace=True)
+    delete_data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], keep='last', inplace=True)
+
     if benchmarks:
         logger.info("Parsing {} took {} seconds with {} rows".format(dat_file_name, time.time()-parse_start_time,
                                                                      rows_received))
@@ -408,6 +413,10 @@ def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=No
                             total_data['sam_extract'].isin(['2', '3', 'A', 'E'])]
     records_processed = len(total_data.index)
     del total_data['sam_extract']
+
+    # drop DUNS duplicates, taking only the last one
+    total_data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], keep='last', inplace=True)
+
     # Note: we're splitting these up cause it vastly saves memory parsing only the records that are populated
     blank_exec = total_data[total_data['exec_comp_str'].isnull()]
     pop_exec = total_data[total_data['exec_comp_str'].notnull()]
