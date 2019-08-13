@@ -119,11 +119,11 @@ def get_parser():
     """
     parser = argparse.ArgumentParser(description='Get data from SAM and update execution_compensation table')
     scope = parser.add_mutually_exclusive_group(required=True)
-    scope.add_argument('--historic', '-a', action='store_true', help='Reload from the first monthly file on')
-    scope.add_argument('--update', '-u', action='store_true', help='Load daily files since latest last_sam_mod_date')
+    scope.add_argument('-a', '--historic', action='store_true', help='Reload from the first monthly file on')
+    scope.add_argument('-u', '--update', action='store_true', help='Load daily files since latest last_sam_mod_date')
     environ = parser.add_mutually_exclusive_group(required=True)
-    environ.add_argument('--local', '-l', type=str, default=None, help='Local directory to work from')
-    environ.add_argument('--ssh_key', '-k', type=str, default=None, help='Private key used to access the API remotely')
+    environ.add_argument('-l', '--local', type=str, default=None, help='Local directory to work from')
+    environ.add_argument('-k', '--ssh_key', type=str, default=None, help='Private key used to access the API remotely')
     return parser
 
 if __name__ == '__main__':
