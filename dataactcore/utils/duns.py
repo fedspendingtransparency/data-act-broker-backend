@@ -306,7 +306,7 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
         SET
             {}
             historic = FALSE
-        FROM temp_duns_update tdu
+        FROM temp_duns_update AS tdu
         WHERE tdu.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu;
     """.format(update_cols)
     sess.execute(update_sql)
@@ -340,7 +340,7 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
         SELECT
             *,
             FALSE
-        FROM temp_duns_update tdu
+        FROM temp_duns_update AS tdu
         WHERE NOT EXISTS (
             SELECT 1
             FROM duns

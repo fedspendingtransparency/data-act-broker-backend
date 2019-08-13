@@ -228,7 +228,7 @@ def import_historic_duns(sess):
             hd.congressional_district,
             hd.business_types_codes,
             TRUE
-        FROM historic_duns hd
+        FROM historic_duns AS hd
         WHERE NOT EXISTS (
             SELECT 1
             FROM duns
