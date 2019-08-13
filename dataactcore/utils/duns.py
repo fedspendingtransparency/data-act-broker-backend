@@ -96,6 +96,8 @@ def clean_sam_data(data):
             "ultimate_parent_legal_enti": "ultimate_parent_legal_enti",
             "ultimate_parent_unique_ide": "ultimate_parent_unique_ide"
         }, {})
+    else:
+        return data
 
 
 def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=None):
