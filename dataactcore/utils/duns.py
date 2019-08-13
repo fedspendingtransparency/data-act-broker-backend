@@ -261,13 +261,13 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
     create_temp_duns_table(sess, temp_table_name, duns_data)
 
     logger.info('Getting list of DUNS that will be added/updated for metrics')
-    update_sql = """
+    insert_sql = """
         SELECT tdu.awardee_or_recipient_uniqu
         FROM temp_duns_update AS tdu
         LEFT JOIN duns ON duns.awardee_or_recipient_uniqu=tdu.awardee_or_recipient_uniqu
         WHERE duns.awardee_or_recipient_uniqu IS NULL;
     """
-    added_duns_list = [row['awardee_or_recipient_uniqu'] for row in sess.execute(update_sql).fetchall()]
+    added_duns_list = [row['awardee_or_recipient_uniqu'] for row in sess.execute(insert_sql).fetchall()]
     update_sql = """
         SELECT duns.awardee_or_recipient_uniqu
         FROM duns
@@ -276,43 +276,6 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
     updated_duns_list = [row['awardee_or_recipient_uniqu'] for row in sess.execute(update_sql).fetchall()]
 
     logger.info('Adding/updating DUNS based on temp_duns_update')
-    insert_sql = """
-        INSERT INTO duns (
-            created_at,
-            updated_at,
-            awardee_or_recipient_uniqu,
-            activation_date,
-            expiration_date,
-            deactivation_date,
-            registration_date,
-            last_sam_mod_date,
-            legal_business_name,
-            dba_name,
-            ultimate_parent_unique_ide,
-            ultimate_parent_legal_enti,
-            address_line_1,
-            address_line_2,
-            city,
-            state,
-            zip,
-            zip4,
-            country_code,
-            congressional_district,
-            business_types_codes,
-            entity_structure,
-            historic
-        )
-        SELECT
-            *,
-            FALSE
-        FROM temp_duns_update tdu
-        WHERE NOT EXISTS (
-                SELECT 1
-                FROM duns
-                WHERE duns.awardee_or_recipient_uniqu = tdu.awardee_or_recipient_uniqu
-        );
-    """
-    sess.execute(insert_sql)
     update_cols = """
         updated_at = tdu.updated_at,
         activation_date = tdu.activation_date,
@@ -347,6 +310,44 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
         WHERE tdu.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu;
     """.format(update_cols)
     sess.execute(update_sql)
+
+    insert_sql = """
+        INSERT INTO duns (
+            created_at,
+            updated_at,
+            awardee_or_recipient_uniqu,
+            activation_date,
+            expiration_date,
+            deactivation_date,
+            registration_date,
+            last_sam_mod_date,
+            legal_business_name,
+            dba_name,
+            ultimate_parent_unique_ide,
+            ultimate_parent_legal_enti,
+            address_line_1,
+            address_line_2,
+            city,
+            state,
+            zip,
+            zip4,
+            country_code,
+            congressional_district,
+            business_types_codes,
+            entity_structure,
+            historic
+        )
+        SELECT
+            *,
+            FALSE
+        FROM temp_duns_update tdu
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM duns
+            WHERE duns.awardee_or_recipient_uniqu = tdu.awardee_or_recipient_uniqu
+        );
+    """
+    sess.execute(insert_sql)
 
     logger.info('Dropping {}'.format(temp_table_name))
     sess.execute('DROP TABLE {};'.format(temp_table_name))
