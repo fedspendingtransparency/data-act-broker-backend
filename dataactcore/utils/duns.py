@@ -287,6 +287,7 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
         updated_at = tdu.updated_at,
         activation_date = tdu.activation_date,
         expiration_date = tdu.expiration_date,
+        deactivation_date = NULL,
         registration_date = tdu.registration_date,
         last_sam_mod_date = tdu.last_sam_mod_date,
         legal_business_name = tdu.legal_business_name,
