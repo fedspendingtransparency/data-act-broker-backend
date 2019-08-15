@@ -174,23 +174,24 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     total_data = total_data.assign(business_types_codes=total_data["business_types_raw"].apply(bt_func))
     del total_data["business_types_raw"]
 
-    delete_data = total_data[total_data['sam_extract_code'] == '1']
+    relevant_data = total_data[total_data['sam_extract_code'].isin(['A', 'E', '1', '2', '3'])]
+    # order by sam to exclude deletes befores adds/updates when dropping duplicates
+    relevant_data.sort_values(by=['sam_extract_code'], inplace=True)
+    # drop DUNS duplicates, taking only the last one
+    relevant_data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], keep='last', inplace=True)
+
+    delete_data = relevant_data[total_data['sam_extract_code'] == '1']
     deletes_received = len(delete_data.index)
-    add_data = total_data[total_data['sam_extract_code'].isin(['A', 'E', '2'])]
+    add_data = relevant_data[relevant_data['sam_extract_code'].isin(['A', 'E', '2'])]
     adds_received = len(add_data.index)
-    update_data = total_data[total_data['sam_extract_code'] == '3']
+    update_data = relevant_data[relevant_data['sam_extract_code'] == '3']
     updates_received = len(update_data.index)
-    add_update_data = total_data[total_data['sam_extract_code'].isin(['A', 'E', '2', '3'])]
-    del total_data["sam_extract_code"]
+    add_update_data = relevant_data[relevant_data['sam_extract_code'].isin(['A', 'E', '2', '3'])]
+    del relevant_data["sam_extract_code"]
 
     # cleaning and replacing NaN/NaT with None's
     add_update_data = clean_sam_data(add_update_data)
     delete_data = clean_sam_data(delete_data)
-
-    # drop DUNS duplicates, taking only the last one
-    # Note: this accounts for CSVs with the same DUNS with both delete and update records
-    add_update_data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], keep='last', inplace=True)
-    delete_data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], keep='last', inplace=True)
 
     if benchmarks:
         logger.info("Parsing {} took {} seconds with {} rows".format(dat_file_name, time.time()-parse_start_time,
