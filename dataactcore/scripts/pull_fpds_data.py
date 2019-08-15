@@ -1417,7 +1417,8 @@ def get_total_expected_records(base_url):
 
 
 def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name, county_by_code, state_code_list,
-             country_list, exec_comp_dict, last_run=None, threaded=False, start_date=None, end_date=None, metrics=None):
+             country_list, exec_comp_dict, last_run=None, threaded=False, start_date=None, end_date=None, metrics=None,
+             specific_params=None):
     """ Get the data from the atom feed based on contract/award type and the last time the script was run.
 
         Args:
@@ -1436,14 +1437,19 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             start_date: a date indicating the first date to pull from (must be provided with end_date)
             end_date: a date indicating the last date to pull from (must be provided with start_date)
             metrics: a dictionary to gather metrics for the script in
+            specific_params: a string containing a specific set of params to run the query with (used for outside
+                scripts that need to run a data load)
     """
     if not metrics:
         metrics = {}
     data = []
     yesterday = now - datetime.timedelta(days=1)
     utcnow = datetime.datetime.utcnow()
+    # If a specific set of params was provided, use that
+    if specific_params:
+        params = specific_params
     # if a date that the script was last successfully run is not provided, get all data
-    if not last_run:
+    elif not last_run:
         params = 'SIGNED_DATE:[2016/10/01,' + yesterday.strftime('%Y/%m/%d') + '] '
         metrics['start_date'] = '2016/10/01'
         metrics['end_date'] = yesterday.strftime('%Y/%m/%d')
@@ -1494,7 +1500,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             except KeyError:
                 continue
 
-            if last_run:
+            if last_run or specific_params:
                 for entry in entries_per_response:
                     data.append(entry)
                     entries_processed += 1
@@ -1522,7 +1528,7 @@ def get_data(contract_type, award_type, now, sess, sub_tier_list, county_by_name
             logger.info("Retrieved %s lines of get %s: %s feed, writing next %s to DB",
                         entries_processed, contract_type, award_type, len(data))
 
-            if last_run:
+            if last_run or specific_params:
                 process_and_add(data, contract_type, sess, sub_tier_list, county_by_name, county_by_code,
                                 state_code_list, country_list, exec_comp_dict, utcnow, threaded)
             else:
