@@ -177,8 +177,9 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     relevant_data = total_data[total_data['sam_extract_code'].isin(['A', 'E', '1', '2', '3'])]
     # order by sam to exclude deletes befores adds/updates when dropping duplicates
     relevant_data.sort_values(by=['sam_extract_code'], inplace=True)
-    # drop DUNS duplicates, taking only the last one
-    relevant_data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], keep='last', inplace=True)
+    # drop DUNS duplicates, taking only the last one for dailies, first one for monthlies
+    keep = 'first' if monthly else 'last'
+    relevant_data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], keep=keep, inplace=True)
 
     delete_data = relevant_data[total_data['sam_extract_code'] == '1']
     deletes_received = len(delete_data.index)
@@ -367,7 +368,7 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
     metrics['updated_duns'].extend(updated_duns_list)
 
 
-def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=None):
+def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=None, monthly=False):
     """ Parses the executive compensation file to update corresponding DUNS records
 
         Args:
@@ -376,6 +377,7 @@ def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=No
             sftp: connection to remote server
             ssh_key: ssh_key for reconnecting
             metrics: dictionary representing metrics of the script
+            monthly: whether it's a monthly file
 
         Raises:
             Exception: couldn't extract the last exec comp modification date, this generally means the filename provided
@@ -417,7 +419,8 @@ def parse_exec_comp_file(filename, root_dir, sftp=None, ssh_key=None, metrics=No
     del total_data['sam_extract']
 
     # drop DUNS duplicates, taking only the last one
-    total_data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], keep='last', inplace=True)
+    keep = 'first' if monthly else 'last'
+    total_data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], keep=keep, inplace=True)
 
     # Note: we're splitting these up cause it vastly saves memory parsing only the records that are populated
     blank_exec = total_data[total_data['exec_comp_str'].isnull()]

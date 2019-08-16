@@ -52,7 +52,8 @@ def process_exec_comp_dir(sess, historic, local, ssh_key, benchmarks=None, metri
 
     # load in earliest monthly file for historic
     if historic and sorted_monthly_file_names:
-        process_from_dir(root_dir, sorted_monthly_file_names[0], sess, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
+        process_from_dir(root_dir, sorted_monthly_file_names[0], sess, sftp=sftp, ssh_key=ssh_key, metrics=metrics,
+                         monthly=True)
 
     # load in daily files after depending on params
     if sorted_daily_file_names:
@@ -83,7 +84,7 @@ def process_exec_comp_dir(sess, historic, local, ssh_key, benchmarks=None, metri
             process_from_dir(root_dir, daily_file, sess, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
 
 
-def process_from_dir(root_dir, file_name, sess, sftp=None, ssh_key=None, metrics=None):
+def process_from_dir(root_dir, file_name, sess, sftp=None, ssh_key=None, metrics=None, monthly=False):
     """ Process the SAM file found locally or remotely
 
         Args:
@@ -92,6 +93,7 @@ def process_from_dir(root_dir, file_name, sess, sftp=None, ssh_key=None, metrics
             sess: the database connection
             sftp: the sftp client to pull the CSV from
             metrics: dictionary representing metrics data for the load
+            monthly: whether it's a monthly file
     """
     if not metrics:
         metrics = {}
@@ -105,7 +107,8 @@ def process_from_dir(root_dir, file_name, sess, sftp=None, ssh_key=None, metrics
         logger.info("Pulling {}".format(file_name))
         with open(file_path, 'wb') as zip_file:
             sftp.getfo(''.join([REMOTE_SAM_EXEC_COMP_DIR, '/', file_name]), zip_file)
-    exec_comp_data = parse_exec_comp_file(file_name, root_dir, sftp=sftp, ssh_key=ssh_key, metrics=metrics)
+    exec_comp_data = parse_exec_comp_file(file_name, root_dir, sftp=sftp, ssh_key=ssh_key, metrics=metrics,
+                                          monthly=monthly)
     update_exec_comp_duns(sess, exec_comp_data, metrics=metrics)
     if sftp:
         os.remove(file_path)
