@@ -37,9 +37,10 @@ def test_batch():
 
 
 def mock_get_duns_props_from_sam(client, duns_list):
-    """ Mock function for location_business data as we can't connect to the SAM service """
+    """ Mock function for get_duns_props as we can't connect to the SAM service """
     columns = ['awardee_or_recipient_uniqu'] + list(update_historical_duns.props_columns.keys())
     results = pd.DataFrame(columns=columns)
+
     duns_mappings = {
         '000000001': {
             'awardee_or_recipient_uniqu': ['000000001'],
@@ -55,7 +56,17 @@ def mock_get_duns_props_from_sam(client, duns_list):
             'zip4': ['Test zip4'],
             'country_code': ['Test country'],
             'congressional_district': ['Test congressional district'],
-            'business_types_codes': [['A', 'B', 'C']]
+            'business_types_codes': [['A', 'B', 'C']],
+            'high_comp_officer1_full_na': 'Test Exec 1',
+            'high_comp_officer1_amount': '1',
+            'high_comp_officer2_full_na': 'Test Exec 2',
+            'high_comp_officer2_amount': '2',
+            'high_comp_officer3_full_na': 'Test Exec 3',
+            'high_comp_officer3_amount': '3',
+            'high_comp_officer4_full_na': 'Test Exec 4',
+            'high_comp_officer4_amount': '4',
+            'high_comp_officer5_full_na': 'Test Exec 5',
+            'high_comp_officer5_amount': '5'
         },
         '000000002': {
             'awardee_or_recipient_uniqu': ['000000002'],
@@ -71,7 +82,17 @@ def mock_get_duns_props_from_sam(client, duns_list):
             'zip4': ['Other Test zip4'],
             'country_code': ['Other Test country'],
             'congressional_district': ['Other Test congressional district'],
-            'business_types_codes': [['D', 'E', 'F']]
+            'business_types_codes': [['D', 'E', 'F']],
+            'high_comp_officer1_full_na': 'Test Other Exec 6',
+            'high_comp_officer1_amount': '6',
+            'high_comp_officer2_full_na': 'Test Other Exec 7',
+            'high_comp_officer2_amount': '7',
+            'high_comp_officer3_full_na': 'Test Other Exec 8',
+            'high_comp_officer3_amount': '8',
+            'high_comp_officer4_full_na': 'Test Other Exec 9',
+            'high_comp_officer4_amount': '9',
+            'high_comp_officer5_full_na': 'Test Other Exec 10',
+            'high_comp_officer5_amount': '10'
         }
     }
     for duns in duns_list:
@@ -101,7 +122,17 @@ def test_update_duns_props(monkeypatch):
         'business_types_codes': [['A', 'B', 'C'], ['D', 'E', 'F'], []],
         'dba_name': ['Name 1', 'Name 2', None],
         'ultimate_parent_unique_ide': ['999999999', '999999998', None],
-        'ultimate_parent_legal_enti': ['Parent Legal Name 1', 'Parent Legal Name 2', None]
+        'ultimate_parent_legal_enti': ['Parent Legal Name 1', 'Parent Legal Name 2', None],
+        'high_comp_officer1_full_na': ['Test Exec 1', 'Test Other Exec 6', None],
+        'high_comp_officer1_amount': ['1', '6', None],
+        'high_comp_officer2_full_na': ['Test Exec 1', 'Test Other Exec 7', None],
+        'high_comp_officer2_amount': ['2', '7', None],
+        'high_comp_officer3_full_na': ['Test Exec 1', 'Test Other Exec 8', None],
+        'high_comp_officer3_amount': ['3', '8', None],
+        'high_comp_officer4_full_na': ['Test Exec 1', 'Test Other Exec 9', None],
+        'high_comp_officer4_amount': ['4', '9', None],
+        'high_comp_officer5_full_na': ['Test Exec 1', 'Test Other Exec 10', None],
+        'high_comp_officer5_amount': ['5', '10', None]
     })
 
     assert expected_df.sort_index(inplace=True) == update_historical_duns.update_duns_props(duns_df, None)\
@@ -129,7 +160,17 @@ def test_update_duns_props_empty(monkeypatch):
         'business_types_codes': [[]],
         'dba_name': [None],
         'ultimate_parent_unique_ide': [None],
-        'ultimate_parent_legal_enti': [None]
+        'ultimate_parent_legal_enti': [None],
+        'high_comp_officer1_full_na': [None],
+        'high_comp_officer1_amount': [None],
+        'high_comp_officer2_full_na': [None],
+        'high_comp_officer2_amount': [None],
+        'high_comp_officer3_full_na': [None],
+        'high_comp_officer3_amount': [None],
+        'high_comp_officer4_full_na': [None],
+        'high_comp_officer4_amount': [None],
+        'high_comp_officer5_full_na': [None],
+        'high_comp_officer5_amount': [None]
     })
 
     assert expected_df.to_dict() == update_historical_duns.update_duns_props(duns_df, None).to_dict()
@@ -169,7 +210,17 @@ def test_run_duns_batches(database, monkeypatch):
             'business_types_codes': ['A', 'B', 'C'],
             'dba_name': 'Name 1',
             'ultimate_parent_unique_ide': '999999999',
-            'ultimate_parent_legal_enti': 'Parent Legal Name 1'
+            'ultimate_parent_legal_enti': 'Parent Legal Name 1',
+            'high_comp_officer1_full_na': 'Test Exec 1',
+            'high_comp_officer1_amount': '1',
+            'high_comp_officer2_full_na': 'Test Exec 2',
+            'high_comp_officer2_amount': '2',
+            'high_comp_officer3_full_na': 'Test Exec 3',
+            'high_comp_officer3_amount': '3',
+            'high_comp_officer4_full_na': 'Test Exec 4',
+            'high_comp_officer4_amount': '4',
+            'high_comp_officer5_full_na': 'Test Exec 5',
+            'high_comp_officer5_amount': '5'
         },
         '000000002': {
             'awardee_or_recipient_uniqu': '000000002',
@@ -189,7 +240,17 @@ def test_run_duns_batches(database, monkeypatch):
             'business_types_codes': ['D', 'E', 'F'],
             'dba_name': 'Name 2',
             'ultimate_parent_unique_ide': '999999998',
-            'ultimate_parent_legal_enti': 'Parent Legal Name 2'
+            'ultimate_parent_legal_enti': 'Parent Legal Name 2',
+            'high_comp_officer1_full_na': 'Test Other Exec 6',
+            'high_comp_officer1_amount': '6',
+            'high_comp_officer2_full_na': 'Test Other Exec 7',
+            'high_comp_officer2_amount': '7',
+            'high_comp_officer3_full_na': 'Test Other Exec 8',
+            'high_comp_officer3_amount': '8',
+            'high_comp_officer4_full_na': 'Test Other Exec 9',
+            'high_comp_officer4_amount': '9',
+            'high_comp_officer5_full_na': 'Test Other Exec 10',
+            'high_comp_officer5_amount': '10'
         }
     }
     results = {}
@@ -212,7 +273,17 @@ def test_run_duns_batches(database, monkeypatch):
             'business_types_codes': duns_obj.business_types_codes,
             'dba_name': duns_obj.dba_name,
             'ultimate_parent_unique_ide': duns_obj.ultimate_parent_unique_ide,
-            'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti
+            'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
+            'high_comp_officer1_full_na': duns_obj.high_comp_officer1_full_na,
+            'high_comp_officer1_amount': duns_obj.high_comp_officer1_amount,
+            'high_comp_officer2_full_na': duns_obj.high_comp_officer2_full_na,
+            'high_comp_officer2_amount': duns_obj.high_comp_officer2_amount,
+            'high_comp_officer3_full_na': duns_obj.high_comp_officer3_full_na,
+            'high_comp_officer3_amount': duns_obj.high_comp_officer3_amount,
+            'high_comp_officer4_full_na': duns_obj.high_comp_officer4_full_na,
+            'high_comp_officer4_amount': duns_obj.high_comp_officer4_amount,
+            'high_comp_officer5_full_na': duns_obj.high_comp_officer5_full_na,
+            'high_comp_officer5_amount': duns_obj.high_comp_officer5_amount
         }
     assert results == expected_results
 
@@ -252,7 +323,17 @@ def test_workflows(database, monkeypatch):
             'business_types_codes': ['A', 'B', 'C'],
             'dba_name': 'Name 1',
             'ultimate_parent_unique_ide': '999999999',
-            'ultimate_parent_legal_enti': 'Parent Legal Name 1'
+            'ultimate_parent_legal_enti': 'Parent Legal Name 1',
+            'high_comp_officer1_full_na': 'Test Exec 1',
+            'high_comp_officer1_amount': '1',
+            'high_comp_officer2_full_na': 'Test Exec 2',
+            'high_comp_officer2_amount': '2',
+            'high_comp_officer3_full_na': 'Test Exec 3',
+            'high_comp_officer3_amount': '3',
+            'high_comp_officer4_full_na': 'Test Exec 4',
+            'high_comp_officer4_amount': '4',
+            'high_comp_officer5_full_na': 'Test Exec 5',
+            'high_comp_officer5_amount': '5'
         },
         '000000002': {
             'awardee_or_recipient_uniqu': '000000002',
@@ -272,7 +353,17 @@ def test_workflows(database, monkeypatch):
             'business_types_codes': ['D', 'E', 'F'],
             'dba_name': 'Name 2',
             'ultimate_parent_unique_ide': '999999998',
-            'ultimate_parent_legal_enti': 'Parent Legal Name 2'
+            'ultimate_parent_legal_enti': 'Parent Legal Name 2',
+            'high_comp_officer1_full_na': 'Test Other Exec 6',
+            'high_comp_officer1_amount': '6',
+            'high_comp_officer2_full_na': 'Test Other Exec 7',
+            'high_comp_officer2_amount': '7',
+            'high_comp_officer3_full_na': 'Test Other Exec 8',
+            'high_comp_officer3_amount': '8',
+            'high_comp_officer4_full_na': 'Test Other Exec 9',
+            'high_comp_officer4_amount': '9',
+            'high_comp_officer5_full_na': 'Test Other Exec 10',
+            'high_comp_officer5_amount': '10'
         },
         '000000003': {
             'awardee_or_recipient_uniqu': '000000003',
@@ -292,7 +383,17 @@ def test_workflows(database, monkeypatch):
             'business_types_codes': None,
             'dba_name': None,
             'ultimate_parent_unique_ide': None,
-            'ultimate_parent_legal_enti': None
+            'ultimate_parent_legal_enti': None,
+            'high_comp_officer1_full_na': None,
+            'high_comp_officer1_amount': None,
+            'high_comp_officer2_full_na': None,
+            'high_comp_officer2_amount': None,
+            'high_comp_officer3_full_na': None,
+            'high_comp_officer3_amount': None,
+            'high_comp_officer4_full_na': None,
+            'high_comp_officer4_amount': None,
+            'high_comp_officer5_full_na': None,
+            'high_comp_officer5_amount': None
         },
         '000000004': {
             'awardee_or_recipient_uniqu': '000000004',
@@ -312,7 +413,17 @@ def test_workflows(database, monkeypatch):
             'business_types_codes': None,
             'dba_name': None,
             'ultimate_parent_unique_ide': None,
-            'ultimate_parent_legal_enti': None
+            'ultimate_parent_legal_enti': None,
+            'high_comp_officer1_full_na': None,
+            'high_comp_officer1_amount': None,
+            'high_comp_officer2_full_na': None,
+            'high_comp_officer2_amount': None,
+            'high_comp_officer3_full_na': None,
+            'high_comp_officer3_amount': None,
+            'high_comp_officer4_full_na': None,
+            'high_comp_officer4_amount': None,
+            'high_comp_officer5_full_na': None,
+            'high_comp_officer5_amount': None
         }
     }
     results = {}
@@ -335,7 +446,17 @@ def test_workflows(database, monkeypatch):
             'business_types_codes': duns_obj.business_types_codes,
             'dba_name': duns_obj.dba_name,
             'ultimate_parent_unique_ide': duns_obj.ultimate_parent_unique_ide,
-            'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti
+            'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
+            'high_comp_officer1_full_na': duns_obj.high_comp_officer1_full_na,
+            'high_comp_officer1_amount': duns_obj.high_comp_officer1_amount,
+            'high_comp_officer2_full_na': duns_obj.high_comp_officer2_full_na,
+            'high_comp_officer2_amount': duns_obj.high_comp_officer2_amount,
+            'high_comp_officer3_full_na': duns_obj.high_comp_officer3_full_na,
+            'high_comp_officer3_amount': duns_obj.high_comp_officer3_amount,
+            'high_comp_officer4_full_na': duns_obj.high_comp_officer4_full_na,
+            'high_comp_officer4_amount': duns_obj.high_comp_officer4_amount,
+            'high_comp_officer5_full_na': duns_obj.high_comp_officer5_full_na,
+            'high_comp_officer5_amount': duns_obj.high_comp_officer5_amount
         }
     assert results == expected_results
 
@@ -369,7 +490,17 @@ def test_workflows(database, monkeypatch):
             'business_types_codes': duns_obj.business_types_codes,
             'dba_name': duns_obj.dba_name,
             'ultimate_parent_unique_ide': duns_obj.ultimate_parent_unique_ide,
-            'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti
+            'ultimate_parent_legal_enti': duns_obj.ultimate_parent_legal_enti,
+            'high_comp_officer1_full_na': duns_obj.high_comp_officer1_full_na,
+            'high_comp_officer1_amount': duns_obj.high_comp_officer1_amount,
+            'high_comp_officer2_full_na': duns_obj.high_comp_officer2_full_na,
+            'high_comp_officer2_amount': duns_obj.high_comp_officer2_amount,
+            'high_comp_officer3_full_na': duns_obj.high_comp_officer3_full_na,
+            'high_comp_officer3_amount': duns_obj.high_comp_officer3_amount,
+            'high_comp_officer4_full_na': duns_obj.high_comp_officer4_full_na,
+            'high_comp_officer4_amount': duns_obj.high_comp_officer4_amount,
+            'high_comp_officer5_full_na': duns_obj.high_comp_officer5_full_na,
+            'high_comp_officer5_amount': duns_obj.high_comp_officer5_amount
         }
     assert results == expected_results
 
