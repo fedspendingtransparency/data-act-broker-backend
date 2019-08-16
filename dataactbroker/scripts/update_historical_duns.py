@@ -37,7 +37,17 @@ props_columns = {
     'business_types_codes': [],
     'dba_name': None,
     'ultimate_parent_unique_ide': None,
-    'ultimate_parent_legal_enti': None
+    'ultimate_parent_legal_enti': None,
+    'high_comp_officer1_full_na': None,
+    'high_comp_officer1_amount': None,
+    'high_comp_officer2_full_na': None,
+    'high_comp_officer2_amount': None,
+    'high_comp_officer3_full_na': None,
+    'high_comp_officer3_amount': None,
+    'high_comp_officer4_full_na': None,
+    'high_comp_officer4_amount': None,
+    'high_comp_officer5_full_na': None,
+    'high_comp_officer5_amount': None
 }
 
 column_mappings = {x: x for x in column_headers + list(props_columns.keys())}
@@ -204,6 +214,16 @@ def import_historic_duns(sess):
             country_code,
             congressional_district,
             business_types_codes,
+            high_comp_officer1_amount,
+            high_comp_officer1_full_na,
+            high_comp_officer2_amount,
+            high_comp_officer2_full_na,
+            high_comp_officer3_amount,
+            high_comp_officer3_full_na,
+            high_comp_officer4_amount,
+            high_comp_officer4_full_na,
+            high_comp_officer5_amount,
+            high_comp_officer5_full_na,
             historic
         )
         SELECT
@@ -227,6 +247,16 @@ def import_historic_duns(sess):
             hd.country_code,
             hd.congressional_district,
             hd.business_types_codes,
+            hd.high_comp_officer1_amount,
+            hd.high_comp_officer1_full_na,
+            hd.high_comp_officer2_amount,
+            hd.high_comp_officer2_full_na,
+            hd.high_comp_officer3_amount,
+            hd.high_comp_officer3_full_na,
+            hd.high_comp_officer4_amount,
+            hd.high_comp_officer4_full_na,
+            hd.high_comp_officer5_amount,
+            hd.high_comp_officer5_full_na,
             TRUE
         FROM historic_duns AS hd
         WHERE NOT EXISTS (

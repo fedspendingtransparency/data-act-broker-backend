@@ -52,7 +52,8 @@ def get_duns_props_from_sam(client, duns_list):
         'zip4': 'coreData.businessInformation.physicalAddress.ZIPCodePlus4',
         'country_code': 'coreData.businessInformation.physicalAddress.country',
         'congressional_district': 'coreData.businessInformation.physicalAddress.congressionalDistrict',
-        'business_types_codes': 'coreData.generalInformation.listOfBusinessTypes'
+        'business_types_codes': 'coreData.generalInformation.listOfBusinessTypes',
+        'executive_comp_data': 'coreData.listOfExecutiveCompensationInformation'
     }
     duns_props = []
     for suds_obj in get_entities(client, duns_list):
@@ -68,6 +69,14 @@ def get_duns_props_from_sam(client, duns_list):
                     value = nested_obj
             if duns_props_name == 'business_types_codes':
                 value = [business_type.code for business_type in getattr(nested_obj, 'businessType', [])]
+            if duns_props_name == 'executive_comp_data':
+                for index in range(1, 6):
+                    duns_props_dict['high_comp_officer{}_full_na'.format(index)] = None
+                    duns_props_dict['high_comp_officer{}_amount'.format(index)] = None
+                for index, exec_comp in enumerate(getattr(nested_obj, 'executiveCompensationDetail', []), start=1):
+                    duns_props_dict['high_comp_officer{}_full_na'.format(index)] = exec_comp.name
+                    duns_props_dict['high_comp_officer{}_amount'.format(index)] = str(exec_comp.compensation)
+                continue
             duns_props_dict[duns_props_name] = value
         duns_props.append(duns_props_dict)
 
