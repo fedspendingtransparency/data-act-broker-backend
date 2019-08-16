@@ -180,7 +180,7 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     keep = 'first' if monthly else 'last'
     relevant_data.drop_duplicates(subset=['awardee_or_recipient_uniqu'], keep=keep, inplace=True)
 
-    delete_data = relevant_data[total_data['sam_extract_code'] == '1']
+    delete_data = relevant_data[relevant_data['sam_extract_code'] == '1']
     deletes_received = len(delete_data.index)
     add_data = relevant_data[relevant_data['sam_extract_code'].isin(['A', 'E', '2'])]
     adds_received = len(add_data.index)
