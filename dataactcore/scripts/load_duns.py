@@ -102,13 +102,15 @@ def process_from_dir(root_dir, file_name, sess, sftp=None, monthly=False, benchm
 
     file_path = os.path.join(root_dir, file_name)
     if sftp:
-        if sftp.sock.closed:
-            # Reconnect if channel is closed
-            ssh_client = get_client()
-            sftp = ssh_client.open_sftp()
         logger.info("Pulling {}".format(file_name))
         with open(file_path, "wb") as zip_file:
-            sftp.getfo(''.join([REMOTE_SAM_DUNS_DIR, '/', file_name]), zip_file)
+            try:
+                sftp.getfo(''.join([REMOTE_SAM_DUNS_DIR, '/', file_name]), zip_file)
+            except OSError:
+                logger.debug("Socket closed. Reconnecting...")
+                ssh_client = get_client()
+                sftp = ssh_client.open_sftp()
+                sftp.getfo(''.join([REMOTE_SAM_DUNS_DIR, '/', file_name]), zip_file)
     add_update_data, delete_data = parse_duns_file(file_path, sess, monthly=monthly, benchmarks=benchmarks,
                                                    metrics=metrics)
     if add_update_data is not None:
