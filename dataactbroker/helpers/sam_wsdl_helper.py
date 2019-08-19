@@ -1,9 +1,5 @@
 import logging
 import time
-import urllib.error
-import suds
-import http.client
-import socket
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
