@@ -230,7 +230,8 @@ class FileHandler:
                 existing_submission_obj)
             submission_data['reporting_start_date'] = formatted_start_date
             submission_data['reporting_end_date'] = formatted_end_date
-            submission_data['is_quarter_format'] = (str(submission_data.get('is_quarter_format')).upper() == 'TRUE')
+            if submission_data.get('is_quarter_format'):
+                submission_data['is_quarter_format'] = (str(submission_data.get('is_quarter_format')).upper() == 'TRUE')
 
             submission = create_submission(g.user.user_id, submission_data, existing_submission_obj)
             sess.add(submission)
