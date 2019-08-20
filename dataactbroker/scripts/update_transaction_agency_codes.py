@@ -20,16 +20,16 @@ def update_table(sess, agency_type, table, args):
             args: object containing the arguments provided by the user
     """
     # Setting the type of update we are running on the procurement table for logging purposes
-    update_type = {'level': 'cgac', 'code': '999'} if args.missing_agency \
-        else {'level': 'subtier', 'code': args.subtier_code}
+    update_type = {'level': 'cgac', 'codes': ['999']} if args.missing_agency \
+        else {'level': 'subtier', 'codes': args.subtier_codes}
 
-    logger.info('Updating ' + agency_type + ' ' + update_type['level'] + ' agency code ' + update_type['code'] +
+    logger.info('Updating ' + agency_type + ' ' + update_type['level'] + ' agency codes ' + str(update_type['codes']) +
                 ' for ' + table + ' table')
 
     # The name of the column depends on the type because of limited string length
     suffix = 'o' if agency_type == "funding" else ''
 
-    row_count, condition_sql = set_update_condition(agency_type, table, suffix, sess, args.subtier_code)
+    row_count, condition_sql = set_update_condition(agency_type, table, suffix, sess, args.subtier_codes)
 
     # updates table based off the parent of the sub_tier_agency code
     sess.execute(
@@ -55,14 +55,14 @@ def update_table(sess, agency_type, table, args):
     )
     sess.commit()
 
-    final_row_count = 0 if args.subtier_code else get_row_count(condition_sql, table, sess)
+    final_row_count = 0 if args.subtier_codes else get_row_count(condition_sql, table, sess)
     print_report(row_count, final_row_count, agency_type, True)
 
     if args.missing_agency:
         logger.info("{} agency code 999 remaining: {} rows ".format(agency_type.title(), final_row_count))
 
 
-def set_update_condition(agency_type, table, suffix, sess, subtier_code=None):
+def set_update_condition(agency_type, table, suffix, sess, subtier_codes=None):
     """ Changes the condition on which to update based on the type of update (999 vs subtier code).
 
         Args:
@@ -71,13 +71,16 @@ def set_update_condition(agency_type, table, suffix, sess, subtier_code=None):
                 'published_award_financial_assistance'
             suffix: string to add an 'o' to a column name if it's a funding agency
             sess: the database connection
-            subtier_code: the sub tier code to update if one is provided, otherwise None
+            subtier_codes: the list of sub tier codes to update if provided, otherwise None
 
         Returns:
             The row count for the number of rows that match the query and "WHERE" condition created
     """
-    if subtier_code:
-        sql_statement = "{}.{}_sub_tier_agency_c{} = '{}' ".format(table, agency_type, suffix, str(subtier_code))
+    if subtier_codes and len(subtier_codes) == 1:
+        sql_statement = "{}.{}_sub_tier_agency_c{} = '{}' ".format(table, agency_type, suffix, str(subtier_codes[0]))
+    elif subtier_codes and len(subtier_codes) > 1:
+        subtier_list = '({})'.format(','.join(['\'{}\''.format(subtier_code) for subtier_code in subtier_codes]))
+        sql_statement = "{}.{}_sub_tier_agency_c{} IN {}".format(table, agency_type, suffix, subtier_list)
     else:
         sql_statement = "{}.{}_agency_code = '999' ".format(table, agency_type)
 
@@ -124,28 +127,32 @@ def main():
                                                  'agency list')
     parser.add_argument('-a', '--missing_agency', help='Perform an update on 999 agency codes', action='store_true',
                         required=False, default=False)
-    parser.add_argument('-s', '--subtier_code', help='Select specific subtier to update. Must be a 4-digit code',
-                        type=str, required=False)
+    parser.add_argument('-s', '--subtier_codes', help='Select specific subtiers to update. Must be a 4-digit code',
+                        type=str, nargs='+', required=False)
     parser.add_argument('-t', '--tables', help='Which tables (fabs, fpds, or both) to update. Defaults to both.',
                         required=False, default='both', choices=['fabs', 'fpds', 'both'])
     args = parser.parse_args()
 
-    if not args.subtier_code and not args.missing_agency:
+    if not args.subtier_codes and not args.missing_agency:
         logger.error('Missing either subtier_code or missing_agency argument')
-    elif args.subtier_code and len(args.subtier_code) != 4:
-        logger.error('Subtier not a correct format, must be 4 digits')
-    else:
-        sess = GlobalDB.db().session
+        return
+    if args.subtier_codes:
+        for subtier_code in args.subtier_codes:
+            if len(subtier_code) != 4:
+                logger.error('Subtier not a correct format, must be 4 digits')
+                return
 
-        if args.tables in ('fpds', 'both'):
-            update_table(sess, 'awarding', 'detached_award_procurement', args)
-            update_table(sess, 'funding', 'detached_award_procurement', args)
-            logger.info("Procurement Update Complete")
+    sess = GlobalDB.db().session
 
-        if args.tables in ('fabs', 'both'):
-            update_table(sess, 'awarding', 'published_award_financial_assistance', args)
-            update_table(sess, 'funding', 'published_award_financial_assistance', args)
-            logger.info("Award Financial Assistance Update Complete")
+    if args.tables in ('fpds', 'both'):
+        update_table(sess, 'awarding', 'detached_award_procurement', args)
+        update_table(sess, 'funding', 'detached_award_procurement', args)
+        logger.info("Procurement Update Complete")
+
+    if args.tables in ('fabs', 'both'):
+        update_table(sess, 'awarding', 'published_award_financial_assistance', args)
+        update_table(sess, 'funding', 'published_award_financial_assistance', args)
+        logger.info("Award Financial Assistance Update Complete")
 
 
 if __name__ == '__main__':
