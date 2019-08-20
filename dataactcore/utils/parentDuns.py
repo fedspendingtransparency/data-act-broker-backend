@@ -8,9 +8,6 @@ from sqlalchemy import and_, func
 from dataactbroker.helpers.sam_wsdl_helper import config_valid, get_entities
 from dataactbroker.helpers.generic_helper import get_client
 from dataactcore.models.domainModels import DUNS
-from dataactcore.utils.duns import load_duns_by_row
-from dataactcore.models.jobModels import FileType, Submission # noqa
-from dataactcore.models.userModel import User # noqa
 
 logger = logging.getLogger(__name__)
 
@@ -31,83 +28,62 @@ def sam_config_is_valid():
         sys.exit(1)
 
 
-def get_name_from_sam(client, duns_list):
-    """ Calls SAM API to retrieve DUNS name by DUNS number. Returns DUNS info as Data Frame
+def get_duns_props_from_sam(client, duns_list):
+    """ Calls SAM API to retrieve DUNS data by DUNS number. Returns DUNS info as Data Frame
 
         Args:
             client: the SAM service client
             duns_list: list of DUNS to search
 
         Returns:
-            dataframe representing the DUNS and corresponding names
+            dataframe representing the DUNS props
     """
-    duns_name = [{
-        'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
-        'legal_business_name': (suds_obj.entityIdentification.legalBusinessName or '').upper()
+    duns_props_mappings = {
+        'awardee_or_recipient_uniqu': 'entityIdentification.DUNS',
+        'legal_business_name': 'entityIdentification.legalBusinessName',
+        'dba_name': 'entityIdentification.DBAName',
+        'ultimate_parent_unique_ide': 'coreData.DUNSInformation.globalParentDUNS.DUNSNumber',
+        'ultimate_parent_legal_enti': 'coreData.DUNSInformation.globalParentDUNS.legalBusinessName',
+        'address_line_1': 'coreData.businessInformation.physicalAddress.addressLine1',
+        'address_line_2': 'coreData.businessInformation.physicalAddress.addressLine2',
+        'city': 'coreData.businessInformation.physicalAddress.city',
+        'state': 'coreData.businessInformation.physicalAddress.stateOrProvince',
+        'zip': 'coreData.businessInformation.physicalAddress.ZIPCode',
+        'zip4': 'coreData.businessInformation.physicalAddress.ZIPCodePlus4',
+        'country_code': 'coreData.businessInformation.physicalAddress.country',
+        'congressional_district': 'coreData.businessInformation.physicalAddress.congressionalDistrict',
+        'business_types_codes': 'coreData.generalInformation.listOfBusinessTypes',
+        'executive_comp_data': 'coreData.listOfExecutiveCompensationInformation'
     }
-        for suds_obj in get_entities(client, duns_list)
-        if suds_obj.entityIdentification.legalBusinessName
-    ]
+    duns_props = []
+    for suds_obj in get_entities(client, duns_list):
+        duns_props_dict = {}
+        for duns_props_name, duns_prop_path in duns_props_mappings.items():
+            nested_obj = suds_obj
+            value = None
+            for nested_layer in duns_prop_path.split('.'):
+                nested_obj = getattr(nested_obj, nested_layer, None)
+                if not nested_obj:
+                    break
+                elif nested_layer == duns_prop_path.split('.')[-1]:
+                    value = nested_obj
+            if duns_props_name == 'business_types_codes':
+                value = [business_type.code for business_type in getattr(nested_obj, 'businessType', [])]
+            if duns_props_name == 'executive_comp_data':
+                for index in range(1, 6):
+                    duns_props_dict['high_comp_officer{}_full_na'.format(index)] = None
+                    duns_props_dict['high_comp_officer{}_amount'.format(index)] = None
+                for index, exec_comp in enumerate(getattr(nested_obj, 'executiveCompensationDetail', []), start=1):
+                    duns_props_dict['high_comp_officer{}_full_na'.format(index)] = exec_comp.name
+                    duns_props_dict['high_comp_officer{}_amount'.format(index)] = str(exec_comp.compensation)
+                continue
+            duns_props_dict[duns_props_name] = value
+        duns_props.append(duns_props_dict)
 
-    return pd.DataFrame(duns_name)
-
-
-def get_location_business_from_sam(client, duns_list):
-    """ Calls SAM API to retrieve DUNS location/business type data by DUNS number. Returns DUNS info as Data Frame
-
-        Args:
-            client: the SAM service client
-            duns_list: list of DUNS to search
-
-        Returns:
-            dataframe representing the DUNS and corresponding locations/business types
-    """
-    duns_name = [{
-        'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
-        'address_line_1': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'addressLine1', None),
-        'address_line_2': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'addressLine2', None),
-        'city': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'city', None),
-        'state': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'stateOrProvince', None),
-        'zip': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'ZIPCode', None),
-        'zip4': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'ZIPCodePlus4', None),
-        'country_code': getattr(suds_obj.coreData.businessInformation.physicalAddress, 'country', None),
-        'congressional_district': getattr(suds_obj.coreData.businessInformation.physicalAddress,
-                                          'congressionalDistrict', None),
-        'business_types_codes': [business_type.code for business_type
-                                 in getattr(suds_obj.coreData.generalInformation.listOfBusinessTypes,
-                                            'businessType', [])]
-    }
-        for suds_obj in get_entities(client, duns_list)
-    ]
-
-    return pd.DataFrame(duns_name)
+    return pd.DataFrame(duns_props)
 
 
-def get_parent_from_sam(client, duns_list):
-    """ Calls SAM API to retrieve parent DUNS data by DUNS number. Returns DUNS info as Data Frame
-
-        Args:
-            client: the SAM service client
-            duns_list: list of DUNS to search
-
-        Returns:
-            dataframe representing the DUNS and corresponding parent DUNS data
-    """
-    duns_parent = [{
-        'awardee_or_recipient_uniqu': suds_obj.entityIdentification.DUNS,
-        'ultimate_parent_unique_ide': suds_obj.coreData.DUNSInformation.globalParentDUNS.DUNSNumber,
-        'ultimate_parent_legal_enti': (suds_obj.coreData.DUNSInformation.globalParentDUNS.legalBusinessName
-                                       or '').upper()
-    }
-        for suds_obj in get_entities(client, duns_list)
-        if suds_obj.coreData.DUNSInformation.globalParentDUNS.DUNSNumber
-        or suds_obj.coreData.DUNSInformation.globalParentDUNS.legalBusinessName
-    ]
-
-    return pd.DataFrame(duns_parent)
-
-
-def update_missing_parent_names(sess, updated_date=None, table=DUNS):
+def update_missing_parent_names(sess, updated_date=None):
     """ Updates DUNS rows in batches where the parent DUNS number is provided but not the parent name.
         Uses other instances of the parent DUNS number where the name is populated to derive blank parent names.
         Updated_date argument used for daily DUNS loads so that only data updated that day is updated.
@@ -115,7 +91,6 @@ def update_missing_parent_names(sess, updated_date=None, table=DUNS):
         Args:
             sess: the database connection
             updated_date: the date to start importing from
-            table: the table to work from (could be DUNS/HistoricParentDuns)
 
         Returns:
             number of DUNS updated
@@ -125,9 +100,9 @@ def update_missing_parent_names(sess, updated_date=None, table=DUNS):
     # Create a mapping of all the unique parent duns -> name mappings from the database
     parent_duns_by_number_name = {}
 
-    distinct_parent_duns = sess.query(table.ultimate_parent_unique_ide, table.ultimate_parent_legal_enti)\
-        .filter(and_(func.coalesce(table.ultimate_parent_legal_enti, '') != '',
-                     table.ultimate_parent_unique_ide.isnot(None))).distinct()
+    distinct_parent_duns = sess.query(DUNS.ultimate_parent_unique_ide, DUNS.ultimate_parent_legal_enti)\
+        .filter(and_(func.coalesce(DUNS.ultimate_parent_legal_enti, '') != '',
+                     DUNS.ultimate_parent_unique_ide.isnot(None))).distinct()
 
     # Creating a mapping (parent_duns_by_number_name) of parent duns numbers to parent name
     for duns in distinct_parent_duns:
@@ -138,11 +113,11 @@ def update_missing_parent_names(sess, updated_date=None, table=DUNS):
         parent_duns_by_number_name[duns.ultimate_parent_unique_ide] = duns.ultimate_parent_legal_enti
 
     # Query to find rows where the parent duns number is present, but there is no legal entity name
-    missing_parent_name = sess.query(table).filter(and_(func.coalesce(table.ultimate_parent_legal_enti, '') == '',
-                                                        table.ultimate_parent_unique_ide.isnot(None)))
+    missing_parent_name = sess.query(DUNS).filter(and_(func.coalesce(DUNS.ultimate_parent_legal_enti, '') == '',
+                                                       DUNS.ultimate_parent_unique_ide.isnot(None)))
 
     if updated_date:
-        missing_parent_name = missing_parent_name.filter(table.updated_at >= updated_date)
+        missing_parent_name = missing_parent_name.filter(DUNS.updated_at >= updated_date)
 
     missing_count = missing_parent_name.count()
 
@@ -160,7 +135,7 @@ def update_missing_parent_names(sess, updated_date=None, table=DUNS):
                             str(missing_count if batch == batches else (batch+1)*block_size)
                             ))
 
-        missing_parent_name_block = missing_parent_name.order_by(table.duns_id).\
+        missing_parent_name_block = missing_parent_name.order_by(DUNS.duns_id).\
             slice(batch_start, batch_start + block_size)
 
         for row in missing_parent_name_block:
@@ -168,7 +143,7 @@ def update_missing_parent_names(sess, updated_date=None, table=DUNS):
                 setattr(row, 'ultimate_parent_legal_enti', parent_duns_by_number_name[row.ultimate_parent_unique_ide])
                 updated_count += 1
 
-        logger.info("Updated {} rows in {} with the parent name in {} s".format(updated_count, table.__name__,
+        logger.info("Updated {} rows in {} with the parent name in {} s".format(updated_count, DUNS.__name__,
                                                                                 time.time()-start))
         total_updated_count += updated_count
 
@@ -176,58 +151,3 @@ def update_missing_parent_names(sess, updated_date=None, table=DUNS):
 
     sess.commit()
     return total_updated_count
-
-
-def get_duns_batches(client, sess, batch_start=None, batch_end=None, updated_date=None):
-    """ Updates DUNS table with parent duns and parent name information in 100 row batches.
-    batch_start, batch_end arg used to run separate loads concurrently
-    updated_date can specify duns rows to process at a certain updated_at date (used for daily DUNS load)
-
-        Args:
-            client: the SAM service client
-            sess: the database connection
-            batch_start: the batch number to start
-            batch_end: the batch number to end (for concurrent runs)
-            updated_date: the date to start importing from
-    """
-    # SAMS will only return 100 records at a time
-    block_size = 100
-    batch = batch_start or 0
-    duns_count = 0
-
-    # Retrieve DUNS count to calculate number of batches based on how many duns there are
-    # Only retrieving DUNS that aren't deactivated
-    duns = sess.query(DUNS).filter(DUNS.deactivation_date.is_(None))
-
-    if updated_date:
-        duns = duns.filter(DUNS.updated_at >= updated_date)
-
-    if not batch_end:
-        duns_count = duns.count()
-
-    batches = batch_end or duns_count//block_size
-
-    while batch <= batches:
-        start_batch = time.time()
-
-        logger.info('Beginning updating batch {}'.format(batch))
-
-        batch_start = batch * block_size
-        duns_to_update = duns.order_by(DUNS.duns_id).slice(batch_start, batch_start + block_size)
-
-        # DUNS rows that will be updated
-        models = {row.awardee_or_recipient_uniqu: row for row in duns_to_update}
-
-        duns_list = list(models.keys())
-
-        # Gets parent duns data from SAM API
-        duns_parent_df = get_parent_from_sam(client, duns_list)
-
-        load_duns_by_row(duns_parent_df, sess, models, None, benchmarks=False)
-
-        sess.commit()
-
-        logger.info('Finished batch {}: Updated {} rows in {} s'.format(batch, len(duns_parent_df.index),
-                                                                        time.time() - start_batch))
-
-        batch += 1
