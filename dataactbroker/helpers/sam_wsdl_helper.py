@@ -1,7 +1,5 @@
 import logging
-
-import urllib.error
-
+import time
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
@@ -9,6 +7,9 @@ from dataactcore.config import CONFIG_BROKER
 
 
 logger = logging.getLogger(__name__)
+# this will prevent suds from printing the entire XML on errors and generating lengthy logs
+logging.getLogger('suds.client').setLevel(logging.CRITICAL)
+logging.getLogger('suds.umx').setLevel(logging.CRITICAL)
 
 
 def config_valid():
@@ -72,11 +73,23 @@ def get_entities(client, duns_list):
     params = client.factory.create('requestedData')
     params.coreData.value = 'Y'
 
-    try:
-        result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
-    except urllib.error.HTTPError:
-        raise ResponseException("Unable to contact SAM service, which may be experiencing downtime or intermittent "
-                                "performance issues. Please try again later.", StatusCode.NOT_FOUND)
+    exception_retries = -1
+    retry_sleep_times = [5, 30, 60, 180, 300, 360, 420, 480, 540, 600]
+
+    while exception_retries < len(retry_sleep_times):
+        try:
+            result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
+            break
+        except:
+            exception_retries += 1
+            if exception_retries < len(retry_sleep_times):
+                logger.warning('SAM service might be temporarily down. Trying again in {} seconds.'
+                               .format(retry_sleep_times[exception_retries]))
+                time.sleep(retry_sleep_times[exception_retries])
+            else:
+                raise ResponseException("Unable to contact SAM service, which may be experiencing downtime or "
+                                        "intermittent performance issues. Please try again later.",
+                                        StatusCode.NOT_FOUND)
 
     # If result is the string "-1" then our credentials aren't correct, inform the user of this
     if result == "-1":

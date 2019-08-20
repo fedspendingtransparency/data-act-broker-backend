@@ -257,23 +257,42 @@ class DUNS(Base):
     high_comp_officer5_full_na = Column(Text)
     high_comp_officer5_amount = Column(Text)
     last_exec_comp_mod_date = Column(Date)
+    historic = Column(Boolean, default=False, server_default="False")
 
 
-class HistoricParentDUNS(Base):
-    """ DUNS Records """
-    __tablename__ = "historic_parent_duns"
+class HistoricDUNS(Base):
+    """ Legacy DUNS Records with their latest updates"""
+    __tablename__ = "historic_duns"
 
     duns_id = Column(Integer, primary_key=True)
-    year = Column(Integer)
     awardee_or_recipient_uniqu = Column(Text, index=True)
     legal_business_name = Column(Text)
-    activation_date = Column(Date, index=True)
-    deactivation_date = Column(Date, index=True)
-    registration_date = Column(Date, index=True)
-    expiration_date = Column(Date, index=True)
+    dba_name = Column(Text)
+    activation_date = Column(Date)
+    registration_date = Column(Date)
+    expiration_date = Column(Date)
     last_sam_mod_date = Column(Date)
+    address_line_1 = Column(Text)
+    address_line_2 = Column(Text)
+    city = Column(Text)
+    state = Column(Text)
+    zip = Column(Text)
+    zip4 = Column(Text)
+    country_code = Column(Text)
+    congressional_district = Column(Text)
+    business_types_codes = Column(ARRAY(Text))
     ultimate_parent_unique_ide = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
+    high_comp_officer1_full_na = Column(Text)
+    high_comp_officer1_amount = Column(Text)
+    high_comp_officer2_full_na = Column(Text)
+    high_comp_officer2_amount = Column(Text)
+    high_comp_officer3_full_na = Column(Text)
+    high_comp_officer3_amount = Column(Text)
+    high_comp_officer4_full_na = Column(Text)
+    high_comp_officer4_amount = Column(Text)
+    high_comp_officer5_full_na = Column(Text)
+    high_comp_officer5_amount = Column(Text)
 
 
 class CFDAProgram(Base):
