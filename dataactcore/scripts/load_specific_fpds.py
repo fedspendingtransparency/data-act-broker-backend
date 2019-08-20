@@ -24,10 +24,9 @@ def get_param_cols(columns):
         Returns:
             A dict containing all the FPDS query columns that the provided file has
     """
-    possible_cols = {'agency_id': 'AGENCY_CODE:"{}" ', 'referenced_idv_agency_iden': 'REF_IDV_AGENCY_ID:"{}" ',
-                     'piid': 'PIID:"{}" ', 'award_modification_amendme': 'MODIFICATION_NUMBER:"{}" ',
-                     'parent_award_id': 'REF_IDV_PIID:"{}" ', 'transaction_number': 'TRANSACTION_NUMBER:"{}" ',
-                     'test_key': "This is a test"}
+    possible_cols = {'agency_id': 'AGENCY_CODE', 'referenced_idv_agency_iden': 'REF_IDV_AGENCY_ID',
+                     'piid': 'PIID', 'award_modification_amendme': 'MODIFICATION_NUMBER',
+                     'parent_award_id': 'REF_IDV_PIID', 'transaction_number': 'TRANSACTION_NUMBER'}
     existing_cols = {}
 
     for key in possible_cols:
@@ -51,7 +50,7 @@ def create_param_string(data, cols):
     param_string = ''
     for col in cols:
         if data[col]:
-            param_string += cols[col].format(data[col])
+            param_string += '{}:"{}" '.format(cols[col], data[col])
 
     return param_string
 
