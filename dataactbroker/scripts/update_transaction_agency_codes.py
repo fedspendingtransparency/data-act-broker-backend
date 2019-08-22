@@ -79,8 +79,8 @@ def set_update_condition(agency_type, table, suffix, sess, subtier_codes=None):
     if subtier_codes and len(subtier_codes) == 1:
         sql_statement = "{}.{}_sub_tier_agency_c{} = '{}' ".format(table, agency_type, suffix, str(subtier_codes[0]))
     elif subtier_codes and len(subtier_codes) > 1:
-        subtier_list = '({})'.format(','.join(['\'{}\''.format(subtier_code) for subtier_code in subtier_codes]))
-        sql_statement = "{}.{}_sub_tier_agency_c{} IN {}".format(table, agency_type, suffix, subtier_list)
+        subtiers_str = '({})'.format(','.join(['\'{}\''.format(subtier_code) for subtier_code in subtier_codes]))
+        sql_statement = "{}.{}_sub_tier_agency_c{} IN {}".format(table, agency_type, suffix, subtiers_str)
     else:
         sql_statement = "{}.{}_agency_code = '999' ".format(table, agency_type)
 
