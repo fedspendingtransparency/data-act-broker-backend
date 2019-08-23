@@ -29,7 +29,7 @@ def move_certified_error_metadata(sess):
     """ Simply move the error metadata for certified submissions since that one is valid.
 
         Args:
-            sess: connection to database 
+            sess: connection to database
     """
     logger.info('Moving certified error metadata')
     # Get a list of all jobs for certified submissions that aren't FABS
@@ -223,7 +223,7 @@ def move_updated_error_metadata(sess):
                     COUNT(1),
                     MIN(row_number),
                     error_message,
-                    source_file, 
+                    source_file,
                     target_file,
                     rule_label,
                     severity_id
