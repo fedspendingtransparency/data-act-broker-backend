@@ -257,32 +257,18 @@ Example Route `/Users/serverdata/test.csv`  for example will return the `test.cs
 to `/Users/serverdata`.
 
 #### POST "/v1/upload\_dabs\_files/"
-A call to this route should be of content type `"multipart/form-data"`, and, if using curl or a similar service, should use @ notation for the values of the "appropriations", "program_activity" and "award_financial" keys, to indicate the local path to the files to be uploaded. Otherwise, should pass a file-like object.
+A call to this route should be of content type `"multipart/form-data"`, and, if using curl or a similar service, should use @ notation for the values of the "appropriations", "program\_activity" and "award\_financial" keys, to indicate the local path to the files to be uploaded. Otherwise, should pass a file-like object.
 
-This route will upload the files, then kick off the validation jobs. It will return the submission_id.
+This route will upload the files, then kick off the validation jobs. It will return the submission\_id.
 
-For a new submission, all three files must be submitted. For corrections to an existing submission, one or more files may be submitted along with the `existing_submission_id` parameter.
+For a new submission, all three files must be submitted. For corrections to an existing submission, one or more files must be submitted along with the `existing_submission_id` parameter.
 
 For information on the CGAC and FREC parameters, see the note above in the "Background" section.
 
-#### Additional Required Headers:
-- `Content-Type` - `"multipart/form-data"`
+##### Additional Required Headers:
+- `Content-Type`: `"multipart/form-data"`
 
-#### Request Parameters:
-- `appropriations` - local path to file using @ notation
-- `program_activity` - local path to file using @ notation
-- `award_financial` - local path to file using @ notation
-- `cgac_code` - **required if not FREC** string, CGAC of agency (null if FREC agency)
-- `frec_code` - **required if not CGAC** string, FREC of agency (null if CGAC agency)
-- `is_quarter` - boolean (true for quarterly submissions)
-- `reporting_period_start_date` - string, starting date of submission (MM/YYYY)
-- `reporting_period_end_date` - string, ending date of submission (MM/YYYY)
-- `existing_submission_id:`- integer, id of previous submission, use only if submitting an update.
-
-**NOTE**: for monthly submissions, start/end date are the same
-
-
-#### Example Curl Request:
+##### Example Curl Request For New Submission:
 ```
 curl -i -X POST 
       -H "x-session-id: abcdefg-1234567-hijklmno-89101112"  
@@ -298,28 +284,60 @@ curl -i -X POST
     /v1/upload_dabs_files/
 ```
 
-#### Example Output:
-```json
+##### Example Curl Request For Existing Submission:
+```
+curl -i -X POST 
+      -H "x-session-id: abcdefg-1234567-hijklmno-89101112"  
+      -H "Content-Type: multipart/form-data" 
+      -F 'existing_submission_id=5' 
+      -F "appropriations=@/local/path/to/a.csv"
+    /v1/upload_dabs_files/
+```
+
+##### Request Params:
+- `cgac_code`: (required if not FREC, string) CGAC of agency (null if FREC agency)
+- `frec_code`: (required if not CGAC, string) FREC of agency (null if CGAC agency)
+- `appropriations`: (string) local path to file using @ notation
+- `program_activity`: (string) local path to file using @ notation
+- `award_financial`: (string) local path to file using @ notation
+- `is_quarter`: (boolean) True for quarterly submissions
+- `reporting_period_start_date`: (string) starting date of submission (MM/YYYY)
+- `reporting_period_end_date`: (string) ending date of submission (MM/YYYY)
+- `existing_submission_id`: (integer) ID of previous submission, use only if submitting an update.
+
+**NOTE**: for monthly submissions, start/end date are the same
+
+##### Response (JSON):
+```
 {
   "success":"true",
   "submission_id": 123
 }
 ```
 
+##### Response Attributes
+- `success `: (boolean) whether the creation was successful or not
+- `submission_id`: (integer) submission ID of the created or updated submission
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Missing parameter
+    - Submission does not exist
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
+
 #### POST "/v1/upload\_fabs\_file/"
 A call to this route should be of content type `"multipart/form-data"`, and, if using curl or a similar service, should use @ notation for the value of the "fabs" key, to indicate the local path to the file to be uploaded. Otherwise, should pass a file-like object.
 
 This route will upload the file, then kick off the validation jobs. It will return the submission id.
 
-#### Additional Required Headers:
+##### Additional Required Headers:
 - `Content-Type`: `"multipart/form-data"`
 
-#### Request Parameters:
-- `agency_code`: string, sub tier agency code. Required if existing_submission_id is not included
-- `fabs`: **required** local path to file using @ notation
-- `existing_submission_id`: integer, id of previous submission, use only if submitting an update.
-
-#### Example curl request:
+##### Example Curl Request For New Submission:
 ```
   curl -i -X POST /
       -H "x-session-id: abcdefg-1234567-hijklmno-89101112"
@@ -329,13 +347,42 @@ This route will upload the file, then kick off the validation jobs. It will retu
     /v1/upload_fabs_file/
 ```
 
-#### Example output:
-```json
+##### Example Curl Request For Existing Submission:
+```
+  curl -i -X POST /
+      -H "x-session-id: abcdefg-1234567-hijklmno-89101112"
+      -H "Content-Type: multipart/form-data"
+      -F 'existing_submission_id=5'
+      -F "fabs=@/local/path/to/fabs.csv"
+    /v1/upload_fabs_file/
+```
+
+##### Request Params:
+- `fabs`: (required, string) local path to file using @ notation
+- `agency_code`: (string) sub tier agency code. Required if existing_submission_id is not included
+- `existing_submission_id`: (integer) ID of previous submission, use only if submitting an update.
+
+##### Response (JSON):
+```
 {
   "success":true,
   "submission_id":12
 }
 ```
+
+##### Response Attributes
+- `success`: (boolean) whether the creation was successful or not
+- `submission_id`: (integer) submission ID of the created or updated submission
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Missing parameter
+    - Submission does not exist
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
 
 #### GET "/v1/revalidation\_threshold/"
 This endpoint returns the revalidation threshold for the broker application. This is the date that denotes the earliest validation date a submission must have in order to be certifiable.
@@ -1512,7 +1559,7 @@ Possible HTTP Status Codes:
 This route returns either a signed S3 URL to the generated file or, if the file is not yet ready or have failed to generate for other reasons, returns a status indicating that. This route is used for file generation **independent** from a submission.
 
 #### Sample Request (JSON)
-`/v1/check_detached_generation_status/job_id=1`
+`/v1/check_detached_generation_status/?job_id=1`
 
 ### Request Params
 - `job_id` - **required** - an integer corresponding the job_id for the generation. Provided in the response of the call to `generate_detached_file`

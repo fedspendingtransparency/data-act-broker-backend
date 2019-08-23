@@ -3,7 +3,10 @@ import os.path
 
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
-from flask import Flask, g, session
+from flask import Flask, g, session, request
+
+import logging
+import json
 
 from dataactbroker.exception_handler import add_exception_handlers
 from dataactbroker.handlers.account_handler import AccountHandler
@@ -27,6 +30,7 @@ from dataactcore.utils.statusCode import StatusCode
 
 # DataDog Import (the below value gets changed via Ansible during deployment. DO NOT DELETE)
 USE_DATADOG = False
+logger = logging.getLogger(__name__)
 
 if USE_DATADOG:
     from ddtrace import tracer
@@ -81,6 +85,26 @@ def create_app():
         g.user = None
         if session.get('name') is not None:
             g.user = sess.query(User).filter_by(user_id=session['name']).one_or_none()
+
+        content_type = request.headers.get('Content-Type')
+
+        # If the request is a POST we want to log the request body
+        if request.method == 'POST' and content_type and 'login' not in request.url.lower():
+            request_body = {}
+
+            # If request is json, turn it into a dict
+            if 'application/json' in content_type:
+                request_body = json.loads(request.get_data().decode('utf8'))
+            elif 'multipart/form-data' in content_type:
+                # If request is a multipart request, get only the form portions of it
+                for key in request.form.keys():
+                    request_body[key] = request.form[key]
+
+            request_dict = {
+                'message': 'Request body for ' + request.url,
+                'body': request_body
+            }
+            logger.info(request_dict)
 
     # Root will point to index.html
     @flask_app.route("/", methods=["GET"])

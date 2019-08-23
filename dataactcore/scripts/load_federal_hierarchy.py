@@ -22,7 +22,7 @@ from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.csv_selection import write_query_to_file
 
 logger = logging.getLogger(__name__)
-logging.getLogger("requests").setLevel(logging.WARNING)
+logging.getLogger('requests').setLevel(logging.WARNING)
 
 API_URL = CONFIG_BROKER['sam']['federal_hierarchy_api_url'].format(CONFIG_BROKER['sam']['federal_hierarchy_api_key'])
 REQUESTS_AT_ONCE = 10
@@ -40,27 +40,30 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
             export_office: when provided, name of the file to export the office list to
             metrics: an object containing information for the metrics file
     """
-    logger.info('Starting feed: %s', API_URL.replace(CONFIG_BROKER['sam']['federal_hierarchy_api_key'], "[API_KEY]"))
-    top_sub_levels = ["1", "2"]
-    office_levels = ["3", "4", "5", "6", "7"]
+    logger.info('Starting feed: %s', API_URL.replace(CONFIG_BROKER['sam']['federal_hierarchy_api_key'], '[API_KEY]'))
+    top_sub_levels = ['1', '2']
+    office_levels = ['3', '4', '5', '6', '7']
     levels = top_sub_levels + office_levels if filename else office_levels
 
     if filename:
-        logger.info("Creating a file ({}) with the data from this pull".format(filename))
+        logger.info('Creating a file ({}) with the data from this pull'.format(filename))
         # Write headers to file
         file_headers = [
-            "fhorgid", "fhorgname", "fhorgtype", "description", "level", "status", "region", "categoryid",
-            "effectivestartdate", "effectiveenddate", "createdby", "createddate", "updatedby", "lastupdateddate",
-            "fhdeptindagencyorgid", "fhagencyorgname", "agencycode", "oldfpdsofficecode", "aacofficecode",
-            "cgaclist_0_cgac", "fhorgofficetypelist_0_officetype", "fhorgofficetypelist_0_officetypestartdate",
-            "fhorgofficetypelist_0_officetypeenddate", "fhorgofficetypelist_1_officetype",
-            "fhorgofficetypelist_1_officetypestartdate", "fhorgofficetypelist_1_officetypeenddate",
-            "fhorgofficetypelist_2_officetype", "fhorgofficetypelist_2_officetypestartdate",
-            "fhorgofficetypelist_2_officetypeenddate", "fhorgaddresslist_0_city", "fhorgaddresslist_0_state",
-            "fhorgaddresslist_0_country_code", "fhorgaddresslist_0_addresstype", "fhorgnamehistory_0_fhorgname",
-            "fhorgnamehistory_0_effectivedate", "fhorgparenthistory_0_fhfullparentpathid",
-            "fhorgparenthistory_0_fhfullparentpathname", "fhorgparenthistory_0_effectivedate", "links_0_href",
-            "links_0_rel", "links_1_href", "links_1_rel", "links_2_href", "links_2_rel"]
+            'fhorgid', 'fhorgname', 'fhorgtype', 'description', 'level', 'status', 'region', 'categoryid',
+            'effectivestartdate', 'effectiveenddate', 'createdby', 'createddate', 'updatedby', 'lastupdateddate',
+            'fhdeptindagencyorgid', 'fhagencyorgname', 'agencycode', 'oldfpdsofficecode', 'aacofficecode',
+            'cgaclist_0_cgac', 'cgaclist_1_cgac', 'cgaclist_2_cgac', 'cgaclist_3_cgac', 'cgaclist_4_cgac',
+            'fhorgofficetypelist_0_officetype', 'fhorgofficetypelist_0_officetypestartdate',
+            'fhorgofficetypelist_0_officetypeenddate', 'fhorgofficetypelist_1_officetype',
+            'fhorgofficetypelist_1_officetypestartdate', 'fhorgofficetypelist_1_officetypeenddate',
+            'fhorgofficetypelist_2_officetype', 'fhorgofficetypelist_2_officetypestartdate',
+            'fhorgofficetypelist_2_officetypeenddate', 'fhorgofficetypelist_3_officetype',
+            'fhorgofficetypelist_3_officetypeenddate', 'fhorgofficetypelist_3_officetypestartdate',
+            'fhorgaddresslist_0_city', 'fhorgaddresslist_0_state', 'fhorgaddresslist_0_country_code',
+            'fhorgaddresslist_0_addresstype', 'fhorgnamehistory_0_fhorgname', 'fhorgnamehistory_0_effectivedate',
+            'fhorgparenthistory_0_fhfullparentpathid', 'fhorgparenthistory_0_fhfullparentpathname',
+            'fhorgparenthistory_0_effectivedate', 'links_0_href', 'links_0_rel', 'links_1_href', 'links_1_rel',
+            'links_2_href', 'links_2_rel']
         with open(filename, 'w+') as f:
             csv_writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
             csv_writer.writerow(file_headers)
@@ -68,11 +71,11 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
     empty_pull_count = 0
     for level in levels:
         # Create URL with the level parameter
-        url_with_params = "{}&level={}".format(API_URL, level)
+        url_with_params = '{}&level={}'.format(API_URL, level)
 
         # Add updateddatefrom parameter to the URL
         if not pull_all:
-            url_with_params += "&updateddatefrom={}".format(updated_date_from)
+            url_with_params += '&updateddatefrom={}'.format(updated_date_from)
 
         # Retrieve the total count of expected records for this pull
         total_expected_records = json.loads(requests.get(url_with_params, timeout=60).text)['totalrecords']
@@ -92,7 +95,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                     loop.run_in_executor(
                         None,
                         get_with_exception_hand,
-                        "{}&limit={}&offset={}".format(url_with_params, str(limit),
+                        '{}&limit={}&offset={}'.format(url_with_params, str(limit),
                                                        str(entries_already_processed + (start_offset * limit)))
                     )
                     for start_offset in range(REQUESTS_AT_ONCE)
@@ -117,7 +120,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                 # We get errors back as regular JSON, need to catch them somewhere
                 if response_dict.get('error'):
                     err = response_dict.get('error')
-                    logger.error("An error occurred: {}".format(err))
+                    logger.error('An error occurred: {}'.format(err))
                     sys.exit(2)
 
                 # Process the entry if it isn't an error
@@ -153,7 +156,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                                             financial_assistance_funding_office=False)
 
                         for off_type in org.get('fhorgofficetypelist', []):
-                            office_type = off_type['officetype'].lower().replace(" ", "_")
+                            office_type = off_type['officetype'].lower().replace(' ', '_')
                             if office_type in ['contract_funding', 'contract_awards', 'financial_assistance_awards',
                                                'financial_assistance_funding']:
                                 setattr(new_office, office_type + '_office', True)
@@ -165,7 +168,7 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                 for header in list(dataframe.columns.values):
                     if header not in file_headers:
                         file_headers.append(header)
-                        logger.info("Headers missing column: %s", header)
+                        logger.info('Headers missing column: %s', header)
 
                 # Write to file
                 with open(filename, 'a') as f:
@@ -176,14 +179,14 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
                 sess.query(Office).filter(Office.office_code.in_(office_codes)).delete(synchronize_session=False)
                 sess.add_all(offices.values())
 
-            logger.info("Processed rows %s-%s", start, entries_processed)
+            logger.info('Processed rows %s-%s', start, entries_processed)
             if entries_processed == total_expected_records:
                 # Feed has finished
                 break
 
             if entries_processed > total_expected_records:
                 # We have somehow retrieved more records than existed at the beginning of the pull
-                logger.error("Total expected records: {}, Number of records retrieved: {}".format(
+                logger.error('Total expected records: {}, Number of records retrieved: {}'.format(
                     total_expected_records, entries_processed))
                 sys.exit(2)
 
@@ -191,15 +194,15 @@ def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_
         sess.commit()
 
     if export_office:
-        logger.info("Creating a file ({}) with the data from the database".format(export_office))
+        logger.info('Creating a file ({}) with the data from the database'.format(export_office))
         all_offices = sess.query(Office)
         write_query_to_file(sess, all_offices, export_office, generate_headers=True)
 
     if empty_pull_count == len(levels):
-        logger.error("No records retrieved from the Federal Hierarchy API")
+        logger.error('No records retrieved from the Federal Hierarchy API')
         sys.exit(3)
 
-    logger.info("Finished")
+    logger.info('Finished')
 
 
 def flatten_json(json_obj):
@@ -293,7 +296,7 @@ def main():
     args = parser.parse_args()
 
     if args.all and args.pull_date:
-        logger.error("The -a and -d flags conflict, cannot use both at once.")
+        logger.error('The -a and -d flags conflict, cannot use both at once.')
         sys.exit(1)
 
     metrics_json = {
@@ -315,9 +318,9 @@ def main():
     if args.pull_date:
         try:
             updated_date_from = args.pull_date[0]
-            datetime.strptime(updated_date_from, "%Y-%m-%d")
+            datetime.strptime(updated_date_from, '%Y-%m-%d')
         except ValueError:
-            logger.error("The date given to the -d flag was not parseable.")
+            logger.error('The date given to the -d flag was not parseable.')
             sys.exit(1)
 
     # Get or create the start date
@@ -325,7 +328,7 @@ def main():
     if not args.all and not updated_date_from:
         last_pull_date = sess.query(func.max(Office.updated_at)).one_or_none()
         if not last_pull_date:
-            logger.error("The -a or -d flag must be set when there are no Offices present in the database.")
+            logger.error('The -a or -d flag must be set when there are no Offices present in the database.')
             sys.exit(1)
         updated_date_from = last_pull_date[0].date()
 
@@ -337,7 +340,7 @@ def main():
 
     # Handle a complete data reload
     if args.all and not args.ignore_db:
-        logger.info("Emptying out the Office table for a complete reload.")
+        logger.info('Emptying out the Office table for a complete reload.')
         sess.execute('''TRUNCATE TABLE office RESTART IDENTITY''')
 
     try:
@@ -357,7 +360,7 @@ def main():
 
     with open('load_federal_hierarchy_metrics.json', 'w+') as metrics_file:
         json.dump(metrics_json, metrics_file)
-    logger.info("Script complete")
+    logger.info('Script complete')
 
 
 if __name__ == '__main__':

@@ -256,6 +256,8 @@ class Subaward(Base):
     high_comp_officer4_amount = Column(Text, nullable=True)
     high_comp_officer5_full_na = Column(Text, nullable=True)
     high_comp_officer5_amount = Column(Text, nullable=True)
+    place_of_perform_street = Column(Text)
+
     # Additional FSRS - Subaward Data
     sub_id = Column(Integer, index=True)
     sub_parent_id = Column(Integer, index=True)
@@ -273,6 +275,7 @@ class Subaward(Base):
     sub_recovery_model_q2 = Column(Text)
     sub_compensation_q1 = Column(Text)
     sub_compensation_q2 = Column(Text)
+    sub_place_of_perform_street = Column(Text)
 
 Index("ix_subaward_award_id_upper", func.upper(Subaward.award_id))
 Index("ix_subaward_parent_award_id_upper", func.upper(Subaward.parent_award_id))

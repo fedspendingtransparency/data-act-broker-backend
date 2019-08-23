@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT, FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT
@@ -10,6 +12,8 @@ from tests.integration.integration_test_helper import insert_submission, insert_
 
 class ListSubmissionTests(BaseTestAPI):
     """ Test list submissions endpoint """
+
+    MAX_UPDATED_AT = '01/01/3000'
 
     @classmethod
     def setUpClass(cls):
@@ -39,21 +43,26 @@ class ListSubmissionTests(BaseTestAPI):
                                                       publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
                                                       updated_at='01/01/2012')
 
+            # This is the min date, but the date everything should be using is the one in the job (MAX_UPDATED_AT)
             cls.certified_dabs_sub_id = insert_submission(sess, cls.admin_user_id, cgac_code="SYS",
                                                           start_date="10/2015", end_date="12/2015", is_quarter=True,
                                                           is_fabs=False,
                                                           publish_status_id=PUBLISH_STATUS_DICT['published'],
-                                                          updated_at='01/01/2017')
+                                                          updated_at='01/01/2000')
 
-            # Add a couple jobs for dabs files
+            # Add a couple jobs for dabs files, make sure the updated at is the same as or earlier than the one on
+            # the submission itself
             insert_job(sess, FILE_TYPE_DICT['appropriations'], FILE_STATUS_DICT['complete'],
                        JOB_TYPE_DICT['file_upload'], cls.non_admin_dabs_sub_id, filename='/path/to/test/file_1.csv',
-                       file_size=123, num_rows=3)
+                       file_size=123, num_rows=3, updated_at='01/01/2009')
             insert_job(sess, FILE_TYPE_DICT['award'], FILE_STATUS_DICT['complete'], JOB_TYPE_DICT['file_upload'],
-                       cls.non_admin_dabs_sub_id, filename='/path/to/test/file_2.csv', file_size=123, num_rows=3)
+                       cls.non_admin_dabs_sub_id, filename='/path/to/test/file_2.csv', file_size=123, num_rows=3,
+                       updated_at='01/01/2009')
 
+            # Min updated at date
             insert_job(sess, FILE_TYPE_DICT['award'], FILE_STATUS_DICT['complete'], JOB_TYPE_DICT['file_upload'],
-                       cls.certified_dabs_sub_id, filename='/path/to/test/file_part_2.csv', file_size=123, num_rows=3)
+                       cls.certified_dabs_sub_id, filename='/path/to/test/file_part_2.csv', file_size=123, num_rows=3,
+                       updated_at=cls.MAX_UPDATED_AT)
 
             # set up submissions for fabs
             cls.non_admin_fabs_sub_id = insert_submission(sess, cls.admin_user_id, cgac_code="SYS",
@@ -61,6 +70,7 @@ class ListSubmissionTests(BaseTestAPI):
                                                           publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
                                                           updated_at='01/01/2016')
 
+            # This is the min date, but the date everything should be using is the one in the job (MAX_UPDATED_AT)
             cls.admin_fabs_sub_id = insert_submission(sess, cls.other_user_id, cgac_code="000", start_date="10/2015",
                                                       end_date="12/2015", is_fabs=True,
                                                       publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
@@ -74,7 +84,7 @@ class ListSubmissionTests(BaseTestAPI):
             # Add a job for a FABS submission
             insert_job(sess, FILE_TYPE_DICT['fabs'], FILE_STATUS_DICT['complete'], JOB_TYPE_DICT['file_upload'],
                        cls.admin_fabs_sub_id, filename=str(cls.admin_fabs_sub_id) + '/test_file.csv', file_size=123,
-                       num_rows=3)
+                       num_rows=3, updated_at=cls.MAX_UPDATED_AT)
 
     def setUp(self):
         """ Test set-up. """
@@ -106,8 +116,7 @@ class ListSubmissionTests(BaseTestAPI):
         response = self.app.post_json("/v1/list_submissions/", {"certified": "true"},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.certified_dabs_sub_id})
-        self.assertEqual(response.json['min_last_modified'],
-                         str(get_submission(self.session, self.certified_dabs_sub_id).updated_at))
+        self.assertEqual(response.json['min_last_modified'], str(datetime.strptime(self.MAX_UPDATED_AT, '%m/%d/%Y')))
 
     def test_list_submissions_dabs_non_admin(self):
         """ Test with DABS submissions for a non admin user. """
@@ -136,13 +145,13 @@ class ListSubmissionTests(BaseTestAPI):
         self.assertEqual(self.sub_ids(response), {self.non_admin_fabs_sub_id, self.admin_fabs_sub_id,
                                                   self.published_fabs_sub_id})
         self.assertEqual(response.json['min_last_modified'],
-                         str(get_submission(self.session, self.admin_fabs_sub_id).updated_at))
+                         str(get_submission(self.session, self.published_fabs_sub_id).updated_at))
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "false", "fabs": True},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_fabs_sub_id, self.admin_fabs_sub_id})
         self.assertEqual(response.json['min_last_modified'],
-                         str(get_submission(self.session, self.admin_fabs_sub_id).updated_at))
+                         str(get_submission(self.session, self.non_admin_fabs_sub_id).updated_at))
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "true", "fabs": True},
                                       headers={"x-session-id": self.session_id})
@@ -157,13 +166,12 @@ class ListSubmissionTests(BaseTestAPI):
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.admin_fabs_sub_id, self.published_fabs_sub_id})
         self.assertEqual(response.json['min_last_modified'],
-                         str(get_submission(self.session, self.admin_fabs_sub_id).updated_at))
+                         str(get_submission(self.session, self.published_fabs_sub_id).updated_at))
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "false", "fabs": True},
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.admin_fabs_sub_id})
-        self.assertEqual(response.json['min_last_modified'],
-                         str(get_submission(self.session, self.admin_fabs_sub_id).updated_at))
+        self.assertEqual(response.json['min_last_modified'], str(datetime.strptime(self.MAX_UPDATED_AT, '%m/%d/%Y')))
 
         response = self.app.post_json("/v1/list_submissions/", {"certified": "true", "fabs": True},
                                       headers={"x-session-id": self.session_id})
@@ -228,6 +236,19 @@ class ListSubmissionTests(BaseTestAPI):
         }
         response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id})
+
+        # Listing submissions based on last modified in job (if it's higher) (also still using only one day)
+        post_json = {
+            "certified": "mixed",
+            "filters": {
+                "last_modified_range": {
+                    "start_date": self.MAX_UPDATED_AT,
+                    "end_date": self.MAX_UPDATED_AT
+                }
+            }
+        }
+        response = self.app.post_json("/v1/list_submissions/", post_json, headers={"x-session-id": self.session_id})
+        self.assertEqual(self.sub_ids(response), {self.certified_dabs_sub_id})
 
         # Breaks if one of the date filters isn't provided and the other is
         post_json["filters"] = {
