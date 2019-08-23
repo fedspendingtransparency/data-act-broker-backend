@@ -190,6 +190,8 @@ def move_updated_error_metadata(sess):
             warning_df['source_file'] = warning_df.apply(lambda x: convert_file_type_to_int(x, 'source_file'), axis=1)
             warning_df['target_file'] = warning_df.apply(lambda x: convert_file_type_to_int(x, 'target_file'), axis=1)
             warning_df['error_type_id'] = warning_df.apply(lambda x: derive_error_type_id(x), axis=1)
+            # Replace the word "None" anywhere in the dataframe with an actual None
+            warning_df = warning_df.replace('None', None, regex=True)
             insert_dataframe(warning_df, 'temp_error_file', sess.connection())
             sess.commit()
 
