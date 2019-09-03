@@ -1061,6 +1061,10 @@ def update_narratives(submission, narrative_request):
             submission: submission to update the narratives for
             narrative_request: the contents of the request from the API
     """
+    # If the submission has been certified, set its status to updated when new comments are made.
+    if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+        submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
+
     json = narrative_request or {}
     # clean input
     narratives_json = {key.upper(): value.strip() for key, value in json.items()
