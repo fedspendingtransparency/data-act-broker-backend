@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger('requests').setLevel(logging.WARNING)
 
 API_URL = CONFIG_BROKER['sam']['federal_hierarchy_api_url'].format(CONFIG_BROKER['sam']['federal_hierarchy_api_key'])
-REQUESTS_AT_ONCE = 10
+REQUESTS_AT_ONCE = 5
 
 
 def pull_offices(sess, filename, update_db, pull_all, updated_date_from, export_office, metrics):
