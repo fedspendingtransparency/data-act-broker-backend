@@ -30,7 +30,8 @@ from dataactcore.interfaces.function_bag import (
 from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
                                              Office, DUNS)
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
-                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileGeneration)
+                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileGeneration,
+                                          FileType)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
@@ -1085,6 +1086,27 @@ def update_narratives(submission, narrative_request):
             ))
     sess.add_all(narratives)
     sess.commit()
+
+    # Preparing for the comments file
+    filename = 'submission_{}_comments.csv'.format(submission.submission_id)
+    local_file = "".join([CONFIG_BROKER['broker_files'], filename])
+    file_path = local_file if g.is_local else '{}/{}'.format(str(submission.submission_id), filename)
+
+    # If we have comments, we want to generate a file containing all the comments for a given submission
+    if narratives:
+        comment_query = sess.query(FileType.name, SubmissionNarrative.narrative).\
+            join(FileType, SubmissionNarrative.file_type_id == FileType.file_type_id).\
+            filter(SubmissionNarrative.submission_id == submission.submission_id)
+
+        headers = ['File', 'Comment']
+
+        # Generate the file locally, then place in S3
+        write_stream_query(sess, comment_query, local_file, file_path, g.is_local, header=headers)
+    else:
+        if g.is_local and os.path.exists(file_path):
+            os.remove(file_path)
+        elif not g.is_local:
+            S3Handler().delete_file(CONFIG_BROKER["aws_bucket"], file_path)
 
     return JsonResponse.create(StatusCode.OK, {})
 
