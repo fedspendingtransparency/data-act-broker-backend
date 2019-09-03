@@ -30,8 +30,8 @@ aw_dap AS
     WHERE EXISTS (
         SELECT 1
         FROM unlinked_subs
-        WHERE UPPER(unlinked_subs.award_id) = UPPER(dap.piid)
-            AND COALESCE(UPPER(unlinked_subs.parent_award_id), '') = COALESCE(UPPER(dap.parent_award_id), '')
+        WHERE UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(dap.piid, '-', ''))
+            AND COALESCE(UPPER(TRANSLATE(unlinked_subs.parent_award_id, '-', '')), '') = COALESCE(UPPER(TRANSLATE(dap.parent_award_id, '-', '')), '')
             AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) = UPPER(dap.awarding_sub_tier_agency_c)
         )
         {0}
@@ -47,8 +47,8 @@ SET
     naics_description = aw_dap.naics_description
 FROM unlinked_subs
     JOIN aw_dap
-        ON (UPPER(unlinked_subs.award_id) = UPPER(aw_dap.piid)
-        AND COALESCE(UPPER(unlinked_subs.parent_award_id), '') = COALESCE(UPPER(aw_dap.parent_award_id), '')
+        ON (UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(aw_dap.piid, '-', ''))
+        AND COALESCE(UPPER(TRANSLATE(unlinked_subs.parent_award_id, '-', '')), '') = COALESCE(UPPER(TRANSLATE(aw_dap.parent_award_id, '-', '')), '')
         AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) = UPPER(aw_dap.awarding_sub_tier_agency_c)
         )
 WHERE subaward.id = unlinked_subs.id;
