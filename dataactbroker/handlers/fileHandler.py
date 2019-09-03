@@ -1091,22 +1091,15 @@ def update_narratives(submission, narrative_request):
     filename = 'submission_{}_comments.csv'.format(submission.submission_id)
     local_file = "".join([CONFIG_BROKER['broker_files'], filename])
     file_path = local_file if g.is_local else '{}/{}'.format(str(submission.submission_id), filename)
+    headers = ['File', 'Comment']
 
-    # If we have comments, we want to generate a file containing all the comments for a given submission
-    if narratives:
-        comment_query = sess.query(FileType.name, SubmissionNarrative.narrative).\
-            join(FileType, SubmissionNarrative.file_type_id == FileType.file_type_id).\
-            filter(SubmissionNarrative.submission_id == submission.submission_id)
+    # Generate a file containing all the comments for a given submission
+    comment_query = sess.query(FileType.name, SubmissionNarrative.narrative).\
+        join(FileType, SubmissionNarrative.file_type_id == FileType.file_type_id).\
+        filter(SubmissionNarrative.submission_id == submission.submission_id)
 
-        headers = ['File', 'Comment']
-
-        # Generate the file locally, then place in S3
-        write_stream_query(sess, comment_query, local_file, file_path, g.is_local, header=headers)
-    else:
-        if g.is_local and os.path.exists(file_path):
-            os.remove(file_path)
-        elif not g.is_local:
-            S3Handler().delete_file(CONFIG_BROKER["aws_bucket"], file_path)
+    # Generate the file locally, then place in S3
+    write_stream_query(sess, comment_query, local_file, file_path, g.is_local, header=headers)
 
     return JsonResponse.create(StatusCode.OK, {})
 

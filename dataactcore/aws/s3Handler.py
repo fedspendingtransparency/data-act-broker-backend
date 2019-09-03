@@ -126,14 +126,3 @@ class S3Handler:
             'Key': original_path
         }
         s3.meta.client.copy(source_info, new_bucket, new_path)
-
-    @staticmethod
-    def delete_file(bucket, path):
-        """ Deletes a file from a bucket
-
-            Args:
-                bucket: Name of the bucket to delete from
-                path: Path and filename of the file to delete
-        """
-        s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
-        s3_client.delete_object(Bucket=bucket, Key=path)
