@@ -5,7 +5,7 @@ from webargs.flaskparser import use_kwargs
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler, get_upload_file_url,
     get_detached_upload_file_url, narratives_for_submission, submission_report_url, update_narratives,
-    list_certifications, file_history_url)
+    list_certifications, file_history_url, get_comments_file)
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
     certify_dabs_submission, find_existing_submissions_in_period, get_submission_metadata, get_submission_data,
@@ -158,6 +158,12 @@ def add_file_routes(app, is_local, server_path):
     @requires_submission_perms('writer')
     def post_submission_narratives(submission):
         return update_narratives(submission, request.json)
+
+    @app.route("/v1/get_comments_file", methods=['GET'])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def get_submission_comments_file(submission):
+        return get_comments_file(submission)
 
     @app.route("/v1/submission/<int:submission_id>/report_url", methods=['GET'])
     @requires_submission_perms('reader')

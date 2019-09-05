@@ -1104,6 +1104,34 @@ def update_narratives(submission, narrative_request):
     return JsonResponse.create(StatusCode.OK, {})
 
 
+def get_comments_file(submission):
+    """ Retrieve the comments file for a specific submission.
+
+        Args:
+            submission: the submission to get the comments file for
+
+        Returns:
+            A JsonResponse containing the url to the file if one exists, JsonResponse error containing the details of
+            the error if something went wrong
+    """
+
+    sess = GlobalDB.db().session
+    num_comments = sess.query(SubmissionNarrative).filter_by(submission_id=submission.submission_id).count()
+    # if we have at least one comment, we have a file to return
+    if num_comments > 0:
+        filename = 'submission_{}_comments.csv'.format(submission.submission_id)
+        if g.is_local:
+            # when local, can just grab the path
+            url = os.path.join(CONFIG_BROKER['broker_files'], filename)
+        else:
+            url = S3Handler().get_signed_url(str(submission.submission_id), filename,
+                                             url_mapping=CONFIG_BROKER["submission_bucket_mapping"],
+                                             method="get_object")
+        return JsonResponse.create(StatusCode.OK, {"url": url})
+    return JsonResponse.error(ValueError('This submission does not have any comments associated with it'),
+                              StatusCode.CLIENT_ERROR)
+
+
 def create_fabs_published_file(sess, submission_id, new_route):
     """ Create a file containing all the published rows from this submission_id
 
