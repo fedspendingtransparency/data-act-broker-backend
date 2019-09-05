@@ -157,13 +157,13 @@ def add_file_routes(app, is_local, server_path):
     @app.route("/v1/submission/<int:submission_id>/narrative", methods=['POST'])
     @requires_submission_perms('writer')
     def post_submission_narratives(submission):
-        return update_narratives(submission, request.json)
+        return update_narratives(submission, request.json, is_local)
 
     @app.route("/v1/get_comments_file", methods=['GET'])
     @convert_to_submission_id
     @requires_submission_perms('reader')
     def get_submission_comments_file(submission):
-        return get_comments_file(submission)
+        return get_comments_file(submission, is_local)
 
     @app.route("/v1/submission/<int:submission_id>/report_url", methods=['GET'])
     @requires_submission_perms('reader')

@@ -10,6 +10,7 @@ import calendar
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactbroker.handlers import fileHandler
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.jobModels import CertifiedFilesHistory
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.utils.responseException import ResponseException
@@ -238,17 +239,18 @@ def test_list_submissions_permissions(database, monkeypatch):
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_narratives(database):
+def test_narratives(database, monkeypatch):
     """Verify that we can add, retrieve, and update submission narratives. Not
     quite a unit test as it covers a few functions in sequence"""
     sub1, sub2 = SubmissionFactory(), SubmissionFactory()
     database.session.add_all([sub1, sub2])
     database.session.commit()
 
-    # Write some narratives
-    result = fileHandler.update_narratives(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE', 'FABS': 'This wont show up'})
+    # Write some narratives (one local, one non-local)
+    result = fileHandler.update_narratives(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE', 'FABS': 'This wont show up'},
+                                           CONFIG_BROKER['local'])
     assert result.status_code == 200
-    result = fileHandler.update_narratives(sub2, {'A': 'Submission2'})
+    result = fileHandler.update_narratives(sub2, {'A': 'Submission2'}, CONFIG_BROKER['local'])
     assert result.status_code == 200
 
     # Check the narratives
@@ -265,7 +267,7 @@ def test_narratives(database):
     }
 
     # Replace the narratives
-    result = fileHandler.update_narratives(sub1, {'A': 'AAAAAA', 'E': 'E2E2E2'})
+    result = fileHandler.update_narratives(sub1, {'A': 'AAAAAA', 'E': 'E2E2E2'}, CONFIG_BROKER['local'])
     assert result.status_code == 200
 
     # Verify the change worked
@@ -650,6 +652,7 @@ def test_file_history_url(database, monkeypatch):
     sub = SubmissionFactory()
     database.session.add(sub)
     database.session.commit()
+    ######
 
     # set up certify history so it works
     cert_hist = CertifyHistoryFactory(submission=sub)

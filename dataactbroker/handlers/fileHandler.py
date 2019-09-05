@@ -1073,12 +1073,13 @@ def narratives_for_submission(submission):
     return JsonResponse.create(StatusCode.OK, result)
 
 
-def update_narratives(submission, narrative_request):
+def update_narratives(submission, narrative_request, is_local):
     """ Clear existing narratives and replace them with the provided set.
 
         Args:
             submission: submission to update the narratives for
             narrative_request: the contents of the request from the API
+            is_local: a boolean indicating whether the application is running locally or not
     """
     # If the submission has been certified, set its status to updated when new comments are made.
     if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
@@ -1108,7 +1109,7 @@ def update_narratives(submission, narrative_request):
     # Preparing for the comments file
     filename = 'submission_{}_comments.csv'.format(submission.submission_id)
     local_file = "".join([CONFIG_BROKER['broker_files'], filename])
-    file_path = local_file if g.is_local else '{}/{}'.format(str(submission.submission_id), filename)
+    file_path = local_file if is_local else '{}/{}'.format(str(submission.submission_id), filename)
     headers = ['File', 'Comment']
 
     # Generate a file containing all the comments for a given submission
@@ -1117,16 +1118,17 @@ def update_narratives(submission, narrative_request):
         filter(SubmissionNarrative.submission_id == submission.submission_id)
 
     # Generate the file locally, then place in S3
-    write_stream_query(sess, comment_query, local_file, file_path, g.is_local, header=headers)
+    write_stream_query(sess, comment_query, local_file, file_path, is_local, header=headers)
 
     return JsonResponse.create(StatusCode.OK, {})
 
 
-def get_comments_file(submission):
+def get_comments_file(submission, is_local):
     """ Retrieve the comments file for a specific submission.
 
         Args:
             submission: the submission to get the comments file for
+            is_local: a boolean indicating whether the application is running locally or not
 
         Returns:
             A JsonResponse containing the url to the file if one exists, JsonResponse error containing the details of
@@ -1138,7 +1140,7 @@ def get_comments_file(submission):
     # if we have at least one comment, we have a file to return
     if num_comments > 0:
         filename = 'submission_{}_comments.csv'.format(submission.submission_id)
-        if g.is_local:
+        if is_local:
             # when local, can just grab the path
             url = os.path.join(CONFIG_BROKER['broker_files'], filename)
         else:
