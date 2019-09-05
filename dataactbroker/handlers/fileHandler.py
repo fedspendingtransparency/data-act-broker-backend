@@ -31,7 +31,7 @@ from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, 
                                              Office, DUNS)
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileGeneration,
-                                          FileType)
+                                          FileType, CertifiedComment)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
@@ -913,7 +913,7 @@ class FileHandler:
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
     def move_certified_files(self, submission, certify_history, is_local):
-        """ Copy all files within the ceritified submission to the correct certified files bucket/directory. FABS
+        """ Copy all files within the certified submission to the correct certified files bucket/directory. FABS
             submissions also create a file containing all the published rows
 
             Args:
@@ -1007,8 +1007,9 @@ class FileHandler:
                                                  warning_filename=warning_file)
             sess.add(file_history)
 
-        # FABS submissions don't have cross-file validations
+        # FABS submissions don't have cross-file validations or comments
         if not submission.d2_submission:
+            # Adding cross-file warnings
             cross_list = {"B": "A", "C": "B", "D1": "C", "D2": "C"}
             for key, value in cross_list.items():
                 first_file = FILE_TYPE_DICT_LETTER_NAME[value]
@@ -1030,6 +1031,23 @@ class FileHandler:
                 file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
                                                      submission_id=submission_id, filename=None, file_type_id=None,
                                                      narrative=None, warning_filename=warning_file)
+                sess.add(file_history)
+
+            # Only move the file if we have any certified comments
+            num_cert_comments = sess.query(CertifiedComment).filter_by(submission_id=submission_id).count()
+            if num_cert_comments > 0:
+                filename = 'submission_{}_comments.csv'.format(str(submission_id))
+                if not is_local:
+                    old_path = '{}/{}'.format(str(submission.submission_id), filename)
+                    new_path = new_route + filename
+                    # Copy the file if it's a non-local submission
+                    self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
+                                             original_path=old_path, new_path=new_path)
+                else:
+                    new_path = "".join([CONFIG_BROKER['broker_files'], filename])
+                file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
+                                                     submission_id=submission_id, filename=new_path, file_type_id=None,
+                                                     narrative=None, warning_filename=None)
                 sess.add(file_history)
         sess.commit()
 
