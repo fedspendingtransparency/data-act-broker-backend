@@ -10,8 +10,9 @@ import calendar
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactbroker.handlers import fileHandler
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.jobModels import CertifiedFilesHistory
-from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
+from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT, PUBLISH_STATUS_DICT
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactbroker.utils import add_models, delete_models
 from tests.unit.dataactcore.factories.domain import CGACFactory
@@ -239,16 +240,21 @@ def test_list_submissions_permissions(database, monkeypatch):
 
 @pytest.mark.usefixtures("job_constants")
 def test_narratives(database):
-    """Verify that we can add, retrieve, and update submission narratives. Not
-    quite a unit test as it covers a few functions in sequence"""
-    sub1, sub2 = SubmissionFactory(), SubmissionFactory()
+    """ Verify that we can add, retrieve, and update submission narratives. Not quite a unit test as it covers a few
+        functions in sequence.
+    """
+    sub1, sub2 = SubmissionFactory(publish_status_id=PUBLISH_STATUS_DICT['published']), SubmissionFactory()
     database.session.add_all([sub1, sub2])
     database.session.commit()
 
     # Write some narratives
-    result = fileHandler.update_narratives(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE', 'FABS': 'This wont show up'})
+    result = fileHandler.update_narratives(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE', 'FABS': 'This wont show up'},
+                                           CONFIG_BROKER['local'])
     assert result.status_code == 200
-    result = fileHandler.update_narratives(sub2, {'A': 'Submission2'})
+    # Make sure submission updates if it's published
+    assert sub1.publish_status_id == PUBLISH_STATUS_DICT['updated']
+
+    result = fileHandler.update_narratives(sub2, {'A': 'Submission2'}, CONFIG_BROKER['local'])
     assert result.status_code == 200
 
     # Check the narratives
@@ -265,7 +271,7 @@ def test_narratives(database):
     }
 
     # Replace the narratives
-    result = fileHandler.update_narratives(sub1, {'A': 'AAAAAA', 'E': 'E2E2E2'})
+    result = fileHandler.update_narratives(sub1, {'A': 'AAAAAA', 'E': 'E2E2E2'}, CONFIG_BROKER['local'])
     assert result.status_code == 200
 
     # Verify the change worked
@@ -280,6 +286,27 @@ def test_narratives(database):
         'E': 'E2E2E2',
         'F': ''
     }
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_get_comments_file(database):
+    """ Test getting a URL for the comments file """
+
+    sub1, sub2 = SubmissionFactory(), SubmissionFactory()
+    database.session.add_all([sub1, sub2])
+    database.session.commit()
+
+    # Write some narratives
+    fileHandler.update_narratives(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE'}, CONFIG_BROKER['local'])
+
+    result = fileHandler.get_comments_file(sub1, CONFIG_BROKER['local'])
+    assert result.status_code == 200
+    result = json.loads(result.get_data().decode('UTF-8'))
+    assert 'submission_{}_comments.csv'.format(sub1.submission_id) in result['url']
+
+    # If it's a submission with no comments, it should return an error
+    result = fileHandler.get_comments_file(sub2, CONFIG_BROKER['local'])
+    assert result.status_code == 400
 
 good_dates = [
     ('04/2016', '05/2016', False, None),

@@ -12,14 +12,15 @@ from dataactbroker.handlers.submission_handler import (certify_dabs_submission, 
 
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
-from dataactcore.models.jobModels import CertifyHistory
+from dataactcore.models.jobModels import CertifyHistory, CertifiedComment
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
                                               CertifiedAwardFinancial)
 
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import (SubmissionFactory, JobFactory, CertifyHistoryFactory,
-                                                  RevalidationThresholdFactory, QuarterlyRevalidationThresholdFactory)
+                                                  RevalidationThresholdFactory, QuarterlyRevalidationThresholdFactory,
+                                                  SubmissionNarrativeFactory)
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
 from tests.unit.dataactcore.factories.user import UserFactory
 
@@ -397,14 +398,13 @@ def test_certify_dabs_submission(database, monkeypatch):
         sess.add_all([user, cgac, submission, quarter_reval])
         sess.commit()
 
-        job = JobFactory(submission_id=submission.submission_id, last_validated=now,
-                         job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-        sess.add(job)
-        sess.commit()
-
-        job = JobFactory(submission_id=submission.submission_id, last_validated=now + datetime.timedelta(days=1),
-                         job_type_id=JOB_TYPE_DICT['csv_record_validation'])
-        sess.add(job)
+        comment = SubmissionNarrativeFactory(file_type_id=FILE_TYPE_DICT['appropriations'], narrative='Test',
+                                             submission_id=submission.submission_id)
+        job_1 = JobFactory(submission_id=submission.submission_id, last_validated=now,
+                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+        job_2 = JobFactory(submission_id=submission.submission_id, last_validated=now + datetime.timedelta(days=1),
+                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+        sess.add_all([job_1, job_2, comment])
         sess.commit()
 
         g.user = user
@@ -419,6 +419,10 @@ def test_certify_dabs_submission(database, monkeypatch):
         assert certify_history is not None
         assert submission.certifying_user_id == user.user_id
         assert submission.publish_status_id == PUBLISH_STATUS_DICT['published']
+
+        # Make sure certified comments are created
+        certified_comment = sess.query(CertifiedComment).filter_by(submission_id=submission.submission_id).one_or_none()
+        assert certified_comment is not None
 
 
 @pytest.mark.usefixtures("job_constants")
