@@ -677,7 +677,6 @@ def test_file_history_url(database, monkeypatch):
     sub = SubmissionFactory()
     database.session.add(sub)
     database.session.commit()
-    ######
 
     # set up certify history so it works
     cert_hist = CertifyHistoryFactory(submission=sub)
