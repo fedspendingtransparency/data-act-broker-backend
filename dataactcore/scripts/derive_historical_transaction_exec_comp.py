@@ -40,6 +40,7 @@ def update_transactions(sess, hd_table, min_date, date_type='action_date'):
             FROM {table_name} AS hd_table
             WHERE {update_table}.awardee_or_recipient_uniqu = hd_table.awardee_or_recipient_uniqu
                 AND cast_as_date({update_table}.{date_type}) >= cast_as_date('{min_date}');
+                AND {update_table}.high_comp_officer1_amount IS NULL;
         """
     # Update FABS
     logger.info('Updating FABS based on {}, starting at {} {}'.format(hd_table, date_type, min_date))
