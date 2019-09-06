@@ -42,8 +42,6 @@ def compare_contract_results(sub, d1, contract, sub_contract, parent_duns, duns,
         'id': sub.id,
 
         'unique_award_key': d1.unique_award_key,
-        'award_id': contract.contract_number,
-        'parent_award_id': contract.idv_reference_number,
         'award_amount': contract.dollar_obligated,
         'action_date': str(contract.date_signed),
         'fy': 'FY{}'.format(fy(contract.date_signed)),
@@ -173,10 +171,22 @@ def compare_contract_results(sub, d1, contract, sub_contract, parent_duns, duns,
         'sub_compensation_q2': None,
         'sub_place_of_perform_street': sub_contract.principle_place_street
     }
-    if debug and not (attr.items() <= sub.__dict__.items()):
+    normal_compare = (attr.items() <= sub.__dict__.items())
+
+    dash_attrs = {
+        'award_id': contract.contract_number,
+        'parent_award_id': contract.idv_reference_number,
+    }
+    dash_compare = True
+    for da_name, da_value in dash_attrs.items():
+        dash_compare &= (da_value.replace('-', '') == sub.__dict__[da_name].replace('-', ''))
+
+    compare = normal_compare & dash_compare
+    if debug and not compare:
+        print(compare, normal_compare, dash_compare)
         print(sorted(attr.items()))
         print(sorted(sub.__dict__.items()))
-    return attr.items() <= sub.__dict__.items()
+    return compare
 
 
 def test_generate_f_file_queries_contracts(database, monkeypatch):
@@ -194,11 +204,13 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
     d1_awd = DetachedAwardProcurementFactory(
         submission_id=sub.submission_id,
         idv_type=None,
-        unique_award_key='AWD'
+        unique_award_key='AWD',
+        piid='AWD-PIID-WITH-DASHES',
+        parent_award_id='AWD-PARENT-AWARD-ID-WITH-DASHES'
     )
     contract_awd = FSRSProcurementFactory(
-        contract_number=d1_awd.piid,
-        idv_reference_number=d1_awd.parent_award_id,
+        contract_number=d1_awd.piid.replace('-', ''),
+        idv_reference_number=d1_awd.parent_award_id.replace('-', ''),
         contracting_office_aid=d1_awd.awarding_sub_tier_agency_c,
         company_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code,
@@ -215,11 +227,13 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
     d1_idv = DetachedAwardProcurementFactory(
         submission_id=sub.submission_id,
         idv_type='C',
-        unique_award_key='IDV'
+        unique_award_key='IDV',
+        piid='IDV-PIID-WITH-DASHES',
+        parent_award_id='IDV-PARENT-AWARD-ID-WITH-DASHES'
     )
     contract_idv = FSRSProcurementFactory(
-        contract_number=d1_idv.piid,
-        idv_reference_number=d1_idv.parent_award_id,
+        contract_number=d1_idv.piid.replace('-', ''),
+        idv_reference_number=d1_idv.parent_award_id.replace('-', ''),
         contracting_office_aid=d1_idv.awarding_sub_tier_agency_c,
         company_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code,
@@ -261,7 +275,6 @@ def compare_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_coun
         'id': sub.id,
 
         'unique_award_key': d2.unique_award_key,
-        'award_id': grant.fain,
         'parent_award_id': None,
         'award_amount': grant.total_fed_funding_amount,
         'action_date': str(grant.obligation_date),
@@ -392,10 +405,20 @@ def compare_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_coun
         'sub_compensation_q2': str(sub_grant.compensation_q2).lower(),
         'sub_place_of_perform_street': sub_grant.principle_place_street
     }
-    if debug and not (attr.items() <= sub.__dict__.items()):
+    normal_compare = (attr.items() <= sub.__dict__.items())
+
+    dash_attrs = {
+        'award_id': grant.fain,
+    }
+    dash_compare = True
+    for da_name, da_value in dash_attrs.items():
+        dash_compare &= (da_value.replace('-', '') == sub.__dict__[da_name].replace('-', ''))
+
+    compare = normal_compare & dash_compare
+    if debug and not compare:
         print(sorted(attr.items()))
         print(sorted(sub.__dict__.items()))
-    return attr.items() <= sub.__dict__.items()
+    return compare
 
 
 def test_generate_f_file_queries_grants(database, monkeypatch):
@@ -415,10 +438,11 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         submission_id=sub.submission_id,
         record_type='2',
         unique_award_key='NON',
+        fain='NON-FAIN-WITH-DASHES',
         is_active=True
     )
     grant_non = FSRSGrantFactory(
-        fain=d2_non.fain,
+        fain=d2_non.fain.replace('-', ''),
         awardee_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
@@ -438,10 +462,11 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         submission_id=sub.submission_id,
         record_type='1',
         unique_award_key='AGG',
+        fain='AGG-FAIN-WITH-DASHES',
         is_active=True
     )
     grant_agg = FSRSGrantFactory(
-        fain=d2_agg.fain,
+        fain=d2_agg.fain.replace('-', ''),
         awardee_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
@@ -493,11 +518,12 @@ def test_fix_broken_links(database, monkeypatch):
         submission_id=sub.submission_id,
         record_type='2',
         unique_award_key='NON',
+        fain='NON-FAIN-WITH-DASHES',
         is_active=True,
         updated_at=award_updated_at
     )
     grant_non = FSRSGrantFactory(
-        fain=d2_non.fain,
+        fain=d2_non.fain.replace('-', ''),
         awardee_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
@@ -517,11 +543,12 @@ def test_fix_broken_links(database, monkeypatch):
         submission_id=sub.submission_id,
         record_type='1',
         unique_award_key='AGG',
+        fain='AGG-FAIN-WITH-DASHES',
         is_active=True,
         updated_at=award_updated_at
     )
     grant_agg = FSRSGrantFactory(
-        fain=d2_agg.fain,
+        fain=d2_agg.fain.replace('-', ''),
         awardee_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
@@ -543,11 +570,13 @@ def test_fix_broken_links(database, monkeypatch):
         submission_id=sub.submission_id,
         idv_type=None,
         unique_award_key='AWD',
+        piid='AWD-PIID-WITH-DASHES',
+        parent_award_id='AWD-PARENT-AWARD-ID-WITH-DASHES',
         updated_at=award_updated_at
     )
     contract_awd = FSRSProcurementFactory(
-        contract_number=d1_awd.piid,
-        idv_reference_number=d1_awd.parent_award_id,
+        contract_number=d1_awd.piid.replace('-', ''),
+        idv_reference_number=d1_awd.parent_award_id.replace('-', ''),
         contracting_office_aid=d1_awd.awarding_sub_tier_agency_c,
         company_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code,
@@ -565,11 +594,13 @@ def test_fix_broken_links(database, monkeypatch):
         submission_id=sub.submission_id,
         idv_type='C',
         unique_award_key='IDV',
+        piid='IDV-PIID-WITH-DASHES',
+        parent_award_id='IDV-PARENT-AWARD-IDV-WITH-DASHES',
         updated_at=award_updated_at
     )
     contract_idv = FSRSProcurementFactory(
-        contract_number=d1_idv.piid,
-        idv_reference_number=d1_idv.parent_award_id,
+        contract_number=d1_idv.piid.replace('-', ''),
+        idv_reference_number=d1_idv.parent_award_id.replace('-', ''),
         contracting_office_aid=d1_idv.awarding_sub_tier_agency_c,
         company_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code,
