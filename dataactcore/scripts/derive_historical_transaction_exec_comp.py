@@ -21,7 +21,7 @@ def update_transactions(sess, hd_table, min_date, date_type='action_date', sourc
             min_date: min date to filter on
             date_type: type of date to filter on
     """
-    if date_type not in ('action_date', 'created_at'):
+    if date_type not in ('action_date', 'created_at', 'updated_at'):
         raise ValueError('Invalid date type provided: {}'.format(date_type))
     if source not in ('fabs', 'fpds', 'both'):
         raise ValueError('Invalid source provided: {}'.format(source))
@@ -30,31 +30,37 @@ def update_transactions(sess, hd_table, min_date, date_type='action_date', sourc
     update_sql = """
             UPDATE {update_table}
             SET
-                high_comp_officer1_amount = tmp.high_comp_officer1_amount,
-                high_comp_officer1_full_na = tmp.high_comp_officer1_full_na,
-                high_comp_officer2_amount = tmp.high_comp_officer2_amount,
-                high_comp_officer2_full_na = tmp.high_comp_officer2_full_na,
-                high_comp_officer3_amount = tmp.high_comp_officer3_amount,
-                high_comp_officer3_full_na = tmp.high_comp_officer3_full_na,
-                high_comp_officer4_amount = tmp.high_comp_officer4_amount,
-                high_comp_officer4_full_na = tmp.high_comp_officer4_full_na,
-                high_comp_officer5_amount = tmp.high_comp_officer5_amount,
-                high_comp_officer5_full_na = tmp.high_comp_officer5_full_na
+                high_comp_officer1_amount = hd_table.high_comp_officer1_amount,
+                high_comp_officer1_full_na = hd_table.high_comp_officer1_full_na,
+                high_comp_officer2_amount = hd_table.high_comp_officer2_amount,
+                high_comp_officer2_full_na = hd_table.high_comp_officer2_full_na,
+                high_comp_officer3_amount = hd_table.high_comp_officer3_amount,
+                high_comp_officer3_full_na = hd_table.high_comp_officer3_full_na,
+                high_comp_officer4_amount = hd_table.high_comp_officer4_amount,
+                high_comp_officer4_full_na = hd_table.high_comp_officer4_full_na,
+                high_comp_officer5_amount = hd_table.high_comp_officer5_amount,
+                high_comp_officer5_full_na = hd_table.high_comp_officer5_full_na
             FROM {table_name} AS hd_table
             WHERE {update_table}.awardee_or_recipient_uniqu = hd_table.awardee_or_recipient_uniqu
-                AND cast_as_date({update_table}.{date_type}) >= cast_as_date('{min_date}');
+                AND {compare_date} >= cast_as_date('{min_date}')
                 AND {update_table}.high_comp_officer1_amount IS NULL;
         """
     if source in ('fabs', 'both'):
         # Update FABS
-        logger.info('Updating FABS based on {}, starting at {} {}'.format(hd_table, date_type, min_date))
+        logger.info('Updating FABS based on {}, starting with {} {}'.format(hd_table, date_type, min_date))
+        compare_date = 'published_award_financial_assistance.{}'.format(date_type)
+        if date_type == 'action_date':
+            compare_date = 'cast_as_date({})'.format(compare_date)
         sess.execute(update_sql.format(update_table='published_award_financial_assistance', table_name=hd_table,
-                                       min_date=min_date, date_type=date_type))
+                                       min_date=min_date, compare_date=compare_date))
     if source in ('fpds', 'both'):
         # Update FPDS
-        logger.info('Updating FPDS based on {}, starting at {}'.format(hd_table, min_date))
-        sess.execute(update_sql.format(update_table='detached_award_procurement', table_name=hd_table, min_date=min_date,
-                                       date_type=date_type))
+        logger.info('Updating FPDS based on {}, starting with {} {}'.format(hd_table, date_type, min_date))
+        compare_date = 'detached_award_procurement.{}'.format(date_type)
+        if date_type == 'action_date':
+            compare_date = 'cast_as_date({})'.format(compare_date)
+        sess.execute(update_sql.format(update_table='detached_award_procurement', table_name=hd_table,
+                                       min_date=min_date, compare_date=compare_date))
 
     sess.commit()
 
@@ -64,9 +70,9 @@ def main():
 
     parser = argparse.ArgumentParser(description='Backfill historical executive compensation data for transactions.')
     algorithm = parser.add_mutually_exclusive_group(required=True)
-    algorithm.add_argument('-k', '--ssh_key', help='private key used to access the API remotely', required=True)
+    algorithm.add_argument('-k', '--ssh_key', help='private key used to access the API remotely')
     algorithm.add_argument('-p', '--pulled_since', help='min created_at/updated_at date when directly using the '
-                                                        'historic duns table', required=True)
+                                                        'historic duns table')
     args = parser.parse_args()
 
     sess = GlobalDB.db().session
