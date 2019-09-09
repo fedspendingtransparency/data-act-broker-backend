@@ -12,7 +12,7 @@ from dataactvalidator.health_check import create_app
 logger = logging.getLogger(__name__)
 
 
-def update_transactions(sess, hd_table, min_date, date_type='action_date'):
+def update_transactions(sess, hd_table, min_date, date_type='action_date', source='both'):
     """ Update FABS and FPDS transactions with historical executive compensation data.
 
         Arguments:
@@ -23,6 +23,9 @@ def update_transactions(sess, hd_table, min_date, date_type='action_date'):
     """
     if date_type not in ('action_date', 'created_at'):
         raise ValueError('Invalid date type provided: {}'.format(date_type))
+    if source not in ('fabs', 'fpds', 'both'):
+        raise ValueError('Invalid source provided: {}'.format(source))
+
 
     update_sql = """
             UPDATE {update_table}
@@ -42,15 +45,16 @@ def update_transactions(sess, hd_table, min_date, date_type='action_date'):
                 AND cast_as_date({update_table}.{date_type}) >= cast_as_date('{min_date}');
                 AND {update_table}.high_comp_officer1_amount IS NULL;
         """
-    # Update FABS
-    logger.info('Updating FABS based on {}, starting at {} {}'.format(hd_table, date_type, min_date))
-    sess.execute(update_sql.format(update_table='published_award_financial_assistance', table_name=hd_table,
-                                   min_date=min_date, date_type=date_type))
-
-    # Update FPDS
-    logger.info('Updating FPDS based on {}, starting at {}'.format(hd_table, min_date))
-    sess.execute(update_sql.format(update_table='detached_award_procurement', table_name=hd_table, min_date=min_date,
-                                   date_type=date_type))
+    if source in ('fabs', 'both'):
+        # Update FABS
+        logger.info('Updating FABS based on {}, starting at {} {}'.format(hd_table, date_type, min_date))
+        sess.execute(update_sql.format(update_table='published_award_financial_assistance', table_name=hd_table,
+                                       min_date=min_date, date_type=date_type))
+    if source in ('fpds', 'both'):
+        # Update FPDS
+        logger.info('Updating FPDS based on {}, starting at {}'.format(hd_table, min_date))
+        sess.execute(update_sql.format(update_table='detached_award_procurement', table_name=hd_table, min_date=min_date,
+                                       date_type=date_type))
 
     sess.commit()
 
@@ -61,8 +65,8 @@ def main():
     parser = argparse.ArgumentParser(description='Backfill historical executive compensation data for transactions.')
     algorithm = parser.add_mutually_exclusive_group(required=True)
     algorithm.add_argument('-k', '--ssh_key', help='private key used to access the API remotely', required=True)
-    algorithm.add_argument('-c', '--created_at', help='min created_at date when directly using the historic duns table',
-                           required=True)
+    algorithm.add_argument('-p', '--pulled_since', help='min created_at/updated_at date when directly using the '
+                                                        'historic duns table', required=True)
     args = parser.parse_args()
 
     sess = GlobalDB.db().session
@@ -92,7 +96,8 @@ def main():
             sess.execute('DROP TABLE {};'.format(temp_table_name))
             sess.commit()
     else:
-        update_transactions(sess, 'historic_duns', args.created_at, date_type='created_at')
+        update_transactions(sess, 'historic_duns', args.pulled_since, date_type='created_at', source='fabs')
+        update_transactions(sess, 'historic_duns', args.pulled_since, date_type='updated_at', source='fpds')
 
 if __name__ == '__main__':
     with create_app().app_context():
