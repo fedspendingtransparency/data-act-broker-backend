@@ -34,7 +34,7 @@ aw_pafa AS
         AND EXISTS (
             SELECT 1
             FROM unlinked_subs
-            WHERE UPPER(unlinked_subs.award_id) = UPPER(pafa.fain)
+            WHERE UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(pafa.fain, '-', ''))
         )
         {0}
     ORDER BY UPPER(pafa.fain), pafa.action_date)
@@ -56,5 +56,5 @@ SET
     business_types = aw_pafa.business_types_desc
 FROM unlinked_subs
      JOIN aw_pafa
-        ON UPPER(unlinked_subs.award_id) = UPPER(aw_pafa.fain)
+        ON UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(aw_pafa.fain, '-', ''))
 WHERE subaward.id = unlinked_subs.id;

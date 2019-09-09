@@ -19,8 +19,8 @@ WITH aw_dap AS
     WHERE EXISTS (
         SELECT 1
         FROM fsrs_procurement
-        WHERE UPPER(fsrs_procurement.contract_number) = UPPER(dap.piid)
-            AND UPPER(fsrs_procurement.idv_reference_number) IS NOT DISTINCT FROM UPPER(dap.parent_award_id)
+        WHERE UPPER(TRANSLATE(fsrs_procurement.contract_number, '-', '')) = UPPER(TRANSLATE(dap.piid, '-', ''))
+            AND UPPER(TRANSLATE(fsrs_procurement.idv_reference_number, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(dap.parent_award_id, '-', ''))
             AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(dap.awarding_sub_tier_agency_c)
             AND fsrs_procurement.id {0} {1}
     )
@@ -314,8 +314,8 @@ FROM fsrs_procurement
     JOIN fsrs_subcontract
         ON fsrs_subcontract.parent_id = fsrs_procurement.id
     LEFT OUTER JOIN aw_dap
-        ON (UPPER(fsrs_procurement.contract_number) = UPPER(aw_dap.piid)
-        AND UPPER(fsrs_procurement.idv_reference_number) IS NOT DISTINCT FROM UPPER(aw_dap.parent_award_id)
+        ON (UPPER(TRANSLATE(fsrs_procurement.contract_number, '-', '')) = UPPER(TRANSLATE(aw_dap.piid, '-', ''))
+        AND UPPER(TRANSLATE(fsrs_procurement.idv_reference_number, '-', '')) IS NOT DISTINCT FROM UPPER(TRANSLATE(aw_dap.parent_award_id, '-', ''))
         AND UPPER(fsrs_procurement.contracting_office_aid) = UPPER(aw_dap.awarding_sub_tier_agency_c))
     LEFT OUTER JOIN country_code AS le_country
         ON UPPER(fsrs_procurement.company_address_country) = UPPER(le_country.country_code)
