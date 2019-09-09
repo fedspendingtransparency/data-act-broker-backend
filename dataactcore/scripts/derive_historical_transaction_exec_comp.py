@@ -26,7 +26,6 @@ def update_transactions(sess, hd_table, min_date, date_type='action_date', sourc
     if source not in ('fabs', 'fpds', 'both'):
         raise ValueError('Invalid source provided: {}'.format(source))
 
-
     update_sql = """
             UPDATE {update_table}
             SET
