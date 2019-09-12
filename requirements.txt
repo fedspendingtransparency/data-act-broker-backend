@@ -60,7 +60,7 @@ waitress==1.0.0
 webargs==5.1.3
 WebOb==1.6.1
 WebTest==2.0.20
-Werkzeug==0.14.1
+Werkzeug==0.15.3
 xmlrunner==1.7.7
 xmltodict==0.10.2
 blinker==1.4
