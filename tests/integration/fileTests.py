@@ -155,7 +155,8 @@ class FileTests(BaseTestAPI):
         update_json = {"existing_submission_id": self.updateSubmissionId,
                        "award_financial": file_path,
                        "reporting_period_start_date": "04/2016",
-                       "reporting_period_end_date": "06/2016"}
+                       "reporting_period_end_date": "06/2016",
+                       "is_quarter": True}
 
         # Mark submission as published
         with create_app().app_context():
@@ -975,7 +976,8 @@ class FileTests(BaseTestAPI):
         # Call a generation to test resetting the status, make sure the call succeeded
         update_json = {"existing_submission_id": submission.submission_id,
                        "reporting_period_start_date": "04/2016",
-                       "reporting_period_end_date": "06/2016"}
+                       "reporting_period_end_date": "06/2016",
+                       "is_quarter": True}
         update_response = self.app.post("/v1/upload_dabs_files/", update_json,
                                         upload_files=[APPROP_FILE_T],
                                         headers={"x-session-id": self.session_id})
