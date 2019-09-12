@@ -117,7 +117,7 @@ class FileHandler:
             if not is_quarter and not (formatted_start_date.month == formatted_end_date.month and
                                        formatted_start_date.year == formatted_end_date.year):
                 data = {
-                    "message": "A monthly submission cannot extend beyond a month."
+                    "message": "A monthly submission must be exactly one month."
                 }
                 return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
 

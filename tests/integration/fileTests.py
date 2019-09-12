@@ -372,7 +372,7 @@ class FileTests(BaseTestAPI):
                                  upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
                                  headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'A monthly submission cannot extend beyond a month.')
+        self.assertEqual(response.json['message'], 'A monthly submission must be exactly one month.')
 
         # wrong year
         monthly_submission_json = {
@@ -385,7 +385,7 @@ class FileTests(BaseTestAPI):
                                  upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
                                  headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'A monthly submission cannot extend beyond a month.')
+        self.assertEqual(response.json['message'], 'A monthly submission must be exactly one month.')
 
     def test_revalidation_threshold_no_login(self):
         """ Test response with no login """
