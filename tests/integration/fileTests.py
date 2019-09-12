@@ -360,20 +360,32 @@ class FileTests(BaseTestAPI):
                                  headers={"x-session-id": self.session_id}, expect_errors=False)
         self.assertEqual(response.status_code, 200)
 
-    # TODO: validate that monthly submissions only include one month
-    # def test_submit_file_monthly_submission_wrong_dates(self):
-    #     self.login_user()
-    #     monthly_submission_json = {
-    #         "cgac_code": "NOT",
-    #         "frec_code": None,
-    #         "is_quarter": False,
-    #         "reporting_period_start_date": "10/2015",
-    #         "reporting_period_end_date": "12/2015"}
-    #     response = self.app.post("/v1/upload_dabs_files/", monthly_submission_json,
-    #                              upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
-    #                              headers={"x-session-id": self.session_id}, expect_errors=True)
-    #     self.assertEqual(response.status_code, 400)
-    #     self.assertEqual()
+    def test_submit_file_monthly_submission_wrong_dates(self):
+        # wrong month
+        monthly_submission_json = {
+            "cgac_code": "NOT",
+            "frec_code": None,
+            "is_quarter": False,
+            "reporting_period_start_date": "10/2015",
+            "reporting_period_end_date": "12/2015"}
+        response = self.app.post("/v1/upload_dabs_files/", monthly_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'A monthly submission cannot extend beyond a month.')
+
+        # wrong year
+        monthly_submission_json = {
+            "cgac_code": "NOT",
+            "frec_code": None,
+            "is_quarter": False,
+            "reporting_period_start_date": "10/2015",
+            "reporting_period_end_date": "10/2016"}
+        response = self.app.post("/v1/upload_dabs_files/", monthly_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'A monthly submission cannot extend beyond a month.')
 
     def test_revalidation_threshold_no_login(self):
         """ Test response with no login """
