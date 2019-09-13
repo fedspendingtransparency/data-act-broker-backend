@@ -18,26 +18,26 @@ def duplicate_removal(table):
 
     # Creating a temporary table storing all the duplicates
     create_table_sql = """
-                CREATE TABLE IF NOT EXISTS temp_duplicated_{} (
-                    job_id integer,
-                    original_rule_label text,
-                    occurrences integer,
-                    min_id integer
-                );
-            """
+        CREATE TABLE IF NOT EXISTS temp_duplicated_{} (
+            job_id integer,
+            original_rule_label text,
+            occurrences integer,
+            min_id integer
+        );
+    """
     sess.execute(create_table_sql.format(table))
     # In case something went wrong, we don't want extra data
     sess.execute('TRUNCATE TABLE temp_duplicated_{};'.format(table))
 
     # Inserting a summary of all duplicated error metadata
     duplicates_insert_sql = """
-                INSERT INTO temp_duplicated_{table} (job_id, original_rule_label, occurrences, min_id)
-                SELECT job_id, original_rule_label, SUM(occurrences) AS occurrences, MIN({table}_id) AS min_id
-                FROM {table}
-                WHERE LENGTH(original_rule_label) > 0
-                GROUP BY job_id, original_rule_label
-                HAVING COUNT(1) > 1;
-            """
+        INSERT INTO temp_duplicated_{table} (job_id, original_rule_label, occurrences, min_id)
+        SELECT job_id, original_rule_label, SUM(occurrences) AS occurrences, MIN({table}_id) AS min_id
+        FROM {table}
+        WHERE LENGTH(original_rule_label) > 0
+        GROUP BY job_id, original_rule_label
+        HAVING COUNT(1) > 1;
+    """
     sess.execute(duplicates_insert_sql.format(table=table))
 
     # Updating the entry with the min ID that we're keeping
