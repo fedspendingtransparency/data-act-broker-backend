@@ -700,7 +700,7 @@ class FileHandler:
             agency_codes_list = []
             row_count = 1
             total_count = sess.query(DetachedAwardFinancialAssistance). \
-                    filter_by(is_valid=True, submission_id=submission_id).count()
+                filter_by(is_valid=True, submission_id=submission_id).count()
             batch_percent = math.floor(total_count*(1/LOG_BATCH_PRECENT))
             loop_num = 0
             query = []
