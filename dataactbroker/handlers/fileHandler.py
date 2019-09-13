@@ -5,6 +5,7 @@ import os
 import requests
 import sqlalchemy as sa
 import threading
+import math
 
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -53,6 +54,8 @@ from dataactvalidator.validation_handlers.file_generation_manager import GEN_FIL
 logger = logging.getLogger(__name__)
 
 ROWS_PER_LOOP = 10000
+MIN_ROWS_LOG_BATCH = 100
+LOG_BATCH_PRECENT = 10
 
 
 class FileHandler:
@@ -696,9 +699,12 @@ class FileHandler:
 
             agency_codes_list = []
             row_count = 1
+            total_count = sess.query(DetachedAwardFinancialAssistance). \
+                    filter_by(is_valid=True, submission_id=submission_id).count()
+            batch_percent = math.floor(total_count*(1/LOG_BATCH_PRECENT))
             loop_num = 0
             query = []
-            log_data['message'] = 'Starting derivations for FABS submission'
+            log_data['message'] = 'Starting derivations for FABS submission (total count: {})'.format(total_count)
             logger.info(log_data)
 
             while len(query) == ROWS_PER_LOOP or loop_num == 0:
@@ -745,8 +751,9 @@ class FileHandler:
                     if temp_obj['funding_agency_code'] not in agency_codes_list:
                         agency_codes_list.append(temp_obj['funding_agency_code'])
 
-                    if row_count % 1000 == 0:
-                        log_data['message'] = 'Completed derivations for {} rows'.format(row_count)
+                    if total_count > MIN_ROWS_LOG_BATCH and (row_count % batch_percent) == 0:
+                        percent = math.floor((row_count/total_count)*100)
+                        log_data['message'] = 'Completed derivations for {} rows ({}%)'.format(row_count, percent)
                         logger.info(log_data)
                     row_count += 1
                 loop_num += 1
