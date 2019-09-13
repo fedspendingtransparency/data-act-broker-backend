@@ -114,6 +114,13 @@ class FileHandler:
             formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(start_date,
                                                                                           end_date, is_quarter)
 
+            if not is_quarter and not (formatted_start_date.month == formatted_end_date.month and
+                                       formatted_start_date.year == formatted_end_date.year):
+                data = {
+                    "message": "A monthly submission must be exactly one month."
+                }
+                return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+
             submissions = sess.query(Submission).filter(
                 Submission.cgac_code == submission_request.get('cgac_code'),
                 Submission.frec_code == submission_request.get('frec_code'),
