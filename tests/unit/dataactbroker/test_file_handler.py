@@ -248,17 +248,17 @@ def test_narratives(database):
     database.session.commit()
 
     # Write some narratives
-    result = fileHandler.update_narratives(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE', 'FABS': 'This wont show up'},
+    result = fileHandler.update_submission_comments(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE', 'FABS': 'This wont show up'},
                                            CONFIG_BROKER['local'])
     assert result.status_code == 200
     # Make sure submission updates if it's published
     assert sub1.publish_status_id == PUBLISH_STATUS_DICT['updated']
 
-    result = fileHandler.update_narratives(sub2, {'A': 'Submission2'}, CONFIG_BROKER['local'])
+    result = fileHandler.update_submission_comments(sub2, {'A': 'Submission2'}, CONFIG_BROKER['local'])
     assert result.status_code == 200
 
     # Check the narratives
-    result = fileHandler.narratives_for_submission(sub1)
+    result = fileHandler.get_submission_comments(sub1)
     result = json.loads(result.get_data().decode('UTF-8'))
     assert result == {
         'A': '',
@@ -271,11 +271,11 @@ def test_narratives(database):
     }
 
     # Replace the narratives
-    result = fileHandler.update_narratives(sub1, {'A': 'AAAAAA', 'E': 'E2E2E2'}, CONFIG_BROKER['local'])
+    result = fileHandler.update_submission_comments(sub1, {'A': 'AAAAAA', 'E': 'E2E2E2'}, CONFIG_BROKER['local'])
     assert result.status_code == 200
 
     # Verify the change worked
-    result = fileHandler.narratives_for_submission(sub1)
+    result = fileHandler.get_submission_comments(sub1)
     result = json.loads(result.get_data().decode('UTF-8'))
     assert result == {
         'A': 'AAAAAA',
@@ -297,7 +297,7 @@ def test_get_comments_file(database):
     database.session.commit()
 
     # Write some narratives
-    fileHandler.update_narratives(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE'}, CONFIG_BROKER['local'])
+    fileHandler.update_submission_comments(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE'}, CONFIG_BROKER['local'])
 
     result = fileHandler.get_comments_file(sub1, CONFIG_BROKER['local'])
     assert result.status_code == 200

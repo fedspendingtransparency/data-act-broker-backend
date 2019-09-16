@@ -1062,55 +1062,55 @@ class FileHandler:
         logger.debug(log_data)
 
 
-def narratives_for_submission(submission):
-    """ Fetch narratives for this submission, indexed by file letter
+def get_submission_comments(submission):
+    """ Fetch comments for this submission, indexed by file letter
 
         Args:
-            submission: the submission to gather narratives for
+            submission: the submission to gather comments for
 
         Returns:
-            JsonResponse object with the contents of the narratives in a key/value pair of letter/narrative
+            JsonResponse object with the contents of the comments in a key/value pair of letter/comments
     """
     sess = GlobalDB.db().session
     result = {letter: '' for letter in FILE_TYPE_DICT_LETTER.values() if letter != 'FABS'}
-    narratives = sess.query(SubmissionNarrative).filter_by(submission_id=submission.submission_id)
-    for narrative in narratives:
-        letter = FILE_TYPE_DICT_LETTER[narrative.file_type_id]
-        result[letter] = narrative.narrative
+    comments = sess.query(SubmissionNarrative).filter_by(submission_id=submission.submission_id)
+    for comment in comments:
+        letter = FILE_TYPE_DICT_LETTER[comment.file_type_id]
+        result[letter] = comment.narrative
     return JsonResponse.create(StatusCode.OK, result)
 
 
-def update_narratives(submission, narrative_request, is_local):
-    """ Clear existing narratives and replace them with the provided set.
+def update_submission_comments(submission, comment_request, is_local):
+    """ Clear existing comments and replace them with the provided set.
 
         Args:
-            submission: submission to update the narratives for
-            narrative_request: the contents of the request from the API
+            submission: submission to update the comments for
+            comment_request: the contents of the request from the API
             is_local: a boolean indicating whether the application is running locally or not
     """
     # If the submission has been certified, set its status to updated when new comments are made.
     if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
         submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
 
-    json = narrative_request or {}
+    json = comment_request or {}
     # clean input
-    narratives_json = {key.upper(): value.strip() for key, value in json.items()
+    comments_json = {key.upper(): value.strip() for key, value in json.items()
                        if isinstance(value, str) and value.strip()}
 
     sess = GlobalDB.db().session
-    # Delete old narratives
+    # Delete old comments, fetch just in case
     sess.query(SubmissionNarrative).filter_by(submission_id=submission.submission_id).\
-        delete(synchronize_session='fetch')     # fetch just in case
+        delete(synchronize_session='fetch')
 
-    narratives = []
+    comments = []
     for file_type_id, letter in FILE_TYPE_DICT_LETTER.items():
-        if letter in narratives_json and letter != 'FABS':
-            narratives.append(SubmissionNarrative(
+        if letter in comments_json and letter != 'FABS':
+            comments.append(SubmissionNarrative(
                 submission_id=submission.submission_id,
                 file_type_id=file_type_id,
-                narrative=narratives_json[letter]
+                narrative=comments_json[letter]
             ))
-    sess.add_all(narratives)
+    sess.add_all(comments)
     sess.commit()
 
     # Preparing for the comments file
