@@ -699,7 +699,7 @@ This endpoint retrieves existing submission comments (explanations/notes for par
 
 ```
 {
-  "A": "Text of A's narrative",
+  "A": "Text of A's comment",
   "B": "These will be empty if no notes are present",
   "C": "",
   "D1": "",
@@ -1271,12 +1271,12 @@ Successful response will contain the submission_id and a list of certifications.
             "certified_files_history_id": 1,
             "filename": "1492041855_file_c.csv",
             "is_warning": False,
-            "narrative": "Comment on the file"
+            "comment": "Comment on the file"
             },
             {"certified_files_history_id": 1,
             "filename": "submission_7_award_financial_warning_report.csv",
             "is_warning": True,
-            "narrative": None}
+            "comment": None}
         ]},
         {"certify_date": "2017-05-08 12:07:18",
         "certify_history_id": 3,
@@ -1288,12 +1288,12 @@ Successful response will contain the submission_id and a list of certifications.
             "certified_files_history_id": 3,
             "filename": "1492041855_file_a.csv",
             "is_warning": False,
-            "narrative": "This is also a comment"
+            "comment": "This is also a comment"
             },
             {"certified_files_history_id": 6,
             "filename": "submission_280_cross_warning_appropriations_program_activity.csv",
             "is_warning": True,
-            "narrative": None}
+            "comment": None}
         ]}
     ]
 }
