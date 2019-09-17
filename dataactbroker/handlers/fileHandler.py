@@ -708,7 +708,7 @@ class FileHandler:
             row_count = 1
             total_count = sess.query(DetachedAwardFinancialAssistance). \
                 filter_by(is_valid=True, submission_id=submission_id).count()
-            batch_percent = math.floor(total_count*(1/LOG_BATCH_PERCENT))
+            batch_percent = math.floor(total_count/LOG_BATCH_PERCENT)
             loop_num = 0
             query = []
             log_data['message'] = 'Starting derivations for FABS submission (total count: {})'.format(total_count)
