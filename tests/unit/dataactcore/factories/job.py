@@ -98,15 +98,15 @@ class CertifiedFilesHistoryFactory(factory.Factory):
     narrative = fuzzy.FuzzyText()
 
 
-class SubmissionNarrativeFactory(factory.Factory):
+class CommentFactory(factory.Factory):
     class Meta:
-        model = jobModels.SubmissionNarrative
+        model = jobModels.Comment
 
-    submission_narrative_id = None
+    comment_id = None
     submission_id = fuzzy.FuzzyInteger(9999)
     submission = factory.SubFactory(SubmissionFactory)
     file_type_id = fuzzy.FuzzyInteger(9999)
-    narrative = fuzzy.FuzzyText()
+    comment = fuzzy.FuzzyText()
 
 
 class ApplicationTypeFactory(factory.Factory):

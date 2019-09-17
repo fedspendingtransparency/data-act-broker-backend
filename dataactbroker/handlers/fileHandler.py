@@ -29,7 +29,7 @@ from dataactcore.interfaces.function_bag import (
 
 from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
                                              Office, DUNS)
-from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
+from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileGeneration,
                                           FileType, CertifiedComment)
 from dataactcore.models.lookups import (
@@ -988,7 +988,7 @@ class FileHandler:
                     warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission_id, True,
                                                                                            job.file_type.name)
 
-            narrative = None
+            comment = None
             if submission.d2_submission:
                 # FABS published submission, create the FABS published rows file
                 log_data['message'] = 'Generating published FABS file from publishable rows'
@@ -996,11 +996,11 @@ class FileHandler:
                 new_path = create_fabs_published_file(sess, submission_id, new_route)
             else:
                 # DABS certified submission
-                # get the narrative relating to the file
-                narrative = sess.query(SubmissionNarrative).\
+                # get the comment relating to the file
+                comment = sess.query(Comment).\
                     filter_by(submission_id=submission_id, file_type_id=job.file_type_id).one_or_none()
-                if narrative:
-                    narrative = narrative.narrative
+                if comment:
+                    comment = comment.comment
 
                 # only actually move the files if it's not a local submission
                 if not is_local:
@@ -1010,7 +1010,7 @@ class FileHandler:
             # create the certified_files_history for this file
             file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
                                                  submission_id=submission_id, file_type_id=job.file_type_id,
-                                                 filename=new_path, narrative=narrative,
+                                                 filename=new_path, narrative=comment,
                                                  warning_filename=warning_file)
             sess.add(file_history)
 
@@ -1073,10 +1073,10 @@ def get_submission_comments(submission):
     """
     sess = GlobalDB.db().session
     result = {letter: '' for letter in FILE_TYPE_DICT_LETTER.values() if letter != 'FABS'}
-    comments = sess.query(SubmissionNarrative).filter_by(submission_id=submission.submission_id)
+    comments = sess.query(Comment).filter_by(submission_id=submission.submission_id)
     for comment in comments:
         letter = FILE_TYPE_DICT_LETTER[comment.file_type_id]
-        result[letter] = comment.narrative
+        result[letter] = comment.comment
     return JsonResponse.create(StatusCode.OK, result)
 
 
@@ -1095,20 +1095,19 @@ def update_submission_comments(submission, comment_request, is_local):
     json = comment_request or {}
     # clean input
     comments_json = {key.upper(): value.strip() for key, value in json.items()
-                       if isinstance(value, str) and value.strip()}
+                     if isinstance(value, str) and value.strip()}
 
     sess = GlobalDB.db().session
     # Delete old comments, fetch just in case
-    sess.query(SubmissionNarrative).filter_by(submission_id=submission.submission_id).\
-        delete(synchronize_session='fetch')
+    sess.query(Comment).filter_by(submission_id=submission.submission_id).delete(synchronize_session='fetch')
 
     comments = []
     for file_type_id, letter in FILE_TYPE_DICT_LETTER.items():
         if letter in comments_json and letter != 'FABS':
-            comments.append(SubmissionNarrative(
+            comments.append(Comment(
                 submission_id=submission.submission_id,
                 file_type_id=file_type_id,
-                narrative=comments_json[letter]
+                comment=comments_json[letter]
             ))
     sess.add_all(comments)
     sess.commit()
@@ -1120,9 +1119,9 @@ def update_submission_comments(submission, comment_request, is_local):
     headers = ['File', 'Comment']
 
     # Generate a file containing all the comments for a given submission
-    comment_query = sess.query(FileType.name, SubmissionNarrative.narrative).\
-        join(FileType, SubmissionNarrative.file_type_id == FileType.file_type_id).\
-        filter(SubmissionNarrative.submission_id == submission.submission_id)
+    comment_query = sess.query(FileType.name, Comment.comment).\
+        join(FileType, Comment.file_type_id == FileType.file_type_id).\
+        filter(Comment.submission_id == submission.submission_id)
 
     # Generate the file locally, then place in S3
     write_stream_query(sess, comment_query, local_file, file_path, is_local, header=headers)
@@ -1143,7 +1142,7 @@ def get_comments_file(submission, is_local):
     """
 
     sess = GlobalDB.db().session
-    num_comments = sess.query(SubmissionNarrative).filter_by(submission_id=submission.submission_id).count()
+    num_comments = sess.query(Comment).filter_by(submission_id=submission.submission_id).count()
     # if we have at least one comment, we have a file to return
     if num_comments > 0:
         filename = 'submission_{}_comments.csv'.format(submission.submission_id)
@@ -1688,7 +1687,7 @@ def list_certifications(submission):
                     "certified_files_history_id": file.certified_files_history_id,
                     "filename": file.filename.split("/")[-1],
                     "is_warning": False,
-                    "narrative": file.narrative
+                    "comment": file.narrative
                 })
 
             # if there's a warning file, add it to the list
@@ -1697,7 +1696,7 @@ def list_certifications(submission):
                     "certified_files_history_id": file.certified_files_history_id,
                     "filename": file.warning_filename.split("/")[-1],
                     "is_warning": True,
-                    "narrative": None
+                    "comment": None
                 })
 
         # after adding all certified files to the history, add the entire history entry to the certifications list

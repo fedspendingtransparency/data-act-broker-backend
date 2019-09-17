@@ -1049,7 +1049,7 @@ class FileTests(BaseTestAPI):
             FILE_TYPE_DICT["appropriations"],
             "path/to/file_a.csv",
             "path/to/warning_file_a.csv",
-            "Narrative content"
+            "Comment content"
         )
 
         # Create a D1 file entry

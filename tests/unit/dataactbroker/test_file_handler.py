@@ -16,8 +16,8 @@ from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactbroker.utils import add_models, delete_models
 from tests.unit.dataactcore.factories.domain import CGACFactory
-from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory, CertifyHistoryFactory,
-                                                  SubmissionNarrativeFactory, CertifiedFilesHistoryFactory)
+from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory, CertifyHistoryFactory, CommentFactory,
+                                                  CertifiedFilesHistoryFactory)
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
@@ -239,17 +239,17 @@ def test_list_submissions_permissions(database, monkeypatch):
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_narratives(database):
-    """ Verify that we can add, retrieve, and update submission narratives. Not quite a unit test as it covers a few
+def test_comments(database):
+    """ Verify that we can add, retrieve, and update submission comments. Not quite a unit test as it covers a few
         functions in sequence.
     """
     sub1, sub2 = SubmissionFactory(publish_status_id=PUBLISH_STATUS_DICT['published']), SubmissionFactory()
     database.session.add_all([sub1, sub2])
     database.session.commit()
 
-    # Write some narratives
+    # Write some comments
     result = fileHandler.update_submission_comments(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE', 'FABS': 'This wont show up'},
-                                           CONFIG_BROKER['local'])
+                                                    CONFIG_BROKER['local'])
     assert result.status_code == 200
     # Make sure submission updates if it's published
     assert sub1.publish_status_id == PUBLISH_STATUS_DICT['updated']
@@ -257,7 +257,7 @@ def test_narratives(database):
     result = fileHandler.update_submission_comments(sub2, {'A': 'Submission2'}, CONFIG_BROKER['local'])
     assert result.status_code == 200
 
-    # Check the narratives
+    # Check the comments
     result = fileHandler.get_submission_comments(sub1)
     result = json.loads(result.get_data().decode('UTF-8'))
     assert result == {
@@ -270,7 +270,7 @@ def test_narratives(database):
         'F': ''
     }
 
-    # Replace the narratives
+    # Replace the comments
     result = fileHandler.update_submission_comments(sub1, {'A': 'AAAAAA', 'E': 'E2E2E2'}, CONFIG_BROKER['local'])
     assert result.status_code == 200
 
@@ -296,7 +296,7 @@ def test_get_comments_file(database):
     database.session.add_all([sub1, sub2])
     database.session.commit()
 
-    # Write some narratives
+    # Write some comments
     fileHandler.update_submission_comments(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE'}, CONFIG_BROKER['local'])
 
     result = fileHandler.get_comments_file(sub1, CONFIG_BROKER['local'])
@@ -572,8 +572,8 @@ def test_move_certified_files(database, monkeypatch):
                                file_type_id=FILE_TYPE_DICT['sub_award'], job_type_id=upload_job,
                                job_status_id=finished_job)
 
-    award_fin_narr = SubmissionNarrativeFactory(submission=sub, narrative="Test narrative",
-                                                file_type_id=FILE_TYPE_DICT['award_financial'])
+    award_fin_narr = CommentFactory(submission=sub, comment="Test comment",
+                                    file_type_id=FILE_TYPE_DICT['award_financial'])
     database.session.add_all([cert_hist_local, cert_hist_remote, appropriations_job, prog_act_job, award_fin_job,
                               award_proc_job, award_job, exec_comp_job, sub_award_job, award_fin_narr])
     database.session.commit()
@@ -599,7 +599,7 @@ def test_move_certified_files(database, monkeypatch):
     assert c_cert_hist.filename == "/path/to/award/fin/file_c.csv"
     assert c_cert_hist.warning_filename == "/path/to/error/reports/submission_{}_award_financial_warning_report.csv".\
         format(sub.submission_id)
-    assert c_cert_hist.narrative == "Test narrative"
+    assert c_cert_hist.narrative == "Test comment"
 
     # cross-file warnings
     warning_cert_hist = sess.query(CertifiedFilesHistory).filter_by(certify_history_id=local_id, file_type=None).all()
@@ -640,7 +640,7 @@ def test_list_certifications(database):
     file_hist_1 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
                                                filename="/path/to/file_a.csv",
                                                warning_filename="/path/to/warning_file_a.csv",
-                                               narrative="A has a narrative",
+                                               narrative="A has a comment",
                                                file_type_id=FILE_TYPE_DICT['appropriations'])
     file_hist_2 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
                                                filename="/path/to/file_d2.csv",
@@ -664,10 +664,10 @@ def test_list_certifications(database):
     assert len(has_file_list["certified_files"]) == 4
     assert has_file_list["certified_files"][0]["is_warning"] is False
     assert has_file_list["certified_files"][0]["filename"] == "file_a.csv"
-    assert has_file_list["certified_files"][0]["narrative"] == "A has a narrative"
+    assert has_file_list["certified_files"][0]["comment"] == "A has a comment"
 
     assert has_file_list["certified_files"][1]["is_warning"]
-    assert has_file_list["certified_files"][1]["narrative"] is None
+    assert has_file_list["certified_files"][1]["comment"] is None
 
     # asserts for certification without files associated
     assert len(empty_file_list["certified_files"]) == 0

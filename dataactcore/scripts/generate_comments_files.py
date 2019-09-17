@@ -6,8 +6,8 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.jobModels import (SubmissionNarrative, CertifiedComment, FileType, CertifyHistory,
-                                          CertifiedFilesHistory, Submission)
+from dataactcore.models.jobModels import (Comment, CertifiedComment, FileType, CertifyHistory, CertifiedFilesHistory,
+                                          Submission)
 
 from dataactvalidator.filestreaming.csv_selection import write_stream_query
 from dataactvalidator.health_check import create_app
@@ -28,7 +28,7 @@ if __name__ == '__main__':
         is_local = CONFIG_BROKER['local']
 
         headers = ['File', 'Comment']
-        commented_submissions = sess.query(SubmissionNarrative.submission_id).distinct()
+        commented_submissions = sess.query(Comment.submission_id).distinct()
 
         for submission in commented_submissions:
             # Preparing for the comments files
@@ -36,9 +36,9 @@ if __name__ == '__main__':
             local_file = "".join([CONFIG_BROKER['broker_files'], filename])
             file_path = local_file if is_local else '{}/{}'.format(str(submission.submission_id), filename)
 
-            uncertified_query = sess.query(FileType.name, SubmissionNarrative.narrative).\
-                join(FileType, SubmissionNarrative.file_type_id == FileType.file_type_id).\
-                filter(SubmissionNarrative.submission_id == submission.submission_id)
+            uncertified_query = sess.query(FileType.name, Comment.comment).\
+                join(FileType, Comment.file_type_id == FileType.file_type_id).\
+                filter(Comment.submission_id == submission.submission_id)
 
             # Generate the file locally, then place in S3
             write_stream_query(sess, uncertified_query, local_file, file_path, is_local, header=headers)
