@@ -104,7 +104,7 @@ def process_from_dir(root_dir, file_name, sess, sftp=None, ssh_key=None, metrics
         with open(file_path, 'wb') as zip_file:
             try:
                 sftp.getfo(''.join([REMOTE_SAM_EXEC_COMP_DIR, '/', file_name]), zip_file)
-            except OSError:
+            except:
                 logger.debug("Socket closed. Reconnecting...")
                 ssh_client = get_client(ssh_key=ssh_key)
                 sftp = ssh_client.open_sftp()
