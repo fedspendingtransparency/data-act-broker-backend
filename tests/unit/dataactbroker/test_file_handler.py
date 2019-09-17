@@ -599,12 +599,12 @@ def test_move_certified_files(database, monkeypatch):
     assert c_cert_hist.filename == "/path/to/award/fin/file_c.csv"
     assert c_cert_hist.warning_filename == "/path/to/error/reports/submission_{}_award_financial_warning_report.csv".\
         format(sub.submission_id)
-    assert c_cert_hist.narrative == "Test comment"
+    assert c_cert_hist.comment == "Test comment"
 
     # cross-file warnings
     warning_cert_hist = sess.query(CertifiedFilesHistory).filter_by(certify_history_id=local_id, file_type=None).all()
     assert len(warning_cert_hist) == 4
-    assert warning_cert_hist[0].narrative is None
+    assert warning_cert_hist[0].comment is None
 
     warning_cert_hist_files = [hist.warning_filename for hist in warning_cert_hist]
     assert "/path/to/error/reports/submission_{}_cross_warning_appropriations_program_activity.csv".\
@@ -640,7 +640,7 @@ def test_list_certifications(database):
     file_hist_1 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
                                                filename="/path/to/file_a.csv",
                                                warning_filename="/path/to/warning_file_a.csv",
-                                               narrative="A has a comment",
+                                               comment="A has a comment",
                                                file_type_id=FILE_TYPE_DICT['appropriations'])
     file_hist_2 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
                                                filename="/path/to/file_d2.csv",
@@ -686,7 +686,7 @@ def test_file_history_url(database, monkeypatch):
     file_hist = CertifiedFilesHistoryFactory(certify_history_id=cert_hist.certify_history_id,
                                              submission_id=sub.submission_id, filename="/path/to/file_d2.csv",
                                              warning_filename="/path/to/warning_file_cross.csv",
-                                             narrative=None, file_type_id=None)
+                                             comment=None, file_type_id=None)
     database.session.add(file_hist)
     database.session.commit()
 

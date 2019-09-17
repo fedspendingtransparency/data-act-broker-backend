@@ -251,7 +251,7 @@ class CertifiedFilesHistory(Base):
                           nullable=True,)
     file_type = relationship("FileType", uselist=False, lazy='joined')
     warning_filename = Column(Text)
-    narrative = Column(Text)
+    comment = Column(Text)
 
 
 class SubmissionWindow(Base):

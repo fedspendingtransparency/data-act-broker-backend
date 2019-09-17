@@ -95,7 +95,7 @@ class CertifiedFilesHistoryFactory(factory.Factory):
     filename = fuzzy.FuzzyText()
     file_type_id = fuzzy.FuzzyInteger(9999)
     warning_filename = fuzzy.FuzzyText()
-    narrative = fuzzy.FuzzyText()
+    comment = fuzzy.FuzzyText()
 
 
 class CommentFactory(factory.Factory):

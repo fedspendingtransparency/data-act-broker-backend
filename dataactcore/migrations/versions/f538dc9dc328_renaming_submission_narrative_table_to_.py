@@ -34,6 +34,7 @@ def upgrade_data_broker():
     op.execute('ALTER TABLE comment RENAME COLUMN narrative TO comment')
     op.execute('ALTER INDEX submission_narrative_pkey RENAME TO comment_pkey')
     op.execute('ALTER SEQUENCE submission_narrative_submission_narrative_id_seq RENAME TO comment_comment_id_seq')
+    op.execute('ALTER TABLE certified_files_history RENAME COLUMN narrative TO comment')
     # ### end Alembic commands ###
 
 
@@ -44,5 +45,6 @@ def downgrade_data_broker():
     op.execute('ALTER TABLE submission_narrative RENAME COLUMN comment TO narrative')
     op.execute('ALTER INDEX comment_pkey RENAME TO submission_narrative_pkey')
     op.execute('ALTER SEQUENCE comment_comment_id_seq RENAME TO submission_narrative_submission_narrative_id_seq')
+    op.execute('ALTER TABLE certified_files_history RENAME COLUMN comment TO narrative')
     # ### end Alembic commands ###
 

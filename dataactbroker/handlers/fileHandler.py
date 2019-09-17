@@ -1010,7 +1010,7 @@ class FileHandler:
             # create the certified_files_history for this file
             file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
                                                  submission_id=submission_id, file_type_id=job.file_type_id,
-                                                 filename=new_path, narrative=comment,
+                                                 filename=new_path, comment=comment,
                                                  warning_filename=warning_file)
             sess.add(file_history)
 
@@ -1037,7 +1037,7 @@ class FileHandler:
                 # add certified history
                 file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
                                                      submission_id=submission_id, filename=None, file_type_id=None,
-                                                     narrative=None, warning_filename=warning_file)
+                                                     comment=None, warning_filename=warning_file)
                 sess.add(file_history)
 
             # Only move the file if we have any certified comments
@@ -1054,7 +1054,7 @@ class FileHandler:
                     new_path = "".join([CONFIG_BROKER['broker_files'], filename])
                 file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
                                                      submission_id=submission_id, filename=new_path, file_type_id=None,
-                                                     narrative=None, warning_filename=None)
+                                                     comment=None, warning_filename=None)
                 sess.add(file_history)
         sess.commit()
 
@@ -1687,7 +1687,7 @@ def list_certifications(submission):
                     "certified_files_history_id": file.certified_files_history_id,
                     "filename": file.filename.split("/")[-1],
                     "is_warning": False,
-                    "comment": file.narrative
+                    "comment": file.comment
                 })
 
             # if there's a warning file, add it to the list

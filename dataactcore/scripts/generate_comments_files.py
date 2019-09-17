@@ -85,7 +85,7 @@ if __name__ == '__main__':
             # add certified history
             file_history = CertifiedFilesHistory(certify_history_id=max_cert_id.cert_id,
                                                  submission_id=submission_id, filename=new_path,
-                                                 file_type_id=None, narrative=None, warning_filename=None)
+                                                 file_type_id=None, comment=None, warning_filename=None)
             sess.add(file_history)
         sess.commit()
 
