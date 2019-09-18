@@ -43,9 +43,9 @@ These are determined by the MAX group name and agency associated with it.
 
 - **Parent Group**: The MAX parent group that designates this is for the DATA-Act Broker. 
 This can be used to separate permissions per environment (dev, staging, production).
-- **CGAC**: The 4-digit code representing the toptier agency this permission is associated with.
-- **FREC**: The 3-digit FR entity code representing the toptier agency this permission is associated with.
-- **Permission Level**: The levels listed above with their letter code (usually first letter)
+- **CGAC**: The 3-digit code representing the toptier agency this permission is associated with.
+- **FREC**: The 4-digit FR entity code representing the toptier agency this permission is associated with.
+- **Permission Level**: The levels listed above with their letter code
 
 #### Formats
 
