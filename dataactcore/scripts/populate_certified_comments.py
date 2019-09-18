@@ -4,7 +4,7 @@ from sqlalchemy import func
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.jobModels import Submission, CertifyHistory, SubmissionNarrative, CertifiedComment
+from dataactcore.models.jobModels import Submission, CertifyHistory, Comment, CertifiedComment
 
 from dataactvalidator.health_check import create_app
 
@@ -27,11 +27,11 @@ if __name__ == '__main__':
             filter(Submission.d2_submission.is_(False)). \
             group_by(CertifyHistory.submission_id).cte('max_certify_history')
 
-        # Get all narratives that were written before the latest certification for all certified/updated submissions
-        certify_history_list = sess.query(SubmissionNarrative). \
-            join(max_certify_history, max_certify_history.c.submission_id == SubmissionNarrative.submission_id). \
-            filter(SubmissionNarrative.updated_at < max_certify_history.c.max_updated_at).\
-            order_by(SubmissionNarrative.submission_id, SubmissionNarrative.file_type_id).all()
+        # Get all comments that were written before the latest certification for all certified/updated submissions
+        certify_history_list = sess.query(Comment). \
+            join(max_certify_history, max_certify_history.c.submission_id == Comment.submission_id). \
+            filter(Comment.updated_at < max_certify_history.c.max_updated_at).\
+            order_by(Comment.submission_id, Comment.file_type_id).all()
 
         # Create a list of comments and a list of all submissions involved
         comments_list = []
@@ -41,9 +41,8 @@ if __name__ == '__main__':
             tmp_obj.pop('_sa_instance_state')
             tmp_obj.pop('created_at')
             tmp_obj.pop('updated_at')
-            tmp_obj.pop('submission_narrative_id')
-            # This will be removed when things are renamed
-            tmp_obj['comment'] = tmp_obj.pop('narrative')
+            tmp_obj.pop('comment_id')
+
             comments_list.append(tmp_obj)
             if tmp_obj['submission_id'] not in submissions_list:
                 submissions_list.append(tmp_obj['submission_id'])

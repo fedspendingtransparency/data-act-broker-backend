@@ -155,16 +155,16 @@ class FileGenerationTask(Base):
     job = relationship("Job", uselist=False, cascade="delete")
 
 
-class SubmissionNarrative(Base):
-    __tablename__ = "submission_narrative"
+class Comment(Base):
+    __tablename__ = "comment"
 
-    submission_narrative_id = Column(Integer, primary_key=True)
+    comment_id = Column(Integer, primary_key=True)
     submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_submission", ondelete="CASCADE"),
                            nullable=False)
     submission = relationship(Submission, uselist=False, cascade="delete")
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_file_type"), nullable=False)
     file_type = relationship(FileType, uselist=False)
-    narrative = Column(Text, nullable=False)
+    comment = Column(Text, nullable=False)
 
     __table_args__ = (UniqueConstraint('submission_id', 'file_type_id', name='uniq_submission_file_type'),)
 
@@ -251,7 +251,7 @@ class CertifiedFilesHistory(Base):
                           nullable=True,)
     file_type = relationship("FileType", uselist=False, lazy='joined')
     warning_filename = Column(Text)
-    narrative = Column(Text)
+    comment = Column(Text)
 
 
 class SubmissionWindow(Base):

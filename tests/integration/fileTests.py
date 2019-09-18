@@ -1016,7 +1016,7 @@ class FileTests(BaseTestAPI):
 
     @classmethod
     def insert_certified_files_history(cls, sess, ch_id, submission_id, file_type=None, filename=None,
-                                       warning_filename=None, narrative=None):
+                                       warning_filename=None, comment=None):
         """ Insert one history entry into certified files history database. """
         cfh = CertifiedFilesHistory(
             certify_history_id=ch_id,
@@ -1024,7 +1024,7 @@ class FileTests(BaseTestAPI):
             filename=filename,
             file_type_id=file_type,
             warning_filename=warning_filename,
-            narrative=narrative
+            comment=comment
         )
         sess.add(cfh)
         sess.commit()
@@ -1049,7 +1049,7 @@ class FileTests(BaseTestAPI):
             FILE_TYPE_DICT["appropriations"],
             "path/to/file_a.csv",
             "path/to/warning_file_a.csv",
-            "Narrative content"
+            "Comment content"
         )
 
         # Create a D1 file entry
