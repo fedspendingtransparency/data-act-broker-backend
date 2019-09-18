@@ -15,7 +15,7 @@ from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
                                           CertifyHistory, RevalidationThreshold, QuarterlyRevalidationThreshold,
-                                          SubmissionNarrative, CertifiedComment)
+                                          Comment, CertifiedComment)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
                                               CertifiedAwardFinancial)
@@ -547,13 +547,12 @@ def move_certified_data(sess, submission_id):
                                                      'submission'],
                    'award_financial': [AwardFinancial, CertifiedAwardFinancial, 'submission'],
                    'error_metadata': [ErrorMetadata, CertifiedErrorMetadata, 'job'],
-                   'submission_narrative': [SubmissionNarrative, CertifiedComment, 'submission']}
+                   'comment': [Comment, CertifiedComment, 'submission']}
 
     # Get list of jobs so we can use them for filtering
     job_list = sess.query(Job.job_id).filter_by(submission_id=submission_id).all()
     job_list = [item[0] for item in job_list]
 
-    # TODO: remove the slightly weird code created by having to rename submission_narrative to comment
     for table_type, table_object in table_types.items():
         logger.info({
             "message": "Deleting old certified data from {} table".format("certified_" + table_type),
@@ -579,17 +578,13 @@ def move_certified_data(sess, submission_id):
         column_list.remove(table_type + '_id')
 
         col_string = ", ".join(column_list)
-        certified_cols = col_string
-        if table_type == 'submission_narrative':
-            certified_cols = certified_cols.replace('narrative', 'comment')
 
-        # Strange formatting caused by submission_narrative vs certified_comment
         insert_string = """
-            INSERT INTO certified_{} (created_at, updated_at, {})
-            SELECT NOW() AS created_at, NOW() AS updated_at, {}
-            FROM {}
+            INSERT INTO certified_{table} (created_at, updated_at, {cols})
+            SELECT NOW() AS created_at, NOW() AS updated_at, {cols}
+            FROM {table}
             WHERE
-        """.format(table_type.replace('submission_narrative', 'comment'), certified_cols, col_string, table_type)
+        """.format(table=table_type, cols=col_string)
 
         # Filter by either submission ID or job IDs depending on the situation
         if table_object[2] == 'submission':

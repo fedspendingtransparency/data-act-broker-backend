@@ -66,9 +66,9 @@ While the Submission API has been designed to be as easy to understand as possib
 
 ### Review and Add Comments
 - Once the E and F files are generated successfully, the results can be reviewed using a series of calls.
-- To see what comments exist for each file, call `/v1/submission/SUBMISSIONID/narrative`. This is the GET version of this endpoint. For details on its use, click [here](./dataactbroker/README.md#get-v1submissionintsubmission_idnarrative)
+- To see what comments exist for each file, call `/v1/get_submission_comments`. For details on its use, click [here](./dataactbroker/README.md#get-v1get_submission_comments)
 - To get the total obligations throughout the file, call `/v1/get_obligations`. For details on its use, click [here](./dataactbroker/README.md#get-v1get_obligations)
-- To update the comments on files, call `/v1/submission/SUBMISSIONID/narrative`. This is the POST version of this endpoint. For details on its use, click [here](./dataactbroker/README.md#post-v1submissionintsubmission_idnarrative)
+- To update the comments on files, call `/v1/update_submission_comments`. For details on its use, click [here](./dataactbroker/README.md#post-v1update_submission_comments)
 
 ### Certify Submission
 - Certification must be done through the broker website
