@@ -7,7 +7,7 @@ For more details, please check out the code in [permissions.py](./permissions.py
 
 As listed out in [lookups.py](../dataactcore/models/lookups.py), there are five permission levels.
 Each permission level must be granted via MAX groups which only apply to one agency at a time.
-Users may be able to have permissions for multiple agencies which is only determined by the max groups
+Users may be able to have permissions for multiple agencies which is only determined by the MAX groups
 they are associated with.
 
 **Note: For each group (DABS/FABS), each additional permission level builds upon the previous level 
@@ -37,7 +37,7 @@ Each time a user logs in, they go through [login.max.gov](https://portal.max.gov
 After authenticating, the Broker reads the group(s) the logged-in user is a part of and resets their Broker permissions.
 These are determined by the MAX group name and agency associated with it.
 
-### Max Groups
+### MAX Groups
 
 #### Components
 
