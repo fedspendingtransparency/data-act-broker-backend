@@ -30,7 +30,8 @@ from dataactcore.interfaces.function_bag import (
 from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
                                              Office, DUNS)
 from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
-                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileGeneration)
+                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileGeneration,
+                                          FileType, CertifiedComment)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
@@ -912,7 +913,7 @@ class FileHandler:
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
     def move_certified_files(self, submission, certify_history, is_local):
-        """ Copy all files within the ceritified submission to the correct certified files bucket/directory. FABS
+        """ Copy all files within the certified submission to the correct certified files bucket/directory. FABS
             submissions also create a file containing all the published rows
 
             Args:
@@ -1006,8 +1007,9 @@ class FileHandler:
                                                  warning_filename=warning_file)
             sess.add(file_history)
 
-        # FABS submissions don't have cross-file validations
+        # FABS submissions don't have cross-file validations or comments
         if not submission.d2_submission:
+            # Adding cross-file warnings
             cross_list = {"B": "A", "C": "B", "D1": "C", "D2": "C"}
             for key, value in cross_list.items():
                 first_file = FILE_TYPE_DICT_LETTER_NAME[value]
@@ -1029,6 +1031,23 @@ class FileHandler:
                 file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
                                                      submission_id=submission_id, filename=None, file_type_id=None,
                                                      narrative=None, warning_filename=warning_file)
+                sess.add(file_history)
+
+            # Only move the file if we have any certified comments
+            num_cert_comments = sess.query(CertifiedComment).filter_by(submission_id=submission_id).count()
+            if num_cert_comments > 0:
+                filename = 'submission_{}_comments.csv'.format(str(submission_id))
+                if not is_local:
+                    old_path = '{}/{}'.format(str(submission.submission_id), filename)
+                    new_path = new_route + filename
+                    # Copy the file if it's a non-local submission
+                    self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
+                                             original_path=old_path, new_path=new_path)
+                else:
+                    new_path = "".join([CONFIG_BROKER['broker_files'], filename])
+                file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
+                                                     submission_id=submission_id, filename=new_path, file_type_id=None,
+                                                     narrative=None, warning_filename=None)
                 sess.add(file_history)
         sess.commit()
 
@@ -1054,13 +1073,18 @@ def narratives_for_submission(submission):
     return JsonResponse.create(StatusCode.OK, result)
 
 
-def update_narratives(submission, narrative_request):
+def update_narratives(submission, narrative_request, is_local):
     """ Clear existing narratives and replace them with the provided set.
 
         Args:
             submission: submission to update the narratives for
             narrative_request: the contents of the request from the API
+            is_local: a boolean indicating whether the application is running locally or not
     """
+    # If the submission has been certified, set its status to updated when new comments are made.
+    if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+        submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
+
     json = narrative_request or {}
     # clean input
     narratives_json = {key.upper(): value.strip() for key, value in json.items()
@@ -1082,7 +1106,50 @@ def update_narratives(submission, narrative_request):
     sess.add_all(narratives)
     sess.commit()
 
+    # Preparing for the comments file
+    filename = 'submission_{}_comments.csv'.format(submission.submission_id)
+    local_file = "".join([CONFIG_BROKER['broker_files'], filename])
+    file_path = local_file if is_local else '{}/{}'.format(str(submission.submission_id), filename)
+    headers = ['File', 'Comment']
+
+    # Generate a file containing all the comments for a given submission
+    comment_query = sess.query(FileType.name, SubmissionNarrative.narrative).\
+        join(FileType, SubmissionNarrative.file_type_id == FileType.file_type_id).\
+        filter(SubmissionNarrative.submission_id == submission.submission_id)
+
+    # Generate the file locally, then place in S3
+    write_stream_query(sess, comment_query, local_file, file_path, is_local, header=headers)
+
     return JsonResponse.create(StatusCode.OK, {})
+
+
+def get_comments_file(submission, is_local):
+    """ Retrieve the comments file for a specific submission.
+
+        Args:
+            submission: the submission to get the comments file for
+            is_local: a boolean indicating whether the application is running locally or not
+
+        Returns:
+            A JsonResponse containing the url to the file if one exists, JsonResponse error containing the details of
+            the error if something went wrong
+    """
+
+    sess = GlobalDB.db().session
+    num_comments = sess.query(SubmissionNarrative).filter_by(submission_id=submission.submission_id).count()
+    # if we have at least one comment, we have a file to return
+    if num_comments > 0:
+        filename = 'submission_{}_comments.csv'.format(submission.submission_id)
+        if is_local:
+            # when local, can just grab the path
+            url = os.path.join(CONFIG_BROKER['broker_files'], filename)
+        else:
+            url = S3Handler().get_signed_url(str(submission.submission_id), filename,
+                                             url_mapping=CONFIG_BROKER["submission_bucket_mapping"],
+                                             method="get_object")
+        return JsonResponse.create(StatusCode.OK, {"url": url})
+    return JsonResponse.error(ValueError('This submission does not have any comments associated with it'),
+                              StatusCode.CLIENT_ERROR)
 
 
 def create_fabs_published_file(sess, submission_id, new_route):
