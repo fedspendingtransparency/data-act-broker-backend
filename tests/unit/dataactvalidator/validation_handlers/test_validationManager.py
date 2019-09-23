@@ -107,7 +107,7 @@ def test_insert_staging_model_failure():
     job = JobFactory()
     assert not validationManager.insert_staging_model(model, job, writer, error_list)
     assert writer.writerow.call_args[0] == (
-        ['Formatting Error', 'Could not write this record into the staging table.', 1234, ''],
+        ['Formatting Error', 'Could not write this record into the staging table.', '', '', 1234, ''],
     )
     assert len(error_list.rowErrors) == 1
     error = list(error_list.rowErrors.values())[0]
