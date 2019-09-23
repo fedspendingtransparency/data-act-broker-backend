@@ -155,6 +155,8 @@ class CsvReader(object):
             # We skip headers which aren't expected and aren't flex
             elif self.expected_headers[idx] is not None:
                 return_dict[self.expected_headers[idx]] = cell
+        # Sort flex fields so they always come back in the same order
+        flex_fields.sort(key=lambda x: x.header)
         return return_dict, flex_fields
 
     def _get_line(self):

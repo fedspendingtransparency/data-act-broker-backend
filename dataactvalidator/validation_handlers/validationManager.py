@@ -539,6 +539,7 @@ class ValidationManager:
                 # write to warnings file
                 warning_writer.writerow([field_name, error_msg, str(failure.row), failure.failed_value,
                                          failure.original_label])
+            # labeled errors
             error_list.record_row_error(job_id, job.filename, field_name, failure.error, row_number,
                                         failure.original_label, failure.file_type_id, failure.target_file_id,
                                         failure.severity_id)
@@ -748,18 +749,18 @@ def insert_staging_model(model, job, writer, error_list):
 def write_errors(failures, job, short_colnames, writer, warning_writer, row_number, error_list, flex_cols):
     """ Write errors to error database
 
-    Args:
-        failures: List of Failures to be written
-        job: Current job
-        short_colnames: Dict mapping short names to long names
-        writer: CsvWriter object
-        warning_writer: CsvWriter object
-        row_number: Current row number
-        error_list: instance of ErrorInterface to keep track of errors
-        flex_cols: all flex columns for this row
+        Args:
+            failures: List of Failures to be written
+            job: Current job
+            short_colnames: Dict mapping short names to long names
+            writer: CsvWriter object
+            warning_writer: CsvWriter object
+            row_number: Current row number
+            error_list: instance of ErrorInterface to keep track of errors
+            flex_cols: all flex columns for this row
 
-    Returns:
-        True if any fatal errors were found, False if only warnings are present
+        Returns:
+            True if any fatal errors were found, False if only warnings are present
     """
     fatal_error_found = False
     # prepare flex cols for all the errors for this row
@@ -806,6 +807,7 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
         elif failure.severity == 'warning':
             # write to warnings file
             warning_writer.writerow([combined_field_names, error_msg, str(row_number), fail_value, failure.label])
+        # Non-labeled errors
         error_list.record_row_error(job.job_id, job.filename, combined_field_names, failure.description, row_number,
                                     failure.label, severity_id=severity_id)
     return fatal_error_found

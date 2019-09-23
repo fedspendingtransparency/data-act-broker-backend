@@ -155,7 +155,8 @@ class FileTests(BaseTestAPI):
         update_json = {"existing_submission_id": self.updateSubmissionId,
                        "award_financial": file_path,
                        "reporting_period_start_date": "04/2016",
-                       "reporting_period_end_date": "06/2016"}
+                       "reporting_period_end_date": "06/2016",
+                       "is_quarter": True}
 
         # Mark submission as published
         with create_app().app_context():
@@ -360,20 +361,32 @@ class FileTests(BaseTestAPI):
                                  headers={"x-session-id": self.session_id}, expect_errors=False)
         self.assertEqual(response.status_code, 200)
 
-    # TODO: validate that monthly submissions only include one month
-    # def test_submit_file_monthly_submission_wrong_dates(self):
-    #     self.login_user()
-    #     monthly_submission_json = {
-    #         "cgac_code": "NOT",
-    #         "frec_code": None,
-    #         "is_quarter": False,
-    #         "reporting_period_start_date": "10/2015",
-    #         "reporting_period_end_date": "12/2015"}
-    #     response = self.app.post("/v1/upload_dabs_files/", monthly_submission_json,
-    #                              upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
-    #                              headers={"x-session-id": self.session_id}, expect_errors=True)
-    #     self.assertEqual(response.status_code, 400)
-    #     self.assertEqual()
+    def test_submit_file_monthly_submission_wrong_dates(self):
+        # wrong month
+        monthly_submission_json = {
+            "cgac_code": "NOT",
+            "frec_code": None,
+            "is_quarter": False,
+            "reporting_period_start_date": "10/2015",
+            "reporting_period_end_date": "12/2015"}
+        response = self.app.post("/v1/upload_dabs_files/", monthly_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'A monthly submission must be exactly one month.')
+
+        # wrong year
+        monthly_submission_json = {
+            "cgac_code": "NOT",
+            "frec_code": None,
+            "is_quarter": False,
+            "reporting_period_start_date": "10/2015",
+            "reporting_period_end_date": "10/2016"}
+        response = self.app.post("/v1/upload_dabs_files/", monthly_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'A monthly submission must be exactly one month.')
 
     def test_revalidation_threshold_no_login(self):
         """ Test response with no login """
@@ -963,7 +976,8 @@ class FileTests(BaseTestAPI):
         # Call a generation to test resetting the status, make sure the call succeeded
         update_json = {"existing_submission_id": submission.submission_id,
                        "reporting_period_start_date": "04/2016",
-                       "reporting_period_end_date": "06/2016"}
+                       "reporting_period_end_date": "06/2016",
+                       "is_quarter": True}
         update_response = self.app.post("/v1/upload_dabs_files/", update_json,
                                         upload_files=[APPROP_FILE_T],
                                         headers={"x-session-id": self.session_id})
@@ -1002,7 +1016,7 @@ class FileTests(BaseTestAPI):
 
     @classmethod
     def insert_certified_files_history(cls, sess, ch_id, submission_id, file_type=None, filename=None,
-                                       warning_filename=None, narrative=None):
+                                       warning_filename=None, comment=None):
         """ Insert one history entry into certified files history database. """
         cfh = CertifiedFilesHistory(
             certify_history_id=ch_id,
@@ -1010,7 +1024,7 @@ class FileTests(BaseTestAPI):
             filename=filename,
             file_type_id=file_type,
             warning_filename=warning_filename,
-            narrative=narrative
+            comment=comment
         )
         sess.add(cfh)
         sess.commit()
@@ -1035,7 +1049,7 @@ class FileTests(BaseTestAPI):
             FILE_TYPE_DICT["appropriations"],
             "path/to/file_a.csv",
             "path/to/warning_file_a.csv",
-            "Narrative content"
+            "Comment content"
         )
 
         # Create a D1 file entry

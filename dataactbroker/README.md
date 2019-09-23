@@ -680,21 +680,26 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
-
 #### GET "/v1/submission/\<int:submission\_id\>/narrative"
-This endpoint retrieves existing submission narratives (explanations/notes for particular files).
+**Deprecated, scheduled for removal, use `/v1/get_submission_comments`**
+
+#### POST "/v1/submission/\<int:submission\_id\>/narrative"
+**Deprecated, scheduled for removal, use `/v1/update_submission_comments`**
+
+#### GET "/v1/get\_submission\_comments"
+This endpoint retrieves existing submission comments (explanations/notes for particular files).
 
 ##### Sample Request
-`/v1/submission/123/narrative`
+`/v1/get_submission_comments?submission_id=123`
 
 ##### Request Params
-- `submission_id` - **required** - an integer representing the ID of the submission to get obligations for. This is found within the url itself, not at the end as an explicit param.
+- `submission_id`: (required, string) an integer representing the ID of the submission to get obligations for.
 
 ##### Response (JSON)
 
 ```
 {
-  "A": "Text of A's narrative",
+  "A": "Text of A's comment",
   "B": "These will be empty if no notes are present",
   "C": "",
   "D1": "",
@@ -705,13 +710,13 @@ This endpoint retrieves existing submission narratives (explanations/notes for p
 ```
 
 ##### Reponse Attributes
-- `A` - narrative for file A (Appropriations)
-- `B` - narrative for file B (Program Activity)
-- `C` - narrative for file C (Award Financial)
-- `D1` - narrative for file D1 (Award Procurement)
-- `D2` - narrative for file D2 (Award Financial Assistance)
-- `E` - narrative for file E (Executive Compensation)
-- `F` - narrative for file F (Sub Award)
+- `A`: (string) comment for file A (Appropriations)
+- `B`: (string) comment for file B (Program Activity)
+- `C`: (string) comment for file C (Award Financial)
+- `D1`: (string) comment for file D1 (Award Procurement)
+- `D2`: (string) comment for file D2 (Award Financial Assistance)
+- `E`: (string) comment for file E (Executive Compensation)
+- `F`: (string) comment for file F (Sub Award)
 
 ##### Errors
 Possible HTTP Status Codes:
@@ -720,33 +725,35 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
-#### POST "/v1/submission/\<int:submission\_id\>/narrative"
-This endpoint sets the file narratives for a given submission.
+#### POST "/v1/update\_submission\_comments"
+This endpoint sets the file comments for a given submission.
 
 ##### Body (JSON)
 
 ```
 {
-  "A": "Some new text"
+  "submission_id": 1234,
+  "A": "Some new text",
   "C": "We didn't include B",
   "D1": "",
   "D2": "",
-  "F": "Or E, for some reason",
+  "F": "Or E, for some reason"
 }
 ```
 
 ##### Body Description
 All content passed in the body is updated in the database. If an attribute is left out, it will be treated as if it's an empty string.
 
-**Important:** All narratives must be included every time in order to be kept. An attribute with an empty string will result in that narrative being deleted. (e.g. A narrative for file A already exists. A narrative for file B is being added. Narratives for both files A and B must be sent).
+**Important:** All comments must be included every time in order to be kept. An attribute with an empty string will result in that comment being deleted. (e.g. A comment for file A already exists. A comment for file B is being added. Comments for both files A and B must be sent).
 
-- `A` - narrative for file A (Appropriations)
-- `B` - narrative for file B (Program Activity)
-- `C` - narrative for file C (Award Financial)
-- `D1` - narrative for file D1 (Award Procurement)
-- `D2` - narrative for file D2 (Award Financial Assistance)
-- `E` - narrative for file E (Executive Compensation)
-- `F` - narrative for file F (Sub Award)
+- `submission_id`: (required, string) The ID of the submission whose comments are getting updated
+- `A`: (string) comment for file A (Appropriations)
+- `B`: (string) comment for file B (Program Activity)
+- `C`: (string) comment for file C (Award Financial)
+- `D1`: (string) comment for file D1 (Award Procurement)
+- `D2`: (string) comment for file D2 (Award Financial Assistance)
+- `E`: (string) comment for file E (Executive Compensation)
+- `F`: (string) comment for file F (Sub Award)
 
 ##### Response (JSON)
 
@@ -1264,12 +1271,12 @@ Successful response will contain the submission_id and a list of certifications.
             "certified_files_history_id": 1,
             "filename": "1492041855_file_c.csv",
             "is_warning": False,
-            "narrative": "Comment on the file"
+            "comment": "Comment on the file"
             },
             {"certified_files_history_id": 1,
             "filename": "submission_7_award_financial_warning_report.csv",
             "is_warning": True,
-            "narrative": None}
+            "comment": None}
         ]},
         {"certify_date": "2017-05-08 12:07:18",
         "certify_history_id": 3,
@@ -1281,12 +1288,12 @@ Successful response will contain the submission_id and a list of certifications.
             "certified_files_history_id": 3,
             "filename": "1492041855_file_a.csv",
             "is_warning": False,
-            "narrative": "This is also a comment"
+            "comment": "This is also a comment"
             },
             {"certified_files_history_id": 6,
             "filename": "submission_280_cross_warning_appropriations_program_activity.csv",
             "is_warning": True,
-            "narrative": None}
+            "comment": None}
         ]}
     ]
 }

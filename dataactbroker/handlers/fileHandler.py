@@ -5,6 +5,7 @@ import os
 import requests
 import sqlalchemy as sa
 import threading
+import math
 
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -29,7 +30,7 @@ from dataactcore.interfaces.function_bag import (
 
 from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
                                              Office, DUNS)
-from dataactcore.models.jobModels import (Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation,
+from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileGeneration,
                                           FileType, CertifiedComment)
 from dataactcore.models.lookups import (
@@ -53,6 +54,8 @@ from dataactvalidator.validation_handlers.file_generation_manager import GEN_FIL
 logger = logging.getLogger(__name__)
 
 ROWS_PER_LOOP = 10000
+MIN_ROWS_LOG_BATCH = 100
+LOG_BATCH_PERCENT = 10
 
 
 class FileHandler:
@@ -113,6 +116,13 @@ class FileHandler:
         if not (start_date is None or end_date is None):
             formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(start_date,
                                                                                           end_date, is_quarter)
+
+            if not is_quarter and not (formatted_start_date.month == formatted_end_date.month and
+                                       formatted_start_date.year == formatted_end_date.year):
+                data = {
+                    "message": "A monthly submission must be exactly one month."
+                }
+                return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
 
             submissions = sess.query(Submission).filter(
                 Submission.cgac_code == submission_request.get('cgac_code'),
@@ -696,9 +706,12 @@ class FileHandler:
 
             agency_codes_list = []
             row_count = 1
+            total_count = sess.query(DetachedAwardFinancialAssistance). \
+                filter_by(is_valid=True, submission_id=submission_id).count()
+            batch_percent = math.floor(total_count/LOG_BATCH_PERCENT)
             loop_num = 0
             query = []
-            log_data['message'] = 'Starting derivations for FABS submission'
+            log_data['message'] = 'Starting derivations for FABS submission (total count: {})'.format(total_count)
             logger.info(log_data)
 
             while len(query) == ROWS_PER_LOOP or loop_num == 0:
@@ -745,8 +758,9 @@ class FileHandler:
                     if temp_obj['funding_agency_code'] not in agency_codes_list:
                         agency_codes_list.append(temp_obj['funding_agency_code'])
 
-                    if row_count % 1000 == 0:
-                        log_data['message'] = 'Completed derivations for {} rows'.format(row_count)
+                    if total_count > MIN_ROWS_LOG_BATCH and (row_count % batch_percent) == 0:
+                        percent = math.floor((row_count/total_count)*100)
+                        log_data['message'] = 'Completed derivations for {} rows ({}%)'.format(row_count, percent)
                         logger.info(log_data)
                     row_count += 1
                 loop_num += 1
@@ -981,7 +995,7 @@ class FileHandler:
                     warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission_id, True,
                                                                                            job.file_type.name)
 
-            narrative = None
+            comment = None
             if submission.d2_submission:
                 # FABS published submission, create the FABS published rows file
                 log_data['message'] = 'Generating published FABS file from publishable rows'
@@ -989,11 +1003,11 @@ class FileHandler:
                 new_path = create_fabs_published_file(sess, submission_id, new_route)
             else:
                 # DABS certified submission
-                # get the narrative relating to the file
-                narrative = sess.query(SubmissionNarrative).\
+                # get the comment relating to the file
+                comment = sess.query(Comment).\
                     filter_by(submission_id=submission_id, file_type_id=job.file_type_id).one_or_none()
-                if narrative:
-                    narrative = narrative.narrative
+                if comment:
+                    comment = comment.comment
 
                 # only actually move the files if it's not a local submission
                 if not is_local:
@@ -1003,7 +1017,7 @@ class FileHandler:
             # create the certified_files_history for this file
             file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
                                                  submission_id=submission_id, file_type_id=job.file_type_id,
-                                                 filename=new_path, narrative=narrative,
+                                                 filename=new_path, comment=comment,
                                                  warning_filename=warning_file)
             sess.add(file_history)
 
@@ -1030,7 +1044,7 @@ class FileHandler:
                 # add certified history
                 file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
                                                      submission_id=submission_id, filename=None, file_type_id=None,
-                                                     narrative=None, warning_filename=warning_file)
+                                                     comment=None, warning_filename=warning_file)
                 sess.add(file_history)
 
             # Only move the file if we have any certified comments
@@ -1047,7 +1061,7 @@ class FileHandler:
                     new_path = "".join([CONFIG_BROKER['broker_files'], filename])
                 file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
                                                      submission_id=submission_id, filename=new_path, file_type_id=None,
-                                                     narrative=None, warning_filename=None)
+                                                     comment=None, warning_filename=None)
                 sess.add(file_history)
         sess.commit()
 
@@ -1055,55 +1069,54 @@ class FileHandler:
         logger.debug(log_data)
 
 
-def narratives_for_submission(submission):
-    """ Fetch narratives for this submission, indexed by file letter
+def get_submission_comments(submission):
+    """ Fetch comments for this submission, indexed by file letter
 
         Args:
-            submission: the submission to gather narratives for
+            submission: the submission to gather comments for
 
         Returns:
-            JsonResponse object with the contents of the narratives in a key/value pair of letter/narrative
+            JsonResponse object with the contents of the comments in a key/value pair of letter/comments
     """
     sess = GlobalDB.db().session
     result = {letter: '' for letter in FILE_TYPE_DICT_LETTER.values() if letter != 'FABS'}
-    narratives = sess.query(SubmissionNarrative).filter_by(submission_id=submission.submission_id)
-    for narrative in narratives:
-        letter = FILE_TYPE_DICT_LETTER[narrative.file_type_id]
-        result[letter] = narrative.narrative
+    comments = sess.query(Comment).filter_by(submission_id=submission.submission_id)
+    for comment in comments:
+        letter = FILE_TYPE_DICT_LETTER[comment.file_type_id]
+        result[letter] = comment.comment
     return JsonResponse.create(StatusCode.OK, result)
 
 
-def update_narratives(submission, narrative_request, is_local):
-    """ Clear existing narratives and replace them with the provided set.
+def update_submission_comments(submission, comment_request, is_local):
+    """ Clear existing comments and replace them with the provided set.
 
         Args:
-            submission: submission to update the narratives for
-            narrative_request: the contents of the request from the API
+            submission: submission to update the comments for
+            comment_request: the contents of the request from the API
             is_local: a boolean indicating whether the application is running locally or not
     """
     # If the submission has been certified, set its status to updated when new comments are made.
     if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
         submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
 
-    json = narrative_request or {}
+    json = comment_request or {}
     # clean input
-    narratives_json = {key.upper(): value.strip() for key, value in json.items()
-                       if isinstance(value, str) and value.strip()}
+    comments_json = {key.upper(): value.strip() for key, value in json.items()
+                     if isinstance(value, str) and value.strip()}
 
     sess = GlobalDB.db().session
-    # Delete old narratives
-    sess.query(SubmissionNarrative).filter_by(submission_id=submission.submission_id).\
-        delete(synchronize_session='fetch')     # fetch just in case
+    # Delete old comments, fetch just in case
+    sess.query(Comment).filter_by(submission_id=submission.submission_id).delete(synchronize_session='fetch')
 
-    narratives = []
+    comments = []
     for file_type_id, letter in FILE_TYPE_DICT_LETTER.items():
-        if letter in narratives_json and letter != 'FABS':
-            narratives.append(SubmissionNarrative(
+        if letter in comments_json and letter != 'FABS':
+            comments.append(Comment(
                 submission_id=submission.submission_id,
                 file_type_id=file_type_id,
-                narrative=narratives_json[letter]
+                comment=comments_json[letter]
             ))
-    sess.add_all(narratives)
+    sess.add_all(comments)
     sess.commit()
 
     # Preparing for the comments file
@@ -1113,9 +1126,9 @@ def update_narratives(submission, narrative_request, is_local):
     headers = ['File', 'Comment']
 
     # Generate a file containing all the comments for a given submission
-    comment_query = sess.query(FileType.name, SubmissionNarrative.narrative).\
-        join(FileType, SubmissionNarrative.file_type_id == FileType.file_type_id).\
-        filter(SubmissionNarrative.submission_id == submission.submission_id)
+    comment_query = sess.query(FileType.name, Comment.comment).\
+        join(FileType, Comment.file_type_id == FileType.file_type_id).\
+        filter(Comment.submission_id == submission.submission_id)
 
     # Generate the file locally, then place in S3
     write_stream_query(sess, comment_query, local_file, file_path, is_local, header=headers)
@@ -1136,7 +1149,7 @@ def get_comments_file(submission, is_local):
     """
 
     sess = GlobalDB.db().session
-    num_comments = sess.query(SubmissionNarrative).filter_by(submission_id=submission.submission_id).count()
+    num_comments = sess.query(Comment).filter_by(submission_id=submission.submission_id).count()
     # if we have at least one comment, we have a file to return
     if num_comments > 0:
         filename = 'submission_{}_comments.csv'.format(submission.submission_id)
@@ -1681,7 +1694,7 @@ def list_certifications(submission):
                     "certified_files_history_id": file.certified_files_history_id,
                     "filename": file.filename.split("/")[-1],
                     "is_warning": False,
-                    "narrative": file.narrative
+                    "comment": file.comment
                 })
 
             # if there's a warning file, add it to the list
@@ -1690,7 +1703,7 @@ def list_certifications(submission):
                     "certified_files_history_id": file.certified_files_history_id,
                     "filename": file.warning_filename.split("/")[-1],
                     "is_warning": True,
-                    "narrative": None
+                    "comment": None
                 })
 
         # after adding all certified files to the history, add the entire history entry to the certifications list
