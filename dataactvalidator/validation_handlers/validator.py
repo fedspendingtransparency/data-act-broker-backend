@@ -12,8 +12,8 @@ from dataactcore.interfaces.db import GlobalDB
 logger = logging.getLogger(__name__)
 
 Failure = namedtuple('Failure', ['field', 'description', 'value', 'label', 'severity'])
-ValidationFailure = namedtuple('ValidationFailure', ['field_name', 'error', 'failed_value', 'row', 'original_label',
-                                                     'file_type_id', 'target_file_id', 'severity_id'])
+ValidationFailure = namedtuple('ValidationFailure', ['field_name', 'error', 'failed_value', 'flex_fields', 'row',
+                                                     'original_label', 'file_type_id', 'target_file_id', 'severity_id'])
 
 
 class Validator(object):
@@ -417,12 +417,13 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
     row = sql_failure["row_number"]
     # Create strings for fields and values
     values_list = ["{}: {}".format(header, str(sql_failure[field])) for field, header in zip(cols, col_headers)]
-    values_list.extend("{}: {}".format(flex_field.header, flex_field.cell) for flex_field in flex_data[row])
-    field_list = col_headers + [field.header for field in flex_data[row]]
+    flex_list = ["{}: {}".format(flex_field.header, flex_field.cell if flex_field.cell else '')
+                 for flex_field in flex_data[row]]
     return ValidationFailure(
-        ", ".join(field_list),
+        ", ".join(col_headers),
         rule.rule_error_message,
         ", ".join(values_list),
+        ", ".join(flex_list),
         row,
         rule.rule_label,
         file_id,

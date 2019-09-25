@@ -48,9 +48,9 @@ CHUNK_SIZE = 1024
 
 class ValidationManager:
     """ Outer level class, called by flask route """
-    reportHeaders = ["Field name", "Error message", "Row number", "Value provided", "Rule label"]
-    crossFileReportHeaders = ["Source File", "Target File", "Field names", "Error message", "Values provided",
-                              "Row number", "Rule label"]
+    report_headers = ['Field Name', 'Error Message', 'Value Provided', 'Flex Fields', 'Row Number', 'Rule Label']
+    cross_file_report_headers = ['Source File', 'Target File', 'Field names', 'Error message', 'Values provided',
+                                 'Row number', 'Rule label']
 
     def __init__(self, is_local=True, directory=""):
         # Initialize instance variables
@@ -139,7 +139,7 @@ class ValidationManager:
                 # Don't count last row if empty
                 reduce_row = True
             else:
-                writer.writerow(["Formatting Error", ValidationError.readErrorMsg, str(row_number), ""])
+                writer.writerow(["Formatting Error", ValidationError.readErrorMsg, '', '', str(row_number), ''])
                 error_list.record_row_error(job_id, job.filename, "Formatting Error", ValidationError.readError,
                                             row_number, severity_id=RULE_SEVERITY_DICT['fatal'])
                 row_error_found = True
@@ -290,8 +290,8 @@ class ValidationManager:
                     del offices
 
                 # write headers to file
-                error_csv.writerow(self.reportHeaders)
-                warning_csv.writerow(self.reportHeaders)
+                error_csv.writerow(self.report_headers)
+                warning_csv.writerow(self.report_headers)
                 while not reader.is_finished:
                     row_number += 1
 
@@ -400,10 +400,9 @@ class ValidationManager:
 
                 if file_type in ('appropriations', 'program_activity', 'award_financial'):
                     update_tas_ids(model, submission_id)
-                #
-                # third phase of validations: run validation rules as specified
-                # in the schema guidance. these validations are sql-based.
-                #
+
+                # third phase of validations: run validation rules as specified in the schema guidance. These
+                # validations are sql-based.
                 sql_error_rows = self.run_sql_validations(job, file_type, self.short_to_long_dict[job.file_type_id],
                                                           error_csv, warning_csv, row_number, error_list)
                 error_rows.extend(sql_error_rows)
@@ -534,11 +533,12 @@ class ValidationManager:
                 error_msg = failure.error
 
             if failure.severity_id == RULE_SEVERITY_DICT['fatal']:
-                writer.writerow([field_name, error_msg, str(failure.row), failure.failed_value, failure.original_label])
+                writer.writerow([field_name, error_msg, failure.failed_value, failure.flex_fields, str(failure.row),
+                                 failure.original_label])
             elif failure.severity_id == RULE_SEVERITY_DICT['warning']:
                 # write to warnings file
-                warning_writer.writerow([field_name, error_msg, str(failure.row), failure.failed_value,
-                                         failure.original_label])
+                warning_writer.writerow([field_name, error_msg, failure.failed_value,  failure.flex_fields,
+                                         str(failure.row), failure.original_label])
             # labeled errors
             error_list.record_row_error(job_id, job.filename, field_name, failure.error, row_number,
                                         failure.original_label, failure.file_type_id, failure.target_file_id,
@@ -600,8 +600,8 @@ class ValidationManager:
                 warning_csv = csv.writer(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
 
                 # write headers to file
-                error_csv.writerow(self.crossFileReportHeaders)
-                warning_csv.writerow(self.crossFileReportHeaders)
+                error_csv.writerow(self.cross_file_report_headers)
+                warning_csv.writerow(self.cross_file_report_headers)
 
                 # send comboRules to validator.crossValidate sql
                 current_cols_short_to_long = self.short_to_long_dict[first_file.id].copy()
@@ -739,7 +739,7 @@ def insert_staging_model(model, job, writer, error_list):
     except SQLAlchemyError:
         sess.rollback()
         # Write failed, move to next record
-        writer.writerow(["Formatting Error", ValidationError.writeErrorMsg, model.row_number, ""])
+        writer.writerow(["Formatting Error", ValidationError.writeErrorMsg, '', '', model.row_number, ''])
         error_list.record_row_error(job.job_id, job.filename, "Formatting Error", ValidationError.writeError,
                                     model.row_number, severity_id=RULE_SEVERITY_DICT['fatal'])
         return False
@@ -764,13 +764,14 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
     """
     fatal_error_found = False
     # prepare flex cols for all the errors for this row
-    flex_col_headers = []
     flex_col_cells = []
-    if flex_cols:
-        for flex_col in flex_cols:
-            flex_col_headers.append(flex_col.header)
-            flex_val = flex_col.cell if flex_col.cell else ""
-            flex_col_cells.append(flex_col.header + ": " + flex_val)
+    for flex_col in flex_cols:
+        flex_val = flex_col.cell if flex_col.cell else ''
+        flex_col_cells.append(flex_col.header + ': ' + flex_val)
+
+    # join the flex column values so we have a string to use, they will all be the same for the same row
+    flex_values = ", ".join(flex_col_cells)
+
     # For each failure, record it in error report and metadata
     for failure in failures:
         # map short column names back to long names
@@ -781,33 +782,24 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
 
         severity_id = RULE_SEVERITY_DICT[failure.severity]
         try:
-            # If error is an int, it's one of our prestored messages
+            # If error is an int, it's one of our pre-stored messages
             error_type = int(failure.description)
             error_msg = ValidationError.get_error_message(error_type)
         except ValueError:
             # If not, treat it literally
             error_msg = failure.description
-        # get flex fields
-        field_names = [field_name]
-        flex_list = []
-        # only add the value if there's something to add, otherwise our join will look bad
-        if failure.value:
-            flex_list = [field_name + ": " + failure.value]
 
-        # append whatever list we made of flex columns to our existing field names and content list
-        field_names.extend(flex_col_headers)
-        flex_list.extend(flex_col_cells)
+        # Get the fail value if it exists
+        fail_value = field_name + ": " + failure.value if failure.value else ''
 
-        # join the field names and flex column values so we have a list instead of a single value
-        combined_field_names = ", ".join(field_names)
-        fail_value = ", ".join(flex_list)
         if failure.severity == 'fatal':
             fatal_error_found = True
-            writer.writerow([combined_field_names, error_msg, str(row_number), fail_value, failure.label])
+            writer.writerow([field_name, error_msg, fail_value, flex_values, str(row_number), failure.label])
         elif failure.severity == 'warning':
             # write to warnings file
-            warning_writer.writerow([combined_field_names, error_msg, str(row_number), fail_value, failure.label])
+            warning_writer.writerow([field_name, error_msg, fail_value, flex_values, str(row_number),
+                                     failure.label])
         # Non-labeled errors
-        error_list.record_row_error(job.job_id, job.filename, combined_field_names, failure.description, row_number,
+        error_list.record_row_error(job.job_id, job.filename, field_name, failure.description, row_number,
                                     failure.label, severity_id=severity_id)
     return fatal_error_found
