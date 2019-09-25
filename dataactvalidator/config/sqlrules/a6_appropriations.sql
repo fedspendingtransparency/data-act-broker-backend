@@ -9,7 +9,7 @@ WITH appropriation_a6_{0} AS
 SELECT
     approp.row_number,
     approp.total_budgetary_resources_cpe,
-    sf.amount AS sf_133_amount
+    sf.amount AS "expected_value_GTAS SF133 Line 1910"
 FROM appropriation_a6_{0} AS approp
     INNER JOIN sf_133 AS sf
         ON approp.tas = sf.tas
