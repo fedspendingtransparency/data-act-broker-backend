@@ -1,10 +1,16 @@
 from dataactcore.models.stagingModels import Appropriation
 from dataactcore.models.domainModels import SF133
-from tests.unit.dataactvalidator.utils import number_of_errors
+from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
 _FILE = 'a6_appropriations'
 _TAS = 'a6_appropriations_tas'
+
+
+def test_column_headers(database):
+    expected_subset = {'row_number', 'total_budgetary_resources_cpe', 'expected_value_GTAS SF133 Line 1910'}
+    actual = set(query_columns(_FILE, database))
+    assert expected_subset == actual
 
 
 def test_success(database):
