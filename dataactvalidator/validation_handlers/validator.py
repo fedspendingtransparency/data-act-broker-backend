@@ -12,8 +12,9 @@ from dataactcore.interfaces.db import GlobalDB
 logger = logging.getLogger(__name__)
 
 Failure = namedtuple('Failure', ['field', 'description', 'value', 'label', 'severity'])
-ValidationFailure = namedtuple('ValidationFailure', ['field_name', 'error', 'failed_value', 'flex_fields', 'row',
-                                                     'original_label', 'file_type_id', 'target_file_id', 'severity_id'])
+ValidationFailure = namedtuple('ValidationFailure', ['field_name', 'error', 'failed_value', 'expected_value',
+                                                     'flex_fields', 'row', 'original_label', 'file_type_id',
+                                                     'target_file_id', 'severity_id'])
 
 
 class Validator(object):
@@ -323,7 +324,7 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
         if failures.rowcount:
             # Create column list (exclude row_number)
             cols = failures.keys()
-            cols.remove("row_number")
+            cols.remove('row_number')
             col_headers = [short_to_long_dict.get(field, field) for field in cols]
 
             # materialize as we'll iterate over the failures twice
@@ -414,16 +415,33 @@ def relevant_cross_flex_data(failed_rows, submission_id, files):
 
 def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failure):
     """Convert a failure SQL row into a ValidationFailure"""
-    row = sql_failure["row_number"]
+    row = sql_failure['row_number']
+
+    # Determine the expected value for a rule
+    expected_value = ''
+    expect_start = 'expected_value_'
+    found_expected = False
+    for failure_key in sql_failure.keys():
+        if failure_key.startswith(expect_start):
+            fail_header = failure_key[len(expect_start):]
+            expected_value = '{}: {}'.format(fail_header, (str(sql_failure[failure_key] or '')))
+            cols.remove(failure_key)
+            col_headers.remove(failure_key)
+            found_expected = True
+    # If no expected value is defined in the SQL, get it from the rule table
+    if not found_expected:
+        expected_value = rule.expected_value
+
     # Create strings for fields and values
-    values_list = ["{}: {}".format(header, str(sql_failure[field])) for field, header in zip(cols, col_headers)]
-    flex_list = ["{}: {}".format(flex_field.header, flex_field.cell if flex_field.cell else '')
+    values_list = ['{}: {}'.format(header, str(sql_failure[field])) for field, header in zip(cols, col_headers)]
+    flex_list = ['{}: {}'.format(flex_field.header, flex_field.cell if flex_field.cell else '')
                  for flex_field in flex_data[row]]
     return ValidationFailure(
-        ", ".join(col_headers),
+        ', '.join(col_headers),
         rule.rule_error_message,
-        ", ".join(values_list),
-        ", ".join(flex_list),
+        ', '.join(values_list),
+        expected_value,
+        ', '.join(flex_list),
         row,
         rule.rule_label,
         file_id,

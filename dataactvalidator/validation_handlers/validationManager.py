@@ -48,7 +48,8 @@ CHUNK_SIZE = 1024
 
 class ValidationManager:
     """ Outer level class, called by flask route """
-    report_headers = ['Field Name', 'Error Message', 'Value Provided', 'Flex Fields', 'Row Number', 'Rule Label']
+    report_headers = ['Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Flex Fields', 'Row Number',
+                      'Rule Label']
     cross_file_report_headers = ['Source File', 'Target File', 'Field names', 'Error message', 'Values provided',
                                  'Row number', 'Rule label']
 
@@ -139,8 +140,8 @@ class ValidationManager:
                 # Don't count last row if empty
                 reduce_row = True
             else:
-                writer.writerow(["Formatting Error", ValidationError.readErrorMsg, '', '', str(row_number), ''])
-                error_list.record_row_error(job_id, job.filename, "Formatting Error", ValidationError.readError,
+                writer.writerow(['Formatting Error', ValidationError.readErrorMsg, '', '', '', str(row_number), ''])
+                error_list.record_row_error(job_id, job.filename, 'Formatting Error', ValidationError.readError,
                                             row_number, severity_id=RULE_SEVERITY_DICT['fatal'])
                 row_error_found = True
 
@@ -309,10 +310,8 @@ class ValidationManager:
                             'start_time': loading_start,
                             'elapsed_time': elapsed_time
                         })
-                    #
-                    # first phase of validations: read record and record a
-                    # formatting error if there's a problem
-                    #
+
+                    # first phase of validations: read record and record a formatting error if there's a problem
                     (record, reduceRow, skip_row, doneReading, rowErrorHere, flex_cols) = \
                         self.read_record(reader, error_csv, row_number, job, fields, error_list)
                     if reduceRow:
@@ -326,11 +325,10 @@ class ValidationManager:
                         # Do not write this row to staging, but continue processing future rows
                         continue
 
-                    #
-                    # second phase of validations: do basic schema checks
-                    # (e.g., require fields, field length, data type)
-                    #
-                    # D files are obtained from upstream systems (ASP and FPDS) that perform their own basic
+                    # second phase of validations: do basic schema checks (e.g., require fields, field length,
+                    # data type)
+
+                    # D files are generated from other systems (FABS and FPDS) that perform their own basic
                     # validations, so these validations are not repeated here
                     if file_type in ["award", "award_procurement"]:
                         # Skip basic validations for D files, set as valid to trigger write to staging
@@ -502,8 +500,8 @@ class ValidationManager:
             job: Current job
             file_type: Type of file for current job
             short_colnames: Dict mapping short field names to long
-            writer: CsvWriter object
-            warning_writer: CsvWriter for warnings
+            writer: CsvWriter object for error file
+            warning_writer: CsvWriter object for warning file
             row_number: Current row number
             error_list: instance of ErrorInterface to keep track of errors
 
@@ -533,12 +531,12 @@ class ValidationManager:
                 error_msg = failure.error
 
             if failure.severity_id == RULE_SEVERITY_DICT['fatal']:
-                writer.writerow([field_name, error_msg, failure.failed_value, failure.flex_fields, str(failure.row),
-                                 failure.original_label])
+                writer.writerow([field_name, error_msg, failure.failed_value, failure.expected_value,
+                                 failure.flex_fields, str(failure.row), failure.original_label])
             elif failure.severity_id == RULE_SEVERITY_DICT['warning']:
                 # write to warnings file
-                warning_writer.writerow([field_name, error_msg, failure.failed_value,  failure.flex_fields,
-                                         str(failure.row), failure.original_label])
+                warning_writer.writerow([field_name, error_msg, failure.failed_value, failure.expected_value,
+                                         failure.flex_fields, str(failure.row), failure.original_label])
             # labeled errors
             error_list.record_row_error(job_id, job.filename, field_name, failure.error, row_number,
                                         failure.original_label, failure.file_type_id, failure.target_file_id,
@@ -739,8 +737,8 @@ def insert_staging_model(model, job, writer, error_list):
     except SQLAlchemyError:
         sess.rollback()
         # Write failed, move to next record
-        writer.writerow(["Formatting Error", ValidationError.writeErrorMsg, '', '', model.row_number, ''])
-        error_list.record_row_error(job.job_id, job.filename, "Formatting Error", ValidationError.writeError,
+        writer.writerow(['Formatting Error', ValidationError.writeErrorMsg, '', '', '', model.row_number, ''])
+        error_list.record_row_error(job.job_id, job.filename, 'Formatting Error', ValidationError.writeError,
                                     model.row_number, severity_id=RULE_SEVERITY_DICT['fatal'])
         return False
     return True
@@ -753,8 +751,8 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
             failures: List of Failures to be written
             job: Current job
             short_colnames: Dict mapping short names to long names
-            writer: CsvWriter object
-            warning_writer: CsvWriter object
+            writer: CsvWriter object for error file
+            warning_writer: CsvWriter object for warning file
             row_number: Current row number
             error_list: instance of ErrorInterface to keep track of errors
             flex_cols: all flex columns for this row
@@ -794,10 +792,10 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
 
         if failure.severity == 'fatal':
             fatal_error_found = True
-            writer.writerow([field_name, error_msg, fail_value, flex_values, str(row_number), failure.label])
+            writer.writerow([field_name, error_msg, fail_value, '', flex_values, str(row_number), failure.label])
         elif failure.severity == 'warning':
             # write to warnings file
-            warning_writer.writerow([field_name, error_msg, fail_value, flex_values, str(row_number),
+            warning_writer.writerow([field_name, error_msg, fail_value, '', flex_values, str(row_number),
                                      failure.label])
         # Non-labeled errors
         error_list.record_row_error(job.job_id, job.filename, field_name, failure.description, row_number,
