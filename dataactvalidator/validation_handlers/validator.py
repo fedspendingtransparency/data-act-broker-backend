@@ -49,14 +49,6 @@ class Validator(object):
         record_type_failure = False
         failed_rules = []
 
-        for field_name in csv_schema:
-            if csv_schema[field_name].required and field_name not in record:
-                return (
-                    False,
-                    [Failure(field_name, ValidationError.requiredError, "", "", "fatal")],
-                    False
-                )
-
         total_fields = 0
         blank_fields = 0
         for field_name in record:
