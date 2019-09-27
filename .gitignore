@@ -5,6 +5,8 @@ dataactcore/.idea/*
 dataactcore/dbErrors.log
 *config.yml
 *secrets.yml
+!integrationtest_config.yml
+!integrationtest_secrets.yml
 dataactcore/scripts/dbSpec.txt
 dataactcore/scripts/createEmpty.py
 dataactbroker/logFile.dat
