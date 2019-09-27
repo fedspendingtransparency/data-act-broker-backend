@@ -1,0 +1,39 @@
+version: '3.7'
+
+services:
+  dataact-broker-db-integrationtest:
+    container_name: dataact-broker-db-integrationtest
+    image: postgres:10.6-alpine
+    restart: on-failure:2 # 2 max attempt, and then it will stop restarting
+    environment:
+      POSTGRES_USER: integrationtest_user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: data_broker
+    ports:
+      - "5436:5432"
+    volumes:
+    - type: tmpfs
+      target: /var/lib/postgresql/data
+    command: -c fsync=off -c full_page_writes=off -c synchronous_commit=off
+
+  dataact-broker-init-integrationtest-db:
+    container_name: dataact-broker-init-integrationtest-db
+    image: python:3.5
+    init: true
+    depends_on:
+      - dataact-broker-db-integrationtest
+    environment:
+      env: integrationtest # tells broker to pick up the integrationtest_config.yml file
+      PYTHONPATH: /data-act/backend
+    working_dir: /data-act/backend
+    volumes:
+      - type: bind
+        source: ./
+        target: /data-act/backend
+      - type: tmpfs
+        target: /requirements
+    command: >
+      /bin/sh -c "cat requirements.txt | grep -Ei 'alembic|PyYAML|Flask|psycopg2' >
+      /requirements/requirements-integrationtest.txt
+      && pip install -r /requirements/requirements-integrationtest.txt
+      && cd ./dataactcore; alembic upgrade head"

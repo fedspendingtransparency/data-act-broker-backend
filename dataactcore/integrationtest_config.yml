@@ -1,0 +1,17 @@
+##################################################################################################
+### Bootstrap minimal config needed to start a local broker database for integration tests.    ###
+### These are the connection details for reaching that local db running as a docker container. ###                                                                 ###
+### Values here will override values in config.yml when the environment variable named env is  ###
+### set to integrationtest                                                                     ###
+##################################################################################################
+
+broker:
+    broker_files: ./tmp
+    d_file_storage_path: ./tmp
+db:
+
+    scheme: postgres
+    host: host.docker.internal #dataact-broker-db-integrationtest
+    port: 5436
+    base_db_name: postgres #This is the default db on the instance.
+    db_name: data_broker
