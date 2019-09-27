@@ -1,10 +1,17 @@
 from tests.unit.dataactcore.factories.domain import SF133Factory
 from tests.unit.dataactcore.factories.staging import AppropriationFactory
-from tests.unit.dataactvalidator.utils import number_of_errors
+from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
 _FILE = 'a10_appropriations'
 _TAS = 'a10_appropriations_tas'
+
+
+def test_column_headers(database):
+    expected_subset = {'row_number', 'borrowing_authority_amount_cpe',
+                       'expected_value_SUM of GTAS SF133 Lines 1340, 1440'}
+    actual = set(query_columns(_FILE, database))
+    assert expected_subset == actual
 
 
 def test_success(database):
