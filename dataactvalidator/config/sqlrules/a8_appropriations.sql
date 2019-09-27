@@ -9,7 +9,7 @@ WITH appropriation_a8_{0} AS
 SELECT
     approp.row_number,
     approp.budget_authority_appropria_cpe,
-    SUM(sf.amount) AS sf_133_amount_sum
+    SUM(sf.amount) AS "expected_value_SUM of GTAS SF133 Lines 1160, 1180, 1260, 1280"
 FROM appropriation_a8_{0} AS approp
     INNER JOIN sf_133 AS sf
         ON approp.tas = sf.tas
