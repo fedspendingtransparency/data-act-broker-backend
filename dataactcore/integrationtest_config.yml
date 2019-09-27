@@ -11,7 +11,7 @@ broker:
 db:
 
     scheme: postgres
-    host: host.docker.internal #dataact-broker-db-integrationtest
+    host: localhost #dataact-broker-db-integrationtest
     port: 5436
     base_db_name: postgres #This is the default db on the instance.
     db_name: data_broker
