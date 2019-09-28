@@ -6,8 +6,8 @@
 ##################################################################################################
 
 broker:
-    broker_files: ./tmp
-    d_file_storage_path: ./tmp
+    broker_files: ./tmp/data_act_broker
+    d_file_storage_path: ./tmp/data_act_broker
 db:
 
     scheme: postgres
