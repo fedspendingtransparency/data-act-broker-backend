@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3.3'
 
 services:
   dataact-broker-db-integrationtest:
@@ -19,7 +19,7 @@ services:
   dataact-broker-init-integrationtest-db:
     container_name: dataact-broker-init-integrationtest-db
     image: python:3.5
-    init: true
+    #init: true # not supported in docker-compose versions prior to 3.7
     depends_on:
       - dataact-broker-db-integrationtest
     environment:
