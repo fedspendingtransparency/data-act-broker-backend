@@ -238,7 +238,7 @@ def test_list_submissions_permissions(database, monkeypatch):
     assert list_submissions_result()['total'] == 1
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
 def test_comments(database):
     """ Verify that we can add, retrieve, and update submission comments. Not quite a unit test as it covers a few
         functions in sequence.
@@ -288,7 +288,7 @@ def test_comments(database):
     }
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
 def test_get_comments_file(database):
     """ Test getting a URL for the comments file """
 
