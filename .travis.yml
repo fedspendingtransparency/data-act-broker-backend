@@ -15,10 +15,8 @@ before_script:
 
 script:
   - cp dataactcore/config_example.yml dataactcore/config.yml
-  - cp dataactcore/local_config_example.yml dataactcore/local_config.yml
-  - cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
   - docker-compose -f docker-compose.integrationtest.yml up -d
-  - pytest --cov=. --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
+  - pytest tests/unit/dataactbroker/test_account_handler.py --cov=. --cov-report term --cov-report xml:tests/coverage .xml --junitxml=tests/test-results.xml
   - docker-compose -f docker-compose.integrationtest.yml down
 
 after_script:
