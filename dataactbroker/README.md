@@ -1626,7 +1626,14 @@ After a minute or two, a full database should be running with the connection inf
 `dataactcore/integrationtest_config.yml` and `dataactcore/integrationtest_secrets.yml`. Remove the `-d` flag to tail 
 logs.
 
-Once this is setup...
+_**NOTE:** If you would rather not set this db up, and just have tests point to your local environment's db, the 
+default `env` variable used when invoking `pytest`, which is set in the pytest config in `setup.cfg`, can be overridden
+by prepending it to the pytest command. Like:_ 
+```
+env=local pytest
+```
+
+Once your integration test DB is setup...
 
 **To run _all_ tests**
 ```bash
