@@ -23,7 +23,10 @@ services:
     depends_on:
       - dataact-broker-db-integrationtest
     environment:
-      env: integrationtest # tells broker to pick up the integrationtest_config.yml file
+      # Tells broker to pick up the temporary integrationtest-docker_config.yml file
+      # Temporary docker config is needed because DB connection from _within_ the container is resolved with a
+      # different host and port
+      env: integrationtest-docker
       PYTHONPATH: /data-act/backend
     working_dir: /data-act/backend
     volumes:
@@ -31,9 +34,15 @@ services:
         source: ./
         target: /data-act/backend
       - type: tmpfs
-        target: /requirements
+        target: /data-act/requirements # a place to copy temporary python reqs, without littering source files on host
     command: >
-      /bin/sh -c "cat requirements.txt | grep -Ei 'alembic|PyYAML|Flask|psycopg2' >
-      /requirements/requirements-integrationtest.txt
-      && pip install -r /requirements/requirements-integrationtest.txt
-      && cd ./dataactcore; alembic upgrade head"
+      /bin/sh -x -c "cat requirements.txt | grep -Ei 'alembic|PyYAML|Flask|psycopg2' >
+      /data-act/requirements/requirements-integrationtest.txt
+      && pip install -r /data-act/requirements/requirements-integrationtest.txt
+      && sed 's/host:.*$$/host: dataact-broker-db-integrationtest/' ./dataactcore/integrationtest_config.yml
+      | sed 's/port:.*$$/port: 5432/'> ./dataactcore/integrationtest-docker_config.yml;
+      cp ./dataactcore/integrationtest_secrets.yml ./dataactcore/integrationtest-docker_secrets.yml
+      && cd ./dataactcore;
+      alembic upgrade head
+      && rm integrationtest-docker_config.yml;
+      rm integrationtest-docker_secrets.yml"
