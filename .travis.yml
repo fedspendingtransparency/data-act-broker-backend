@@ -11,10 +11,8 @@ before_script:
   - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
   - chmod +x ./cc-test-reporter
   - ./cc-test-reporter before-build
-  # Copy base/default config to be inherited from
-  - cp dataactcore/config_example.yml dataactcore/config.yml
-  # Start the database to use in a container
-  - docker-compose -f docker-compose.integrationtest.yml up -d
+  - cp dataactcore/config_example.yml dataactcore/config.yml  # copy base/default config to be inherited from
+  - docker-compose -f docker-compose.integrationtest.yml up -d  # start the database to use in a container
 
 script:
   - pytest tests/unit/* --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
