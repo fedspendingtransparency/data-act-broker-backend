@@ -15,7 +15,8 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Tests that SF 133 amount sum for line 2190 matches Appropriation obligations_incurred_total_cpe
-        for the specified fiscal year and period """
+        for the specified fiscal year and period
+    """
     tas = "".join([_TAS, "_success"])
 
     sf = SF133(line=2190, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
@@ -27,7 +28,8 @@ def test_success(database):
 
 def test_failure(database):
     """ Tests that SF 133 amount sum for line 2190 does not match Appropriation obligations_incurred_total_cpe
-        for the specified fiscal year and period """
+        for the specified fiscal year and period
+    """
     tas = "".join([_TAS, "_failure"])
 
     sf = SF133(line=2190, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
