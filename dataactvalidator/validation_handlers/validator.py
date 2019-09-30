@@ -11,7 +11,7 @@ from dataactcore.interfaces.db import GlobalDB
 
 logger = logging.getLogger(__name__)
 
-Failure = namedtuple('Failure', ['field', 'description', 'value', 'label', 'severity'])
+Failure = namedtuple('Failure', ['field', 'description', 'value', 'label', 'expected', 'severity'])
 ValidationFailure = namedtuple('ValidationFailure', ['field_name', 'error', 'failed_value', 'expected_value',
                                                      'flex_fields', 'row', 'original_label', 'file_type_id',
                                                      'target_file_id', 'severity_id'])
@@ -49,14 +49,6 @@ class Validator(object):
         record_type_failure = False
         failed_rules = []
 
-        for field_name in csv_schema:
-            if csv_schema[field_name].required and field_name not in record:
-                return (
-                    False,
-                    [Failure(field_name, ValidationError.requiredError, "", "", "fatal")],
-                    False
-                )
-
         total_fields = 0
         blank_fields = 0
         for field_name in record:
@@ -78,26 +70,29 @@ class Validator(object):
                     record_failed = True
                     # if it's a FABS record and the required column is in the list, label it specifically
                     if fabs_record and required_labels and current_schema.name_short in required_labels:
-                        failed_rules.append(Failure(field_name, ValidationError.requiredError, "",
-                                                    required_labels[current_schema.name_short], "fatal"))
+                        failed_rules.append(Failure(field_name, ValidationError.requiredError, '',
+                                                    required_labels[current_schema.name_short], '(not blank)', 'fatal'))
                     else:
-                        failed_rules.append(Failure(field_name, ValidationError.requiredError, "", "", "fatal"))
+                        failed_rules.append(Failure(field_name, ValidationError.requiredError, '', '', '(not blank)',
+                                                    'fatal'))
                     continue
                 else:
                     # If field is empty and not required its valid
                     check_required_only = True
 
+            current_type = FIELD_TYPE_DICT_ID[current_schema.field_types_id]
             # Always check the type in the schema
-            if not check_required_only and not Validator.check_type(current_data,
-                                                                    FIELD_TYPE_DICT_ID[current_schema.field_types_id]):
+            if not check_required_only and not Validator.check_type(current_data, current_type):
                 record_type_failure = True
                 record_failed = True
                 # if it's a FABS record and the type column is in the list, label it specifically
                 if fabs_record and type_labels and current_schema.name_short in type_labels:
                     failed_rules.append(Failure(field_name, ValidationError.typeError, current_data,
-                                                type_labels[current_schema.name_short], "fatal"))
+                                                type_labels[current_schema.name_short],
+                                                'This field must be a {}'.format(current_type.lower()), 'fatal'))
                 else:
-                    failed_rules.append(Failure(field_name, ValidationError.typeError, current_data, "", "fatal"))
+                    failed_rules.append(Failure(field_name, ValidationError.typeError, current_data, '',
+                                                'This field must be a {}'.format(current_type.lower()), 'fatal'))
                 # Don't check value rules if type failed
                 continue
 
@@ -106,8 +101,10 @@ class Validator(object):
                len(current_data.strip()) > current_schema.length:
                 # Length failure, add to failedRules
                 record_failed = True
-                warning_type = "fatal" if fabs_record else "warning"
-                failed_rules.append(Failure(field_name, ValidationError.lengthError, current_data, "", warning_type))
+                warning_type = 'fatal' if fabs_record else 'warning'
+                failed_rules.append(Failure(field_name, ValidationError.lengthError, current_data, '',
+                                            'Max length: {}'.format(current_schema.length),
+                                            warning_type))
 
         # if all columns are blank (empty row), set it so it doesn't add to the error messages or write the line,
         # just ignore it
