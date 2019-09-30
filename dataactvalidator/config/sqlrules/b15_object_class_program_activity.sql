@@ -36,7 +36,7 @@ SELECT DISTINCT
     SUM(op.ussgl490800_authority_outl_fyb) AS ussgl490800_authority_outl_fyb_sum,
     SUM(op.ussgl498100_upward_adjustm_cpe) AS ussgl498100_upward_adjustm_cpe_sum,
     SUM(op.ussgl498200_upward_adjustm_cpe) AS ussgl498200_upward_adjustm_cpe_sum,
-    sf.amount AS sf_133_amount
+    sf.amount AS "expected_value_GTAS SF133 Line 2104"
 FROM object_class_program_activity_b15_{0} AS op
     INNER JOIN sf_133 AS sf
         ON op.tas = sf.tas

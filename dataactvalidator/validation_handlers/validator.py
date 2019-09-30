@@ -320,8 +320,10 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
         failures = sess.execute(rule.rule_sql.format(job.submission_id))
         if failures.rowcount:
             # Create column list (exclude row_number)
-            cols = failures.keys()
-            cols.remove('row_number')
+            cols = []
+            for col in failures.keys():
+                if col != 'row_number' and not col.startswith('expected_value_'):
+                    cols.append(col)
             col_headers = [short_to_long_dict.get(field, field) for field in cols]
 
             # materialize as we'll iterate over the failures twice
@@ -422,8 +424,6 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
         if failure_key.startswith(expect_start):
             fail_header = failure_key[len(expect_start):]
             expected_value = '{}: {}'.format(fail_header, (str(sql_failure[failure_key] or '')))
-            cols.remove(failure_key)
-            col_headers.remove(failure_key)
             found_expected = True
     # If no expected value is defined in the SQL, get it from the rule table
     if not found_expected:
