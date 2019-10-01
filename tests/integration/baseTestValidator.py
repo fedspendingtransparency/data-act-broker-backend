@@ -1,20 +1,32 @@
 import unittest
 from datetime import datetime, timedelta
 from random import randint
+from flask_bcrypt import Bcrypt
+import os
 
 from webtest import TestApp
 
 from dataactcore.logging import configure_logging
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import create_user_with_password, get_password_hash
 from dataactcore.scripts.database_setup import drop_database
 from dataactcore.scripts.setup_job_tracker_db import setup_job_tracker_db
 from dataactcore.scripts.setup_error_db import setup_error_db
 from dataactcore.scripts.setup_validation_db import setup_validation_db
+from dataactcore.scripts.initialize import load_sql_rules
 from dataactcore.models.jobModels import Submission
+from dataactcore.models.lookups import ALL_PERMISSION_TYPES_DICT
+from dataactcore.models.userModel import User, UserAffiliation
+from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
+from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
 from dataactcore.scripts.database_setup import create_database, run_migrations
+from tests.unit.dataactcore.factories.user import UserFactory
 import dataactcore.config
+
+basePath = CONFIG_BROKER["path"]
+validator_config_path = os.path.join(basePath, "dataactvalidator", "config")
 
 
 class BaseTestValidator(unittest.TestCase):
@@ -39,6 +51,22 @@ class BaseTestValidator(unittest.TestCase):
         app.config['TESTING'] = True
         app.config['DEBUG'] = False
         cls.app = TestApp(app)
+        sess = GlobalDB.db().session
+
+        # set up default e-mails for tests
+        test_users = {
+            'admin_user': 'data.act.tester.1@gmail.com',
+            'agency_user': 'data.act.test.2@gmail.com',
+            'agency_user_2': 'data.act.test.3@gmail.com',
+            'no_permissions_user': 'data.act.tester.4@gmail.com',
+            'editfabs_user': 'data.act.test.5@gmail.com'
+        }
+        user_password = '!passw0rdUp!'
+        admin_password = '@pprovedPassw0rdy'
+
+        cgac = CGAC(cgac_code='000', agency_name='Example Agency')
+        sess.add(cgac)
+        sess.commit()
 
         # Allow us to augment default test failure msg w/ more detail
         cls.longMessage = True
@@ -56,6 +84,26 @@ class BaseTestValidator(unittest.TestCase):
         # drop and re-create test validation db
         setup_validation_db()
 
+        # setup Schema
+
+        SchemaLoader.load_all_from_path(validator_config_path)
+        load_sql_rules()
+
+        # set up users for status tests
+        def add_user(email, name, username, permission_type=ALL_PERMISSION_TYPES_DICT['writer'],
+                     website_admin=False):
+            user = UserFactory(
+                email=email, website_admin=website_admin,
+                name=name, username=username,
+                affiliations=[UserAffiliation(
+                    cgac=cgac,
+                    permission_type_id=permission_type
+                )]
+            )
+            user.salt, user.password_hash = get_password_hash(user_password, Bcrypt())
+            sess.add(user)
+
+        create_user_with_password(test_users["admin_user"], admin_password, Bcrypt(), website_admin=True)
         cls.userId = None
         # constants to use for default submission start and end dates
         cls.SUBMISSION_START_DEFAULT = datetime(2015, 10, 1)
