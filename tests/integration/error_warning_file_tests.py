@@ -1,5 +1,6 @@
 import os
 import csv
+from collections import namedtuple
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_SERVICES
@@ -178,10 +179,14 @@ class ErrorWarningTests(BaseTestValidator):
         self.session.commit()
 
     def get_report_content(self, report_path):
+        report_content = []
+        report_headers = None
         with open(report_path, 'r') as report_csv:
-            reader = csv.reader(report_csv)
-            report_content = list(reader)
-        return report_content
+            reader = csv.DictReader(report_csv)
+            for row in reader:
+                report_content.append(row)
+            report_headers = reader.fieldnames
+        return report_headers, report_content
 
     def generate_file_report(self, file, file_type, warning=False, ignore_error=False):
         self.setup_csv_record_validation(file, file_type)
@@ -214,169 +219,253 @@ class ErrorWarningTests(BaseTestValidator):
 
     def test_single_file_warnings(self):
         # Valid
-        report_content = self.generate_file_report(APPROP_FILE_T, 'appropriations', warning=True)
-        expected_headers = self.validator.report_headers
-        assert report_content[0] == expected_headers
-        assert len(report_content) == 1
+        report_headers, report_content = self.generate_file_report(APPROP_FILE_T, 'appropriations', warning=True)
+        assert report_headers == self.validator.report_headers
+        assert len(report_content) == 0
 
         # Length Error
-        report_content = self.generate_file_report(LENGTH_ERROR, 'appropriations', warning=True)
-        expected_headers = self.validator.report_headers
-        assert report_content[0] == expected_headers
+        report_headers, report_content = self.generate_file_report(LENGTH_ERROR, 'appropriations', warning=True)
+        assert report_headers == self.validator.report_headers
         expected_values = [
-            ['grossoutlayamountbytas_cpe', 'Value was longer than maximum length for this field.',
-             'grossoutlayamountbytas_cpe: 35000000000000000000000000', '',
-             'flex_field_a: FLEX_A, flex_field_b: FLEX_B', '6', '']
+            {
+                'Field Name': 'grossoutlayamountbytas_cpe',
+                'Error Message': 'Value was longer than maximum length for this field.',
+                'Value Provided': 'grossoutlayamountbytas_cpe: 35000000000000000000000000',
+                'Expected Value': '',
+                'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Row Number': '6',
+                'Rule Label': ''
+            }
         ]
-        assert report_content[1:] == expected_values
+        assert report_content == expected_values
 
         # SQL Validation
-        report_content = self.generate_file_report(RULE_FAILED_WARNING, 'appropriations', warning=True)
-        expected_headers = self.validator.report_headers
-        assert report_content[0] == expected_headers
+        report_headers, report_content = self.generate_file_report(RULE_FAILED_WARNING, 'appropriations', warning=True)
+        assert report_headers == self.validator.report_headers
         expected_values = [
-            ['budgetauthorityunobligatedbalancebroughtforward_fyb',
-             'All the elements that have FYB in file A are expected in the first submission for a fiscal year',
-             'budgetauthorityunobligatedbalancebroughtforward_fyb: None', '',
-             'flex_field_a: FLEX_A, flex_field_b: FLEX_B', '5', 'A16.1']
+            {
+                'Field Name': 'budgetauthorityunobligatedbalancebroughtforward_fyb',
+                'Error Message': 'All the elements that have FYB in file A are expected in the first submission'
+                                 ' for a fiscal year',
+                'Value Provided': 'budgetauthorityunobligatedbalancebroughtforward_fyb: None',
+                'Expected Value': '',
+                'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Row Number': '5',
+                'Rule Label': 'A16.1'
+            }
         ]
-        assert report_content[1:] == expected_values
+        assert report_content == expected_values
 
     def test_single_file_errors(self):
         # Valid
-        report_content = self.generate_file_report(APPROP_FILE_T, 'appropriations', warning=False)
-        expected_headers = self.validator.report_headers
-        assert report_content[0] == expected_headers
-        print(report_content)
-        assert len(report_content) == 1
+        report_headers, report_content = self.generate_file_report(APPROP_FILE_T, 'appropriations', warning=False)
+        assert report_headers == self.validator.report_headers
+        assert len(report_content) == 0
 
         # Header Error
-        report_content = self.generate_file_report(HEADER_ERROR, 'appropriations', warning=False, ignore_error=True)
-        expected_headers = ['Error type', 'Header name']
-        assert report_content[0] == expected_headers
+        report_headers, report_content = self.generate_file_report(HEADER_ERROR, 'appropriations', warning=False,
+                                                                   ignore_error=True)
+        assert report_headers == ['Error type', 'Header name']
         expected_values = [
-            ['Duplicated header', 'AllocationTransferAgencyIdentifier'],
-            ['Missing header', 'AdjustmentsToUnobligatedBalanceBroughtForward_CPE'],
-            ['Missing header', 'AgencyIdentifier'],
-            ['Missing header', 'BudgetAuthorityUnobligatedBalanceBroughtForward_FYB'],
-            ['Missing header', 'DeobligationsRecoveriesRefundsByTAS_CPE'],
-            ['Missing header', 'GrossOutlayAmountByTAS_CPE'],
-            ['Missing header', 'ObligationsIncurredTotalByTAS_CPE'],
-            ['Missing header', 'StatusOfBudgetaryResourcesTotal_CPE']
+            {
+                'Error type': 'Duplicated header',
+                'Header name': 'AllocationTransferAgencyIdentifier'
+            },
+            {
+                'Error type': 'Missing header',
+                'Header name': 'AdjustmentsToUnobligatedBalanceBroughtForward_CPE'
+            },
+            {
+                'Error type': 'Missing header',
+                'Header name': 'AgencyIdentifier'
+            },
+            {
+                'Error type': 'Missing header',
+                'Header name': 'BudgetAuthorityUnobligatedBalanceBroughtForward_FYB'
+            },
+            {
+                'Error type': 'Missing header',
+                'Header name': 'DeobligationsRecoveriesRefundsByTAS_CPE'
+            },
+            {
+                'Error type': 'Missing header',
+                'Header name': 'GrossOutlayAmountByTAS_CPE'
+            },
+            {
+                'Error type': 'Missing header',
+                'Header name': 'ObligationsIncurredTotalByTAS_CPE'
+            },
+            {
+                'Error type': 'Missing header',
+                'Header name': 'StatusOfBudgetaryResourcesTotal_CPE'
+            }
         ]
-        assert report_content[1:] == expected_values
+        assert report_content == expected_values
 
         # Read Error
-        report_content = self.generate_file_report(READ_ERROR, 'appropriations', warning=False)
-        expected_headers = self.validator.report_headers
-        assert report_content[0] == expected_headers
+        report_headers, report_content = self.generate_file_report(READ_ERROR, 'appropriations', warning=False)
+        assert report_headers == self.validator.report_headers
         expected_values = [
-            ['Formatting Error', 'Could not parse this record correctly.', '', '', '', '6', '']
+            {
+                'Field Name': 'Formatting Error',
+                'Error Message': 'Could not parse this record correctly.',
+                'Value Provided': '',
+                'Expected Value': '',
+                'Flex Fields': '',
+                'Row Number': '6',
+                'Rule Label': ''
+            }
         ]
-        assert report_content[1:] == expected_values
+        assert report_content == expected_values
 
         # Type Error
-        report_content = self.generate_file_report(TYPE_ERROR, 'appropriations', warning=False)
-        expected_headers = self.validator.report_headers
-        assert report_content[0] == expected_headers
+        report_headers, report_content = self.generate_file_report(TYPE_ERROR, 'appropriations', warning=False)
+        assert report_headers == self.validator.report_headers
         expected_values = [
-            ['statusofbudgetaryresourcestotal_cpe',
-             'The value provided was of the wrong type. Note that all type errors in a line must be fixed before'
-             ' the rest of the validation logic is applied to that line.', 'statusofbudgetaryresourcestotal_cpe: A',
-             '', 'flex_field_a: FLEX_A, flex_field_b: FLEX_B', '6', '']
+            {
+                'Field Name': 'statusofbudgetaryresourcestotal_cpe',
+                'Error Message': 'The value provided was of the wrong type. Note that all type errors in a line must be'
+                                 ' fixed before the rest of the validation logic is applied to that line.',
+                'Value Provided': 'statusofbudgetaryresourcestotal_cpe: A',
+                'Expected Value': '',
+                'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Row Number': '6',
+                'Rule Label': ''
+            }
         ]
-        assert report_content[1:] == expected_values
+        assert report_content == expected_values
 
         # Required Error + SQL Validation
-        report_content = self.generate_file_report(REQUIRED_ERROR, 'appropriations', warning=False)
-        expected_headers = self.validator.report_headers
-        assert report_content[0] == expected_headers
+        report_headers, report_content = self.generate_file_report(REQUIRED_ERROR, 'appropriations', warning=False)
+        assert report_headers == self.validator.report_headers
         expected_values = [
-            ['statusofbudgetaryresourcestotal_cpe',
-             'This field is required for all submissions but was not provided in this row.', '', '',
-             'flex_field_a: FLEX_A, flex_field_b: FLEX_B', '3', ''],
-            ['statusofbudgetaryresourcestotal_cpe, obligationsincurredtotalbytas_cpe, unobligatedbalance_cpe',
-             'StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE + UnobligatedBalance_CPE',
-             'statusofbudgetaryresourcestotal_cpe: None, obligationsincurredtotalbytas_cpe: 8.08,'
-             ' unobligatedbalance_cpe: 2.02', '', 'flex_field_a: FLEX_A, flex_field_b: FLEX_B', '3', 'A4'],
-            ['statusofbudgetaryresourcestotal_cpe, totalbudgetaryresources_cpe',
-             'StatusOfBudgetaryResourcesTotal_CPE'' = TotalBudgetaryResources_CPE',
-             'statusofbudgetaryresourcestotal_cpe: None, totalbudgetaryresources_cpe: 10.1', '',
-             'flex_field_a: FLEX_A, flex_field_b: FLEX_B', '3', 'A24']
+            {
+                'Field Name': 'statusofbudgetaryresourcestotal_cpe',
+                'Error Message': 'This field is required for all submissions but was not provided in this row.',
+                'Value Provided': '',
+                'Expected Value': '',
+                'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Row Number': '3',
+                'Rule Label': ''
+            },
+            {
+                'Field Name': 'statusofbudgetaryresourcestotal_cpe, obligationsincurredtotalbytas_cpe,'
+                              ' unobligatedbalance_cpe',
+                'Error Message': 'StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE'
+                                 ' + UnobligatedBalance_CPE',
+                'Value Provided': 'statusofbudgetaryresourcestotal_cpe: None, obligationsincurredtotalbytas_cpe: 8.08,'
+                                  ' unobligatedbalance_cpe: 2.02',
+                'Expected Value': '',
+                'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Row Number': '3',
+                'Rule Label': 'A4'
+            },
+            {
+                'Field Name': 'statusofbudgetaryresourcestotal_cpe, totalbudgetaryresources_cpe',
+                'Error Message': 'StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE',
+                'Value Provided': 'statusofbudgetaryresourcestotal_cpe: None, totalbudgetaryresources_cpe: 10.1',
+                'Expected Value': '',
+                'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Row Number': '3',
+                'Rule Label': 'A24'
+            }
         ]
-        assert report_content[1:] == expected_values
+        assert report_content == expected_values
 
     def test_cross_file_warnings(self):
         # Valid
-        report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
+        report_headers, report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
                                                           (CROSS_FILE_B, 'program_activity')], warning=True)
-        expected_headers = self.validator.cross_file_report_headers
-        assert report_content[0] == expected_headers
-        assert len(report_content) == 1
+        assert report_headers == self.validator.cross_file_report_headers
+        assert len(report_content) == 0
 
         # SQL Validation
-        report_content = self.generate_cross_file_report([(INVALID_CROSS_A, 'appropriations'),
+        report_headers, report_content = self.generate_cross_file_report([(INVALID_CROSS_A, 'appropriations'),
                                                           (INVALID_CROSS_B, 'program_activity')], warning=True)
-        expected_headers = self.validator.cross_file_report_headers
-        assert report_content[0] == expected_headers
+        assert report_headers == self.validator.cross_file_report_headers
         expected_values = [
-            ['appropriations', 'program_activity',
-             'allocationtransferagencyidentifier, agencyidentifier, beginningperiodofavailability,'
-             ' endingperiodofavailability, availabilitytypecode, mainaccountcode, subaccountcode,'
-             ' grossoutlayamountbytas_cpe, gross_outlay_amount_by_pro_cpe_sum, flex_field_a_fileb, flex_field_b_fileb',
-             'The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal the sum of the'
-             ' corresponding GrossOutlayAmountByProgramObjectClass_CPE values in the award financial file (B).',
-             'allocationtransferagencyidentifier: None, agencyidentifier: 019, beginningperiodofavailability: 2016,'
-             ' endingperiodofavailability: 2016, availabilitytypecode: None, mainaccountcode: 0113,'
-             ' subaccountcode: 000, grossoutlayamountbytas_cpe: 10000, gross_outlay_amount_by_pro_cpe_sum: 6000,'
-             ' flex_field_a_fileb: FLEX_A, flex_field_b_fileb: FLEX_B', '5', 'A18'],
-            ['appropriations', 'program_activity',
-             'allocationtransferagencyidentifier, agencyidentifier, beginningperiodofavailability,'
-             ' endingperiodofavailability, availabilitytypecode, mainaccountcode, subaccountcode,'
-             ' obligationsincurredtotalbytas_cpe, obligations_incurred_by_pr_cpe_sum, flex_field_a_fileb,'
-             ' flex_field_b_fileb',
-             'The ObligationsIncurredTotalByTAS_CPE amount in the appropriation file (A) does not equal the negative'
-             ' sum of the corresponding ObligationsIncurredByProgramObjectClass_CPE values in the award financial file'
-             ' (B).',
-             'allocationtransferagencyidentifier: None, agencyidentifier: 019, beginningperiodofavailability: 2016,'
-             ' endingperiodofavailability: 2016, availabilitytypecode: None, mainaccountcode: 0113,'
-             ' subaccountcode: 000, obligationsincurredtotalbytas_cpe: 12000,'
-             ' obligations_incurred_by_pr_cpe_sum: -6000, flex_field_a_fileb: FLEX_A, flex_field_b_fileb: FLEX_B', '5',
-             'A19'],
-            ['appropriations', 'program_activity',
-             'deobligationsrecoveriesrefundsbytas_cpe, ussgl487100_downward_adjus_cpe_sum,'
-             ' ussgl497100_downward_adjus_cpe_sum, ussgl487200_downward_adjus_cpe_sum,'
-             ' ussgl497200_downward_adjus_cpe_sum, flex_field_a_fileb, flex_field_b_fileb',
-             'DeobligationsRecoveriesRefundsByTAS_CPE in File A should equal USSGL'
-             ' (4871_CPE+ 4971_CPE+ 4872_CPE+ 4972_CPE) for the TAS in File B.',
-             'deobligationsrecoveriesrefundsbytas_cpe: 16000, ussgl487100_downward_adjus_cpe_sum: 2000,'
-             ' ussgl497100_downward_adjus_cpe_sum: 2000, ussgl487200_downward_adjus_cpe_sum: 400,'
-             ' ussgl497200_downward_adjus_cpe_sum: 2000, flex_field_a_fileb: FLEX_A, flex_field_b_fileb: FLEX_B', '5',
-             'A35']
+            {
+                'Source File': 'appropriations',
+                'Target File': 'program_activity',
+                'Field names': 'allocationtransferagencyidentifier, agencyidentifier, beginningperiodofavailability,'
+                               ' endingperiodofavailability, availabilitytypecode, mainaccountcode, subaccountcode,'
+                               ' grossoutlayamountbytas_cpe, gross_outlay_amount_by_pro_cpe_sum, flex_field_a_fileb,'
+                               ' flex_field_b_fileb',
+                'Error message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal'
+                                 ' the sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values in'
+                                 ' the award financial file (B).',
+                'Values provided': 'allocationtransferagencyidentifier: None, agencyidentifier: 019,'
+                                   ' beginningperiodofavailability: 2016, endingperiodofavailability: 2016,'
+                                   ' availabilitytypecode: None, mainaccountcode: 0113, subaccountcode: 000,'
+                                   ' grossoutlayamountbytas_cpe: 10000, gross_outlay_amount_by_pro_cpe_sum: 6000,'
+                                   ' flex_field_a_fileb: FLEX_A, flex_field_b_fileb: FLEX_B',
+                'Row number': '5',
+                'Rule label': 'A18'
+            },
+            {
+                'Source File': 'appropriations',
+                'Target File': 'program_activity',
+                'Field names': 'allocationtransferagencyidentifier, agencyidentifier, beginningperiodofavailability,'
+                               ' endingperiodofavailability, availabilitytypecode, mainaccountcode, subaccountcode,'
+                               ' obligationsincurredtotalbytas_cpe, obligations_incurred_by_pr_cpe_sum,'
+                               ' flex_field_a_fileb, flex_field_b_fileb',
+                'Error message': 'The ObligationsIncurredTotalByTAS_CPE amount in the appropriation file (A) does not'
+                                 ' equal the negative sum of the corresponding'
+                                 ' ObligationsIncurredByProgramObjectClass_CPE values in the award financial file (B).',
+                'Values provided': 'allocationtransferagencyidentifier: None, agencyidentifier: 019,'
+                                   ' beginningperiodofavailability: 2016, endingperiodofavailability: 2016,'
+                                   ' availabilitytypecode: None, mainaccountcode: 0113, subaccountcode: 000,'
+                                   ' obligationsincurredtotalbytas_cpe: 12000,'
+                                   ' obligations_incurred_by_pr_cpe_sum: -6000, flex_field_a_fileb: FLEX_A,'
+                                   ' flex_field_b_fileb: FLEX_B',
+                'Row number': '5',
+                'Rule label': 'A19'
+            },
+            {
+                'Source File': 'appropriations',
+                'Target File': 'program_activity',
+                'Field names': 'deobligationsrecoveriesrefundsbytas_cpe, ussgl487100_downward_adjus_cpe_sum,'
+                               ' ussgl497100_downward_adjus_cpe_sum, ussgl487200_downward_adjus_cpe_sum,'
+                               ' ussgl497200_downward_adjus_cpe_sum, flex_field_a_fileb, flex_field_b_fileb',
+                'Error message': 'DeobligationsRecoveriesRefundsByTAS_CPE in File A should equal USSGL'
+                                 ' (4871_CPE+ 4971_CPE+ 4872_CPE+ 4972_CPE) for the TAS in File B.',
+                'Values provided': 'deobligationsrecoveriesrefundsbytas_cpe: 16000,'
+                                   ' ussgl487100_downward_adjus_cpe_sum: 2000,'
+                                   ' ussgl497100_downward_adjus_cpe_sum: 2000, ussgl487200_downward_adjus_cpe_sum: 400,'
+                                   ' ussgl497200_downward_adjus_cpe_sum: 2000, flex_field_a_fileb: FLEX_A,'
+                                   ' flex_field_b_fileb: FLEX_B',
+                'Row number': '5',
+                'Rule label': 'A35'
+            }
         ]
-        assert report_content[1:] == expected_values
+        assert report_content == expected_values
 
     def test_cross_file_errors(self):
         # Valid
-        report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
+        report_headers, report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
                                                           (CROSS_FILE_B, 'program_activity')], warning=False)
-        expected_headers = self.validator.cross_file_report_headers
-        assert report_content[0] == expected_headers
-        assert len(report_content) == 1
+        assert report_headers == self.validator.cross_file_report_headers
+        assert len(report_content) == 0
 
         # SQL Validation
-        report_content = self.generate_cross_file_report([(INVALID_CROSS_A, 'appropriations'),
+        report_headers, report_content = self.generate_cross_file_report([(INVALID_CROSS_A, 'appropriations'),
                                                           (INVALID_CROSS_B, 'program_activity')], warning=False)
-        expected_headers = self.validator.cross_file_report_headers
-        assert report_content[0] == expected_headers
+        assert report_headers == self.validator.cross_file_report_headers
         expected_values = [
-            ['appropriations', 'program_activity',
-             'allocationtransferagencyidentifier, agencyidentifier, beginningperiodofavailability,'
-             ' endingperiodofavailability, availabilitytypecode, mainaccountcode, subaccountcode, flex_field_a_fileb,'
-             ' flex_field_b_fileb',
-             'All TAS values in File A (appropriations) should exist in File B (object class program activity)',
-             'allocationtransferagencyidentifier: 019, agencyidentifier: 072, beginningperiodofavailability: None,'
-             ' endingperiodofavailability: None, availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000,'
-             ' flex_field_a_fileb: FLEX_A, flex_field_b_fileb: FLEX_B', '2', 'A30.1']
+            {
+                'Source File': 'appropriations',
+                'Target File': 'program_activity',
+                'Field names': 'allocationtransferagencyidentifier, agencyidentifier, beginningperiodofavailability,'
+                               ' endingperiodofavailability, availabilitytypecode, mainaccountcode, subaccountcode,'
+                               ' flex_field_a_fileb, flex_field_b_fileb',
+                'Error message': 'All TAS values in File A (appropriations) should exist in File B'
+                                 ' (object class program activity)',
+                'Values provided': 'allocationtransferagencyidentifier: 019, agencyidentifier: 072,'
+                                   ' beginningperiodofavailability: None, endingperiodofavailability: None,'
+                                   ' availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000,'
+                                   ' flex_field_a_fileb: FLEX_A, flex_field_b_fileb: FLEX_B',
+                'Row number': '2',
+                'Rule label': 'A30.1'
+            }
         ]
-        assert report_content[1:] == expected_values
+        assert report_content == expected_values
