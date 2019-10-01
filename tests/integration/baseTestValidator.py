@@ -17,8 +17,8 @@ from dataactcore.scripts.setup_validation_db import setup_validation_db
 from dataactcore.scripts.initialize import load_sql_rules
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import ALL_PERMISSION_TYPES_DICT
-from dataactcore.models.userModel import User, UserAffiliation
-from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
+from dataactcore.models.userModel import UserAffiliation
+from dataactcore.models.domainModels import CGAC
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
 from dataactcore.scripts.database_setup import create_database, run_migrations

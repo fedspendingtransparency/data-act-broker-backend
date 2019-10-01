@@ -1,6 +1,5 @@
 import os
 import csv
-from collections import namedtuple
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_SERVICES
@@ -65,8 +64,8 @@ class ErrorWarningTests(BaseTestValidator):
                                                   end_date='03/2001', is_quarter=True)
             cls.submission = sess.query(Submission).filter_by(submission_id=cls.submission_id).one()
             cls.val_job = insert_job(cls.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['ready'],
-                                 JOB_TYPE_DICT['csv_record_validation'], cls.submission_id,
-                                 filename=JOB_TYPE_DICT['csv_record_validation'])
+                                     JOB_TYPE_DICT['csv_record_validation'], cls.submission_id,
+                                     filename=JOB_TYPE_DICT['csv_record_validation'])
 
             # adding TAS to ensure valid file is valid
             tas1 = TASFactory(account_num=1, allocation_transfer_agency='019', agency_identifier='072',
@@ -154,7 +153,6 @@ class ErrorWarningTests(BaseTestValidator):
                                   main_account_code='0100', sub_account_code='000', period=6, fiscal_year=2001)
             sess.add_all([gtas1, gtas2, gtas3, gtas4, gtas5, gtas6, gtas7, gtas8, gtas9, gtas10])
             sess.flush()
-
 
     def setUp(self):
         """Test set-up."""
@@ -375,13 +373,15 @@ class ErrorWarningTests(BaseTestValidator):
     def test_cross_file_warnings(self):
         # Valid
         report_headers, report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
-                                                          (CROSS_FILE_B, 'program_activity')], warning=True)
+                                                                          (CROSS_FILE_B, 'program_activity')],
+                                                                         warning=True)
         assert report_headers == self.validator.cross_file_report_headers
         assert len(report_content) == 0
 
         # SQL Validation
         report_headers, report_content = self.generate_cross_file_report([(INVALID_CROSS_A, 'appropriations'),
-                                                          (INVALID_CROSS_B, 'program_activity')], warning=True)
+                                                                          (INVALID_CROSS_B, 'program_activity')],
+                                                                         warning=True)
         assert report_headers == self.validator.cross_file_report_headers
         expected_values = [
             {
@@ -443,13 +443,15 @@ class ErrorWarningTests(BaseTestValidator):
     def test_cross_file_errors(self):
         # Valid
         report_headers, report_content = self.generate_cross_file_report([(CROSS_FILE_A, 'appropriations'),
-                                                          (CROSS_FILE_B, 'program_activity')], warning=False)
+                                                                          (CROSS_FILE_B, 'program_activity')],
+                                                                         warning=False)
         assert report_headers == self.validator.cross_file_report_headers
         assert len(report_content) == 0
 
         # SQL Validation
         report_headers, report_content = self.generate_cross_file_report([(INVALID_CROSS_A, 'appropriations'),
-                                                          (INVALID_CROSS_B, 'program_activity')], warning=False)
+                                                                          (INVALID_CROSS_B, 'program_activity')],
+                                                                         warning=False)
         assert report_headers == self.validator.cross_file_report_headers
         expected_values = [
             {
