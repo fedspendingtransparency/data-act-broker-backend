@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 Failure = namedtuple('Failure', ['field', 'description', 'value', 'label', 'expected', 'severity'])
 ValidationFailure = namedtuple('ValidationFailure', ['field_name', 'error', 'failed_value', 'expected_value',
-                                                     'flex_fields', 'row', 'original_label', 'file_type_id',
+                                                     'variance', 'flex_fields', 'row', 'original_label', 'file_type_id',
                                                      'target_file_id', 'severity_id'])
 
 
@@ -322,7 +322,7 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
             # Create column list (exclude row_number)
             cols = []
             for col in failures.keys():
-                if col != 'row_number' and not col.startswith('expected_value_'):
+                if col != 'row_number' and not col.startswith('expected_value_') and not col.startswith('variance_'):
                     cols.append(col)
             col_headers = [short_to_long_dict.get(field, field) for field in cols]
 
@@ -416,18 +416,19 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
     """Convert a failure SQL row into a ValidationFailure"""
     row = sql_failure['row_number']
 
-    # Determine the expected value for a rule
-    expected_value = ''
+    # Determine the extra value for a rule
+    expected_value = rule.expected_value
+    variance = ''
     expect_start = 'expected_value_'
-    found_expected = False
+
     for failure_key in sql_failure.keys():
+        # Expected value
         if failure_key.startswith(expect_start):
             fail_header = failure_key[len(expect_start):]
             expected_value = '{}: {}'.format(fail_header, (str(sql_failure[failure_key] or '')))
-            found_expected = True
-    # If no expected value is defined in the SQL, get it from the rule table
-    if not found_expected:
-        expected_value = rule.expected_value
+        # Variance
+        elif failure_key.startswith('variance_'):
+            variance = str(sql_failure[failure_key] or '')
 
     # Create strings for fields and values
     values_list = ['{}: {}'.format(header, str(sql_failure[field])) for field, header in zip(cols, col_headers)]
@@ -438,6 +439,7 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
         rule.rule_error_message,
         ', '.join(values_list),
         expected_value,
+        variance,
         ', '.join(flex_list),
         row,
         rule.rule_label,

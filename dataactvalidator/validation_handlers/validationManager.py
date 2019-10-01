@@ -48,8 +48,8 @@ CHUNK_SIZE = 1024
 
 class ValidationManager:
     """ Outer level class, called by flask route """
-    report_headers = ['Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Flex Fields', 'Row Number',
-                      'Rule Label']
+    report_headers = ['Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Variance', 'Flex Fields',
+                      'Row Number', 'Rule Label']
     cross_file_report_headers = ['Source File', 'Target File', 'Field names', 'Error message', 'Values provided',
                                  'Row number', 'Rule label']
 
@@ -140,7 +140,7 @@ class ValidationManager:
                 # Don't count last row if empty
                 reduce_row = True
             else:
-                writer.writerow(['Formatting Error', ValidationError.readErrorMsg, '', '', '', str(row_number), ''])
+                writer.writerow(['Formatting Error', ValidationError.readErrorMsg, '', '', '', '', str(row_number), ''])
                 error_list.record_row_error(job_id, job.filename, 'Formatting Error', ValidationError.readError,
                                             row_number, severity_id=RULE_SEVERITY_DICT['fatal'])
                 row_error_found = True
@@ -532,11 +532,11 @@ class ValidationManager:
 
             if failure.severity_id == RULE_SEVERITY_DICT['fatal']:
                 writer.writerow([field_name, error_msg, failure.failed_value, failure.expected_value,
-                                 failure.flex_fields, str(failure.row), failure.original_label])
+                                 '', failure.flex_fields, str(failure.row), failure.original_label])
             elif failure.severity_id == RULE_SEVERITY_DICT['warning']:
                 # write to warnings file
                 warning_writer.writerow([field_name, error_msg, failure.failed_value, failure.expected_value,
-                                         failure.flex_fields, str(failure.row), failure.original_label])
+                                         '', failure.flex_fields, str(failure.row), failure.original_label])
             # labeled errors
             error_list.record_row_error(job_id, job.filename, field_name, failure.error, row_number,
                                         failure.original_label, failure.file_type_id, failure.target_file_id,
@@ -737,7 +737,7 @@ def insert_staging_model(model, job, writer, error_list):
     except SQLAlchemyError:
         sess.rollback()
         # Write failed, move to next record
-        writer.writerow(['Formatting Error', ValidationError.writeErrorMsg, '', '', '', model.row_number, ''])
+        writer.writerow(['Formatting Error', ValidationError.writeErrorMsg, '', '', '', '', model.row_number, ''])
         error_list.record_row_error(job.job_id, job.filename, 'Formatting Error', ValidationError.writeError,
                                     model.row_number, severity_id=RULE_SEVERITY_DICT['fatal'])
         return False
@@ -792,12 +792,12 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
 
         if failure.severity == 'fatal':
             fatal_error_found = True
-            writer.writerow([field_name, error_msg, fail_value, failure.expected, flex_values, str(row_number),
+            writer.writerow([field_name, error_msg, fail_value, failure.expected, '', flex_values, str(row_number),
                              failure.label])
         elif failure.severity == 'warning':
             # write to warnings file
-            warning_writer.writerow([field_name, error_msg, fail_value, failure.expected, flex_values, str(row_number),
-                                     failure.label])
+            warning_writer.writerow([field_name, error_msg, fail_value, failure.expected, '', flex_values,
+                                     str(row_number), failure.label])
         # Non-labeled errors
         error_list.record_row_error(job.job_id, job.filename, field_name, failure.description, row_number,
                                     failure.label, severity_id=severity_id)
