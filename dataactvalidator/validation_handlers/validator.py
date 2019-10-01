@@ -322,7 +322,7 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
             # Create column list (exclude row_number)
             cols = []
             for col in failures.keys():
-                if col != 'row_number' and not col.startswith('expected_value_') and not col.startswith('variance_'):
+                if col != 'row_number' and not col.startswith('expected_value_') and col != 'variance':
                     cols.append(col)
             col_headers = [short_to_long_dict.get(field, field) for field in cols]
 
@@ -427,7 +427,7 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
             fail_header = failure_key[len(expect_start):]
             expected_value = '{}: {}'.format(fail_header, (str(sql_failure[failure_key] or '')))
         # Variance
-        elif failure_key.startswith('variance_'):
+        elif failure_key == 'variance':
             variance = str(sql_failure[failure_key] or '')
 
     # Create strings for fields and values

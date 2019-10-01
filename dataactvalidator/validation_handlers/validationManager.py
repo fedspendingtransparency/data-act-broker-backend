@@ -532,11 +532,12 @@ class ValidationManager:
 
             if failure.severity_id == RULE_SEVERITY_DICT['fatal']:
                 writer.writerow([field_name, error_msg, failure.failed_value, failure.expected_value,
-                                 '', failure.flex_fields, str(failure.row), failure.original_label])
+                                 failure.variance, failure.flex_fields, str(failure.row), failure.original_label])
             elif failure.severity_id == RULE_SEVERITY_DICT['warning']:
                 # write to warnings file
                 warning_writer.writerow([field_name, error_msg, failure.failed_value, failure.expected_value,
-                                         '', failure.flex_fields, str(failure.row), failure.original_label])
+                                         failure.variance, failure.flex_fields, str(failure.row),
+                                         failure.original_label])
             # labeled errors
             error_list.record_row_error(job_id, job.filename, field_name, failure.error, row_number,
                                         failure.original_label, failure.file_type_id, failure.target_file_id,
