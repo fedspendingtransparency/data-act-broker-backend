@@ -230,6 +230,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Error Message': 'Value was longer than maximum length for this field.',
                 'Value Provided': 'grossoutlayamountbytas_cpe: 35000000000000000000000000',
                 'Expected Value': 'Max length: 21',
+                'Variance': '',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '6',
                 'Rule Label': ''
@@ -247,6 +248,7 @@ class ErrorWarningTests(BaseTestValidator):
                                  ' for a fiscal year',
                 'Value Provided': 'budgetauthorityunobligatedbalancebroughtforward_fyb: None',
                 'Expected Value': '',
+                'Variance': '',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '5',
                 'Rule Label': 'A16.1'
@@ -309,6 +311,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Error Message': 'Could not parse this record correctly.',
                 'Value Provided': '',
                 'Expected Value': '',
+                'Variance': '',
                 'Flex Fields': '',
                 'Row Number': '6',
                 'Rule Label': ''
@@ -326,6 +329,7 @@ class ErrorWarningTests(BaseTestValidator):
                                  ' fixed before the rest of the validation logic is applied to that line.',
                 'Value Provided': 'statusofbudgetaryresourcestotal_cpe: A',
                 'Expected Value': 'This field must be a decimal',
+                'Variance': '',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '6',
                 'Rule Label': ''
@@ -342,6 +346,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Error Message': 'This field is required for all submissions but was not provided in this row.',
                 'Value Provided': '',
                 'Expected Value': '(not blank)',
+                'Variance': '',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '3',
                 'Rule Label': ''
@@ -354,6 +359,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Value Provided': 'statusofbudgetaryresourcestotal_cpe: None, obligationsincurredtotalbytas_cpe: 8.08,'
                                   ' unobligatedbalance_cpe: 2.02',
                 'Expected Value': '',
+                'Variance': '',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '3',
                 'Rule Label': 'A4'
@@ -363,6 +369,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Error Message': 'StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE',
                 'Value Provided': 'statusofbudgetaryresourcestotal_cpe: None, totalbudgetaryresources_cpe: 10.1',
                 'Expected Value': '',
+                'Variance': '',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '3',
                 'Rule Label': 'A24'
