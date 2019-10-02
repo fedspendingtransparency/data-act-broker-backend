@@ -792,10 +792,11 @@ def write_errors(failures, job, short_colnames, writer, warning_writer, row_numb
 
         if failure.severity == 'fatal':
             fatal_error_found = True
-            writer.writerow([field_name, error_msg, fail_value, '', flex_values, str(row_number), failure.label])
+            writer.writerow([field_name, error_msg, fail_value, failure.expected, flex_values, str(row_number),
+                             failure.label])
         elif failure.severity == 'warning':
             # write to warnings file
-            warning_writer.writerow([field_name, error_msg, fail_value, '', flex_values, str(row_number),
+            warning_writer.writerow([field_name, error_msg, fail_value, failure.expected, flex_values, str(row_number),
                                      failure.label])
         # Non-labeled errors
         error_list.record_row_error(job.job_id, job.filename, field_name, failure.description, row_number,
