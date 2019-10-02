@@ -61,26 +61,15 @@ The `/dataactvalidator/scripts` folder contains the install scripts needed to se
 
 ## Automated Tests
 
-Some of the broker tests involve interaction with a test database. These types of tests _should_ all be filed under 
-the `data-act-broker-backend/tests/integration` folder, however the reality is that many of the tests filed under 
-`data-act-broker-backend/tests/unit` also interact with this database. 
+Many of the broker tests involve interaction with a test database. However, these test databases are all created and 
+torn down dynamically by the test framework, as new and isolated databases, so a live PostgreSQL server is all that's
+needed.
 
-So first, spin up a integration test database:
-```bash
-$ docker-compose -f docker-compose.integrationtest.yml up -d    
-```
-After a minute or two, a full database should be running with the connection info in 
-`dataactcore/integrationtest_config.yml` and `dataactcore/integrationtest_secrets.yml`. Remove the `-d` flag to tail 
-logs.
+These types of tests _should_ all be filed under the `data-act-broker-backend/tests/integration` folder, however the 
+reality is that many of the tests filed under `data-act-broker-backend/tests/unit` also interact with a database. 
 
-_**NOTE:** If you would rather not set this db up, and just have tests point to your local environment's db, the 
-default `env` variable used when invoking `pytest`, which is set in the pytest config in `setup.cfg`, can be overridden
-by prepending it to the pytest command. Like:_ 
-```
-env=local pytest
-```
-
-Once your integration test DB is setup...
+So first, ensure your `dataactcore/local_config.yml` and `dataactcore/local_secrets.yml` files are configured to be 
+able to connect and authenticate to your local Postgres database server as instructed in [INSTALL.md](../doc/INSTALL.md) 
 
 **To run _all_ tests**
 ```bash
