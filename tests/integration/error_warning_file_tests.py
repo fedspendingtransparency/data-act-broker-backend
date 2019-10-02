@@ -229,7 +229,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Field Name': 'grossoutlayamountbytas_cpe',
                 'Error Message': 'Value was longer than maximum length for this field.',
                 'Value Provided': 'grossoutlayamountbytas_cpe: 35000000000000000000000000',
-                'Expected Value': '',
+                'Expected Value': 'Max length: 21',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '6',
                 'Rule Label': ''
@@ -325,7 +325,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Error Message': 'The value provided was of the wrong type. Note that all type errors in a line must be'
                                  ' fixed before the rest of the validation logic is applied to that line.',
                 'Value Provided': 'statusofbudgetaryresourcestotal_cpe: A',
-                'Expected Value': '',
+                'Expected Value': 'This field must be a decimal',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '6',
                 'Rule Label': ''
@@ -341,7 +341,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Field Name': 'statusofbudgetaryresourcestotal_cpe',
                 'Error Message': 'This field is required for all submissions but was not provided in this row.',
                 'Value Provided': '',
-                'Expected Value': '',
+                'Expected Value': '(not blank)',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '3',
                 'Rule Label': ''
