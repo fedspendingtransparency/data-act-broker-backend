@@ -11,8 +11,12 @@ services:
     ports:
       - "5435:5432"
 
+  # init-container, that runs its "init" task and terminates
+  # The task is to run migrations on the other container/service: dataact-broker-db
+  # This leverages the pip dependencies built into the dataact-broker-backend image in order to run alembic
   dataact-broker-init-db:
     container_name: dataact-broker-init-db
+    #init: true # init not compatible with docker compose earlier than v3.7, which Travis CI requires
     image: dataact-broker-backend
     build:
       context: ./
