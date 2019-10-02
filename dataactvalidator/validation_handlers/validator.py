@@ -321,8 +321,10 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
         if failures.rowcount:
             # Create column list (exclude row_number)
             cols = []
+            exact_names = ['row_number', 'variance']
+            starting = ('expected_value_',)
             for col in failures.keys():
-                if col != 'row_number' and not col.startswith('expected_value_') and col != 'variance':
+                if col not in exact_names and not col.startswith(starting):
                     cols.append(col)
             col_headers = [short_to_long_dict.get(field, field) for field in cols]
 
