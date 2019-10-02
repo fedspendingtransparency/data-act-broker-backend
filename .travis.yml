@@ -16,8 +16,8 @@ before_script:
   - cp dataactcore/config_example.yml dataactcore/config.yml
   - cp dataactcore/local_config_example.yml dataactcore/local_config.yml
   - cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
-  - sed "s/host:.*$/host: ${BROKER_DB_HOST}/" ./dataactcore/local_config.yml
-  - sed "s/port:.*$/port: ${BROKER_DB_PORT}/" ./dataactcore/local_config.yml
+  - sed -i.bak -E "s/host:.*$/host: ${BROKER_DB_HOST}/" dataactcore/local_config.yml
+  - sed -i.bak -E "s/port:.*$/port: ${BROKER_DB_PORT}/" dataactcore/local_config.yml
   - docker-compose up -d dataact-broker-db dataact-broker-init-db # start the database used for tests in a container
 
 script:
