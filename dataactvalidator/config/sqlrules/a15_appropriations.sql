@@ -9,7 +9,8 @@ WITH appropriation_a15_{0} AS
 SELECT
     approp.row_number,
     approp.unobligated_balance_cpe,
-    sf.amount AS "expected_value_GTAS SF133 Line 2490"
+    sf.amount AS "expected_value_GTAS SF133 Line 2490",
+    approp.unobligated_balance_cpe - sf.amount AS "variance"
 FROM appropriation_a15_{0} AS approp
     INNER JOIN sf_133 AS sf
         ON approp.tas = sf.tas

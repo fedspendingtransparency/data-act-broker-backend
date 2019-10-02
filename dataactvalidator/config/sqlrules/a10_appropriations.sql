@@ -9,7 +9,8 @@ WITH appropriation_a10_{0} AS
 SELECT
     approp.row_number,
     approp.borrowing_authority_amount_cpe,
-    SUM(sf.amount) AS "expected_value_SUM of GTAS SF133 Lines 1340, 1440"
+    SUM(sf.amount) AS "expected_value_SUM of GTAS SF133 Lines 1340, 1440",
+    approp.borrowing_authority_amount_cpe - SUM(sf.amount) AS "variance"
 FROM appropriation_a10_{0} AS approp
     INNER JOIN sf_133 AS sf
         ON approp.tas = sf.tas
