@@ -11,6 +11,17 @@ services:
     ports:
       - "5435:5432"
 
+  dataact-broker-init-db:
+    container_name: dataact-broker-init-db
+    image: dataact-broker-backend
+    build:
+      context: ./
+    depends_on:
+      - dataact-broker-db
+    command: /bin/sh -x -c "sleep 9s; cd ./dataactcore; alembic upgrade head"
+    volumes:
+      - ./:/data-act/backend
+
   dataact-broker-backend:
     container_name: dataact-broker-backend
     image: dataact-broker-backend
@@ -19,7 +30,7 @@ services:
     depends_on:
       - dataact-broker-db
     restart: on-failure:3 # 3 max attempt, and then it will stop restarting
-    command: /bin/sh -c "cd ./dataactcore; sleep 9s; alembic upgrade head; python ../dataactbroker/app.py"
+    command: /bin/sh -c "sleep 9s; python dataactbroker/app.py"
     ports:
       - "9999:9999"
     volumes:

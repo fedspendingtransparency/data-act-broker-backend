@@ -3,22 +3,28 @@ language: python
 python:
   - '3.5'
 
-services:
-  - docker
+env:
+  global:
+  - BROKER_DB_HOST=localhost
+  - BROKER_DB_PORT=5435
 
 before_script:
   # Get dependencies to report code coverage to code climate
   - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
   - chmod +x ./cc-test-reporter
   - ./cc-test-reporter before-build
-  - cp dataactcore/config_example.yml dataactcore/config.yml  # copy base/default config to be inherited from
-  - docker-compose -f docker-compose.integrationtest.yml up -d  # start the database to use in a container
+  - cp dataactcore/config_example.yml dataactcore/config.yml
+  - cp dataactcore/local_config_example.yml dataactcore/local_config.yml
+  - cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
+  - sed "s/host:.*$/host: ${BROKER_DB_HOST}/" ./dataactcore/local_config.yml
+  - sed "s/port:.*$/port: ${BROKER_DB_PORT}/" ./dataactcore/local_config.yml
+  - docker-compose up -d dataact-broker-db dataact-broker-init-db # start the database used for tests in a container
 
 script:
   - pytest tests/unit/* --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
   - pytest tests/integration/* --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
 
 after_script:
-  - docker-compose -f docker-compose.integrationtest.yml down
+  - docker-compose down
   - mv tests/coverage.xml coverage.xml
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
