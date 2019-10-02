@@ -7,14 +7,15 @@ _FILE = 'b7_object_class_program_activity_2'
 
 def test_column_headers(database):
     expected_subset = {'row_number', 'gross_outlays_delivered_or_cpe', 'ussgl490200_delivered_orde_cpe',
-                       'ussgl490800_authority_outl_cpe', 'ussgl498200_upward_adjustm_cpe'}
+                       'ussgl490800_authority_outl_cpe', 'ussgl498200_upward_adjustm_cpe', 'variance'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
 
 def test_success(database):
     """ Test Object Class Program Activity gross_outlays_delivered_or_cpe equals ussgl490200_delivered_orde_cpe +
-    ussgl490800_authority_outl_cpe + ussgl498200_upward_adjustm_cpe """
+        ussgl490800_authority_outl_cpe + ussgl498200_upward_adjustm_cpe
+    """
 
     op = ObjectClassProgramActivityFactory(gross_outlays_delivered_or_cpe=3, ussgl490200_delivered_orde_cpe=1,
                                            ussgl490800_authority_outl_cpe=1, ussgl498200_upward_adjustm_cpe=1)
@@ -23,8 +24,9 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test Object Class Program Activity gross_outlays_delivered_or_cpe doesn't equals ussgl490200_delivered_orde_cpe +
-    ussgl490800_authority_outl_cpe + ussgl498200_upward_adjustm_cpe """
+    """ Test Object Class Program Activity gross_outlays_delivered_or_cpe doesn't equal ussgl490200_delivered_orde_cpe +
+        ussgl490800_authority_outl_cpe + ussgl498200_upward_adjustm_cpe
+    """
 
     op = ObjectClassProgramActivityFactory(gross_outlays_delivered_or_cpe=1, ussgl490200_delivered_orde_cpe=1,
                                            ussgl490800_authority_outl_cpe=1, ussgl498200_upward_adjustm_cpe=1)
