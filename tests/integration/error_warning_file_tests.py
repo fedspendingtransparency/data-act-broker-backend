@@ -28,6 +28,7 @@ LENGTH_ERROR = os.path.join(FILES_DIR, 'appropLengthError.csv')
 TYPE_ERROR = os.path.join(FILES_DIR, 'appropTypeError.csv')
 REQUIRED_ERROR = os.path.join(FILES_DIR, 'appropRequiredError.csv')
 RULE_FAILED_WARNING = os.path.join(FILES_DIR, 'appropInvalidWarning.csv')
+RULE_FAILED_ERROR = os.path.join(FILES_DIR, 'appropInvalidError.csv')
 INVALID_CROSS_A = os.path.join(FILES_DIR, 'invalid_cross_file_A.csv')
 INVALID_CROSS_B = os.path.join(FILES_DIR, 'invalid_cross_file_B.csv')
 
@@ -375,6 +376,24 @@ class ErrorWarningTests(BaseTestValidator):
                 'Rule Label': 'A24'
             }
         ]
+        assert report_content == expected_values
+
+        # SQL Validation (with variance)
+        report_headers, report_content = self.generate_file_report(RULE_FAILED_ERROR, 'appropriations', warning=False)
+        assert report_headers == self.validator.report_headers
+        expected_values = [
+            {
+                'Field Name': 'totalbudgetaryresources_cpe, budgetauthorityappropriatedamount_cpe, budgetauthorityunobligatedbalancebroughtforward_fyb, adjustmentstounobligatedbalancebroughtforward_cpe, otherbudgetaryresourcesamount_cpe',
+                'Error Message': 'TotalBudgetaryResources_CPE = BudgetAuthorityAppropriatedAmount_CPE + BudgetAuthorityUnobligatedBalanceBroughtForward_FYB + AdjustmentsToUnobligatedBalanceBroughtForward_CPE + OtherBudgetaryResourcesAmount_CPE',
+                'Value Provided': 'totalbudgetaryresources_cpe: 10.1, budgetauthorityappropriatedamount_cpe: 0.01, budgetauthorityunobligatedbalancebroughtforward_fyb: 2.03, adjustmentstounobligatedbalancebroughtforward_cpe: 2.02, otherbudgetaryresourcesamount_cpe: 4.04',
+                'Expected Value': '',
+                'Variance': '2.00',
+                'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Row Number': '10',
+                'Rule Label': 'A2'
+            }
+        ]
+        print(report_content)
         assert report_content == expected_values
 
     def test_cross_file_warnings(self):
