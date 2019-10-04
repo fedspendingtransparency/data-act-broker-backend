@@ -65,41 +65,10 @@ _Below lists the actions in Broker that a user must be authorized to perform. Au
 
 _The actions below are bucketed by Permission Level._
 - _Unless stated that a Permission Level inherits granted or denied actions from another, the Permission Level is **DENIED** all other actions listed below._
+- _Given Permission Levels (aka Roles) are assigned on a per-User and per-Agency basis (where the MAX Group defines the Agency), the actions granted or denied below will be done so in the context of a single Agency._
 
 ### **`Reader (R)`**
 1. Read of everything
-
-Endpoints:
-- `/v1/check_status/`
-- `/v1/submission_metadata/`
-- `/v1/submission_data/`
-- `/v1/error_metrics/`
-- `/v1/list_certifications/`
-- `/v1/get_certified_file/`
-- `/v1/check_current_page/`
-- `/v1/get_fabs_meta/`
-- `/v1/get_obligations/`
-- GET `/v1/submission/<int:submission_id>/narrative`
-- `/v1/get_submission_comments`
-- `/v1/get_comments_file`
-- `/v1/submission/<int:submission_id>/report_url`
-- `/v1/get_file_url`
-- `/v1/revalidation_threshold/`
-- `/v1/window/`
-- `/v1/list_submissions/`
-- `/v1/get_detached_file_url`
-- `/v1/check_year_quarter/`
-- `/v1/list_user_emails/`
-- `/v1/list_submission_users/`
-- `/v1/current_user/`
-- `/v1/set_skip_guide/`
-- `/v1/email_users/`
-- `/v1/list_agencies/`
-- `/v1/list_all_agencies/`
-- `/v1/list_sub_tier_agencies/`
-- `/v1/check_generation_status/`
-- `/v1/generate_detached_file/`
-- `/v1/check_detached_generation_status/`
 
 ### **`Writer (W)`**: 
 1. Inherits all permissions of `Reader`
@@ -112,20 +81,9 @@ Endpoints:
 8. Delete DABS submission
 9. Update DABS submission comments
 
-Endpoints:
-- `/v1/upload_dabs_files/`
-- POST `/v1/submission/<int:submission_id>/narrative`
-- `/v1/update_submission_comments`
-- `/v1/delete_submission/`
-- `/v1/restart_validation/`
-- `/v1/generate_file/`
-
 ### **`Submitter (S)`**
 1. Inherits all permissions of `Writer`
 2. Certify submission
-
-Endpoints:
-- `/v1/certify_submission/`
 
 ### **`Edit-FABS (E)`**
 1. Inherits all permissions of `Reader`
@@ -134,14 +92,6 @@ Endpoints:
 4. Replace FABS submission file
 5. Delete FABS submission file
 
-Endpoints:
-- `/v1/upload_fabs_file/`
-- `/v1/delete_submission/`
-- `/v1/restart_validation/`
-
 ### **`FABS (F)`**
 1. Inherits all permissions of `Edit-FABS`
 2. Publish FABS submission data
-
-Endpoints:
-- `/v1/publish_fabs_file/`
