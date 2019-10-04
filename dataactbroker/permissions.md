@@ -63,7 +63,7 @@ _Below lists the actions in Broker that a user must be authorized to perform. Au
 
 _The actions below are bucketed by Permission Level._
 - _Unless stated that a Permission Level inherits granted or denied actions from another, the Permission Level is **DENIED** all other actions listed below._
-- _Unless otherwise stated as having a broader context, these actions below are granted or denied the carrier of that permission level for **ALL** Agencies they are members of in MAX
+- _Unless otherwise stated as having a broader context, these actions below are granted or denied the carrier of that permission level for **ALL** Agencies they are members of in MAX_
 
 
 ### **`Reader (R)`**
