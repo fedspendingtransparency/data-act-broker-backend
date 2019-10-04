@@ -1,10 +1,22 @@
 from dataactcore.models.stagingModels import ObjectClassProgramActivity
 from dataactcore.models.domainModels import SF133
-from tests.unit.dataactvalidator.utils import number_of_errors
+from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
 _FILE = 'b15_object_class_program_activity'
 _TAS = 'b15_object_class_program_activity_tas'
+
+
+def test_column_headers(database):
+    expected_subset = {'row_number', 'ussgl480100_undelivered_or_cpe_sum', 'ussgl480100_undelivered_or_fyb_sum',
+                       'ussgl480200_undelivered_or_cpe_sum', 'ussgl480200_undelivered_or_fyb_sum',
+                       'ussgl488100_upward_adjustm_cpe_sum', 'ussgl488200_upward_adjustm_cpe_sum',
+                       'ussgl490100_delivered_orde_cpe_sum', 'ussgl490100_delivered_orde_fyb_sum',
+                       'ussgl490200_delivered_orde_cpe_sum', 'ussgl490800_authority_outl_cpe_sum',
+                       'ussgl490800_authority_outl_fyb_sum', 'ussgl498100_upward_adjustm_cpe_sum',
+                       'ussgl498200_upward_adjustm_cpe_sum', 'expected_value_GTAS SF133 Line 2104'}
+    actual = set(query_columns(_FILE, database))
+    assert (actual & expected_subset) == expected_subset
 
 
 def test_success(database):

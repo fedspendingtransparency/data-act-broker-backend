@@ -3,7 +3,9 @@ SELECT
     row_number,
     status_of_budgetary_resour_cpe,
     obligations_incurred_total_cpe,
-    unobligated_balance_cpe
+    unobligated_balance_cpe,
+    status_of_budgetary_resour_cpe - (obligations_incurred_total_cpe +
+                                      unobligated_balance_cpe) AS "variance"
 FROM appropriation
 WHERE submission_id = {0}
 AND COALESCE(status_of_budgetary_resour_cpe, 0) <>
