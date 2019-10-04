@@ -1611,6 +1611,76 @@ Possible HTTP Status Codes:
     - Submission does not exist
 - 401: Login required
 
+## Dashboard Routes
+
+The following routes are primarily used by the frontend for analytical purposes.
+
+### POST "/v1/historic_dabs_summary"
+
+This route returns a list of submission summary objects corresponding to the filters provided. 
+
+#### Sample Request
+`/v1/historic_dabs_summary/`
+
+#### Sample Request Body (JSON)
+```
+{
+	"filters": {
+		"quarters": [1, 3],
+		"fys": [2017, 2019],
+		"agencies": ["089", "1125"]
+	}
+}
+```
+
+#### Body Params
+- `filters` - **required** - a dictionary used to filter the resulting summaries, 
+                             each of the following filters are required 
+    - `quarters` - list of integers, each ranging 1-4, or an empty list to include all.
+    - `fys` - a list of integers, each ranging from 2017 through the current fiscal year,
+              or an empty list to include all.
+    - `agencies` - a list of strings of CGAC or FREC codes, or an empty list to include all.
+
+**Note: the results will only include the submissions the user has access to based on their MAX permissions**
+
+#### Response (JSON)
+
+```
+[
+    {
+        "submission_id": 104,
+        "certifier": "Administrator",
+        "fy": 2019,
+        "quarter": 3,
+        "agency": {
+            "name": "Peace Corps (EOP)",
+            "code": "1125"
+        }
+    },
+    ...
+]
+```
+
+#### Response Attributes
+The response is a list of objects representing the submission summaries, each with the following attributes:
+
+- `submission_id` - an integer, the submission ID of the summary
+- `certifier` - a string, name of the submission certifier
+- `fy` - an integer, the fiscal year of the summary
+- `quarter` - an integer, the fiscal quarter of the summary
+- `agency` - an object representing the submission's agency, with the following attributes
+    - `name` - a string, the agency's name
+    - `code` - a string, the agency's code
+
+#### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid `quarters` parameter
+    - Invalid `fys` parameter
+    - Invalid `agencies` parameter
+    - Missing required parameter
+- 401: Login required
 
 ## Automated Tests
 
