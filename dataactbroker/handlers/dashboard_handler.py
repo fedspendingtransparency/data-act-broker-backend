@@ -37,11 +37,11 @@ def validate_historic_dashboard_filters(filters, graphs=False):
         required_filters.extend(['files', 'rules'])
     missing_filters = [required_filter for required_filter in required_filters if required_filter not in filters]
     if missing_filters:
-        raise ResponseException('The following filters were not provided: {}'.format(missing_filters))
+        raise ResponseException('The following filters were not provided: {}'.format(','.join(missing_filters)))
 
     wrong_filter_types = [key for key, value in filters.items() if not isinstance(value, list)]
     if wrong_filter_types:
-        raise ResponseException('The following filters were not lists: {}'.format(wrong_filter_types))
+        raise ResponseException('The following filters were not lists: {}'.format(','.join(wrong_filter_types)))
 
     for quarter in filters['quarters']:
         if quarter not in range(1,5):
@@ -117,7 +117,7 @@ def apply_historic_dabs_filters(sess, query, filters, graphs=False):
         frec_list = set(frec_codes)
         if (cgac_list and sess.query(CGAC).filter(CGAC.cgac_code.in_(cgac_list)).count() != len(cgac_list)) or \
                 (frec_list and sess.query(FREC).filter(FREC.frec_code.in_(frec_list)).count() != len(frec_list)):
-            raise ResponseException("All codes in the agency_codes filter must be valid agency codes",
+            raise ResponseException("All codes in the agencies filter must be valid agency codes",
                                     StatusCode.CLIENT_ERROR)
         if cgac_list:
             agency_filters.append(Submission.cgac_code.in_(cgac_list))
