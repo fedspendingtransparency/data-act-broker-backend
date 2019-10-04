@@ -5,21 +5,74 @@ from flask import g
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.interfaces.db import GlobalDB
-from sqlalchemy import or_, case
+from sqlalchemy import or_, and_, case
 
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.models.lookups import PUBLISH_STATUS_DICT
+from dataactcore.models.lookups import PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID
 
 from datetime import datetime
 from dataactbroker.helpers.generic_helper import fy
 from dataactcore.models.userModel import User
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.domainModels import CGAC, FREC
+from dataactcore.models.validationModels import RuleSql
 
 
 logger = logging.getLogger(__name__)
 
 FILE_TYPES = ['A', 'B', 'C', 'cross-AB', 'cross-BC', 'cross-CD1', 'cross-CD2']
+
+
+def list_rule_labels(files, fabs, error_level):
+    """ Returns a list of rule labels based on the files and error type provided
+
+        Args:
+            files: A list of files for which to return rule labels. If blank, return all matching other arguments
+            fabs: A boolean indicating whether to return FABS or DABS rules
+            error_level: A string indicating whether to return errors, warnings, or both
+
+        Returns:
+            JsonResponse of the rule labels the arguments indicate
+    """
+    invalid_files = [invalid_file for invalid_file in files if invalid_file not in FILE_TYPES]
+    if invalid_files:
+        raise ResponseException('The following are not valid file types: {}'.format(','.join(invalid_files)))
+
+    # Make sure list is empty when requesting FABS rules
+    if fabs and len(files) > 0:
+        raise ResponseException('Files list must be empty for FABS rules')
+
+    sess = GlobalDB.db().session
+
+    rule_label_query = sess.query(RuleSql.rule_label)
+
+    # If the error level isn't "mixed" add a filter on which severity to pull
+    if error_level == 'error':
+        rule_label_query = rule_label_query.filter_by(rule_severity_id=RULE_SEVERITY_DICT['fatal'])
+    elif error_level == 'warning':
+        rule_label_query = rule_label_query.filter_by(rule_severity_id=RULE_SEVERITY_DICT['warning'])
+
+    # If the rule is FABS, add a filter to only get FABS rules
+    if fabs:
+        rule_label_query = rule_label_query.filter_by(file_id=FILE_TYPE_DICT_LETTER_ID['FABS'])
+
+    # If specific files have been specified, add a filter to get them
+    if files:
+        file_type_filters = []
+        for file in files:
+            if file in ['A', 'B', 'C']:
+                file_type_filters.append(and_(RuleSql.file_id == FILE_TYPE_DICT_LETTER_ID[file],
+                                              RuleSql.target_file_id.is_(None)))
+            else:
+                file_types = file.split('-')[1]
+                # Append both orders of the source/target files to the list
+                file_type_filters.append(and_(RuleSql.file_id == FILE_TYPE_DICT_LETTER_ID[file_types[:1]],
+                                              RuleSql.target_file_id == FILE_TYPE_DICT_LETTER_ID[file_types[1:]]))
+                file_type_filters.append(and_(RuleSql.file_id == FILE_TYPE_DICT_LETTER_ID[file_types[1:]],
+                                              RuleSql.target_file_id == FILE_TYPE_DICT_LETTER_ID[file_types[:1]]))
+        rule_label_query = rule_label_query.filter(or_(*file_type_filters))
+
+    return JsonResponse.create(StatusCode.OK, {'labels': [label.rule_label for label in rule_label_query.all()]})
 
 
 def validate_historic_dashboard_filters(filters, graphs=False):
