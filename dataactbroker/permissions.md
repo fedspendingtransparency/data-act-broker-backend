@@ -59,36 +59,87 @@ This can be used to separate permissions per environment (dev, staging, producti
 For more details, check out [account_handler.py](./handlers/account_handler.py).
 
 ## Detailed Access Matrix
-_Below lists the actions in Broker that a user must be authorized to perform. Authorization is governed by way of granting or denying the action to a **Permission Level (aka Role)** wiithin the context of a MAX Group and Agency._
+_Below lists the actions in Broker that a user must be authorized to perform. Authorization is governed by way of granting or denying the action to a **Permission Level (aka Role)** within the context of a MAX Group and Agency._
 
 _The actions below are bucketed by Permission Level._
 - _Unless stated that a Permission Level inherits granted or denied actions from another, the Permission Level is **DENIED** all other actions listed below._
-- _Unless otherwise stated as having a broader context, these actions below are granted or denied the carrier of that permission level for **ALL** Agencies they are members of in MAX_
-
 
 ### **`Reader (R)`**
 1. Read of everything
 
+Endpoints:
+- `/v1/check_status/`
+- `/v1/submission_metadata/`
+- `/v1/submission_data/`
+- `/v1/error_metrics/`
+- `/v1/list_certifications/`
+- `/v1/get_certified_file/`
+- `/v1/check_current_page/`
+- `/v1/get_fabs_meta/`
+- `/v1/get_obligations/`
+- GET `/v1/submission/<int:submission_id>/narrative`
+- `/v1/get_submission_comments`
+- `/v1/get_comments_file`
+- `/v1/submission/<int:submission_id>/report_url`
+- `/v1/get_file_url`
+- `/v1/revalidation_threshold/`
+- `/v1/window/`
+- `/v1/list_submissions/`
+- `/v1/get_detached_file_url`
+- `/v1/check_year_quarter/`
+- `/v1/list_user_emails/`
+- `/v1/list_submission_users/`
+- `/v1/current_user/`
+- `/v1/set_skip_guide/`
+- `/v1/email_users/`
+- `/v1/list_agencies/`
+- `/v1/list_all_agencies/`
+- `/v1/list_sub_tier_agencies/`
+- `/v1/check_generation_status/`
+- `/v1/generate_detached_file/`
+- `/v1/check_detached_generation_status/`
+
 ### **`Writer (W)`**: 
 1. Inherits all permissions of `Reader`
-1. Create DABS submission
-1. Upload DABS submission files
-1. Validate DABS files A, B, C compliance
-1. Validate DABS cross-file compliance of ......
-1. Replace DABS submission files
-1. Delete DABS submission
-1. TODO - MORE
+2. Create DABS submission
+3. Upload DABS submission files
+4. Validate DABS files A, B, C compliance
+5. Validate DABS cross-file compliance
+6. Generate DABS D1, D2, E, F files
+7. Replace DABS submission files
+8. Delete DABS submission
+9. Update DABS submission comments
+
+Endpoints:
+- `/v1/upload_dabs_files/`
+- POST `/v1/submission/<int:submission_id>/narrative`
+- `/v1/update_submission_comments`
+- `/v1/delete_submission/`
+- `/v1/restart_validation/`
+- `/v1/generate_file/`
 
 ### **`Submitter (S)`**
 1. Inherits all permissions of `Writer`
-1. Certify submission
+2. Certify submission
+
+Endpoints:
+- `/v1/certify_submission/`
 
 ### **`Edit-FABS (E)`**
-1. Create FABS submission
-1. Uplaod FABS submission file
-1. Replace FABS submission file
-1. Delete FABS submission file
+1. Inherits all permissions of `Reader`
+2. Create FABS submission
+3. Uplaod FABS submission file
+4. Replace FABS submission file
+5. Delete FABS submission file
+
+Endpoints:
+- `/v1/upload_fabs_file/`
+- `/v1/delete_submission/`
+- `/v1/restart_validation/`
 
 ### **`FABS (F)`**
 1. Inherits all permissions of `Edit-FABS`
-1. Publish FABS submission data
+2. Publish FABS submission data
+
+Endpoints:
+- `/v1/publish_fabs_file/`
