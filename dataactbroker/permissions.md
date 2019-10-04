@@ -10,6 +10,8 @@ Each permission level must be granted via MAX groups which only apply to one age
 Users may be able to have permissions for multiple agencies which is only determined by the MAX groups
 they are associated with.
 
+"Permission Levels" can be looked at as _**Roles**_, but are only dealt with in context of a _MAX group_ and _Agency_, as described below.
+
 **Note: For each group (DABS/FABS), each additional permission level builds upon the previous level 
 (ex. DABS Writer can also read DABS Submissions).**
 
@@ -55,3 +57,38 @@ This can be used to separate permissions per environment (dev, staging, producti
 **Note: FREC permissions will give read access to the CGAC agency as well.**
 
 For more details, check out [account_handler.py](./handlers/account_handler.py).
+
+## Detailed Access Matrix
+_Below lists the actions in Broker that a user must be authorized to perform. Authorization is governed by way of granting or denying the action to a **Permission Level (aka Role)** wiithin the context of a MAX Group and Agency._
+
+_The actions below are bucketed by Permission Level._
+- _Unless stated that a Permission Level inherits granted or denied actions from another, the Permission Level is **DENIED** all other actions listed below._
+- _Unless otherwise stated as having a broader context, these actions below are granted or denied the carrier of that permission level for **ALL** Agencies they are members of in MAX
+
+
+### **`Reader (R)`**
+1. Read of everything
+
+### **`Writer (W)`**: 
+1. Inherits all permissions of `Reader`
+1. Create DABS submission
+1. Upload DABS submission files
+1. Validate DABS files A, B, C compliance
+1. Validate DABS cross-file compliance of ......
+1. Replace DABS submission files
+1. Delete DABS submission
+1. TODO - MORE
+
+### **`Submitter (S)`**
+1. Inherits all permissions of `Writer`
+1. Certify submission
+
+### **`Edit-FABS (E)`**
+1. Create FABS submission
+1. Uplaod FABS submission file
+1. Replace FABS submission file
+1. Delete FABS submission file
+
+### **`FABS (F)`**
+1. Inherits all permissions of `Edit-FABS`
+1. Publish FABS submission data
