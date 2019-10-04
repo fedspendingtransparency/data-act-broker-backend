@@ -23,7 +23,7 @@ from tests.unit.dataactcore.factories.staging import (
     PublishedAwardFinancialAssistanceFactory)
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
 def test_generate_a(database):
     sess = database.session
 
@@ -111,7 +111,7 @@ def test_generate_a(database):
     assert expected2 in file_rows
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
 def test_generate_awarding_d1(database):
     sess = database.session
     dap_model = DetachedAwardProcurementFactory
@@ -153,7 +153,7 @@ def test_generate_awarding_d1(database):
     assert expected2 in file_rows
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
 def test_generate_funding_d1(database):
     sess = database.session
     dap_model = DetachedAwardProcurementFactory
@@ -195,7 +195,7 @@ def test_generate_funding_d1(database):
     assert expected2 in file_rows
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
 def test_generate_awarding_d2(database):
     sess = database.session
     pafa = PublishedAwardFinancialAssistanceFactory
@@ -237,7 +237,7 @@ def test_generate_awarding_d2(database):
     assert expected2 in file_rows
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
 def test_generate_funding_d2(database):
     sess = database.session
     pafa = PublishedAwardFinancialAssistanceFactory
@@ -279,7 +279,7 @@ def test_generate_funding_d2(database):
     assert expected2 in file_rows
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
 def test_generate_txt_d1(database):
     sess = database.session
     dap_model = DetachedAwardProcurementFactory
@@ -322,7 +322,7 @@ def test_generate_txt_d1(database):
     assert expected2 in file_rows
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
 def test_generate_file_updates_jobs(monkeypatch, database):
     sess = database.session
     job1 = JobFactory(job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
