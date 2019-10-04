@@ -1,7 +1,9 @@
 # Permissions
 
 A simple guide covering permissions on the Broker and how they get set on each environment. 
-For more details, please check out the code in [permissions.py](./permissions.py).
+
+- For more details from an OMB Max permission administration standpoint, see (requires OMB Max login): https://community.max.gov/pages/viewpage.action?spaceKey=TREASExternal&title=DATA+Act+Broker+Registration
+- For more details from a code implementation level, please check out the code in [permissions.py](./permissions.py).
 
 ## Permission Levels
 
