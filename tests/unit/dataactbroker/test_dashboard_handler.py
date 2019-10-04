@@ -12,10 +12,12 @@ from dataactbroker.helpers.generic_helper import fy
 from dataactbroker.handlers import dashboard_handler
 from dataactcore.utils.responseException import ResponseException
 
+
 def historic_dabs_warning_summary_endpoint(filters):
     json_response = dashboard_handler.historic_dabs_warning_summary(filters)
     assert json_response.status_code == 200
     return json.loads(json_response.get_data().decode('UTF-8'))
+
 
 def test_validate_historic_dashboard_filters():
     def assert_validation(filters, expected_response):
@@ -95,6 +97,7 @@ def setup_submissions(sess, admin=False):
 
     user = agency_user if not admin else admin_user
     return user
+
 
 @pytest.mark.usefixtures("job_constants")
 @pytest.mark.usefixtures("user_constants")
