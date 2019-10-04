@@ -32,15 +32,18 @@ def list_rule_labels(files, fabs, error_level):
             error_level: A string indicating whether to return errors, warnings, or both
 
         Returns:
-            JsonResponse of the rule labels the arguments indicate
+            JsonResponse of the rule labels the arguments indicate. JsonResponse error if invalid file types are
+            provided or any file types are provided for FABS
     """
-    invalid_files = [invalid_file for invalid_file in files if invalid_file not in FILE_TYPES]
-    if invalid_files:
-        raise ResponseException('The following are not valid file types: {}'.format(','.join(invalid_files)))
-
     # Make sure list is empty when requesting FABS rules
     if fabs and len(files) > 0:
-        raise ResponseException('Files list must be empty for FABS rules')
+        return JsonResponse.error(ValueError('Files list must be empty for FABS rules'), StatusCode.CLIENT_ERROR)
+
+    invalid_files = [invalid_file for invalid_file in files if invalid_file not in FILE_TYPES]
+    if invalid_files:
+        return JsonResponse.error(ValueError('The following are not valid file types: {}'.
+                                             format(','.join(invalid_files))),
+                                  StatusCode.CLIENT_ERROR)
 
     sess = GlobalDB.db().session
 
