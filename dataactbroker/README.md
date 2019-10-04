@@ -1684,14 +1684,29 @@ Possible HTTP Status Codes:
 
 ## Automated Tests
 
-### Integration Tests
+Many of the broker tests involve interaction with a test database. However, these test databases are all created and 
+torn down dynamically by the test framework, as new and isolated databases, so a live PostgreSQL server is all that's
+needed.
 
-To run the broker API integration tests, navigate to the project's test folder (`data-act-broker-backend/tests`) and type the following:
+These types of tests _should_ all be filed under the `data-act-broker-backend/tests/integration` folder, however the 
+reality is that many of the tests filed under `data-act-broker-backend/tests/unit` also interact with a database. 
 
-        $ python integration/runTests.py
+So first, ensure your `dataactcore/local_config.yml` and `dataactcore/local_secrets.yml` files are configured to be 
+able to connect and authenticate to your local Postgres database server as instructed in [INSTALL.md](../doc/INSTALL.md) 
 
-To generate a test coverage report from the command line:
+**To run _all_ tests**
+```bash
+$ pytest
+```
 
-1. Make sure you're in the project's test folder (`data-act-broker-backend/tests`).
-2. Run the tests using the `coverage` command: `coverage run integration/runTests.py`.
-3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
+**To run just _integration_ tests**
+```bash
+$ pytest tests/integration/*
+```
+
+**To run just _Broker API_ unit tests**
+```bash
+$ pytest tests/unit/dataactbroker/*
+```
+
+To generate a test coverage report with the run, just append the `--cov` flag to the `pytest` command.

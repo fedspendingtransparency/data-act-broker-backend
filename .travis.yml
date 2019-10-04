@@ -1,31 +1,36 @@
-sudo: required
-
 language: python
 
 python:
   - '3.5'
 
-services:
-  - docker
+env:
+  global:
+  - BROKER_DB_HOST=localhost
+  - BROKER_DB_PORT=5435
+
+install:
+  # NOTE: no pip install needed as long as the one of the docker containers started below builds the
+  # `dataact-broker-backend` image, which has a volume bound to the source dir, and runs pip install to pull down deps
 
 before_script:
+  # Get dependencies to report code coverage to code climate
   - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
   - chmod +x ./cc-test-reporter
   - ./cc-test-reporter before-build
-
-script:
   - cp dataactcore/config_example.yml dataactcore/config.yml
   - cp dataactcore/local_config_example.yml dataactcore/local_config.yml
   - cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
-  - |
-    docker-compose run --rm dataact-broker-backend \
-      /bin/sh -c " \
-      cd ./dataactcore; sleep 9s; alembic upgrade head; \
-      cd ../; flake8 && \
-      py.test --cov=. --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml"
-  - docker-compose down
+  - 'sed -i.bak -E "s/host:.*$/host: ${BROKER_DB_HOST}/" dataactcore/local_config.yml'
+  - 'sed -i.bak -E "s/port:.*$/port: ${BROKER_DB_PORT}/" dataactcore/local_config.yml'
+  # Start a containerized database to use for tests, which also pulls pip packages required for build as the image is built
+  - docker-compose up -d dataact-broker-db dataact-broker-init-db
 
+script:
+  - flake8
+  - pytest tests/unit/* --cov=. --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
+  - pytest tests/integration/* --cov=. --cov-append --cov-report term --cov-report xml:tests/coverage.xml --junitxml=tests/test-results.xml
 
 after_script:
+  - docker-compose down
   - mv tests/coverage.xml coverage.xml
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
