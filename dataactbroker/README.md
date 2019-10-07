@@ -1617,7 +1617,8 @@ The following routes are primarily used by the frontend for analytical purposes.
 
 ### POST "/v1/historic_dabs_summary"
 
-This route returns a list of submission summary objects corresponding to the filters provided. 
+This route returns a list of submission summary objects corresponding to the filters provided.
+Note: the results will only include the submissions the user has access to based on their MAX permissions.
 
 #### Sample Request
 `/v1/historic_dabs_summary/`
@@ -1639,8 +1640,6 @@ This route returns a list of submission summary objects corresponding to the fil
     - `fys`: (required, list[integer]) fiscal years, ranging from 2017 through the current fiscal year,
               or an empty list to include all.
     - `agencies`: (required, list[string]) CGAC or FREC codes, or an empty list to include all.
-
-**Note: the results will only include the submissions the user has access to based on their MAX permissions**
 
 #### Response (JSON)
 
