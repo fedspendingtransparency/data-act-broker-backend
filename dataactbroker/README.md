@@ -1634,12 +1634,11 @@ This route returns a list of submission summary objects corresponding to the fil
 ```
 
 #### Body Params
-- `filters` - **required** - a dictionary used to filter the resulting summaries, 
-                             each of the following filters are required 
-    - `quarters` - list of integers, each ranging 1-4, or an empty list to include all.
-    - `fys` - a list of integers, each ranging from 2017 through the current fiscal year,
+- `filters`: (required, dict) used to filter the resulting summaries
+    - `quarters`: (required, list[integer]) fiscal year quarters, ranging 1-4, or an empty list to include all.
+    - `fys`: (required, list[integer]) fiscal years, ranging from 2017 through the current fiscal year,
               or an empty list to include all.
-    - `agencies` - a list of strings of CGAC or FREC codes, or an empty list to include all.
+    - `agencies`: (required, list[string]) CGAC or FREC codes, or an empty list to include all.
 
 **Note: the results will only include the submissions the user has access to based on their MAX permissions**
 
@@ -1664,13 +1663,13 @@ This route returns a list of submission summary objects corresponding to the fil
 #### Response Attributes
 The response is a list of objects representing the submission summaries, each with the following attributes:
 
-- `submission_id` - an integer, the submission ID of the summary
-- `certifier` - a string, name of the submission certifier
-- `fy` - an integer, the fiscal year of the summary
-- `quarter` - an integer, the fiscal quarter of the summary
-- `agency` - an object representing the submission's agency, with the following attributes
-    - `name` - a string, the agency's name
-    - `code` - a string, the agency's code
+- `submission_id`: (integer) the submission ID of the summary
+- `certifier`: (string) name of the submission certifier
+- `fy`: (integer) the fiscal year of the summary
+- `quarter`: (integer) the fiscal quarter of the summary
+- `agency`:  (dict) the submission's agency, with the following attributes
+    - `name`: (string) the agency's name
+    - `code`: (string) the agency's code
 
 #### Errors
 Possible HTTP Status Codes:
