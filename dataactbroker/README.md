@@ -101,19 +101,19 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
 
 ```
 {
-	"user_id": 42,
-	"name": "John",
-	"title": "Developer",
-	"skip_guide": false,
-	"website_admin": false,
-	"affiliations": [
-		{
-			"agency_name": "Department of Labor (DOL)",
-			"permission": "writer"
-		}
-	],
-	"session_id": "ABC123",
-	"message": "Login successful"
+    "user_id": 42,
+    "name": "John",
+    "title": "Developer",
+    "skip_guide": false,
+    "website_admin": false,
+    "affiliations": [
+        {
+            "agency_name": "Department of Labor (DOL)",
+            "permission": "writer"
+        }
+    ],
+    "session_id": "ABC123",
+    "message": "Login successful"
 }
 ```
 
@@ -1387,7 +1387,7 @@ Example output:
       {
         "agency_name": "Sample Agency",
         "agency_code": "000",
-	"priority": "0"
+    "priority": "0"
       }, ...
     ]
 }
@@ -1625,11 +1625,11 @@ This route returns a list of submission summary objects corresponding to the fil
 #### Sample Request Body (JSON)
 ```
 {
-	"filters": {
-		"quarters": [1, 3],
-		"fys": [2017, 2019],
-		"agencies": ["089", "1125"]
-	}
+    "filters": {
+        "quarters": [1, 3],
+        "fys": [2017, 2019],
+        "agencies": ["089", "1125"]
+    }
 }
 ```
 
