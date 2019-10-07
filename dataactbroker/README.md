@@ -1656,17 +1656,102 @@ Possible HTTP Status Codes:
     - Submission does not exist
 - 401: Login required
 
+## Dashboard Routes
+
+The following routes are primarily used by the frontend for analytical purposes.
+
+### POST "/v1/historic_dabs_summary"
+
+This route returns a list of submission summary objects corresponding to the filters provided. 
+
+#### Sample Request
+`/v1/historic_dabs_summary/`
+
+#### Sample Request Body (JSON)
+```
+{
+	"filters": {
+		"quarters": [1, 3],
+		"fys": [2017, 2019],
+		"agencies": ["089", "1125"]
+	}
+}
+```
+
+#### Body Params
+- `filters` - **required** - a dictionary used to filter the resulting summaries, 
+                             each of the following filters are required 
+    - `quarters` - list of integers, each ranging 1-4, or an empty list to include all.
+    - `fys` - a list of integers, each ranging from 2017 through the current fiscal year,
+              or an empty list to include all.
+    - `agencies` - a list of strings of CGAC or FREC codes, or an empty list to include all.
+
+**Note: the results will only include the submissions the user has access to based on their MAX permissions**
+
+#### Response (JSON)
+
+```
+[
+    {
+        "submission_id": 104,
+        "certifier": "Administrator",
+        "fy": 2019,
+        "quarter": 3,
+        "agency": {
+            "name": "Peace Corps (EOP)",
+            "code": "1125"
+        }
+    },
+    ...
+]
+```
+
+#### Response Attributes
+The response is a list of objects representing the submission summaries, each with the following attributes:
+
+- `submission_id` - an integer, the submission ID of the summary
+- `certifier` - a string, name of the submission certifier
+- `fy` - an integer, the fiscal year of the summary
+- `quarter` - an integer, the fiscal quarter of the summary
+- `agency` - an object representing the submission's agency, with the following attributes
+    - `name` - a string, the agency's name
+    - `code` - a string, the agency's code
+
+#### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid `quarters` parameter
+    - Invalid `fys` parameter
+    - Invalid `agencies` parameter
+    - Missing required parameter
+- 401: Login required
 
 ## Automated Tests
 
-### Integration Tests
+Many of the broker tests involve interaction with a test database. However, these test databases are all created and 
+torn down dynamically by the test framework, as new and isolated databases, so a live PostgreSQL server is all that's
+needed.
 
-To run the broker API integration tests, navigate to the project's test folder (`data-act-broker-backend/tests`) and type the following:
+These types of tests _should_ all be filed under the `data-act-broker-backend/tests/integration` folder, however the 
+reality is that many of the tests filed under `data-act-broker-backend/tests/unit` also interact with a database. 
 
-        $ python integration/runTests.py
+So first, ensure your `dataactcore/local_config.yml` and `dataactcore/local_secrets.yml` files are configured to be 
+able to connect and authenticate to your local Postgres database server as instructed in [INSTALL.md](../doc/INSTALL.md) 
 
-To generate a test coverage report from the command line:
+**To run _all_ tests**
+```bash
+$ pytest
+```
 
-1. Make sure you're in the project's test folder (`data-act-broker-backend/tests`).
-2. Run the tests using the `coverage` command: `coverage run integration/runTests.py`.
-3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
+**To run just _integration_ tests**
+```bash
+$ pytest tests/integration/*
+```
+
+**To run just _Broker API_ unit tests**
+```bash
+$ pytest tests/unit/dataactbroker/*
+```
+
+To generate a test coverage report with the run, just append the `--cov` flag to the `pytest` command.

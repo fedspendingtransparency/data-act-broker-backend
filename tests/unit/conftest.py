@@ -78,6 +78,14 @@ def mock_broker_config_paths(tmpdir):
 
 
 @pytest.fixture
+def broker_files_tmp_dir():
+    """Make sure this directory exists, as some tests write files to it"""
+    cfg = dataactcore.config.CONFIG_BROKER
+    if cfg['local'] and not os.path.exists(cfg['broker_files']):
+        os.makedirs(cfg['broker_files'])
+
+
+@pytest.fixture
 def test_app(database):
     """Gets us in the application context, where we can set/use g.
     Particularly useful if we're checking `g` in multiple modules (and hence
