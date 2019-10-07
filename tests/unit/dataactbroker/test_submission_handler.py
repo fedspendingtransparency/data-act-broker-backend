@@ -20,7 +20,7 @@ from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramA
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import (SubmissionFactory, JobFactory, CertifyHistoryFactory,
                                                   RevalidationThresholdFactory, QuarterlyRevalidationThresholdFactory,
-                                                  SubmissionNarrativeFactory)
+                                                  CommentFactory)
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
 from tests.unit.dataactcore.factories.user import UserFactory
 
@@ -398,8 +398,8 @@ def test_certify_dabs_submission(database, monkeypatch):
         sess.add_all([user, cgac, submission, quarter_reval])
         sess.commit()
 
-        comment = SubmissionNarrativeFactory(file_type_id=FILE_TYPE_DICT['appropriations'], narrative='Test',
-                                             submission_id=submission.submission_id)
+        comment = CommentFactory(file_type_id=FILE_TYPE_DICT['appropriations'], comment='Test',
+                                 submission_id=submission.submission_id)
         job_1 = JobFactory(submission_id=submission.submission_id, last_validated=now,
                            job_type_id=JOB_TYPE_DICT['csv_record_validation'])
         job_2 = JobFactory(submission_id=submission.submission_id, last_validated=now + datetime.timedelta(days=1),

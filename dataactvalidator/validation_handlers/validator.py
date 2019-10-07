@@ -380,6 +380,7 @@ def relevant_flex_data(failures, job_id):
             "FROM flex_field " +
             "WHERE job_id=" + str(job_id) +
             " AND EXISTS (SELECT * FROM all_values WHERE flex_field.row_number = all_values.row_number)"
+            "ORDER BY flex_field.header"
         )
         query_result = sess.execute(query)
         for flex_field in query_result:

@@ -4,7 +4,7 @@ from webargs.flaskparser import use_kwargs
 
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler, get_upload_file_url,
-    get_detached_upload_file_url, narratives_for_submission, submission_report_url, update_narratives,
+    get_detached_upload_file_url, get_submission_comments, submission_report_url, update_submission_comments,
     list_certifications, file_history_url, get_comments_file)
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
@@ -149,15 +149,29 @@ def add_file_routes(app, is_local, server_path):
     def get_obligations(submission):
         return JsonResponse.create(StatusCode.OK, get_submission_stats(submission.submission_id))
 
+    # TODO: Deprecated, remove at proper time
     @app.route("/v1/submission/<int:submission_id>/narrative", methods=['GET'])
     @requires_submission_perms('reader')
     def get_submission_narratives(submission):
-        return narratives_for_submission(submission)
+        return get_submission_comments(submission)
 
+    # TODO: Deprecated, remove at proper time
     @app.route("/v1/submission/<int:submission_id>/narrative", methods=['POST'])
     @requires_submission_perms('writer')
     def post_submission_narratives(submission):
-        return update_narratives(submission, request.json, is_local)
+        return update_submission_comments(submission, request.json, is_local)
+
+    @app.route("/v1/get_submission_comments", methods=['GET'])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def get_sub_comments(submission):
+        return get_submission_comments(submission)
+
+    @app.route("/v1/update_submission_comments", methods=['POST'])
+    @convert_to_submission_id
+    @requires_submission_perms('writer')
+    def update_sub_comments(submission):
+        return update_submission_comments(submission, request.json, is_local)
 
     @app.route("/v1/get_comments_file", methods=['GET'])
     @convert_to_submission_id
