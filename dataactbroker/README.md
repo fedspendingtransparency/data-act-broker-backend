@@ -1615,7 +1615,7 @@ Possible HTTP Status Codes:
 
 The following routes are primarily used by the frontend for analytical purposes.
 
-### POST "/v1/historic_dabs_summary"
+### POST "/v1/historic\_dabs\_summary"
 
 This route returns a list of submission summary objects corresponding to the filters provided.
 Note: the results will only include the submissions the user has access to based on their MAX permissions.
