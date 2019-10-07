@@ -1,20 +1,17 @@
 import logging
-
 from flask import g
+from datetime import datetime
 
+from sqlalchemy import or_, case
+from dataactcore.models.domainModels import CGAC, FREC
+from dataactcore.models.lookups import PUBLISH_STATUS_DICT
+from dataactcore.models.jobModels import Submission
+from dataactcore.models.userModel import User
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
-from dataactcore.interfaces.db import GlobalDB
-from sqlalchemy import or_, case
-
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.models.lookups import PUBLISH_STATUS_DICT
-
-from datetime import datetime
 from dataactbroker.helpers.generic_helper import fy
-from dataactcore.models.userModel import User
-from dataactcore.models.jobModels import Submission
-from dataactcore.models.domainModels import CGAC, FREC
 
 
 logger = logging.getLogger(__name__)
