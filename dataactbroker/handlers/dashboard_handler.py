@@ -46,7 +46,7 @@ def validate_historic_dashboard_filters(filters, graphs=False):
 
     current_fy = fy(datetime.now())
     for fiscal_year in filters['fys']:
-        if fiscal_year not in range(2017, current_fy+1):
+        if fiscal_year not in range(2017, current_fy + 1):
             raise ResponseException('Fiscal Years must be a list of integers, each ranging from 2017 through the'
                                     ' current fiscal year, or an empty list.')
 
