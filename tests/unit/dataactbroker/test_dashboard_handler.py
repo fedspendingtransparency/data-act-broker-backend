@@ -9,6 +9,7 @@ from tests.unit.dataactcore.factories.job import SubmissionFactory
 from dataactcore.models.userModel import UserAffiliation
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PUBLISH_STATUS_DICT
 from dataactbroker.helpers.generic_helper import fy
+from dataactbroker.helpers import filters_helper
 from dataactbroker.handlers import dashboard_handler
 from dataactcore.utils.responseException import ResponseException
 
@@ -106,7 +107,7 @@ def test_historic_dabs_warning_summary_admin(database, monkeypatch):
     sess = database.session
 
     user = setup_submissions(sess, admin=True)
-    monkeypatch.setattr(dashboard_handler, 'g', Mock(user=user))
+    monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
 
     # Responses
     sub1_response = {
@@ -185,7 +186,7 @@ def test_historic_dabs_warning_summary_admin(database, monkeypatch):
         'fys': [2017, 2019],
         'agencies': ['09']
     }
-    expected_error = "All codes in the agencies filter must be valid agency codes"
+    expected_error = "All codes in the agency_codes filter must be valid agency codes"
     with pytest.raises(ResponseException) as resp_except:
         historic_dabs_warning_summary_endpoint(filters)
     assert str(resp_except.value) == expected_error
@@ -196,7 +197,7 @@ def test_historic_dabs_warning_summary_admin(database, monkeypatch):
         'fys': [2017, 2019],
         'agencies': ['090']
     }
-    expected_error = "All codes in the agencies filter must be valid agency codes"
+    expected_error = "All codes in the agency_codes filter must be valid agency codes"
     with pytest.raises(ResponseException) as resp_except:
         historic_dabs_warning_summary_endpoint(filters)
     assert str(resp_except.value) == expected_error
@@ -208,7 +209,7 @@ def test_historic_dabs_warning_summary_agency_user(database, monkeypatch):
     sess = database.session
 
     user = setup_submissions(sess, admin=False)
-    monkeypatch.setattr(dashboard_handler, 'g', Mock(user=user))
+    monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
 
     # Responses
     sub1_response = {
@@ -279,7 +280,7 @@ def test_historic_dabs_warning_summary_agency_user(database, monkeypatch):
         'fys': [2017, 2019],
         'agencies': ['09']
     }
-    expected_error = "All codes in the agencies filter must be valid agency codes"
+    expected_error = "All codes in the agency_codes filter must be valid agency codes"
     with pytest.raises(ResponseException) as resp_except:
         historic_dabs_warning_summary_endpoint(filters)
     assert str(resp_except.value) == expected_error
@@ -290,7 +291,7 @@ def test_historic_dabs_warning_summary_agency_user(database, monkeypatch):
         'fys': [2017, 2019],
         'agencies': ['090']
     }
-    expected_error = "All codes in the agencies filter must be valid agency codes"
+    expected_error = "All codes in the agency_codes filter must be valid agency codes"
     with pytest.raises(ResponseException) as resp_except:
         historic_dabs_warning_summary_endpoint(filters)
     assert str(resp_except.value) == expected_error
