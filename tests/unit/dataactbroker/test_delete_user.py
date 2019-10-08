@@ -19,7 +19,7 @@ def test_delete_user(database):
     database.session.add_all([sub_one, sub_two, other_sub])
     database.session.commit()
     # Delete a user
-    sess.query(User).filter(User.email == email).delete()
+    sess.query(User).filter(User.email == email).delete(synchronize_session='fetch')
     sess.commit()
     # Confirm user has been deleted and that user's submissions have no user_id
     assert database.session.query(User).filter_by(email=email).count() == 0

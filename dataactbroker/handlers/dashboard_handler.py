@@ -1,21 +1,21 @@
 import logging
 
-from flask import g
+from datetime import datetime
+from sqlalchemy import or_, and_, case
+
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.domainModels import CGAC, FREC
+from dataactcore.models.jobModels import Submission
+from dataactcore.models.lookups import PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID
+from dataactcore.models.userModel import User
+from dataactcore.models.validationModels import RuleSql
 
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
-from dataactcore.interfaces.db import GlobalDB
-from sqlalchemy import or_, and_, case
-
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.models.lookups import PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID
 
-from datetime import datetime
 from dataactbroker.helpers.generic_helper import fy
-from dataactcore.models.userModel import User
-from dataactcore.models.jobModels import Submission
-from dataactcore.models.domainModels import CGAC, FREC
-from dataactcore.models.validationModels import RuleSql
+from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
 
 
 logger = logging.getLogger(__name__)
@@ -105,7 +105,7 @@ def validate_historic_dashboard_filters(filters, graphs=False):
 
     current_fy = fy(datetime.now())
     for fiscal_year in filters['fys']:
-        if fiscal_year not in range(2017, current_fy+1):
+        if fiscal_year not in range(2017, current_fy + 1):
             raise ResponseException('Fiscal Years must be a list of integers, each ranging from 2017 through the'
                                     ' current fiscal year, or an empty list.')
 
@@ -138,19 +138,7 @@ def apply_historic_dabs_filters(sess, query, filters, graphs=False):
     """
 
     # Applying general user permissions standard for all the filters
-    if not g.user.website_admin:
-        affiliation_filters = []
-        cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
-        frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec]
-
-        affiliation_filters.append(Submission.user_id == g.user.user_id)
-
-        if cgac_codes:
-            affiliation_filters.append(Submission.cgac_code.in_(cgac_codes))
-        if frec_codes:
-            affiliation_filters.append(Submission.frec_code.in_(frec_codes))
-
-        query = query.filter(or_(*affiliation_filters))
+    query = permissions_filter(query)
 
     if filters['quarters']:
         periods = [quarter * 3 for quarter in filters['quarters']]
@@ -160,27 +148,7 @@ def apply_historic_dabs_filters(sess, query, filters, graphs=False):
         query = query.filter(Submission.reporting_fiscal_year.in_(filters['fys']))
 
     if filters['agencies']:
-        agency_filters = []
-        cgac_codes = [cgac_code for cgac_code in filters['agencies'] if len(cgac_code) == 3]
-        frec_codes = [frec_code for frec_code in filters['agencies'] if len(frec_code) == 4]
-
-        if len(cgac_codes) + len(frec_codes) != len(filters['agencies']):
-            raise ResponseException('All codes in the agencies filter must be valid agency codes',
-                                    StatusCode.CLIENT_ERROR)
-        # If the number of CGACs or FRECs returned from a query using the codes doesn't match the length of
-        # each list (ignoring duplicates) then something included wasn't a valid agency
-        cgac_list = set(cgac_codes)
-        frec_list = set(frec_codes)
-        if (cgac_list and sess.query(CGAC).filter(CGAC.cgac_code.in_(cgac_list)).count() != len(cgac_list)) or \
-                (frec_list and sess.query(FREC).filter(FREC.frec_code.in_(frec_list)).count() != len(frec_list)):
-            raise ResponseException("All codes in the agencies filter must be valid agency codes",
-                                    StatusCode.CLIENT_ERROR)
-        if cgac_list:
-            agency_filters.append(Submission.cgac_code.in_(cgac_list))
-        if frec_list:
-            agency_filters.append(Submission.frec_code.in_(frec_list))
-
-        query = query.filter(or_(*agency_filters))
+        query = agency_filter(sess, query, Submission, Submission, filters['agencies'])
 
     if graphs:
         # TODO: For the graphs endpoint

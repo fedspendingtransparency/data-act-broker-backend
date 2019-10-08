@@ -9,6 +9,7 @@ from tests.unit.dataactcore.factories.job import SubmissionFactory
 from dataactcore.models.userModel import UserAffiliation
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PUBLISH_STATUS_DICT
 from dataactbroker.helpers.generic_helper import fy
+from dataactbroker.helpers import filters_helper
 from dataactbroker.handlers import dashboard_handler
 from dataactcore.utils.responseException import ResponseException
 
@@ -21,10 +22,11 @@ def historic_dabs_warning_summary_endpoint(filters):
 
 def test_validate_historic_dashboard_filters():
     def assert_validation(filters, expected_response):
-        try:
+        with pytest.raises(ResponseException) as resp_except:
             dashboard_handler.validate_historic_dashboard_filters(filters)
-        except ResponseException as e:
-            assert str(e) == expected_response
+
+        assert resp_except.value.status == 500
+        assert str(resp_except.value) == expected_response
 
     # missing a required filter
     assert_validation({'quarters': [], 'fys': []}, 'The following filters were not provided: agencies')
@@ -105,7 +107,7 @@ def test_historic_dabs_warning_summary_admin(database, monkeypatch):
     sess = database.session
 
     user = setup_submissions(sess, admin=True)
-    monkeypatch.setattr(dashboard_handler, 'g', Mock(user=user))
+    monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
 
     # Responses
     sub1_response = {
@@ -184,11 +186,10 @@ def test_historic_dabs_warning_summary_admin(database, monkeypatch):
         'fys': [2017, 2019],
         'agencies': ['09']
     }
-    expected_error = "All codes in the agencies filter must be valid agency codes"
-    try:
+    expected_error = "All codes in the agency_codes filter must be valid agency codes"
+    with pytest.raises(ResponseException) as resp_except:
         historic_dabs_warning_summary_endpoint(filters)
-    except ResponseException as e:
-        assert str(e) == expected_error
+    assert str(resp_except.value) == expected_error
 
     # Non-existent agency shouldn't return all
     filters = {
@@ -196,11 +197,10 @@ def test_historic_dabs_warning_summary_admin(database, monkeypatch):
         'fys': [2017, 2019],
         'agencies': ['090']
     }
-    expected_error = "All codes in the agencies filter must be valid agency codes"
-    try:
+    expected_error = "All codes in the agency_codes filter must be valid agency codes"
+    with pytest.raises(ResponseException) as resp_except:
         historic_dabs_warning_summary_endpoint(filters)
-    except ResponseException as e:
-        assert str(e) == expected_error
+    assert str(resp_except.value) == expected_error
 
 
 @pytest.mark.usefixtures("job_constants")
@@ -209,7 +209,7 @@ def test_historic_dabs_warning_summary_agency_user(database, monkeypatch):
     sess = database.session
 
     user = setup_submissions(sess, admin=False)
-    monkeypatch.setattr(dashboard_handler, 'g', Mock(user=user))
+    monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
 
     # Responses
     sub1_response = {
@@ -280,11 +280,10 @@ def test_historic_dabs_warning_summary_agency_user(database, monkeypatch):
         'fys': [2017, 2019],
         'agencies': ['09']
     }
-    expected_error = "All codes in the agencies filter must be valid agency codes"
-    try:
+    expected_error = "All codes in the agency_codes filter must be valid agency codes"
+    with pytest.raises(ResponseException) as resp_except:
         historic_dabs_warning_summary_endpoint(filters)
-    except ResponseException as e:
-        assert str(e) == expected_error
+    assert str(resp_except.value) == expected_error
 
     # Non-existent agency shouldn't return all
     filters = {
@@ -292,8 +291,7 @@ def test_historic_dabs_warning_summary_agency_user(database, monkeypatch):
         'fys': [2017, 2019],
         'agencies': ['090']
     }
-    expected_error = "All codes in the agencies filter must be valid agency codes"
-    try:
+    expected_error = "All codes in the agency_codes filter must be valid agency codes"
+    with pytest.raises(ResponseException) as resp_except:
         historic_dabs_warning_summary_endpoint(filters)
-    except ResponseException as e:
-        assert str(e) == expected_error
+    assert str(resp_except.value) == expected_error
