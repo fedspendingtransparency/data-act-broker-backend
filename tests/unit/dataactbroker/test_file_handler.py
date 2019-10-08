@@ -10,6 +10,7 @@ import calendar
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactbroker.handlers import fileHandler
+from dataactbroker.helpers import filters_helper
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.jobModels import CertifiedFilesHistory
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT, PUBLISH_STATUS_DICT
@@ -49,7 +50,7 @@ def test_list_submissions_sort_success(database, monkeypatch):
                              publish_status_id=1)
     add_models(database, [user1, user2, sub1, sub2, sub3, sub4, sub5])
 
-    monkeypatch.setattr(fileHandler, 'g', Mock(user=user1))
+    monkeypatch.setattr(filters_helper, 'g', Mock(user=user1))
     result = list_submissions_sort('reporting', 'desc')
     assert result['total'] == 5
     sub = result['submissions'][0]
@@ -88,7 +89,7 @@ def test_list_submissions_success(database, monkeypatch):
     sub = SubmissionFactory(user_id=1, submission_id=1, number_of_warnings=1, publish_status_id=1)
     add_models(database, [user, sub])
 
-    monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
+    monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
     result = list_submissions_result()
     assert result['total'] == 1
     assert result['submissions'][0]['status'] == "validation_successful_warnings"
@@ -156,7 +157,7 @@ def test_list_submissions_failure(database, monkeypatch):
     sub = SubmissionFactory(user_id=1, submission_id=1, number_of_errors=1, publish_status_id=1)
     add_models(database, [user, sub])
 
-    monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
+    monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
     result = list_submissions_result()
     assert result['total'] == 1
     assert result['submissions'][0]['status'] == "validation_errors"
@@ -192,7 +193,7 @@ def test_list_submissions_detached(database, monkeypatch):
     d2_sub = SubmissionFactory(user_id=1, submission_id=2, d2_submission=True, publish_status_id=1)
     add_models(database, [user, sub, d2_sub])
 
-    monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
+    monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
     result = list_submissions_result()
     fabs_result = list_submissions_result(is_fabs=True)
 
@@ -216,7 +217,7 @@ def test_list_submissions_permissions(database, monkeypatch):
     database.session.add(sub)
     database.session.commit()
 
-    monkeypatch.setattr(fileHandler, 'g', Mock(user=user1))
+    monkeypatch.setattr(filters_helper, 'g', Mock(user=user1))
     assert list_submissions_result()['total'] == 0
 
     user1.affiliations[0].cgac = cgac2
@@ -238,7 +239,7 @@ def test_list_submissions_permissions(database, monkeypatch):
     assert list_submissions_result()['total'] == 1
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
 def test_comments(database):
     """ Verify that we can add, retrieve, and update submission comments. Not quite a unit test as it covers a few
         functions in sequence.
@@ -288,7 +289,7 @@ def test_comments(database):
     }
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
 def test_get_comments_file(database):
     """ Test getting a URL for the comments file """
 
