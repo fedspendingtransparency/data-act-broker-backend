@@ -101,19 +101,19 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
 
 ```
 {
-	"user_id": 42,
-	"name": "John",
-	"title": "Developer",
-	"skip_guide": false,
-	"website_admin": false,
-	"affiliations": [
-		{
-			"agency_name": "Department of Labor (DOL)",
-			"permission": "writer"
-		}
-	],
-	"session_id": "ABC123",
-	"message": "Login successful"
+    "user_id": 42,
+    "name": "John",
+    "title": "Developer",
+    "skip_guide": false,
+    "website_admin": false,
+    "affiliations": [
+        {
+            "agency_name": "Department of Labor (DOL)",
+            "permission": "writer"
+        }
+    ],
+    "session_id": "ABC123",
+    "message": "Login successful"
 }
 ```
 
@@ -1387,7 +1387,7 @@ Example output:
       {
         "agency_name": "Sample Agency",
         "agency_code": "000",
-	"priority": "0"
+        "priority": "0"
       }, ...
     ]
 }
@@ -1611,6 +1611,71 @@ Possible HTTP Status Codes:
     - Submission does not exist
 - 401: Login required
 
+## Dashboard Routes
+
+The following routes are primarily used by the frontend for analytical purposes.
+
+### POST "/v1/historic\_dabs\_summary"
+
+This route returns a list of submission summary objects corresponding to the filters provided.
+Note: the results will only include the submissions the user has access to based on their MAX permissions.
+
+#### Body (JSON)
+```
+{
+    "filters": {
+        "quarters": [1, 3],
+        "fys": [2017, 2019],
+        "agencies": ["089", "1125"]
+    }
+}
+```
+
+#### Body Description
+- `filters`: (required, dict) used to filter the resulting summaries
+    - `quarters`: (required, list[integer]) fiscal year quarters, ranging 1-4, or an empty list to include all.
+    - `fys`: (required, list[integer]) fiscal years, ranging from 2017 through the current fiscal year,
+              or an empty list to include all.
+    - `agencies`: (required, list[string]) CGAC or FREC codes, or an empty list to include all.
+
+#### Response (JSON)
+
+```
+[
+    {
+        "submission_id": 104,
+        "certifier": "Administrator",
+        "fy": 2019,
+        "quarter": 3,
+        "agency": {
+            "name": "Peace Corps (EOP)",
+            "code": "1125"
+        }
+    },
+    ...
+]
+```
+
+#### Response Attributes
+The response is a list of objects representing the submission summaries, each with the following attributes:
+
+- `submission_id`: (integer) the submission ID of the summary
+- `certifier`: (string) name of the submission certifier
+- `fy`: (integer) the fiscal year of the summary
+- `quarter`: (integer) the fiscal quarter of the summary
+- `agency`:  (dict) the submission's agency, with the following attributes
+    - `name`: (string) the agency's name
+    - `code`: (string) the agency's code
+
+#### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid `quarters` parameter
+    - Invalid `fys` parameter
+    - Invalid `agencies` parameter
+    - Missing required parameter
+- 401: Login required
 
 ## Automated Tests
 

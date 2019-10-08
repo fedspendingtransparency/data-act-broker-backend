@@ -18,6 +18,7 @@ from dataactbroker.routes.file_routes import add_file_routes
 from dataactbroker.routes.generation_routes import add_generation_routes
 from dataactbroker.routes.login_routes import add_login_routes
 from dataactbroker.routes.user_routes import add_user_routes
+from dataactbroker.routes.dashboard_routes import add_dashboard_routes
 
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
@@ -126,6 +127,7 @@ def create_app():
     add_file_routes(flask_app, local, broker_file_path)
     add_generation_routes(flask_app, local, broker_file_path)
     add_user_routes(flask_app, flask_app.config['SYSTEM_EMAIL'], bcrypt)
+    add_dashboard_routes(flask_app)
     add_domain_routes(flask_app)
     add_exception_handlers(flask_app)
     return flask_app
