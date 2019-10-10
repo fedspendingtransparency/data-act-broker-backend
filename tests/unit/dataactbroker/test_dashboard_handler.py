@@ -101,8 +101,8 @@ def setup_submissions(sess, admin=False):
     return user
 
 
-@pytest.mark.usefixtures("job_constants")
-@pytest.mark.usefixtures("user_constants")
+@pytest.mark.usefixtures('job_constants')
+@pytest.mark.usefixtures('user_constants')
 def test_historic_dabs_warning_summary_admin(database, monkeypatch):
     sess = database.session
 
@@ -111,33 +111,33 @@ def test_historic_dabs_warning_summary_admin(database, monkeypatch):
 
     # Responses
     sub1_response = {
-        "submission_id": 1,
-        "fy": 2017,
-        "certifier": "Agency User",
-        "quarter": 3,
-        "agency": {
-            "name": "CGAC",
-            "code": "089"
+        'submission_id': 1,
+        'fy': 2017,
+        'certifier': 'Agency User',
+        'quarter': 3,
+        'agency': {
+            'name': 'CGAC',
+            'code': '089'
         }
     }
     sub2_response = {
-        "submission_id": 2,
-        "fy": 2019,
-        "certifier": "Administrator",
-        "quarter": 1,
-        "agency": {
-            "name": "FREC",
-            "code": "1125"
+        'submission_id': 2,
+        'fy': 2019,
+        'certifier': 'Administrator',
+        'quarter': 1,
+        'agency': {
+            'name': 'FREC',
+            'code': '1125'
         }
     }
     sub3_response = {
-        "submission_id": 3,
-        "fy": 2019,
-        "certifier": "Agency User",
-        "quarter": 1,
-        "agency": {
-            "name": "Other CGAC",
-            "code": "091"
+        'submission_id': 3,
+        'fy': 2019,
+        'certifier': 'Agency User',
+        'quarter': 1,
+        'agency': {
+            'name': 'Other CGAC',
+            'code': '091'
         }
     }
 
@@ -186,7 +186,7 @@ def test_historic_dabs_warning_summary_admin(database, monkeypatch):
         'fys': [2017, 2019],
         'agencies': ['09']
     }
-    expected_error = "All codes in the agency_codes filter must be valid agency codes"
+    expected_error = 'All codes in the agency_codes filter must be valid agency codes'
     with pytest.raises(ResponseException) as resp_except:
         historic_dabs_warning_summary_endpoint(filters)
     assert str(resp_except.value) == expected_error
@@ -197,14 +197,14 @@ def test_historic_dabs_warning_summary_admin(database, monkeypatch):
         'fys': [2017, 2019],
         'agencies': ['090']
     }
-    expected_error = "All codes in the agency_codes filter must be valid agency codes"
+    expected_error = 'All codes in the agency_codes filter must be valid agency codes'
     with pytest.raises(ResponseException) as resp_except:
         historic_dabs_warning_summary_endpoint(filters)
     assert str(resp_except.value) == expected_error
 
 
-@pytest.mark.usefixtures("job_constants")
-@pytest.mark.usefixtures("user_constants")
+@pytest.mark.usefixtures('job_constants')
+@pytest.mark.usefixtures('user_constants')
 def test_historic_dabs_warning_summary_agency_user(database, monkeypatch):
     sess = database.session
 
@@ -213,23 +213,23 @@ def test_historic_dabs_warning_summary_agency_user(database, monkeypatch):
 
     # Responses
     sub1_response = {
-        "submission_id": 1,
-        "fy": 2017,
-        "certifier": "Agency User",
-        "quarter": 3,
-        "agency": {
-            "name": "CGAC",
-            "code": "089"
+        'submission_id': 1,
+        'fy': 2017,
+        'certifier': 'Agency User',
+        'quarter': 3,
+        'agency': {
+            'name': 'CGAC',
+            'code': '089'
         }
     }
     sub3_response = {
-        "submission_id": 3,
-        "fy": 2019,
-        "certifier": "Agency User",
-        "quarter": 1,
-        "agency": {
-            "name": "Other CGAC",
-            "code": "091"
+        'submission_id': 3,
+        'fy': 2019,
+        'certifier': 'Agency User',
+        'quarter': 1,
+        'agency': {
+            'name': 'Other CGAC',
+            'code': '091'
         }
     }
 
@@ -280,7 +280,7 @@ def test_historic_dabs_warning_summary_agency_user(database, monkeypatch):
         'fys': [2017, 2019],
         'agencies': ['09']
     }
-    expected_error = "All codes in the agency_codes filter must be valid agency codes"
+    expected_error = 'All codes in the agency_codes filter must be valid agency codes'
     with pytest.raises(ResponseException) as resp_except:
         historic_dabs_warning_summary_endpoint(filters)
     assert str(resp_except.value) == expected_error
@@ -291,7 +291,7 @@ def test_historic_dabs_warning_summary_agency_user(database, monkeypatch):
         'fys': [2017, 2019],
         'agencies': ['090']
     }
-    expected_error = "All codes in the agency_codes filter must be valid agency codes"
+    expected_error = 'All codes in the agency_codes filter must be valid agency codes'
     with pytest.raises(ResponseException) as resp_except:
         historic_dabs_warning_summary_endpoint(filters)
     assert str(resp_except.value) == expected_error
