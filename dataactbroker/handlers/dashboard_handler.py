@@ -23,13 +23,13 @@ logger = logging.getLogger(__name__)
 FILE_TYPES = ['A', 'B', 'C', 'cross-AB', 'cross-BC', 'cross-CD1', 'cross-CD2']
 
 
-def list_rule_labels(files, fabs, error_level):
+def list_rule_labels(files, error_level='warning', fabs=False):
     """ Returns a list of rule labels based on the files and error type provided
 
         Args:
             files: A list of files for which to return rule labels. If blank, return all matching other arguments
-            fabs: A boolean indicating whether to return FABS or DABS rules
-            error_level: A string indicating whether to return errors, warnings, or both
+            error_level: A string indicating whether to return errors, warnings, or both. Defaults to warning
+            fabs: A boolean indicating whether to return FABS or DABS rules. Defaults to False
 
         Returns:
             JsonResponse of the rule labels the arguments indicate. JsonResponse error if invalid file types are
@@ -42,7 +42,7 @@ def list_rule_labels(files, fabs, error_level):
     invalid_files = [invalid_file for invalid_file in files if invalid_file not in FILE_TYPES]
     if invalid_files:
         return JsonResponse.error(ValueError('The following are not valid file types: {}'.
-                                             format(','.join(invalid_files))),
+                                             format(', '.join(invalid_files))),
                                   StatusCode.CLIENT_ERROR)
 
     sess = GlobalDB.db().session
@@ -54,10 +54,6 @@ def list_rule_labels(files, fabs, error_level):
         rule_label_query = rule_label_query.filter_by(rule_severity_id=RULE_SEVERITY_DICT['fatal'])
     elif error_level == 'warning':
         rule_label_query = rule_label_query.filter_by(rule_severity_id=RULE_SEVERITY_DICT['warning'])
-
-    # If the rule is FABS, add a filter to only get FABS rules
-    if fabs:
-        rule_label_query = rule_label_query.filter_by(file_id=FILE_TYPE_DICT_LETTER_ID['FABS'])
 
     # If specific files have been specified, add a filter to get them
     if files:
@@ -74,6 +70,12 @@ def list_rule_labels(files, fabs, error_level):
                 file_type_filters.append(and_(RuleSql.file_id == FILE_TYPE_DICT_LETTER_ID[file_types[1:]],
                                               RuleSql.target_file_id == FILE_TYPE_DICT_LETTER_ID[file_types[:1]]))
         rule_label_query = rule_label_query.filter(or_(*file_type_filters))
+    elif not fabs:
+        # If not the rules are not FABS, exclude FABS rules
+        rule_label_query = rule_label_query.filter(RuleSql.file_id != FILE_TYPE_DICT_LETTER_ID['FABS'])
+    else:
+        # If the rule is FABS, add a filter to only get FABS rules
+        rule_label_query = rule_label_query.filter_by(file_id=FILE_TYPE_DICT_LETTER_ID['FABS'])
 
     return JsonResponse.create(StatusCode.OK, {'labels': [label.rule_label for label in rule_label_query.all()]})
 

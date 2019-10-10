@@ -7,7 +7,9 @@ from tests.unit.dataactcore.factories.user import UserFactory
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from dataactcore.models.userModel import UserAffiliation
-from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PUBLISH_STATUS_DICT
+from dataactcore.models.lookups import (PERMISSION_TYPE_DICT, PUBLISH_STATUS_DICT, FILE_TYPE_DICT_LETTER_ID,
+                                        RULE_SEVERITY_DICT)
+from dataactcore.models.validationModels import RuleSql
 from dataactbroker.helpers.generic_helper import fy
 from dataactbroker.helpers import filters_helper
 from dataactbroker.handlers import dashboard_handler
@@ -295,3 +297,74 @@ def test_historic_dabs_warning_summary_agency_user(database, monkeypatch):
     with pytest.raises(ResponseException) as resp_except:
         historic_dabs_warning_summary_endpoint(filters)
     assert str(resp_except.value) == expected_error
+
+
+def test_list_rule_labels_input_errors():
+    """ Testing list_rule_labels function when invalid parameters are passed in. """
+
+    # sending a list of files with FABS
+    results = dashboard_handler.list_rule_labels(['A', 'B'], fabs=True)
+    assert results.status_code == 400
+    assert results.json['message'] == 'Files list must be empty for FABS rules'
+
+    # Sending multiple file types that aren't valid
+    results = dashboard_handler.list_rule_labels(['A', 'B', 'red', 'green'])
+    assert results.status_code == 400
+    assert results.json['message'] == 'The following are not valid file types: red, green'
+
+    # Wrong case file
+    results = dashboard_handler.list_rule_labels(['a'])
+    assert results.status_code == 400
+    assert results.json['message'] == 'The following are not valid file types: a'
+
+
+@pytest.mark.usefixtures('job_constants')
+@pytest.mark.usefixtures('validation_constants')
+def test_list_rule_labels(database):
+    """ Testing list_rule_labels function. """
+    sess = database.session
+
+    rule_sql_1 = RuleSql(rule_sql='', rule_label='FABS1', rule_error_message='', query_name='',
+                         file_id=FILE_TYPE_DICT_LETTER_ID['FABS'], rule_severity_id=RULE_SEVERITY_DICT['warning'],
+                         rule_cross_file_flag=False)
+    rule_sql_2 = RuleSql(rule_sql='', rule_label='FABS2', rule_error_message='', query_name='',
+                         file_id=FILE_TYPE_DICT_LETTER_ID['FABS'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
+                         rule_cross_file_flag=False)
+    rule_sql_3 = RuleSql(rule_sql='', rule_label='A1', rule_error_message='', query_name='',
+                         file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['warning'],
+                         rule_cross_file_flag=False)
+    rule_sql_4 = RuleSql(rule_sql='', rule_label='AB1', rule_error_message='', query_name='',
+                         file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['warning'],
+                         rule_cross_file_flag=True, target_file_id=FILE_TYPE_DICT_LETTER_ID['B'])
+    rule_sql_5 = RuleSql(rule_sql='', rule_label='AB2', rule_error_message='', query_name='',
+                         file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
+                         rule_cross_file_flag=True, target_file_id=FILE_TYPE_DICT_LETTER_ID['B'])
+    sess.add_all([rule_sql_1, rule_sql_2, rule_sql_3, rule_sql_4, rule_sql_5])
+
+    # Getting all FABS warning labels
+    results = dashboard_handler.list_rule_labels([], fabs=True)
+    assert results.json['labels'] == ['FABS1']
+
+    # Getting all FABS error labels
+    results = dashboard_handler.list_rule_labels([], 'error', True)
+    assert results.json['labels'] == ['FABS2']
+
+    # Getting all FABS labels
+    results = dashboard_handler.list_rule_labels([], 'mixed', True)
+    assert sorted(results.json['labels']) == ['FABS1', 'FABS2']
+
+    # Getting all DABS labels
+    results = dashboard_handler.list_rule_labels([], 'mixed')
+    assert sorted(results.json['labels']) == ['A1', 'AB1', 'AB2']
+
+    # Getting DABS warning labels for files A, B, and cross-AB (one has no labels, this is intentional)
+    results = dashboard_handler.list_rule_labels(['A', 'B', 'cross-AB'])
+    assert sorted(results.json['labels']) == ['A1', 'AB1']
+
+    # Getting DABS warning labels for file A
+    results = dashboard_handler.list_rule_labels(['A'])
+    assert sorted(results.json['labels']) == ['A1']
+
+    # Getting DABS error labels for cross-AB
+    results = dashboard_handler.list_rule_labels(['cross-AB'], 'error')
+    assert sorted(results.json['labels']) == ['AB2']
