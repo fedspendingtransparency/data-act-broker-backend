@@ -23,7 +23,7 @@ def add_dashboard_routes(app):
         files = kwargs.get('files')
         fabs = kwargs.get('fabs')
         error_level = kwargs.get('error_level')
-        return list_rule_labels(files, fabs, error_level)
+        return list_rule_labels(files, error_level, fabs)
 
     @app.route("/v1/historic_dabs_summary/", methods=["POST"])
     @requires_login
