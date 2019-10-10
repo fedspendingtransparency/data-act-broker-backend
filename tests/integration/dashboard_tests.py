@@ -69,6 +69,13 @@ class DashboardTests(BaseTestAPI):
         self.assertEqual(response.status_code, 200)
         self.assertIn('labels', response.json)
 
+        # Getting the labels while logged out
+        self.logout()
+        params = {'files': [], 'fabs': True, 'error_level': 'warning'}
+        response = self.app.post_json('/v1/get_rule_labels/', params, headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('labels', response.json)
+
     def test_get_rule_labels_fail(self):
         """ Test failing to get a list of rule labels. """
         # Invalid error level
