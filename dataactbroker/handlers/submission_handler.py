@@ -202,6 +202,22 @@ def get_revalidation_threshold():
     }
 
 
+def get_latest_certification_period():
+    """ Get the latest quarterly certification period for all submissions
+
+        Returns:
+            An object containing the latest quarterly certification period formatted in MM/DD/YYYY format
+    """
+    sess = GlobalDB.db().session
+    last_cert_period = sess.query(QuarterlyRevalidationThreshold.quarter, QuarterlyRevalidationThreshold.year).\
+        filter(QuarterlyRevalidationThreshold.window_start <= datetime.today()).\
+        order_by(QuarterlyRevalidationThreshold.window_start.desc()).first()
+    return {
+        'quarter': last_cert_period.quarter if last_cert_period else None,
+        'year': last_cert_period.year if last_cert_period else None
+    }
+
+
 def reporting_date(submission):
     """ Format submission reporting date in MM/YYYY format for monthly submissions and Q#/YYYY for quarterly
 
