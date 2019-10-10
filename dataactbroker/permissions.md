@@ -88,7 +88,7 @@ _The actions below are bucketed by Permission Level._
 ### **`Edit-FABS (E)`**
 1. Inherits all permissions of `Reader`
 2. Create FABS submission
-3. Uplaod FABS submission file
+3. Upload FABS submission file
 4. Replace FABS submission file
 5. Delete FABS submission file
 
