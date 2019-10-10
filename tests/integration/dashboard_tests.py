@@ -1,22 +1,9 @@
-import os
-
-from dataactbroker.handlers.submission_handler import populate_submission_error_info
-
-from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-
-from dataactcore.models.jobModels import Submission, Job, JobDependency, CertifyHistory, CertifiedFilesHistory
-from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.userModel import User
-from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, ERROR_TYPE_DICT, RULE_SEVERITY_DICT,
-                                        FILE_STATUS_DICT, FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT)
 
 from dataactvalidator.health_check import create_app
 
-from sqlalchemy import or_
-from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.integration.baseTestAPI import BaseTestAPI
-from tests.integration.integration_test_helper import insert_submission, insert_job
 
 
 class DashboardTests(BaseTestAPI):
