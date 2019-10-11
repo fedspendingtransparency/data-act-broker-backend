@@ -8,7 +8,7 @@ from unittest.mock import Mock
 from dataactbroker.handlers import fileHandler
 from dataactbroker.handlers.submission_handler import (certify_dabs_submission, get_submission_metadata,
                                                        get_revalidation_threshold, get_submission_data,
-                                                       move_certified_data)
+                                                       move_certified_data, get_latest_certification_period)
 
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
@@ -263,6 +263,30 @@ def test_get_revalidation_threshold_no_threshold():
     """ Tests the get_revalidation_threshold function to make sure it returns an empty string if there's no date """
     results = get_revalidation_threshold()
     assert results['revalidation_threshold'] == ''
+
+
+def test_get_latest_certification_period(database):
+    """ Tests the get_latest_certification_period function to make sure it returns the correct quarter and year """
+    sess = database.session
+
+    # Revalidation date
+    today = datetime.datetime.today()
+    reval1 = QuarterlyRevalidationThresholdFactory(quarter=1, year=2016, window_start=today - datetime.timedelta(1))
+    reval2 = QuarterlyRevalidationThresholdFactory(quarter=2, year=2016, window_start=today)
+    reval3 = QuarterlyRevalidationThresholdFactory(quarter=3, year=2017, window_start=today + datetime.timedelta(1))
+    sess.add_all([reval1, reval2, reval3])
+    sess.commit()
+
+    results = get_latest_certification_period()
+    assert results['quarter'] == 2
+    assert results['year'] == 2016
+
+
+def test_get_latest_certification_period_no_threshold():
+    """ Tests the get_latest_certification_period function to make sure it returns Nones if there's no prior period """
+    results = get_latest_certification_period()
+    assert results['quarter'] is None
+    assert results['year'] is None
 
 
 @pytest.mark.usefixtures("job_constants")
