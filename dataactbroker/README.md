@@ -432,7 +432,7 @@ N/A
 ##### Errors
 Possible HTTP Status Codes:
 
-- 403: Permission denied, user does not have permission to view this submission
+- 401: Login required
 
 
 #### GET "/v1/submission\_metadata/"

@@ -206,7 +206,7 @@ def get_latest_certification_period():
     """ Get the latest quarterly certification period for all submissions
 
         Returns:
-            An object containing the latest quarterly certification period formatted in MM/DD/YYYY format
+            A dictionary containing the latest quarterly certification quarter and year
     """
     sess = GlobalDB.db().session
     last_cert_period = sess.query(QuarterlyRevalidationThreshold.quarter, QuarterlyRevalidationThreshold.year).\
