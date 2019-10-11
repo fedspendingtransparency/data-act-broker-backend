@@ -1726,7 +1726,7 @@ Gets a list of error/warning lables that pertain to the filters provided.
     - `cross-CD1`: cross-file between Award Financial and Award Procurement
     - `cross-CD2`: cross-file between Award Financial and Award Financial Assistance
 - `fabs`: (boolean) Determines whether labels being gathered are for FABS or DABS rules. Defaults to false if not provided
-- `error_level`: (string) Determines whether to provide error or warning rule labels. Allowed values:
+- `error_level`: (string) Determines whether to provide error or warning rule labels. Defaults to `warning` if not provided. Allowed values:
     - `error`
     - `warning`
     - `mixed`
