@@ -2,9 +2,11 @@ import pytest
 from unittest.mock import Mock
 
 from dataactbroker.helpers import filters_helper
+from dataactcore.models.errorModels import CertifiedErrorMetadata
 from dataactcore.models.jobModels import Submission
-from dataactcore.models.lookups import PERMISSION_TYPE_DICT
+from dataactcore.models.lookups import PERMISSION_TYPE_DICT, FILE_TYPE_DICT_LETTER_ID, RULE_SEVERITY_DICT
 from dataactcore.models.userModel import UserAffiliation
+from dataactcore.models.validationModels import RuleSql
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
@@ -139,3 +141,103 @@ def test_permissions_filter_agency_user(database, monkeypatch):
     expected_results = [sub1, sub2]
     results = set(query.all())
     assert results == set(expected_results)
+
+@pytest.mark.usefixtures('job_constants')
+@pytest.mark.usefixtures('validation_constants')
+def test_file_filter_rulesql(database):
+    sess = database.session
+
+    # Setup RuleSql
+    rsql_a = RuleSql(rule_sql='', rule_label='A1', rule_error_message='', query_name='',
+                     file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
+                     rule_cross_file_flag=False, target_file_id=None)
+    rsql_b = RuleSql(rule_sql='', rule_label='B2', rule_error_message='', query_name='',
+                     file_id=FILE_TYPE_DICT_LETTER_ID['B'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
+                     rule_cross_file_flag=False, target_file_id=None)
+    rsql_c = RuleSql(rule_sql='', rule_label='C3', rule_error_message='', query_name='',
+                     file_id=FILE_TYPE_DICT_LETTER_ID['C'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
+                     rule_cross_file_flag=False, target_file_id=None)
+    rsql_cross_ab = RuleSql(rule_sql='', rule_label='A4', rule_error_message='', query_name='',
+                            file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
+                            rule_cross_file_flag=True, target_file_id=FILE_TYPE_DICT_LETTER_ID['B'])
+    rsql_cross_ba = RuleSql(rule_sql='', rule_label='B5', rule_error_message='', query_name='',
+                            file_id=FILE_TYPE_DICT_LETTER_ID['B'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
+                            rule_cross_file_flag=True, target_file_id=FILE_TYPE_DICT_LETTER_ID['A'])
+    rsql_cross_bc = RuleSql(rule_sql='', rule_label='B6', rule_error_message='', query_name='',
+                            file_id=FILE_TYPE_DICT_LETTER_ID['B'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
+                            rule_cross_file_flag=True, target_file_id=FILE_TYPE_DICT_LETTER_ID['C'])
+    all_rules = [rsql_a, rsql_b, rsql_c, rsql_cross_ab, rsql_cross_ba, rsql_cross_bc]
+    sess.add_all(all_rules)
+    sess.commit()
+
+    base_query = sess.query(RuleSql)
+
+    # no file list, no filtering
+    files = []
+    query = filters_helper.file_filter(base_query, RuleSql, files)
+    expected_results = all_rules
+    results = query.all()
+    assert set(results) == set(expected_results)
+
+    # filter by single file
+    files = ['A', 'C']
+    query = filters_helper.file_filter(base_query, RuleSql, files)
+    expected_results = [rsql_a, rsql_c]
+    results = query.all()
+    assert set(results) == set(expected_results)
+
+    # filter by cross file
+    files = ['cross-AB']
+    query = filters_helper.file_filter(base_query, RuleSql, files)
+    expected_results = [rsql_cross_ab, rsql_cross_ba]
+    results = query.all()
+    assert set(results) == set(expected_results)
+
+
+@pytest.mark.usefixtures('job_constants')
+@pytest.mark.usefixtures('validation_constants')
+def test_file_filter_cert_error_metadata(database):
+    sess = database.session
+
+    # Setup CertifiedErrorMetadata
+    cem_a = CertifiedErrorMetadata(original_rule_label='A1', file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
+                                   severity_id=RULE_SEVERITY_DICT['fatal'], target_file_type_id=None)
+    cem_b = CertifiedErrorMetadata(original_rule_label='B2', file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
+                                   severity_id=RULE_SEVERITY_DICT['fatal'], target_file_type_id=None)
+    cem_c = CertifiedErrorMetadata(original_rule_label='C3', file_type_id=FILE_TYPE_DICT_LETTER_ID['C'],
+                                   severity_id=RULE_SEVERITY_DICT['fatal'], target_file_type_id=None)
+    cem_cross_ab = CertifiedErrorMetadata(original_rule_label='A4', file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
+                                          severity_id=RULE_SEVERITY_DICT['fatal'],
+                                          target_file_type_id=FILE_TYPE_DICT_LETTER_ID['B'])
+    cem_cross_ba = CertifiedErrorMetadata(original_rule_label='B5', file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
+                                          severity_id=RULE_SEVERITY_DICT['fatal'],
+                                          target_file_type_id=FILE_TYPE_DICT_LETTER_ID['A'])
+    cem_cross_bc = CertifiedErrorMetadata(original_rule_label='B6', file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
+                                          severity_id=RULE_SEVERITY_DICT['fatal'],
+                                          target_file_type_id=FILE_TYPE_DICT_LETTER_ID['C'])
+    all_cems = [cem_a, cem_b, cem_c, cem_cross_ab, cem_cross_ba, cem_cross_bc]
+    sess.add_all(all_cems)
+    sess.commit()
+
+    base_query = sess.query(CertifiedErrorMetadata)
+
+    # no file list, no filtering
+    files = []
+    query = filters_helper.file_filter(base_query, CertifiedErrorMetadata, files)
+    expected_results = all_cems
+    results = query.all()
+    assert set(results) == set(expected_results)
+
+    # filter by single file
+    files = ['A', 'C']
+    query = filters_helper.file_filter(base_query, CertifiedErrorMetadata, files)
+    expected_results = [cem_a, cem_c]
+    results = query.all()
+    assert set(results) == set(expected_results)
+
+    # filter by cross file
+    files = ['cross-AB']
+    query = filters_helper.file_filter(base_query, CertifiedErrorMetadata, files)
+    expected_results = [cem_cross_ab, cem_cross_ba]
+    results = query.all()
+    assert set(results) == set(expected_results)
