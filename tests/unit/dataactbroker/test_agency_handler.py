@@ -96,7 +96,7 @@ def test_get_accessible_agencies(database):
     g.user = user
 
     # Test one CGAC and 2 FRECs, have to decode it because we send it back as a response already
-    results = get_accessible_agencies([cgac_sub_tiers[0]], [frec_sub_tiers[0], frec_sub_tiers[1]])
+    results = get_accessible_agencies()
     frec_code_result = {el["frec_code"] for el in results["frec_agency_list"]}
     frec_name_result = {el["agency_name"] for el in results["frec_agency_list"]}
     assert len(results["cgac_agency_list"]) == 1
@@ -110,7 +110,7 @@ def test_get_accessible_agencies(database):
     # frec flag
     user.affiliations = []
     user.website_admin = True
-    results = get_accessible_agencies([cgac_sub_tiers[0]], [])
+    results = get_accessible_agencies()
     assert len(results["cgac_agency_list"]) == 3
     assert len(results["frec_agency_list"]) == 2
 

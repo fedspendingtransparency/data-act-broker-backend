@@ -1,7 +1,7 @@
 from flask import g
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
+from dataactcore.models.domainModels import CGAC, SubTierAgency
 
 
 def get_sub_tiers_from_perms(is_admin, cgac_affil_ids, frec_affil_ids):
@@ -43,12 +43,8 @@ def get_cgacs_without_sub_tier_agencies(sess=None):
     return sess.query(CGAC).filter(CGAC.cgac_id.notin_([st.cgac.cgac_id for st in cgac_sub_tiers])).all()
 
 
-def get_accessible_agencies(cgac_sub_tiers, frec_sub_tiers):
+def get_accessible_agencies():
     """ List all CGAC and FREC Agencies user has DABS permissions for
-
-        Args:
-            cgac_sub_tiers: a list of SubTierAgency objects
-            frec_sub_tiers: a list of SubTierAgency objects
 
         Returns:
             A dictionary containing a list of all cgacs and frecs the user has access to.
