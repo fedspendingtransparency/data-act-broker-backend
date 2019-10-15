@@ -1,5 +1,7 @@
+from flask import g
+
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import CGAC, SubTierAgency
+from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 
 
 def get_sub_tiers_from_perms(is_admin, cgac_affil_ids, frec_affil_ids):
@@ -51,14 +53,22 @@ def get_accessible_agencies(cgac_sub_tiers, frec_sub_tiers):
         Returns:
             A dictionary containing a list of all cgacs and frecs the user has access to.
     """
-    # combine SubTierAgency CGACs with CGACs without SubTierAgencies into a cgac_list
-    all_cgacs = [st.cgac for st in cgac_sub_tiers if st.is_frec is False] + get_cgacs_without_sub_tier_agencies()
-    cgac_list = [{'agency_name': cst.agency_name, 'cgac_code': cst.cgac_code} for cst in all_cgacs]
+    # If user is not a website admin, get specific agencies
+    if not g.user.website_admin:
+        # create list of affiliations
+        cgac_affiliations = [aff for aff in g.user.affiliations if aff.cgac]
+        frec_affiliations = [aff for aff in g.user.affiliations if aff.frec]
 
-    # convert the list of frec sub_tier_agencies into a list of frec agencies
-    frec_list = [{'agency_name': fst.frec.agency_name, 'frec_code': fst.frec.frec_code} for fst in frec_sub_tiers]
+        cgac_list = [{'agency_name': cgac.cgac.agency_name, 'cgac_code': cgac.cgac.cgac_code} for cgac in
+                     cgac_affiliations]
+        frec_list = [{'agency_name': frec.frec.agency_name, 'frec_code': frec.frec.frec_code} for frec in
+                     frec_affiliations]
 
-    return {'cgac_agency_list': cgac_list, 'frec_agency_list': frec_list}
+        return {'cgac_agency_list': cgac_list, 'frec_agency_list': frec_list}
+
+    # Website admins can just get all agencies
+    agency_list = get_all_agencies()
+    return {'cgac_agency_list': agency_list['agency_list'], 'frec_agency_list': agency_list['shared_agency_list']}
 
 
 def get_all_agencies():

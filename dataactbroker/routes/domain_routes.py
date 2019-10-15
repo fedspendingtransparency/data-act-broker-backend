@@ -1,4 +1,4 @@
-from dataactbroker.decorators import get_dabs_sub_tier_agencies, get_fabs_sub_tier_agencies
+from dataactbroker.decorators import get_dabs_sub_tier_agencies, get_fabs_sub_tier_agencies, requires_login
 from dataactbroker.handlers.agency_handler import get_accessible_agencies, get_all_agencies, organize_sub_tier_agencies
 
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -10,6 +10,7 @@ def add_domain_routes(app):
     """ Create routes related to domain values for flask app """
 
     @app.route("/v1/list_agencies/", methods=["GET"])
+    @requires_login
     @get_dabs_sub_tier_agencies
     def list_agencies(cgac_sub_tiers, frec_sub_tiers):
         """ Get all agencies the current user has DABS access to.
