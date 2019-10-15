@@ -1,8 +1,11 @@
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from flask import g
+from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_ID
 
 from dataactcore.models.domainModels import CGAC, FREC
+from dataactcore.models.errorModels import CertifiedErrorMetadata
 from dataactcore.models.jobModels import Submission
+from dataactcore.models.validationModels import RuleSql
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
@@ -71,3 +74,36 @@ def permissions_filter(query):
         query = query.filter(or_(*affiliation_filters))
 
     return query
+
+
+def file_filter(query, file_model, files):
+    """ Given the provided query, add a filter by files provided the files list.
+
+        Arguments:
+            query: the sqlalchemy query to apply the filters to
+            file_model: the model to apply the file filter
+            files: list of files representing the agency codes to filter with
+
+        Returns:
+            the same queryset provided with file filters included
+    """
+    model_file_type_id = {
+        CertifiedErrorMetadata: 'file_type_id',
+        RuleSql: 'file_id'
+    }
+    file_type_filters = []
+    if files:
+        for file in files:
+            file_id = getattr(file_model, model_file_type_id[file_model])
+            target_file_id = getattr(file_model, 'target_{}'.format(model_file_type_id[file_model]))
+            if file in ['A', 'B', 'C']:
+                file_type_filters.append(and_(file_id == FILE_TYPE_DICT_LETTER_ID[file],
+                                              target_file_id.is_(None)))
+            else:
+                file_types = file.split('-')[1]
+                # Append both orders of the source/target files to the list
+                file_type_filters.append(and_(file_id == FILE_TYPE_DICT_LETTER_ID[file_types[:1]],
+                                              target_file_id == FILE_TYPE_DICT_LETTER_ID[file_types[1:]]))
+                file_type_filters.append(and_(file_id == FILE_TYPE_DICT_LETTER_ID[file_types[1:]],
+                                              target_file_id == FILE_TYPE_DICT_LETTER_ID[file_types[:1]]))
+    return query.filter(or_(*file_type_filters))
