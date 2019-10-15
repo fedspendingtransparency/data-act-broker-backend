@@ -1359,7 +1359,7 @@ Successful response will contain the signed S3 URL for the file we're trying to 
 Invalid certified_files_history_id, requests for a file not related to the submission_id given, or requests for a file that isn't stored in the table will return a 400 error.
 
 #### GET "/v1/list\_agencies/"
-Gets all CGACs/FRECs that the user has permission to write or certify to.
+Gets all CGACs/FRECs that the user has permissions for.
 
 ##### Sample Request
 `/v1/list_agencies/`
