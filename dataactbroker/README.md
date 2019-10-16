@@ -1643,7 +1643,7 @@ The following routes are primarily used by the frontend for analytical purposes.
 
 ### POST "/v1/historic\_dabs\_summary"
 
-This route returns a list of submission summary objects corresponding to the filters provided.
+This route returns a list of submission summary dicts corresponding to the filters provided.
 Note: the results will only include the submissions the user has access to based on their MAX permissions.
 
 #### Body (JSON)
@@ -1683,7 +1683,7 @@ Note: the results will only include the submissions the user has access to based
 ```
 
 #### Response Attributes
-The response is a list of objects representing the submission summaries, each with the following attributes:
+The response is a list of dicts representing the submission summaries, each with the following attributes:
 
 - `submission_id`: (integer) the submission ID of the summary
 - `certifier`: (string) name of the submission certifier
@@ -1751,7 +1751,7 @@ Possible HTTP Status Codes:
 
 ### POST "/v1/historic\_dabs\_graphs"
 
-This route returns a list of submission graph objects corresponding to the filters provided.
+This route returns a list of submission graph dicts corresponding to the filters provided.
 Note: the results will only include the submissions the user has access to based on their MAX permissions.
 
 #### Body (JSON)
@@ -1820,7 +1820,7 @@ Note: the results will only include the submissions the user has access to based
     ],
 ```
 
-The response is a dictionary of objects representing the submission graphs, each with a list of objects with the 
+The response is a dictionary of lists representing the submission graphs, each with a list of dicts with the 
 following attributes:
 
 - `submission_id`: (integer) the submission ID of the summary
@@ -1830,7 +1830,7 @@ following attributes:
 - `fy`: (integer) the fiscal year of the summary
 - `quarter`: (integer) the fiscal quarter of the summary
 - `total_warnings`: (integer) the total instances of warnings associated with this submission and file
-- `warnings`: ([dict]) list of warning objects with the following attributes:
+- `warnings`: ([dict]) list of warning dicts with the following attributes:
     - `label`: (string) rule number/label
     - `instances`: (integer) instances of this specific warning for this file and submission
     - `percent_total`: (integer) the percent of instances for this warning compared to the rest of the file and submission
