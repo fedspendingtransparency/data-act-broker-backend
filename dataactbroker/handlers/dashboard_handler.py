@@ -310,8 +310,7 @@ def historic_dabs_warning_graphs(filters):
         ).join(CertifiedErrorMetadata, CertifiedErrorMetadata.job_id == Job.job_id).\
             filter(Job.submission_id.in_(sub_ids))
 
-        graph_filters = {'files': filters['files'], 'rules': filters['rules']}
-        error_metadata_query = apply_historic_dabs_details_filters(error_metadata_query, graph_filters)
+        error_metadata_query = apply_historic_dabs_details_filters(error_metadata_query, filters)
 
         # Add warnings objects to results dict
         for query_result in error_metadata_query.all():
