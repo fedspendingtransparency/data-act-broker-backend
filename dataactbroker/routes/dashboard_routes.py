@@ -3,7 +3,8 @@ from webargs.flaskparser import use_kwargs
 
 from dataactbroker.permissions import requires_login
 
-from dataactbroker.handlers.dashboard_handler import historic_dabs_warning_summary, list_rule_labels
+from dataactbroker.handlers.dashboard_handler import (historic_dabs_warning_summary, historic_dabs_warning_table,
+                                                      list_rule_labels)
 
 
 # Add the agency data dashboard routes
@@ -33,3 +34,21 @@ def add_dashboard_routes(app):
     def historic_dabs_summary(**kwargs):
         filters = kwargs.get('filters')
         return historic_dabs_warning_summary(filters)
+
+    @app.route("/v1/historic_dabs_table/", methods=["POST"])
+    @requires_login
+    @use_kwargs({
+        'page': webargs_fields.Int(missing=1),
+        'limit': webargs_fields.Int(missing=5),
+        'sort': webargs_fields.String(missing='period'),
+        'order': webargs_fields.String(missing='desc'),
+        'filters': webargs_fields.Dict(keys=webargs_fields.String(), required=True)
+    })
+    def historic_dabs_table(**kwargs):
+        """ List warning metadata for selected  """
+        page = kwargs.get('page')
+        limit = kwargs.get('limit')
+        sort = kwargs.get('sort')
+        order = kwargs.get('order')
+        filters = kwargs.get('filters')
+        return historic_dabs_warning_table(filters, page, limit, sort, order)

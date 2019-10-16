@@ -212,3 +212,79 @@ def historic_dabs_warning_summary(filters):
         results.append(result_dict)
 
     return JsonResponse.create(StatusCode.OK, results)
+
+
+def historic_dabs_warning_table(filters, page, limit, sort='period', order='desc'):
+    """ Returns a list of warnings containing all the information needed for the DABS dashboard warning table based
+        on the filters provided that represent one page of the table.
+
+        Args:
+            filters: a dict containing the filters provided by the user
+            page: page number to use in getting the list
+            limit: the number of entries per page
+            sort: the column to order on
+            order: order ascending or descending
+
+        Returns:
+            Limited list of warning metadata and the total number of error metadata entries for the given filters
+    """
+
+    validate_historic_dashboard_filters(filters, graphs=True)
+
+    sess = GlobalDB.db().session
+
+    # Base query
+    table_query = sess.query(
+        Submission.submission_id,
+        Job.job_id,
+        (Submission.reporting_fiscal_period / 3).label('quarter'),
+        Submission.reporting_fiscal_year.label('fy'),
+        CertifiedErrorMetadata.original_rule_label,
+        CertifiedErrorMetadata.occurrences,
+        CertifiedErrorMetadata.rule_failed
+    ).join(User, User.user_id == Submission.certifying_user_id).\
+        join(Job, Job.submission_id == Submission.submission_id).\
+        join(CertfiedErrorMetadata, CertifiedErrorMetadata.job_id == Job.job_id).\
+        filter(Submission.publish_status_id.in_([PUBLISH_STATUS_DICT['published'], PUBLISH_STATUS_DICT['updated']])).\
+        filter(Submission.d2_submission.is_(False)).order_by(Submission.submission_id)
+
+    # Apply filters
+    table_query = apply_historic_dabs_filters(sess, table_query, filters)
+    table_query = apply_historic_dabs_details_filters(table_query, filters)
+
+    # Determine what to order by, default to "period"
+    options = {
+        'period': {'model': Submission, 'col': 'updated_at'},
+        'rule_label': {'model': CertifiedErrorMetadata, 'col': 'original_rule_label'},
+        'instances': {'model': CertifiedErrorMetadata, 'col': 'occurrences'},
+        'description': {'model': CertifiedErrorMetadata, 'col': 'rule_failed'},
+        'file': {'model': Job, 'col': 'filename'}
+    }
+
+    if not options.get(sort):
+        sort = 'period'
+
+    sort_order = getattr(options[sort]['model'], options[sort]['col'])
+    print(sort_order)
+
+    # Determine how to sort agencies using FREC or CGAC name
+    if sort == "agency":
+        sort_order = case([
+            (FREC.agency_name.isnot(None), FREC.agency_name),
+            (CGAC.agency_name.isnot(None), CGAC.agency_name)
+        ])
+
+    # Set the sort order
+    if order == 'desc':
+        sort_order = sort_order.desc()
+
+    table_query = table_query.order_by(sort_order)
+
+    # Total number of entries in the table
+    total_metadata = table_query.count()
+
+    # The page we're on
+    offset = limit * (page - 1)
+    table_query = table_query.slice(offset, offset + limit)
+
+    return JsonResponse.create(StatusCode.OK, {'result': 'tmp result'})
