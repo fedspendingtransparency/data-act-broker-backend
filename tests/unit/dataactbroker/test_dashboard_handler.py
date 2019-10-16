@@ -35,7 +35,7 @@ def test_validate_historic_dashboard_filters():
         with pytest.raises(ResponseException) as resp_except:
             dashboard_handler.validate_historic_dashboard_filters(filters, graphs=graphs)
 
-        assert resp_except.value.status == 500
+        assert resp_except.value.status == 400
         assert str(resp_except.value) == expected_response
 
     # missing a required filter
@@ -70,10 +70,10 @@ def test_validate_historic_dashboard_filters():
     # wrong files
     filters = {'quarters': [1, 3], 'fys': [2017, 2019], 'agencies': ['097'], 'files': ['R2D2', 'C3P0'], 'rules': []}
     assert_validation(filters, 'Files must be a list of one or more of the following, or an empty list: '
-                      'A,B,C,cross-AB,cross-BC,cross-CD1,cross-CD2', graphs=True)
+                      'A, B, C, cross-AB, cross-BC, cross-CD1, cross-CD2', graphs=True)
     filters = {'quarters': [1, 3], 'fys': [2017, 2019], 'agencies': ['097'], 'files': [2, 3], 'rules': []}
     assert_validation(filters, 'Files must be a list of one or more of the following, or an empty list: '
-                      'A,B,C,cross-AB,cross-BC,cross-CD1,cross-CD2', graphs=True)
+                      'A, B, C, cross-AB, cross-BC, cross-CD1, cross-CD2', graphs=True)
 
     # wrong rules
     filters = {'quarters': [1, 3], 'fys': [2017, 2019], 'agencies': ['097'], 'files': ['A', 'B'], 'rules': [2, 3]}

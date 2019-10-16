@@ -88,35 +88,38 @@ def validate_historic_dashboard_filters(filters, graphs=False):
         required_filters.extend(['files', 'rules'])
     missing_filters = [required_filter for required_filter in required_filters if required_filter not in filters]
     if missing_filters:
-        raise ResponseException('The following filters were not provided: {}'.format(','.join(missing_filters)))
+        raise ResponseException('The following filters were not provided: {}'.format(', '.join(missing_filters)),
+                                status=400)
 
     wrong_filter_types = [key for key, value in filters.items() if not isinstance(value, list)]
     if wrong_filter_types:
-        raise ResponseException('The following filters were not lists: {}'.format(','.join(wrong_filter_types)))
-
+        raise ResponseException('The following filters were not lists: {}'.format(', '.join(wrong_filter_types)),
+                                status=400)
+    
     for quarter in filters['quarters']:
         if quarter not in range(1, 5):
-            raise ResponseException('Quarters must be a list of integers, each ranging 1-4, or an empty list.')
+            raise ResponseException('Quarters must be a list of integers, each ranging 1-4, or an empty list.',
+                                    status=400)
 
     current_fy = fy(datetime.now())
     for fiscal_year in filters['fys']:
         if fiscal_year not in range(2017, current_fy + 1):
             raise ResponseException('Fiscal Years must be a list of integers, each ranging from 2017 through the'
-                                    ' current fiscal year, or an empty list.')
+                                    ' current fiscal year, or an empty list.', status=400)
 
     for agency in filters['agencies']:
         if not isinstance(agency, str):
-            raise ResponseException('Agencies must be a list of strings, or an empty list.')
+            raise ResponseException('Agencies must be a list of strings, or an empty list.', status=400)
 
     if graphs:
         for file_type in filters['files']:
             if file_type not in FILE_TYPES:
                 raise ResponseException('Files must be a list of one or more of the following, or an empty list: {}'.
-                                        format(','.join(FILE_TYPES)))
+                                        format(', '.join(FILE_TYPES)), status=400)
 
         for rule in filters['rules']:
             if not isinstance(rule, str):
-                raise ResponseException('Rules must be a list of strings, or an empty list.')
+                raise ResponseException('Rules must be a list of strings, or an empty list.', status=400)
 
 
 def apply_historic_dabs_filters(sess, query, filters):
