@@ -1,5 +1,4 @@
 import logging
-import math
 from collections import OrderedDict
 import copy
 
@@ -9,8 +8,8 @@ from sqlalchemy import case
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.errorModels import CertifiedErrorMetadata
-from dataactcore.models.lookups import PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID, \
-    FILE_TYPE_DICT_LETTER
+from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID,
+                                        FILE_TYPE_DICT_LETTER)
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.userModel import User
 from dataactcore.models.validationModels import RuleSql
@@ -132,6 +131,9 @@ def apply_historic_dabs_filters(sess, query, filters):
 
         Exceptions:
             ResponseException if filter is invalid
+
+        Returns:
+            the original query with the appropriate filters
     """
 
     # Applying general user permissions standard for all the filters
@@ -154,12 +156,11 @@ def apply_historic_dabs_details_filters(query, filters):
     """ Apply the detailed filters provided to the query provided
 
         Args:
-            sess: the database connection
             query: the baseline sqlalchemy query to work from
             filters: dictionary representing the detailed filters provided to the historic dashboard endpoints
 
-        Exceptions:
-            ResponseException if filter is invalid
+        Returns:
+            the original query with the appropriate filters
     """
 
     if filters['files']:
@@ -237,7 +238,7 @@ def generate_file_type(source_file_type_id, target_file_type_id):
     if file_type and target_file_type is None:
         return file_type
     elif file_type and target_file_type:
-        return 'cross-{}'.format(''.join(sorted([file_type, FILE_TYPE_DICT_LETTER[target_file_type_id]])))
+        return 'cross-{}'.format(''.join(sorted([file_type, target_file_type])))
     else:
         return None
 
@@ -298,42 +299,43 @@ def historic_dabs_warning_graphs(filters):
     for resulting_file in sorted(resulting_files):
         results_data[resulting_file] = copy.deepcopy(sub_metadata)
 
-    # get metadata for subs/files
-    error_metadata_query = sess.query(
-        Job.submission_id,
-        CertifiedErrorMetadata.file_type_id,
-        CertifiedErrorMetadata.target_file_type_id,
-        CertifiedErrorMetadata.original_rule_label.label('label'),
-        CertifiedErrorMetadata.occurrences.label('instances')
-    ).join(CertifiedErrorMetadata, CertifiedErrorMetadata.job_id == Job.job_id).\
-        filter(Job.submission_id.in_(sub_ids))
+    if sub_ids:
+        # get metadata for subs/files
+        error_metadata_query = sess.query(
+            Job.submission_id,
+            CertifiedErrorMetadata.file_type_id,
+            CertifiedErrorMetadata.target_file_type_id,
+            CertifiedErrorMetadata.original_rule_label.label('label'),
+            CertifiedErrorMetadata.occurrences.label('instances')
+        ).join(CertifiedErrorMetadata, CertifiedErrorMetadata.job_id == Job.job_id).\
+            filter(Job.submission_id.in_(sub_ids))
 
-    graph_filters = {'files': filters['files'], 'rules': filters['rules']}
-    error_metadata_query = apply_historic_dabs_details_filters(error_metadata_query, graph_filters)
+        graph_filters = {'files': filters['files'], 'rules': filters['rules']}
+        error_metadata_query = apply_historic_dabs_details_filters(error_metadata_query, graph_filters)
 
-    # Add warnings objects to results dict
-    for query_result in error_metadata_query.all():
-        file_type = generate_file_type(query_result.file_type_id, query_result.target_file_type_id)
-        submission_id = query_result.submission_id
+        # Add warnings objects to results dict
+        for query_result in error_metadata_query.all():
+            file_type = generate_file_type(query_result.file_type_id, query_result.target_file_type_id)
+            submission_id = query_result.submission_id
 
-        # update based on warning data
-        results_data[file_type][submission_id]['total_warnings'] += query_result.instances
-        warning = {
-            'label': query_result.label,
-            'instances': query_result.instances,
-            'percent_total': 0
-        }
-        results_data[file_type][submission_id]['warnings'].append(warning)
+            # update based on warning data
+            results_data[file_type][submission_id]['total_warnings'] += query_result.instances
+            warning = {
+                'label': query_result.label,
+                'instances': query_result.instances,
+                'percent_total': 0
+            }
+            results_data[file_type][submission_id]['warnings'].append(warning)
 
-    # Calculate the percentages
-    for file_type, file_dict in results_data.items():
-        for sub_id, sub_dict in file_dict.items():
-            for warning in sub_dict['warnings']:
-                warning['percent_total'] = math.floor((warning['instances']/sub_dict['total_warnings'])*100)
+        # Calculate the percentages
+        for _, file_dict in results_data.items():
+            for _, sub_dict in file_dict.items():
+                for warning in sub_dict['warnings']:
+                    warning['percent_total'] = round((warning['instances']/sub_dict['total_warnings'])*100)
 
-    # Convert submissions dicts to lists
-    results = OrderedDict()
-    for file_type, file_dict in results_data.items():
-        results[file_type] = [sub_dict for sub_id, sub_dict in file_dict.items()]
+        # Convert submissions dicts to lists
+        results = OrderedDict()
+        for file_type, file_dict in results_data.items():
+            results[file_type] = [sub_dict for sub_id, sub_dict in file_dict.items()]
 
     return JsonResponse.create(StatusCode.OK, results)
