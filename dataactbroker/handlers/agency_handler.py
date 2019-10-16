@@ -55,9 +55,9 @@ def get_accessible_agencies():
         cgac_affiliations = [aff for aff in g.user.affiliations if aff.cgac]
         frec_affiliations = [aff for aff in g.user.affiliations if aff.frec]
 
-        cgac_list = [{'agency_name': cgac.cgac.agency_name, 'cgac_code': cgac.cgac.cgac_code} for cgac in
+        cgac_list = [{'agency_name': aff.cgac.agency_name, 'cgac_code': aff.cgac.cgac_code} for aff in
                      cgac_affiliations]
-        frec_list = [{'agency_name': frec.frec.agency_name, 'frec_code': frec.frec.frec_code} for frec in
+        frec_list = [{'agency_name': aff.frec.agency_name, 'frec_code': aff.frec.frec_code} for aff in
                      frec_affiliations]
 
         return {'cgac_agency_list': cgac_list, 'frec_agency_list': frec_list}

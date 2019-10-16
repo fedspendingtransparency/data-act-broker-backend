@@ -1390,8 +1390,8 @@ N/A
 ```
 
 ##### Response Attributes
-- `cgac_agency_list`: (list[object]) A list of all cgac agencies (cgac code and agency name) the user has permissions to access.
-- `frec_agency_list `: (list[object]) A list of all frec agencies (frec code and agency name) the user has permissions to access.
+- `cgac_agency_list`: (list[dict]) A list of all cgac agencies (cgac code and agency name) the user has permissions to access.
+- `frec_agency_list `: (list[dict]) A list of all frec agencies (frec code and agency name) the user has permissions to access.
 
 ##### Errors
 Possible HTTP Status Codes:
