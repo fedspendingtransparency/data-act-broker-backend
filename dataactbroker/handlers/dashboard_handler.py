@@ -1,12 +1,17 @@
 import logging
+import math
+from collections import OrderedDict
+import copy
 
 from datetime import datetime
-from sqlalchemy import or_, and_, case
+from sqlalchemy import case
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, FREC
-from dataactcore.models.jobModels import Submission
-from dataactcore.models.lookups import PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID
+from dataactcore.models.errorModels import CertifiedErrorMetadata
+from dataactcore.models.lookups import PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID, \
+    FILE_TYPE_DICT_LETTER
+from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.userModel import User
 from dataactcore.models.validationModels import RuleSql
 
@@ -15,7 +20,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactbroker.helpers.generic_helper import fy
-from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
+from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter, file_filter
 
 
 logger = logging.getLogger(__name__)
@@ -57,19 +62,7 @@ def list_rule_labels(files, error_level='warning', fabs=False):
 
     # If specific files have been specified, add a filter to get them
     if files:
-        file_type_filters = []
-        for file in files:
-            if file in ['A', 'B', 'C']:
-                file_type_filters.append(and_(RuleSql.file_id == FILE_TYPE_DICT_LETTER_ID[file],
-                                              RuleSql.target_file_id.is_(None)))
-            else:
-                file_types = file.split('-')[1]
-                # Append both orders of the source/target files to the list
-                file_type_filters.append(and_(RuleSql.file_id == FILE_TYPE_DICT_LETTER_ID[file_types[:1]],
-                                              RuleSql.target_file_id == FILE_TYPE_DICT_LETTER_ID[file_types[1:]]))
-                file_type_filters.append(and_(RuleSql.file_id == FILE_TYPE_DICT_LETTER_ID[file_types[1:]],
-                                              RuleSql.target_file_id == FILE_TYPE_DICT_LETTER_ID[file_types[:1]]))
-        rule_label_query = rule_label_query.filter(or_(*file_type_filters))
+        rule_label_query = file_filter(rule_label_query, RuleSql, files)
     elif not fabs:
         # If not the rules are not FABS, exclude FABS rules
         rule_label_query = rule_label_query.filter(RuleSql.file_id != FILE_TYPE_DICT_LETTER_ID['FABS'])
@@ -126,14 +119,13 @@ def validate_historic_dashboard_filters(filters, graphs=False):
                 raise ResponseException('Rules must be a list of strings, or an empty list.')
 
 
-def apply_historic_dabs_filters(sess, query, filters, graphs=False):
+def apply_historic_dabs_filters(sess, query, filters):
     """ Apply the filters provided to the query provided
 
         Args:
             sess: the database connection
             query: the baseline sqlalchemy query to work from
             filters: dictionary representing the filters provided to the historic dashboard endpoints
-            graphs: whether or not to apply the files and rules filters as well
 
         Exceptions:
             ResponseException if filter is invalid
@@ -152,13 +144,26 @@ def apply_historic_dabs_filters(sess, query, filters, graphs=False):
     if filters['agencies']:
         query = agency_filter(sess, query, Submission, Submission, filters['agencies'])
 
-    if graphs:
-        # TODO: For the graphs endpoint
-        pass
-        # for file_type in filters['files']:
-        #     query = query.filter()
-        # for rule in filters['rules']:
-        #     query = query.filter()
+    return query
+
+
+def apply_historic_dabs_details_filters(query, filters):
+    """ Apply the detailed filters provided to the query provided
+
+        Args:
+            sess: the database connection
+            query: the baseline sqlalchemy query to work from
+            filters: dictionary representing the detailed filters provided to the historic dashboard endpoints
+
+        Exceptions:
+            ResponseException if filter is invalid
+    """
+
+    if filters['files']:
+        query = file_filter(query, CertifiedErrorMetadata, filters['files'])
+
+    if filters['rules']:
+        query = query.filter(CertifiedErrorMetadata.original_rule_label.in_(filters['rules']))
 
     return query
 
@@ -195,7 +200,7 @@ def historic_dabs_warning_summary(filters):
         filter(Submission.publish_status_id.in_([PUBLISH_STATUS_DICT['published'], PUBLISH_STATUS_DICT['updated']])).\
         filter(Submission.d2_submission.is_(False))
 
-    summary_query = apply_historic_dabs_filters(sess, summary_query, filters, graphs=False)
+    summary_query = apply_historic_dabs_filters(sess, summary_query, filters)
 
     results = []
     for query_result in summary_query.all():
@@ -210,5 +215,122 @@ def historic_dabs_warning_summary(filters):
             'certifier': query_result.certifier
         }
         results.append(result_dict)
+
+    return JsonResponse.create(StatusCode.OK, results)
+
+
+def generate_file_type(source_file_type_id, target_file_type_id):
+    """ Helper function to generate the file type given the file types
+
+        Args:
+            source_file_type_id: id of the source file type
+            target_file_type_id: id of the target file type (None for single-file)
+
+        Return:
+            string representing the file type
+    """
+    file_type = FILE_TYPE_DICT_LETTER.get(source_file_type_id)
+    target_file_type = FILE_TYPE_DICT_LETTER.get(target_file_type_id)
+    if file_type and target_file_type is None:
+        return file_type
+    elif file_type and target_file_type:
+        return 'cross-{}'.format(''.join(sorted([file_type, FILE_TYPE_DICT_LETTER[target_file_type_id]])))
+    else:
+        return None
+
+
+def historic_dabs_warning_graphs(filters):
+    """ Generate a list of submission graphs appropriate on the filters provided
+
+        Args:
+            filters: dictionary representing the filters provided to the historic dashboard endpoints
+
+        Return:
+            JsonResponse of the submission summaries appropriate on the filters provided
+    """
+    sess = GlobalDB.db().session
+
+    validate_historic_dashboard_filters(filters, graphs=True)
+
+    subs_query = sess.query(
+        Submission.submission_id,
+        (Submission.reporting_fiscal_period / 3).label('quarter'),
+        Submission.reporting_fiscal_year.label('fy'),
+        case([
+            (FREC.frec_code.isnot(None), FREC.frec_code),
+            (CGAC.cgac_code.isnot(None), CGAC.cgac_code)
+        ]).label('agency_code'),
+        case([
+            (FREC.agency_name.isnot(None), FREC.agency_name),
+            (CGAC.agency_name.isnot(None), CGAC.agency_name)
+        ]).label('agency_name')
+    ).join(User, User.user_id == Submission.certifying_user_id).\
+        outerjoin(CGAC, CGAC.cgac_code == Submission.cgac_code).\
+        outerjoin(FREC, FREC.frec_code == Submission.frec_code).\
+        filter(Submission.publish_status_id.in_([PUBLISH_STATUS_DICT['published'], PUBLISH_STATUS_DICT['updated']])).\
+        filter(Submission.d2_submission.is_(False)).order_by(Submission.submission_id)
+
+    subs_query = apply_historic_dabs_filters(sess, subs_query, filters)
+
+    # get the submission metadata
+    sub_metadata = OrderedDict()
+    for query_result in subs_query.all():
+        sub_id = query_result.submission_id
+        sub_metadata[sub_id] = {
+            'submission_id': sub_id,
+            'fy': query_result.fy,
+            'quarter': query_result.quarter,
+            'agency': {
+                'name': query_result.agency_name,
+                'code': query_result.agency_code,
+            },
+            'total_warnings': 0,
+            'warnings': []
+        }
+    sub_ids = list(sub_metadata.keys())
+
+    # build baseline results dict
+    results_data = OrderedDict()
+    resulting_files = filters['files'] or FILE_TYPES
+    for resulting_file in sorted(resulting_files):
+        results_data[resulting_file] = copy.deepcopy(sub_metadata)
+
+    # get metadata for subs/files
+    error_metadata_query = sess.query(
+        Job.submission_id,
+        CertifiedErrorMetadata.file_type_id,
+        CertifiedErrorMetadata.target_file_type_id,
+        CertifiedErrorMetadata.original_rule_label.label('label'),
+        CertifiedErrorMetadata.occurrences.label('instances')
+    ).join(CertifiedErrorMetadata, CertifiedErrorMetadata.job_id == Job.job_id).\
+        filter(Job.submission_id.in_(sub_ids))
+
+    graph_filters = {'files': filters['files'], 'rules': filters['rules']}
+    error_metadata_query = apply_historic_dabs_details_filters(error_metadata_query, graph_filters)
+
+    # Add warnings objects to results dict
+    for query_result in error_metadata_query.all():
+        file_type = generate_file_type(query_result.file_type_id, query_result.target_file_type_id)
+        submission_id = query_result.submission_id
+
+        # update based on warning data
+        results_data[file_type][submission_id]['total_warnings'] += query_result.instances
+        warning = {
+            'label': query_result.label,
+            'instances': query_result.instances,
+            'percent_total': 0
+        }
+        results_data[file_type][submission_id]['warnings'].append(warning)
+
+    # Calculate the percentages
+    for file_type, file_dict in results_data.items():
+        for sub_id, sub_dict in file_dict.items():
+            for warning in sub_dict['warnings']:
+                warning['percent_total'] = math.floor((warning['instances']/sub_dict['total_warnings'])*100)
+
+    # Convert submissions dicts to lists
+    results = OrderedDict()
+    for file_type, file_dict in results_data.items():
+        results[file_type] = [sub_dict for sub_id, sub_dict in file_dict.items()]
 
     return JsonResponse.create(StatusCode.OK, results)
