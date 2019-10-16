@@ -1358,25 +1358,45 @@ Successful response will contain the signed S3 URL for the file we're trying to 
 
 Invalid certified_files_history_id, requests for a file not related to the submission_id given, or requests for a file that isn't stored in the table will return a 400 error.
 
-#### GET "/v1/list_agencies/"
-Gets all CGACS that the user has submit/certify permissions
+#### GET "/v1/list\_agencies/"
+Gets all CGACs/FRECs that the user has permissions for.
 
-Example input:
+##### Sample Request
+`/v1/list_agencies/`
 
-None
+##### Request Params
+N/A
 
-Example output:
-
-```json
+##### Response (JSON)
+```
 {
     "cgac_agency_list": [
-      {
-        "agency_name": "Sample Agency",
-        "cgac_code": "000"
-      }, ...
+        {
+            "agency_name": "Sample Agency",
+            "cgac_code": "000"
+        },
+        {
+            "agency_name": "Sample Agency 2",
+            "cgac_code": "999"
+        }
+    ],
+    "frec_agency_list": [
+        {
+            "agency_name": "Sample FREC Agency",
+            "frec_code": "0000"
+        }
     ]
 }
 ```
+
+##### Response Attributes
+- `cgac_agency_list`: (list[dict]) A list of all cgac agencies (cgac code and agency name) the user has permissions to access.
+- `frec_agency_list `: (list[dict]) A list of all frec agencies (frec code and agency name) the user has permissions to access.
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 401: Login required
 
 #### GET "/v1/list_all_agencies/"
 Gets all CGACS
@@ -1643,7 +1663,7 @@ The following routes are primarily used by the frontend for analytical purposes.
 
 ### POST "/v1/historic\_dabs\_summary"
 
-This route returns a list of submission summary objects corresponding to the filters provided.
+This route returns a list of submission summary dicts corresponding to the filters provided.
 Note: the results will only include the submissions the user has access to based on their MAX permissions.
 
 #### Body (JSON)
@@ -1683,7 +1703,7 @@ Note: the results will only include the submissions the user has access to based
 ```
 
 #### Response Attributes
-The response is a list of objects representing the submission summaries, each with the following attributes:
+The response is a list of dicts representing the submission summaries, each with the following attributes:
 
 - `submission_id`: (integer) the submission ID of the summary
 - `certifier`: (string) name of the submission certifier
@@ -1748,6 +1768,103 @@ Possible HTTP Status Codes:
     - Files provided for FABS rule list
     - Invalid file type provided
     - Invalid parameter type provided
+
+### POST "/v1/historic\_dabs\_graphs"
+
+This route returns a list of submission graph dicts corresponding to the filters provided.
+Note: the results will only include the submissions the user has access to based on their MAX permissions.
+
+#### Body (JSON)
+```
+{
+    "filters": {
+        "quarters": [1, 3],
+        "fys": [2017, 2019],
+        "agencies": ["089", "1125"],
+        "files": ["B"],
+        "rules": ["B11.4", "B9"]
+    }
+}
+```
+
+#### Body Description
+- `filters`: (required, dict) used to filter the resulting summaries
+    - `quarters`: (required, list[integer]) fiscal year quarters, ranging 1-4, or an empty list to include all.
+    - `fys`: (required, list[integer]) fiscal years, ranging from 2017 through the current fiscal year,
+              or an empty list to include all.
+    - `agencies`: (required, list[string]) CGAC or FREC codes, or an empty list to include all.
+    - `files`: (required, list[string]) files, or an empty list to include all.
+    - `rules`: (required, list[string]) validation rules, or an empty list to include all.
+
+#### Response (JSON)
+
+```
+{
+    "B": [
+        {
+            "submission_id": 1234,
+            "agency": 097,
+            "fy": 2017,
+            "quarter": 1,
+            "total_warnings": 519,
+            "warnings": [
+                {
+                    "label": "B11.4",
+                    "instances": 352,
+                    "percent_total": 68
+                }, {
+                    "label": "B9",
+                    "instances": 167,
+                    "percent_total": 32
+                }
+            ]
+        },
+        ...
+    ],
+    "C": [
+        {
+            "submission_id": 1234,
+            "agency": 012,
+            "fy": 2017,
+            "quarter": 1,
+            "total_warnings": 389,
+            "warnings": [
+                 {
+                     "label": "C12",
+                     "instances": 389,
+                     "percent_total": 100
+                 }
+            ]
+        },
+        ...
+    ],
+```
+
+#### Response Attributes
+
+The response is a dictionary of lists representing the submission graphs, each with a list of dicts with the 
+following attributes:
+
+- `submission_id`: (integer) the submission ID of the summary
+- `agency`:  (dict) the submission's agency, with the following attributes
+    - `name`: (string) the agency's name
+    - `code`: (string) the agency's code
+- `fy`: (integer) the fiscal year of the summary
+- `quarter`: (integer) the fiscal quarter of the summary
+- `total_warnings`: (integer) the total instances of warnings associated with this submission and file
+- `warnings`: ([dict]) list of warning dicts with the following attributes:
+    - `label`: (string) rule number/label
+    - `instances`: (integer) instances of this specific warning for this file and submission
+    - `percent_total`: (integer) the percent of instances for this warning compared to the rest of the file and submission
+
+
+#### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid parameter
+    - Missing required parameter
+- 401: Login required
 
 ## Automated Tests
 

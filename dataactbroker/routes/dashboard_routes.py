@@ -21,6 +21,7 @@ def add_dashboard_routes(app):
                                              missing='warning')
     })
     def get_rule_labels(**kwargs):
+        """ Returns the rule labels based on the filters provided """
         files = kwargs.get('files')
         fabs = kwargs.get('fabs')
         error_level = kwargs.get('error_level')
@@ -32,8 +33,19 @@ def add_dashboard_routes(app):
         'filters': webargs_fields.Dict(keys=webargs_fields.String(), missing={})
     })
     def historic_dabs_summary(**kwargs):
+        """ Returns the historic DABS summaries based on the filters provided """
         filters = kwargs.get('filters')
         return historic_dabs_warning_summary(filters)
+
+    @app.route("/v1/historic_dabs_graphs/", methods=["POST"])
+    @requires_login
+    @use_kwargs({
+        'filters': webargs_fields.Dict(keys=webargs_fields.String(), missing={})
+    })
+    def historic_dabs_graphs(**kwargs):
+        """ Returns the historic DABS graphs based on the filters provided """
+        filters = kwargs.get('filters')
+        return historic_dabs_warning_graphs(filters)
 
     @app.route("/v1/historic_dabs_table/", methods=["POST"])
     @requires_login
