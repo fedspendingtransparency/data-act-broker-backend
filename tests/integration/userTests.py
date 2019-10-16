@@ -20,7 +20,7 @@ class UserTests(BaseTestAPI):
             sess = GlobalDB.db().session
 
             # Add submissions for agency user
-            sess.query(Submission).filter(Submission.user_id == cls.agency_user_id).delete()
+            sess.query(Submission).filter(Submission.user_id == cls.agency_user_id).delete(synchronize_session='fetch')
             sess.commit()
             for i in range(0, 6):
                 sub = Submission(user_id=cls.agency_user_id)
