@@ -91,16 +91,21 @@ def file_filter(query, file_model, files):
         CertifiedErrorMetadata: 'file_type_id',
         RuleSql: 'file_id'
     }
+    if file_model not in model_file_type_id:
+        valid_file_models = [model_file_type.__name__ for model_file_type in model_file_type_id.keys()]
+        error_message = 'Invalid file model. Use one of the following instead: {}.'
+        raise ResponseException(error_message.format(', '.join(valid_file_models)))
+
     file_type_filters = []
     if files:
-        for file in files:
+        for file_type in files:
             file_id = getattr(file_model, model_file_type_id[file_model])
             target_file_id = getattr(file_model, 'target_{}'.format(model_file_type_id[file_model]))
-            if file in ['A', 'B', 'C']:
-                file_type_filters.append(and_(file_id == FILE_TYPE_DICT_LETTER_ID[file],
+            if file_type in ['A', 'B', 'C']:
+                file_type_filters.append(and_(file_id == FILE_TYPE_DICT_LETTER_ID[file_type],
                                               target_file_id.is_(None)))
             else:
-                file_types = file.split('-')[1]
+                file_types = file_type.split('-')[1]
                 # Append both orders of the source/target files to the list
                 file_type_filters.append(and_(file_id == FILE_TYPE_DICT_LETTER_ID[file_types[:1]],
                                               target_file_id == FILE_TYPE_DICT_LETTER_ID[file_types[1:]]))

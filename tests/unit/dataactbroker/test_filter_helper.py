@@ -242,3 +242,15 @@ def test_file_filter_cert_error_metadata(database):
     expected_results = [cem_cross_ab, cem_cross_ba]
     results = query.all()
     assert set(results) == set(expected_results)
+
+
+def test_file_filter_wrong_file_model(database):
+    sess = database.session
+
+    base_query = sess.query(CertifiedErrorMetadata)
+
+    # should break cause
+    error_text = 'Invalid file model. Use one of the following instead: CertifiedErrorMetadata, RuleSql.'
+    with pytest.raises(ResponseException) as resp_except:
+        filters_helper.file_filter(base_query, Submission, [])
+    assert str(resp_except.value) == error_text
