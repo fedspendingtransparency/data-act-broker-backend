@@ -94,7 +94,7 @@ def file_filter(query, file_model, files):
     if file_model not in model_file_type_id:
         valid_file_models = [model_file_type.__name__ for model_file_type in model_file_type_id.keys()]
         error_message = 'Invalid file model. Use one of the following instead: {}.'
-        raise ResponseException(error_message.format(', '.join(valid_file_models)))
+        raise ResponseException(error_message.format(', '.join(sorted(valid_file_models))))
 
     file_type_filters = []
     if files:
