@@ -1358,25 +1358,45 @@ Successful response will contain the signed S3 URL for the file we're trying to 
 
 Invalid certified_files_history_id, requests for a file not related to the submission_id given, or requests for a file that isn't stored in the table will return a 400 error.
 
-#### GET "/v1/list_agencies/"
-Gets all CGACS that the user has submit/certify permissions
+#### GET "/v1/list\_agencies/"
+Gets all CGACs/FRECs that the user has permissions for.
 
-Example input:
+##### Sample Request
+`/v1/list_agencies/`
 
-None
+##### Request Params
+N/A
 
-Example output:
-
-```json
+##### Response (JSON)
+```
 {
     "cgac_agency_list": [
-      {
-        "agency_name": "Sample Agency",
-        "cgac_code": "000"
-      }, ...
+        {
+            "agency_name": "Sample Agency",
+            "cgac_code": "000"
+        },
+        {
+            "agency_name": "Sample Agency 2",
+            "cgac_code": "999"
+        }
+    ],
+    "frec_agency_list": [
+        {
+            "agency_name": "Sample FREC Agency",
+            "frec_code": "0000"
+        }
     ]
 }
 ```
+
+##### Response Attributes
+- `cgac_agency_list`: (list[dict]) A list of all cgac agencies (cgac code and agency name) the user has permissions to access.
+- `frec_agency_list `: (list[dict]) A list of all frec agencies (frec code and agency name) the user has permissions to access.
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 401: Login required
 
 #### GET "/v1/list_all_agencies/"
 Gets all CGACS
