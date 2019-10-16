@@ -1820,6 +1820,8 @@ Note: the results will only include the submissions the user has access to based
     ],
 ```
 
+#### Response Attributes
+
 The response is a dictionary of lists representing the submission graphs, each with a list of dicts with the 
 following attributes:
 
@@ -1840,11 +1842,7 @@ following attributes:
 Possible HTTP Status Codes:
 
 - 400:
-    - Invalid `quarters` parameter
-    - Invalid `fys` parameter
-    - Invalid `agencies` parameter
-    - Invalid `files` parameter
-    - Invalid `rules` parameter
+    - Invalid parameter
     - Missing required parameter
 - 401: Login required
 
