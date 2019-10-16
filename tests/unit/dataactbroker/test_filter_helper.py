@@ -142,6 +142,7 @@ def test_permissions_filter_agency_user(database, monkeypatch):
     results = set(query.all())
     assert results == set(expected_results)
 
+
 @pytest.mark.usefixtures('job_constants')
 @pytest.mark.usefixtures('validation_constants')
 def test_file_filter_rulesql(database):
