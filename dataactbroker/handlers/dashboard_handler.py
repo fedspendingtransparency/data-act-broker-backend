@@ -333,9 +333,9 @@ def historic_dabs_warning_graphs(filters):
                 for warning in sub_dict['warnings']:
                     warning['percent_total'] = round((warning['instances']/sub_dict['total_warnings'])*100)
 
-        # Convert submissions dicts to lists
-        results = OrderedDict()
-        for file_type, file_dict in results_data.items():
-            results[file_type] = [sub_dict for sub_id, sub_dict in file_dict.items()]
+    # Convert submissions dicts to lists
+    results = OrderedDict()
+    for file_type, file_dict in results_data.items():
+        results[file_type] = [sub_dict for sub_id, sub_dict in file_dict.items()]
 
     return JsonResponse.create(StatusCode.OK, results)
