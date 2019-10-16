@@ -190,7 +190,7 @@ class DashboardTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'Agencies must be a list of strings, or an empty list.')
 
-        # Wrong agencies - integer instead of a string
+        # Wrong agencies - non-existent agency
         dabs_graphs_json = {'filters': {'quarters': [], 'fys': [], 'agencies': ['999'], 'files': [], 'rules': []}}
         response = self.app.post_json('/v1/historic_dabs_graphs/', dabs_graphs_json, expect_errors=True,
                                       headers={'x-session-id': self.session_id})
