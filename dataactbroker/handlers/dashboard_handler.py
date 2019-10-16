@@ -95,7 +95,7 @@ def validate_historic_dashboard_filters(filters, graphs=False):
     if wrong_filter_types:
         raise ResponseException('The following filters were not lists: {}'.format(', '.join(wrong_filter_types)),
                                 status=400)
-    
+
     for quarter in filters['quarters']:
         if quarter not in range(1, 5):
             raise ResponseException('Quarters must be a list of integers, each ranging 1-4, or an empty list.',

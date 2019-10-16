@@ -1844,7 +1844,7 @@ Possible HTTP Status Codes:
     - Invalid `fys` parameter
     - Invalid `agencies` parameter
     - Invalid `files` parameter
-    - Invalid `warnings` parameter
+    - Invalid `rules` parameter
     - Missing required parameter
 - 401: Login required
 
