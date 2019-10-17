@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 Failure = namedtuple('Failure', ['field', 'description', 'value', 'label', 'expected', 'severity'])
 ValidationFailure = namedtuple('ValidationFailure', ['field_name', 'error', 'failed_value', 'expected_value',
-                                                     'variance', 'flex_fields', 'row', 'original_label', 'file_type_id',
-                                                     'target_file_id', 'severity_id'])
+                                                     'difference', 'flex_fields', 'row', 'original_label',
+                                                     'file_type_id', 'target_file_id', 'severity_id'])
 
 
 class Validator(object):
@@ -321,7 +321,7 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
         if failures.rowcount:
             # Create column list (exclude row_number)
             cols = []
-            exact_names = ['row_number', 'variance']
+            exact_names = ['row_number', 'difference']
             starting = ('expected_value_',)
             for col in failures.keys():
                 if col not in exact_names and not col.startswith(starting):
@@ -420,7 +420,7 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
 
     # Determine the extra value for a rule
     expected_value = rule.expected_value
-    variance = ''
+    difference = ''
     expect_start = 'expected_value_'
 
     for failure_key in sql_failure.keys():
@@ -428,9 +428,9 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
         if failure_key.startswith(expect_start):
             fail_header = failure_key[len(expect_start):]
             expected_value = '{}: {}'.format(fail_header, (str(sql_failure[failure_key] or '')))
-        # Variance
-        elif failure_key == 'variance':
-            variance = str(sql_failure[failure_key] or '')
+        # Difference
+        elif failure_key == 'difference':
+            difference = str(sql_failure[failure_key] or '')
 
     # Create strings for fields and values
     values_list = ['{}: {}'.format(header, str(sql_failure[field])) for field, header in zip(cols, col_headers)]
@@ -441,7 +441,7 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
         rule.rule_error_message,
         ', '.join(values_list),
         expected_value,
-        variance,
+        difference,
         ', '.join(flex_list),
         row,
         rule.rule_label,

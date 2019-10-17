@@ -7,7 +7,7 @@ _FILE = 'c5_award_financial_2'
 
 def test_column_headers(database):
     expected_subset = {'row_number', 'gross_outlay_amount_by_awa_fyb', 'gross_outlays_undelivered_fyb',
-                       'gross_outlays_delivered_or_fyb', 'variance'}
+                       'gross_outlays_delivered_or_fyb', 'difference'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 

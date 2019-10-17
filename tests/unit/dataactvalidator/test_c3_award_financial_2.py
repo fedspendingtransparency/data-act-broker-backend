@@ -6,7 +6,7 @@ _FILE = 'c3_award_financial_2'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'obligations_undelivered_or_fyb', 'ussgl480100_undelivered_or_fyb', 'variance'}
+    expected_subset = {'row_number', 'obligations_undelivered_or_fyb', 'ussgl480100_undelivered_or_fyb', 'difference'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
