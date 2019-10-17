@@ -6,14 +6,15 @@ _FILE = 'c3_award_financial_2'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'obligations_undelivered_or_fyb', 'ussgl480100_undelivered_or_fyb'}
+    expected_subset = {'row_number', 'obligations_undelivered_or_fyb', 'ussgl480100_undelivered_or_fyb', 'variance'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
 
 def test_success(database):
     """ ObligationsUndeliveredOrdersUnpaidTotal in File C = USSGL 4801 + 4881 in File C for the same date context
-    (FYB) """
+        (FYB)
+    """
 
     af = AwardFinancialFactory(obligations_undelivered_or_fyb=None, ussgl480100_undelivered_or_fyb=None)
 
@@ -26,7 +27,8 @@ def test_success(database):
 
 def test_failure(database):
     """ ObligationsUndeliveredOrdersUnpaidTotal in File C != USSGL 4801 + 4881 in File C for the same date context
-    (FYB) """
+        (FYB)
+    """
 
     af = AwardFinancialFactory(obligations_undelivered_or_fyb=1, ussgl480100_undelivered_or_fyb=None)
 
