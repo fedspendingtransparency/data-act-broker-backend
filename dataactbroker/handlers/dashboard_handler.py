@@ -3,7 +3,7 @@ from collections import OrderedDict
 import copy
 
 from datetime import datetime
-from sqlalchemy import case
+from sqlalchemy import case, func
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, FREC
@@ -268,8 +268,7 @@ def historic_dabs_warning_graphs(filters):
             (FREC.agency_name.isnot(None), FREC.agency_name),
             (CGAC.agency_name.isnot(None), CGAC.agency_name)
         ]).label('agency_name')
-    ).join(User, User.user_id == Submission.certifying_user_id).\
-        outerjoin(CGAC, CGAC.cgac_code == Submission.cgac_code).\
+    ).outerjoin(CGAC, CGAC.cgac_code == Submission.cgac_code).\
         outerjoin(FREC, FREC.frec_code == Submission.frec_code).\
         filter(Submission.publish_status_id.in_([PUBLISH_STATUS_DICT['published'], PUBLISH_STATUS_DICT['updated']])).\
         filter(Submission.d2_submission.is_(False)).order_by(Submission.submission_id)
@@ -359,52 +358,78 @@ def historic_dabs_warning_table(filters, page, limit, sort='period', order='desc
 
     sess = GlobalDB.db().session
 
-    # Base query
-    table_query = sess.query(
+    # Making a query to get all the filenames
+    sub_files = sess.query(
         Submission.submission_id,
-        Job.job_id,
         (Submission.reporting_fiscal_period / 3).label('quarter'),
         Submission.reporting_fiscal_year.label('fy'),
+        func.max(case([(Job.file_type_id == FILE_TYPE_DICT_LETTER_ID['A'],
+                        Job.original_filename)])).label('file_A_name'),
+        func.max(case([(Job.file_type_id == FILE_TYPE_DICT_LETTER_ID['B'],
+                        Job.original_filename)])).label('file_B_name'),
+        func.max(case([(Job.file_type_id == FILE_TYPE_DICT_LETTER_ID['C'],
+                        Job.original_filename)])).label('file_C_name'),
+        func.max(case([(Job.file_type_id == FILE_TYPE_DICT_LETTER_ID['D1'],
+                        Job.original_filename)])).label('file_D1_name'),
+        func.max(case([(Job.file_type_id == FILE_TYPE_DICT_LETTER_ID['D2'],
+                        Job.original_filename)])).label('file_D2_name')
+    ).join(Job, Job.submission_id == Submission.submission_id).\
+        filter(Submission.publish_status_id.in_([PUBLISH_STATUS_DICT['published'], PUBLISH_STATUS_DICT['updated']])).\
+        filter(Submission.d2_submission.is_(False))
+
+    # Apply the basic filters to the cte
+    sub_files = apply_historic_dabs_filters(sess, sub_files, filters)
+
+    # Make the query a cte and add a grouping
+    sub_files = sub_files.group_by(Submission.submission_id, Submission.reporting_fiscal_period,
+                                   Submission.reporting_fiscal_year).cte('sub_files')
+
+    # Base query
+    table_query = sess.query(
+        sub_files.c.submission_id,
+        sub_files.c.quarter,
+        sub_files.c.fy,
+        sub_files.c.file_A_name,
+        sub_files.c.file_B_name,
+        sub_files.c.file_C_name,
+        sub_files.c.file_D1_name,
+        sub_files.c.file_D2_name,
+        Job.original_filename,
+        Job.file_type_id.label('job_file_type'),
         CertifiedErrorMetadata.original_rule_label,
         CertifiedErrorMetadata.occurrences,
-        CertifiedErrorMetadata.rule_failed
-    ).join(User, User.user_id == Submission.certifying_user_id).\
-        join(Job, Job.submission_id == Submission.submission_id).\
-        join(CertifiedErrorMetadata, CertifiedErrorMetadata.job_id == Job.job_id).\
-        filter(Submission.publish_status_id.in_([PUBLISH_STATUS_DICT['published'], PUBLISH_STATUS_DICT['updated']])).\
-        filter(Submission.d2_submission.is_(False)).order_by(Submission.submission_id)
+        CertifiedErrorMetadata.rule_failed,
+        CertifiedErrorMetadata.file_type_id.label('error_file_type'),
+        CertifiedErrorMetadata.target_file_type_id
+    ).join(Job, Job.submission_id == sub_files.c.submission_id).\
+        join(CertifiedErrorMetadata, CertifiedErrorMetadata.job_id == Job.job_id)
 
     # Apply filters
-    table_query = apply_historic_dabs_filters(sess, table_query, filters)
     table_query = apply_historic_dabs_details_filters(table_query, filters)
 
     # Determine what to order by, default to "period"
     options = {
-        'period': {'model': Submission, 'col': 'updated_at'},
+        'period': {'model': sub_files.c, 'col': 'fy'},
         'rule_label': {'model': CertifiedErrorMetadata, 'col': 'original_rule_label'},
         'instances': {'model': CertifiedErrorMetadata, 'col': 'occurrences'},
         'description': {'model': CertifiedErrorMetadata, 'col': 'rule_failed'},
-        'file': {'model': Job, 'col': 'filename'}
+        'file': {'model': Job, 'col': 'original_filename'}
     }
 
     if not options.get(sort):
         sort = 'period'
 
-    sort_order = getattr(options[sort]['model'], options[sort]['col'])
-    print(sort_order)
+    sort_order = [getattr(options[sort]['model'], options[sort]['col'])]
 
     # Determine how to sort agencies using FREC or CGAC name
-    if sort == "agency":
-        sort_order = case([
-            (FREC.agency_name.isnot(None), FREC.agency_name),
-            (CGAC.agency_name.isnot(None), CGAC.agency_name)
-        ])
+    if sort == "period":
+        sort_order = [sub_files.c.fy, sub_files.c.quarter]
 
     # Set the sort order
     if order == 'desc':
-        sort_order = sort_order.desc()
+        sort_order = [order.desc() for order in sort_order]
 
-    table_query = table_query.order_by(sort_order)
+    table_query = table_query.order_by(*sort_order)
 
     # Total number of entries in the table
     total_metadata = table_query.count()
@@ -413,4 +438,45 @@ def historic_dabs_warning_table(filters, page, limit, sort='period', order='desc
     offset = limit * (page - 1)
     table_query = table_query.slice(offset, offset + limit)
 
-    return JsonResponse.create(StatusCode.OK, {'result': 'tmp result'})
+    response = {'results': [],
+                'page_metadata': {
+                    'total': total_metadata,
+                    'page': page,
+                    'limit': limit
+                }}
+
+    # Loop through all responses
+    for error_metadata in table_query.all():
+        # Basic data that's gathered the same way for all entries
+        data = {
+            'submission_id': error_metadata.submission_id,
+            'files': [],
+            'fy': error_metadata.fy,
+            'quarter': error_metadata.quarter,
+            'rule_label': error_metadata.original_rule_label,
+            'instance_count': error_metadata.occurrences,
+            'rule_description': error_metadata.rule_failed
+        }
+        # If target file type ID null, that means it's a single-file validation and the original filename can be
+        # gathered straight from the job
+        if error_metadata.target_file_type_id is None:
+            file_type = FILE_TYPE_DICT_LETTER[error_metadata.job_file_type]
+            data['files'].append({
+                'type': file_type,
+                'filename': error_metadata.original_filename
+            })
+        else:
+            # If there's a target file type ID, it's a cross-file and we have to append 2 files to the error metadata
+            file_type = FILE_TYPE_DICT_LETTER[error_metadata.error_file_type]
+            target_file_type = FILE_TYPE_DICT_LETTER[error_metadata.target_file_type_id]
+            data['files'].append({
+                'type': file_type,
+                'filename': getattr(error_metadata, 'file_{}_name'.format(file_type))
+            })
+            data['files'].append({
+                'type': target_file_type,
+                'filename': getattr(error_metadata, 'file_{}_name'.format(target_file_type))
+            })
+        response['results'].append(data)
+
+    return JsonResponse.create(StatusCode.OK, response)

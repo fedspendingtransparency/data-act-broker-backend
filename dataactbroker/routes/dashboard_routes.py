@@ -4,7 +4,7 @@ from webargs.flaskparser import use_kwargs
 from dataactbroker.permissions import requires_login
 
 from dataactbroker.handlers.dashboard_handler import (historic_dabs_warning_summary, historic_dabs_warning_table,
-                                                      list_rule_labels)
+                                                      list_rule_labels, historic_dabs_warning_graphs)
 
 
 # Add the agency data dashboard routes
