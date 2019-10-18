@@ -421,9 +421,15 @@ def historic_dabs_warning_table(filters, page, limit, sort='period', order='desc
 
     sort_order = [getattr(options[sort]['model'], options[sort]['col'])]
 
-    # Determine how to sort agencies using FREC or CGAC name
-    if sort == "period":
-        sort_order = [sub_files.c.fy, sub_files.c.quarter]
+    # Determine how to sort agencies with period
+    if sort == 'period':
+        sort_order = [sub_files.c.fy, sub_files.c.quarter, CertifiedErrorMetadata.original_rule_label]
+
+    # add secondary/tertiary sorts
+    if sort in ['file', 'instances']:
+        sort_order.append(CertifiedErrorMetadata.rule_failed)
+    if sort in ['rule_label', 'description', 'instances']:
+        sort_order.extend([sub_files.c.fy, sub_files.c.quarter])
 
     # Set the sort order
     if order == 'desc':

@@ -1897,12 +1897,12 @@ Note: the results will only include the submissions the user has access to based
     - `rules`: (required, list[string]) validation rules, or an empty list to include all.
 - `page`: (integer) The page of warning metadata to view (offsets the list by `limit * (page - 1)`). Defaults to `1` if not provided
 - `limit`: (integer) The total number of results to see from this request. Defaults to `5` if not provided
-- `sort`: (string) What value to sort by. Defaults to `period` if not provided. Valid values are:
-    - `period` - fiscal year/quarter
-    - `rule_label` - the label of the rule (e.g. `B9`)
-    - `instances` - the number of times this warning occurred in this submission/file
-    - `description` - the description of the rule
-    - `file` - the names of the files in which the warning occurred
+- `sort`: (string) What value to sort by. Defaults to `period` if not provided. NOTE: Each sort value has a secondary (and sometimes tertiary) sort value to break ties. Valid values are:
+    - `period` - fiscal year/quarter (secondary: rule label)
+    - `rule_label` - the label of the rule (e.g. `B9`) (secondary: period)
+    - `instances` - the number of times this warning occurred in this submission/file (secondary: rule label, tertiary: period)
+    - `description` - the description of the rule (secondary: period)
+    - `file` - the names of the files in which the warning occurred (secondary: rule label)
 - `order`: (string) The sort order. Defaults to `desc` if not provided. Valid values are:
     - `desc`
     - `asc`
