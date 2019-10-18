@@ -48,7 +48,7 @@ CHUNK_SIZE = 1024
 
 class ValidationManager:
     """ Outer level class, called by flask route """
-    report_headers = ['Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Variance', 'Flex Fields',
+    report_headers = ['Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Difference', 'Flex Fields',
                       'Row Number', 'Rule Label']
     cross_file_report_headers = ['Source File', 'Target File', 'Field names', 'Error message', 'Values provided',
                                  'Row number', 'Rule label']
@@ -532,11 +532,11 @@ class ValidationManager:
 
             if failure.severity_id == RULE_SEVERITY_DICT['fatal']:
                 writer.writerow([field_name, error_msg, failure.failed_value, failure.expected_value,
-                                 failure.variance, failure.flex_fields, str(failure.row), failure.original_label])
+                                 failure.difference, failure.flex_fields, str(failure.row), failure.original_label])
             elif failure.severity_id == RULE_SEVERITY_DICT['warning']:
                 # write to warnings file
                 warning_writer.writerow([field_name, error_msg, failure.failed_value, failure.expected_value,
-                                         failure.variance, failure.flex_fields, str(failure.row),
+                                         failure.difference, failure.flex_fields, str(failure.row),
                                          failure.original_label])
             # labeled errors
             error_list.record_row_error(job_id, job.filename, field_name, failure.error, row_number,

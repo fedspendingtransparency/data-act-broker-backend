@@ -9,7 +9,7 @@ SELECT
     COALESCE(deobligations_recov_by_pro_cpe, 0) - (COALESCE(ussgl487100_downward_adjus_cpe, 0) +
                                                    COALESCE(ussgl487200_downward_adjus_cpe, 0) +
                                                    COALESCE(ussgl497100_downward_adjus_cpe, 0) +
-                                                   COALESCE(ussgl497200_downward_adjus_cpe, 0)) AS "variance"
+                                                   COALESCE(ussgl497200_downward_adjus_cpe, 0)) AS "difference"
 FROM object_class_program_activity
 WHERE submission_id = {0}
     AND COALESCE(deobligations_recov_by_pro_cpe, 0) <>

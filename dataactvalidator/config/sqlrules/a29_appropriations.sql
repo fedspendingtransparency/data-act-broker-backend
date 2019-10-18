@@ -3,7 +3,7 @@ SELECT
     approp.row_number,
     approp.deobligations_recoveries_r_cpe,
     SUM(sf.amount) AS "expected_value_SUM of GTAS SF133 Lines 1021, 1033",
-    approp.deobligations_recoveries_r_cpe - SUM(sf.amount) AS "variance"
+    approp.deobligations_recoveries_r_cpe - SUM(sf.amount) AS "difference"
 FROM appropriation AS approp
     INNER JOIN sf_133 AS sf
         ON approp.tas = sf.tas

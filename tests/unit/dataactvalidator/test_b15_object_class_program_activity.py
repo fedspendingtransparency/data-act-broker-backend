@@ -15,7 +15,7 @@ def test_column_headers(database):
                        'ussgl490200_delivered_orde_cpe_sum', 'ussgl490800_authority_outl_cpe_sum',
                        'ussgl490800_authority_outl_fyb_sum', 'ussgl498100_upward_adjustm_cpe_sum',
                        'ussgl498200_upward_adjustm_cpe_sum', 'expected_value_GTAS SF133 Line 2104',
-                       'variance'}
+                       'difference'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
