@@ -663,6 +663,36 @@ def test_historic_dabs_warning_graphs_agency_user(database, monkeypatch):
     assert response == expected_response
 
 
+def test_validate_table_properties():
+    def assert_validation(page, limit, order, sort, sort_options, expected_response):
+        with pytest.raises(ResponseException) as resp_except:
+            dashboard_handler.validate_table_properties(page, limit, order, sort, sort_options)
+
+        assert resp_except.value.status == 400
+        assert str(resp_except.value) == expected_response
+
+    # Invalid pages
+    assert_validation('this is a string', 1, 'desc', 'period', ['period'], 'Page must be an integer greater than 0')
+    assert_validation(-5, 1, 'desc', 'period', ['period'], 'Page must be an integer greater than 0')
+    assert_validation(0, 1, 'desc', 'period', ['period'], 'Page must be an integer greater than 0')
+
+    # Invalid limit
+    assert_validation(1, 'string test', 'desc', 'period', ['period'], 'Limit must be an integer greater than 0')
+    assert_validation(1, -5, 'desc', 'period', ['period'], 'Limit must be an integer greater than 0')
+    assert_validation(1, 0, 'desc', 'period', ['period'], 'Limit must be an integer greater than 0')
+
+    # Order check
+    assert_validation(1, 1, 'false', 'period', ['period'], 'Order must be "asc" or "desc"')
+    assert_validation(1, 1, 55, 'period', ['period'], 'Order must be "asc" or "desc"')
+
+    # Bad sort
+    assert_validation(1, 1, 'desc', 'periods', ['period', 'range'], 'Sort must be one of: period, range')
+    assert_validation(1, 1, 'desc', 'period', [], 'Sort must be one of: ')
+
+    # Test success (we expect nothing to happen here, just run the function)
+    dashboard_handler.validate_table_properties(1, 1, 'asc', 'period', ['period', 'range'])
+
+
 @pytest.mark.usefixtures('job_constants')
 @pytest.mark.usefixtures('user_constants')
 def test_historic_dabs_warning_table_admin(database, monkeypatch):

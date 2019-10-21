@@ -88,37 +88,67 @@ def validate_historic_dashboard_filters(filters, graphs=False):
     missing_filters = [required_filter for required_filter in required_filters if required_filter not in filters]
     if missing_filters:
         raise ResponseException('The following filters were not provided: {}'.format(', '.join(missing_filters)),
-                                status=400)
+                                status=StatusCode.CLIENT_ERROR)
 
     wrong_filter_types = [key for key, value in filters.items() if not isinstance(value, list)]
     if wrong_filter_types:
         raise ResponseException('The following filters were not lists: {}'.format(', '.join(wrong_filter_types)),
-                                status=400)
+                                status=StatusCode.CLIENT_ERROR)
 
     for quarter in filters['quarters']:
         if quarter not in range(1, 5):
             raise ResponseException('Quarters must be a list of integers, each ranging 1-4, or an empty list.',
-                                    status=400)
+                                    status=StatusCode.CLIENT_ERROR)
 
     current_fy = fy(datetime.now())
     for fiscal_year in filters['fys']:
         if fiscal_year not in range(2017, current_fy + 1):
             raise ResponseException('Fiscal Years must be a list of integers, each ranging from 2017 through the'
-                                    ' current fiscal year, or an empty list.', status=400)
+                                    ' current fiscal year, or an empty list.', status=StatusCode.CLIENT_ERROR)
 
     for agency in filters['agencies']:
         if not isinstance(agency, str):
-            raise ResponseException('Agencies must be a list of strings, or an empty list.', status=400)
+            raise ResponseException('Agencies must be a list of strings, or an empty list.',
+                                    status=StatusCode.CLIENT_ERROR)
 
     if graphs:
         for file_type in filters['files']:
             if file_type not in FILE_TYPES:
                 raise ResponseException('Files must be a list of one or more of the following, or an empty list: {}'.
-                                        format(', '.join(FILE_TYPES)), status=400)
+                                        format(', '.join(FILE_TYPES)), status=StatusCode.CLIENT_ERROR)
 
         for rule in filters['rules']:
             if not isinstance(rule, str):
-                raise ResponseException('Rules must be a list of strings, or an empty list.', status=400)
+                raise ResponseException('Rules must be a list of strings, or an empty list.',
+                                        status=StatusCode.CLIENT_ERROR)
+
+
+def validate_table_properties(page, limit, order, sort, sort_options):
+    """ Validate table properties like page, limit, and sort
+
+        Args:
+            page: page number to use in getting the list
+            limit: the number of entries per page
+            order: order ascending or descending
+            sort: the column to order on
+            sort_options: the list of valid options for sorting
+
+        Exceptions:
+            ResponseException if filter is invalid
+    """
+
+    if not isinstance(page, int) or page <= 0:
+        raise ResponseException('Page must be an integer greater than 0', status=StatusCode.CLIENT_ERROR)
+
+    if not isinstance(limit, int) or limit <= 0:
+        raise ResponseException('Limit must be an integer greater than 0', status=StatusCode.CLIENT_ERROR)
+
+    if order not in ['asc', 'desc']:
+        raise ResponseException('Order must be "asc" or "desc"', status=StatusCode.CLIENT_ERROR)
+
+    if sort not in sort_options:
+        raise ResponseException('Sort must be one of: {}'.format(', '.join(sort_options)),
+                                status=StatusCode.CLIENT_ERROR)
 
 
 def apply_historic_dabs_filters(sess, query, filters):
@@ -354,7 +384,17 @@ def historic_dabs_warning_table(filters, page, limit, sort='period', order='desc
             Limited list of warning metadata and the total number of error metadata entries for the given filters
     """
 
+    # Determine what to order by, default to "period"
+    options = {
+        'period': {'model': None, 'col': 'fy'},
+        'rule_label': {'model': CertifiedErrorMetadata, 'col': 'original_rule_label'},
+        'instances': {'model': CertifiedErrorMetadata, 'col': 'occurrences'},
+        'description': {'model': CertifiedErrorMetadata, 'col': 'rule_failed'},
+        'file': {'model': Job, 'col': 'original_filename'}
+    }
+
     validate_historic_dashboard_filters(filters, graphs=True)
+    validate_table_properties(page, limit, order, sort, sort_options=options.keys())
 
     sess = GlobalDB.db().session
 
@@ -407,23 +447,11 @@ def historic_dabs_warning_table(filters, page, limit, sort='period', order='desc
     # Apply filters
     table_query = apply_historic_dabs_details_filters(table_query, filters)
 
-    # Determine what to order by, default to "period"
-    options = {
-        'period': {'model': sub_files.c, 'col': 'fy'},
-        'rule_label': {'model': CertifiedErrorMetadata, 'col': 'original_rule_label'},
-        'instances': {'model': CertifiedErrorMetadata, 'col': 'occurrences'},
-        'description': {'model': CertifiedErrorMetadata, 'col': 'rule_failed'},
-        'file': {'model': Job, 'col': 'original_filename'}
-    }
-
-    if not options.get(sort):
-        sort = 'period'
-
-    sort_order = [getattr(options[sort]['model'], options[sort]['col'])]
-
     # Determine how to sort agencies with period
     if sort == 'period':
         sort_order = [sub_files.c.fy, sub_files.c.quarter, CertifiedErrorMetadata.original_rule_label]
+    else:
+        sort_order = [getattr(options[sort]['model'], options[sort]['col'])]
 
     # add secondary/tertiary sorts
     if sort in ['file', 'instances']:
