@@ -1,3 +1,5 @@
+from flask import g
+
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, SubTierAgency
 
@@ -41,24 +43,28 @@ def get_cgacs_without_sub_tier_agencies(sess=None):
     return sess.query(CGAC).filter(CGAC.cgac_id.notin_([st.cgac.cgac_id for st in cgac_sub_tiers])).all()
 
 
-def get_accessible_agencies(cgac_sub_tiers, frec_sub_tiers):
+def get_accessible_agencies():
     """ List all CGAC and FREC Agencies user has DABS permissions for
-
-        Args:
-            cgac_sub_tiers: a list of SubTierAgency objects
-            frec_sub_tiers: a list of SubTierAgency objects
 
         Returns:
             A dictionary containing a list of all cgacs and frecs the user has access to.
     """
-    # combine SubTierAgency CGACs with CGACs without SubTierAgencies into a cgac_list
-    all_cgacs = [st.cgac for st in cgac_sub_tiers if st.is_frec is False] + get_cgacs_without_sub_tier_agencies()
-    cgac_list = [{'agency_name': cst.agency_name, 'cgac_code': cst.cgac_code} for cst in all_cgacs]
+    # If user is not a website admin, get specific agencies
+    if not g.user.website_admin:
+        # create list of affiliations
+        cgac_affiliations = [aff for aff in g.user.affiliations if aff.cgac]
+        frec_affiliations = [aff for aff in g.user.affiliations if aff.frec]
 
-    # convert the list of frec sub_tier_agencies into a list of frec agencies
-    frec_list = [{'agency_name': fst.frec.agency_name, 'frec_code': fst.frec.frec_code} for fst in frec_sub_tiers]
+        cgac_list = [{'agency_name': aff.cgac.agency_name, 'cgac_code': aff.cgac.cgac_code} for aff in
+                     cgac_affiliations]
+        frec_list = [{'agency_name': aff.frec.agency_name, 'frec_code': aff.frec.frec_code} for aff in
+                     frec_affiliations]
 
-    return {'cgac_agency_list': cgac_list, 'frec_agency_list': frec_list}
+        return {'cgac_agency_list': cgac_list, 'frec_agency_list': frec_list}
+
+    # Website admins can just get all agencies
+    agency_list = get_all_agencies()
+    return {'cgac_agency_list': agency_list['agency_list'], 'frec_agency_list': agency_list['shared_agency_list']}
 
 
 def get_all_agencies():
