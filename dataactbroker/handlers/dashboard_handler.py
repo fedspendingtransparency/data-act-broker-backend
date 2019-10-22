@@ -3,7 +3,7 @@ from collections import OrderedDict
 import copy
 
 from datetime import datetime
-from sqlalchemy import case
+from sqlalchemy import case, func
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, FREC
@@ -88,37 +88,67 @@ def validate_historic_dashboard_filters(filters, graphs=False):
     missing_filters = [required_filter for required_filter in required_filters if required_filter not in filters]
     if missing_filters:
         raise ResponseException('The following filters were not provided: {}'.format(', '.join(missing_filters)),
-                                status=400)
+                                status=StatusCode.CLIENT_ERROR)
 
     wrong_filter_types = [key for key, value in filters.items() if not isinstance(value, list)]
     if wrong_filter_types:
         raise ResponseException('The following filters were not lists: {}'.format(', '.join(wrong_filter_types)),
-                                status=400)
+                                status=StatusCode.CLIENT_ERROR)
 
     for quarter in filters['quarters']:
         if quarter not in range(1, 5):
             raise ResponseException('Quarters must be a list of integers, each ranging 1-4, or an empty list.',
-                                    status=400)
+                                    status=StatusCode.CLIENT_ERROR)
 
     current_fy = fy(datetime.now())
     for fiscal_year in filters['fys']:
         if fiscal_year not in range(2017, current_fy + 1):
             raise ResponseException('Fiscal Years must be a list of integers, each ranging from 2017 through the'
-                                    ' current fiscal year, or an empty list.', status=400)
+                                    ' current fiscal year, or an empty list.', status=StatusCode.CLIENT_ERROR)
 
     for agency in filters['agencies']:
         if not isinstance(agency, str):
-            raise ResponseException('Agencies must be a list of strings, or an empty list.', status=400)
+            raise ResponseException('Agencies must be a list of strings, or an empty list.',
+                                    status=StatusCode.CLIENT_ERROR)
 
     if graphs:
         for file_type in filters['files']:
             if file_type not in FILE_TYPES:
                 raise ResponseException('Files must be a list of one or more of the following, or an empty list: {}'.
-                                        format(', '.join(FILE_TYPES)), status=400)
+                                        format(', '.join(FILE_TYPES)), status=StatusCode.CLIENT_ERROR)
 
         for rule in filters['rules']:
             if not isinstance(rule, str):
-                raise ResponseException('Rules must be a list of strings, or an empty list.', status=400)
+                raise ResponseException('Rules must be a list of strings, or an empty list.',
+                                        status=StatusCode.CLIENT_ERROR)
+
+
+def validate_table_properties(page, limit, order, sort, sort_options):
+    """ Validate table properties like page, limit, and sort
+
+        Args:
+            page: page number to use in getting the list
+            limit: the number of entries per page
+            order: order ascending or descending
+            sort: the column to order on
+            sort_options: the list of valid options for sorting
+
+        Exceptions:
+            ResponseException if filter is invalid
+    """
+
+    if not isinstance(page, int) or page <= 0:
+        raise ResponseException('Page must be an integer greater than 0', status=StatusCode.CLIENT_ERROR)
+
+    if not isinstance(limit, int) or limit <= 0:
+        raise ResponseException('Limit must be an integer greater than 0', status=StatusCode.CLIENT_ERROR)
+
+    if order not in ['asc', 'desc']:
+        raise ResponseException('Order must be "asc" or "desc"', status=StatusCode.CLIENT_ERROR)
+
+    if sort not in sort_options:
+        raise ResponseException('Sort must be one of: {}'.format(', '.join(sort_options)),
+                                status=StatusCode.CLIENT_ERROR)
 
 
 def apply_historic_dabs_filters(sess, query, filters):
@@ -268,8 +298,7 @@ def historic_dabs_warning_graphs(filters):
             (FREC.agency_name.isnot(None), FREC.agency_name),
             (CGAC.agency_name.isnot(None), CGAC.agency_name)
         ]).label('agency_name')
-    ).join(User, User.user_id == Submission.certifying_user_id).\
-        outerjoin(CGAC, CGAC.cgac_code == Submission.cgac_code).\
+    ).outerjoin(CGAC, CGAC.cgac_code == Submission.cgac_code).\
         outerjoin(FREC, FREC.frec_code == Submission.frec_code).\
         filter(Submission.publish_status_id.in_([PUBLISH_STATUS_DICT['published'], PUBLISH_STATUS_DICT['updated']])).\
         filter(Submission.d2_submission.is_(False)).order_by(Submission.submission_id)
@@ -338,3 +367,150 @@ def historic_dabs_warning_graphs(filters):
         results[file_type] = [sub_dict for sub_id, sub_dict in file_dict.items()]
 
     return JsonResponse.create(StatusCode.OK, results)
+
+
+def historic_dabs_warning_table(filters, page, limit, sort='period', order='desc'):
+    """ Returns a list of warnings containing all the information needed for the DABS dashboard warning table based
+        on the filters provided that represent one page of the table.
+
+        Args:
+            filters: a dict containing the filters provided by the user
+            page: page number to use in getting the list
+            limit: the number of entries per page
+            sort: the column to order on
+            order: order ascending or descending
+
+        Returns:
+            Limited list of warning metadata and the total number of error metadata entries for the given filters
+    """
+
+    # Determine what to order by, default to "period"
+    options = {
+        'period': {'model': None, 'col': 'fy'},
+        'rule_label': {'model': CertifiedErrorMetadata, 'col': 'original_rule_label'},
+        'instances': {'model': CertifiedErrorMetadata, 'col': 'occurrences'},
+        'description': {'model': CertifiedErrorMetadata, 'col': 'rule_failed'},
+        'file': {'model': Job, 'col': 'original_filename'}
+    }
+
+    validate_historic_dashboard_filters(filters, graphs=True)
+    validate_table_properties(page, limit, order, sort, sort_options=options.keys())
+
+    sess = GlobalDB.db().session
+
+    # Making a query to get all the filenames
+    sub_files = sess.query(
+        Submission.submission_id,
+        (Submission.reporting_fiscal_period / 3).label('quarter'),
+        Submission.reporting_fiscal_year.label('fy'),
+        func.max(case([(Job.file_type_id == FILE_TYPE_DICT_LETTER_ID['A'],
+                        Job.original_filename)])).label('file_A_name'),
+        func.max(case([(Job.file_type_id == FILE_TYPE_DICT_LETTER_ID['B'],
+                        Job.original_filename)])).label('file_B_name'),
+        func.max(case([(Job.file_type_id == FILE_TYPE_DICT_LETTER_ID['C'],
+                        Job.original_filename)])).label('file_C_name'),
+        func.max(case([(Job.file_type_id == FILE_TYPE_DICT_LETTER_ID['D1'],
+                        Job.original_filename)])).label('file_D1_name'),
+        func.max(case([(Job.file_type_id == FILE_TYPE_DICT_LETTER_ID['D2'],
+                        Job.original_filename)])).label('file_D2_name')
+    ).join(Job, Job.submission_id == Submission.submission_id).\
+        filter(Submission.publish_status_id.in_([PUBLISH_STATUS_DICT['published'], PUBLISH_STATUS_DICT['updated']])).\
+        filter(Submission.d2_submission.is_(False))
+
+    # Apply the basic filters to the cte
+    sub_files = apply_historic_dabs_filters(sess, sub_files, filters)
+
+    # Make the query a cte and add a grouping
+    sub_files = sub_files.group_by(Submission.submission_id, Submission.reporting_fiscal_period,
+                                   Submission.reporting_fiscal_year).cte('sub_files')
+
+    # Base query
+    table_query = sess.query(
+        sub_files.c.submission_id,
+        sub_files.c.quarter,
+        sub_files.c.fy,
+        sub_files.c.file_A_name,
+        sub_files.c.file_B_name,
+        sub_files.c.file_C_name,
+        sub_files.c.file_D1_name,
+        sub_files.c.file_D2_name,
+        Job.original_filename,
+        Job.file_type_id.label('job_file_type'),
+        CertifiedErrorMetadata.original_rule_label,
+        CertifiedErrorMetadata.occurrences,
+        CertifiedErrorMetadata.rule_failed,
+        CertifiedErrorMetadata.file_type_id.label('error_file_type'),
+        CertifiedErrorMetadata.target_file_type_id
+    ).join(Job, Job.submission_id == sub_files.c.submission_id).\
+        join(CertifiedErrorMetadata, CertifiedErrorMetadata.job_id == Job.job_id)
+
+    # Apply filters
+    table_query = apply_historic_dabs_details_filters(table_query, filters)
+
+    # Determine how to sort agencies with period
+    if sort == 'period':
+        sort_order = [sub_files.c.fy, sub_files.c.quarter, CertifiedErrorMetadata.original_rule_label]
+    else:
+        sort_order = [getattr(options[sort]['model'], options[sort]['col'])]
+
+    # add secondary/tertiary sorts
+    if sort in ['file', 'instances']:
+        sort_order.append(CertifiedErrorMetadata.rule_failed)
+    if sort in ['rule_label', 'description', 'instances']:
+        sort_order.extend([sub_files.c.fy, sub_files.c.quarter])
+
+    # Set the sort order
+    if order == 'desc':
+        sort_order = [order.desc() for order in sort_order]
+
+    table_query = table_query.order_by(*sort_order)
+
+    # Total number of entries in the table
+    total_metadata = table_query.count()
+
+    # The page we're on
+    offset = limit * (page - 1)
+    table_query = table_query.slice(offset, offset + limit)
+
+    response = {'results': [],
+                'page_metadata': {
+                    'total': total_metadata,
+                    'page': page,
+                    'limit': limit
+                }}
+
+    # Loop through all responses
+    for error_metadata in table_query.all():
+        # Basic data that's gathered the same way for all entries
+        data = {
+            'submission_id': error_metadata.submission_id,
+            'files': [],
+            'fy': error_metadata.fy,
+            'quarter': error_metadata.quarter,
+            'rule_label': error_metadata.original_rule_label,
+            'instance_count': error_metadata.occurrences,
+            'rule_description': error_metadata.rule_failed
+        }
+        # If target file type ID null, that means it's a single-file validation and the original filename can be
+        # gathered straight from the job
+        if error_metadata.target_file_type_id is None:
+            file_type = FILE_TYPE_DICT_LETTER[error_metadata.job_file_type]
+            data['files'].append({
+                'type': file_type,
+                'filename': error_metadata.original_filename
+            })
+        else:
+            # If there's a target file type ID, it's a cross-file and we have to append 2 files to the error metadata
+            file_type = FILE_TYPE_DICT_LETTER[error_metadata.error_file_type]
+            target_file_type = FILE_TYPE_DICT_LETTER[error_metadata.target_file_type_id]
+            data['files'].append({
+                'type': file_type,
+                'filename': getattr(error_metadata, 'file_{}_name'.format(file_type))
+            })
+            data['files'].append({
+                'type': target_file_type,
+                'filename': getattr(error_metadata, 'file_{}_name'.format(target_file_type))
+            })
+        response['results'].append(data)
+
+    return JsonResponse.create(StatusCode.OK, response)

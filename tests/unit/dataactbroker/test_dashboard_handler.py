@@ -30,6 +30,12 @@ def historic_dabs_warning_graphs_endpoint(filters):
     return json.loads(json_response.get_data().decode('UTF-8'))
 
 
+def historic_dabs_warning_table_endpoint(filters, page=1, limit=5, sort='period', order='desc'):
+    json_response = dashboard_handler.historic_dabs_warning_table(filters, page, limit, sort, order)
+    assert json_response.status_code == 200
+    return json.loads(json_response.get_data().decode('UTF-8'))
+
+
 def test_validate_historic_dashboard_filters():
     def assert_validation(filters, expected_response, graphs=False):
         with pytest.raises(ResponseException) as resp_except:
@@ -117,31 +123,41 @@ def setup_submissions(sess, admin=False):
     db_objects.extend([sub1, sub2, sub3])
 
     # Setup validation jobs
-    sub1_a = JobFactory(submission=sub1, file_type_id=FILE_TYPE_DICT_LETTER_ID['A'])
+    sub1_a = JobFactory(submission=sub1, file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
+                        original_filename='sub1_filea.csv')
+    sub1_b = JobFactory(submission=sub1, file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
+                        original_filename='sub1_fileb.csv')
     sub1_ab = JobFactory(submission=sub1, file_type_id=None)
-    sub2_b = JobFactory(submission=sub2, file_type_id=FILE_TYPE_DICT_LETTER_ID['B'])
-    sub3_c = JobFactory(submission=sub3, file_type_id=FILE_TYPE_DICT_LETTER_ID['C'])
-    db_objects.extend([sub1_a, sub1_ab, sub2_b, sub3_c])
+    sub2_b = JobFactory(submission=sub2, file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
+                        original_filename='sub2_fileb.csv')
+    sub2_c = JobFactory(submission=sub2, file_type_id=FILE_TYPE_DICT_LETTER_ID['C'],
+                        original_filename='sub2_filec.csv')
+    sub2_bc = JobFactory(submission=sub2, file_type_id=None)
+    sub3_c = JobFactory(submission=sub3, file_type_id=FILE_TYPE_DICT_LETTER_ID['C'],
+                        original_filename='sub3_filec.csv')
+    db_objects.extend([sub1_a, sub1_b, sub1_ab, sub2_b, sub2_c, sub2_bc, sub3_c])
 
     # Setup certified error metadata
     sub1_a1 = CertifiedErrorMetadata(job=sub1_a, original_rule_label='A1', occurrences=20,
                                      file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
-                                     target_file_type_id=None)
+                                     target_file_type_id=None, rule_failed='first rule')
     sub1_a2 = CertifiedErrorMetadata(job=sub1_a, original_rule_label='A2', occurrences=30,
                                      file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
-                                     target_file_type_id=None)
+                                     target_file_type_id=None, rule_failed='second rule')
     sub1_ab1 = CertifiedErrorMetadata(job=sub1_ab, original_rule_label='A3', occurrences=70,
                                       file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
-                                      target_file_type_id=FILE_TYPE_DICT_LETTER_ID['B'])
+                                      target_file_type_id=FILE_TYPE_DICT_LETTER_ID['B'], rule_failed='first cross rule')
     sub1_ab2 = CertifiedErrorMetadata(job=sub1_ab, original_rule_label='B1', occurrences=130,
                                       file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
-                                      target_file_type_id=FILE_TYPE_DICT_LETTER_ID['A'])
+                                      target_file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
+                                      rule_failed='second cross rule')
     sub2_b1 = CertifiedErrorMetadata(job=sub2_b, original_rule_label='B2', occurrences=70,
                                      file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
-                                     target_file_type_id=None)
-    sub2_bc1 = CertifiedErrorMetadata(job=sub2_b, original_rule_label='B3', occurrences=120,
+                                     target_file_type_id=None, rule_failed='first B rule')
+    sub2_bc1 = CertifiedErrorMetadata(job=sub2_bc, original_rule_label='B3', occurrences=120,
                                       file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
-                                      target_file_type_id=FILE_TYPE_DICT_LETTER_ID['C'])
+                                      target_file_type_id=FILE_TYPE_DICT_LETTER_ID['C'],
+                                      rule_failed='another cross rule')
     # no warnings for sub3
     db_objects.extend([sub1_a1, sub1_a2, sub1_ab1, sub1_ab2, sub2_b1, sub2_bc1])
 
@@ -644,4 +660,273 @@ def test_historic_dabs_warning_graphs_agency_user(database, monkeypatch):
         'cross-CD2': [sub1_empty, sub3_empty]
     }
     response = historic_dabs_warning_graphs_endpoint(filters)
+    assert response == expected_response
+
+
+def test_validate_table_properties():
+    def assert_validation(page, limit, order, sort, sort_options, expected_response):
+        with pytest.raises(ResponseException) as resp_except:
+            dashboard_handler.validate_table_properties(page, limit, order, sort, sort_options)
+
+        assert resp_except.value.status == 400
+        assert str(resp_except.value) == expected_response
+
+    # Invalid pages
+    assert_validation('this is a string', 1, 'desc', 'period', ['period'], 'Page must be an integer greater than 0')
+    assert_validation(-5, 1, 'desc', 'period', ['period'], 'Page must be an integer greater than 0')
+    assert_validation(0, 1, 'desc', 'period', ['period'], 'Page must be an integer greater than 0')
+
+    # Invalid limit
+    assert_validation(1, 'string test', 'desc', 'period', ['period'], 'Limit must be an integer greater than 0')
+    assert_validation(1, -5, 'desc', 'period', ['period'], 'Limit must be an integer greater than 0')
+    assert_validation(1, 0, 'desc', 'period', ['period'], 'Limit must be an integer greater than 0')
+
+    # Order check
+    assert_validation(1, 1, 'false', 'period', ['period'], 'Order must be "asc" or "desc"')
+    assert_validation(1, 1, 55, 'period', ['period'], 'Order must be "asc" or "desc"')
+
+    # Bad sort
+    assert_validation(1, 1, 'desc', 'periods', ['period', 'range'], 'Sort must be one of: period, range')
+    assert_validation(1, 1, 'desc', 'period', [], 'Sort must be one of: ')
+
+    # Test success (we expect nothing to happen here, just run the function)
+    dashboard_handler.validate_table_properties(1, 1, 'asc', 'period', ['period', 'range'])
+
+
+@pytest.mark.usefixtures('job_constants')
+@pytest.mark.usefixtures('user_constants')
+def test_historic_dabs_warning_table_admin(database, monkeypatch):
+    sess = database.session
+
+    user = setup_submissions(sess, admin=True)
+    monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
+
+    # Shared Expected Data
+    warning_sub1_a1 = {
+        'submission_id': 1,
+        'fy': 2017,
+        'quarter': 3,
+        'rule_label': 'A1',
+        'instance_count': 20,
+        'rule_description': 'first rule',
+        'files': [
+            {
+                'type': 'A',
+                'filename': 'sub1_filea.csv'
+            }
+        ]
+    }
+    warning_sub1_a2 = {
+        'submission_id': 1,
+        'fy': 2017,
+        'quarter': 3,
+        'rule_label': 'A2',
+        'instance_count': 30,
+        'rule_description': 'second rule',
+        'files': [
+            {
+                'type': 'A',
+                'filename': 'sub1_filea.csv'
+            }
+        ]
+    }
+    warning_sub1_ab1 = {
+        'submission_id': 1,
+        'fy': 2017,
+        'quarter': 3,
+        'rule_label': 'A3',
+        'instance_count': 70,
+        'rule_description': 'first cross rule',
+        'files': [
+            {
+                'type': 'A',
+                'filename': 'sub1_filea.csv'
+            },
+            {
+                'type': 'B',
+                'filename': 'sub1_fileb.csv'
+            }
+        ]
+    }
+    warning_sub1_ab2 = {
+        'submission_id': 1,
+        'fy': 2017,
+        'quarter': 3,
+        'rule_label': 'B1',
+        'instance_count': 130,
+        'rule_description': 'second cross rule',
+        'files': [
+            {
+                'type': 'B',
+                'filename': 'sub1_fileb.csv'
+            },
+            {
+                'type': 'A',
+                'filename': 'sub1_filea.csv'
+            }
+        ]
+    }
+    warning_sub2_b1 = {
+        'submission_id': 2,
+        'fy': 2019,
+        'quarter': 1,
+        'rule_label': 'B2',
+        'instance_count': 70,
+        'rule_description': 'first B rule',
+        'files': [
+            {
+                'type': 'B',
+                'filename': 'sub2_fileb.csv'
+            }
+        ]
+    }
+    warning_sub2_bc1 = {
+        'submission_id': 2,
+        'fy': 2019,
+        'quarter': 1,
+        'rule_label': 'B3',
+        'instance_count': 120,
+        'rule_description': 'another cross rule',
+        'files': [
+            {
+                'type': 'B',
+                'filename': 'sub2_fileb.csv'
+            },
+            {
+                'type': 'C',
+                'filename': 'sub2_filec.csv'
+            }
+        ]
+    }
+
+    # Perfect case, default values
+    filters = {
+        'quarters': [1, 3],
+        'fys': [2017, 2019],
+        'agencies': ['089', '1125', '091'],
+        'files': ['A', 'B', 'C', 'cross-AB', 'cross-BC'],
+        'rules': ['A1', 'A2', 'A3', 'B1', 'B2', 'B3']
+    }
+    expected_response = {
+        'results': [warning_sub2_bc1, warning_sub2_b1, warning_sub1_ab2, warning_sub1_ab1, warning_sub1_a2],
+        'page_metadata': {
+            'total': 6,
+            'page': 1,
+            'limit': 5
+        }
+    }
+    response = historic_dabs_warning_table_endpoint(filters)
+    assert response == expected_response
+
+    # Same filters as before only we want page 2
+    expected_response = {
+        'results': [warning_sub1_a1],
+        'page_metadata': {
+            'total': 6,
+            'page': 2,
+            'limit': 5
+        }
+    }
+    response = historic_dabs_warning_table_endpoint(filters, page=2)
+    assert response == expected_response
+
+    # No filters, should get everything
+    filters = {
+        'quarters': [],
+        'fys': [],
+        'agencies': [],
+        'files': [],
+        'rules': []
+    }
+    expected_response = {
+        'results': [warning_sub2_bc1, warning_sub2_b1, warning_sub1_ab2, warning_sub1_ab1, warning_sub1_a2],
+        'page_metadata': {
+            'total': 6,
+            'page': 1,
+            'limit': 5
+        }
+    }
+    response = historic_dabs_warning_table_endpoint(filters)
+    assert response == expected_response
+
+    # Only some basic filters included, shouldn't include cross results
+    filters = {
+        'quarters': [1],
+        'fys': [2019],
+        'agencies': ['1125'],
+        'files': ['B'],
+        'rules': ['B2']
+    }
+    expected_response = {
+        'results': [warning_sub2_b1],
+        'page_metadata': {
+            'total': 1,
+            'page': 1,
+            'limit': 5
+        }
+    }
+    response = historic_dabs_warning_table_endpoint(filters)
+    assert response == expected_response
+
+    # Filtering with a set of filters that returns 0 results
+    filters = {
+        'quarters': [3],
+        'fys': [2019],
+        'agencies': [],
+        'files': [],
+        'rules': []
+    }
+    expected_response = {
+        'results': [],
+        'page_metadata': {
+            'total': 0,
+            'page': 1,
+            'limit': 5
+        }
+    }
+    response = historic_dabs_warning_table_endpoint(filters)
+    assert response == expected_response
+
+    # Return more results per page
+    filters = {
+        'quarters': [],
+        'fys': [],
+        'agencies': [],
+        'files': [],
+        'rules': []
+    }
+    expected_response = {
+        'results': [warning_sub2_bc1, warning_sub2_b1, warning_sub1_ab2, warning_sub1_ab1, warning_sub1_a2,
+                    warning_sub1_a1],
+        'page_metadata': {
+            'total': 6,
+            'page': 1,
+            'limit': 10
+        }
+    }
+    response = historic_dabs_warning_table_endpoint(filters, limit=10)
+    assert response == expected_response
+
+    # change sort order
+    expected_response = {
+        'results': [warning_sub1_a1, warning_sub1_a2, warning_sub1_ab1, warning_sub1_ab2, warning_sub2_b1],
+        'page_metadata': {
+            'total': 6,
+            'page': 1,
+            'limit': 5
+        }
+    }
+    response = historic_dabs_warning_table_endpoint(filters, order='asc')
+    assert response == expected_response
+
+    # change sort by occurrences
+    expected_response = {
+        'results': [warning_sub1_ab2, warning_sub2_bc1, warning_sub1_ab1, warning_sub2_b1, warning_sub1_a2],
+        'page_metadata': {
+            'total': 6,
+            'page': 1,
+            'limit': 5
+        }
+    }
+    response = historic_dabs_warning_table_endpoint(filters, sort='instances')
     assert response == expected_response
