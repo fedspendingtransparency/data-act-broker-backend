@@ -4,7 +4,8 @@ SELECT
     row_number,
     record_type,
     place_of_performance_code,
-    place_of_performance_zip4a
+    place_of_performance_zip4a,
+    afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type IN (1, 2)

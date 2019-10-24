@@ -3,12 +3,14 @@ WITH detached_award_financial_assistance_fabs37_1_{0} AS
     (SELECT submission_id,
         row_number,
         cfda_number,
-        correction_delete_indicatr
+        correction_delete_indicatr,
+        afa_generated_unique
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT
     row_number,
-    cfda_number
+    cfda_number,
+    afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance_fabs37_1_{0} AS dafa
 WHERE dafa.row_number NOT IN (
         SELECT DISTINCT sub_dafa.row_number

@@ -2,7 +2,8 @@
 SELECT
     dafa.row_number,
     dafa.legal_entity_zip5,
-    dafa.legal_entity_zip_last4
+    dafa.legal_entity_zip_last4,
+    dafa.afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance AS dafa
 WHERE submission_id = {0}
     AND COALESCE(dafa.legal_entity_zip5, '') <> ''

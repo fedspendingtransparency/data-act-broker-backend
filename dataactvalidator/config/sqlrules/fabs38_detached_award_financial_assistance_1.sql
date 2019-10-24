@@ -14,7 +14,8 @@ SELECT
     funding_office_code,
     action_type,
     correction_delete_indicatr,
-    action_date
+    action_date,
+    afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND COALESCE(funding_office_code, '') = ''

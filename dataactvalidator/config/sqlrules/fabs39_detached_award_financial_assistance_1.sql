@@ -6,13 +6,15 @@ WITH detached_award_financial_assistance_fabs39_1_{0} AS
         row_number,
         record_type,
         place_of_performance_code,
-        correction_delete_indicatr
+        correction_delete_indicatr,
+        afa_generated_unique
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT
     dafa.row_number,
     dafa.record_type,
-    dafa.place_of_performance_code
+    dafa.place_of_performance_code,
+    dafa.afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance_fabs39_1_{0} AS dafa
 WHERE dafa.record_type IN (1, 2)
     AND (COALESCE(dafa.place_of_performance_code, '') = ''

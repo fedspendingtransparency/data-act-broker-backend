@@ -8,7 +8,8 @@ WITH detached_award_financial_assistance_38_4_2_{0} AS
     (SELECT unique_award_key,
     	row_number,
     	awarding_office_code,
-    	award_modification_amendme
+    	award_modification_amendme,
+    	afa_generated_unique
     FROM detached_award_financial_assistance AS dafa
     WHERE dafa.submission_id = {0}
         AND UPPER(COALESCE(dafa.correction_delete_indicatr, '')) <> 'D'
@@ -34,7 +35,8 @@ awarding_codes_{0} AS
 	WHERE COALESCE(pafa.awarding_office_code, '') <> '')
 SELECT
     row_number,
-    awarding_office_code
+    awarding_office_code,
+    afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance_38_4_2_{0} AS dafa
 WHERE EXISTS (
 	SELECT 1

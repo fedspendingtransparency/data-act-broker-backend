@@ -1,7 +1,8 @@
 -- LegalEntityZIP5 is not a valid zip code.
 SELECT
     dafa.row_number,
-    dafa.legal_entity_zip5
+    dafa.legal_entity_zip5,
+    dafa.afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance AS dafa
 WHERE dafa.submission_id = {0}
     AND COALESCE(dafa.legal_entity_zip5, '') <> ''
