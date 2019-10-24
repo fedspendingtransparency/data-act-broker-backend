@@ -9,7 +9,7 @@ SELECT
     dafa.awarding_sub_tier_agency_c,
     dafa.cfda_number,
     dafa.correction_delete_indicatr,
-    dafa.afa_generated_unique AS "uniqueid_afa_generated_unique"
+    dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance AS dafa
     INNER JOIN published_award_financial_assistance AS pafa
         ON UPPER(dafa.afa_generated_unique) = UPPER(pafa.afa_generated_unique)

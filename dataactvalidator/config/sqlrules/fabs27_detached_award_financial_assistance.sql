@@ -3,7 +3,7 @@ SELECT
     row_number,
     assistance_type,
     non_federal_funding_amount,
-    afa_generated_unique AS "uniqueid_afa_generated_unique"
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND (assistance_type = '07' OR assistance_type = '08')

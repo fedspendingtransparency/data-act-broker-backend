@@ -4,7 +4,7 @@
 SELECT
     dafa.row_number,
     dafa.legal_entity_country_code,
-    dafa.afa_generated_unique AS "uniqueid_afa_generated_unique"
+    dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance AS dafa
 WHERE submission_id={0}
     AND NOT EXISTS (

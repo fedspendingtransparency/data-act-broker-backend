@@ -3,7 +3,7 @@ SELECT
     row_number,
     awarding_sub_tier_agency_c,
     awarding_office_code,
-    afa_generated_unique AS "uniqueid_afa_generated_unique"
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND COALESCE(awarding_sub_tier_agency_c, '') = ''

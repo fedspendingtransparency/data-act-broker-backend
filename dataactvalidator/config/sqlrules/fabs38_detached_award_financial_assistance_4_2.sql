@@ -36,7 +36,7 @@ awarding_codes_{0} AS
 SELECT
     row_number,
     awarding_office_code,
-    afa_generated_unique AS "uniqueid_afa_generated_unique"
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_38_4_2_{0} AS dafa
 WHERE EXISTS (
 	SELECT 1

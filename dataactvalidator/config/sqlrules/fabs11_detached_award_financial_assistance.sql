@@ -4,7 +4,7 @@ SELECT
     row_number,
     record_type,
     legal_entity_address_line2,
-    afa_generated_unique AS "uniqueid_afa_generated_unique"
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type IN (1, 3)

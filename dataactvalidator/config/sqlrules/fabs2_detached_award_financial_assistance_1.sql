@@ -7,7 +7,7 @@ SELECT
     uri,
     awarding_sub_tier_agency_c,
     cfda_number,
-    afa_generated_unique AS "uniqueid_afa_generated_unique"
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM (
     SELECT dafa.row_number,
         dafa.fain,

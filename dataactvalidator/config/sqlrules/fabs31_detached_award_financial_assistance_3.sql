@@ -7,7 +7,7 @@ SELECT
     awardee_or_recipient_uniqu,
     business_types,
     record_type,
-    afa_generated_unique AS "uniqueid_afa_generated_unique"
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance AS dafa
 WHERE submission_id = {0}
     AND NOT (record_type = 1

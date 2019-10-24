@@ -3,7 +3,7 @@ SELECT
     row_number,
     business_types,
     correction_delete_indicatr,
-    afa_generated_unique AS "uniqueid_afa_generated_unique"
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND COALESCE(business_types, '') = ''

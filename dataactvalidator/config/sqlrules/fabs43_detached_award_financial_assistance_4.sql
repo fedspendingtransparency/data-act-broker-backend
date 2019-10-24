@@ -16,7 +16,7 @@ SELECT
     dafa.row_number,
     dafa.place_of_performance_code,
     dafa.place_of_performance_congr,
-    dafa.afa_generated_unique AS "uniqueid_afa_generated_unique"
+    dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_fabs43_4_{0} AS dafa
 WHERE COALESCE(dafa.place_of_performance_code, '') <> ''
     AND CASE WHEN COALESCE(dafa.place_of_performance_congr, '') <> ''

@@ -38,7 +38,7 @@ SELECT
     row_number,
     awarding_sub_tier_agency_c,
     awarding_office_code,
-    afa_generated_unique AS "uniqueid_afa_generated_unique"
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_23_2_{0} AS dafa
 WHERE NOT EXISTS (
         -- Find all awarding sub tier agency and office codes that are not part of the valid pairings list

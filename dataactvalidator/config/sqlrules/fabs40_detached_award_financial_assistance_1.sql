@@ -10,7 +10,7 @@ WITH detached_award_financial_assistance_fabs40_1_{0} AS
 SELECT
     dafa.row_number,
     dafa.place_of_performance_code,
-    dafa.afa_generated_unique AS "uniqueid_afa_generated_unique"
+    dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_fabs40_1_{0} AS dafa
 WHERE SUBSTRING(dafa.place_of_performance_code, 3, 2) = '**'
     AND SUBSTRING(dafa.place_of_performance_code, 5, 3) <> '***'

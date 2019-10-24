@@ -4,7 +4,7 @@ SELECT
     row_number,
     period_of_performance_star,
     period_of_performance_curr,
-    afa_generated_unique AS "uniqueid_afa_generated_unique"
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND ((period_of_performance_star IS NOT NULL

@@ -13,7 +13,7 @@ WITH detached_award_financial_assistance_fabs41_2_{0} AS
 SELECT
     dafa.row_number,
     dafa.place_of_performance_code,
-    dafa.afa_generated_unique AS "uniqueid_afa_generated_unique"
+    dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_fabs41_2_{0} AS dafa
 WHERE UPPER(dafa.place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d[\dR]$'
     AND UPPER(dafa.place_of_performance_code) !~ '^[A-Z][A-Z]00000$'

@@ -3,7 +3,7 @@ SELECT
     dafa.row_number,
     dafa.record_type,
     dafa.place_of_perform_country_c,
-    dafa.afa_generated_unique AS "uniqueid_afa_generated_unique"
+    dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance AS dafa
 WHERE submission_id={0}
     AND record_type = 3

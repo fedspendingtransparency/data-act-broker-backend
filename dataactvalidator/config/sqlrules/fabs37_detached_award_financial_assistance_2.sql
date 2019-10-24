@@ -18,7 +18,7 @@ SELECT
     action_type,
     correction_delete_indicatr,
     action_date,
-    afa_generated_unique AS "uniqueid_afa_generated_unique"
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_fabs37_2_{0} AS dafa
 WHERE UPPER(dafa.action_type) IN ('B', 'C', 'D')
     AND UPPER(COALESCE(correction_delete_indicatr, '')) NOT IN ('C', 'D')

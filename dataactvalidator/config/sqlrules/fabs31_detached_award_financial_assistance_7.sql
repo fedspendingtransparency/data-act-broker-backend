@@ -40,7 +40,7 @@ SELECT
     dafa.awardee_or_recipient_uniqu,
     dafa.business_types,
     dafa.record_type,
-    dafa.afa_generated_unique AS "uniqueid_afa_generated_unique"
+    dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_fabs31_7_{0} AS dafa
 WHERE NOT (dafa.record_type IN (1, 3)
         OR UPPER(dafa.business_types) LIKE '%%P%%'
