@@ -8,13 +8,15 @@ WITH detached_award_financial_assistance_fabs43_4_{0} AS
         row_number,
         place_of_performance_code,
         place_of_performance_congr,
-        correction_delete_indicatr
+        correction_delete_indicatr,
+        afa_generated_unique
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT
     dafa.row_number,
     dafa.place_of_performance_code,
-    dafa.place_of_performance_congr
+    dafa.place_of_performance_congr,
+    dafa.afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance_fabs43_4_{0} AS dafa
 WHERE COALESCE(dafa.place_of_performance_code, '') <> ''
     AND CASE WHEN COALESCE(dafa.place_of_performance_congr, '') <> ''

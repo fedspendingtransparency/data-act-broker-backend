@@ -5,7 +5,8 @@ SELECT
     row_number,
     place_of_performance_forei,
     place_of_perform_country_c,
-    record_type
+    record_type,
+    afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND COALESCE(place_of_performance_forei, '') <> ''

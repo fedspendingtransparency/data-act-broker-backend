@@ -3,7 +3,8 @@
 SELECT
     row_number,
     place_of_perform_country_c,
-    place_of_performance_congr
+    place_of_performance_congr,
+    afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND UPPER(place_of_perform_country_c) <> 'USA'

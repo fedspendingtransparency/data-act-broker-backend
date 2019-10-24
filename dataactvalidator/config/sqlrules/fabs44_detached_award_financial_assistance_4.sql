@@ -3,7 +3,8 @@
 SELECT
     row_number,
     legal_entity_congressional,
-    record_type
+    record_type,
+    afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND COALESCE(legal_entity_congressional, '') <> ''

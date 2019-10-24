@@ -6,12 +6,14 @@ WITH detached_award_financial_assistance_fabs41_2_{0} AS
         row_number,
         place_of_performance_code,
         place_of_performance_zip4a,
-        correction_delete_indicatr
+        correction_delete_indicatr,
+        afa_generated_unique
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT
     dafa.row_number,
-    dafa.place_of_performance_code
+    dafa.place_of_performance_code,
+    dafa.afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance_fabs41_2_{0} AS dafa
 WHERE UPPER(dafa.place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d[\dR]$'
     AND UPPER(dafa.place_of_performance_code) !~ '^[A-Z][A-Z]00000$'
