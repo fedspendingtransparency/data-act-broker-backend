@@ -3,7 +3,6 @@ import calendar
 import logging
 import os
 import requests
-import sqlalchemy as sa
 import threading
 import math
 
@@ -18,6 +17,7 @@ from sqlalchemy.sql.expression import case
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
                                                        reporting_date, job_to_dict)
 from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations
+from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
 from dataactbroker.permissions import current_user_can_on_submission
 
 from dataactcore.aws.s3Handler import S3Handler
@@ -1480,29 +1480,7 @@ def add_list_submission_filters(query, filters, submission_updated_view):
     if 'agency_codes' in filters:
         agency_list = filters['agency_codes']
         if agency_list and isinstance(agency_list, list):
-            # Split agencies into frec and cgac lists.
-            cgac_list = [agency for agency in agency_list if isinstance(agency, str) and len(agency) == 3]
-            frec_list = [agency for agency in agency_list if isinstance(agency, str) and len(agency) == 4]
-
-            # If something isn't a length of 3 or 4, it's not valid and should instantly raise an exception
-            if len(cgac_list) + len(frec_list) != len(agency_list):
-                raise ResponseException("All codes in the agency_codes filter must be valid agency codes",
-                                        StatusCode.CLIENT_ERROR)
-            # If the number of CGACs or FRECs returned from a query using the codes doesn't match the length of
-            # each list (ignoring duplicates) then something included wasn't a valid agency
-            cgac_list = set(cgac_list)
-            frec_list = set(frec_list)
-            if (cgac_list and sess.query(CGAC).filter(CGAC.cgac_code.in_(cgac_list)).count() != len(cgac_list)) or \
-                    (frec_list and sess.query(FREC).filter(FREC.frec_code.in_(frec_list)).count() != len(frec_list)):
-                raise ResponseException("All codes in the agency_codes filter must be valid agency codes",
-                                        StatusCode.CLIENT_ERROR)
-            # We only want these filters in here if there's at least one CGAC or FREC to filter on
-            agency_filters = []
-            if len(cgac_list) > 0:
-                agency_filters.append(CGAC.cgac_code.in_(cgac_list))
-            if len(frec_list) > 0:
-                agency_filters.append(FREC.frec_code.in_(frec_list))
-            query = query.filter(or_(*agency_filters))
+            query = agency_filter(sess, query, CGAC, FREC, agency_list)
         elif agency_list:
             raise ResponseException("agency_codes filter must be null or an array", StatusCode.CLIENT_ERROR)
     # File name filter
@@ -1590,17 +1568,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
         filter(Submission.d2_submission.is_(is_fabs))
 
     # Limit the data coming back to only what the given user is allowed to see
-    if not g.user.website_admin:
-        cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations if aff.cgac]
-        frec_codes = [aff.frec.frec_code for aff in g.user.affiliations if aff.frec]
-
-        affiliation_filters = [Submission.user_id == g.user.user_id]
-        if cgac_codes:
-            affiliation_filters.append(Submission.cgac_code.in_(cgac_codes))
-        if frec_codes:
-            affiliation_filters.append(Submission.frec_code.in_(frec_codes))
-        query = query.filter(sa.or_(*affiliation_filters))
-        min_mod_query = min_mod_query.filter(sa.or_(*affiliation_filters))
+    query = permissions_filter(query)
+    min_mod_query = permissions_filter(min_mod_query)
 
     # Determine what types of submissions (published/unpublished/both) to display
     if certified != 'mixed':

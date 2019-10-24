@@ -10,7 +10,7 @@ SELECT
     approp.row_number,
     approp.spending_authority_from_of_cpe,
     SUM(sf.amount) AS "expected_value_SUM of GTAS SF133 Lines 1750, 1850",
-    approp.spending_authority_from_of_cpe - SUM(sf.amount) AS "variance"
+    COALESCE(approp.spending_authority_from_of_cpe, 0) - SUM(sf.amount) AS "difference"
 FROM appropriation_a11_{0} AS approp
     INNER JOIN sf_133 AS sf
         ON approp.tas = sf.tas

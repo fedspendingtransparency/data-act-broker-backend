@@ -14,14 +14,16 @@ def test_column_headers(database):
                        'ussgl490100_delivered_orde_cpe_sum', 'ussgl490100_delivered_orde_fyb_sum',
                        'ussgl490200_delivered_orde_cpe_sum', 'ussgl490800_authority_outl_cpe_sum',
                        'ussgl490800_authority_outl_fyb_sum', 'ussgl498100_upward_adjustm_cpe_sum',
-                       'ussgl498200_upward_adjustm_cpe_sum', 'expected_value_GTAS SF133 Line 2104'}
+                       'ussgl498200_upward_adjustm_cpe_sum', 'expected_value_GTAS SF133 Line 2104',
+                       'difference'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
 
 def test_success(database):
     """ Tests that SF 133 amount sum for line 2104 matches the calculation from Appropriation based on the fields below
-        for the specified fiscal year and period """
+        for the specified fiscal year and period
+    """
     tas = "".join([_TAS, "_success"])
     tas2 = "".join([_TAS, "_other_tas"])
 
@@ -61,7 +63,8 @@ def test_success(database):
 
 def test_failure(database):
     """ Tests that SF 133 amount sum for line 2104 does not match the calculation from Appropriation based on
-        the fields below for the specified fiscal year and period """
+        the fields below for the specified fiscal year and period
+    """
     tas = "".join([_TAS, "_failure"])
 
     sf = SF133(line=2104, tas=tas, period=1, fiscal_year=2016, amount=5, agency_identifier="sys",

@@ -1,10 +1,16 @@
 import pytest
 
+from flask import g
+
 from dataactbroker.handlers.agency_handler import (
     get_sub_tiers_from_perms, get_cgacs_without_sub_tier_agencies, get_accessible_agencies, get_all_agencies,
     organize_sub_tier_agencies)
 
+from dataactcore.models.lookups import PERMISSION_TYPE_DICT
+from dataactcore.models.userModel import UserAffiliation
+
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory, SubTierAgencyFactory
+from tests.unit.dataactcore.factories.user import UserFactory
 
 
 @pytest.mark.usefixtures("user_constants")
@@ -61,33 +67,52 @@ def test_get_cgacs_without_sub_tier_agencies(database):
     assert results[0].cgac_id == no_sub_cgac.cgac_id
 
 
+@pytest.mark.usefixtures('test_app')
+@pytest.mark.usefixtures("user_constants")
 def test_get_accessible_agencies(database):
     """ Test listing all the agencies (CGAC and FREC) that are accessible based on permissions given """
+    # The first cgac/frec don't have sub tiers associated, they should still show up when affiliations are present
     cgacs = [CGACFactory(cgac_code=str(i), agency_name="Test Agency " + str(i)) for i in range(3)]
     frec_cgac = CGACFactory()
     frecs = [FRECFactory(frec_code=str(i), cgac=frec_cgac) for i in range(3)]
     cgac_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(i), cgac=cgacs[i], frec=None, is_frec=False,
-                                           sub_tier_agency_name="Test Subtier Agency " + str(i)) for i in range(3)]
+                                           sub_tier_agency_name="Test Subtier Agency C" + str(i)) for i in range(1, 3)]
     frec_sub_tiers = [SubTierAgencyFactory(sub_tier_agency_code=str(3 + i), cgac=frec_cgac, frec=frecs[i], is_frec=True,
-                                           sub_tier_agency_name="Test Subtier Agency " + str(3 + i)) for i in range(3)]
+                                           sub_tier_agency_name="Test Subtier Agency F" + str(i)) for i in range(1, 3)]
     database.session.add_all(cgacs + [frec_cgac] + frecs + cgac_sub_tiers + frec_sub_tiers)
     database.session.commit()
 
+    user = UserFactory(affiliations=[
+        UserAffiliation(user_affiliation_id=1, cgac=cgacs[0], frec=None,
+                        permission_type_id=PERMISSION_TYPE_DICT['writer']),
+        UserAffiliation(user_affiliation_id=2, cgac=None, frec=frecs[1],
+                        permission_type_id=PERMISSION_TYPE_DICT['reader']),
+        UserAffiliation(user_affiliation_id=3, cgac=None, frec=frecs[2],
+                        permission_type_id=PERMISSION_TYPE_DICT['reader'])
+    ])
+    database.session.add(user)
+    database.session.commit()
+
+    g.user = user
+
     # Test one CGAC and 2 FRECs, have to decode it because we send it back as a response already
-    results = get_accessible_agencies([cgac_sub_tiers[0]], [frec_sub_tiers[0], frec_sub_tiers[2]])
+    results = get_accessible_agencies()
     frec_code_result = {el["frec_code"] for el in results["frec_agency_list"]}
     frec_name_result = {el["agency_name"] for el in results["frec_agency_list"]}
     assert len(results["cgac_agency_list"]) == 1
     assert len(results["frec_agency_list"]) == 2
     assert results["cgac_agency_list"][0]["agency_name"] == cgacs[0].agency_name
     assert results["cgac_agency_list"][0]["cgac_code"] == cgacs[0].cgac_code
-    assert frec_name_result == {frecs[0].agency_name, frecs[2].agency_name}
-    assert frec_code_result == {frecs[0].frec_code, frecs[2].frec_code}
+    assert frec_name_result == {frecs[1].agency_name, frecs[2].agency_name}
+    assert frec_code_result == {frecs[1].frec_code, frecs[2].frec_code}
 
-    # Test when there are no FRECs
-    results = get_accessible_agencies([cgac_sub_tiers[0]], [])
-    assert len(results["cgac_agency_list"]) == 1
-    assert len(results["frec_agency_list"]) == 0
+    # Test when user is website admin, should return everything, but only 2 frecs because only 2 of the 3 have the
+    # frec flag
+    user.affiliations = []
+    user.website_admin = True
+    results = get_accessible_agencies()
+    assert len(results["cgac_agency_list"]) == 3
+    assert len(results["frec_agency_list"]) == 2
 
 
 def test_get_all_agencies(database):

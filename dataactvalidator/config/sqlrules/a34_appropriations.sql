@@ -11,7 +11,7 @@ SELECT
     approp.row_number,
     approp.budget_authority_unobligat_fyb,
     sf.amount AS "expected_value_GTAS SF133 Line 2490",
-    approp.budget_authority_unobligat_fyb - sf.amount AS "variance"
+    COALESCE(approp.budget_authority_unobligat_fyb, 0) - sf.amount AS "difference"
 FROM appropriation_a34_{0} AS approp
     JOIN sf_133 AS sf
         ON approp.tas = sf.tas

@@ -9,7 +9,7 @@ from dataactbroker.handlers.fileHandler import (
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
     certify_dabs_submission, find_existing_submissions_in_period, get_submission_metadata, get_submission_data,
-    get_revalidation_threshold)
+    get_revalidation_threshold, get_latest_certification_period)
 from dataactbroker.decorators import convert_to_submission_id
 from dataactbroker.permissions import (requires_login, requires_submission_perms, requires_agency_perms,
                                        requires_sub_agency_perms)
@@ -60,6 +60,11 @@ def add_file_routes(app, is_local, server_path):
     @requires_login
     def revalidation_threshold():
         return JsonResponse.create(StatusCode.OK, get_revalidation_threshold())
+
+    @app.route("/v1/latest_certification_period/", methods=["GET"])
+    @requires_login
+    def latest_certification_period():
+        return JsonResponse.create(StatusCode.OK, get_latest_certification_period())
 
     @app.route("/v1/window/", methods=["GET"])
     def window():

@@ -10,7 +10,7 @@ SELECT
     approp.row_number,
     approp.adjustments_to_unobligated_cpe,
     SUM(sf.amount) AS "expected_value_SUM of GTAS SF133 Lines 1010 through 1042",
-    approp.adjustments_to_unobligated_cpe - SUM(sf.amount) AS "variance"
+    approp.adjustments_to_unobligated_cpe - SUM(sf.amount) AS "difference"
 FROM appropriation_a12_{0} AS approp
     INNER JOIN sf_133 AS sf
         ON approp.tas = sf.tas

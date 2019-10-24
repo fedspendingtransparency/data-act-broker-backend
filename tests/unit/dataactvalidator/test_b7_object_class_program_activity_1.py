@@ -6,7 +6,7 @@ _FILE = 'b7_object_class_program_activity_1'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'gross_outlays_delivered_or_fyb', 'ussgl490800_authority_outl_fyb'}
+    expected_subset = {'row_number', 'gross_outlays_delivered_or_fyb', 'ussgl490800_authority_outl_fyb', 'difference'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
@@ -20,8 +20,9 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test Object Class Program Activity gross_outlays_delivered_or_fyb doesnt' equals
-    ussgl490800_authority_outl_fyb """
+    """ Test Object Class Program Activity gross_outlays_delivered_or_fyb doesn't equal
+        ussgl490800_authority_outl_fyb
+    """
 
     op = ObjectClassProgramActivityFactory(gross_outlays_delivered_or_fyb=1, ussgl490800_authority_outl_fyb=0)
 
