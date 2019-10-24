@@ -21,7 +21,7 @@ before_script:
   - cp dataactcore/config_example.yml dataactcore/config.yml
   - cp dataactcore/local_config_example.yml dataactcore/local_config.yml
   - cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
-  - mdkir ${ERROR_REPORT_PATH}
+  - mkdir ${ERROR_REPORT_PATH}
   - 'sed -i.bak -E "s/host:.*$/host: ${BROKER_DB_HOST}/" dataactcore/local_config.yml'
   - 'sed -i.bak -E "s/port:.*$/port: ${BROKER_DB_PORT}/" dataactcore/local_config.yml'
   - 'sed -i.bak -E "s/error_report_path:.*$/error_report_path: ${ERROR_REPORT_PATH}/" dataactcore/local_config.yml'
