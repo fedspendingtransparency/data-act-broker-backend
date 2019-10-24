@@ -3,7 +3,8 @@
 -- with their GENC country code.
 SELECT
     dafa.row_number,
-    dafa.legal_entity_country_code
+    dafa.legal_entity_country_code,
+    dafa.afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance AS dafa
 WHERE submission_id={0}
     AND NOT EXISTS (

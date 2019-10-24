@@ -4,7 +4,8 @@ SELECT
     row_number,
     legal_entity_country_code,
     record_type,
-    legal_entity_zip_last4
+    legal_entity_zip_last4,
+    afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND UPPER(legal_entity_country_code) = 'USA'

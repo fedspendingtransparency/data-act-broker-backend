@@ -2,7 +2,8 @@
 SELECT
     row_number,
     record_type,
-    legal_entity_zip5
+    legal_entity_zip5,
+    afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type = 1
