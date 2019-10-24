@@ -231,7 +231,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Error Message': 'Value was longer than maximum length for this field.',
                 'Value Provided': 'grossoutlayamountbytas_cpe: 35000000000000000000000000',
                 'Expected Value': 'Max length: 21',
-                'Variance': '',
+                'Difference': '',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '6',
                 'Rule Label': ''
@@ -248,8 +248,9 @@ class ErrorWarningTests(BaseTestValidator):
                 'Error Message': 'All the elements that have FYB in file A are expected in the first submission'
                                  ' for a fiscal year',
                 'Value Provided': 'budgetauthorityunobligatedbalancebroughtforward_fyb: None',
-                'Expected Value': '',
-                'Variance': '',
+                'Expected Value': 'If the reporting period is Quarter 1, a non-null amount should be submitted for the'
+                                  ' following elements: BudgetAuthorityUnobligatedBalanceBroughtForward_FYB',
+                'Difference': '',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '5',
                 'Rule Label': 'A16.1'
@@ -312,7 +313,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Error Message': 'Could not parse this record correctly.',
                 'Value Provided': '',
                 'Expected Value': '',
-                'Variance': '',
+                'Difference': '',
                 'Flex Fields': '',
                 'Row Number': '6',
                 'Rule Label': ''
@@ -330,7 +331,7 @@ class ErrorWarningTests(BaseTestValidator):
                                  ' fixed before the rest of the validation logic is applied to that line.',
                 'Value Provided': 'statusofbudgetaryresourcestotal_cpe: A',
                 'Expected Value': 'This field must be a decimal',
-                'Variance': '',
+                'Difference': '',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '6',
                 'Rule Label': ''
@@ -347,7 +348,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Error Message': 'This field is required for all submissions but was not provided in this row.',
                 'Value Provided': '',
                 'Expected Value': '(not blank)',
-                'Variance': '',
+                'Difference': '',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '3',
                 'Rule Label': ''
@@ -359,8 +360,12 @@ class ErrorWarningTests(BaseTestValidator):
                                  ' + UnobligatedBalance_CPE',
                 'Value Provided': 'statusofbudgetaryresourcestotal_cpe: None, obligationsincurredtotalbytas_cpe: 8.08,'
                                   ' unobligatedbalance_cpe: 2.02',
-                'Expected Value': '',
-                'Variance': '',
+                'Expected Value': 'StatusOfBudgetaryResourcesTotal_CPE must equal the sum of these elements:'
+                                  ' ObligationsIncurredTotalByTAS_CPE + UnobligatedBalance_CPE. The Broker cannot'
+                                  ' distinguish which item is incorrect for this rule. Refer to related rule errors'
+                                  ' and warnings in this report (rules A15, A22, A23) to distinguish which elements'
+                                  ' may be incorrect.',
+                'Difference': '-10.10',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '3',
                 'Rule Label': 'A4'
@@ -369,8 +374,11 @@ class ErrorWarningTests(BaseTestValidator):
                 'Field Name': 'statusofbudgetaryresourcestotal_cpe, totalbudgetaryresources_cpe',
                 'Error Message': 'StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE',
                 'Value Provided': 'statusofbudgetaryresourcestotal_cpe: None, totalbudgetaryresources_cpe: 10.1',
-                'Expected Value': '',
-                'Variance': '',
+                'Expected Value': 'StatusOfBudgetaryResourcesTotal_CPE must equal TotalBudgetaryResources_CPE. The'
+                                  ' Broker cannot distinguish which side of the equation is correct for this rule.'
+                                  ' Refer to related rule errors and warnings in this report (rules A6, A23) to'
+                                  ' distinguish which elements may be incorrect.',
+                'Difference': '-10.1',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '3',
                 'Rule Label': 'A24'
@@ -378,16 +386,30 @@ class ErrorWarningTests(BaseTestValidator):
         ]
         assert report_content == expected_values
 
-        # SQL Validation (with variance)
+        # SQL Validation (with difference)
         report_headers, report_content = self.generate_file_report(RULE_FAILED_ERROR, 'appropriations', warning=False)
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
-                'Field Name': 'totalbudgetaryresources_cpe, budgetauthorityappropriatedamount_cpe, budgetauthorityunobligatedbalancebroughtforward_fyb, adjustmentstounobligatedbalancebroughtforward_cpe, otherbudgetaryresourcesamount_cpe',
-                'Error Message': 'TotalBudgetaryResources_CPE = BudgetAuthorityAppropriatedAmount_CPE + BudgetAuthorityUnobligatedBalanceBroughtForward_FYB + AdjustmentsToUnobligatedBalanceBroughtForward_CPE + OtherBudgetaryResourcesAmount_CPE',
-                'Value Provided': 'totalbudgetaryresources_cpe: 10.1, budgetauthorityappropriatedamount_cpe: 0.01, budgetauthorityunobligatedbalancebroughtforward_fyb: 2.03, adjustmentstounobligatedbalancebroughtforward_cpe: 2.02, otherbudgetaryresourcesamount_cpe: 4.04',
-                'Expected Value': '',
-                'Variance': '2.00',
+                'Field Name': 'totalbudgetaryresources_cpe, budgetauthorityappropriatedamount_cpe,'
+                              ' budgetauthorityunobligatedbalancebroughtforward_fyb,'
+                              ' adjustmentstounobligatedbalancebroughtforward_cpe, otherbudgetaryresourcesamount_cpe',
+                'Error Message': 'TotalBudgetaryResources_CPE = BudgetAuthorityAppropriatedAmount_CPE +'
+                                 ' BudgetAuthorityUnobligatedBalanceBroughtForward_FYB +'
+                                 ' AdjustmentsToUnobligatedBalanceBroughtForward_CPE +'
+                                 ' OtherBudgetaryResourcesAmount_CPE',
+                'Value Provided': 'totalbudgetaryresources_cpe: 10.1, budgetauthorityappropriatedamount_cpe: 0.01,'
+                                  ' budgetauthorityunobligatedbalancebroughtforward_fyb: 3.03,'
+                                  ' adjustmentstounobligatedbalancebroughtforward_cpe: 2.02,'
+                                  ' otherbudgetaryresourcesamount_cpe: 4.04',
+                'Expected Value': 'TotalBudgetaryResources_CPE must equal the sum of these elements:'
+                                  ' BudgetAuthorityAppropriatedAmount_CPE +'
+                                  ' BudgetAuthorityUnobligatedBalanceBroughtForward_FYB +'
+                                  ' AdjustmentsToUnobligatedBalanceBroughtForward_CPE +'
+                                  ' OtherBudgetaryResourcesAmount_CPE. The Broker cannot distinguish which item is'
+                                  ' incorrect for this rule. Refer to related rule errors and warnings in this report'
+                                  ' (rules A3, A6, A7, A8, A12) to distinguish which elements may be incorrect.',
+                'Difference': '1.00',
                 'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '10',
                 'Rule Label': 'A2'
