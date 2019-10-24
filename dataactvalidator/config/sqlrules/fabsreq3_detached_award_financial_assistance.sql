@@ -2,7 +2,8 @@
 SELECT
     row_number,
     record_type,
-    correction_delete_indicatr
+    correction_delete_indicatr,
+    afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type IS NULL

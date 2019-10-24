@@ -2,7 +2,8 @@
 SELECT
     row_number,
     business_funds_indicator,
-    correction_delete_indicatr
+    correction_delete_indicatr,
+    afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND COALESCE(business_funds_indicator, '') = ''
