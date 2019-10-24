@@ -10,7 +10,8 @@ $$ LANGUAGE plpgsql;
 
 SELECT
     row_number,
-    action_date
+    action_date,
+    afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND ((CASE WHEN pg_temp.is_date(COALESCE(action_date, '0'))
