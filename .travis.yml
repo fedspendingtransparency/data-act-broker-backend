@@ -7,7 +7,8 @@ env:
   global:
   - BROKER_DB_HOST=localhost
   - BROKER_DB_PORT=5435
-  - ERROR_REPORT_PATH="dataactcore\/tmp\/"
+  - ERROR_REPORT_PATH="dataactcore/tmp/"
+  - ERROR_REPORT_PATH_ESCAPED="dataactcore\/tmp\/"
 
 install:
   # NOTE: no pip install needed as long as the one of the docker containers started below builds the
@@ -24,7 +25,7 @@ before_script:
   - mkdir ${ERROR_REPORT_PATH}
   - 'sed -i.bak -E "s/host:.*$/host: ${BROKER_DB_HOST}/" dataactcore/local_config.yml'
   - 'sed -i.bak -E "s/port:.*$/port: ${BROKER_DB_PORT}/" dataactcore/local_config.yml'
-  - 'sed -i.bak -E "s/error_report_path:.*$/error_report_path: ${ERROR_REPORT_PATH}/" dataactcore/local_config.yml'
+  - 'sed -i.bak -E "s/error_report_path:.*$/error_report_path: ${ERROR_REPORT_PATH_ESCAPED}/" dataactcore/local_config.yml'
   # Start a containerized database to use for tests, which also pulls pip packages required for build as the image is built
   - docker-compose up -d dataact-broker-db dataact-broker-init-db
 
