@@ -8,7 +8,8 @@ _FILE = 'b13_object_class_program_activity'
 def test_column_headers(database):
     expected_subset = {'row_number', 'deobligations_recov_by_pro_cpe', 'ussgl487100_downward_adjus_cpe',
                        'ussgl487200_downward_adjus_cpe', 'ussgl497100_downward_adjus_cpe',
-                       'ussgl497200_downward_adjus_cpe', 'difference'}
+                       'ussgl497200_downward_adjus_cpe', 'difference', 'uniqueid_TAS', 'uniqueid_ProgramActivityCode',
+                       'uniqueid_ObjectClass'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 

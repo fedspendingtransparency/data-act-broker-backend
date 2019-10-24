@@ -11,7 +11,11 @@ SELECT
     sub_account_code,
     object_class,
     program_activity_code,
-    by_direct_reimbursable_fun
+    by_direct_reimbursable_fun,
+    tas AS "uniqueid_TAS",
+    program_activity_code AS "uniqueid_ProgramActivityCode",
+    object_class AS "uniqueid_ObjectClass",
+    by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource"
 FROM (
     SELECT op.row_number,
         op.beginning_period_of_availa,
@@ -25,6 +29,7 @@ FROM (
         op.program_activity_code,
         op.by_direct_reimbursable_fun,
         op.submission_id,
+        op.tas,
         -- numbers all instances of this unique combination incrementally (1, 2, 3, etc)
         ROW_NUMBER() OVER (PARTITION BY
             op.beginning_period_of_availa,
