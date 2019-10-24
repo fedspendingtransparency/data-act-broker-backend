@@ -7,7 +7,7 @@ env:
   global:
   - BROKER_DB_HOST=localhost
   - BROKER_DB_PORT=5435
-  - ERROR_REPORT_PATH=dataactcore/tmp/
+  - ERROR_REPORT_PATH=dataactcore\/tmp\/
 
 install:
   # NOTE: no pip install needed as long as the one of the docker containers started below builds the
