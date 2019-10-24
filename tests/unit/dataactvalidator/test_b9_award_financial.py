@@ -9,8 +9,8 @@ _FILE = 'b9_award_financial'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'agency_identifier', 'main_account_code',
-                       'program_activity_name', 'program_activity_code'}
+    expected_subset = {'row_number', 'agency_identifier', 'main_account_code', 'program_activity_name',
+                       'program_activity_code', 'uniqueid_TAS', 'uniqueid_ProgramActivityCode'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
