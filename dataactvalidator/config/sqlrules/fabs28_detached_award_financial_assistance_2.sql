@@ -2,7 +2,8 @@
 SELECT
     row_number,
     assistance_type,
-    face_value_loan_guarantee
+    face_value_loan_guarantee,
+    afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND assistance_type <> '07'

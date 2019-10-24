@@ -1,7 +1,8 @@
 -- When provided, AwardingSubTierAgencyCode must be a valid 4-character sub-tier agency code from the Federal Hierarchy.
 SELECT
     row_number,
-    awarding_sub_tier_agency_c
+    awarding_sub_tier_agency_c,
+    afa_generated_unique AS "uniqueid_afa_generated_unique"
 FROM detached_award_financial_assistance AS dafa
 WHERE submission_id = {0}
     AND COALESCE(awarding_sub_tier_agency_c, '') <> ''
