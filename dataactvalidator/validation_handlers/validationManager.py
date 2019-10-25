@@ -51,7 +51,7 @@ class ValidationManager:
     report_headers = ['Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Difference', 'Flex Fields',
                       'Row Number', 'Rule Label']
     cross_file_report_headers = ['Unique ID', 'Source File', 'Source Field Names', 'Target File', 'Target Field Names',
-                                 'Error message', 'Source Values Provided', 'Target Values Provided', 'Variance',
+                                 'Error message', 'Source Values Provided', 'Target Values Provided', 'Difference',
                                  'Source Flex Fields', 'Source Row Number', 'Target Flex Fields', 'Target Row Number',
                                  'Rule label']
 
