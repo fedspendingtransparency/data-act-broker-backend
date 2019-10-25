@@ -7,7 +7,8 @@ SELECT
     place_of_performance_congr,
     place_of_performance_zip4a,
     place_of_perform_country_c,
-    record_type
+    record_type,
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND COALESCE(place_of_performance_zip4a, '') !~ '^\d\d\d\d\d\-?\d\d\d\d$'

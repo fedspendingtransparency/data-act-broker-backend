@@ -8,7 +8,8 @@ SELECT
     dafa.uri,
     dafa.awarding_sub_tier_agency_c,
     dafa.cfda_number,
-    dafa.correction_delete_indicatr
+    dafa.correction_delete_indicatr,
+    dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance AS dafa
 WHERE dafa.submission_id = {0}
     AND COALESCE(UPPER(dafa.correction_delete_indicatr), '') = 'C'
