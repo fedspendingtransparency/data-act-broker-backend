@@ -8,6 +8,7 @@ from dataactcore.models.lookups import (FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATU
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.userModel import User
 from dataactcore.models.errorModels import ErrorMetadata
+from dataactcore.models.stagingModels import Appropriation, ObjectClassProgramActivity
 from dataactvalidator.health_check import create_app
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 from dataactbroker.handlers.fileHandler import report_file_name
@@ -196,10 +197,9 @@ class ErrorWarningTests(BaseTestValidator):
             for row in reader:
                 report_content.append(row)
             report_headers = reader.fieldnames
-        self.cleanup()
         return report_headers, report_content
 
-    def generate_file_report(self, file, file_type, warning=False, ignore_error=False):
+    def generate_file_report(self, file, file_type, warning=False, ignore_error=False, cleanup=True):
         self.setup_csv_record_validation(file, file_type)
         if ignore_error:
             try:
@@ -209,13 +209,17 @@ class ErrorWarningTests(BaseTestValidator):
         else:
             self.validator.validate_job(self.val_job.job_id)
         report_path = self.get_report_path(file_type, warning=warning)
-        return self.get_report_content(report_path)
+        report_content = self.get_report_content(report_path)
+        if cleanup:
+            self.cleanup()
+        return report_content
 
-    def generate_cross_file_report(self, cross_files, warning=False, ignore_error=False):
+    def generate_cross_file_report(self, cross_files, warning=False, ignore_error=False, cleanup=True):
         cross_types = []
         for cross_file in cross_files:
             cross_types.append(cross_file[1])
-            self.generate_file_report(cross_file[0], cross_file[1], warning=warning, ignore_error=ignore_error)
+            self.generate_file_report(cross_file[0], cross_file[1], warning=warning, ignore_error=ignore_error,
+                                      cleanup=False)
 
         self.setup_validation()
         if ignore_error:
@@ -226,12 +230,17 @@ class ErrorWarningTests(BaseTestValidator):
         else:
             self.validator.validate_job(self.val_job.job_id)
         report_path = self.get_report_path(cross_types[0], cross_type=cross_types[1], warning=warning)
-        return self.get_report_content(report_path)
+        report_content = self.get_report_content(report_path)
+        if cleanup:
+            self.cleanup()
+        return report_content
 
     def cleanup(self):
         new_reports = set(os.listdir(CONFIG_SERVICES['error_report_path'])) - self.original_reports
         for new_report in new_reports:
             os.remove(os.path.join(CONFIG_SERVICES['error_report_path'], new_report))
+        self.session.query(Appropriation).delete(synchronize_session='fetch')
+        self.session.query(ObjectClassProgramActivity).delete(synchronize_session='fetch')
         self.session.query(ErrorMetadata).delete(synchronize_session='fetch')
         self.session.commit()
 
