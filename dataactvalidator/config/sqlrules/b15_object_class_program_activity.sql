@@ -23,19 +23,19 @@ WITH object_class_program_activity_b15_{0} AS
 SELECT DISTINCT
     NULL AS row_number,
     op.tas,
-    SUM(op.ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum,
-    SUM(op.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum,
-    SUM(op.ussgl480200_undelivered_or_cpe) AS ussgl480200_undelivered_or_cpe_sum,
-    SUM(op.ussgl480200_undelivered_or_fyb) AS ussgl480200_undelivered_or_fyb_sum,
-    SUM(op.ussgl488100_upward_adjustm_cpe) AS ussgl488100_upward_adjustm_cpe_sum,
-    SUM(op.ussgl488200_upward_adjustm_cpe) AS ussgl488200_upward_adjustm_cpe_sum,
-    SUM(op.ussgl490100_delivered_orde_cpe) AS ussgl490100_delivered_orde_cpe_sum,
-    SUM(op.ussgl490100_delivered_orde_fyb) AS ussgl490100_delivered_orde_fyb_sum,
-    SUM(op.ussgl490200_delivered_orde_cpe) AS ussgl490200_delivered_orde_cpe_sum,
-    SUM(op.ussgl490800_authority_outl_cpe) AS ussgl490800_authority_outl_cpe_sum,
-    SUM(op.ussgl490800_authority_outl_fyb) AS ussgl490800_authority_outl_fyb_sum,
-    SUM(op.ussgl498100_upward_adjustm_cpe) AS ussgl498100_upward_adjustm_cpe_sum,
-    SUM(op.ussgl498200_upward_adjustm_cpe) AS ussgl498200_upward_adjustm_cpe_sum,
+    SUM(ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum,
+    SUM(ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum,
+    SUM(ussgl480200_undelivered_or_cpe) AS ussgl480200_undelivered_or_cpe_sum,
+    SUM(ussgl480200_undelivered_or_fyb) AS ussgl480200_undelivered_or_fyb_sum,
+    SUM(ussgl488100_upward_adjustm_cpe) AS ussgl488100_upward_adjustm_cpe_sum,
+    SUM(ussgl488200_upward_adjustm_cpe) AS ussgl488200_upward_adjustm_cpe_sum,
+    SUM(ussgl490100_delivered_orde_cpe) AS ussgl490100_delivered_orde_cpe_sum,
+    SUM(ussgl490100_delivered_orde_fyb) AS ussgl490100_delivered_orde_fyb_sum,
+    SUM(ussgl490200_delivered_orde_cpe) AS ussgl490200_delivered_orde_cpe_sum,
+    SUM(ussgl490800_authority_outl_cpe) AS ussgl490800_authority_outl_cpe_sum,
+    SUM(ussgl490800_authority_outl_fyb) AS ussgl490800_authority_outl_fyb_sum,
+    SUM(ussgl498100_upward_adjustm_cpe) AS ussgl498100_upward_adjustm_cpe_sum,
+    SUM(ussgl498200_upward_adjustm_cpe) AS ussgl498200_upward_adjustm_cpe_sum,
     sf.amount AS "expected_value_GTAS SF133 Line 2104",
     (SUM(ussgl480100_undelivered_or_cpe) - SUM(ussgl480100_undelivered_or_fyb) +
         SUM(ussgl480200_undelivered_or_cpe) - SUM(ussgl480200_undelivered_or_fyb) +
@@ -46,7 +46,8 @@ SELECT DISTINCT
         SUM(ussgl490800_authority_outl_cpe) - SUM(ussgl490800_authority_outl_fyb) +
         SUM(ussgl498100_upward_adjustm_cpe) +
         SUM(ussgl498200_upward_adjustm_cpe)
-    ) - sf.amount AS "difference"
+    ) - sf.amount AS "difference",
+    op.tas AS "uniqueid_TAS"
 FROM object_class_program_activity_b15_{0} AS op
     INNER JOIN sf_133 AS sf
         ON op.tas = sf.tas
