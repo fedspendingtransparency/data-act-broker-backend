@@ -1,10 +1,12 @@
 import os
 import csv
+from flask_bcrypt import Bcrypt
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_SERVICES
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.domainModels import concat_tas_dict
+from dataactcore.interfaces.function_bag import create_user_with_password
 from tests.unit.dataactcore.factories.domain import SF133Factory, TASFactory
 from dataactvalidator.health_check import create_app
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
@@ -17,7 +19,7 @@ from tests.integration.integration_test_helper import insert_submission, insert_
 FILES_DIR = os.path.join('tests', 'integration', 'data')
 
 # Valid Files
-APPROP_FILE_T = os.path.join(FILES_DIR, 'appropValid.csv')
+APPROP_FILE = os.path.join(FILES_DIR, 'appropValid.csv')
 CROSS_FILE_A = os.path.join(FILES_DIR, 'cross_file_A.csv')
 CROSS_FILE_B = os.path.join(FILES_DIR, 'cross_file_B.csv')
 
@@ -34,10 +36,9 @@ INVALID_CROSS_B = os.path.join(FILES_DIR, 'invalid_cross_file_B.csv')
 
 
 class ErrorWarningTests(BaseTestValidator):
-    """
-    Overall integration tests for error/warning reports.
+    """ Overall integration tests for error/warning reports.
 
-    For each file type (single-file, cross-file, errors, warnings), test if each has
+        For each file type (single-file, cross-file, errors, warnings), test if each has
         - the correct structure
         - each column's content is correct after testing each possible type of error:
             - formatting
@@ -45,6 +46,13 @@ class ErrorWarningTests(BaseTestValidator):
             - types
             - required/optional
             - SQL validation
+
+        Attributes:
+            session: the database session connection
+            validator: validator instance to be used for the tests
+            submission_id: the id of the submission foundation
+            submission: the submission foundation to be used for all the tests
+            val_job: the validation job to be used for all the tests
     """
 
     @classmethod
@@ -56,12 +64,19 @@ class ErrorWarningTests(BaseTestValidator):
             # get the submission test users
             sess = GlobalDB.db().session
             cls.session = sess
-            cls.admin_user_id = 1
+
+            # set up default e-mails for tests
+            test_users = {
+                'admin_user': 'data.act.tester.1@gmail.com',
+            }
+            admin_password = '@pprovedPassw0rdy'
+            admin_user = create_user_with_password(test_users["admin_user"], admin_password, Bcrypt(),
+                                                   website_admin=True)
 
             cls.validator = ValidationManager(directory=CONFIG_SERVICES['error_report_path'])
 
             # Just have one valid submission and then keep on reloading files
-            cls.submission_id = insert_submission(sess, cls.admin_user_id, cgac_code='SYS', start_date='01/2001',
+            cls.submission_id = insert_submission(sess, admin_user.user_id, cgac_code='SYS', start_date='01/2001',
                                                   end_date='03/2001', is_quarter=True)
             cls.submission = sess.query(Submission).filter_by(submission_id=cls.submission_id).one()
             cls.val_job = insert_job(cls.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['ready'],
@@ -153,7 +168,7 @@ class ErrorWarningTests(BaseTestValidator):
                                   ending_period_of_availabil='2016', availability_type_code=None,
                                   main_account_code='0100', sub_account_code='000', period=6, fiscal_year=2001)
             sess.add_all([gtas1, gtas2, gtas3, gtas4, gtas5, gtas6, gtas7, gtas8, gtas9, gtas10])
-            sess.flush()
+            sess.commit()
 
     def setUp(self):
         """Test set-up."""
@@ -218,7 +233,7 @@ class ErrorWarningTests(BaseTestValidator):
 
     def test_single_file_warnings(self):
         # Valid
-        report_headers, report_content = self.generate_file_report(APPROP_FILE_T, 'appropriations', warning=True)
+        report_headers, report_content = self.generate_file_report(APPROP_FILE, 'appropriations', warning=True)
         assert report_headers == self.validator.report_headers
         assert len(report_content) == 0
 
@@ -260,7 +275,7 @@ class ErrorWarningTests(BaseTestValidator):
 
     def test_single_file_errors(self):
         # Valid
-        report_headers, report_content = self.generate_file_report(APPROP_FILE_T, 'appropriations', warning=False)
+        report_headers, report_content = self.generate_file_report(APPROP_FILE, 'appropriations', warning=False)
         assert report_headers == self.validator.report_headers
         assert len(report_content) == 0
 

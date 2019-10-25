@@ -9,20 +9,17 @@ from webtest import TestApp
 from dataactcore.logging import configure_logging
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import create_user_with_password, get_password_hash
+from dataactcore.interfaces.function_bag import create_user_with_password
 from dataactcore.scripts.database_setup import drop_database
 from dataactcore.scripts.setup_job_tracker_db import setup_job_tracker_db
 from dataactcore.scripts.setup_error_db import setup_error_db
 from dataactcore.scripts.setup_validation_db import setup_validation_db
 from dataactcore.scripts.initialize import load_sql_rules
 from dataactcore.models.jobModels import Submission
-from dataactcore.models.lookups import ALL_PERMISSION_TYPES_DICT
-from dataactcore.models.userModel import UserAffiliation
 from dataactcore.models.domainModels import CGAC
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
 from dataactcore.scripts.database_setup import create_database, run_migrations
-from tests.unit.dataactcore.factories.user import UserFactory
 import dataactcore.config
 
 basePath = CONFIG_BROKER["path"]
@@ -61,7 +58,6 @@ class BaseTestValidator(unittest.TestCase):
             'no_permissions_user': 'data.act.tester.4@gmail.com',
             'editfabs_user': 'data.act.test.5@gmail.com'
         }
-        user_password = '!passw0rdUp!'
         admin_password = '@pprovedPassw0rdy'
 
         cgac = CGAC(cgac_code='000', agency_name='Example Agency')
@@ -88,20 +84,6 @@ class BaseTestValidator(unittest.TestCase):
 
         SchemaLoader.load_all_from_path(validator_config_path)
         load_sql_rules()
-
-        # set up users for status tests
-        def add_user(email, name, username, permission_type=ALL_PERMISSION_TYPES_DICT['writer'],
-                     website_admin=False):
-            user = UserFactory(
-                email=email, website_admin=website_admin,
-                name=name, username=username,
-                affiliations=[UserAffiliation(
-                    cgac=cgac,
-                    permission_type_id=permission_type
-                )]
-            )
-            user.salt, user.password_hash = get_password_hash(user_password, Bcrypt())
-            sess.add(user)
 
         create_user_with_password(test_users["admin_user"], admin_password, Bcrypt(), website_admin=True)
         cls.userId = None
