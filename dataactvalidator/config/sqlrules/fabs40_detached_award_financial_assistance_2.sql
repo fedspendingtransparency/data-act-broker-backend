@@ -3,7 +3,8 @@
 SELECT
     row_number,
     place_of_performance_code,
-    record_type
+    record_type,
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type = 1

@@ -6,7 +6,8 @@ SELECT
     award_modification_amendme,
     uri,
     awarding_sub_tier_agency_c,
-    cfda_number
+    cfda_number,
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM (
     SELECT dafa.row_number,
         dafa.fain,
@@ -14,6 +15,7 @@ FROM (
         dafa.uri,
         dafa.awarding_sub_tier_agency_c,
         dafa.cfda_number,
+        dafa.afa_generated_unique,
         ROW_NUMBER() OVER (PARTITION BY
             UPPER(dafa.afa_generated_unique)
         ) AS row
