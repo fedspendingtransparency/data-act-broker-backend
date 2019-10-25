@@ -1,18 +1,17 @@
 import os
 import csv
-from flask_bcrypt import Bcrypt
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_SERVICES
-from dataactcore.models.jobModels import Submission
 from dataactcore.models.domainModels import concat_tas_dict
-from dataactcore.interfaces.function_bag import create_user_with_password
-from tests.unit.dataactcore.factories.domain import SF133Factory, TASFactory
+from dataactcore.models.lookups import (FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT)
+from dataactcore.models.jobModels import Submission
+from dataactcore.models.userModel import User
 from dataactvalidator.health_check import create_app
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
-from dataactcore.models.lookups import (FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT)
 from dataactbroker.handlers.fileHandler import report_file_name
 
+from tests.unit.dataactcore.factories.domain import SF133Factory, TASFactory
 from tests.integration.baseTestValidator import BaseTestValidator
 from tests.integration.integration_test_helper import insert_submission, insert_job
 
@@ -66,12 +65,7 @@ class ErrorWarningTests(BaseTestValidator):
             cls.session = sess
 
             # set up default e-mails for tests
-            test_users = {
-                'admin_user': 'data.act.tester.1@gmail.com',
-            }
-            admin_password = '@pprovedPassw0rdy'
-            admin_user = create_user_with_password(test_users["admin_user"], admin_password, Bcrypt(),
-                                                   website_admin=True)
+            admin_user = sess.query(User).filter(User.email == cls.test_users['admin_user']).one()
 
             cls.validator = ValidationManager(directory=CONFIG_SERVICES['error_report_path'])
 

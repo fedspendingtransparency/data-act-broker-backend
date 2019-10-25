@@ -87,6 +87,7 @@ class BaseTestValidator(unittest.TestCase):
 
         create_user_with_password(test_users["admin_user"], admin_password, Bcrypt(), website_admin=True)
         cls.userId = None
+        cls.test_users = test_users
         # constants to use for default submission start and end dates
         cls.SUBMISSION_START_DEFAULT = datetime(2015, 10, 1)
         cls.SUBMISSION_END_DEFAULT = datetime(2015, 10, 31)
