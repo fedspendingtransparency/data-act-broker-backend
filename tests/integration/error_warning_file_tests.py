@@ -7,6 +7,7 @@ from dataactcore.models.domainModels import concat_tas_dict
 from dataactcore.models.lookups import (FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT)
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.userModel import User
+from dataactcore.models.errorModels import ErrorMetadata
 from dataactvalidator.health_check import create_app
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 from dataactbroker.handlers.fileHandler import report_file_name
@@ -76,6 +77,7 @@ class ErrorWarningTests(BaseTestValidator):
             cls.val_job = insert_job(cls.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['ready'],
                                      JOB_TYPE_DICT['csv_record_validation'], cls.submission_id,
                                      filename=JOB_TYPE_DICT['csv_record_validation'])
+            cls.original_reports = set(os.listdir(CONFIG_SERVICES['error_report_path']))
 
             # adding TAS to ensure valid file is valid
             tas1 = TASFactory(account_num=1, allocation_transfer_agency='019', agency_identifier='072',
@@ -194,6 +196,7 @@ class ErrorWarningTests(BaseTestValidator):
             for row in reader:
                 report_content.append(row)
             report_headers = reader.fieldnames
+        self.cleanup()
         return report_headers, report_content
 
     def generate_file_report(self, file, file_type, warning=False, ignore_error=False):
@@ -224,6 +227,13 @@ class ErrorWarningTests(BaseTestValidator):
             self.validator.validate_job(self.val_job.job_id)
         report_path = self.get_report_path(cross_types[0], cross_type=cross_types[1], warning=warning)
         return self.get_report_content(report_path)
+
+    def cleanup(self):
+        new_reports = set(os.listdir(CONFIG_SERVICES['error_report_path'])) - self.original_reports
+        for new_report in new_reports:
+            os.remove(os.path.join(CONFIG_SERVICES['error_report_path'], new_report))
+        self.session.query(ErrorMetadata).delete(synchronize_session='fetch')
+        self.session.commit()
 
     def test_single_file_warnings(self):
         # Valid
