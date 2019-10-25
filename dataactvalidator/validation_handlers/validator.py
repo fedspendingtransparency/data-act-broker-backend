@@ -218,7 +218,8 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
                     'job_id': job.job_id,
                     'submission_id': submission_id
                 })
-                flex_data = relevant_cross_flex_data(failed_row_subset, submission_id, [first_file, second_file])
+                source_flex_data, target_flex_data = relevant_cross_flex_data(failed_row_subset, submission_id,
+                                                                              rule.file_id, rule.target_file_id)
                 logger.info({
                     'message': 'Finished flex field gathering for cross-file rule ' +
                                '{} on submission_id: {} for '.format(rule.query_name, str(submission_id)) +
@@ -231,29 +232,28 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
 
                 for row in failed_row_subset:
                     # get list of values for each column
-                    values = ["{}: {}".format(short_to_long_dict[c], str(row[c])) if c in short_to_long_dict else
-                              "{}: {}".format(c, str(row[c])) for c in cols]
+                    values = ["{}: {}".format(short_to_long_dict[c], str(row[c] or '')) if c in short_to_long_dict else
+                              "{}: {}".format(c, str(row[c] or '')) for c in cols]
                     values = ", ".join(values)
-                    full_column_string = column_string
-                    # go through all flex fields in this row and add to the columns and values
-                    for field in flex_data[row['row_number']]:
-                        full_column_string += ", " + field.header + "_file" +\
-                                              FILE_TYPE_DICT_LETTER[field.file_type_id].lower()
-                        values += ", {}: {}".format(field.header + "_file" +
-                                                    FILE_TYPE_DICT_LETTER[field.file_type_id].lower(), field.cell)
+                    # Getting all flex fields organized
+                    source_flex_list = ['{}: {}'.format(flex_field.header, flex_field.cell if flex_field.cell else '')
+                                        for flex_field in source_flex_data[row['row_number']]]
+                    target_flex_list = ['{}: {}'.format(flex_field.header, flex_field.cell if flex_field.cell else '')
+                                        for flex_field in target_flex_data[row['row_number']]]
 
                     target_file_type = FILE_TYPE_DICT_ID[rule.target_file_id]
 
-                    failure = [rule.file.name, target_file_type, full_column_string, str(rule.rule_error_message),
-                               values, row['row_number'], str(rule.rule_label), rule.file_id, rule.target_file_id,
+                    failure = ['unique_id', rule.file.name, column_string, target_file_type, 'target field names',
+                               str(rule.rule_error_message), values, 'target vals', 'variance',
+                               ', '.join(source_flex_list), row['row_number'], ', '.join(target_flex_list),
+                               'target row num', str(rule.rule_label), rule.file_id, rule.target_file_id,
                                rule.rule_severity_id]
-                    if failure[9] == RULE_SEVERITY_DICT['fatal']:
-                        error_csv.writerow(failure[0:7])
-                    if failure[9] == RULE_SEVERITY_DICT['warning']:
-                        warning_csv.writerow(failure[0:7])
-                    error_list.record_row_error(job_id, "cross_file",
-                                                failure[0], failure[3], failure[5], failure[6],
-                                                failure[7], failure[8], severity_id=failure[9])
+                    if failure[16] == RULE_SEVERITY_DICT['fatal']:
+                        error_csv.writerow(failure[0:14])
+                    if failure[16] == RULE_SEVERITY_DICT['warning']:
+                        warning_csv.writerow(failure[0:14])
+                    error_list.record_row_error(job_id, "cross_file", failure[1], failure[5], failure[10], failure[13],
+                                                failure[14], failure[15], severity_id=failure[16])
                 slice_start = slice_start + slice_size
 
         rule_duration = (datetime.now()-rule_start).total_seconds()
@@ -390,28 +390,32 @@ def relevant_flex_data(failures, job_id):
     return flex_data
 
 
-def relevant_cross_flex_data(failed_rows, submission_id, files):
+def relevant_cross_flex_data(failed_rows, submission_id, source_file, target_file):
     """Create a dictionary mapping row numbers of cross-file failures to lists of FlexFields"""
     sess = GlobalDB.db().session
-    flex_data = defaultdict(list)
+    source_flex_data = defaultdict(list)
+    target_flex_data = defaultdict(list)
     fail_string = "), (".join(str(f['row_number']) for f in failed_rows if f['row_number'])
     # only do the rest of this gathering if there's any rows to search in the first place, there is at least
     # one rule that returns NULL for row_number
     if fail_string:
-        file_types = ", ".join(str(f) for f in files)
         # VALUES and EXISTS are ridiculous in sqlalchemy, using raw sql for this
-        query = (
-            "WITH all_values AS(SELECT * FROM(VALUES (" + fail_string + ")) as all_flexs(row_number)) " +
-            "SELECT * " +
-            "FROM flex_field " +
-            "WHERE submission_id = " + str(submission_id) +
-            " AND file_type_id IN (" + file_types + ")" +
-            " AND EXISTS (SELECT * FROM all_values WHERE flex_field.row_number = all_values.row_number)"
-        )
-        query_result = sess.execute(query)
+        query = """
+            WITH all_values AS(SELECT * FROM(VALUES ({})) as all_flexs(row_number))
+            SELECT *
+            FROM flex_field
+            WHERE submission_id = {}
+            AND file_type_id = {}
+            AND EXISTS (SELECT * FROM all_values WHERE flex_field.row_number = all_values.row_number)
+        """
+        query_result = sess.execute(query.format(fail_string, submission_id, source_file))
         for flex_field in query_result:
-            flex_data[flex_field.row_number].append(flex_field)
-    return flex_data
+            source_flex_data[flex_field.row_number].append(flex_field)
+
+        query_result = sess.execute(query.format(fail_string, submission_id, target_file))
+        for flex_field in query_result:
+            target_flex_data[flex_field.row_number].append(flex_field)
+    return source_flex_data, target_flex_data
 
 
 def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failure):

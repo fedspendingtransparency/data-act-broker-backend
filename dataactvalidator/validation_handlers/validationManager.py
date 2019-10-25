@@ -50,8 +50,10 @@ class ValidationManager:
     """ Outer level class, called by flask route """
     report_headers = ['Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Difference', 'Flex Fields',
                       'Row Number', 'Rule Label']
-    cross_file_report_headers = ['Source File', 'Target File', 'Field names', 'Error message', 'Values provided',
-                                 'Row number', 'Rule label']
+    cross_file_report_headers = ['Unique ID', 'Source File', 'Source Field Names', 'Target File', 'Target Field Names',
+                                 'Error message', 'Source Values Provided', 'Target Values Provided', 'Variance',
+                                 'Source Flex Fields', 'Source Row Number', 'Target Flex Fields', 'Target Row Number',
+                                 'Rule label']
 
     def __init__(self, is_local=True, directory=""):
         # Initialize instance variables
@@ -462,7 +464,7 @@ class ValidationManager:
             mark_job_status(job_id, "finished")
             mark_file_complete(job_id, file_name)
 
-        except Exception as e:
+        except Exception:
             logger.error({
                 'message': 'An exception occurred during validation',
                 'message_type': 'ValidatorInfo',
