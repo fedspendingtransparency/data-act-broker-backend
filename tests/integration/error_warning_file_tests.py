@@ -125,43 +125,43 @@ class ErrorWarningTests(BaseTestValidator):
 
             # adding GTAS to ensure valid file is valid
             gtas1 = SF133Factory(tas=concat_tas_dict(tas1.component_dict()), allocation_transfer_agency='019',
-                                 agency_identifier='072', beginning_period_of_availa=None,
+                                 agency_identifier='072', beginning_period_of_availa=None, line=1009,
                                  ending_period_of_availabil=None, availability_type_code='X',
                                  main_account_code='0306', sub_account_code='000', period=6, fiscal_year=2001)
             gtas2 = SF133Factory(tas=concat_tas_dict(tas2.component_dict()), allocation_transfer_agency=None,
-                                 agency_identifier='019', beginning_period_of_availa='2016',
+                                 agency_identifier='019', beginning_period_of_availa='2016', line=1009,
                                  ending_period_of_availabil='2016', availability_type_code=None,
                                  main_account_code='0113', sub_account_code='000', period=6, fiscal_year=2001)
             gtas3 = SF133Factory(tas=concat_tas_dict(tas3.component_dict()), allocation_transfer_agency=None,
-                                 agency_identifier='028', beginning_period_of_availa=None,
+                                 agency_identifier='028', beginning_period_of_availa=None, line=1009,
                                  ending_period_of_availabil=None, availability_type_code='X',
                                  main_account_code='0406', sub_account_code='000', period=6, fiscal_year=2001)
             gtas4 = SF133Factory(tas=concat_tas_dict(tas4.component_dict()), allocation_transfer_agency=None,
-                                 agency_identifier='028', beginning_period_of_availa='2010',
+                                 agency_identifier='028', beginning_period_of_availa='2010', line=1009,
                                  ending_period_of_availabil='2011', availability_type_code=None,
                                  main_account_code='0406', sub_account_code='000', period=6, fiscal_year=2001)
             gtas5 = SF133Factory(tas=concat_tas_dict(tas5.component_dict()), allocation_transfer_agency='069',
-                                 agency_identifier='013', beginning_period_of_availa=None,
+                                 agency_identifier='013', beginning_period_of_availa=None, line=1009,
                                  ending_period_of_availabil=None, availability_type_code='X',
                                  main_account_code='2050', sub_account_code='005', period=6, fiscal_year=2001)
             gtas6 = SF133Factory(tas=concat_tas_dict(tas6.component_dict()), allocation_transfer_agency='028',
-                                 agency_identifier='028', beginning_period_of_availa=None,
+                                 agency_identifier='028', beginning_period_of_availa=None, line=1009,
                                  ending_period_of_availabil=None, availability_type_code='X',
                                  main_account_code='8007', sub_account_code='000', period=6, fiscal_year=2001)
             gtas7 = SF133Factory(tas=concat_tas_dict(tas7.component_dict()), allocation_transfer_agency=None,
-                                 agency_identifier='049', beginning_period_of_availa=None,
+                                 agency_identifier='049', beginning_period_of_availa=None, line=1009,
                                  ending_period_of_availabil=None, availability_type_code='X',
                                  main_account_code='0100', sub_account_code='000', period=6, fiscal_year=2001)
             gtas8 = SF133Factory(tas=concat_tas_dict(tas8.component_dict()), allocation_transfer_agency=None,
-                                 agency_identifier='049', beginning_period_of_availa='2010',
+                                 agency_identifier='049', beginning_period_of_availa='2010', line=1009,
                                  ending_period_of_availabil='2011', availability_type_code=None,
                                  main_account_code='0100', sub_account_code='000', period=6, fiscal_year=2001)
             gtas9 = SF133Factory(tas=concat_tas_dict(tas9.component_dict()), allocation_transfer_agency=None,
-                                 agency_identifier='049', beginning_period_of_availa='2014',
+                                 agency_identifier='049', beginning_period_of_availa='2014', line=1009,
                                  ending_period_of_availabil='2015', availability_type_code=None,
                                  main_account_code='0100', sub_account_code='000', period=6, fiscal_year=2001)
             gtas10 = SF133Factory(tas=concat_tas_dict(tas10.component_dict()), allocation_transfer_agency=None,
-                                  agency_identifier='049', beginning_period_of_availa='2015',
+                                  agency_identifier='049', beginning_period_of_availa='2015', line=1009,
                                   ending_period_of_availabil='2016', availability_type_code=None,
                                   main_account_code='0100', sub_account_code='000', period=6, fiscal_year=2001)
             sess.add_all([gtas1, gtas2, gtas3, gtas4, gtas5, gtas6, gtas7, gtas8, gtas9, gtas10])
@@ -443,7 +443,6 @@ class ErrorWarningTests(BaseTestValidator):
                 'Rule Label': 'A2'
             }
         ]
-        print(report_content)
         assert report_content == expected_values
 
     def test_cross_file_warnings(self):
