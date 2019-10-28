@@ -156,8 +156,7 @@ class Validator(object):
         raise ValueError("".join(["Data Type Error, Type: ", datatype, ", Value: ", data]))
 
 
-def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, second_file, job, error_csv, warning_csv,
-                       error_list, job_id):
+def cross_validate_sql(rules, submission_id, short_to_long_dict, job, error_csv, warning_csv, error_list, job_id):
     """ Evaluate all sql-based rules for cross file validation
 
     Args:
