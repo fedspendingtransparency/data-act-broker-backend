@@ -9,10 +9,7 @@ _FILE = 'a18_cross_file'
 
 
 def test_column_headers(database):
-    expected_subset = {'source_row_number', 'source_value_allocation_transfer_agency', 'source_value_agency_identifier',
-                       'source_value_beginning_period_of_availa', 'source_value_ending_period_of_availabil',
-                       'source_value_availability_type_code', 'source_value_main_account_code',
-                       'source_value_sub_account_code', 'source_value_gross_outlay_amount_by_tas_cpe',
+    expected_subset = {'source_row_number', 'source_value_gross_outlay_amount_by_tas_cpe',
                        'target_value_gross_outlay_amount_by_pro_cpe_sum', 'difference', 'uniqueid_TAS'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset

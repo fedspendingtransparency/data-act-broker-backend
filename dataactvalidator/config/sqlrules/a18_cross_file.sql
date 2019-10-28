@@ -17,13 +17,6 @@ WITH appropriation_a18_{0} AS
     WHERE submission_id = {0})
 SELECT
     approp.row_number AS "source_row_number",
-    approp.allocation_transfer_agency AS "source_value_allocation_transfer_agency",
-    approp.agency_identifier AS "source_value_agency_identifier",
-    approp.beginning_period_of_availa AS "source_value_beginning_period_of_availa",
-    approp.ending_period_of_availabil AS "source_value_ending_period_of_availabil",
-    approp.availability_type_code AS "source_value_availability_type_code",
-    approp.main_account_code AS "source_value_main_account_code",
-    approp.sub_account_code AS "source_value_sub_account_code",
     approp.gross_outlay_amount_by_tas_cpe AS "source_value_gross_outlay_amount_by_tas_cpe",
     SUM(op.gross_outlay_amount_by_pro_cpe) AS "target_value_gross_outlay_amount_by_pro_cpe_sum",
     approp.gross_outlay_amount_by_tas_cpe - SUM(op.gross_outlay_amount_by_pro_cpe) AS "difference",
