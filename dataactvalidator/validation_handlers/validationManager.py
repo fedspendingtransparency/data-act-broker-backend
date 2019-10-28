@@ -607,8 +607,8 @@ class ValidationManager:
                 # send comboRules to validator.crossValidate sql
                 current_cols_short_to_long = self.short_to_long_dict[first_file.id].copy()
                 current_cols_short_to_long.update(self.short_to_long_dict[second_file.id].copy())
-                cross_validate_sql(combo_rules.all(), submission_id, current_cols_short_to_long, job, error_csv,
-                                   warning_csv, error_list, job_id)
+                cross_validate_sql(combo_rules.all(), submission_id, current_cols_short_to_long, job_id, error_csv,
+                                   warning_csv, error_list)
             # close files
             error_file.close()
             warning_file.close()

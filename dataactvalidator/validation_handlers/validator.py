@@ -156,12 +156,17 @@ class Validator(object):
         raise ValueError("".join(["Data Type Error, Type: ", datatype, ", Value: ", data]))
 
 
-def cross_validate_sql(rules, submission_id, short_to_long_dict, job, error_csv, warning_csv, error_list, job_id):
+def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_csv, warning_csv, error_list):
     """ Evaluate all sql-based rules for cross file validation
 
-    Args:
-        rules -- List of Rule objects
-        submission_id -- ID of submission to run cross-file validation
+        Args:
+            rules: List of Rule objects
+            submission_id: ID of submission to run cross-file validation on
+            short_to_long_dict: mapping of short to long schema column names
+            job_id: the id of the cross-file job
+            error_csv: the csv to write errors to
+            warning_csv: the csv to write warnings to
+            error_list: instance of ErrorInterface to keep track of errors
     """
     conn = GlobalDB.db().connection
 
@@ -172,7 +177,7 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job, error_csv,
             'message': 'Beginning cross-file rule {} on submission_id: {}'.format(rule.query_name, str(submission_id)),
             'message_type': 'ValidatorInfo',
             'rule': rule.query_name,
-            'job_id': job.job_id,
+            'job_id': job_id,
             'submission_id': submission_id,
             'action': 'run_cross_validation_rule',
             'status': 'start',
@@ -185,7 +190,7 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job, error_csv,
                        'Starting flex field gathering and file writing',
             'message_type': 'ValidatorInfo',
             'rule': rule.query_name,
-            'job_id': job.job_id,
+            'job_id': job_id,
             'submission_id': submission_id
         })
         if failed_rows.rowcount:
@@ -219,7 +224,7 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job, error_csv,
                                'failure rows: {}-{}'.format(str(slice_start), str(last_error_curr_slice)),
                     'message_type': 'ValidatorInfo',
                     'rule': rule.query_name,
-                    'job_id': job.job_id,
+                    'job_id': job_id,
                     'submission_id': submission_id
                 })
                 source_flex_data, target_flex_data = relevant_cross_flex_data(failed_row_subset, submission_id,
@@ -232,7 +237,7 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job, error_csv,
                                'failure rows: {}-{}'.format(str(slice_start), str(last_error_curr_slice)),
                     'message_type': 'ValidatorInfo',
                     'rule': rule.query_name,
-                    'job_id': job.job_id,
+                    'job_id': job_id,
                     'submission_id': submission_id
                 })
 
@@ -287,7 +292,7 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job, error_csv,
             'message': 'Completed cross-file rule {} on submission_id: {}'.format(rule.query_name, str(submission_id)),
             'message_type': 'ValidatorInfo',
             'rule': rule.query_name,
-            'job_id': job.job_id,
+            'job_id': job_id,
             'submission_id': submission_id,
             'action': 'run_cross_validation_rule',
             'status': 'finish',
@@ -417,7 +422,19 @@ def relevant_flex_data(failures, job_id):
 
 
 def relevant_cross_flex_data(failed_rows, submission_id, source_file, target_file, get_source, get_target):
-    """Create a dictionary mapping row numbers of cross-file failures to lists of FlexFields"""
+    """ Create a dictionary mapping row numbers of cross-file failures to lists of FlexFields
+
+        Args:
+            failed_rows: the subset of rows to get flex fields for
+            submission_id: ID of the submission to get flex fields for
+            source_file: the source file type ID of the cross-file rule for which to get flex fields
+            target_file: the target file type ID of the cross-file rule for which to get flex fields
+            get_source: a boolean indicating whether to get the source flex fields
+            get_target: a boolean indicating whether to get the target flex fields
+
+        Returns:
+            Two dicts containing the source and target flex data
+    """
     sess = GlobalDB.db().session
     source_flex_data = defaultdict(list)
     target_flex_data = defaultdict(list)
