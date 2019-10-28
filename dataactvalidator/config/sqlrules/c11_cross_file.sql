@@ -7,7 +7,8 @@ WITH award_financial_c11_{0} AS
         parent_award_id,
         row_number,
         allocation_transfer_agency,
-        agency_identifier
+        agency_identifier,
+        tas
     FROM award_financial
     WHERE submission_id = {0}),
 award_procurement_c11_{0} AS
@@ -38,9 +39,12 @@ unioned_financial_procurement_c11_{0} AS
                 AND UPPER(COALESCE(ap.parent_award_id, '')) = UPPER(COALESCE(af2.parent_award_id, ''))
         ))
 SELECT
-    af.row_number,
-    af.piid,
-    af.parent_award_id
+    af.row_number AS "source_row_number",
+    af.piid AS "source_value_piid",
+    af.parent_award_id AS "source_value_parent_award_id",
+    af.tas AS "uniqueid_TAS",
+    af.piid AS "uniqueid_PIID",
+    af.parent_award_id AS "uniqueid_ParentAwardId"
 FROM award_financial_c11_{0} AS af
 WHERE af.transaction_obligated_amou IS NOT NULL
     AND af.piid IS NOT NULL

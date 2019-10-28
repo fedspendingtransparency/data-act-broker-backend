@@ -20,9 +20,11 @@ award_financial_c9_{0} AS
     FROM award_financial
     WHERE submission_id = {0})
 SELECT
-    afa.row_number,
-    afa.fain,
-    afa.uri
+    afa.row_number AS "source_row_number",
+    afa.fain AS "source_value_fain",
+    afa.uri AS "source_value_uri",
+    afa.fain AS "uniqueid_FAIN",
+    afa.uri AS "uniqueid_URI"
 FROM award_financial_assistance_c9_{0} AS afa
 WHERE ((afa.assistance_type NOT IN ('07', '08')
             AND COALESCE(afa.federal_action_obligation, 0) <> 0

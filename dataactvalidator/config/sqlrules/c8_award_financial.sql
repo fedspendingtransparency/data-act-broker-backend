@@ -8,7 +8,8 @@ WITH award_financial_c8_{0} AS
         agency_identifier,
         transaction_obligated_amou,
         fain,
-        uri
+        uri,
+        tas
     FROM award_financial
     WHERE submission_id = {0}),
 award_financial_assistance_c8_{0} AS
@@ -19,9 +20,12 @@ award_financial_assistance_c8_{0} AS
     FROM award_financial_assistance
     WHERE submission_id = {0})
 SELECT
-    af.row_number,
-    af.fain,
-    af.uri
+    af.row_number AS "source_row_number",
+    af.fain AS "source_value_fain",
+    af.uri AS "source_value_uri",
+    af.tas AS "uniqueid_TAS",
+    af.fain AS "uniqueid_FAIN",
+    af.uri AS "uniqueid_URI"
 FROM award_financial_c8_{0} AS af
 WHERE af.transaction_obligated_amou IS NOT NULL
     AND (COALESCE(af.allocation_transfer_agency, '') = ''
