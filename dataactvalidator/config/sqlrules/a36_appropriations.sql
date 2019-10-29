@@ -11,7 +11,8 @@ SELECT
     approp.row_number,
     approp.budget_authority_unobligat_fyb,
     sf.amount AS "expected_value_GTAS SF133 Line 1000",
-    -sf.amount AS "difference"
+    -sf.amount AS "difference",
+    approp.tas AS "uniqueid_TAS"
 FROM appropriation_a36_{0} AS approp
     INNER JOIN sf_133 AS sf
         ON approp.tas = sf.tas

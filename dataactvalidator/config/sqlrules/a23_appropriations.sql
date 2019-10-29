@@ -3,7 +3,8 @@ SELECT
     approp.row_number,
     approp.status_of_budgetary_resour_cpe,
     sf.amount AS "expected_value_GTAS SF133 Line 2500",
-    approp.status_of_budgetary_resour_cpe - sf.amount AS "difference"
+    approp.status_of_budgetary_resour_cpe - sf.amount AS "difference",
+    approp.tas AS "uniqueid_TAS"
 FROM appropriation AS approp
     INNER JOIN sf_133 AS sf
         ON approp.tas = sf.tas

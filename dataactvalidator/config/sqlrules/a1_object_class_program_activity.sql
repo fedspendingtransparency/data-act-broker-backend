@@ -11,7 +11,8 @@ SELECT
     ending_period_of_availabil,
     availability_type_code,
     main_account_code,
-    sub_account_code
+    sub_account_code,
+    tas AS "uniqueid_TAS"
 FROM object_class_program_activity AS op
 WHERE op.submission_id = {0}
 AND op.tas_id IS NULL;

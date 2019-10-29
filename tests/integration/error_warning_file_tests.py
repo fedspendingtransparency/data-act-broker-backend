@@ -255,6 +255,7 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
+                'Unique ID': 'TAS: 06901300000000X2050005',
                 'Field Name': 'grossoutlayamountbytas_cpe',
                 'Error Message': 'Value was longer than maximum length for this field.',
                 'Value Provided': 'grossoutlayamountbytas_cpe: 35000000000000000000000000',
@@ -272,6 +273,7 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
+                'Unique ID': 'TAS: 00002820102011 0406000',
                 'Field Name': 'budgetauthorityunobligatedbalancebroughtforward_fyb',
                 'Error Message': 'All the elements that have FYB in file A are expected in the first submission'
                                  ' for a fiscal year',
@@ -337,6 +339,7 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
+                'Unique ID': '',
                 'Field Name': 'Formatting Error',
                 'Error Message': 'Could not parse this record correctly.',
                 'Value Provided': '',
@@ -354,6 +357,7 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
+                'Unique ID': 'TAS: 06901300000000X2050005',
                 'Field Name': 'statusofbudgetaryresourcestotal_cpe',
                 'Error Message': 'The value provided was of the wrong type. Note that all type errors in a line must be'
                                  ' fixed before the rest of the validation logic is applied to that line.',
@@ -372,6 +376,7 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
+                'Unique ID': 'TAS: 00001920162016 0113000',
                 'Field Name': 'statusofbudgetaryresourcestotal_cpe',
                 'Error Message': 'This field is required for all submissions but was not provided in this row.',
                 'Value Provided': '',
@@ -382,6 +387,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Rule Label': ''
             },
             {
+                'Unique ID': 'TAS: 00001920162016 0113000',
                 'Field Name': 'statusofbudgetaryresourcestotal_cpe, obligationsincurredtotalbytas_cpe,'
                               ' unobligatedbalance_cpe',
                 'Error Message': 'StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE'
@@ -399,6 +405,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Rule Label': 'A4'
             },
             {
+                'Unique ID': 'TAS: 00001920162016 0113000',
                 'Field Name': 'statusofbudgetaryresourcestotal_cpe, totalbudgetaryresources_cpe',
                 'Error Message': 'StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE',
                 'Value Provided': 'statusofbudgetaryresourcestotal_cpe: None, totalbudgetaryresources_cpe: 10.1',
@@ -419,6 +426,7 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_headers == self.validator.report_headers
         expected_values = [
             {
+                'Unique ID': 'TAS: 00004920142015 0100000',
                 'Field Name': 'totalbudgetaryresources_cpe, budgetauthorityappropriatedamount_cpe,'
                               ' budgetauthorityunobligatedbalancebroughtforward_fyb,'
                               ' adjustmentstounobligatedbalancebroughtforward_cpe, otherbudgetaryresourcesamount_cpe',

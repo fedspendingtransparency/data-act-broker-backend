@@ -134,12 +134,13 @@ class ValidatorTests(BaseTestValidator):
             "test3": "YES",
             "test4": "1",
             "test5": "1",
+            "afa_generated_unique": ""
         }
-        self.assertTrue(Validator.validate(record, schema))
+        self.assertTrue(Validator.validate(record, schema, fabs_record=True))
         record["test5"] = ""
-        self.assertTrue(Validator.validate(record, schema))
+        self.assertTrue(Validator.validate(record, schema, fabs_record=True))
         record["test5"] = "s"
-        self.assertTrue(Validator.validate(record, schema))
+        self.assertTrue(Validator.validate(record, schema, fabs_record=True))
         record["test5"] = ""
         record["test3"] = ""
-        self.assertTrue(Validator.validate(record, schema))
+        self.assertTrue(Validator.validate(record, schema, fabs_record=True))

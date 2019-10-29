@@ -38,7 +38,8 @@ SELECT DISTINCT
     approp.ending_period_of_availabil,
     approp.availability_type_code,
     approp.main_account_code,
-    approp.sub_account_code
+    approp.sub_account_code,
+    approp.tas AS "uniqueid_TAS"
 FROM appropriation_a33_2_{0} AS approp
     JOIN submission AS sub
         ON approp.submission_id = sub.submission_id

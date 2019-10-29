@@ -11,7 +11,8 @@ SELECT
     ending_period_of_availabil,
     availability_type_code,
     main_account_code,
-    sub_account_code
+    sub_account_code,
+    tas AS "uniqueid_TAS"
 FROM appropriation AS approp
 WHERE approp.submission_id = {0}
 AND approp.tas_id IS NULL;

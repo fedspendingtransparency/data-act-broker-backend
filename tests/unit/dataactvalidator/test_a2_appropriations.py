@@ -5,7 +5,7 @@ _FILE = 'a2_appropriations'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'total_budgetary_resources_cpe', 'budget_authority_appropria_cpe',
+    expected_subset = {'uniqueid_TAS', 'row_number', 'total_budgetary_resources_cpe', 'budget_authority_appropria_cpe',
                        'budget_authority_unobligat_fyb', 'adjustments_to_unobligated_cpe',
                        'other_budgetary_resources_cpe', 'difference'}
     actual = set(query_columns(_FILE, database))

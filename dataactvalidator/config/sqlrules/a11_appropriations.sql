@@ -10,7 +10,8 @@ SELECT
     approp.row_number,
     approp.spending_authority_from_of_cpe,
     SUM(sf.amount) AS "expected_value_SUM of GTAS SF133 Lines 1750, 1850",
-    COALESCE(approp.spending_authority_from_of_cpe, 0) - SUM(sf.amount) AS "difference"
+    COALESCE(approp.spending_authority_from_of_cpe, 0) - SUM(sf.amount) AS "difference",
+    approp.tas AS "uniqueid_TAS"
 FROM appropriation_a11_{0} AS approp
     INNER JOIN sf_133 AS sf
         ON approp.tas = sf.tas
@@ -20,5 +21,6 @@ FROM appropriation_a11_{0} AS approp
         AND sf.fiscal_year = sub.reporting_fiscal_year
 WHERE sf.line IN (1750, 1850)
 GROUP BY approp.row_number,
-    approp.spending_authority_from_of_cpe
+    approp.spending_authority_from_of_cpe,
+    approp.tas
 HAVING COALESCE(approp.spending_authority_from_of_cpe, 0) <> SUM(sf.amount);

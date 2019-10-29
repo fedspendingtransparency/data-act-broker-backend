@@ -6,15 +6,16 @@ import logging
 from dataactcore.models.lookups import (FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER,
                                         RULE_SEVERITY_DICT)
 from dataactcore.models.validationModels import RuleSql
+from dataactcore.models.domainModels import concat_tas_dict
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.interfaces.db import GlobalDB
 
 logger = logging.getLogger(__name__)
 
-Failure = namedtuple('Failure', ['field', 'description', 'value', 'label', 'expected', 'severity'])
-ValidationFailure = namedtuple('ValidationFailure', ['field_name', 'error', 'failed_value', 'expected_value',
-                                                     'difference', 'flex_fields', 'row', 'original_label',
-                                                     'file_type_id', 'target_file_id', 'severity_id'])
+Failure = namedtuple('Failure', ['unique_id', 'field', 'description', 'value', 'label', 'expected', 'severity'])
+ValidationFailure = namedtuple('ValidationFailure', ['unique_id', 'field_name', 'error', 'failed_value',
+                                                     'expected_value', 'difference', 'flex_fields', 'row',
+                                                     'original_label', 'file_type_id', 'target_file_id', 'severity_id'])
 
 
 class Validator(object):
@@ -49,6 +50,11 @@ class Validator(object):
         record_type_failure = False
         failed_rules = []
 
+        if not fabs_record:
+            unique_id = 'TAS: {}'.format(concat_tas_dict(record))
+        else:
+            unique_id = 'AssistanceTransactionUniqueKey: {}'.format(record['afa_generated_unique'])
+
         total_fields = 0
         blank_fields = 0
         for field_name in record:
@@ -70,11 +76,11 @@ class Validator(object):
                     record_failed = True
                     # if it's a FABS record and the required column is in the list, label it specifically
                     if fabs_record and required_labels and current_schema.name_short in required_labels:
-                        failed_rules.append(Failure(field_name, ValidationError.requiredError, '',
+                        failed_rules.append(Failure(unique_id, field_name, ValidationError.requiredError, '',
                                                     required_labels[current_schema.name_short], '(not blank)', 'fatal'))
                     else:
-                        failed_rules.append(Failure(field_name, ValidationError.requiredError, '', '', '(not blank)',
-                                                    'fatal'))
+                        failed_rules.append(Failure(unique_id, field_name, ValidationError.requiredError, '', '',
+                                                    '(not blank)', 'fatal'))
                     continue
                 else:
                     # If field is empty and not required its valid
@@ -87,11 +93,11 @@ class Validator(object):
                 record_failed = True
                 # if it's a FABS record and the type column is in the list, label it specifically
                 if fabs_record and type_labels and current_schema.name_short in type_labels:
-                    failed_rules.append(Failure(field_name, ValidationError.typeError, current_data,
+                    failed_rules.append(Failure(unique_id, field_name, ValidationError.typeError, current_data,
                                                 type_labels[current_schema.name_short],
                                                 'This field must be a {}'.format(current_type.lower()), 'fatal'))
                 else:
-                    failed_rules.append(Failure(field_name, ValidationError.typeError, current_data, '',
+                    failed_rules.append(Failure(unique_id, field_name, ValidationError.typeError, current_data, '',
                                                 'This field must be a {}'.format(current_type.lower()), 'fatal'))
                 # Don't check value rules if type failed
                 continue
@@ -102,7 +108,7 @@ class Validator(object):
                 # Length failure, add to failedRules
                 record_failed = True
                 warning_type = 'fatal' if fabs_record else 'warning'
-                failed_rules.append(Failure(field_name, ValidationError.lengthError, current_data, '',
+                failed_rules.append(Failure(unique_id, field_name, ValidationError.lengthError, current_data, '',
                                             'Max length: {}'.format(current_schema.length),
                                             warning_type))
 
@@ -322,7 +328,7 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
             # Create column list (exclude row_number)
             cols = []
             exact_names = ['row_number', 'difference']
-            starting = ('expected_value_',)
+            starting = ('expected_value_', 'uniqueid_')
             for col in failures.keys():
                 if col not in exact_names and not col.startswith(starting):
                     cols.append(col)
@@ -421,8 +427,10 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
     # Determine the extra value for a rule
     expected_value = rule.expected_value
     difference = ''
+    unique_id_start = 'uniqueid_'
     expect_start = 'expected_value_'
 
+    unique_id_fields = []
     for failure_key in sql_failure.keys():
         # Expected value
         if failure_key.startswith(expect_start):
@@ -431,12 +439,19 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
         # Difference
         elif failure_key == 'difference':
             difference = str(sql_failure[failure_key] or '')
+        elif failure_key.startswith(unique_id_start):
+            fail_header = failure_key[len(unique_id_start):]
+            unique_id_fields.append('{}: {}'.format(fail_header, str(sql_failure[failure_key] or '')))
 
     # Create strings for fields and values
     values_list = ['{}: {}'.format(header, str(sql_failure[field])) for field, header in zip(cols, col_headers)]
     flex_list = ['{}: {}'.format(flex_field.header, flex_field.cell if flex_field.cell else '')
                  for flex_field in flex_data[row]]
+    # Create unique id string
+    unique_id = ', '.join(unique_id_fields)
+
     return ValidationFailure(
+        unique_id,
         ', '.join(col_headers),
         rule.rule_error_message,
         ', '.join(values_list),
