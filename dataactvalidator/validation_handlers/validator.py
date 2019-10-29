@@ -6,7 +6,7 @@ import logging
 from dataactcore.models.lookups import (FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER,
                                         RULE_SEVERITY_DICT)
 from dataactcore.models.validationModels import RuleSql
-from dataactcore.models.domainModels import concat_tas_dict
+from dataactcore.models.domainModels import concat_display_tas_dict
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.interfaces.db import GlobalDB
 
@@ -51,7 +51,7 @@ class Validator(object):
         failed_rules = []
 
         if not fabs_record:
-            unique_id = 'TAS: {}'.format(concat_tas_dict(record))
+            unique_id = 'TAS: {}'.format(concat_display_tas_dict(record))
         else:
             unique_id = 'AssistanceTransactionUniqueKey: {}'.format(record['afa_generated_unique'])
 
