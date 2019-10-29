@@ -16,7 +16,8 @@ SELECT
     action_date,
     awardee_or_recipient_uniqu,
     business_types,
-    record_type
+    record_type,
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND NOT (record_type IN (1, 3)

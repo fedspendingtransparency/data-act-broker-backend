@@ -1,0 +1,6 @@
+allocation_transfer_agency,agency_identifier,beginning_period_of_availa,ending_period_of_availabil,availability_type_code,main_account_code,sub_account_code,budget_authority_unobligat_fyb,budget_authority_appropria_cpe,nonexistent_column,adjustments_to_unobligated_cpe,borrowing_authority_amount_cpe,contract_authority_amount_cpe,spending_authority_from_of_cpe,other_budgetary_resources_cpe,total_budgetary_resources_cpe,gross_outlay_amount_by_tas_cpe,obligations_incurred_total_cpe,deobligations_recoveries_r_cpe,unobligated_balance_cpe,status_of_budgetary_resour_cpe,flex_field_a,flex_field_b
+19,72,,,X,306,0,3.03,1.01,3500.5,2.02,1.51,2.02,0.51,4.04,10.1,6666,-7777,3200,2.02,10.1,FLEX_A,FLEX_B
+28,28,,,X,8007,0,3.03,1.01,3500,2.02,1.51,2.02,0.51,4.04,10.1,5000,-21000,3200,2.02,10.1,FLEX_A,FLEX_B
+69,21,,,X,2065,5,3.03,1.01,3500,2.02,1.51,2.02,0.51,4.04,10.1,3500,-8.08,3500,2.02,10.1,FLEX_A,FLEX_B
+,19,2016,2016,,113,0,3.03,1.01,3500,2.02,1.51,2.02,0.51,4.04,10.1,10000,12000,16000,2.02,10.1,FLEX_A,FLEX_B
+28,28,,,X,8006,0,3.03,1.01,3500,2.02,1.51,2.02,0.51,4.04,10.1,8888,-9000,3500,2.02,10.1,FLEX_A,FLEX_B

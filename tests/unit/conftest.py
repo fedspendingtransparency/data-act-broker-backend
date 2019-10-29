@@ -6,7 +6,7 @@ import pytest
 
 import dataactcore.config
 from dataactcore.models import baseModel
-from dataactcore.scripts import setup_job_tracker_db, setup_user_db
+from dataactcore.scripts import setup_job_tracker_db, setup_user_db, setup_validation_db
 from dataactcore.scripts.database_setup import create_database, drop_database, run_migrations
 from dataactcore.interfaces.db import GlobalDB
 
@@ -52,6 +52,11 @@ def job_constants(database):
 
 
 @pytest.fixture()
+def validation_constants(database):
+    setup_validation_db.insert_codes(database.session)
+
+
+@pytest.fixture()
 def user_constants(database):
     setup_user_db.insert_codes(database.session)
     database.session.commit()
@@ -75,6 +80,14 @@ def mock_broker_config_paths(tmpdir):
 
     for key in keys_to_replace:
         dataactcore.config.CONFIG_BROKER[key] = original[key]
+
+
+@pytest.fixture
+def broker_files_tmp_dir():
+    """Make sure this directory exists, as some tests write files to it"""
+    cfg = dataactcore.config.CONFIG_BROKER
+    if cfg['local'] and not os.path.exists(cfg['broker_files']):
+        os.makedirs(cfg['broker_files'])
 
 
 @pytest.fixture
