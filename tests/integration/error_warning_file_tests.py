@@ -550,12 +550,4 @@ class ErrorWarningTests(BaseTestValidator):
                 'Rule Label': 'A30.1'
             }
         ]
-
-        for item in report_content:
-            for thing in item.keys():
-                print(thing + ': ' + item[thing])
-        print('---------------------------------------------')
-        for item in expected_values:
-            for thing in item.keys():
-                print(thing + ': ' + item[thing])
         assert report_content == expected_values
