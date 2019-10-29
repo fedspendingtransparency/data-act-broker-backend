@@ -22,7 +22,8 @@ WITH detached_award_financial_assistance_fabs31_5_{0} AS
         dafa_31_5.business_types,
         dafa_31_5.record_type,
         dafa_31_5.correction_delete_indicatr,
-        dafa_31_5.submission_id
+        dafa_31_5.submission_id,
+        dafa_31_5.afa_generated_unique
     FROM detached_award_financial_assistance AS dafa_31_5
     WHERE submission_id = {0}),
 duns_short_fabs31_5_{0} AS
@@ -40,7 +41,8 @@ SELECT
     dafa.awardee_or_recipient_uniqu,
     dafa.business_types,
     dafa.record_type,
-    dafa.correction_delete_indicatr
+    dafa.correction_delete_indicatr,
+    dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_fabs31_5_{0} AS dafa
 WHERE NOT (dafa.record_type IN (1, 3)
         OR UPPER(dafa.business_types) LIKE '%%P%%'
