@@ -8,16 +8,18 @@ _FILE = 'c23_award_financial_3'
 
 
 def test_column_headers(database):
-    expected_subset = {"row_number", "transaction_obligated_amou_sum", "federal_action_obligation_sum",
-                       "original_loan_subsidy_cost_sum"}
+    expected_subset = {'source_row_number', 'source_value_fain', 'source_value_transaction_obligated_amou_sum',
+                       'target_value_federal_action_obligation_sum', 'target_value_original_loan_subsidy_cost_sum',
+                       'difference', 'uniqueid_FAIN'}
     actual = set(query_columns(_FILE, database))
-    assert expected_subset <= actual
+    assert expected_subset == actual
 
 
 def test_success(database):
     """ Test for each unique FAIN in File C, the sum of each TransactionObligatedAmount should match (but with opposite
         signs) the sum of the FederalActionObligation or OriginalLoanSubsidyCost amounts reported in D2. This rule does
-        not apply if the ATA field is populated and is different from the Agency ID. """
+        not apply if the ATA field is populated and is different from the Agency ID.
+    """
     # Create a 12 character random fain
     fain_1 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     fain_2 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
@@ -29,11 +31,11 @@ def test_success(database):
                                        allocation_transfer_agency=None)
     # Non-ignored rows with a matching ATA/AID
     af_2_row_1 = AwardFinancialFactory(transaction_obligated_amou=9900, fain=fain_2, allocation_transfer_agency=None)
-    af_2_row_2 = AwardFinancialFactory(transaction_obligated_amou=99, fain=fain_2, allocation_transfer_agency="good",
-                                       agency_identifier="good")
+    af_2_row_2 = AwardFinancialFactory(transaction_obligated_amou=99, fain=fain_2, allocation_transfer_agency='good',
+                                       agency_identifier='good')
     # Ignored row with non-matching ATA/AID
-    af_3 = AwardFinancialFactory(transaction_obligated_amou=8888, fain=fain_3, allocation_transfer_agency="good",
-                                 agency_identifier="bad")
+    af_3 = AwardFinancialFactory(transaction_obligated_amou=8888, fain=fain_3, allocation_transfer_agency='good',
+                                 agency_identifier='bad')
 
     # Fain sums for AFA
     afa_1_row_1 = AwardFinancialAssistanceFactory(fain=fain_1, federal_action_obligation=-1100,
@@ -61,7 +63,8 @@ def test_success(database):
 def test_failure(database):
     """ Test failure for each unique FAIN in File C, the sum of each TransactionObligatedAmount should match (but with
         opposite signs) the sum of the FederalActionObligation or OriginalLoanSubsidyCost amounts reported in D2. This
-        rule does not apply if the ATA field is populated and is different from the Agency ID. """
+        rule does not apply if the ATA field is populated and is different from the Agency ID.
+    """
     # Create a 12 character random fain
     fain_1 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     fain_2 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
@@ -74,8 +77,8 @@ def test_failure(database):
     # Incorrect addition based on assistance type in AFA
     af_2 = AwardFinancialFactory(transaction_obligated_amou=9999, fain=fain_2, allocation_transfer_agency=None)
     # Don't ignore when ATA and AID match
-    af_3 = AwardFinancialFactory(transaction_obligated_amou=1111, fain=fain_3, allocation_transfer_agency="good",
-                                 agency_identifier="good")
+    af_3 = AwardFinancialFactory(transaction_obligated_amou=1111, fain=fain_3, allocation_transfer_agency='good',
+                                 agency_identifier='good')
 
     # Sum of this fain doesn't add up to af fain sum
     afa_1_row_1 = AwardFinancialAssistanceFactory(fain=fain_1, federal_action_obligation=-1100,
