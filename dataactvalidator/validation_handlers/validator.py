@@ -256,14 +256,24 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
 
                     # Getting the difference and unique IDs
                     difference = ''
+                    diff_start = 'difference_'
                     unique_start = 'uniqueid_'
+                    diff_array = []
                     unique_key = []
                     for failure_key in rule_cols:
+                        # Difference
                         if failure_key == 'difference':
                             difference = str(row[failure_key] or '')
+                        if failure_key.startswith(diff_start):
+                            diff_header = failure_key[len(diff_start):]
+                            diff_array.append('{}: {}'.format(diff_header, str(row[failure_key] or '')))
+                        # Unique key
                         if failure_key.startswith(unique_start):
                             unique_header = failure_key[len(unique_start):]
                             unique_key.append('{}: {}'.format(unique_header, str(row[failure_key] or '')))
+                    # If we have multiple differences, join them
+                    if diff_array:
+                        difference = ', '.join(diff_array)
 
                     # Creating a failure array for both writing the row and recording the error metadata
                     failure = [', '.join(unique_key), rule.file.name, ', '.join(source_headers), rule.target_file.name,
