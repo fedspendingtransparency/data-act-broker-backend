@@ -3,7 +3,8 @@ WITH appropriation_a14_{0} AS
     (SELECT submission_id,
         row_number,
         gross_outlay_amount_by_tas_cpe,
-        tas
+        tas,
+        display_tas
     FROM appropriation
     WHERE submission_id = {0})
 SELECT
@@ -11,7 +12,7 @@ SELECT
     approp.gross_outlay_amount_by_tas_cpe,
     sf.amount AS "expected_value_GTAS SF133 Line 3020",
     approp.gross_outlay_amount_by_tas_cpe - sf.amount AS "difference",
-    approp.tas AS "uniqueid_TAS"
+    approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a14_{0} AS approp
     INNER JOIN sf_133 AS sf
         ON approp.tas = sf.tas

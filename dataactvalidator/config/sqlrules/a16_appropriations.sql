@@ -3,13 +3,14 @@ WITH appropriation_a16_{0} AS
     (SELECT submission_id,
         row_number,
         budget_authority_unobligat_fyb,
-        tas
+        tas,
+        display_tas
     FROM appropriation
     WHERE submission_id = {0})
 SELECT
     row_number,
     budget_authority_unobligat_fyb,
-    approp.tas AS "uniqueid_TAS"
+    approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a16_{0} AS approp
     JOIN submission AS sub
         ON sub.submission_id = approp.submission_id

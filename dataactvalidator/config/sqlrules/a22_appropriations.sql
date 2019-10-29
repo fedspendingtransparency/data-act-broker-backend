@@ -4,7 +4,7 @@ SELECT
     approp.obligations_incurred_total_cpe,
     sf.amount AS "expected_value_GTAS SF133 Line 2190",
     approp.obligations_incurred_total_cpe - sf.amount AS "difference",
-    approp.tas AS "uniqueid_TAS"
+    approp.display_tas AS "uniqueid_TAS"
 FROM appropriation AS approp
     INNER JOIN sf_133 AS sf
         ON approp.tas = sf.tas

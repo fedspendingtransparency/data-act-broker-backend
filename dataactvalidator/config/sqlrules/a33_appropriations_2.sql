@@ -12,6 +12,7 @@ WITH appropriation_a33_2_{0} AS
         approp.sub_account_code,
         approp.submission_id,
         approp.tas,
+        approp.display_tas,
         approp.adjustments_to_unobligated_cpe,
         approp.budget_authority_appropria_cpe,
         approp.borrowing_authority_amount_cpe,
@@ -39,7 +40,7 @@ SELECT DISTINCT
     approp.availability_type_code,
     approp.main_account_code,
     approp.sub_account_code,
-    approp.tas AS "uniqueid_TAS"
+    approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a33_2_{0} AS approp
     JOIN submission AS sub
         ON approp.submission_id = sub.submission_id

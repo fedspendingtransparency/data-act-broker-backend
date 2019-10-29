@@ -12,7 +12,7 @@ SELECT
     availability_type_code,
     main_account_code,
     sub_account_code,
-    tas AS "uniqueid_TAS"
+    display_tas AS "uniqueid_TAS"
 FROM award_financial AS af
 WHERE af.submission_id = {0}
 AND af.tas_id IS NULL;
