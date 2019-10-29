@@ -51,8 +51,8 @@ class ValidationManager:
     report_headers = ['Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Difference', 'Flex Fields',
                       'Row Number', 'Rule Label']
     cross_file_report_headers = ['Unique ID', 'Source File', 'Source Field Names', 'Target File', 'Target Field Names',
-                                 'Error message', 'Source Values Provided', 'Target Values Provided', 'Difference',
-                                 'Source Flex Fields', 'Source Row Number', 'Rule label']
+                                 'Error Message', 'Source Values Provided', 'Target Values Provided', 'Difference',
+                                 'Source Flex Fields', 'Source Row Number', 'Rule Label']
 
     def __init__(self, is_local=True, directory=""):
         # Initialize instance variables
