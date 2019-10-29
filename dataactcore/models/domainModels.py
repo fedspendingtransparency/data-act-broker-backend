@@ -13,6 +13,11 @@ def concat_tas(context):
     return concat_tas_dict(context.current_parameters)
 
 
+def concat_display_tas(context):
+    """ Given a database context, return a concatenated display TAS string. """
+    return concat_display_tas_dict(context.current_parameters)
+
+
 def concat_tas_dict(tas_dict):
     """ Given a dictionary, create a concatenated TAS string. """
     tas1 = tas_dict['allocation_transfer_agency']
@@ -31,6 +36,23 @@ def concat_tas_dict(tas_dict):
     tas7 = tas7 if tas7 else '000'
     tas = '{}{}{}{}{}{}{}'.format(tas1, tas2, tas3, tas4, tas5, tas6, tas7)
     return tas
+
+
+def concat_display_tas_dict(tas_dict):
+    """ Given a dictionary, create a concatenated display TAS string. Copied directly from USASpending.gov. """
+    tas_rendering_label = "-".join(filter(None, (tas_dict['allocation_transfer_agency'],
+                                                 tas_dict['agency_identifier'])))
+
+    typecode = tas_dict['availability_type_code']
+    if typecode is not None and typecode != "":
+        tas_rendering_label = "-".join(filter(None, (tas_rendering_label, typecode)))
+    else:
+        poa = "/".join(filter(None, (tas_dict['beginning_period_of_availa'], tas_dict['ending_period_of_availabil'])))
+        tas_rendering_label = "-".join(filter(None, (tas_rendering_label, poa)))
+
+    tas_rendering_label = "-".join(filter(None, (tas_rendering_label, tas_dict['main_account_code'],
+                                                 tas_dict['sub_account_code'])))
+    return tas_rendering_label
 
 
 TAS_COMPONENTS = (
