@@ -1,5 +1,6 @@
 import os
 import csv
+import logging
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_SERVICES
@@ -60,6 +61,9 @@ class ErrorWarningTests(BaseTestValidator):
     def setUpClass(cls):
         """ Set up class-wide resources (test data) """
         super(ErrorWarningTests, cls).setUpClass()
+
+        logging.getLogger('dataactcore').setLevel(logging.ERROR)
+        logging.getLogger('dataactvalidator').setLevel(logging.ERROR)
 
         with create_app().app_context():
             # get the submission test users
