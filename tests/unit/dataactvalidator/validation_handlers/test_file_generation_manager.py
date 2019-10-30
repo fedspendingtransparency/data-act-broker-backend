@@ -99,6 +99,21 @@ def test_tas_concats():
     assert tas2_str == '09701700000000 0001001'
     assert tas2_dstr == '097-017-0001-001'
 
+    # everything sans beginning period
+    tas_dict = {
+        'allocation_transfer_agency': '097',
+        'agency_identifier': '017',
+        'beginning_period_of_availa': None,
+        'ending_period_of_availabil': '2017',
+        'availability_type_code': None,
+        'main_account_code': '0001',
+        'sub_account_code': '001'
+    }
+    tas2_str = concat_tas_dict(tas_dict)
+    tas2_dstr = concat_display_tas_dict(tas_dict)
+    assert tas2_str == '09701700002017 0001001'
+    assert tas2_dstr == '097-017-2017-0001-001'
+
     # everything sans codes
     tas_dict = {
         'allocation_transfer_agency': '097',
