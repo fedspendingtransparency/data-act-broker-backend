@@ -472,7 +472,7 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_headers == self.validator.cross_file_report_headers
         expected_values = [
             {
-                'Unique ID': 'TAS: 00001920162016 0113000',
+                'Unique ID': 'TAS: 019-2016/2016-0113-000',
                 'Source File': 'appropriations',
                 'Source Field Names': 'grossoutlayamountbytas_cpe',
                 'Target File': 'program_activity',
@@ -488,7 +488,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Rule Label': 'A18'
             },
             {
-                'Unique ID': 'TAS: 00001920162016 0113000',
+                'Unique ID': 'TAS: 019-2016/2016-0113-000',
                 'Source File': 'appropriations',
                 'Source Field Names': 'obligationsincurredtotalbytas_cpe',
                 'Target File': 'program_activity',
@@ -504,7 +504,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Rule Label': 'A19'
             },
             {
-                'Unique ID': 'TAS: 00001920162016 0113000',
+                'Unique ID': 'TAS: 019-2016/2016-0113-000',
                 'Source File': 'appropriations',
                 'Source Field Names': 'deobligationsrecoveriesrefundsbytas_cpe',
                 'Target File': 'program_activity',
@@ -540,7 +540,7 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_headers == self.validator.cross_file_report_headers
         expected_values = [
             {
-                'Unique ID': 'TAS: 01907200000000X0306000',
+                'Unique ID': 'TAS: 019-072-X-0306-000',
                 'Source File': 'appropriations',
                 'Source Field Names': 'allocationtransferagencyidentifier, agencyidentifier,'
                                       ' beginningperiodofavailability, endingperiodofavailability,'
