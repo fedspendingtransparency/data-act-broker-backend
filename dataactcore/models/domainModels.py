@@ -44,7 +44,7 @@ def concat_display_tas_dict(tas_dict):
                                                  tas_dict['agency_identifier'])))
 
     typecode = tas_dict['availability_type_code']
-    if typecode is not None and typecode != "":
+    if typecode:
         tas_rendering_label = "-".join(filter(None, (tas_rendering_label, typecode)))
     else:
         poa = "/".join(filter(None, (tas_dict['beginning_period_of_availa'], tas_dict['ending_period_of_availabil'])))
