@@ -3,7 +3,8 @@
 SELECT
     row_number,
     record_type,
-    legal_entity_zip_last4
+    legal_entity_zip_last4,
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type IN (1, 3)

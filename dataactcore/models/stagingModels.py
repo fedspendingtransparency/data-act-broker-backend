@@ -2,7 +2,7 @@ from sqlalchemy import ARRAY, Boolean, Column, Date, DateTime, ForeignKey, Index
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
-from dataactcore.models.domainModels import concat_tas
+from dataactcore.models.domainModels import concat_tas, concat_display_tas
 
 
 class FlexField(Base):
@@ -55,6 +55,7 @@ class Appropriation(Base):
     sub_account_code = Column(Text)
     unobligated_balance_cpe = Column(Numeric)
     tas = Column(Text, index=True, nullable=False, default=concat_tas)
+    display_tas = Column(Text, default=concat_display_tas)
     tas_id = Column(Integer, nullable=True, index=True)
 
     def __init__(self, **kwargs):
@@ -125,6 +126,7 @@ class ObjectClassProgramActivity(Base):
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text, nullable=False, default=concat_tas)
+    display_tas = Column(Text, default=concat_display_tas)
     tas_id = Column(Integer, nullable=True)
 
     def __init__(self, **kwargs):
@@ -206,6 +208,7 @@ class AwardFinancial(Base):
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text, nullable=False, default=concat_tas, index=True)
+    display_tas = Column(Text, default=concat_display_tas)
     tas_id = Column(Integer, nullable=True, index=True)
     general_ledger_post_date = Column(Date)
 

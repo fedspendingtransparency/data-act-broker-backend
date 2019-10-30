@@ -9,12 +9,38 @@ from dataactcore.models.baseModel import Base
 
 
 def concat_tas(context):
-    """ Given a database context, return a concatenated TAS string. """
+    """ Given a database context, return a concatenated TAS string.
+
+        Arguments:
+            context: the context for the current model
+
+        Returns:
+            concatenated TAS string of the current model
+    """
     return concat_tas_dict(context.current_parameters)
 
 
+def concat_display_tas(context):
+    """ Given a database context, return a concatenated display TAS string.
+
+        Arguments:
+            context: the context for the current model
+
+        Returns:
+            concatenated display TAS string of the current model
+    """
+    return concat_display_tas_dict(context.current_parameters)
+
+
 def concat_tas_dict(tas_dict):
-    """ Given a dictionary, create a concatenated TAS string. """
+    """ Given a dictionary, create a concatenated TAS string.
+
+        Arguments:
+            tas_dict: dictionary representing the object with the TAS attributes
+
+        Returns:
+            concatenated TAS string of the current model
+    """
     tas1 = tas_dict['allocation_transfer_agency']
     tas1 = tas1 if tas1 else '000'
     tas2 = tas_dict['agency_identifier']
@@ -33,6 +59,30 @@ def concat_tas_dict(tas_dict):
     return tas
 
 
+def concat_display_tas_dict(tas_dict):
+    """ Given a dictionary, create a concatenated display TAS string. Copied directly from USASpending.gov.
+
+        Arguments:
+            tas_dict: dictionary representing the object with the TAS attributes
+
+        Returns:
+            concatenated display TAS string of the current model
+    """
+    tas_rendering_label = "-".join(filter(None, (tas_dict['allocation_transfer_agency'],
+                                                 tas_dict['agency_identifier'])))
+
+    typecode = tas_dict['availability_type_code']
+    if typecode:
+        tas_rendering_label = "-".join(filter(None, (tas_rendering_label, typecode)))
+    else:
+        poa = "/".join(filter(None, (tas_dict['beginning_period_of_availa'], tas_dict['ending_period_of_availabil'])))
+        tas_rendering_label = "-".join(filter(None, (tas_rendering_label, poa)))
+
+    tas_rendering_label = "-".join(filter(None, (tas_rendering_label, tas_dict['main_account_code'],
+                                                 tas_dict['sub_account_code'])))
+    return tas_rendering_label
+
+
 TAS_COMPONENTS = (
     'allocation_transfer_agency', 'agency_identifier', 'beginning_period_of_availa', 'ending_period_of_availabil',
     'availability_type_code', 'main_account_code', 'sub_account_code'
@@ -40,8 +90,8 @@ TAS_COMPONENTS = (
 
 
 class TASLookup(Base):
-    """An entry of CARS history -- this TAS was present in the CARS file
-    between internal_start_date and internal_end_date (potentially null)
+    """ An entry of CARS history -- this TAS was present in the CARS file between internal_start_date and
+        internal_end_date (potentially null)
     """
     __tablename__ = "tas_lookup"
     tas_id = Column(Integer, primary_key=True)
@@ -69,8 +119,7 @@ class TASLookup(Base):
     budget_subfunction_title = Column(Text, nullable=True)
 
     def component_dict(self):
-        """We'll often want to copy TAS component fields; this method returns
-        a dictionary of field_name to value"""
+        """ We'll often want to copy TAS component fields; this method returns a dictionary of field_name to value """
         return {field_name: getattr(self, field_name) for field_name in TAS_COMPONENTS}
 
 Index("ix_tas",
@@ -86,16 +135,16 @@ Index("ix_tas",
 
 
 def is_not_distinct_from(left, right):
-    """Postgres' IS NOT DISTINCT FROM is an equality check that accounts for
-    NULLs. Unfortunately, it doesn't make use of indexes. Instead, we'll
-    imitate it here"""
+    """ Postgres' IS NOT DISTINCT FROM is an equality check that accounts for NULLs. Unfortunately, it doesn't make
+        use of indexes. Instead, we'll imitate it here
+    """
     return sa.or_(left == right, sa.and_(left.is_(None), right.is_(None)))
 
 
 def matching_cars_subquery(sess, model_class, start_date, end_date):
-    """We frequently need to mass-update records to look up their CARS history
-    entry. This function creates a subquery to be used in that update call. We
-    pass in the database session to avoid circular dependencies"""
+    """ We frequently need to mass-update records to look up their CARS history entry. This function creates a subquery
+        to be used in that update call. We pass in the database session to avoid circular dependencies
+    """
     # Why min()?
     # Our data schema doesn't prevent two TAS history entries with the same
     # TAS components (ATA, AI, etc.) from being valid at the same time. When
@@ -179,6 +228,7 @@ class SF133(Base):
     main_account_code = Column(Text, nullable=False)
     sub_account_code = Column(Text, nullable=False)
     tas = Column(Text, nullable=False, default=concat_tas, index=True)
+    display_tas = Column(Text, default=concat_display_tas)
     fiscal_year = Column(Integer, nullable=False, index=True)
     period = Column(Integer, nullable=False, index=True)
     line = Column(Integer, nullable=False)
@@ -261,7 +311,7 @@ class DUNS(Base):
 
 
 class HistoricDUNS(Base):
-    """ Legacy DUNS Records with their latest updates"""
+    """ Legacy DUNS Records with their latest updates """
     __tablename__ = "historic_duns"
 
     duns_id = Column(Integer, primary_key=True)

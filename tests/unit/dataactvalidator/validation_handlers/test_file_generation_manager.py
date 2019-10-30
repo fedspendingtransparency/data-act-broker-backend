@@ -11,7 +11,7 @@ from dataactbroker.helpers import generation_helper
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.stagingModels import DetachedAwardProcurement, PublishedAwardFinancialAssistance
-from dataactcore.models.domainModels import SF133, concat_tas_dict
+from dataactcore.models.domainModels import SF133, concat_tas_dict, concat_display_tas_dict
 
 from dataactvalidator.validation_handlers import file_generation_manager
 from dataactvalidator.validation_handlers.file_generation_manager import FileGenerationManager
@@ -21,6 +21,128 @@ from tests.unit.dataactcore.factories.domain import TASFactory, SF133Factory, Du
 from tests.unit.dataactcore.factories.staging import (
     AwardFinancialAssistanceFactory, AwardProcurementFactory, DetachedAwardProcurementFactory,
     PublishedAwardFinancialAssistanceFactory)
+
+
+def test_tas_concats():
+    # everything
+    tas_dict = {
+        'allocation_transfer_agency': '097',
+        'agency_identifier': '017',
+        'beginning_period_of_availa': '2017',
+        'ending_period_of_availabil': '2017',
+        'availability_type_code': 'D',
+        'main_account_code': '0001',
+        'sub_account_code': '001'
+    }
+    tas2_str = concat_tas_dict(tas_dict)
+    tas2_dstr = concat_display_tas_dict(tas_dict)
+    assert tas2_str == '09701720172017D0001001'
+    assert tas2_dstr == '097-017-D-0001-001'
+
+    # everything sans type code
+    tas_dict = {
+        'allocation_transfer_agency': '097',
+        'agency_identifier': '017',
+        'beginning_period_of_availa': '2017',
+        'ending_period_of_availabil': '2017',
+        'availability_type_code': None,
+        'main_account_code': '0001',
+        'sub_account_code': '001'
+    }
+    tas2_str = concat_tas_dict(tas_dict)
+    tas2_dstr = concat_display_tas_dict(tas_dict)
+    assert tas2_str == '09701720172017 0001001'
+    assert tas2_dstr == '097-017-2017/2017-0001-001'
+
+    # everything sans ata
+    tas_dict = {
+        'allocation_transfer_agency': None,
+        'agency_identifier': '017',
+        'beginning_period_of_availa': '2017',
+        'ending_period_of_availabil': '2017',
+        'availability_type_code': 'D',
+        'main_account_code': '0001',
+        'sub_account_code': '001'
+    }
+    tas2_str = concat_tas_dict(tas_dict)
+    tas2_dstr = concat_display_tas_dict(tas_dict)
+    assert tas2_str == '00001720172017D0001001'
+    assert tas2_dstr == '017-D-0001-001'
+
+    # everything sans aid
+    tas_dict = {
+        'allocation_transfer_agency': '097',
+        'agency_identifier': None,
+        'beginning_period_of_availa': '2017',
+        'ending_period_of_availabil': '2017',
+        'availability_type_code': 'D',
+        'main_account_code': '0001',
+        'sub_account_code': '001'
+    }
+    tas2_str = concat_tas_dict(tas_dict)
+    tas2_dstr = concat_display_tas_dict(tas_dict)
+    assert tas2_str == '09700020172017D0001001'
+    assert tas2_dstr == '097-D-0001-001'
+
+    # everything sans periods
+    tas_dict = {
+        'allocation_transfer_agency': '097',
+        'agency_identifier': '017',
+        'beginning_period_of_availa': None,
+        'ending_period_of_availabil': None,
+        'availability_type_code': None,
+        'main_account_code': '0001',
+        'sub_account_code': '001'
+    }
+    tas2_str = concat_tas_dict(tas_dict)
+    tas2_dstr = concat_display_tas_dict(tas_dict)
+    assert tas2_str == '09701700000000 0001001'
+    assert tas2_dstr == '097-017-0001-001'
+
+    # everything sans beginning period
+    tas_dict = {
+        'allocation_transfer_agency': '097',
+        'agency_identifier': '017',
+        'beginning_period_of_availa': None,
+        'ending_period_of_availabil': '2017',
+        'availability_type_code': None,
+        'main_account_code': '0001',
+        'sub_account_code': '001'
+    }
+    tas2_str = concat_tas_dict(tas_dict)
+    tas2_dstr = concat_display_tas_dict(tas_dict)
+    assert tas2_str == '09701700002017 0001001'
+    assert tas2_dstr == '097-017-2017-0001-001'
+
+    # everything sans codes
+    tas_dict = {
+        'allocation_transfer_agency': '097',
+        'agency_identifier': '017',
+        'beginning_period_of_availa': '2017',
+        'ending_period_of_availabil': '2017',
+        'availability_type_code': 'D',
+        'main_account_code': None,
+        'sub_account_code': None
+    }
+    tas2_str = concat_tas_dict(tas_dict)
+    tas2_dstr = concat_display_tas_dict(tas_dict)
+    assert tas2_str == '09701720172017D0000000'
+    assert tas2_dstr == '097-017-D'
+
+    # nothing
+    tas_dict = {
+        'allocation_transfer_agency': None,
+        'agency_identifier': None,
+        'beginning_period_of_availa': None,
+        'ending_period_of_availabil': None,
+        'availability_type_code': None,
+        'main_account_code': None,
+        'sub_account_code': None
+    }
+    tas2_str = concat_tas_dict(tas_dict)
+    tas2_dstr = concat_display_tas_dict(tas_dict)
+    assert tas2_str == '00000000000000 0000000'
+    assert tas2_dstr == ''
 
 
 @pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")

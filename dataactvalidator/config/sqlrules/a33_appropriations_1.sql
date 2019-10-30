@@ -9,7 +9,8 @@ SELECT DISTINCT
     sf.ending_period_of_availabil,
     sf.availability_type_code,
     sf.main_account_code,
-    sf.sub_account_code
+    sf.sub_account_code,
+    sf.display_tas AS "uniqueid_TAS"
 FROM sf_133 AS sf
     JOIN submission AS sub
         ON sf.period = sub.reporting_fiscal_period

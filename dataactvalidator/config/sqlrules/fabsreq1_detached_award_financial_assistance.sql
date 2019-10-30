@@ -2,7 +2,8 @@
 SELECT
     row_number,
     award_description,
-    correction_delete_indicatr
+    correction_delete_indicatr,
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND COALESCE(award_description, '') = ''

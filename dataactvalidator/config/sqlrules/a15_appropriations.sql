@@ -3,14 +3,16 @@ WITH appropriation_a15_{0} AS
     (SELECT submission_id,
         row_number,
         unobligated_balance_cpe,
-        tas
+        tas,
+        display_tas
     FROM appropriation
     WHERE submission_id = {0})
 SELECT
     approp.row_number,
     approp.unobligated_balance_cpe,
     sf.amount AS "expected_value_GTAS SF133 Line 2490",
-    approp.unobligated_balance_cpe - sf.amount AS "difference"
+    approp.unobligated_balance_cpe - sf.amount AS "difference",
+    approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a15_{0} AS approp
     INNER JOIN sf_133 AS sf
         ON approp.tas = sf.tas
