@@ -11,7 +11,7 @@ def test_column_headers(database):
                        'beginning_period_of_availa', 'ending_period_of_availabil',
                        'availability_type_code', 'main_account_code', 'sub_account_code'}
     actual = set(query_columns(_FILE, database))
-    assert (actual & expected_subset) == expected_subset
+    assert actual == expected_subset
 
 
 def test_success(database):
