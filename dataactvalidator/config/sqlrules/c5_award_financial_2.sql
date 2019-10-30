@@ -7,7 +7,7 @@ SELECT
     gross_outlays_delivered_or_fyb,
     COALESCE(gross_outlay_amount_by_awa_fyb, 0) - (COALESCE(gross_outlays_undelivered_fyb, 0) +
                                                    COALESCE(gross_outlays_delivered_or_fyb, 0)) AS "difference",
-    tas AS "uniqueid_TAS",
+    display_tas AS "uniqueid_TAS",
     piid AS "uniqueid_PIID",
     fain AS "uniqueid_FAIN",
     uri AS "uniqueid_URI"

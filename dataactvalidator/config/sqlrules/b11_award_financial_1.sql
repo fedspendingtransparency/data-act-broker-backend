@@ -4,7 +4,7 @@
 SELECT
     row_number,
     object_class,
-    tas AS "uniqueid_TAS",
+    display_tas AS "uniqueid_TAS",
     object_class AS "uniqueid_ObjectClass"
 FROM award_financial
 WHERE submission_id = {0}

@@ -6,7 +6,7 @@ SELECT
     ussgl498100_upward_adjustm_cpe,
     COALESCE(obligations_delivered_orde_cpe, 0) - (COALESCE(ussgl490100_delivered_orde_cpe, 0) +
                                                    COALESCE(ussgl498100_upward_adjustm_cpe, 0)) AS "difference",
-    tas AS "uniqueid_TAS",
+    display_tas AS "uniqueid_TAS",
     piid AS "uniqueid_PIID",
     fain AS "uniqueid_FAIN",
     uri AS "uniqueid_URI"

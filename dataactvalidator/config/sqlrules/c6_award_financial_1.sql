@@ -6,7 +6,7 @@ SELECT
     ussgl488200_upward_adjustm_cpe,
     COALESCE(gross_outlays_undelivered_cpe, 0) - (COALESCE(ussgl480200_undelivered_or_cpe, 0) +
                                                   COALESCE(ussgl488200_upward_adjustm_cpe, 0)) AS "difference",
-    tas AS "uniqueid_TAS",
+    display_tas AS "uniqueid_TAS",
     piid AS "uniqueid_PIID",
     fain AS "uniqueid_FAIN",
     uri AS "uniqueid_URI"

@@ -4,7 +4,7 @@ SELECT
     fain,
     uri,
     piid,
-    tas AS "uniqueid_TAS"
+    display_tas AS "uniqueid_TAS"
 FROM award_financial
 WHERE submission_id = {0}
     AND fain IS NULL

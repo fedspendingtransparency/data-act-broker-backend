@@ -8,7 +8,7 @@ WITH award_financial_b9_{0} AS
         main_account_code,
         program_activity_name,
         program_activity_code,
-        tas
+        display_tas
     FROM award_financial
     WHERE submission_id = {0})
 SELECT
@@ -17,7 +17,7 @@ SELECT
     af.main_account_code,
     af.program_activity_name,
     af.program_activity_code,
-    af.tas AS "uniqueid_TAS",
+    af.display_tas AS "uniqueid_TAS",
     af.program_activity_code AS "uniqueid_ProgramActivityCode"
 FROM award_financial_b9_{0} AS af
      INNER JOIN submission AS sub
