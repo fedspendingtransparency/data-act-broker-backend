@@ -62,8 +62,6 @@ class ErrorWarningTests(BaseTestValidator):
         """ Set up class-wide resources (test data) """
         super(ErrorWarningTests, cls).setUpClass()
 
-        logging.getLogger('dataactcore').setLevel(logging.ERROR)
-        logging.getLogger('dataactvalidator').setLevel(logging.ERROR)
         with create_app().app_context():
             # get the submission test users
             sess = GlobalDB.db().session
