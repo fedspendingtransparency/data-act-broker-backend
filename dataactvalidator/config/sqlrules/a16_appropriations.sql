@@ -3,7 +3,6 @@ WITH appropriation_a16_{0} AS
     (SELECT submission_id,
         row_number,
         budget_authority_unobligat_fyb,
-        tas,
         display_tas
     FROM appropriation
     WHERE submission_id = {0})
