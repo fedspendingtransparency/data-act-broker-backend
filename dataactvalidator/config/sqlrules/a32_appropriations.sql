@@ -6,7 +6,8 @@ SELECT approp.row_number,
     approp.ending_period_of_availabil,
     approp.availability_type_code,
     approp.main_account_code,
-    approp.sub_account_code
+    approp.sub_account_code,
+    approp.display_tas AS "uniqueid_TAS"
 FROM appropriation AS approp
 WHERE approp.submission_id = {0}
     AND EXISTS (

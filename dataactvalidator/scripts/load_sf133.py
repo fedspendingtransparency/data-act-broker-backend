@@ -14,7 +14,7 @@ from dataactbroker.helpers.generic_helper import format_internal_tas
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import matching_cars_subquery, SF133
+from dataactcore.models.domainModels import matching_cars_subquery, SF133, concat_display_tas_dict
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 
@@ -73,7 +73,7 @@ def fill_blank_sf133_lines(data):
     pivot_idx = (
         'created_at', 'updated_at', 'agency_identifier', 'allocation_transfer_agency', 'availability_type_code',
         'beginning_period_of_availa', 'ending_period_of_availabil', 'main_account_code', 'sub_account_code', 'tas',
-        'fiscal_year', 'period')
+        'fiscal_year', 'period', 'display_tas')
 
     data = pd.pivot_table(data, values='amount', index=pivot_idx, columns=['line']).reset_index()
     data = data.fillna(value=0.0)
@@ -212,6 +212,7 @@ def clean_sf133_data(filename, sf133_data):
 
     # add concatenated TAS field for internal use (i.e., joining to staging tables)
     data['tas'] = data.apply(lambda row: format_internal_tas(row), axis=1)
+    data['display_tas'] = data.apply(lambda row: concat_display_tas_dict(row), axis=1)
     data['amount'] = data['amount'].astype(float)
 
     data = fill_blank_sf133_lines(data)

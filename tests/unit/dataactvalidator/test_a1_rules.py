@@ -19,10 +19,9 @@ _factories = {
 @pytest.mark.parametrize('sql_file', _factories.keys())
 def test_column_headers(database, sql_file):
     expected_subset = {
-        "row_number", "allocation_transfer_agency", "agency_identifier",
-        "beginning_period_of_availa", "ending_period_of_availabil",
-        "availability_type_code", "main_account_code", "sub_account_code"
-    }
+        'uniqueid_TAS', 'row_number', 'allocation_transfer_agency', 'agency_identifier',
+        'beginning_period_of_availa', 'ending_period_of_availabil',
+        'availability_type_code', 'main_account_code', 'sub_account_code'}
 
     actual = set(query_columns(sql_file, database))
     assert expected_subset == actual
