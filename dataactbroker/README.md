@@ -101,19 +101,19 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
 
 ```
 {
-	"user_id": 42,
-	"name": "John",
-	"title": "Developer",
-	"skip_guide": false,
-	"website_admin": false,
-	"affiliations": [
-		{
-			"agency_name": "Department of Labor (DOL)",
-			"permission": "writer"
-		}
-	],
-	"session_id": "ABC123",
-	"message": "Login successful"
+    "user_id": 42,
+    "name": "John",
+    "title": "Developer",
+    "skip_guide": false,
+    "website_admin": false,
+    "affiliations": [
+        {
+            "agency_name": "Department of Labor (DOL)",
+            "permission": "writer"
+        }
+    ],
+    "session_id": "ABC123",
+    "message": "Login successful"
 }
 ```
 
@@ -407,6 +407,32 @@ N/A
 Possible HTTP Status Codes:
 
 - 403: Permission denied, user does not have permission to view this submission
+
+#### GET "/v1/latest\_certification\_period/"
+This endpoint returns the latest certification period for the broker application.
+
+##### Sample Request
+`/v1/latest_certification_period/`
+
+##### Request Params
+N/A
+
+##### Response (JSON)
+```
+{
+    "quarter": 4,
+    "year": 2019
+}
+```
+
+##### Response Attributes
+- `quarter`: (integer) the quarter of the latest certification period, or none if no period is found
+- `year`: (integer) the fiscal year of the latest certification period, or none if no period is found
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 401: Login required
 
 
 #### GET "/v1/submission\_metadata/"
@@ -1332,25 +1358,45 @@ Successful response will contain the signed S3 URL for the file we're trying to 
 
 Invalid certified_files_history_id, requests for a file not related to the submission_id given, or requests for a file that isn't stored in the table will return a 400 error.
 
-#### GET "/v1/list_agencies/"
-Gets all CGACS that the user has submit/certify permissions
+#### GET "/v1/list\_agencies/"
+Gets all CGACs/FRECs that the user has permissions for.
 
-Example input:
+##### Sample Request
+`/v1/list_agencies/`
 
-None
+##### Request Params
+N/A
 
-Example output:
-
-```json
+##### Response (JSON)
+```
 {
     "cgac_agency_list": [
-      {
-        "agency_name": "Sample Agency",
-        "cgac_code": "000"
-      }, ...
+        {
+            "agency_name": "Sample Agency",
+            "cgac_code": "000"
+        },
+        {
+            "agency_name": "Sample Agency 2",
+            "cgac_code": "999"
+        }
+    ],
+    "frec_agency_list": [
+        {
+            "agency_name": "Sample FREC Agency",
+            "frec_code": "0000"
+        }
     ]
 }
 ```
+
+##### Response Attributes
+- `cgac_agency_list`: (list[dict]) A list of all cgac agencies (cgac code and agency name) the user has permissions to access.
+- `frec_agency_list `: (list[dict]) A list of all frec agencies (frec code and agency name) the user has permissions to access.
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 401: Login required
 
 #### GET "/v1/list_all_agencies/"
 Gets all CGACS
@@ -1387,7 +1433,7 @@ Example output:
       {
         "agency_name": "Sample Agency",
         "agency_code": "000",
-	"priority": "0"
+        "priority": "0"
       }, ...
     ]
 }
@@ -1611,6 +1657,330 @@ Possible HTTP Status Codes:
     - Submission does not exist
 - 401: Login required
 
+## Dashboard Routes
+
+The following routes are primarily used by the frontend for analytical purposes.
+
+### POST "/v1/historic\_dabs\_summary"
+
+This route returns a list of submission summary dicts corresponding to the filters provided.
+Note: the results will only include the submissions the user has access to based on their MAX permissions.
+
+#### Body (JSON)
+```
+{
+    "filters": {
+        "quarters": [1, 3],
+        "fys": [2017, 2019],
+        "agencies": ["089", "1125"]
+    }
+}
+```
+
+#### Body Description
+- `filters`: (required, dict) used to filter the resulting summaries
+    - `quarters`: (required, list[integer]) fiscal year quarters, ranging 1-4, or an empty list to include all.
+    - `fys`: (required, list[integer]) fiscal years, ranging from 2017 through the current fiscal year,
+              or an empty list to include all.
+    - `agencies`: (required, list[string]) CGAC or FREC codes, or an empty list to include all.
+
+#### Response (JSON)
+
+```
+[
+    {
+        "submission_id": 104,
+        "certifier": "Administrator",
+        "fy": 2019,
+        "quarter": 3,
+        "agency": {
+            "name": "Peace Corps (EOP)",
+            "code": "1125"
+        }
+    },
+    ...
+]
+```
+
+#### Response Attributes
+The response is a list of dicts representing the submission summaries, each with the following attributes:
+
+- `submission_id`: (integer) the submission ID of the summary
+- `certifier`: (string) name of the submission certifier
+- `fy`: (integer) the fiscal year of the summary
+- `quarter`: (integer) the fiscal quarter of the summary
+- `agency`:  (dict) the submission's agency, with the following attributes
+    - `name`: (string) the agency's name
+    - `code`: (string) the agency's code
+
+#### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid `quarters` parameter
+    - Invalid `fys` parameter
+    - Invalid `agencies` parameter
+    - Missing required parameter
+- 401: Login required
+
+
+### POST "/v1/get\_rule\_labels/"
+Gets a list of error/warning lables that pertain to the filters provided.
+
+#### Body (JSON)
+```
+    {
+        "files": ["A", "B", "cross-AB"],
+        "fabs": false,
+        "error_level": "warning"
+    }
+```
+
+#### Body Description
+- `files`: (required, array) Lists the files to get rule labels for. If an empty list is provided, all rule labels that match the remaining filters will be returned. If retrieving rules for a FABS submission, send an empty files list. Capitalization matters. Allowed values are:
+    - `A`: Appropriations
+    - `B`: Program Activity
+    - `C`: Award Financial
+    - `cross-AB`: cross-file between Appropriations and Program Activity
+    - `cross-BC`: cross-file between Program Activity and Award Financial
+    - `cross-CD1`: cross-file between Award Financial and Award Procurement
+    - `cross-CD2`: cross-file between Award Financial and Award Financial Assistance
+- `fabs`: (boolean) Determines whether labels being gathered are for FABS or DABS rules. Defaults to false if not provided
+- `error_level`: (string) Determines whether to provide error or warning rule labels. Defaults to `warning` if not provided. Allowed values:
+    - `error`
+    - `warning`
+    - `mixed`
+
+#### Response (JSON)
+```
+{
+    "labels": ["A3", "A11"]
+}
+```
+
+#### Response Attributes
+- `labels`: (array) The list of rule labels (strings) that correspond to the values provided in the request
+
+#### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Files provided for FABS rule list
+    - Invalid file type provided
+    - Invalid parameter type provided
+
+### POST "/v1/historic\_dabs\_graphs"
+
+This route returns a list of submission graph dicts corresponding to the filters provided.
+Note: the results will only include the submissions the user has access to based on their MAX permissions.
+
+#### Body (JSON)
+```
+{
+    "filters": {
+        "quarters": [1, 3],
+        "fys": [2017, 2019],
+        "agencies": ["089", "1125"],
+        "files": ["B"],
+        "rules": ["B11.4", "B9"]
+    }
+}
+```
+
+#### Body Description
+- `filters`: (required, dict) used to filter the resulting summaries
+    - `quarters`: (required, list[integer]) fiscal year quarters, ranging 1-4, or an empty list to include all.
+    - `fys`: (required, list[integer]) fiscal years, ranging from 2017 through the current fiscal year,
+              or an empty list to include all.
+    - `agencies`: (required, list[string]) CGAC or FREC codes, or an empty list to include all.
+    - `files`: (required, list[string]) files, or an empty list to include all.
+    - `rules`: (required, list[string]) validation rules, or an empty list to include all.
+
+#### Response (JSON)
+
+```
+{
+    "B": [
+        {
+            "submission_id": 1234,
+            "agency": 097,
+            "fy": 2017,
+            "quarter": 1,
+            "total_warnings": 519,
+            "warnings": [
+                {
+                    "label": "B11.4",
+                    "instances": 352,
+                    "percent_total": 68
+                }, {
+                    "label": "B9",
+                    "instances": 167,
+                    "percent_total": 32
+                }
+            ]
+        },
+        ...
+    ],
+    "C": [
+        {
+            "submission_id": 1234,
+            "agency": 012,
+            "fy": 2017,
+            "quarter": 1,
+            "total_warnings": 389,
+            "warnings": [
+                 {
+                     "label": "C12",
+                     "instances": 389,
+                     "percent_total": 100
+                 }
+            ]
+        },
+        ...
+    ],
+```
+
+#### Response Attributes
+
+The response is a dictionary of lists representing the submission graphs, each with a list of dicts with the 
+following attributes:
+
+- `submission_id`: (integer) the submission ID of the summary
+- `agency`:  (dict) the submission's agency, with the following attributes
+    - `name`: (string) the agency's name
+    - `code`: (string) the agency's code
+- `fy`: (integer) the fiscal year of the summary
+- `quarter`: (integer) the fiscal quarter of the summary
+- `total_warnings`: (integer) the total instances of warnings associated with this submission and file
+- `warnings`: ([dict]) list of warning dicts with the following attributes:
+    - `label`: (string) rule number/label
+    - `instances`: (integer) instances of this specific warning for this file and submission
+    - `percent_total`: (integer) the percent of instances for this warning compared to the rest of the file and submission
+
+
+#### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid parameter
+    - Missing required parameter
+- 401: Login required
+
+### POST "/v1/historic\_dabs\_table"
+This route returns a list of warning metadata rows for the dashboard table. Filters allow for more refined lists.
+Note: the results will only include the submissions the user has access to based on their MAX permissions.
+
+#### Body (JSON)
+```
+{
+    "filters": {
+        "quarters": [1, 3],
+        "fys": [2017, 2019],
+        "agencies": ["089", "1125"],
+        "files": ["B"],
+        "rules": ["B11.4", "B9"]
+    },
+    "page": 1,
+    "limit": 10,
+    "sort": "rule_label",
+    "order": "asc"
+}
+```
+
+#### Body Description
+- `filters`: (required, dict) used to filter the resulting error metadata list
+    - `quarters`: (required, list[integer]) fiscal year quarters, ranging 1-4, or an empty list to include all.
+    - `fys`: (required, list[integer]) fiscal years, ranging from 2017 through the current fiscal year,
+              or an empty list to include all.
+    - `agencies`: (required, list[string]) CGAC or FREC codes, or an empty list to include all.
+    - `files`: (required, list[string]) files, or an empty list to include all.
+    - `rules`: (required, list[string]) validation rules, or an empty list to include all.
+- `page`: (integer) The page of warning metadata to view (offsets the list by `limit * (page - 1)`). Defaults to `1` if not provided
+- `limit`: (integer) The total number of results to see from this request. Defaults to `5` if not provided
+- `sort`: (string) What value to sort by. Defaults to `period` if not provided. NOTE: Each sort value has a secondary (and sometimes tertiary) sort value to break ties. Valid values are:
+    - `period` - fiscal year/quarter (secondary: rule label)
+    - `rule_label` - the label of the rule (e.g. `B9`) (secondary: period)
+    - `instances` - the number of times this warning occurred in this submission/file (secondary: rule label, tertiary: period)
+    - `description` - the description of the rule (secondary: period)
+    - `file` - the names of the files in which the warning occurred (secondary: rule label)
+- `order`: (string) The sort order. Defaults to `desc` if not provided. Valid values are:
+    - `desc`
+    - `asc`
+
+#### Response (JSON)
+
+```
+{
+    "results": [
+        {
+            "submission_id": 1234,
+            "files": [
+                {
+                 "type": "B",
+                 "filename": "adsifmaoidsfmoisdfm-B.csv"
+                },
+                {
+                 "type": "C",
+                 "filename": "adsifmaoidsfmoisdfm-C.csv"
+                },
+            ],
+            "fy": 2017,
+            "quarter": 1,
+            "rule_label": "B9",
+            "instance_count": 609,
+            "rule_description": "lorem ipsum whatever"
+        },
+        {
+            "submission_id": 1234,
+            "files": [
+                {
+                 "type": "B",
+                 "filename": "adsifmaoidsfmoisdfm-B.csv"
+                }
+            ],
+            "fy": 2017,
+            "quarter": 1,
+            "rule_label": "B9",
+            "instance_count": 609,
+            "rule_description": "lorem ipsum whatever"
+        },
+        ...
+    ],
+    "page_metadata": {
+        "total": 20,
+        "page": 1,
+        "limit": 10
+    }
+```
+
+#### Response Attributes
+
+The response is a dictionary of lists representing the submission graphs, each with a list of dicts with the 
+following attributes:
+
+- `results`: ([dict]) the list of row results
+    - `submission_id`: (integer) the submission ID of the warning
+    - `files`:  ([dict]) The name and file type of the warning
+        - `type`: (string) the file's type
+        - `filename`: (string) the file's original name
+    - `fy`: (integer) the fiscal year of the warning
+    - `quarter`: (integer) the fiscal quarter of the warning
+    - `rule_label`: (string) the label associated with the warning
+    - `instance_count`: (integer) the number of times the warning occurred within the submission/file
+    - `rule_description`: (string) the text of the warning
+- `page_metadata`: (dict) metadata associated with the table
+    - `total`: (int) total number of warning metadata rows these filters found
+    - `page`: (int) the current page requested by the user
+    - `limit`: (int) the total number of results to display per page as requested by the user
+
+
+#### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid parameter
+    - Missing required parameter
+- 401: Login required
 
 ## Automated Tests
 
