@@ -4,6 +4,7 @@
 WITH object_class_program_activity_b15_{0} AS
     (SELECT submission_id,
         tas,
+        display_tas,
         ussgl480100_undelivered_or_cpe,
         ussgl480100_undelivered_or_fyb,
         ussgl480200_undelivered_or_cpe,
@@ -47,7 +48,7 @@ SELECT DISTINCT
         SUM(ussgl498100_upward_adjustm_cpe) +
         SUM(ussgl498200_upward_adjustm_cpe)
     ) - sf.amount AS "difference",
-    op.tas AS "uniqueid_TAS"
+    op.display_tas AS "uniqueid_TAS"
 FROM object_class_program_activity_b15_{0} AS op
     INNER JOIN sf_133 AS sf
         ON op.tas = sf.tas
@@ -58,7 +59,8 @@ FROM object_class_program_activity_b15_{0} AS op
 WHERE sf.line = 2104
     AND UPPER(op.by_direct_reimbursable_fun) = 'R'
 GROUP BY op.tas,
-    sf.amount
+    sf.amount,
+    op.display_tas
 HAVING (
         SUM(ussgl480100_undelivered_or_cpe) - SUM(ussgl480100_undelivered_or_fyb) +
         SUM(ussgl480200_undelivered_or_cpe) - SUM(ussgl480200_undelivered_or_fyb) +

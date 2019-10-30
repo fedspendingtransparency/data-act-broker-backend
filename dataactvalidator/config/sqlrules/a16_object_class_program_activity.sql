@@ -11,7 +11,7 @@ WITH object_class_program_activity_a16_{0} AS
         ussgl480200_undelivered_or_fyb,
         ussgl490100_delivered_orde_fyb,
         ussgl490800_authority_outl_fyb,
-        tas
+        display_tas
     FROM object_class_program_activity
     WHERE submission_id = {0})
 SELECT
@@ -25,7 +25,7 @@ SELECT
     ussgl480200_undelivered_or_fyb,
     ussgl490100_delivered_orde_fyb,
     ussgl490800_authority_outl_fyb,
-    tas AS "uniqueid_TAS"
+    display_tas AS "uniqueid_TAS"
 FROM object_class_program_activity_a16_{0} AS ocpa
     JOIN submission AS sub
         ON sub.submission_id = ocpa.submission_id

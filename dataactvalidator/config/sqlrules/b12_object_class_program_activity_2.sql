@@ -2,7 +2,7 @@
 SELECT
     row_number,
     by_direct_reimbursable_fun,
-    tas AS "uniqueid_TAS",
+    display_tas AS "uniqueid_TAS",
     object_class AS "uniqueid_ObjectClass"
 FROM object_class_program_activity
 WHERE submission_id = {0}

@@ -12,7 +12,7 @@ SELECT
     object_class,
     program_activity_code,
     by_direct_reimbursable_fun,
-    tas AS "uniqueid_TAS",
+    display_tas AS "uniqueid_TAS",
     program_activity_code AS "uniqueid_ProgramActivityCode",
     object_class AS "uniqueid_ObjectClass",
     by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource"
@@ -30,6 +30,7 @@ FROM (
         op.by_direct_reimbursable_fun,
         op.submission_id,
         op.tas,
+        op.display_tas,
         -- numbers all instances of this unique combination incrementally (1, 2, 3, etc)
         ROW_NUMBER() OVER (PARTITION BY
             op.beginning_period_of_availa,

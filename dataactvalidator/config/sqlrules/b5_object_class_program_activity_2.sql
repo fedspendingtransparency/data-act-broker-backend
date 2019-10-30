@@ -12,7 +12,7 @@ SELECT
                                                    COALESCE(gross_outlays_undelivered_fyb, 0) +
                                                    COALESCE(gross_outlays_delivered_or_cpe, 0) -
                                                    COALESCE(gross_outlays_delivered_or_fyb, 0)) AS "difference",
-    tas AS "uniqueid_TAS",
+    display_tas AS "uniqueid_TAS",
     program_activity_code AS "uniqueid_ProgramActivityCode",
     object_class AS "uniqueid_ObjectClass"
 FROM object_class_program_activity
