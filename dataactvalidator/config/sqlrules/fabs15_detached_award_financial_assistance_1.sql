@@ -4,7 +4,8 @@ SELECT
     row_number,
     legal_entity_country_code,
     record_type,
-    legal_entity_foreign_city
+    legal_entity_foreign_city,
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND UPPER(legal_entity_country_code) <> 'USA'

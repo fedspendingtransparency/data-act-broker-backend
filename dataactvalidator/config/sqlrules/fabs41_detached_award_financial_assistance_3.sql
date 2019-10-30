@@ -6,13 +6,15 @@ WITH detached_award_financial_assistance_fabs41_3_{0} AS
         row_number,
         place_of_performance_code,
         place_of_performance_zip4a,
-        correction_delete_indicatr
+        correction_delete_indicatr,
+        afa_generated_unique
     FROM detached_award_financial_assistance
     WHERE submission_id = {0})
 SELECT
     dafa.row_number,
     dafa.place_of_performance_code,
-    dafa.place_of_performance_zip4a
+    dafa.place_of_performance_zip4a,
+    dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_fabs41_3_{0} AS dafa
 WHERE CASE WHEN (COALESCE(dafa.place_of_performance_zip4a, '') <> ''
                  AND dafa.place_of_performance_zip4a <> 'city-wide'

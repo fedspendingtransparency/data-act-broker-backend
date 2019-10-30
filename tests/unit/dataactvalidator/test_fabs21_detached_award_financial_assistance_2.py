@@ -7,7 +7,8 @@ _FILE = 'fabs21_detached_award_financial_assistance_2'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'funding_sub_tier_agency_co', 'funding_office_code'}
+    expected_subset = {'row_number', 'funding_sub_tier_agency_co', 'funding_office_code',
+                       'uniqueid_AssistanceTransactionUniqueKey'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 

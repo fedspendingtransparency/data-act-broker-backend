@@ -11,7 +11,8 @@ $$ LANGUAGE plpgsql;
 SELECT
     row_number,
     period_of_performance_star,
-    period_of_performance_curr
+    period_of_performance_curr,
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND (CASE WHEN pg_temp.is_date(COALESCE(period_of_performance_star, '0'))
