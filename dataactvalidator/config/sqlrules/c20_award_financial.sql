@@ -102,7 +102,7 @@ SELECT NULL AS "source_row_number",
     ABS(ussgl487200_downward_adjus_cpe_sum_c) - ABS(ussgl487200_downward_adjus_cpe_sum_b) AS "difference_ussgl487200_downward_adjus_cpe_sum",
     ABS(ussgl497200_downward_adjus_cpe_sum_c) - ABS(ussgl497200_downward_adjus_cpe_sum_b) AS "difference_ussgl497200_downward_adjus_cpe_sum",
     ABS(deobligations_recov_by_awa_cpe_sum_c) - ABS(deobligations_recov_by_pro_cpe_sum_b) AS "difference_deobligations_recov_by_pro_cpe_sum",
-    award_financial_records.tas AS "uniqueid_TAS",
+    award_financial_records.display_tas AS "uniqueid_TAS",
     award_financial_records.object_class AS "uniqueid_ObjectClass"
 -- This first subquery is selecting the sum of 32 elements in File C based on TAS, OC, and Submission ID
 FROM (
@@ -139,11 +139,13 @@ FROM (
         SUM(af.ussgl497200_downward_adjus_cpe) AS ussgl497200_downward_adjus_cpe_sum_c,
         SUM(af.deobligations_recov_by_awa_cpe) AS deobligations_recov_by_awa_cpe_sum_c,
         af.tas,
-        af.object_class
+        af.object_class,
+        af.display_tas
     FROM award_financial AS af
     WHERE af.submission_id = {0}
     GROUP BY af.tas,
         af.object_class,
+        af.display_tas,
         af.submission_id
 ) AS award_financial_records
 -- The second subquery selects the sum of the corresponding 32 elements in File B

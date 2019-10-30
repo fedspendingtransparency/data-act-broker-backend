@@ -12,7 +12,7 @@ WITH appropriation_a18_{0} AS
         gross_outlay_amount_by_tas_cpe,
         tas_id,
         submission_id,
-        tas
+        display_tas
     FROM appropriation
     WHERE submission_id = {0})
 SELECT
@@ -20,7 +20,7 @@ SELECT
     approp.gross_outlay_amount_by_tas_cpe AS "source_value_gross_outlay_amount_by_tas_cpe",
     SUM(op.gross_outlay_amount_by_pro_cpe) AS "target_value_gross_outlay_amount_by_pro_cpe_sum",
     approp.gross_outlay_amount_by_tas_cpe - SUM(op.gross_outlay_amount_by_pro_cpe) AS "difference",
-    approp.tas AS "uniqueid_TAS"
+    approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a18_{0} AS approp
     JOIN object_class_program_activity op
         ON approp.tas_id = op.tas_id
@@ -34,5 +34,5 @@ GROUP BY approp.row_number,
     approp.main_account_code,
     approp.sub_account_code,
     approp.gross_outlay_amount_by_tas_cpe,
-    approp.tas
+    approp.display_tas
 HAVING approp.gross_outlay_amount_by_tas_cpe <> SUM(op.gross_outlay_amount_by_pro_cpe);

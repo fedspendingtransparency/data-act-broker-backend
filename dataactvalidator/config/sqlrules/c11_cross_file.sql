@@ -8,7 +8,7 @@ WITH award_financial_c11_{0} AS
         row_number,
         allocation_transfer_agency,
         agency_identifier,
-        tas
+        display_tas
     FROM award_financial
     WHERE submission_id = {0}),
 award_procurement_c11_{0} AS
@@ -42,7 +42,7 @@ SELECT
     af.row_number AS "source_row_number",
     af.piid AS "source_value_piid",
     af.parent_award_id AS "source_value_parent_award_id",
-    af.tas AS "uniqueid_TAS",
+    af.display_tas AS "uniqueid_TAS",
     af.piid AS "uniqueid_PIID",
     af.parent_award_id AS "uniqueid_ParentAwardId"
 FROM award_financial_c11_{0} AS af

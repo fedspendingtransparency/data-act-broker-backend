@@ -7,7 +7,7 @@ SELECT op.row_number AS "source_row_number",
     op.availability_type_code AS "source_value_availability_type_code",
     op.main_account_code AS "source_value_main_account_code",
     op.sub_account_code AS "source_value_sub_account_code",
-    op.tas AS "uniqueid_TAS"
+    op.display_tas AS "uniqueid_TAS"
 FROM object_class_program_activity AS op
 WHERE op.submission_id = {0}
     AND NOT EXISTS (

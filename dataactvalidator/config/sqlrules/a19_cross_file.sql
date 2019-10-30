@@ -12,7 +12,7 @@ WITH appropriation_a19_{0} AS
         obligations_incurred_total_cpe,
         tas_id,
         submission_id,
-        tas
+        display_tas
     FROM appropriation
     WHERE submission_id = {0})
 SELECT
@@ -20,7 +20,7 @@ SELECT
     approp.obligations_incurred_total_cpe AS "source_value_obligations_incurred_total_cpe",
     SUM(op.obligations_incurred_by_pr_cpe) * -1 AS "target_value_obligations_incurred_by_pr_cpe_sum",
     approp.obligations_incurred_total_cpe - (SUM(op.obligations_incurred_by_pr_cpe) * -1) AS "difference",
-    approp.tas AS "uniqueid_TAS"
+    approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a19_{0} AS approp
     JOIN object_class_program_activity op
         ON approp.tas_id = op.tas_id
@@ -34,5 +34,5 @@ GROUP BY approp.row_number,
     approp.main_account_code,
     approp.sub_account_code,
     approp.obligations_incurred_total_cpe,
-    approp.tas
+    approp.display_tas
 HAVING approp.obligations_incurred_total_cpe <> SUM(op.obligations_incurred_by_pr_cpe) * -1;

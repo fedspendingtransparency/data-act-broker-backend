@@ -9,7 +9,7 @@ WITH award_financial_c8_{0} AS
         transaction_obligated_amou,
         fain,
         uri,
-        tas
+        display_tas
     FROM award_financial
     WHERE submission_id = {0}),
 award_financial_assistance_c8_{0} AS
@@ -23,7 +23,7 @@ SELECT
     af.row_number AS "source_row_number",
     af.fain AS "source_value_fain",
     af.uri AS "source_value_uri",
-    af.tas AS "uniqueid_TAS",
+    af.display_tas AS "uniqueid_TAS",
     af.fain AS "uniqueid_FAIN",
     af.uri AS "uniqueid_URI"
 FROM award_financial_c8_{0} AS af

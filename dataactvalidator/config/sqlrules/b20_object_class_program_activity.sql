@@ -12,7 +12,7 @@ WITH award_financial_b20_{0} AS
         program_activity_code,
         object_class,
         tas_id,
-        tas
+        display_tas
     FROM award_financial
     WHERE submission_id = {0}),
 ocpa_b20_{0} AS
@@ -25,7 +25,7 @@ SELECT
     af.row_number AS "source_row_number",
     af.program_activity_code AS "source_value_program_activity_code",
     af.object_class AS "source_value_object_class",
-    af.tas AS "uniqueid_TAS",
+    af.display_tas AS "uniqueid_TAS",
     af.program_activity_code AS "uniqueid_ProgramActivityCode",
     af.object_class AS "uniqueid_ObjectClass"
 FROM award_financial_b20_{0} AS af
