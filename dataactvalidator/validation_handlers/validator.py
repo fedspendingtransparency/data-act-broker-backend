@@ -166,7 +166,7 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
     """ Evaluate all sql-based rules for cross file validation
 
         Args:
-            rules: List of Rule objects
+            rules: list of Rule objects
             submission_id: ID of submission to run cross-file validation on
             short_to_long_dict: mapping of short to long schema column names
             job_id: the id of the cross-file job
@@ -202,7 +202,8 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
         if failed_rows.rowcount:
             rule_cols = failed_rows.keys()
             # get list of fields involved in this validation
-            start_len = len('source_value_')
+            source_len = len('source_value_')
+            target_len = len('target_value_')
             source_cols = []
             target_cols = []
             for col in rule_cols:
@@ -210,8 +211,8 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
                     source_cols.append(col)
                 elif col.startswith('target_value_'):
                     target_cols.append(col)
-            source_headers = [short_to_long_dict.get(field[start_len:], field[start_len:]) for field in source_cols]
-            target_headers = [short_to_long_dict.get(field[start_len:], field[start_len:]) for field in target_cols]
+            source_headers = [short_to_long_dict.get(field[source_len:], field[source_len:]) for field in source_cols]
+            target_headers = [short_to_long_dict.get(field[target_len:], field[target_len:]) for field in target_cols]
 
             # materialize as we'll iterate over the failed_rows twice
             failed_rows = list(failed_rows)
@@ -249,9 +250,9 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
                     source_row_number = row['source_row_number'] if 'source_row_number' in rule_cols else ''
 
                     # get list of values for each column
-                    source_values = ['{}: {}'.format(short_to_long_dict.get(c[start_len:], c[start_len:]),
+                    source_values = ['{}: {}'.format(short_to_long_dict.get(c[source_len:], c[source_len:]),
                                                      str(row[c] or '')) for c in source_cols]
-                    target_values = ['{}: {}'.format(short_to_long_dict.get(c[start_len:], c[start_len:]),
+                    target_values = ['{}: {}'.format(short_to_long_dict.get(c[target_len:], c[target_len:]),
                                                      str(row[c] or '')) for c in target_cols]
 
                     # Getting all flex fields organized
