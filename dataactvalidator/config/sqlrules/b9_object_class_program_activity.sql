@@ -24,7 +24,9 @@ SELECT
     op.agency_identifier,
     op.main_account_code,
     op.program_activity_name,
-    op.program_activity_code
+    op.program_activity_code,
+    display_tas AS "uniqueid_TAS",
+    program_activity_code AS "uniqueid_ProgramActivityCode"
 FROM object_class_program_activity_b9_{0} AS op
      INNER JOIN submission AS sub
         ON op.submission_id = sub.submission_id
