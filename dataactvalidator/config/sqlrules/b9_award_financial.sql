@@ -7,7 +7,8 @@ WITH award_financial_b9_{0} AS
         agency_identifier,
         main_account_code,
         program_activity_name,
-        program_activity_code
+        program_activity_code,
+        display_tas
     FROM award_financial
     WHERE submission_id = {0})
 SELECT
@@ -15,7 +16,9 @@ SELECT
     af.agency_identifier,
     af.main_account_code,
     af.program_activity_name,
-    af.program_activity_code
+    af.program_activity_code,
+    af.display_tas AS "uniqueid_TAS",
+    af.program_activity_code AS "uniqueid_ProgramActivityCode"
 FROM award_financial_b9_{0} AS af
      INNER JOIN submission AS sub
         ON af.submission_id = sub.submission_id
