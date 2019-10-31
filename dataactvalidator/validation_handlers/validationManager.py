@@ -50,8 +50,9 @@ class ValidationManager:
     """ Outer level class, called by flask route """
     report_headers = ['Unique ID', 'Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Difference',
                       'Flex Fields', 'Row Number', 'Rule Label']
-    cross_file_report_headers = ['Source File', 'Target File', 'Field names', 'Error message', 'Values provided',
-                                 'Row number', 'Rule label']
+    cross_file_report_headers = ['Unique ID', 'Source File', 'Source Field Names', 'Target File', 'Target Field Names',
+                                 'Error Message', 'Source Values Provided', 'Target Values Provided', 'Difference',
+                                 'Source Flex Fields', 'Source Row Number', 'Rule Label']
 
     def __init__(self, is_local=True, directory=""):
         # Initialize instance variables
@@ -463,7 +464,7 @@ class ValidationManager:
             mark_job_status(job_id, "finished")
             mark_file_complete(job_id, file_name)
 
-        except Exception as e:
+        except Exception:
             logger.error({
                 'message': 'An exception occurred during validation',
                 'message_type': 'ValidatorInfo',
@@ -606,8 +607,8 @@ class ValidationManager:
                 # send comboRules to validator.crossValidate sql
                 current_cols_short_to_long = self.short_to_long_dict[first_file.id].copy()
                 current_cols_short_to_long.update(self.short_to_long_dict[second_file.id].copy())
-                cross_validate_sql(combo_rules.all(), submission_id, current_cols_short_to_long, first_file.id,
-                                   second_file.id, job, error_csv, warning_csv, error_list, job_id)
+                cross_validate_sql(combo_rules.all(), submission_id, current_cols_short_to_long, job_id, error_csv,
+                                   warning_csv, error_list)
             # close files
             error_file.close()
             warning_file.close()

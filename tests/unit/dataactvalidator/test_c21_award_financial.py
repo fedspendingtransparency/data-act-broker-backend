@@ -48,46 +48,66 @@ af_dict = dict(
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'tas', 'program_activity_code', 'ussgl480100_undelivered_or_fyb_sum_c',
-                       'ussgl480100_undelivered_or_cpe_sum_c', 'ussgl483100_undelivered_or_cpe_sum_c',
-                       'ussgl488100_upward_adjustm_cpe_sum_c', 'obligations_undelivered_or_fyb_sum_c',
-                       'obligations_undelivered_or_cpe_sum_c', 'ussgl490100_delivered_orde_fyb_sum_c',
-                       'ussgl490100_delivered_orde_cpe_sum_c', 'ussgl493100_delivered_orde_cpe_sum_c',
-                       'ussgl498100_upward_adjustm_cpe_sum_c', 'obligations_delivered_orde_fyb_sum_c',
-                       'obligations_delivered_orde_cpe_sum_c', 'ussgl480200_undelivered_or_fyb_sum_c',
-                       'ussgl480200_undelivered_or_cpe_sum_c', 'ussgl483200_undelivered_or_cpe_sum_c',
-                       'ussgl488200_upward_adjustm_cpe_sum_c', 'gross_outlays_undelivered_fyb_sum_c',
-                       'gross_outlays_undelivered_cpe_sum_c', 'ussgl490200_delivered_orde_cpe_sum_c',
-                       'ussgl490800_authority_outl_fyb_sum_c', 'ussgl490800_authority_outl_cpe_sum_c',
-                       'ussgl498200_upward_adjustm_cpe_sum_c', 'gross_outlays_delivered_or_fyb_sum_c',
-                       'gross_outlays_delivered_or_cpe_sum_c', 'gross_outlay_amount_by_awa_fyb_sum_c',
-                       'gross_outlay_amount_by_awa_cpe_sum_c', 'obligations_incurred_byawa_cpe_sum_c',
-                       'ussgl487100_downward_adjus_cpe_sum_c', 'ussgl497100_downward_adjus_cpe_sum_c',
-                       'ussgl487200_downward_adjus_cpe_sum_c', 'ussgl497200_downward_adjus_cpe_sum_c',
-                       'deobligations_recov_by_awa_cpe_sum_c', 'ussgl480100_undelivered_or_fyb_sum_b',
-                       'ussgl480100_undelivered_or_cpe_sum_b', 'ussgl483100_undelivered_or_cpe_sum_b',
-                       'ussgl488100_upward_adjustm_cpe_sum_b', 'obligations_undelivered_or_fyb_sum_b',
-                       'obligations_undelivered_or_cpe_sum_b', 'ussgl490100_delivered_orde_fyb_sum_b',
-                       'ussgl490100_delivered_orde_cpe_sum_b', 'ussgl493100_delivered_orde_cpe_sum_b',
-                       'ussgl498100_upward_adjustm_cpe_sum_b', 'obligations_delivered_orde_fyb_sum_b',
-                       'obligations_delivered_orde_cpe_sum_b', 'ussgl480200_undelivered_or_fyb_sum_b',
-                       'ussgl480200_undelivered_or_cpe_sum_b', 'ussgl483200_undelivered_or_cpe_sum_b',
-                       'ussgl488200_upward_adjustm_cpe_sum_b', 'gross_outlays_undelivered_fyb_sum_b',
-                       'gross_outlays_undelivered_cpe_sum_b', 'ussgl490200_delivered_orde_cpe_sum_b',
-                       'ussgl490800_authority_outl_fyb_sum_b', 'ussgl490800_authority_outl_cpe_sum_b',
-                       'ussgl498200_upward_adjustm_cpe_sum_b', 'gross_outlays_delivered_or_fyb_sum_b',
-                       'gross_outlays_delivered_or_cpe_sum_b', 'gross_outlay_amount_by_pro_fyb_sum_b',
-                       'gross_outlay_amount_by_pro_cpe_sum_b', 'obligations_incurred_by_pr_cpe_sum_b',
-                       'ussgl487100_downward_adjus_cpe_sum_b', 'ussgl497100_downward_adjus_cpe_sum_b',
-                       'ussgl487200_downward_adjus_cpe_sum_b', 'ussgl497200_downward_adjus_cpe_sum_b',
-                       'deobligations_recov_by_pro_cpe_sum_b'}
+    expected_subset = {
+        'source_row_number', 'source_value_tas', 'source_value_program_activity_code',
+        'source_value_ussgl480100_undelivered_or_fyb_sum_c', 'source_value_ussgl480100_undelivered_or_cpe_sum_c',
+        'source_value_ussgl483100_undelivered_or_cpe_sum_c', 'source_value_ussgl488100_upward_adjustm_cpe_sum_c',
+        'source_value_obligations_undelivered_or_fyb_sum_c', 'source_value_obligations_undelivered_or_cpe_sum_c',
+        'source_value_ussgl490100_delivered_orde_fyb_sum_c', 'source_value_ussgl490100_delivered_orde_cpe_sum_c',
+        'source_value_ussgl493100_delivered_orde_cpe_sum_c', 'source_value_ussgl498100_upward_adjustm_cpe_sum_c',
+        'source_value_obligations_delivered_orde_fyb_sum_c', 'source_value_obligations_delivered_orde_cpe_sum_c',
+        'source_value_ussgl480200_undelivered_or_fyb_sum_c', 'source_value_ussgl480200_undelivered_or_cpe_sum_c',
+        'source_value_ussgl483200_undelivered_or_cpe_sum_c', 'source_value_ussgl488200_upward_adjustm_cpe_sum_c',
+        'source_value_gross_outlays_undelivered_fyb_sum_c', 'source_value_gross_outlays_undelivered_cpe_sum_c',
+        'source_value_ussgl490200_delivered_orde_cpe_sum_c', 'source_value_ussgl490800_authority_outl_fyb_sum_c',
+        'source_value_ussgl490800_authority_outl_cpe_sum_c', 'source_value_ussgl498200_upward_adjustm_cpe_sum_c',
+        'source_value_gross_outlays_delivered_or_fyb_sum_c', 'source_value_gross_outlays_delivered_or_cpe_sum_c',
+        'source_value_gross_outlay_amount_by_awa_fyb_sum_c', 'source_value_gross_outlay_amount_by_awa_cpe_sum_c',
+        'source_value_obligations_incurred_byawa_cpe_sum_c', 'source_value_ussgl487100_downward_adjus_cpe_sum_c',
+        'source_value_ussgl497100_downward_adjus_cpe_sum_c', 'source_value_ussgl487200_downward_adjus_cpe_sum_c',
+        'source_value_ussgl497200_downward_adjus_cpe_sum_c', 'source_value_deobligations_recov_by_awa_cpe_sum_c',
+        'target_value_ussgl480100_undelivered_or_fyb_sum_b', 'target_value_ussgl480100_undelivered_or_cpe_sum_b',
+        'target_value_ussgl483100_undelivered_or_cpe_sum_b', 'target_value_ussgl488100_upward_adjustm_cpe_sum_b',
+        'target_value_obligations_undelivered_or_fyb_sum_b', 'target_value_obligations_undelivered_or_cpe_sum_b',
+        'target_value_ussgl490100_delivered_orde_fyb_sum_b', 'target_value_ussgl490100_delivered_orde_cpe_sum_b',
+        'target_value_ussgl493100_delivered_orde_cpe_sum_b', 'target_value_ussgl498100_upward_adjustm_cpe_sum_b',
+        'target_value_obligations_delivered_orde_fyb_sum_b', 'target_value_obligations_delivered_orde_cpe_sum_b',
+        'target_value_ussgl480200_undelivered_or_fyb_sum_b', 'target_value_ussgl480200_undelivered_or_cpe_sum_b',
+        'target_value_ussgl483200_undelivered_or_cpe_sum_b', 'target_value_ussgl488200_upward_adjustm_cpe_sum_b',
+        'target_value_gross_outlays_undelivered_fyb_sum_b', 'target_value_gross_outlays_undelivered_cpe_sum_b',
+        'target_value_ussgl490200_delivered_orde_cpe_sum_b', 'target_value_ussgl490800_authority_outl_fyb_sum_b',
+        'target_value_ussgl490800_authority_outl_cpe_sum_b', 'target_value_ussgl498200_upward_adjustm_cpe_sum_b',
+        'target_value_gross_outlays_delivered_or_fyb_sum_b', 'target_value_gross_outlays_delivered_or_cpe_sum_b',
+        'target_value_gross_outlay_amount_by_pro_fyb_sum_b', 'target_value_gross_outlay_amount_by_pro_cpe_sum_b',
+        'target_value_obligations_incurred_by_pr_cpe_sum_b', 'target_value_ussgl487100_downward_adjus_cpe_sum_b',
+        'target_value_ussgl497100_downward_adjus_cpe_sum_b', 'target_value_ussgl487200_downward_adjus_cpe_sum_b',
+        'target_value_ussgl497200_downward_adjus_cpe_sum_b', 'target_value_deobligations_recov_by_pro_cpe_sum_b',
+        'difference_ussgl480100_undelivered_or_fyb_sum', 'difference_ussgl480100_undelivered_or_cpe_sum',
+        'difference_ussgl483100_undelivered_or_cpe_sum', 'difference_ussgl488100_upward_adjustm_cpe_sum',
+        'difference_obligations_undelivered_or_fyb_sum', 'difference_obligations_undelivered_or_cpe_sum',
+        'difference_ussgl490100_delivered_orde_fyb_sum', 'difference_ussgl490100_delivered_orde_cpe_sum',
+        'difference_ussgl493100_delivered_orde_cpe_sum', 'difference_ussgl498100_upward_adjustm_cpe_sum',
+        'difference_obligations_delivered_orde_fyb_sum', 'difference_obligations_delivered_orde_cpe_sum',
+        'difference_ussgl480200_undelivered_or_fyb_sum', 'difference_ussgl480200_undelivered_or_cpe_sum',
+        'difference_ussgl483200_undelivered_or_cpe_sum', 'difference_ussgl488200_upward_adjustm_cpe_sum',
+        'difference_gross_outlays_undelivered_fyb_sum', 'difference_gross_outlays_undelivered_cpe_sum',
+        'difference_ussgl490200_delivered_orde_cpe_sum', 'difference_ussgl490800_authority_outl_fyb_sum',
+        'difference_ussgl490800_authority_outl_cpe_sum', 'difference_ussgl498200_upward_adjustm_cpe_sum',
+        'difference_gross_outlays_delivered_or_fyb_sum', 'difference_gross_outlays_delivered_or_cpe_sum',
+        'difference_gross_outlay_amount_by_pro_fyb_sum', 'difference_gross_outlay_amount_by_pro_cpe_sum',
+        'difference_obligations_incurred_by_pr_cpe_sum', 'difference_ussgl487100_downward_adjus_cpe_sum',
+        'difference_ussgl497100_downward_adjus_cpe_sum', 'difference_ussgl487200_downward_adjus_cpe_sum',
+        'difference_ussgl497200_downward_adjus_cpe_sum', 'difference_deobligations_recov_by_pro_cpe_sum',
+        'uniqueid_tas', 'uniqueid_program_activity_code'
+    }
     actual = set(query_columns(_FILE, database))
-    assert (actual & expected_subset) == expected_subset
+    assert expected_subset == actual
 
 
 def test_success(database):
-    """ Tests that the sum of financial elements in File C is less than or equal
-     to the corresponding element in File B for the same TAS and Program Activity Code combination"""
+    """ Tests that the sum of financial elements in File C is less than or equal to the corresponding element in File B
+        for the same TAS and Program Activity Code combination
+    """
     af1 = AwardFinancialFactory(**af_dict)
     af2 = AwardFinancialFactory(**af_dict)
 
@@ -210,8 +230,9 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Tests that the sum of financial elements in File C is not less than or equal
-         to the corresponding element in File B for the same TAS and Program Activity Code combination"""
+    """ Tests that the sum of financial elements in File C is not less than or equal to the corresponding element in
+        File B for the same TAS and Program Activity Code combination
+    """
     af1 = AwardFinancialFactory(**af_dict)
 
     op1 = ObjectClassProgramActivityFactory(

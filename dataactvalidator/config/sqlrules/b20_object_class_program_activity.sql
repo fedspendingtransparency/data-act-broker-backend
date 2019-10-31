@@ -11,7 +11,8 @@ WITH award_financial_b20_{0} AS
         sub_account_code,
         program_activity_code,
         object_class,
-        tas_id
+        tas_id,
+        display_tas
     FROM award_financial
     WHERE submission_id = {0}),
 ocpa_b20_{0} AS
@@ -21,16 +22,12 @@ ocpa_b20_{0} AS
     FROM object_class_program_activity
     WHERE submission_id = {0})
 SELECT
-    af.row_number,
-    af.allocation_transfer_agency,
-    af.agency_identifier,
-    af.beginning_period_of_availa,
-    af.ending_period_of_availabil,
-    af.availability_type_code,
-    af.main_account_code,
-    af.sub_account_code,
-    af.program_activity_code,
-    af.object_class
+    af.row_number AS "source_row_number",
+    af.program_activity_code AS "source_value_program_activity_code",
+    af.object_class AS "source_value_object_class",
+    af.display_tas AS "uniqueid_TAS",
+    af.program_activity_code AS "uniqueid_ProgramActivityCode",
+    af.object_class AS "uniqueid_ObjectClass"
 FROM award_financial_b20_{0} AS af
 WHERE NOT EXISTS (
         SELECT 1
