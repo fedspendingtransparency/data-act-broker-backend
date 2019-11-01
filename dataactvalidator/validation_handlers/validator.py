@@ -463,8 +463,20 @@ def relevant_cross_flex_data(failed_rows, submission_id, file_id):
 
 
 def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failure):
-    """Convert a failure SQL row into a ValidationFailure"""
-    row = sql_failure['row_number']
+    """ Convert a failure SQL row into a ValidationFailure.
+
+        Args:
+            rule: the RuleSql object representing the rule failed
+            flex_data: the flex data for the subset of failures currently being converted into errors
+            cols: the column values for the columns that are relevant to the error failed
+            col_headers: the column names for the columns that are relevant to the error failed
+            file_id: the ID number of the file being validated
+            sql_failure: the failure returned from the SQL
+
+        Returns:
+            A ValidationFailure tuple that contains all values needed to write the row to the error report
+    """
+    row = sql_failure['row_number'] or ''
 
     # Determine the extra value for a rule
     expected_value = rule.expected_value
@@ -486,9 +498,8 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
             unique_id_fields.append('{}: {}'.format(fail_header, str(sql_failure[failure_key] or '')))
 
     # Create strings for fields and values
-    values_list = ['{}: {}'.format(header, str(sql_failure[field])) for field, header in zip(cols, col_headers)]
-    flex_list = ['{}: {}'.format(flex_field.header, flex_field.cell if flex_field.cell else '')
-                 for flex_field in flex_data[row]]
+    values_list = ['{}: {}'.format(header, str(sql_failure[field] or '')) for field, header in zip(cols, col_headers)]
+    flex_list = ['{}: {}'.format(flex_field.header, flex_field.cell or '') for flex_field in flex_data[row]]
     # Create unique id string
     unique_id = ', '.join(unique_id_fields)
 
