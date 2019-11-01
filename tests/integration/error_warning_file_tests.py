@@ -281,7 +281,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Field Name': 'budgetauthorityunobligatedbalancebroughtforward_fyb',
                 'Error Message': 'All the elements that have FYB in file A are expected in the first submission'
                                  ' for a fiscal year',
-                'Value Provided': 'budgetauthorityunobligatedbalancebroughtforward_fyb: None',
+                'Value Provided': 'budgetauthorityunobligatedbalancebroughtforward_fyb: ',
                 'Expected Value': 'If the reporting period is Quarter 1, a non-null amount should be submitted for the'
                                   ' following elements: BudgetAuthorityUnobligatedBalanceBroughtForward_FYB',
                 'Difference': '',
@@ -396,7 +396,7 @@ class ErrorWarningTests(BaseTestValidator):
                               ' unobligatedbalance_cpe',
                 'Error Message': 'StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE'
                                  ' + UnobligatedBalance_CPE',
-                'Value Provided': 'statusofbudgetaryresourcestotal_cpe: None, obligationsincurredtotalbytas_cpe: 8.08,'
+                'Value Provided': 'statusofbudgetaryresourcestotal_cpe: , obligationsincurredtotalbytas_cpe: 8.08,'
                                   ' unobligatedbalance_cpe: 2.02',
                 'Expected Value': 'StatusOfBudgetaryResourcesTotal_CPE must equal the sum of these elements:'
                                   ' ObligationsIncurredTotalByTAS_CPE + UnobligatedBalance_CPE. The Broker cannot'
@@ -412,7 +412,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Unique ID': 'TAS: 019-2016/2016-0113-000',
                 'Field Name': 'statusofbudgetaryresourcestotal_cpe, totalbudgetaryresources_cpe',
                 'Error Message': 'StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE',
-                'Value Provided': 'statusofbudgetaryresourcestotal_cpe: None, totalbudgetaryresources_cpe: 10.1',
+                'Value Provided': 'statusofbudgetaryresourcestotal_cpe: , totalbudgetaryresources_cpe: 10.1',
                 'Expected Value': 'StatusOfBudgetaryResourcesTotal_CPE must equal TotalBudgetaryResources_CPE. The'
                                   ' Broker cannot distinguish which side of the equation is correct for this rule.'
                                   ' Refer to related rule errors and warnings in this report (rules A6, A23) to'
