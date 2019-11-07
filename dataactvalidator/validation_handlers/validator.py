@@ -479,7 +479,7 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
         Returns:
             A ValidationFailure tuple that contains all values needed to write the row to the error report
     """
-    row = sql_failure['row_number'] if sql_failure['row_number'] is not None else ''
+    row = sql_failure['row_number'] or ''
 
     # Determine the extra value for a rule
     expected_value = rule.expected_value
