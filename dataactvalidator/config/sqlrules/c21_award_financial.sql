@@ -5,7 +5,7 @@
 -- The elements from both files are summed before comparing
 -- As we are comparing sums, we cannot return row numbers, so we select NULL
 SELECT NULL AS "source_row_number",
-    award_financial_records.tas AS "source_value_tas",
+    award_financial_records.display_tas AS "source_value_tas",
     award_financial_records.program_activity_code AS "source_value_program_activity_code",
     ussgl480100_undelivered_or_fyb_sum_c AS "source_value_ussgl480100_undelivered_or_fyb_sum_c",
     ussgl480100_undelivered_or_cpe_sum_c AS "source_value_ussgl480100_undelivered_or_cpe_sum_c",

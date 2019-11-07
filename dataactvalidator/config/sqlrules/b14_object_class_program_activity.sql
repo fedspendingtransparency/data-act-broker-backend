@@ -23,7 +23,7 @@ WITH object_class_program_activity_b14_{0} AS
     WHERE submission_id = {0})
 SELECT DISTINCT
     NULL AS row_number,
-    op.tas,
+    op.display_tas AS "tas",
     SUM(ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum,
     SUM(ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum,
     SUM(ussgl480200_undelivered_or_cpe) AS ussgl480200_undelivered_or_cpe_sum,
@@ -58,8 +58,7 @@ FROM object_class_program_activity_b14_{0} AS op
         AND sf.fiscal_year = sub.reporting_fiscal_year
 WHERE sf.line = 2004
     AND UPPER(op.by_direct_reimbursable_fun) = 'D'
-GROUP BY op.tas,
-    sf.amount,
+GROUP BY sf.amount,
     op.display_tas
 HAVING (
         SUM(ussgl480100_undelivered_or_cpe) - SUM(ussgl480100_undelivered_or_fyb) +
