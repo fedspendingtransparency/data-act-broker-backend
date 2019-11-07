@@ -58,7 +58,8 @@ FROM object_class_program_activity_b14_{0} AS op
         AND sf.fiscal_year = sub.reporting_fiscal_year
 WHERE sf.line = 2004
     AND UPPER(op.by_direct_reimbursable_fun) = 'D'
-GROUP BY sf.amount,
+GROUP BY op.tas,
+    sf.amount,
     op.display_tas
 HAVING (
         SUM(ussgl480100_undelivered_or_cpe) - SUM(ussgl480100_undelivered_or_fyb) +
