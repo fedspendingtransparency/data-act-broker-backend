@@ -265,7 +265,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Value Provided': 'grossoutlayamountbytas_cpe: 35000000000000000000000000',
                 'Expected Value': 'Max length: 21',
                 'Difference': '',
-                'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '6',
                 'Rule Label': ''
             }
@@ -285,7 +285,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Expected Value': 'If the reporting period is Quarter 1, a non-null amount should be submitted for the'
                                   ' following elements: BudgetAuthorityUnobligatedBalanceBroughtForward_FYB',
                 'Difference': '',
-                'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '5',
                 'Rule Label': 'A16.1'
             }
@@ -349,7 +349,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Value Provided': '',
                 'Expected Value': '',
                 'Difference': '',
-                'Flex Fields': '',
+                'Flex Field': '',
                 'Row Number': '6',
                 'Rule Label': ''
             }
@@ -368,7 +368,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Value Provided': 'statusofbudgetaryresourcestotal_cpe: A',
                 'Expected Value': 'This field must be a decimal',
                 'Difference': '',
-                'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '6',
                 'Rule Label': ''
             }
@@ -386,7 +386,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Value Provided': '',
                 'Expected Value': '(not blank)',
                 'Difference': '',
-                'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '3',
                 'Rule Label': ''
             },
@@ -404,7 +404,7 @@ class ErrorWarningTests(BaseTestValidator):
                                   ' and warnings in this report (rules A15, A22, A23) to distinguish which elements'
                                   ' may be incorrect.',
                 'Difference': '-10.10',
-                'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '3',
                 'Rule Label': 'A4'
             },
@@ -418,7 +418,7 @@ class ErrorWarningTests(BaseTestValidator):
                                   ' Refer to related rule errors and warnings in this report (rules A6, A23) to'
                                   ' distinguish which elements may be incorrect.',
                 'Difference': '-10.1',
-                'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '3',
                 'Rule Label': 'A24'
             }
@@ -450,7 +450,7 @@ class ErrorWarningTests(BaseTestValidator):
                                   ' incorrect for this rule. Refer to related rule errors and warnings in this report'
                                   ' (rules A3, A6, A7, A8, A12) to distinguish which elements may be incorrect.',
                 'Difference': '1.00',
-                'Flex Fields': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '10',
                 'Rule Label': 'A2'
             }
@@ -474,42 +474,42 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': 'TAS: 019-2016/2016-0113-000',
                 'Source File': 'appropriations',
-                'Source Field Names': 'grossoutlayamountbytas_cpe',
+                'Source Field Name': 'grossoutlayamountbytas_cpe',
                 'Target File': 'program_activity',
-                'Target Field Names': 'gross_outlay_amount_by_pro_cpe_sum',
+                'Target Field Name': 'gross_outlay_amount_by_pro_cpe_sum',
                 'Error Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal'
                                  ' the sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values in'
                                  ' the award financial file (B).',
                 'Source Values Provided': 'grossoutlayamountbytas_cpe: 10000',
                 'Target Values Provided': 'gross_outlay_amount_by_pro_cpe_sum: 6000',
                 'Difference': '4000',
-                'Source Flex Fields': '',
+                'Source Flex Field': '',
                 'Source Row Number': '5',
                 'Rule Label': 'A18'
             },
             {
                 'Unique ID': 'TAS: 019-2016/2016-0113-000',
                 'Source File': 'appropriations',
-                'Source Field Names': 'obligationsincurredtotalbytas_cpe',
+                'Source Field Name': 'obligationsincurredtotalbytas_cpe',
                 'Target File': 'program_activity',
-                'Target Field Names': 'obligations_incurred_by_pr_cpe_sum',
+                'Target Field Name': 'obligations_incurred_by_pr_cpe_sum',
                 'Error Message': 'The ObligationsIncurredTotalByTAS_CPE amount in the appropriation file (A) does not'
                                  ' equal the negative sum of the corresponding'
                                  ' ObligationsIncurredByProgramObjectClass_CPE values in the award financial file (B).',
                 'Source Values Provided': 'obligationsincurredtotalbytas_cpe: 12000',
                 'Target Values Provided': 'obligations_incurred_by_pr_cpe_sum: -6000',
                 'Difference': '18000',
-                'Source Flex Fields': '',
+                'Source Flex Field': '',
                 'Source Row Number': '5',
                 'Rule Label': 'A19'
             },
             {
                 'Unique ID': 'TAS: 019-2016/2016-0113-000',
                 'Source File': 'appropriations',
-                'Source Field Names': 'deobligationsrecoveriesrefundsbytas_cpe',
+                'Source Field Name': 'deobligationsrecoveriesrefundsbytas_cpe',
                 'Target File': 'program_activity',
-                'Target Field Names': 'ussgl487100_downward_adjus_cpe_sum, ussgl497100_downward_adjus_cpe_sum,'
-                                      ' ussgl487200_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
+                'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl497100_downward_adjus_cpe_sum,'
+                                     ' ussgl487200_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
                 'Error Message': 'DeobligationsRecoveriesRefundsByTAS_CPE in File A should equal USSGL'
                                  ' (4871_CPE+ 4971_CPE+ 4872_CPE+ 4972_CPE) for the TAS in File B.',
                 'Source Values Provided': 'deobligationsrecoveriesrefundsbytas_cpe: 16000',
@@ -518,7 +518,7 @@ class ErrorWarningTests(BaseTestValidator):
                                           ' ussgl487200_downward_adjus_cpe_sum: 400,'
                                           ' ussgl497200_downward_adjus_cpe_sum: 2000',
                 'Difference': '9600',
-                'Source Flex Fields': '',
+                'Source Flex Field': '',
                 'Source Row Number': '5',
                 'Rule Label': 'A35'
             }
@@ -542,11 +542,11 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': 'TAS: 019-072-X-0306-000',
                 'Source File': 'appropriations',
-                'Source Field Names': 'allocationtransferagencyidentifier, agencyidentifier,'
-                                      ' beginningperiodofavailability, endingperiodofavailability,'
-                                      ' availabilitytypecode, mainaccountcode, subaccountcode',
+                'Source Field Name': 'allocationtransferagencyidentifier, agencyidentifier,'
+                                     ' beginningperiodofavailability, endingperiodofavailability,'
+                                     ' availabilitytypecode, mainaccountcode, subaccountcode',
                 'Target File': 'program_activity',
-                'Target Field Names': '',
+                'Target Field Name': '',
                 'Error Message': 'All TAS values in File A (appropriations) should exist in File B'
                                  ' (object class program activity)',
                 'Source Values Provided': 'allocationtransferagencyidentifier: 019, agencyidentifier: 072,'
@@ -554,7 +554,7 @@ class ErrorWarningTests(BaseTestValidator):
                                           ' availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000',
                 'Target Values Provided': '',
                 'Difference': '',
-                'Source Flex Fields': '',
+                'Source Flex Field': '',
                 'Source Row Number': '2',
                 'Rule Label': 'A30.1'
             }
