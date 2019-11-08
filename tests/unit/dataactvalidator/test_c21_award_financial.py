@@ -98,7 +98,7 @@ def test_column_headers(database):
         'difference_obligations_incurred_by_pr_cpe_sum', 'difference_ussgl487100_downward_adjus_cpe_sum',
         'difference_ussgl497100_downward_adjus_cpe_sum', 'difference_ussgl487200_downward_adjus_cpe_sum',
         'difference_ussgl497200_downward_adjus_cpe_sum', 'difference_deobligations_recov_by_pro_cpe_sum',
-        'uniqueid_tas', 'uniqueid_program_activity_code'
+        'uniqueid_TAS', 'uniqueid_ProgramActivityCode'
     }
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual

@@ -103,8 +103,8 @@ SELECT NULL AS "source_row_number",
     COALESCE(ABS(ussgl487200_downward_adjus_cpe_sum_c) - ABS(ussgl487200_downward_adjus_cpe_sum_b), 0) AS "difference_ussgl487200_downward_adjus_cpe_sum",
     COALESCE(ABS(ussgl497200_downward_adjus_cpe_sum_c) - ABS(ussgl497200_downward_adjus_cpe_sum_b), 0) AS "difference_ussgl497200_downward_adjus_cpe_sum",
     COALESCE(ABS(deobligations_recov_by_awa_cpe_sum_c) - ABS(deobligations_recov_by_pro_cpe_sum_b), 0) AS "difference_deobligations_recov_by_pro_cpe_sum",
-    award_financial_records.display_tas AS "uniqueid_tas",
-    award_financial_records.program_activity_code AS "uniqueid_program_activity_code"
+    award_financial_records.display_tas AS "uniqueid_TAS",
+    award_financial_records.program_activity_code AS "uniqueid_ProgramActivityCode"
 -- This first subquery is selecting the sum of 32 elements in File C based on TAS, PAC, and Submission ID
 FROM (
     SELECT SUM(af.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_c,
