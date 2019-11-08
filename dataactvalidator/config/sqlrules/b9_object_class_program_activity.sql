@@ -18,7 +18,7 @@ WITH object_class_program_activity_b9_{0} AS
     FROM object_class_program_activity
     WHERE submission_id = {0})
 SELECT
-    op.tas,
+    op.display_tas AS "tas",
     op.submission_id,
     op.row_number,
     op.agency_identifier,

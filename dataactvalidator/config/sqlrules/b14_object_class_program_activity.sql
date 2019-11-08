@@ -23,7 +23,7 @@ WITH object_class_program_activity_b14_{0} AS
     WHERE submission_id = {0})
 SELECT DISTINCT
     NULL AS row_number,
-    op.tas,
+    op.display_tas AS "tas",
     SUM(ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum,
     SUM(ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum,
     SUM(ussgl480200_undelivered_or_cpe) AS ussgl480200_undelivered_or_cpe_sum,
