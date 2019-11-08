@@ -480,8 +480,8 @@ class ErrorWarningTests(BaseTestValidator):
                 'Error Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal'
                                  ' the sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values in'
                                  ' the award financial file (B).',
-                'Source Values Provided': 'grossoutlayamountbytas_cpe: 10000',
-                'Target Values Provided': 'gross_outlay_amount_by_pro_cpe_sum: 6000',
+                'Source Value Provided': 'grossoutlayamountbytas_cpe: 10000',
+                'Target Value Provided': 'gross_outlay_amount_by_pro_cpe_sum: 6000',
                 'Difference': '4000',
                 'Source Flex Field': '',
                 'Source Row Number': '5',
@@ -496,8 +496,8 @@ class ErrorWarningTests(BaseTestValidator):
                 'Error Message': 'The ObligationsIncurredTotalByTAS_CPE amount in the appropriation file (A) does not'
                                  ' equal the negative sum of the corresponding'
                                  ' ObligationsIncurredByProgramObjectClass_CPE values in the award financial file (B).',
-                'Source Values Provided': 'obligationsincurredtotalbytas_cpe: 12000',
-                'Target Values Provided': 'obligations_incurred_by_pr_cpe_sum: -6000',
+                'Source Value Provided': 'obligationsincurredtotalbytas_cpe: 12000',
+                'Target Value Provided': 'obligations_incurred_by_pr_cpe_sum: -6000',
                 'Difference': '18000',
                 'Source Flex Field': '',
                 'Source Row Number': '5',
@@ -512,11 +512,11 @@ class ErrorWarningTests(BaseTestValidator):
                                      ' ussgl487200_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
                 'Error Message': 'DeobligationsRecoveriesRefundsByTAS_CPE in File A should equal USSGL'
                                  ' (4871_CPE+ 4971_CPE+ 4872_CPE+ 4972_CPE) for the TAS in File B.',
-                'Source Values Provided': 'deobligationsrecoveriesrefundsbytas_cpe: 16000',
-                'Target Values Provided': 'ussgl487100_downward_adjus_cpe_sum: 2000,'
-                                          ' ussgl497100_downward_adjus_cpe_sum: 2000,'
-                                          ' ussgl487200_downward_adjus_cpe_sum: 400,'
-                                          ' ussgl497200_downward_adjus_cpe_sum: 2000',
+                'Source Value Provided': 'deobligationsrecoveriesrefundsbytas_cpe: 16000',
+                'Target Value Provided': 'ussgl487100_downward_adjus_cpe_sum: 2000,'
+                                         ' ussgl497100_downward_adjus_cpe_sum: 2000,'
+                                         ' ussgl487200_downward_adjus_cpe_sum: 400,'
+                                         ' ussgl497200_downward_adjus_cpe_sum: 2000',
                 'Difference': '9600',
                 'Source Flex Field': '',
                 'Source Row Number': '5',
@@ -549,10 +549,10 @@ class ErrorWarningTests(BaseTestValidator):
                 'Target Field Name': '',
                 'Error Message': 'All TAS values in File A (appropriations) should exist in File B'
                                  ' (object class program activity)',
-                'Source Values Provided': 'allocationtransferagencyidentifier: 019, agencyidentifier: 072,'
-                                          ' beginningperiodofavailability: , endingperiodofavailability: ,'
-                                          ' availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000',
-                'Target Values Provided': '',
+                'Source Value Provided': 'allocationtransferagencyidentifier: 019, agencyidentifier: 072,'
+                                         ' beginningperiodofavailability: , endingperiodofavailability: ,'
+                                         ' availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000',
+                'Target Value Provided': '',
                 'Difference': '',
                 'Source Flex Field': '',
                 'Source Row Number': '2',
