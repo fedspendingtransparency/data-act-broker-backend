@@ -251,14 +251,15 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
 
                     # get list of values for each column
                     source_values = ['{}: {}'.format(short_to_long_dict.get(c[source_len:], c[source_len:]),
-                                                     str(row[c] or '')) for c in source_cols]
+                                                     str(row[c] if row[c] is not None else '')) for c in source_cols]
                     target_values = ['{}: {}'.format(short_to_long_dict.get(c[target_len:], c[target_len:]),
-                                                     str(row[c] or '')) for c in target_cols]
+                                                     str(row[c] if row[c] is not None else '')) for c in target_cols]
 
                     # Getting all flex fields organized
                     source_flex_list = []
                     if source_flex_data:
-                        source_flex_list = ['{}: {}'.format(flex_field.header, flex_field.cell or '')
+                        source_flex_list = ['{}: {}'.format(flex_field.header,
+                                                            flex_field.cell if flex_field.cell is not None else '')
                                             for flex_field in source_flex_data[source_row_number]]
 
                     # Getting the difference and unique IDs
@@ -270,14 +271,16 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
                     for failure_key in rule_cols:
                         # Difference
                         if failure_key == 'difference':
-                            difference = str(row[failure_key] or '')
+                            difference = str(row[failure_key] if row[failure_key] is not None else '')
                         if failure_key.startswith(diff_start):
                             diff_header = failure_key[len(diff_start):]
-                            diff_array.append('{}: {}'.format(diff_header, str(row[failure_key] or '')))
+                            diff_array.append('{}: {}'.format(diff_header, str(row[failure_key] if
+                                                                               row[failure_key] is not None else '')))
                         # Unique key
                         if failure_key.startswith(unique_start):
                             unique_header = failure_key[len(unique_start):]
-                            unique_key.append('{}: {}'.format(unique_header, str(row[failure_key] or '')))
+                            unique_key.append('{}: {}'.format(unique_header, str(row[failure_key] if
+                                                                                 row[failure_key] is not None else '')))
                     # If we have multiple differences, join them
                     if diff_array:
                         difference = ', '.join(diff_array)
@@ -489,17 +492,21 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
         # Expected value
         if failure_key.startswith(expect_start):
             fail_header = failure_key[len(expect_start):]
-            expected_value = '{}: {}'.format(fail_header, (str(sql_failure[failure_key] or '')))
+            expected_value = '{}: {}'.format(fail_header, (str(sql_failure[failure_key] if
+                                                               sql_failure[failure_key] is not None else '')))
         # Difference
         elif failure_key == 'difference':
-            difference = str(sql_failure[failure_key] or '')
+            difference = str(sql_failure[failure_key] if sql_failure[failure_key] is not None else '')
         elif failure_key.startswith(unique_id_start):
             fail_header = failure_key[len(unique_id_start):]
-            unique_id_fields.append('{}: {}'.format(fail_header, str(sql_failure[failure_key] or '')))
+            unique_id_fields.append('{}: {}'.format(fail_header, str(sql_failure[failure_key] if
+                                                                     sql_failure[failure_key] is not None else '')))
 
     # Create strings for fields and values
-    values_list = ['{}: {}'.format(header, str(sql_failure[field] or '')) for field, header in zip(cols, col_headers)]
-    flex_list = ['{}: {}'.format(flex_field.header, flex_field.cell or '') for flex_field in flex_data[row]]
+    values_list = ['{}: {}'.format(header, str(sql_failure[field] if sql_failure[field] is not None else ''))
+                   for field, header in zip(cols, col_headers)]
+    flex_list = ['{}: {}'.format(flex_field.header, flex_field.cell if flex_field.cell is not None else '')
+                 for flex_field in flex_data[row]]
     # Create unique id string
     unique_id = ', '.join(unique_id_fields)
 
