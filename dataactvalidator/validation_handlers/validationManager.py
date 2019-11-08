@@ -49,10 +49,10 @@ CHUNK_SIZE = 1024
 class ValidationManager:
     """ Outer level class, called by flask route """
     report_headers = ['Unique ID', 'Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Difference',
-                      'Flex Fields', 'Row Number', 'Rule Label']
-    cross_file_report_headers = ['Unique ID', 'Source File', 'Source Field Names', 'Target File', 'Target Field Names',
-                                 'Error Message', 'Source Values Provided', 'Target Values Provided', 'Difference',
-                                 'Source Flex Fields', 'Source Row Number', 'Rule Label']
+                      'Flex Field', 'Row Number', 'Rule Label']
+    cross_file_report_headers = ['Unique ID', 'Source File', 'Source Field Name', 'Target File', 'Target Field Name',
+                                 'Error Message', 'Source Value Provided', 'Target Value Provided', 'Difference',
+                                 'Source Flex Field', 'Source Row Number', 'Rule Label']
 
     def __init__(self, is_local=True, directory=""):
         # Initialize instance variables
