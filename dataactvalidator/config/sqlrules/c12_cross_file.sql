@@ -13,9 +13,11 @@ award_financial_c12_{0} AS
     FROM award_financial
     WHERE submission_id = {0})
 SELECT
-    ap.row_number,
-    ap.piid,
-    ap.parent_award_id
+    ap.row_number AS "source_row_number",
+    ap.piid AS "source_value_piid",
+    ap.parent_award_id AS "source_value_parent_award_id",
+    ap.piid AS "uniqueid_PIID",
+    ap.parent_award_id AS "uniqueid_ParentAwardId"
 FROM award_procurement_c12_{0} AS ap
 WHERE ap.piid IS NOT NULL
     AND COALESCE(ap.federal_action_obligation, 0) <> 0

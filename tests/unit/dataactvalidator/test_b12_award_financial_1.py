@@ -6,38 +6,33 @@ _FILE = 'b12_award_financial_1'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'by_direct_reimbursable_fun'}
+    expected_subset = {'row_number', 'by_direct_reimbursable_fun', 'uniqueid_TAS', 'uniqueid_ObjectClass'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
 
 def test_success(database):
-    """ Test for USSGL 48XX & 49XX (except 487X & 497X) if any one is provided then
-    by_direct_reimbursable_fun is not empty """
+    """ Test for USSGL 48XX & 49XX (except 487X & 497X) if any one is provided then by_direct_reimbursable_fun is not
+        empty
+    """
 
     af = AwardFinancialFactory()
     assert number_of_errors(_FILE, database, models=[af]) == 0
 
-    af = AwardFinancialFactory(ussgl480100_undelivered_or_fyb=None,
-                               ussgl480100_undelivered_or_cpe=None,
-                               ussgl488100_upward_adjustm_cpe=None,
-                               ussgl490100_delivered_orde_fyb=None,
-                               ussgl490100_delivered_orde_cpe=None,
-                               ussgl498100_upward_adjustm_cpe=None,
-                               ussgl480200_undelivered_or_fyb=None,
-                               ussgl480200_undelivered_or_cpe=None,
-                               ussgl488200_upward_adjustm_cpe=None,
-                               ussgl490200_delivered_orde_cpe=None,
-                               ussgl490800_authority_outl_fyb=None,
-                               ussgl490800_authority_outl_cpe=None,
-                               ussgl498200_upward_adjustm_cpe=None,
-                               by_direct_reimbursable_fun=None)
+    af = AwardFinancialFactory(ussgl480100_undelivered_or_fyb=None, ussgl480100_undelivered_or_cpe=None,
+                               ussgl488100_upward_adjustm_cpe=None, ussgl490100_delivered_orde_fyb=None,
+                               ussgl490100_delivered_orde_cpe=None, ussgl498100_upward_adjustm_cpe=None,
+                               ussgl480200_undelivered_or_fyb=None, ussgl480200_undelivered_or_cpe=None,
+                               ussgl488200_upward_adjustm_cpe=None, ussgl490200_delivered_orde_cpe=None,
+                               ussgl490800_authority_outl_fyb=None, ussgl490800_authority_outl_cpe=None,
+                               ussgl498200_upward_adjustm_cpe=None, by_direct_reimbursable_fun=None)
     assert number_of_errors(_FILE, database, models=[af]) == 0
 
 
 def test_failure(database):
-    """ Test for USSGL 48XX & 49XX (except 487X & 497X) if any one is provided and
-    by_direct_reimbursable_fun is empty the rule fails """
+    """ Test for USSGL 48XX & 49XX (except 487X & 497X) if any one is provided and by_direct_reimbursable_fun is empty
+        the rule fails
+    """
 
     af_dict = {'by_direct_reimbursable_fun': None, 'ussgl480100_undelivered_or_fyb': None,
                'ussgl480100_undelivered_or_cpe': None, 'ussgl488100_upward_adjustm_cpe': None,
@@ -55,8 +50,7 @@ def test_failure(database):
             'ussgl490800_authority_outl_fyb', 'ussgl490800_authority_outl_cpe',
             'ussgl498200_upward_adjustm_cpe']
 
-    # Takes out one required key at a time and check that we get exactly one
-    # error
+    # Takes out one required key at a time and check that we get exactly one error
     for i in range(len(keys)):
         af_dict_copy = copy.deepcopy(af_dict)
         af_dict_copy.pop(keys[i])

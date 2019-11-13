@@ -9,7 +9,8 @@ def test_column_headers(database):
     expected_subset = {'row_number', 'beginning_period_of_availa', 'ending_period_of_availabil',
                        'agency_identifier', 'allocation_transfer_agency', 'availability_type_code',
                        'main_account_code', 'sub_account_code', 'object_class', 'program_activity_code',
-                       'by_direct_reimbursable_fun'}
+                       'by_direct_reimbursable_fun', 'uniqueid_TAS', 'uniqueid_ProgramActivityCode',
+                       'uniqueid_ObjectClass', 'uniqueid_ByDirectReimbursableFundingSource'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 

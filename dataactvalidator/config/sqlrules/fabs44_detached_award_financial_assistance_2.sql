@@ -7,7 +7,8 @@ SELECT
     legal_entity_zip_last4,
     legal_entity_congressional,
     legal_entity_country_code,
-    record_type
+    record_type,
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND COALESCE(legal_entity_zip5, '') <> ''

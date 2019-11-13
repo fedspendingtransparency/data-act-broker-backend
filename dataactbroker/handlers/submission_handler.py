@@ -591,6 +591,8 @@ def move_certified_data(sess, submission_id):
         column_list = [col.key for col in table_object[0].__table__.columns]
         column_list.remove('created_at')
         column_list.remove('updated_at')
+        if 'display_tas' in column_list:
+            column_list.remove('display_tas')
         column_list.remove(table_type + '_id')
 
         col_string = ", ".join(column_list)

@@ -6,14 +6,16 @@ _FILE = 'b5_object_class_program_activity_2'
 
 def test_column_headers(database):
     expected_subset = {'row_number', 'gross_outlay_amount_by_pro_cpe', 'gross_outlays_undelivered_cpe',
-                       'gross_outlays_delivered_or_cpe'}
+                       'gross_outlays_delivered_or_cpe', 'difference', 'uniqueid_TAS', 'uniqueid_ProgramActivityCode',
+                       'uniqueid_ObjectClass'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
 
 def test_success(database):
     """ Tests that Object Class Program activity gross_outlays_delivered_or_cpe + gross_outlays_undelivered_cpe
-    equals gross_outlay_amount_by_pro_cpe """
+        equals gross_outlay_amount_by_pro_cpe
+    """
 
     op = ObjectClassProgramActivityFactory(gross_outlay_amount_by_pro_cpe=2, gross_outlays_undelivered_cpe=2,
                                            gross_outlays_undelivered_fyb=1, gross_outlays_delivered_or_cpe=2,
@@ -24,7 +26,8 @@ def test_success(database):
 
 def test_failure(database):
     """ Tests that Object Class Program activity gross_outlays_delivered_or_cpe + gross_outlays_undelivered_cpe
-    doesn't equals gross_outlay_amount_by_pro_cpe """
+        doesn't equal gross_outlay_amount_by_pro_cpe
+    """
 
     op = ObjectClassProgramActivityFactory(gross_outlay_amount_by_pro_cpe=2, gross_outlays_undelivered_cpe=1,
                                            gross_outlays_undelivered_fyb=1, gross_outlays_delivered_or_cpe=1,

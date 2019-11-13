@@ -15,7 +15,8 @@ detached_award_financial_assistance_23_2_{0} AS
 	(SELECT row_number,
 		awarding_sub_tier_agency_c,
 		awarding_office_code,
-		correction_delete_indicatr
+		correction_delete_indicatr,
+		afa_generated_unique
 	FROM detached_award_financial_assistance
 	WHERE submission_id = {0}
 		AND COALESCE(awarding_sub_tier_agency_c, '') <> ''
@@ -36,7 +37,8 @@ sub_tier_offices_{0} AS
 SELECT
     row_number,
     awarding_sub_tier_agency_c,
-    awarding_office_code
+    awarding_office_code,
+    afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_23_2_{0} AS dafa
 WHERE NOT EXISTS (
         -- Find all awarding sub tier agency and office codes that are not part of the valid pairings list

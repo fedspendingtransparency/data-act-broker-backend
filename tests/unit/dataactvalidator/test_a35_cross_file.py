@@ -8,9 +8,11 @@ _TAS = 'a35_cross_file_tas'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'deobligations_recoveries_r_cpe', 'ussgl487100_downward_adjus_cpe_sum',
-                       'ussgl497100_downward_adjus_cpe_sum', 'ussgl487200_downward_adjus_cpe_sum',
-                       'ussgl497200_downward_adjus_cpe_sum'}
+    expected_subset = {'source_row_number', 'source_value_deobligations_recoveries_r_cpe',
+                       'target_value_ussgl487100_downward_adjus_cpe_sum',
+                       'target_value_ussgl497100_downward_adjus_cpe_sum',
+                       'target_value_ussgl487200_downward_adjus_cpe_sum',
+                       'target_value_ussgl497200_downward_adjus_cpe_sum', 'difference', 'uniqueid_TAS'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 

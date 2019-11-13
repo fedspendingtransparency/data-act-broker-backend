@@ -57,6 +57,7 @@ class RuleSql(Base):
     target_file_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_target_file"), nullable=True)
     target_file = relationship("FileType", uselist=False, foreign_keys=[target_file_id])
     query_name = Column(Text)
+    expected_value = Column(Text)
 
 
 class ValidationLabel(Base):
