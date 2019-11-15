@@ -1705,8 +1705,7 @@ Note: the results will only include the submissions the user has access to based
 ```
 
 #### Response Attributes
-The response is a list of dicts representing the requested agencies and their submission summaries, 
-each with the following attributes:
+The response is a list of dicts representing the requested agencies and their submission summaries, each with the following attributes:
 
 - `agency_name`:  (dict) the name of the requested agency
 - `submissions`: (list) the submissions for that agency in the periods requested, each with the following attributes:
