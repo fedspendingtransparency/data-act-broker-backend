@@ -261,9 +261,8 @@ def historic_dabs_warning_summary(filters):
             results[query_result.agency_name] = [result_dict]
 
     # Fill in the blanks
-    for perm in perm_codes:
-        if perms[perm] not in results.keys():
-            results[perms[perm]] = []
+    for perm in list(set(perm_codes) - set(results.keys())):
+        results[perms[perm]] = []
 
     # Convert to list for ease of use by frontend
     response = [{'agency_name': agency_name, 'submissions': submissions}
