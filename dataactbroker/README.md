@@ -1689,29 +1689,30 @@ Note: the results will only include the submissions the user has access to based
 ```
 [
     {
-        "submission_id": 104,
-        "certifier": "Administrator",
-        "fy": 2019,
-        "quarter": 3,
-        "agency": {
-            "name": "Peace Corps (EOP)",
-            "code": "1125"
-        }
+        "agency_name": "Peace Corps (EOP)",
+        "submissions": [
+            {
+                "submission_id": 104,
+                "certifier": "Administrator",
+                "fy": 2019,
+                "quarter": 3
+            },
+            ...
+        ]
     },
     ...
 ]
 ```
 
 #### Response Attributes
-The response is a list of dicts representing the submission summaries, each with the following attributes:
+The response is a list of dicts representing the requested agencies and their submission summaries, each with the following attributes:
 
-- `submission_id`: (integer) the submission ID of the summary
-- `certifier`: (string) name of the submission certifier
-- `fy`: (integer) the fiscal year of the summary
-- `quarter`: (integer) the fiscal quarter of the summary
-- `agency`:  (dict) the submission's agency, with the following attributes
-    - `name`: (string) the agency's name
-    - `code`: (string) the agency's code
+- `agency_name`:  (dict) the name of the requested agency
+- `submissions`: (list) the submissions for that agency in the periods requested, each with the following attributes:
+    - `submission_id`: (integer) the submission ID of the summary
+    - `certifier`: (string) name of the submission certifier
+    - `fy`: (integer) the fiscal year of the summary
+    - `quarter`: (integer) the fiscal quarter of the summary
 
 #### Errors
 Possible HTTP Status Codes:
