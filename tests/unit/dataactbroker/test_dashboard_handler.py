@@ -332,10 +332,6 @@ def test_historic_dabs_warning_summary_agency_user(database, monkeypatch):
         'agency_name': 'Unused CGAC 2',
         'submissions': []
     }
-    unused2_response = {
-        'agency_name': 'CGAC Associated with FREC',
-        'submissions': []
-    }
 
     # Perfect case - should still include sub3 cause the user still submitted it before switching agencies
     filters = {

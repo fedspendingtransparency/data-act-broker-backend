@@ -266,7 +266,8 @@ def historic_dabs_warning_summary(filters):
             results[perms[perm]] = []
 
     # Convert to list for ease of use by frontend
-    response = [{'agency_name': agency_name, 'submissions': submissions} for agency_name, submissions in results.items()]
+    response = [{'agency_name': agency_name, 'submissions': submissions}
+                for agency_name, submissions in results.items()]
 
     return JsonResponse.create(StatusCode.OK, response)
 
