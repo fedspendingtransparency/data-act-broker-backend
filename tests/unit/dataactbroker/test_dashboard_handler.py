@@ -15,6 +15,7 @@ from dataactcore.models.errorModels import CertifiedErrorMetadata
 from dataactbroker.helpers.generic_helper import fy
 from dataactbroker.helpers import filters_helper
 from dataactbroker.handlers import dashboard_handler
+from dataactbroker.handlers import agency_handler
 from dataactcore.utils.responseException import ResponseException
 
 
@@ -87,7 +88,7 @@ def test_validate_historic_dashboard_filters():
 
 
 def sort_results(results):
-    return sorted(results, key=lambda d: d['submission_id'])
+    return sorted(results, key=lambda d: d['agency_name'])
 
 
 def setup_submissions(sess, admin=False):
@@ -97,12 +98,16 @@ def setup_submissions(sess, admin=False):
     cgac1 = CGACFactory(cgac_code='089', agency_name='CGAC')
     cgac2 = CGACFactory(cgac_code='011', agency_name='CGAC Associated with FREC')
     cgac3 = CGACFactory(cgac_code='091', agency_name='Other CGAC')
+    cgac4 = CGACFactory(cgac_code='229', agency_name='Unused CGAC')
+    cgac5 = CGACFactory(cgac_code='230', agency_name='Unused CGAC 2')
     frec = FRECFactory(cgac=cgac2, frec_code='1125', agency_name='FREC')
-    db_objects.extend([cgac1, cgac2, cgac3, frec])
+    db_objects.extend([cgac1, cgac2, cgac3, cgac4, cgac5, frec])
 
     # Setup users and affiliations
     agency_user = UserFactory(name='Agency User', affiliations=[
-        UserAffiliation(user_affiliation_id=1, cgac=cgac1, permission_type_id=PERMISSION_TYPE_DICT['reader'])
+        UserAffiliation(user_affiliation_id=1, cgac=cgac1, permission_type_id=PERMISSION_TYPE_DICT['reader']),
+        UserAffiliation(user_affiliation_id=2, cgac=cgac4, permission_type_id=PERMISSION_TYPE_DICT['reader']),
+        UserAffiliation(user_affiliation_id=3, cgac=cgac5, permission_type_id=PERMISSION_TYPE_DICT['reader'])
     ])
     admin_user = UserFactory(name='Administrator', website_admin=True)
     db_objects.extend([agency_user, admin_user])
@@ -113,7 +118,7 @@ def setup_submissions(sess, admin=False):
                              publish_status_id=PUBLISH_STATUS_DICT['updated'], d2_submission=False,
                              user_id=agency_user.user_id)
     sub2 = SubmissionFactory(submission_id=2, reporting_fiscal_period=3, reporting_fiscal_year=2019,
-                             certifying_user_id=admin_user.user_id, cgac_code=cgac2.cgac_code,
+                             certifying_user_id=admin_user.user_id, cgac_code=None,
                              frec_code=frec.frec_code, publish_status_id=PUBLISH_STATUS_DICT['published'],
                              d2_submission=False, user_id=admin_user.user_id)
     sub3 = SubmissionFactory(submission_id=3, reporting_fiscal_period=3, reporting_fiscal_year=2019,
@@ -175,37 +180,53 @@ def test_historic_dabs_warning_summary_admin(database, monkeypatch):
 
     user = setup_submissions(sess, admin=True)
     monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
+    monkeypatch.setattr(agency_handler, 'g', Mock(user=user))
 
     # Responses
     sub1_response = {
-        'submission_id': 1,
-        'fy': 2017,
-        'certifier': 'Agency User',
-        'quarter': 3,
-        'agency': {
-            'name': 'CGAC',
-            'code': '089'
-        }
+        'agency_name': 'CGAC',
+        'submissions': [
+            {
+                'submission_id': 1,
+                'fy': 2017,
+                'certifier': 'Agency User',
+                'quarter': 3
+            }
+        ]
     }
     sub2_response = {
-        'submission_id': 2,
-        'fy': 2019,
-        'certifier': 'Administrator',
-        'quarter': 1,
-        'agency': {
-            'name': 'FREC',
-            'code': '1125'
-        }
+        'agency_name': 'FREC',
+        'submissions': [
+            {
+                'submission_id': 2,
+                'fy': 2019,
+                'certifier': 'Administrator',
+                'quarter': 1
+            }
+        ]
     }
     sub3_response = {
-        'submission_id': 3,
-        'fy': 2019,
-        'certifier': 'Agency User',
-        'quarter': 1,
-        'agency': {
-            'name': 'Other CGAC',
-            'code': '091'
-        }
+        'agency_name': 'Other CGAC',
+        'submissions': [
+            {
+                'submission_id': 3,
+                'fy': 2019,
+                'certifier': 'Agency User',
+                'quarter': 1
+            }
+        ]
+    }
+    unused_response = {
+        'agency_name': 'Unused CGAC',
+        'submissions': []
+    }
+    unused1_response = {
+        'agency_name': 'Unused CGAC 2',
+        'submissions': []
+    }
+    unused2_response = {
+        'agency_name': 'CGAC Associated with FREC',
+        'submissions': []
     }
 
     # Perfect case
@@ -243,7 +264,8 @@ def test_historic_dabs_warning_summary_admin(database, monkeypatch):
         'fys': [],
         'agencies': []
     }
-    expected_response = [sub1_response, sub2_response, sub3_response]
+    expected_response = [sub1_response, sub2_response, sub3_response, unused_response, unused1_response,
+                         unused2_response]
     response = historic_dabs_warning_summary_endpoint(filters)
     assert sort_results(response) == sort_results(expected_response)
 
@@ -277,36 +299,51 @@ def test_historic_dabs_warning_summary_agency_user(database, monkeypatch):
 
     user = setup_submissions(sess, admin=False)
     monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
+    monkeypatch.setattr(agency_handler, 'g', Mock(user=user))
 
     # Responses
     sub1_response = {
-        'submission_id': 1,
-        'fy': 2017,
-        'certifier': 'Agency User',
-        'quarter': 3,
-        'agency': {
-            'name': 'CGAC',
-            'code': '089'
-        }
+        'agency_name': 'CGAC',
+        'submissions': [
+            {
+                'submission_id': 1,
+                'fy': 2017,
+                'certifier': 'Agency User',
+                'quarter': 3
+            }
+        ]
     }
     sub3_response = {
-        'submission_id': 3,
-        'fy': 2019,
-        'certifier': 'Agency User',
-        'quarter': 1,
-        'agency': {
-            'name': 'Other CGAC',
-            'code': '091'
-        }
+        'agency_name': 'Other CGAC',
+        'submissions': [
+            {
+                'submission_id': 3,
+                'fy': 2019,
+                'certifier': 'Agency User',
+                'quarter': 1
+            }
+        ]
+    }
+    unused_response = {
+        'agency_name': 'Unused CGAC',
+        'submissions': []
+    }
+    unused1_response = {
+        'agency_name': 'Unused CGAC 2',
+        'submissions': []
+    }
+    unused2_response = {
+        'agency_name': 'CGAC Associated with FREC',
+        'submissions': []
     }
 
     # Perfect case - should still include sub3 cause the user still submitted it before switching agencies
     filters = {
         'quarters': [1, 3],
         'fys': [2017, 2019],
-        'agencies': ['089', '1125', '091']
+        'agencies': ['089', '1125', '091', '229']
     }
-    expected_response = [sub1_response, sub3_response]
+    expected_response = [sub1_response, sub3_response, unused_response]
     response = historic_dabs_warning_summary_endpoint(filters)
     assert sort_results(response) == sort_results(expected_response)
 
@@ -335,7 +372,7 @@ def test_historic_dabs_warning_summary_agency_user(database, monkeypatch):
         'fys': [],
         'agencies': []
     }
-    expected_response = [sub1_response, sub3_response]
+    expected_response = [sub1_response, sub3_response, unused_response, unused1_response]
     response = historic_dabs_warning_summary_endpoint(filters)
     assert sort_results(response) == sort_results(expected_response)
 
