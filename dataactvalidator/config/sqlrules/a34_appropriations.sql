@@ -4,13 +4,16 @@ WITH appropriation_a34_{0} AS
     (SELECT row_number,
         budget_authority_unobligat_fyb,
         tas,
+        display_tas,
         submission_id
     FROM appropriation
     WHERE submission_id = {0})
 SELECT
     approp.row_number,
     approp.budget_authority_unobligat_fyb,
-    sf.amount AS sf_133_amount
+    sf.amount AS "expected_value_GTAS SF133 Line 2490",
+    COALESCE(approp.budget_authority_unobligat_fyb, 0) - sf.amount AS "difference",
+    approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a34_{0} AS approp
     JOIN sf_133 AS sf
         ON approp.tas = sf.tas

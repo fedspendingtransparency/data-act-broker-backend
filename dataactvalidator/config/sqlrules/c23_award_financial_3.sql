@@ -30,11 +30,13 @@ award_financial_assistance_c23_3_{0} AS
     WHERE submission_id = {0}
     GROUP BY UPPER(fain))
 SELECT
-    NULL AS row_number,
-    af.fain,
-    af.sum_ob_amount AS transaction_obligated_amou_sum,
-    afa.sum_fed_act_ob_amount AS federal_action_obligation_sum,
-    afa.sum_orig_loan_sub_amount AS original_loan_subsidy_cost_sum
+    NULL AS "source_row_number",
+    af.fain AS "source_value_fain",
+    af.sum_ob_amount AS "source_value_transaction_obligated_amou_sum",
+    afa.sum_fed_act_ob_amount AS "target_value_federal_action_obligation_sum",
+    afa.sum_orig_loan_sub_amount AS "target_value_original_loan_subsidy_cost_sum",
+    af.sum_ob_amount - (-1 * afa.sum_fed_act_ob_amount - afa.sum_orig_loan_sub_amount) AS "difference",
+    af.fain AS "uniqueid_FAIN"
 FROM award_financial_grouped_c23_3_{0} AS af
 JOIN award_financial_assistance_c23_3_{0} AS afa
     ON af.fain = afa.fain

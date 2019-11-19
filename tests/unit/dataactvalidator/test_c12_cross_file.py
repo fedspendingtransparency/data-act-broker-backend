@@ -6,7 +6,8 @@ _FILE = 'c12_cross_file'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'piid', 'parent_award_id'}
+    expected_subset = {'source_row_number', 'source_value_piid', 'source_value_parent_award_id', 'uniqueid_PIID',
+                       'uniqueid_ParentAwardId'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 

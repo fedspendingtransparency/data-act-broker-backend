@@ -1,15 +1,23 @@
 from dataactcore.models.stagingModels import Appropriation
 from dataactcore.models.domainModels import SF133
-from tests.unit.dataactvalidator.utils import number_of_errors
+from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
 _FILE = 'a12_appropriations'
 _TAS = 'a12_appropriations_tas'
 
 
+def test_column_headers(database):
+    expected_subset = {'uniqueid_TAS', 'row_number', 'adjustments_to_unobligated_cpe',
+                       'expected_value_SUM of GTAS SF133 Lines 1010 through 1042', 'difference'}
+    actual = set(query_columns(_FILE, database))
+    assert expected_subset == actual
+
+
 def test_success(database):
-    """ Tests that SF 133 amount sum for lines 1020, 1030, 1040 matches Appropriation adjustments_to_unobligated_cpe
-        for the specified fiscal year and period """
+    """ Tests that SF 133 amount sum for lines 1010 through 1042 matches Appropriation adjustments_to_unobligated_cpe
+        for the specified fiscal year and period
+    """
     tas = "".join([_TAS, "_success"])
 
     sf_1 = SF133(line=1020, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
@@ -26,8 +34,9 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Tests that SF 133 amount sum for lines 1020, 1030, 1040 does not match Appropriation adjustments_to_unobligated_cpe
-        for the specified fiscal year and period """
+    """ Tests that SF 133 amount sum for lines 1010 through 1042 does not match Appropriation
+        adjustments_to_unobligated_cpe for the specified fiscal year and period
+    """
     tas = "".join([_TAS, "_failure"])
 
     sf_1 = SF133(line=1020, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",

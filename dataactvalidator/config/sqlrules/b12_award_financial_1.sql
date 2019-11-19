@@ -1,10 +1,12 @@
 -- Reimbursable flag indicator is required when reporting obligation or outlay USSGL account balances
 -- (excluding downward adjustments SGL accounts).
 SELECT
-    af.row_number,
-    af.by_direct_reimbursable_fun
-FROM award_financial AS af
-WHERE af.submission_id = {0}
+    row_number,
+    by_direct_reimbursable_fun,
+    display_tas AS "uniqueid_TAS",
+    object_class AS "uniqueid_ObjectClass"
+FROM award_financial
+WHERE submission_id = {0}
     AND (ussgl480100_undelivered_or_fyb IS NOT NULL
         OR ussgl480100_undelivered_or_cpe IS NOT NULL
         OR ussgl488100_upward_adjustm_cpe IS NOT NULL

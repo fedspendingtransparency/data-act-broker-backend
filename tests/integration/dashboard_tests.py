@@ -41,7 +41,9 @@ class DashboardTests(BaseTestAPI):
         response = self.app.post_json('/v1/historic_dabs_summary/', dabs_summary_json,
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual([], response.json)
+        self.assertEqual([{'agency_name': 'Admin Agency', 'submissions': []},
+                          {'agency_name': 'Example Agency', 'submissions': []}],
+                         sorted(response.json, key=lambda agency: agency['agency_name']))
 
     def test_post_dabs_summary_fail(self):
         """ Test failing getting the dabs summary """

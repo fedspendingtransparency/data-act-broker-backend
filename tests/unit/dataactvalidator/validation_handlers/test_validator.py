@@ -39,12 +39,13 @@ def test_relevant_flex_data(database):
 
 
 def test_failure_row_to_tuple_flex():
-    """Verify that flex data gets included in the failure row info"""
+    """ Verify that flex data gets included in the failure row info """
     flex_data = {
-        2: [FlexField(header='A', cell='a'), FlexField(header='B', cell='b')],
-        4: [FlexField(header='A', cell='c'), FlexField(header='B', cell='d')],
+        2: [FlexField(header='A', cell='a'), FlexField(header='B', cell='b'), FlexField(header='C', cell=None)],
+        4: [FlexField(header='A', cell='c'), FlexField(header='B', cell='d'), FlexField(header='C', cell='g')],
     }
 
     result = validator.failure_row_to_tuple(Mock(), flex_data, [], [], Mock(), {'row_number': 2})
-    assert result.field_name == 'A, B'
-    assert result.failed_value == 'A: a, B: b'
+    assert result.field_name == ''
+    assert result.flex_fields == 'A: a, B: b, C: '
+    assert result.failed_value == ''
