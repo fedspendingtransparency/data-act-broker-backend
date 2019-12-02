@@ -1,15 +1,23 @@
 from dataactcore.models.stagingModels import Appropriation
 from dataactcore.models.domainModels import SF133
-from tests.unit.dataactvalidator.utils import number_of_errors
+from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
 _FILE = 'a6_appropriations'
 _TAS = 'a6_appropriations_tas'
 
 
+def test_column_headers(database):
+    expected_subset = {'uniqueid_TAS', 'row_number', 'total_budgetary_resources_cpe',
+                       'expected_value_GTAS SF133 Line 1910', 'difference'}
+    actual = set(query_columns(_FILE, database))
+    assert expected_subset == actual
+
+
 def test_success(database):
     """ Tests that SF 133 amount for line 1910 matches Appropriation total_budgetary_resources_cpe
-        for the specified fiscal year and period """
+        for the specified fiscal year and period
+    """
 
     tas = "".join([_TAS, "_success"])
 
@@ -22,7 +30,8 @@ def test_success(database):
 
 def test_failure(database):
     """ Tests that SF 133 amount for line 1910 does not match Appropriation total_budgetary_resources_cpe
-        for the specified fiscal year and period """
+        for the specified fiscal year and period
+    """
     tas = "".join([_TAS, "_failure"])
 
     sf = SF133(line=1910, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",

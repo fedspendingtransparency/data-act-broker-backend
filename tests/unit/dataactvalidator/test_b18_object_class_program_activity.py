@@ -7,34 +7,35 @@ _FILE = 'b18_object_class_program_activity'
 
 
 def test_column_headers(database):
-    expected_subset = {"row_number", "object_class", "by_direct_reimbursable_fun"}
+    expected_subset = {'row_number', 'object_class', 'by_direct_reimbursable_fun', 'uniqueid_TAS',
+                       'uniqueid_ObjectClass'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset <= actual
 
 
 def test_skip_three_digits(database):
     check_query(database, ObjectClassProgramActivityFactory(object_class=str(randint(0, 999)).zfill(3),
-                by_direct_reimbursable_fun="d"), 0)
+                by_direct_reimbursable_fun='d'), 0)
 
 
 def test_skip_blank_flags(database):
     check_query(database, ObjectClassProgramActivityFactory(object_class=randint(1000, 9999),
-                by_direct_reimbursable_fun=""), 0)
+                by_direct_reimbursable_fun=''), 0)
 
 
 def test_match_d_value(database):
     check_query(database, ObjectClassProgramActivityFactory(object_class=randint(1000, 1999),
-                by_direct_reimbursable_fun="d"), 0)
+                by_direct_reimbursable_fun='d'), 0)
 
 
 def test_match_r_value(database):
     check_query(database, ObjectClassProgramActivityFactory(object_class=randint(2000, 2999),
-                by_direct_reimbursable_fun="r"), 0)
+                by_direct_reimbursable_fun='r'), 0)
 
 
 def test_ignore_all_zero(database):
     check_query(database,
-                ObjectClassProgramActivityFactory(object_class=randint(1000, 1999), by_direct_reimbursable_fun="r",
+                ObjectClassProgramActivityFactory(object_class=randint(1000, 1999), by_direct_reimbursable_fun='r',
                                                   deobligations_recov_by_pro_cpe=0, gross_outlay_amount_by_pro_cpe=0,
                                                   gross_outlay_amount_by_pro_fyb=0, gross_outlays_delivered_or_cpe=0,
                                                   gross_outlays_delivered_or_fyb=0, gross_outlays_undelivered_cpe=0,
@@ -53,7 +54,7 @@ def test_ignore_all_zero(database):
                                                   ussgl498100_upward_adjustm_cpe=0, ussgl498200_upward_adjustm_cpe=0),
                 0)
     check_query(database,
-                ObjectClassProgramActivityFactory(object_class=randint(2000, 2999), by_direct_reimbursable_fun="d",
+                ObjectClassProgramActivityFactory(object_class=randint(2000, 2999), by_direct_reimbursable_fun='d',
                                                   deobligations_recov_by_pro_cpe=0, gross_outlay_amount_by_pro_cpe=0,
                                                   gross_outlay_amount_by_pro_fyb=0, gross_outlays_delivered_or_cpe=0,
                                                   gross_outlays_delivered_or_fyb=0, gross_outlays_undelivered_cpe=0,
@@ -75,12 +76,12 @@ def test_ignore_all_zero(database):
 
 def test_mismatch_d_value(database):
     check_query(database, ObjectClassProgramActivityFactory(object_class=randint(2000, 2999),
-                by_direct_reimbursable_fun="d"), 1)
+                by_direct_reimbursable_fun='d'), 1)
 
 
 def test_mismatch_r_value(database):
     check_query(database, ObjectClassProgramActivityFactory(object_class=randint(1000, 1999),
-                by_direct_reimbursable_fun="r"), 1)
+                by_direct_reimbursable_fun='r'), 1)
 
 
 def check_query(db, model, num_expected_errors):

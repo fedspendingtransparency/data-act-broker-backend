@@ -12,8 +12,8 @@ from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 class SQLLoader:
     sql_rules_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "sqlrules")
-    headers = ['rule_label', 'rule_error_message', 'rule_cross_file_flag',
-               'file_type', 'severity_name', 'query_name', 'target_file']
+    headers = ['rule_label', 'rule_error_message', 'rule_cross_file_flag', 'file_type', 'severity_name', 'query_name',
+               'target_file', 'expected_value']
 
     @classmethod
     def read_sql_str(cls, filename):
@@ -57,7 +57,8 @@ class SQLLoader:
                     sql = cls.read_sql_str(row['query_name'])
 
                     rule_sql = RuleSql(rule_sql=sql, rule_label=row['rule_label'],
-                                       rule_error_message=row['rule_error_message'], query_name=row['query_name'])
+                                       rule_error_message=row['rule_error_message'], query_name=row['query_name'],
+                                       expected_value=row['expected_value'])
 
                     # look up file type id
                     try:

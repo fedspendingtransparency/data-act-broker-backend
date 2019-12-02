@@ -25,10 +25,12 @@ award_procurement_c23_1_{0} AS
     WHERE submission_id = {0}
     GROUP BY UPPER(piid))
 SELECT
-    NULL AS row_number,
-    af.piid,
-    af.sum_ob_amount AS transaction_obligated_amou_sum,
-    ap.sum_fed_amount AS federal_action_obligation_sum
+    NULL AS "source_row_number",
+    af.piid AS "source_value_piid",
+    af.sum_ob_amount AS "source_value_transaction_obligated_amou_sum",
+    ap.sum_fed_amount AS "target_value_federal_action_obligation_sum",
+    af.sum_ob_amount - (-1 * ap.sum_fed_amount) AS "difference",
+    af.piid AS "uniqueid_PIID"
 FROM award_financial_grouped_c23_1_{0} AS af
 JOIN award_procurement_c23_1_{0} AS ap
     ON af.piid = ap.piid

@@ -2,10 +2,12 @@
 -- 1-digit prefix that distinguishes direct, reimbursable, and allocation obligations. Do not include decimal points
 -- when reporting in the Schema.
 SELECT
-    af.row_number,
-    af.object_class
-FROM award_financial AS af
-WHERE af.submission_id = {0}
-    AND af.object_class NOT IN ('0000', '000', '00', '0')
-    AND af.object_class NOT IN (SELECT object_class_code
-                                FROM object_class);
+    row_number,
+    object_class,
+    display_tas AS "uniqueid_TAS",
+    object_class AS "uniqueid_ObjectClass"
+FROM award_financial
+WHERE submission_id = {0}
+    AND object_class NOT IN ('0000', '000', '00', '0')
+    AND object_class NOT IN (SELECT object_class_code
+                             FROM object_class);

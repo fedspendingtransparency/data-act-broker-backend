@@ -8,9 +8,11 @@ _FILE = 'c23_award_financial_2'
 
 
 def test_column_headers(database):
-    expected_subset = {"row_number", "transaction_obligated_amou_sum", "federal_action_obligation_sum"}
+    expected_subset = {'source_row_number', 'source_value_piid', 'source_value_parent_award_id',
+                       'source_value_transaction_obligated_amou_sum', 'target_value_federal_action_obligation_sum',
+                       'difference', 'uniqueid_PIID', 'uniqueid_ParentAwardId'}
     actual = set(query_columns(_FILE, database))
-    assert expected_subset <= actual
+    assert expected_subset == actual
 
 
 def test_success(database):
@@ -39,11 +41,11 @@ def test_success(database):
     af_2_row_1 = AwardFinancialFactory(transaction_obligated_amou=9900, piid=piid, parent_award_id=paid_2,
                                        allocation_transfer_agency=None)
     af_2_row_2 = AwardFinancialFactory(transaction_obligated_amou=99, piid=piid.lower(), parent_award_id=paid_2.lower(),
-                                       allocation_transfer_agency="good", agency_identifier="good")
+                                       allocation_transfer_agency='good', agency_identifier='good')
 
     # Entry that is ignored because the ATA/AID don't match
     af_3 = AwardFinancialFactory(transaction_obligated_amou=8888, piid=piid, parent_award_id=paid_3,
-                                 allocation_transfer_agency="good", agency_identifier="bad")
+                                 allocation_transfer_agency='good', agency_identifier='bad')
 
     # Combine these to match paid_1
     ap_1_row_1 = AwardProcurementFactory(parent_award_id=paid_1.lower(), piid=piid.lower(),
@@ -83,12 +85,12 @@ def test_failure(database):
     af_2_row_1 = AwardFinancialFactory(transaction_obligated_amou=1111, piid=piid, parent_award_id=paid_2.lower(),
                                        allocation_transfer_agency=None)
     af_2_row_2 = AwardFinancialFactory(transaction_obligated_amou=1111, piid=piid.lower(), parent_award_id=paid_2,
-                                       allocation_transfer_agency="good", agency_identifier="good")
+                                       allocation_transfer_agency='good', agency_identifier='good')
 
     # Sum of these values doesn't add up (ignoring third one because it has a different paid)
     ap_1_row_1 = AwardProcurementFactory(parent_award_id=paid_1, piid=piid.lower(), federal_action_obligation=-1100)
     ap_1_row_2 = AwardProcurementFactory(parent_award_id=paid_1.lower(), piid=piid, federal_action_obligation=-10)
-    ap_1_row_3 = AwardProcurementFactory(parent_award_id="1234", piid=piid.upper(), federal_action_obligation=-1)
+    ap_1_row_3 = AwardProcurementFactory(parent_award_id='1234', piid=piid.upper(), federal_action_obligation=-1)
     # Sum of the two above should be both of them, not just one
     ap_2 = AwardProcurementFactory(parent_award_id=paid_2, piid=piid, federal_action_obligation=-1111)
 

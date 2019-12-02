@@ -8,15 +8,17 @@ _FILE = 'c23_award_financial_1'
 
 
 def test_column_headers(database):
-    expected_subset = {"row_number", "transaction_obligated_amou_sum", "federal_action_obligation_sum"}
+    expected_subset = {'source_row_number', 'source_value_piid', 'source_value_transaction_obligated_amou_sum',
+                       'target_value_federal_action_obligation_sum', 'difference', 'uniqueid_PIID'}
     actual = set(query_columns(_FILE, database))
-    assert expected_subset <= actual
+    assert expected_subset == actual
 
 
 def test_success(database):
     """ Test For each unique PIID in File C, the sum of each TransactionObligatedAmount should match (but with opposite
         signs) the sum of the FederalActionObligation reported in D1. This rule does not apply if the ATA field is
-        populated and is different from the Agency ID. Ignore rows that contain a PAID. """
+        populated and is different from the Agency ID. Ignore rows that contain a PAID.
+    """
     # Create a 12 character random piid
     piid_1 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     piid_2 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
@@ -28,7 +30,7 @@ def test_success(database):
     af_1_row_2 = AwardFinancialFactory(transaction_obligated_amou=11, piid=piid_1, parent_award_id=None,
                                        allocation_transfer_agency=None)
     # Ignored because it has a paid
-    af_1_row_3 = AwardFinancialFactory(transaction_obligated_amou=11, piid=piid_1.upper(), parent_award_id="Test",
+    af_1_row_3 = AwardFinancialFactory(transaction_obligated_amou=11, piid=piid_1.upper(), parent_award_id='Test',
                                        allocation_transfer_agency=None)
 
     # Add a row for a different piid
@@ -36,14 +38,14 @@ def test_success(database):
                                        allocation_transfer_agency=None)
     # Matching ata/aid, not ignored
     af_2_row_2 = AwardFinancialFactory(transaction_obligated_amou=99, piid=piid_2, parent_award_id=None,
-                                       allocation_transfer_agency="123", agency_identifier="123")
+                                       allocation_transfer_agency='123', agency_identifier='123')
     # Not matching ata/aid, ignored
     af_2_row_3 = AwardFinancialFactory(transaction_obligated_amou=10, piid=piid_2.upper(), parent_award_id=None,
-                                       allocation_transfer_agency="345", agency_identifier="123")
+                                       allocation_transfer_agency='345', agency_identifier='123')
 
     # Third piid with all rows ignored because one has an ATA different from AID
     af_3_row_1 = AwardFinancialFactory(transaction_obligated_amou=8888, piid=piid_3.lower(), parent_award_id=None,
-                                       allocation_transfer_agency="123", agency_identifier="345")
+                                       allocation_transfer_agency='123', agency_identifier='345')
     af_3_row_2 = AwardFinancialFactory(transaction_obligated_amou=8888, piid=piid_3, parent_award_id=None,
                                        allocation_transfer_agency=None)
 
@@ -52,7 +54,7 @@ def test_success(database):
     ap_1_row_2 = AwardProcurementFactory(piid=piid_1.lower(), parent_award_id=None, federal_action_obligation=-10)
     ap_1_row_3 = AwardProcurementFactory(piid=piid_1, parent_award_id=None, federal_action_obligation=-1)
     # Checking second piid
-    ap_2 = AwardProcurementFactory(piid=piid_2, parent_award_id="1234", federal_action_obligation=-9999)
+    ap_2 = AwardProcurementFactory(piid=piid_2, parent_award_id='1234', federal_action_obligation=-9999)
     # This one doesn't match but will be ignored
     ap_3 = AwardProcurementFactory(piid=piid_3, parent_award_id=None, federal_action_obligation=-9999)
 
@@ -65,7 +67,8 @@ def test_success(database):
 def test_failure(database):
     """ Test failure for each unique PIID in File C, the sum of each TransactionObligatedAmount should match (but with
         opposite signs) the sum of the FederalActionObligation reported in D1. This rule does not apply if the ATA field
-        is populated and is different from the Agency ID. Ignore rows that contain a PAID. """
+        is populated and is different from the Agency ID. Ignore rows that contain a PAID.
+    """
     # Create a 12 character random piid
     piid_1 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     piid_2 = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
@@ -83,7 +86,7 @@ def test_failure(database):
 
     # Matching ATA, should not be ignored
     af_3 = AwardFinancialFactory(transaction_obligated_amou=11, piid=piid_3, parent_award_id=None,
-                                 allocation_transfer_agency="123", agency_identifier="123")
+                                 allocation_transfer_agency='123', agency_identifier='123')
 
     # Award Procurement portion of checks
     # Sum of all these would be sum of piid_1 af if one wasn't ignored

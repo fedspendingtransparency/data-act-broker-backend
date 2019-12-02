@@ -1,10 +1,17 @@
 from tests.unit.dataactcore.factories.staging import AppropriationFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
-from tests.unit.dataactvalidator.utils import number_of_errors, insert_submission, populate_publish_status
+from tests.unit.dataactvalidator.utils import number_of_errors, insert_submission, populate_publish_status, \
+    query_columns
 
 
 _FILE = 'a16_appropriations'
+
+
+def test_column_headers(database):
+    expected_subset = {'uniqueid_TAS', 'row_number', 'budget_authority_unobligat_fyb'}
+    actual = set(query_columns(_FILE, database))
+    assert expected_subset == actual
 
 
 def test_value_present(database):

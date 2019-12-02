@@ -2,10 +2,20 @@ from tests.unit.dataactcore.factories.staging import ObjectClassProgramActivityF
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from dataactcore.models.jobModels import PublishStatus
 from dataactcore.models.lookups import PUBLISH_STATUS, PUBLISH_STATUS_DICT
-from tests.unit.dataactvalidator.utils import number_of_errors, insert_submission
+from tests.unit.dataactvalidator.utils import number_of_errors, insert_submission, query_columns
 
 
 _FILE = 'a16_object_class_program_activity'
+
+
+def test_column_headers(database):
+    expected_subset = {'row_number', 'gross_outlay_amount_by_pro_fyb', 'gross_outlays_delivered_or_fyb',
+                       'gross_outlays_undelivered_fyb', 'obligations_delivered_orde_fyb',
+                       'obligations_undelivered_or_fyb', 'ussgl480100_undelivered_or_fyb',
+                       'ussgl480200_undelivered_or_fyb', 'ussgl490100_delivered_orde_fyb',
+                       'ussgl490800_authority_outl_fyb', 'uniqueid_TAS'}
+    actual = set(query_columns(_FILE, database))
+    assert expected_subset == actual
 
 
 def populate_publish_status(database):
@@ -16,7 +26,7 @@ def populate_publish_status(database):
 
 
 def test_value_present(database):
-    """gross_outlays_delivered_or_fyb populated does not require a previous submission"""
+    """ gross_outlays_delivered_or_fyb populated does not require a previous submission """
     populate_publish_status(database)
     sub_new = SubmissionFactory()
     ocpa_new = ObjectClassProgramActivityFactory(submission_id=sub_new.submission_id)

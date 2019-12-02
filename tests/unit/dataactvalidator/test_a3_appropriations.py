@@ -5,14 +5,14 @@ _FILE = 'a3_appropriations'
 
 
 def test_column_headers(database):
-    expected_subset = {"row_number", "other_budgetary_resources_cpe", "contract_authority_amount_cpe",
-                       "borrowing_authority_amount_cpe", "spending_authority_from_of_cpe"}
+    expected_subset = {'uniqueid_TAS', 'row_number', 'other_budgetary_resources_cpe', 'contract_authority_amount_cpe',
+                       'borrowing_authority_amount_cpe', 'spending_authority_from_of_cpe', 'difference'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
 
 def test_success(database):
-    """ Test that TAS values can be found, and null matches work correctly"""
+    """ Test that TAS values can be found, and null matches work correctly """
     approp = AppropriationFactory(other_budgetary_resources_cpe=600, contract_authority_amount_cpe=100,
                                   borrowing_authority_amount_cpe=200, spending_authority_from_of_cpe=300)
     approp_null = AppropriationFactory(other_budgetary_resources_cpe=300, contract_authority_amount_cpe=100,
@@ -23,7 +23,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test that tas that does not match is an error"""
+    """ Test that tas that does not match is an error """
 
     approp = AppropriationFactory(other_budgetary_resources_cpe=800, contract_authority_amount_cpe=100,
                                   borrowing_authority_amount_cpe=200, spending_authority_from_of_cpe=300)
