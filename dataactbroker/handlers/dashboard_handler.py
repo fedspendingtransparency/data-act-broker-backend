@@ -360,6 +360,9 @@ def historic_dabs_warning_graphs(filters):
 
         error_metadata_query = apply_historic_dabs_details_filters(error_metadata_query, filters)
 
+        # ordering warnings so they all come out in the same order
+        error_metadata_query = error_metadata_query.order_by(CertifiedErrorMetadata.original_rule_label)
+
         # Add warnings objects to results dict
         for query_result in error_metadata_query.all():
             file_type = generate_file_type(query_result.file_type_id, query_result.target_file_type_id)
