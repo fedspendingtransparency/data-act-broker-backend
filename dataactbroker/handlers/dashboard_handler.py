@@ -237,6 +237,9 @@ def historic_dabs_warning_summary(filters):
 
     summary_query = apply_historic_dabs_filters(sess, summary_query, filters)
 
+    # ordering submissions so they all come out in the same order
+    summary_query = summary_query.order_by(Submission.reporting_end_date)
+
     # Build list of codes user has access to, use it to fill in the blanks if no subs are found for some agencies
     user_agencies = get_accessible_agencies()
     perms = {agency['cgac_code']: agency['agency_name'] for agency in user_agencies['cgac_agency_list']}
