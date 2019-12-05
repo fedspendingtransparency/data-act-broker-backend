@@ -261,7 +261,9 @@ class SubmissionWindow(Base):
     start_date = Column(Date)
     end_date = Column(Date)
     block_certification = Column(Boolean, default=False)
+    header = Column(Text)
     message = Column(Text)
+    banner_type = Column(Text, default="warning", nullable=False)
     application_type_id = Column(Integer, ForeignKey("application_type.application_type_id",
                                  name="fk_submission_window_application"))
     application_type = relationship("ApplicationType")
