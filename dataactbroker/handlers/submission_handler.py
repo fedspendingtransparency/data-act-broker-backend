@@ -400,8 +400,10 @@ def list_windows():
                 'start_date': str(window.start_date),
                 'end_date': str(window.end_date),
                 'notice_block': window.block_certification,
+                'header': window.header,
                 'message': window.message,
-                'type': window.application_type.application_name
+                'type': window.application_type.application_name,
+                'banner_type': window.banner_type
             })
 
     return JsonResponse.create(StatusCode.OK, {"data": data})

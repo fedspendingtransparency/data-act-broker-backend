@@ -434,6 +434,54 @@ Possible HTTP Status Codes:
 
 - 401: Login required
 
+#### GET "/v1/window/"
+This endpoint returns a list of temporary messages to display on the Broker frontend as a banner.
+
+##### Sample Request
+`/v1/window/`
+
+##### Request Params
+N/A
+
+##### Response (JSON)
+```
+    "data": [
+        {
+            "banner_type": "warning",
+            "start_date": "2019-12-01",
+            "header": null,
+            "end_date": "2019-12-09",
+            "notice_block": true,
+            "type": "dabs",
+            "message": "Submissions cannot be certified until ..."
+        },
+        {
+            "banner_type": "info",
+            "start_date": "2019-12-01",
+            "header": null,
+            "end_date": "2019-12-09",
+            "notice_block": false,
+            "type": "all",
+            "message": "As a result of an issue identified ..."
+        }
+    ]
+}
+```
+
+##### Response Attributes
+- `data`: (list) available banner messages to display on the site
+    - `header`: (string) The header of the message.
+    - `message`: (string) The specific message.
+    - `banner_type`: (string) The type of banner. Values include:
+        - `info`: for informational messages
+        - `warning`: for more pressing messages
+    - `type`: (string) Which pages to display the message. Values include:
+        - `fabs`: for FABS pages
+        - `dabs`: for DABS pages
+        - `all`: for both
+    - `start_date`: (string) When to start displaying the message.
+    - `end_date`: (string) The last day to display the message.
+    - `notice_block`: (boolean) Whether the frontend may block submissions during the message period.
 
 #### GET "/v1/submission\_metadata/"
 This endpoint returns metadata for the requested submission.
