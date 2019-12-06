@@ -352,6 +352,7 @@ class PublishedAwardFinancialAssistanceFactory(factory.Factory):
     place_of_performance_city = fuzzy.FuzzyText()
     place_of_performance_forei = fuzzy.FuzzyText()
     place_of_performance_zip4a = fuzzy.FuzzyText()
+    place_of_performance_scope = fuzzy.FuzzyText()
     record_type = fuzzy.FuzzyInteger(1, 3)
     record_type_description = fuzzy.FuzzyText()
     sai_number = fuzzy.FuzzyText()
