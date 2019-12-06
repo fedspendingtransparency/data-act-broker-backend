@@ -170,6 +170,15 @@ def derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code, county_dict
         # deriving PrimaryPlaceOfPerformanceCityName
         city_info = sess.query(ZipCity).filter_by(zip_code=zip_five).one()
         obj['place_of_performance_city'] = city_info.city_name
+
+        # deriving PrimaryPlaceOfPerformanceScope
+        print(ppop_code, obj['place_of_performance_zip4a'])
+        if ppop_code and (re.match('^[A-Z]{2}\d{5}$', ppop_code) or re.match('^[A-Z]{2}\d{4}R$', ppop_code)):
+            obj['place_of_performance_scope'] = "Single ZIP Code"
+    # if there is zip4 and it *is* city-wide, set the scope
+    elif obj['place_of_performance_zip4a'] and \
+            (re.match('^[A-Z]{2}\d{5}$', ppop_code) or re.match('^[A-Z]{2}\d{4}R$', ppop_code)):
+        obj['place_of_performance_scope'] = "City-wide"
     # if there is no ppop zip4, we need to try to derive county/city info from the ppop code
     elif ppop_code:
         # if ppop_code is in county format,
@@ -179,6 +188,7 @@ def derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code, county_dict
             obj['place_of_perform_county_co'] = county_code
             obj['place_of_perform_county_na'] = county_dict.get(ppop_state_code + county_code)
             obj['place_of_performance_city'] = None
+            obj['place_of_performance_scope'] = "County-wide"
         # if ppop_code is in city format
         elif re.match('^[A-Z]{2}\d{5}$', ppop_code) and not re.match('^[A-Z]{2}0{5}$', ppop_code):
             # getting city and county name
@@ -188,11 +198,18 @@ def derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code, county_dict
             obj['place_of_performance_city'] = city_info.feature_name
             obj['place_of_perform_county_co'] = city_info.county_number
             obj['place_of_perform_county_na'] = city_info.county_name
+            obj['place_of_performance_scope'] = "State-wide"
+        elif re.match('^0{2}\d{5}$', ppop_code):
+            obj['place_of_performance_scope'] = "Multi-state"
+        elif ppop_code == '00FORGN':
+            obj['place_of_performance_scope'] = "Foreign"
+
     # if there's no ppop code, just set them all to None
     else:
         obj['place_of_perform_county_co'] = None
         obj['place_of_perform_county_na'] = None
         obj['place_of_performance_city'] = None
+        obj['place_of_performance_scope'] = None
 
 
 def derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, ppop_state_name, county_dict):
@@ -564,6 +581,7 @@ def fabs_derivations(obj, sess, state_dict, country_dict, sub_tier_dict, cfda_di
     obj['legal_entity_city_name'] = None
     obj['place_of_performance_zip5'] = None
     obj['place_of_perform_zip_last4'] = None
+    obj['place_of_performance_scope'] = None
     obj['awarding_agency_code'] = None
     obj['funding_agency_code'] = None
 
