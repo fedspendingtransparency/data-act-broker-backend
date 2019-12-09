@@ -323,10 +323,16 @@ def test_ppop_derivations(database):
     assert obj['place_of_perform_county_na'] == 'Test City County'
     assert obj['place_of_performance_city'] == 'Test City'
     assert obj['place_of_performance_congr'] is None
+    assert obj['place_of_performance_scope'] is None
+
+    # when we don't have ppop_zip4a and ppop_code is in 00##### format
+    obj = initialize_test_obj(ppop_code='NY*****')
+    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
+                           OFFICE_DICT, EXEC_COMP_DICT)
     assert obj['place_of_performance_scope'] == 'State-wide'
 
     # when we don't have ppop_zip4a and ppop_code is in 00##### format
-    obj = initialize_test_obj(ppop_code='0000001')
+    obj = initialize_test_obj(ppop_code='00*****')
     obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
                            OFFICE_DICT, EXEC_COMP_DICT)
     assert obj['place_of_performance_scope'] == 'Multi-state'
