@@ -16,7 +16,7 @@ from dataactvalidator.filestreaming.csv_selection import write_stream_query
 logger = logging.getLogger(__name__)
 
 GEN_FILENAMES = {
-    'A': 'appropriations_data.csv', 'D1': 'd1_{}agency_data.{}', 'D2': 'd2_{}agency_data.{}',
+    'A': 'appropriations_data.csv', 'D1': 'd1_{}_{}_{}agency_data.{}', 'D2': 'd2_{}_{}_{}agency_data.{}',
     'E': 'executive_compensation_data.csv', 'F': 'sub_award_data.csv'
 }
 
@@ -49,7 +49,9 @@ class FileGenerationManager:
     def generate_file(self, agency_code=None):
         """ Generates a file based on the FileGeneration object and updates any Jobs referencing it """
         raw_filename = (GEN_FILENAMES[self.file_type] if not self.file_generation else
-                        GEN_FILENAMES[self.file_type].format(self.file_generation.agency_type,
+                        GEN_FILENAMES[self.file_type].format(self.file_generation.start_date.strftime('%Y%m%d'),
+                                                             self.file_generation.end_date.strftime('%Y%m%d'),
+                                                             self.file_generation.agency_type,
                                                              self.file_generation.file_format))
         file_name = S3Handler.get_timestamped_filename(raw_filename)
         if self.is_local:
