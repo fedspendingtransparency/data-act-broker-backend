@@ -287,7 +287,7 @@ def test_ppop_derivations(database):
     assert obj['place_of_perform_county_co'] == '001'
     assert obj['place_of_perform_county_na'] == 'Test County'
     assert obj['place_of_performance_city'] == 'Test City 2'
-    assert obj['place_of_performance_scope'] == None
+    assert obj['place_of_performance_scope'] is None
 
     # when ppop_zip4 is 9 digits (no cd available)
     obj = initialize_test_obj(ppop_zip4a='987654321', ppop_code='NY0001R')
