@@ -114,9 +114,11 @@ def add_to_table(data, sess):
     """
     value_array = []
     for _, item in data.items():
-        value_array.append("(NOW(), NOW(), '{}', '{}', '{}', '{}', '{}')".
-                           format(item['zip5'], item['zip_last4'], item['county_number'],
-                                  item['state_abbreviation'], item['congressional_district_no']))
+        # Taking care of the nulls so they're actually null in the DB
+        zip4 = "'" + item['zip_last4'] + "'" if item['zip_last4'] else 'NULL'
+        cd = "'" + item['congressional_district_no'] + "'" if item['congressional_district_no'] else 'NULL'
+        value_array.append("(NOW(), NOW(), '{}', {}, '{}', '{}', {})".
+                           format(item['zip5'], zip4, item['county_number'], item['state_abbreviation'], cd))
     try:
         if value_array:
             sess.execute('INSERT INTO temp_zips '
