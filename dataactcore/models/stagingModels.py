@@ -1244,6 +1244,7 @@ class PublishedAwardFinancialAssistance(Base):
     place_of_performance_zip4a = Column(Text)
     place_of_performance_zip5 = Column(Text)
     place_of_perform_zip_last4 = Column(Text)
+    place_of_performance_scope = Column(Text)
     record_type = Column(Integer, index=True)
     record_type_description = Column(Text)
     sai_number = Column(Text)
