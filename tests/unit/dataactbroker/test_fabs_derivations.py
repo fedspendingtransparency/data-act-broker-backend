@@ -300,7 +300,7 @@ def test_ppop_derivations(database):
     assert obj['place_of_performance_scope'] == 'Single ZIP Code'
 
     # when ppop_zip4 is 'city-wide'
-    obj = initialize_test_obj(ppop_zip4a='city-wide')
+    obj = initialize_test_obj(ppop_zip4a='city-wide', ppop_code='NY0001R')
     obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
                            OFFICE_DICT, EXEC_COMP_DICT)
     assert obj['place_of_performance_scope'] == 'City-wide'
