@@ -154,25 +154,25 @@ def add_file_routes(app, is_local, server_path):
     def get_obligations(submission):
         return JsonResponse.create(StatusCode.OK, get_submission_stats(submission.submission_id))
 
-    @app.route("/v1/get_submission_comments", methods=['GET'])
+    @app.route("/v1/get_submission_comments/", methods=['GET'])
     @convert_to_submission_id
     @requires_submission_perms('reader')
     def get_sub_comments(submission):
         return get_submission_comments(submission)
 
-    @app.route("/v1/update_submission_comments", methods=['POST'])
+    @app.route("/v1/update_submission_comments/", methods=['POST'])
     @convert_to_submission_id
     @requires_submission_perms('writer')
     def update_sub_comments(submission):
         return update_submission_comments(submission, request.json, is_local)
 
-    @app.route("/v1/get_comments_file", methods=['GET'])
+    @app.route("/v1/get_comments_file/", methods=['GET'])
     @convert_to_submission_id
     @requires_submission_perms('reader')
     def get_submission_comments_file(submission):
         return get_comments_file(submission, is_local)
 
-    @app.route("/v1/submission/<int:submission_id>/report_url", methods=['GET'])
+    @app.route("/v1/submission/<int:submission_id>/report_url/", methods=['GET'])
     @requires_submission_perms('reader')
     @use_kwargs({
         'file_type': webargs_fields.String(
@@ -188,7 +188,7 @@ def add_file_routes(app, is_local, server_path):
         cross_type = kwargs.get('cross_type')
         return submission_report_url(submission, bool(warning), file_type, cross_type)
 
-    @app.route("/v1/get_file_url", methods=['GET'])
+    @app.route("/v1/get_file_url/", methods=['GET'])
     @convert_to_submission_id
     @requires_submission_perms('reader')
     @use_kwargs({
@@ -200,7 +200,7 @@ def add_file_routes(app, is_local, server_path):
     def get_file_url(submission, file_type):
         return get_upload_file_url(submission, file_type)
 
-    @app.route("/v1/get_detached_file_url", methods=['GET'])
+    @app.route("/v1/get_detached_file_url/", methods=['GET'])
     @requires_login
     @use_kwargs({
         'job_id': webargs_fields.Int(required=True)
