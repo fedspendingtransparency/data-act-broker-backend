@@ -274,23 +274,23 @@ def compare_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_coun
         'updated_at': updated_at,
         'id': sub.id,
 
-        'unique_award_key': d2.unique_award_key,
+        'unique_award_key': d2.unique_award_key if d2 else None,
         'parent_award_id': None,
         'award_amount': grant.total_fed_funding_amount,
         'action_date': str(grant.obligation_date),
         'fy': 'FY{}'.format(fy(grant.obligation_date)),
-        'awarding_agency_code': d2.awarding_agency_code,
-        'awarding_agency_name': d2.awarding_agency_name,
+        'awarding_agency_code': d2.awarding_agency_code if d2 else None,
+        'awarding_agency_name': d2.awarding_agency_name if d2 else None,
         'awarding_sub_tier_agency_c': grant.federal_agency_id,
-        'awarding_sub_tier_agency_n': d2.awarding_sub_tier_agency_n,
-        'awarding_office_code': d2.awarding_office_code,
-        'awarding_office_name': d2.awarding_office_name,
-        'funding_agency_code': d2.funding_agency_code,
-        'funding_agency_name': d2.funding_agency_name,
-        'funding_sub_tier_agency_co': d2.funding_sub_tier_agency_co,
-        'funding_sub_tier_agency_na': d2.funding_sub_tier_agency_na,
-        'funding_office_code': d2.funding_office_code,
-        'funding_office_name': d2.funding_office_name,
+        'awarding_sub_tier_agency_n': d2.awarding_sub_tier_agency_n if d2 else None,
+        'awarding_office_code': d2.awarding_office_code if d2 else None,
+        'awarding_office_name': d2.awarding_office_name if d2 else None,
+        'funding_agency_code': d2.funding_agency_code if d2 else None,
+        'funding_agency_name': d2.funding_agency_name if d2 else None,
+        'funding_sub_tier_agency_co': d2.funding_sub_tier_agency_co if d2 else None,
+        'funding_sub_tier_agency_na': d2.funding_sub_tier_agency_na if d2 else None,
+        'funding_office_code': d2.funding_office_code if d2 else None,
+        'funding_office_name': d2.funding_office_name if d2 else None,
         'awardee_or_recipient_uniqu': grant.duns,
         'awardee_or_recipient_legal': grant.awardee_name,
         'dba_name': grant.dba_name,
@@ -305,7 +305,7 @@ def compare_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_coun
         'legal_entity_zip': None,
         'legal_entity_congressional': grant.awardee_address_district,
         'legal_entity_foreign_posta': grant.awardee_address_zip,
-        'business_types': d2.business_types_desc,
+        'business_types': d2.business_types_desc if d2 else None,
         'place_of_perform_city_name': grant.principle_place_city,
         'place_of_perform_state_code': grant.principle_place_state,
         'place_of_perform_state_name': grant.principle_place_state_name,
@@ -436,7 +436,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     sub = SubmissionFactory(submission_id=1)
     d2_non = PublishedAwardFinancialAssistanceFactory(
         submission_id=sub.submission_id,
-        record_type='2',
+        record_type=2,
         unique_award_key='NON',
         fain='NON-FAIN-WITH-DASHES',
         is_active=True
@@ -460,7 +460,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     )
     d2_agg = PublishedAwardFinancialAssistanceFactory(
         submission_id=sub.submission_id,
-        record_type='1',
+        record_type=1,
         unique_award_key='AGG',
         fain='AGG-FAIN-WITH-DASHES',
         is_active=True
@@ -494,9 +494,10 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     created_at = updated_at = grants_results[0].created_at
 
     # Expected Results
-    assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
+    # Note: Aggregates should not be linked
+    assert compare_grant_results(grants_results[0], d2_non, grant_non, sub_grant_non, parent_duns, duns, dom_country,
                                  int_country, created_at, updated_at) is True
-    assert compare_grant_results(grants_results[1], d2_non, grant_non, sub_grant_non, parent_duns, duns, dom_country,
+    assert compare_grant_results(grants_results[1], None, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
                                  int_country, created_at, updated_at) is True
 
 
@@ -516,7 +517,7 @@ def test_fix_broken_links(database, monkeypatch):
     sub = SubmissionFactory(submission_id=1)
     d2_non = PublishedAwardFinancialAssistanceFactory(
         submission_id=sub.submission_id,
-        record_type='2',
+        record_type=2,
         unique_award_key='NON',
         fain='NON-FAIN-WITH-DASHES',
         is_active=True,
@@ -541,7 +542,7 @@ def test_fix_broken_links(database, monkeypatch):
     )
     d2_agg = PublishedAwardFinancialAssistanceFactory(
         submission_id=sub.submission_id,
-        record_type='1',
+        record_type=1,
         unique_award_key='AGG',
         fain='AGG-FAIN-WITH-DASHES',
         is_active=True,
@@ -633,14 +634,15 @@ def test_fix_broken_links(database, monkeypatch):
     contract_created_at = contract_updated_at = contracts_results[0].created_at
 
     # Expected Results - should be False as the award isn't provided
+    # Note: Aggregates should not be linked
     assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, parent_duns, duns,
                                     dom_country, int_country, contract_created_at, contract_updated_at) is False
     assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, parent_duns, duns,
                                     dom_country, int_country, contract_created_at, contract_updated_at) is False
-    assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
+    assert compare_grant_results(grants_results[0], d2_non, grant_non, sub_grant_non, parent_duns, duns, dom_country,
                                  int_country, grant_created_at, grant_updated_at) is False
-    assert compare_grant_results(grants_results[1], d2_non, grant_non, sub_grant_non, parent_duns, duns, dom_country,
-                                 int_country, grant_created_at, grant_updated_at) is False
+    assert compare_grant_results(grants_results[1], None, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
+                                 int_country, grant_created_at, grant_updated_at) is True
 
     # now add the awards and fix the broken links
     sess.add_all([d1_awd, d2_non, d1_idv, d2_agg])
@@ -649,7 +651,9 @@ def test_fix_broken_links(database, monkeypatch):
     updated_proc_count = fix_broken_links(sess, 'procurement_service', min_date=min_date)
     updated_grant_count = fix_broken_links(sess, 'grant_service', min_date=min_date)
 
-    assert updated_proc_count == updated_grant_count == 2
+    assert updated_proc_count == 2
+    # Note: Aggregates should still not be linked
+    assert updated_grant_count == 1
 
     contracts_results = sess.query(Subaward).order_by(Subaward.unique_award_key).\
         filter(Subaward.subaward_type == 'sub-contract').all()
@@ -667,9 +671,9 @@ def test_fix_broken_links(database, monkeypatch):
                                     dom_country, int_country, contract_created_at, contract_updated_at) is True
     assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, parent_duns, duns,
                                     dom_country, int_country, contract_created_at, contract_updated_at) is True
-    assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
+    assert compare_grant_results(grants_results[0], d2_non, grant_non, sub_grant_non, parent_duns, duns, dom_country,
                                  int_country, grant_created_at, grant_updated_at) is True
-    assert compare_grant_results(grants_results[1], d2_non, grant_non, sub_grant_non, parent_duns, duns, dom_country,
+    assert compare_grant_results(grants_results[1], None, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
                                  int_country, grant_created_at, grant_updated_at) is True
 
     # Ensuring only updates occurred, no deletes/inserts
