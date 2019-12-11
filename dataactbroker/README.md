@@ -756,12 +756,6 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
-#### GET "/v1/submission/\<int:submission\_id\>/narrative"
-**Deprecated, scheduled for removal, use `/v1/get_submission_comments`**
-
-#### POST "/v1/submission/\<int:submission\_id\>/narrative"
-**Deprecated, scheduled for removal, use `/v1/update_submission_comments`**
-
 #### GET "/v1/get\_submission\_comments/"
 This endpoint retrieves existing submission comments (explanations/notes for particular files).
 
