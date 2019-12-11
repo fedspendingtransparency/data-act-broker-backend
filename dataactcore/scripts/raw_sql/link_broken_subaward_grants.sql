@@ -35,6 +35,7 @@ aw_pafa AS
             SELECT 1
             FROM unlinked_subs
             WHERE UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(pafa.fain, '-', ''))
+                AND pafa.record_type != 1
         )
         {0}
     ORDER BY UPPER(pafa.fain), pafa.action_date)

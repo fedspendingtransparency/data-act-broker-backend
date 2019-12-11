@@ -27,6 +27,7 @@ WITH aw_pafa AS
             FROM fsrs_grant
             WHERE UPPER(TRANSLATE(fsrs_grant.fain, '-', '')) = UPPER(TRANSLATE(pafa.fain, '-', ''))
                 AND fsrs_grant.id {0} {1}
+                AND pafa.record_type != 1
         )
     ORDER BY UPPER(pafa.fain), pafa.action_date),
 grant_pduns AS
