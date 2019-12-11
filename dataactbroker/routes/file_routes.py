@@ -154,18 +154,6 @@ def add_file_routes(app, is_local, server_path):
     def get_obligations(submission):
         return JsonResponse.create(StatusCode.OK, get_submission_stats(submission.submission_id))
 
-    # TODO: Deprecated, remove at proper time
-    @app.route("/v1/submission/<int:submission_id>/narrative", methods=['GET'])
-    @requires_submission_perms('reader')
-    def get_submission_narratives(submission):
-        return get_submission_comments(submission)
-
-    # TODO: Deprecated, remove at proper time
-    @app.route("/v1/submission/<int:submission_id>/narrative", methods=['POST'])
-    @requires_submission_perms('writer')
-    def post_submission_narratives(submission):
-        return update_submission_comments(submission, request.json, is_local)
-
     @app.route("/v1/get_submission_comments", methods=['GET'])
     @convert_to_submission_id
     @requires_submission_perms('reader')
