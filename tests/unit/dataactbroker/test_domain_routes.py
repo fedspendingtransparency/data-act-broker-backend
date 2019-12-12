@@ -18,7 +18,9 @@ def domain_app(test_app):
 
 @pytest.mark.usefixtures("user_constants")
 def test_list_agencies_limits(domain_app, database):
-    """List agencies should limit to only the user's agencies"""
+    """ List agencies should limit to only the user's agencies and should not duplicate the same agency even if there
+        are multiple instances of the same agency in the user permissions.
+    """
     user = UserFactory()
     cgac = CGACFactory()
     frec_cgac = CGACFactory()
@@ -28,7 +30,9 @@ def test_list_agencies_limits(domain_app, database):
                  SubTierAgencyFactory(sub_tier_agency_code='1', cgac=frec_cgac, frec=frec, is_frec=True,
                                       sub_tier_agency_name="Test Subtier Agency 1")]
     user.affiliations = [UserAffiliation(cgac=cgac, frec=None, permission_type_id=PERMISSION_SHORT_DICT['w']),
-                         UserAffiliation(cgac=None, frec=frec, permission_type_id=PERMISSION_SHORT_DICT['w'])]
+                         UserAffiliation(cgac=cgac, frec=None, permission_type_id=PERMISSION_SHORT_DICT['f']),
+                         UserAffiliation(cgac=None, frec=frec, permission_type_id=PERMISSION_SHORT_DICT['w']),
+                         UserAffiliation(cgac=None, frec=frec, permission_type_id=PERMISSION_SHORT_DICT['f'])]
     database.session.add_all([cgac] + [frec_cgac] + [frec] + sub_tiers + [user])
     database.session.commit()
 
@@ -44,7 +48,7 @@ def test_list_agencies_limits(domain_app, database):
 
 
 def test_list_agencies_superuser(domain_app, database):
-    """All agencies should be visible to website admins"""
+    """ All agencies should be visible to website admins """
     user = UserFactory(website_admin=True)
     cgacs = [CGACFactory(cgac_code=str(i)) for i in range(3)]
     frec_cgac = CGACFactory()
@@ -67,7 +71,7 @@ def test_list_agencies_superuser(domain_app, database):
 
 @pytest.mark.usefixtures("user_constants")
 def test_list_agencies_all(domain_app, database):
-    """All agencies should be visible to website admins"""
+    """ All agencies should be visible to website admins """
     user = UserFactory()
     cgacs = [CGACFactory(cgac_code=str(i)) for i in range(3)]
     frec_cgac = CGACFactory()
