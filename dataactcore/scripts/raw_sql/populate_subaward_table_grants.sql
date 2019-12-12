@@ -1,8 +1,5 @@
 WITH aw_pafa AS
-    (SELECT DISTINCT ON (
-            UPPER(pafa.fain)
-        )
-        pafa.fain AS fain,
+    (SELECT pafa.fain AS fain,
         pafa.uri AS uri,
         pafa.award_description AS award_description,
         pafa.record_type AS record_type,
@@ -28,6 +25,7 @@ WITH aw_pafa AS
             WHERE UPPER(TRANSLATE(fsrs_grant.fain, '-', '')) = UPPER(TRANSLATE(pafa.fain, '-', ''))
                 AND fsrs_grant.id {0} {1}
                 AND pafa.record_type != 1
+                AND (fsrs_grant.federal_agency_id IS NULL OR fsrs_grant.federal_agency_id=pafa.awarding_sub_tier_agency_c)
         )
     ORDER BY UPPER(pafa.fain), pafa.action_date),
 grant_pduns AS
