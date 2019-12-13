@@ -172,8 +172,7 @@ def derive_ppop_location_data(obj, sess, ppop_code, ppop_state_code, county_dict
         obj['place_of_performance_city'] = city_info.city_name
 
         # deriving PrimaryPlaceOfPerformanceScope
-        if ppop_code and (re.match('^[A-Z]{2}\d{5}$', ppop_code) or
-                          re.match('^[A-Z]{2}\d{4}R$', ppop_code)):
+        if ppop_code and (re.match('^[A-Z]{2}\d{5}$', ppop_code) or re.match('^[A-Z]{2}\d{4}R$', ppop_code)):
             obj['place_of_performance_scope'] = "Single ZIP Code"
         else:
             obj['place_of_performance_scope'] = None
