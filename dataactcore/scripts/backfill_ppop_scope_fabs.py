@@ -27,8 +27,7 @@ BACKFILL_FABS_PPOP_SCOPE_SQL_2 = """
     SET place_of_performance_scope =
         CASE WHEN LOWER(place_of_performance_zip4a) = 'city-wide'
              THEN 'City-wide'
-             WHEN (place_of_performance_zip4a ~ '^\d{5}$' OR place_of_performance_zip4a ~ '^\d{9}$'
-                    OR place_of_performance_zip4a ~ '^\d{5}-\d{4}$')
+             WHEN place_of_performance_zip4a ~ '^\d{5}(-?\d{4})?$'
              THEN 'Single Zip Code'
          END
     WHERE (place_of_performance_code ~ '^[a-zA-Z]{2}\d{4}[\dRr]$'
