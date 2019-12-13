@@ -28,6 +28,19 @@ WITH aw_pafa AS
                 AND (fsrs_grant.federal_agency_id IS NULL OR fsrs_grant.federal_agency_id=pafa.awarding_sub_tier_agency_c)
         )
     ORDER BY UPPER(pafa.fain), pafa.action_date),
+grouped_pafa AS (
+    SELECT *
+    FROM aw_pafa
+    WHERE EXISTS (
+        SELECT 1
+        FROM (SELECT fain, awarding_sub_tier_agency_n, COUNT(1)
+            FROM aw_pafa
+            GROUP BY fain, awarding_sub_tier_agency_n
+            HAVING COUNT(1) = 1) AS grouped_pafa
+        WHERE (grouped_pafa.fain = aw_pafa.fain
+            AND grouped_pafa.awarding_sub_tier_agency_n = aw_pafa.awarding_sub_tier_agency_n)
+    )
+),
 grant_pduns AS
     (SELECT grand_pduns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
         grand_pduns_from.legal_business_name AS legal_business_name
