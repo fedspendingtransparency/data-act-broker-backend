@@ -38,7 +38,7 @@ grouped_pafa AS (
             HAVING COUNT(1) = 1) AS grouped_pafa
         WHERE (grouped_pafa.fain = aw_pafa.fain
             AND grouped_pafa.awarding_sub_tier_agency_n = aw_pafa.awarding_sub_tier_agency_n)
-    ) AND pafa.record_type != 1
+    ) AND aw_pafa.record_type != 1
 ),
 grant_pduns AS
     (SELECT grand_pduns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
