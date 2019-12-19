@@ -15,7 +15,7 @@ from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
 from dataactcore.models.jobModels import CertifyHistory, CertifiedComment
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
-                                              CertifiedAwardFinancial)
+                                              CertifiedAwardFinancial, FlexField, CertifiedFlexField)
 
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import (SubmissionFactory, JobFactory, CertifyHistoryFactory,
@@ -431,6 +431,11 @@ def test_certify_dabs_submission(database, monkeypatch):
         sess.add_all([job_1, job_2, comment])
         sess.commit()
 
+        flex_field = FlexField(file_type_id=FILE_TYPE_DICT['appropriations'], header='flex_test', job_id=job_1.job_id,
+                               submission_id=submission.submission_id, row_number=2, cell=None)
+        sess.add(flex_field)
+        sess.commit()
+
         g.user = user
         file_handler = fileHandler.FileHandler({}, is_local=True)
         monkeypatch.setattr(file_handler, 'move_certified_files', Mock(return_value=True))
@@ -447,6 +452,10 @@ def test_certify_dabs_submission(database, monkeypatch):
         # Make sure certified comments are created
         certified_comment = sess.query(CertifiedComment).filter_by(submission_id=submission.submission_id).one_or_none()
         assert certified_comment is not None
+
+        # Make sure certified flex fields are created
+        certified_flex = sess.query(CertifiedFlexField).filter_by(submission_id=submission.submission_id).one_or_none()
+        assert certified_flex is not None
 
 
 @pytest.mark.usefixtures("job_constants")
