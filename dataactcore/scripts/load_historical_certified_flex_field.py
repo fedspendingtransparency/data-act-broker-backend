@@ -29,8 +29,8 @@ def copy_certified_submission_flex_fields():
     column_list.remove('created_at')
     column_list.remove('updated_at')
     column_list.remove('flex_field_id')
-    old_col_string = ', '.join(column_list)
-    new_col_string = ', '.join([col if not col == 'submission_id' else 'flex_field.' + col for col in column_list])
+    certified_col_string = ', '.join(column_list)
+    col_string = ', '.join([col if not col == 'submission_id' else 'flex_field.' + col for col in column_list])
 
     # Delete the old ones so we don't have conflicts
     sess.execute("""
@@ -45,7 +45,7 @@ def copy_certified_submission_flex_fields():
         "SELECT NOW() AS created_at, NOW() AS updated_at, {} "
         "FROM flex_field "
         "JOIN submission ON submission.submission_id = flex_field.submission_id "
-        "WHERE submission.publish_status_id = {}".format(old_col_string, new_col_string,
+        "WHERE submission.publish_status_id = {}".format(certified_col_string, col_string,
                                                          PUBLISH_STATUS_DICT['published']))
     sess.commit()
     logger.info('Moved certified flex fields')
