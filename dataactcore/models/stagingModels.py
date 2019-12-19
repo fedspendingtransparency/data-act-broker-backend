@@ -230,7 +230,7 @@ Index("ix_af_uri_upper", func.upper(AwardFinancial.uri))
 
 
 class CertifiedFlexField(Base):
-    """Model for the flex field table."""
+    """ Model for the certified flex field table. """
     __tablename__ = "certified_flex_field"
 
     certified_flex_field_id = Column(Integer, primary_key=True)
