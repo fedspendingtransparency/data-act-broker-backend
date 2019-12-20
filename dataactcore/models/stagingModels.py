@@ -1314,7 +1314,7 @@ Index("ix_pafa_fain_upper", func.upper(PublishedAwardFinancialAssistance.fain))
 Index("ix_pafa_uri_upper", func.upper(PublishedAwardFinancialAssistance.uri))
 Index("ix_pafa_awarding_subtier_c_upper", func.upper(PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c))
 Index("ix_pafa_afa_generated_unique_upper", func.upper(PublishedAwardFinancialAssistance.afa_generated_unique))
-
+Index("ix_pafa_record_type", func.upper(PublishedAwardFinancialAssistance.record_type))
 
 class FPDSContractingOffice(Base):
     """Model for FPDS Contracting Offices """
