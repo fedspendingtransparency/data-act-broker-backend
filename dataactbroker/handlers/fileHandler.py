@@ -276,21 +276,36 @@ class FileHandler:
             # Add jobs or update existing ones
             job_dict = self.create_jobs_for_submission(upload_files, submission, existing_submission)
 
-            def upload(file_ref, file_type, app, current_user):
+            def upload(file_ref, file_type, app, current_user, submission_id):
                 filename_key = [x.upload_name for x in upload_files if x.file_type == file_type][0]
                 bucket_name = CONFIG_BROKER["broker_files"] if self.is_local else CONFIG_BROKER["aws_bucket"]
+                logger.info({
+                    'message': 'Uploading {}'.format(filename_key),
+                    'message_type': 'BrokerInfo',
+                    'file_type': file_type,
+                    'submission_id': submission_id,
+                    'file_name': filename_key
+                })
                 if CONFIG_BROKER['use_aws']:
                     s3 = boto3.client('s3', region_name='us-gov-west-1')
                     extra_args = {'Metadata': {'email': current_user.email}}
                     s3.upload_fileobj(file_ref, bucket_name, filename_key, ExtraArgs=extra_args)
                 else:
                     file_ref.save(filename_key)
+                logger.info({
+                    'message': 'Uploaded {}'.format(filename_key),
+                    'message_type': 'BrokerInfo',
+                    'file_type': file_type,
+                    'submission_id': submission_id,
+                    'file_name': filename_key
+                })
                 with app.app_context():
                         g.user = current_user
                         self.finalize(job_dict[file_type + "_id"])
             for file_type, file_ref in request_params["_files"].items():
                 t = threading.Thread(target=upload, args=(file_ref, file_type,
-                                                          current_app._get_current_object(), g.user))
+                                                          current_app._get_current_object(), g.user,
+                                                          submission.submission_id))
                 t.start()
                 t.join()
             api_response = {"success": "true", "submission_id": submission.submission_id}
