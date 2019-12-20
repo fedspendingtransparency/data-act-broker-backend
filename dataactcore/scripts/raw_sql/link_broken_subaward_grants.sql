@@ -36,6 +36,7 @@ aw_pafa AS
             FROM unlinked_subs
             WHERE UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(pafa.fain, '-', ''))
                 AND pafa.record_type != 1
+                AND (unlinked_subs.awarding_sub_tier_agency_c IS NULL OR UPPER(unlinked_subs.awarding_sub_tier_agency_c)=UPPER(pafa.awarding_sub_tier_agency_c))
         )
         {0}
     ORDER BY UPPER(pafa.fain), pafa.action_date)
@@ -57,5 +58,8 @@ SET
     business_types = aw_pafa.business_types_desc
 FROM unlinked_subs
      JOIN aw_pafa
-        ON UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(aw_pafa.fain, '-', ''))
+        ON (UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(aw_pafa.fain, '-', ''))
+            AND (unlinked_subs.awarding_sub_tier_agency_c IS NULL OR UPPER(unlinked_subs.awarding_sub_tier_agency_c)=UPPER(pafa.awarding_sub_tier_agency_c))
+        )
+
 WHERE subaward.id = unlinked_subs.id;
