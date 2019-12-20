@@ -11,9 +11,10 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.jobModels import CertifiedFilesHistory, Job
-from dataactcore.models.jobModels import Submission # noqa
+from dataactcore.models.jobModels import Submission
+from dataactcore.models.userModel import User # noqa
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
-from dataactcore.models.stagingModels import FlexField
+from dataactcore.models.stagingModels import FlexField, CertifiedFlexField
 
 from dataactvalidator.health_check import create_app
 
@@ -33,20 +34,22 @@ def copy_certified_submission_flex_fields():
     col_string = ', '.join([col if not col == 'submission_id' else 'flex_field.' + col for col in column_list])
 
     # Delete the old ones so we don't have conflicts
-    sess.execute("""
-        DELETE FROM certified_flex_field
-        USING submission
-        WHERE submission.submission_id = certified_flex_field.submission_id
-            AND publish_status_id = {}
+    sess.execute(
+        """DELETE FROM certified_flex_field
+            USING submission
+            WHERE submission.submission_id = certified_flex_field.submission_id
+                AND publish_status_id = {}
         """.format(PUBLISH_STATUS_DICT['published']))
 
+    # Insert all flex fields from submissions in the certified (not updated) status
     sess.execute(
-        "INSERT INTO certified_flex_field (created_at, updated_at, {}) "
-        "SELECT NOW() AS created_at, NOW() AS updated_at, {} "
-        "FROM flex_field "
-        "JOIN submission ON submission.submission_id = flex_field.submission_id "
-        "WHERE submission.publish_status_id = {}".format(certified_col_string, col_string,
-                                                         PUBLISH_STATUS_DICT['published']))
+        """INSERT INTO certified_flex_field (created_at, updated_at, {})
+            SELECT NOW() AS created_at, NOW() AS updated_at, {}
+            FROM flex_field
+            JOIN submission ON submission.submission_id = flex_field.submission_id
+            WHERE submission.publish_status_id = {}
+                AND submission.d2_submission IS FALSE
+        """.format(certified_col_string, col_string, PUBLISH_STATUS_DICT['published']))
     sess.commit()
     logger.info('Moved certified flex fields')
 
@@ -55,6 +58,7 @@ def main():
     """ Load flex fields for certified submissions that haven't been loaded into the certified flex fields table. """
 
     copy_certified_submission_flex_fields()
+    # load_updated_flex_fields()
 
 
 if __name__ == '__main__':
