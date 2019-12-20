@@ -229,6 +229,23 @@ Index("ix_af_fain_upper", func.upper(AwardFinancial.fain))
 Index("ix_af_uri_upper", func.upper(AwardFinancial.uri))
 
 
+class CertifiedFlexField(Base):
+    """ Model for the certified flex field table. """
+    __tablename__ = "certified_flex_field"
+
+    certified_flex_field_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                      name="fk_certified_flex_field_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
+    job_id = Column(Integer)
+    row_number = Column(Integer)
+    header = Column(Text)
+    cell = Column(Text)
+    file_type_id = Column(Integer)
+
+
 class CertifiedAppropriation(Base):
     """Model for the certified data from the Appropriation (A file) table."""
     __tablename__ = "certified_appropriation"
