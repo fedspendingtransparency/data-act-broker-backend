@@ -538,12 +538,26 @@ class FileHandler:
 
             filename_key = upload_files[0].upload_name
             bucket_name = CONFIG_BROKER["broker_files"] if self.is_local else CONFIG_BROKER["aws_bucket"]
+            logger.info({
+                'message': 'Uploading {}'.format(filename_key),
+                'message_type': 'BrokerInfo',
+                'file_type': 'fabs',
+                'submission_id': submission.submission_id,
+                'file_name': filename_key
+            })
             if CONFIG_BROKER['use_aws']:
                 s3 = boto3.client('s3', region_name='us-gov-west-1')
                 extra_args = {'Metadata': {'email': g.user.email}}
                 s3.upload_fileobj(fabs, bucket_name, filename_key, ExtraArgs=extra_args)
             else:
                 fabs.save(filename_key)
+            logger.info({
+                'message': 'Uploaded {}'.format(filename_key),
+                'message_type': 'BrokerInfo',
+                'file_type': 'fabs',
+                'submission_id': submission.submission_id,
+                'file_name': filename_key
+            })
             json_response = self.finalize(job_dict["fabs_id"])
         except (ValueError, TypeError, NotImplementedError) as e:
             json_response = JsonResponse.error(e, StatusCode.CLIENT_ERROR)
