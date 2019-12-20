@@ -25,7 +25,7 @@ WITH aw_pafa AS
             WHERE UPPER(TRANSLATE(fsrs_grant.fain, '-', '')) = UPPER(TRANSLATE(pafa.fain, '-', ''))
                 AND fsrs_grant.id {0} {1}
                 AND record_type != 1
-                AND (fsrs_grant.federal_agency_id IS NULL OR fsrs_grant.federal_agency_id=pafa.awarding_sub_tier_agency_c)
+                AND (fsrs_grant.federal_agency_id IS NULL OR UPPER(fsrs_grant.federal_agency_id)=UPPER(pafa.awarding_sub_tier_agency_c))
         )
     ORDER BY UPPER(pafa.fain), pafa.action_date),
 grouped_pafa AS (
@@ -36,9 +36,9 @@ grouped_pafa AS (
         FROM (SELECT fain, awarding_sub_tier_agency_n, COUNT(1)
             FROM aw_pafa
             GROUP BY fain, awarding_sub_tier_agency_n
-            HAVING COUNT(1) = 1) AS grouped_pafa
-        WHERE (grouped_pafa.fain = aw_pafa.fain
-            AND grouped_pafa.awarding_sub_tier_agency_n = aw_pafa.awarding_sub_tier_agency_n)
+            HAVING COUNT(1) = 1) AS singled_pafa
+        WHERE (singled_pafa.fain = aw_pafa.fain
+            AND singled_pafa.awarding_sub_tier_agency_n = aw_pafa.awarding_sub_tier_agency_n)
     )
 ),
 grant_pduns AS
