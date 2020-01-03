@@ -3,7 +3,9 @@ import csv
 import logging
 import os
 import traceback
+import pandas as pd
 
+from pandas import isnull
 from datetime import datetime
 
 from sqlalchemy import and_, or_
@@ -32,6 +34,7 @@ from dataactcore.models.validationModels import RuleSql, ValidationLabel
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
+from dataactvalidator.scripts.loader_utils import insert_dataframe
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactvalidator.filestreaming.csvReader import CsvReader
@@ -152,10 +155,12 @@ class ValidationManager:
 
     def run_validation(self, job):
         """ Run validations for specified job
-        Args:
-            job: Job to be validated
-        Returns:
-            True if successful
+
+            Args:
+                job: Job to be validated
+
+            Returns:
+                True if successful
         """
 
         sess = GlobalDB.db().session
@@ -223,7 +228,9 @@ class ValidationManager:
         fields = sess.query(FileColumn).filter(FileColumn.file_id == FILE_TYPE_DICT[file_type])\
             .order_by(FileColumn.daims_name.asc()).all()
 
+        expected_headers = []
         for field in fields:
+            expected_headers.append(FieldCleaner.clean_name(field.name_short))
             sess.expunge(field)
 
         csv_schema = {row.name_short: row for row in fields}
@@ -247,11 +254,44 @@ class ValidationManager:
                              self.get_file_name(error_file_name), self.daims_to_short_dict[job.file_type_id],
                              self.short_to_daims_dict[job.file_type_id], is_local=self.is_local)
 
+            # Getting the dataframe for now
+            # TODO: this is temporary to make sure the file can be read the old-fashioned way until this is working
+            reader.file.seek(0)
+            data = pd.read_csv(reader.file, dtype=str, delimiter=reader.delimiter)
+
+            # TODO: Move all this dataframe stuff to some reasonable location
+            # Replace whatever the user included so we're using the database headers
+            data.rename(columns=reader.header_dict, inplace=True)
+
+            def clean_col(datum):
+                if isnull(datum) or not str(datum).strip():
+                    return None
+
+                # Trim
+                return str(datum).strip()
+
+            if len(data.index) > 0:
+                data = data.applymap(clean_col)
+
+            # Adding row number
+            data = data.reset_index()
+            data['row_number'] = data.index + 2
+            data = data.drop(['index'], axis=1)
+
+            flex_data = None
+            if reader.flex_fields:
+                flex_data = data[list(reader.flex_fields + ['row_number'])]
+
+            data = data[list(expected_headers + ['row_number'])]
+            data['is_valid'] = True
+
+            reader.file.seek(0)
+            reader.file.readline()
+
             # list to keep track of rows that fail validations
             error_rows = []
 
-            # While not done, pull one row and put it into staging table if it passes
-            # the Validator
+            # While not done, pull rows in chunks and put them into staging table if they pass the Validator
 
             loading_start = datetime.now()
             logger.info({
@@ -295,6 +335,7 @@ class ValidationManager:
                 # write headers to file
                 error_csv.writerow(self.report_headers)
                 warning_csv.writerow(self.report_headers)
+                valid_row_nums = []
                 while not reader.is_finished:
                     row_number += 1
 
@@ -369,19 +410,41 @@ class ValidationManager:
                         model_instance = model(job_id=job_id, submission_id=submission_id,
                                                valid_record=passed_validations, **record)
                         skip_row = not insert_staging_model(model_instance, job, error_csv, error_list)
-                        if flex_cols:
-                            sess.add_all(flex_cols)
-                            sess.commit()
+                        # TODO: Why are we adding these flex cols even on rows that didn't get inserted properly?
+                        # This should have been after the continue to begin with I think?
+                        # if flex_cols:
+                        #     sess.add_all(flex_cols)
+                        #     sess.commit()
 
                         if skip_row:
                             error_rows.append(row_number)
                             continue
+                        # TODO: Do this from the valid rows in the dataframe, we just haven't swapped to it yet
+                        valid_row_nums.append(row_number)
 
                     if not passed_validations:
                         fatal = write_errors(failures, job, self.short_to_long_dict[job.file_type_id], error_csv,
                                              warning_csv, row_number, error_list, flex_cols)
                         if fatal:
                             error_rows.append(row_number)
+
+                if flex_data is not None and valid_row_nums:
+                    flex_data = flex_data[flex_data['row_number'].isin(valid_row_nums)]
+
+                    flex_rows = pd.melt(flex_data, id_vars=['row_number'], value_vars=reader.flex_fields,
+                                        var_name='header', value_name='cell')
+
+                    # Filling in all the shared data for these flex fields
+                    now = datetime.now()
+                    flex_rows['created_at'] = now
+                    flex_rows['updated_at'] = now
+                    flex_rows['job_id'] = job_id
+                    flex_rows['submission_id'] = submission_id
+                    flex_rows['file_type_id'] = job.file_type_id
+
+                    # Adding the entire set of flex fields
+                    insert_dataframe(flex_rows, FlexField.__table__.name, sess.connection())
+                    sess.commit()
 
                 loading_duration = (datetime.now()-loading_start).total_seconds()
                 logger.info({

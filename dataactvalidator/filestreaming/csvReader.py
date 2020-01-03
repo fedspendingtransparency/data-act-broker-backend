@@ -82,11 +82,14 @@ class CsvReader(object):
 
         self.delimiter = "|" if header_line.count("|") > header_line.count(",") else ","
         self.csv_reader = csv.reader(self.file, quotechar='"', dialect='excel', delimiter=self.delimiter)
+        self.header_dict = {}
 
         # create the header
         header_row = next(csv.reader([header_line], quotechar='"', dialect='excel', delimiter=self.delimiter))
         daims_headers = use_daims_headers(header_row, daims_to_short_dict)
-        header_row = list(normalize_headers(header_row, daims_headers, daims_to_short_dict))
+        header_row = list(normalize_headers(header_row, daims_headers, daims_to_short_dict, self.header_dict))
+        # Storing the flex fields for easy access
+        self.flex_fields = [header for header in header_row if header.startswith('flex_')]
 
         expected_header_counts = self.count_and_set_headers(csv_schema, header_row)
 
@@ -222,6 +225,7 @@ class CsvReader(object):
         # Track how many times we've seen a field we were expecting. Keyed by the shorter, machine-readable column names
         expected_fields = OrderedDict()
 
+        # TODO: Since I had to do this earlier, we might be able to just pass this along instead of recreating it
         for schema in csv_schema:
             expected_fields[FieldCleaner.clean_name(schema.name_short)] = 0
 
@@ -275,7 +279,7 @@ def use_daims_headers(header_row, daims_to_short_dict):
     return col_matches > .5 * len(header_row)
 
 
-def normalize_headers(header_row, daims_headers, daims_to_short_dict):
+def normalize_headers(header_row, daims_headers, daims_to_short_dict, header_dict):
     """ Clean the headers (lowercase) and convert them to short headers if we're given long
         headers
 
@@ -283,13 +287,14 @@ def normalize_headers(header_row, daims_headers, daims_to_short_dict):
             header_row: an array of the file headers given
             daims_headers: boolean indicating if we're using the daims versions of the headers (True for daims)
             daims_to_short_dict: a dictionary containing a mapping from daims headers to short ones for this file type
+            header_dict: a dictionary containing the mappings from original to cleaned headers
 
         Yields:
             A string containing the cleaned header name (converted to short version if daims versions were provided and
             there is a mapping for that header).
     """
-    for header in header_row:
-        header = StringCleaner.clean_string(header, remove_extras=False)
+    for original_header in header_row:
+        header = StringCleaner.clean_string(original_header, remove_extras=False)
         # Replace headers that don't match DB but are allowed by the broker with their DB matches
         if header == 'deobligationsrecoveriesrefundsofprioryearbyprogramobjectclass_cpe':
             header = 'deobligationsrecoveriesrefundsdofprioryearbyprogramobjectclass_cpe'
@@ -304,8 +309,10 @@ def normalize_headers(header_row, daims_headers, daims_to_short_dict):
 
         # yield the short header when applicable, otherwise yield the cleaned header, whatever it is
         if daims_headers and header in daims_to_short_dict:
+            header_dict[original_header] = FieldCleaner.clean_name(daims_to_short_dict[header])
             yield FieldCleaner.clean_name(daims_to_short_dict[header])
         else:
+            header_dict[original_header] = header
             yield header
 
 
