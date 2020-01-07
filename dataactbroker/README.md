@@ -58,6 +58,8 @@ The `dataactbroker/handlers` folder contains the logic to handle requests that a
 All routes that require a login should now be passed a header "x-session-id".  The value for this header should be taken
 from the login route response header "x-session-id".
 
+**All routes have an optional trailing slash, meaning the route will work with or without it.**
+
 ### Status Codes
 In general, status codes returned are as follows:
 
@@ -754,17 +756,11 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
-#### GET "/v1/submission/\<int:submission\_id\>/narrative"
-**Deprecated, scheduled for removal, use `/v1/get_submission_comments`**
-
-#### POST "/v1/submission/\<int:submission\_id\>/narrative"
-**Deprecated, scheduled for removal, use `/v1/update_submission_comments`**
-
-#### GET "/v1/get\_submission\_comments"
+#### GET "/v1/get\_submission\_comments/"
 This endpoint retrieves existing submission comments (explanations/notes for particular files).
 
 ##### Sample Request
-`/v1/get_submission_comments?submission_id=123`
+`/v1/get_submission_comments/?submission_id=123`
 
 ##### Request Params
 - `submission_id`: (required, string) an integer representing the ID of the submission to get obligations for.
@@ -799,7 +795,7 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
-#### POST "/v1/update\_submission\_comments"
+#### POST "/v1/update\_submission\_comments/"
 This endpoint sets the file comments for a given submission.
 
 ##### Body (JSON)
@@ -845,11 +841,11 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
-#### GET "/v1/get\_comments\_file"
+#### GET "/v1/get\_comments\_file/"
 This endpoint retrieves the url to the file containing all the file comments associated with this submission.
 
 ##### Sample Request
-`/v1/get_comments_file?submission_id=123`
+`/v1/get_comments_file/?submission_id=123`
 
 ##### Request Params
 - `submission_id`: (required, integer) the ID of the submission to get the comments file for. 
@@ -874,11 +870,11 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
-#### GET "/v1/submission/\<int:submission\_id\>/report\_url"
+#### GET "/v1/submission/\<int:submission\_id\>/report\_url/"
 This endpoint requests the URL associated with a particular type of submission report. The provided URL will expire after one minute.
 
 ##### Sample Request
-`/v1/submission/<int:submission_id>/report_url?warning=True&file_type=appropriations&cross_type=award_financial`
+`/v1/submission/<int:submission_id>/report_url/?warning=True&file_type=appropriations&cross_type=award_financial`
 
 ##### Request Params
 - `submission_id` - **required** - an integer representing the ID of the submission to get a report url for
@@ -919,11 +915,11 @@ Possible HTTP Status Codes:
 - 403: Permission denied, user does not have permission to view this submission
 
 
-#### GET "/v1/get\_file\_url"
+#### GET "/v1/get\_file\_url/"
 This endpoint returns the signed url for the uploaded/generated file of the requested type
 
 ##### Sample Request
-`/v1/get_file_url?submission_id=123&file_type=A`
+`/v1/get_file_url/?submission_id=123&file_type=A`
 
 ##### Request Params
 - `submission_id` - **required** - an integer representing the ID of the submission to get the file url for
@@ -957,11 +953,11 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Do not have permission to access that submission
 
-#### GET "/v1/get\_detached\_file\_url"
+#### GET "/v1/get\_detached\_file\_url/"
 This endpoint returns the signed url for the generated file of the requested job
 
 ##### Sample Request
-`/v1/get_detached_file_url?job_id=123`
+`/v1/get_detached_file_url/?job_id=123`
 
 ##### Request Params
 - `job_id` - **required** - an integer representing the ID of the job to get the file url for
@@ -985,7 +981,7 @@ Possible HTTP Status Codes:
     - Missing parameter
 - 401: Login required
 
-#### POST "/v1/publish\_fabs\_file"
+#### POST "/v1/publish\_fabs\_file/"
 
 This route sends a request to the backend with ID of the FABS submission to publish.
 
@@ -1021,7 +1017,7 @@ Possible HTTP Status Codes:
 - 500: Any other unexpected errors
 
 
-#### POST "/v1/delete_submission"
+#### POST "/v1/delete_submission/"
 
 This route deletes all data related to the specified `submission_id`. A submission that has ever been certified/published (has a status of "published" or "updated") cannot be deleted.
 
@@ -1047,7 +1043,7 @@ This route deletes all data related to the specified `submission_id`. A submissi
 * `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
 
 
-#### POST "/v1/certify\_submission"
+#### POST "/v1/certify\_submission/"
 This route certifies the specified submission, if possible. If a submission has critical errors, it cannot be certified. Only quarterly submissions can be certified. Submission files are copied to a certified bucket on aws if it is a non-local environment.
 
 ##### Body (JSON)
@@ -1080,7 +1076,7 @@ Possible HTTP Status Codes:
 - 403: Permission denied, user does not have permission to view this submission
 
 
-#### GET "/v1/gtas_window"
+#### GET "/v1/gtas_window/"
 
 This route checks if there is a gtas window currently open, and if it is returns the start and end date, else returns None
 
@@ -1103,7 +1099,7 @@ Returns a data object with start and end dates if it is a window, or a data obje
 * `start_date` - The date that the window opens
 * `end_date` - The date that the window closes
 
-#### POST "/v1/restart\_validation"
+#### POST "/v1/restart\_validation/"
 
 This route alters a submission's jobs' statuses so they are no longer complete (requiring a regeneration and revalidation for all steps), uncaches all generated files, then restarts A/B/C or FABS validations for the specified submission.
 
@@ -1139,7 +1135,7 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
-#### POST "/v1/list\_submissions"
+#### POST "/v1/list\_submissions/"
 This endpoint lists submissions for all agencies for which the current user is a member of. Optional filters allow for more refined lists.
 
 ##### Body (JSON)
@@ -1274,11 +1270,11 @@ Possible HTTP Status Codes:
 - 401: Login required
 
 
-#### GET "/v1/list\_submission\_users"
+#### GET "/v1/list\_submission\_users/"
 This endpoint lists all users with submissions that the requesting user can view, sorted by user name.
 
 ##### Sample Request
-`/v1/list_submission_users?d2_submission=False`
+`/v1/list_submission_users/?d2_submission=False`
 
 ##### Request Params
 - `d2_submission` - **optional** - a boolean indicating if the submissions checked should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
@@ -1561,7 +1557,7 @@ This route sends a request to the backend to utilize the relevant external APIs 
     - `txt`
 
 #### Response (JSON)
-Response will be the same format as those which are returned in the `/v1/check_generation_status` endpoint.
+Response will be the same format as those which are returned in the `/v1/check_generation_status/` endpoint.
 
 #### Errors
 Possible HTTP Status Codes not covered by `check_generation_status` documentation:
@@ -1571,7 +1567,7 @@ Possible HTTP Status Codes not covered by `check_generation_status` documentatio
     - Start and end date not formatted properly
 
 
-### POST "/v1/generate\_detached\_file"
+### POST "/v1/generate\_detached\_file/"
 
 This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted. This route is used for file generation **independent** from a submission. For more details on how files are generated, see the [FileLogic.md](../FileLogic.md) file.
 
@@ -1612,7 +1608,7 @@ This route sends a request to the backend to utilize the relevant external APIs 
     - `txt`
 
 #### Response (JSON)
-Response will be the same format as those returned from `/v1/check_generation_status` endpoint with the exception that only D1, D2, and A files will ever be present, never E or F.
+Response will be the same format as those returned from `/v1/check_generation_status/` endpoint with the exception that only D1, D2, and A files will ever be present, never E or F.
 
 #### Errors
 Possible HTTP Status Codes not covered by `check_generation_status` documentation:
@@ -1623,7 +1619,7 @@ Possible HTTP Status Codes not covered by `check_generation_status` documentatio
 
 
 ## File Status
-### GET "/v1/check\_generation\_status"
+### GET "/v1/check\_generation\_status/"
 
 This route returns either a signed S3 URL to the generated file or, if the file is not yet ready or have failed to generate for other reasons, returns a status indicating that. This route is used for file generation **within** a submission.
 
@@ -1684,7 +1680,7 @@ Possible HTTP Status Codes:
 - 403: Permission denied, user does not have permission to view this submission
 
 
-### GET "/v1/check\_detached\_generation\_status"
+### GET "/v1/check\_detached\_generation\_status/"
 
 This route returns either a signed S3 URL to the generated file or, if the file is not yet ready or have failed to generate for other reasons, returns a status indicating that. This route is used for file generation **independent** from a submission.
 
@@ -1695,7 +1691,7 @@ This route returns either a signed S3 URL to the generated file or, if the file 
 - `job_id` - **required** - an integer corresponding the job_id for the generation. Provided in the response of the call to `generate_detached_file`
 
 #### Response (JSON)
-Response will be the same format as those returned from `/v1/check_generation_status` endpoint with the exception that only D1, D2, and A files will ever be present, never E or F.
+Response will be the same format as those returned from `/v1/check_generation_status/` endpoint with the exception that only D1, D2, and A files will ever be present, never E or F.
 
 #### Errors
 Possible HTTP Status Codes:
@@ -1709,7 +1705,7 @@ Possible HTTP Status Codes:
 
 The following routes are primarily used by the frontend for analytical purposes.
 
-### POST "/v1/historic\_dabs\_summary"
+### POST "/v1/historic\_dabs\_summary/"
 
 This route returns a list of submission summary dicts corresponding to the filters provided.
 Note: the results will only include the submissions the user has access to based on their MAX permissions.
@@ -1818,7 +1814,7 @@ Possible HTTP Status Codes:
     - Invalid file type provided
     - Invalid parameter type provided
 
-### POST "/v1/historic\_dabs\_graphs"
+### POST "/v1/historic\_dabs\_graphs/"
 
 This route returns a list of submission graph dicts corresponding to the filters provided.
 Note: the results will only include the submissions the user has access to based on their MAX permissions.
@@ -1915,7 +1911,7 @@ Possible HTTP Status Codes:
     - Missing required parameter
 - 401: Login required
 
-### POST "/v1/historic\_dabs\_table"
+### POST "/v1/historic\_dabs\_table/"
 This route returns a list of warning metadata rows for the dashboard table. Filters allow for more refined lists.
 Note: the results will only include the submissions the user has access to based on their MAX permissions.
 

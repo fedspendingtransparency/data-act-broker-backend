@@ -257,7 +257,9 @@ class FileHandler:
                 for ext_file_type in FileHandler.EXTERNAL_FILE_TYPES:
                     filename = GEN_FILENAMES[ext_file_type]
                     if ext_file_type in ['D1', 'D2']:
-                        filename = filename.format('awarding', 'csv')  # default to using awarding agency
+                        # default to using awarding agency and the start/end dates
+                        filename = filename.format(formatted_start_date.strftime('%Y%m%d'),
+                                                   formatted_end_date.strftime('%Y%m%d'), 'awarding', 'csv')
                     if not self.is_local:
                         upload_name = "{}/{}".format(submission.submission_id,
                                                      S3Handler.get_timestamped_filename(filename))

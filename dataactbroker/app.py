@@ -47,6 +47,8 @@ def create_app():
     flask_app.debug = CONFIG_SERVICES['debug']
     flask_app.env = 'development' if CONFIG_SERVICES['debug'] else 'production'
     flask_app.config['SYSTEM_EMAIL'] = CONFIG_BROKER['reply_to_email']
+    # Make the app not care if there's a trailing slash or not
+    flask_app.url_map.strict_slashes = False
 
     # Future: Override config w/ environment variable, if set
     flask_app.config.from_envvar('BROKER_SETTINGS', silent=True)
