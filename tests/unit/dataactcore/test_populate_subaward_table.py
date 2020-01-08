@@ -434,15 +434,18 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
 
     # Setup - create awards, procurements, subcontracts
     sub = SubmissionFactory(submission_id=1)
-    d2_non = PublishedAwardFinancialAssistanceFactory(
+    # D2 Non-aggregate award with federal_agency_id/awarding_sub_tier_agency_c populated
+    d2_non_pop_subtier = PublishedAwardFinancialAssistanceFactory(
         submission_id=sub.submission_id,
         record_type=2,
-        unique_award_key='NON',
-        fain='NON-FAIN-WITH-DASHES',
+        unique_award_key='NON-POP-SUB',
+        fain='NON-FAIN-WITH-DASHES-POP-SUB',
+        awarding_sub_tier_agency_c='1234',
         is_active=True
     )
-    grant_non = FSRSGrantFactory(
-        fain=d2_non.fain.replace('-', ''),
+    grant_non_pop_subtier = FSRSGrantFactory(
+        fain=d2_non_pop_subtier.fain.replace('-', ''),
+        federal_agency_id='1234',
         awardee_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
@@ -450,23 +453,53 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
-    sub_grant_non = FSRSSubgrantFactory(
-        parent=grant_non,
+    sub_grant_non_pop_subtier = FSRSSubgrantFactory(
+        parent=grant_non_pop_subtier,
         awardee_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
         duns=duns.awardee_or_recipient_uniqu,
         subaward_date=datetime.now()
     )
+    # D2 Non-aggregate award with federal_agency_id NULL
+    d2_non_null_sub = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub.submission_id,
+        record_type=2,
+        unique_award_key='NON-NULL-SUB',
+        fain='NON-FAIN-WITH-DASHES-NULL-SUB',
+        awarding_sub_tier_agency_c='5678',
+        is_active=True
+    )
+    grant_non_null_sub = FSRSGrantFactory(
+        fain=d2_non_null_sub.fain.replace('-', ''),
+        federal_agency_id=None,
+        awardee_address_country=int_country.country_code,
+        principle_place_country=dom_country.country_code,
+        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
+        obligation_date=datetime.now(),
+        date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
+    )
+    sub_grant_non_null_sub = FSRSSubgrantFactory(
+        parent=grant_non_null_sub,
+        awardee_address_country=dom_country.country_code,
+        principle_place_country=int_country.country_code,
+        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        duns=duns.awardee_or_recipient_uniqu,
+        subaward_date=datetime.now()
+    )
+    # D2 Aggregate award
     d2_agg = PublishedAwardFinancialAssistanceFactory(
         submission_id=sub.submission_id,
         record_type=1,
         unique_award_key='AGG',
         fain='AGG-FAIN-WITH-DASHES',
+        awarding_sub_tier_agency_c='1234',
         is_active=True
     )
     grant_agg = FSRSGrantFactory(
         fain=d2_agg.fain.replace('-', ''),
+        federal_agency_id='1234',
         awardee_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
@@ -482,11 +515,12 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         duns=duns.awardee_or_recipient_uniqu,
         subaward_date=datetime.now()
     )
-    sess.add_all([sub, d2_non, grant_non, sub_grant_non, d2_agg, grant_agg, sub_grant_agg])
+    sess.add_all([sub, d2_non_pop_subtier, grant_non_pop_subtier, sub_grant_non_pop_subtier, d2_non_null_sub,
+                  grant_non_null_sub, sub_grant_non_null_sub, d2_agg, grant_agg, sub_grant_agg])
     sess.commit()
 
     # Gather the sql
-    populate_subaward_table(sess, 'grant_service', ids=[grant_agg.id, grant_non.id])
+    populate_subaward_table(sess, 'grant_service', ids=[grant_agg.id, grant_non_pop_subtier.id, grant_non_null_sub.id])
 
     # Get the records
     grants_results = sess.query(Subaward).order_by(Subaward.unique_award_key).all()
@@ -494,10 +528,52 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     created_at = updated_at = grants_results[0].created_at
 
     # Expected Results
+    assert compare_grant_results(grants_results[0], d2_non_null_sub, grant_non_null_sub, sub_grant_non_null_sub,
+                                 parent_duns, duns, dom_country, int_country, created_at, updated_at) is True
+    assert compare_grant_results(grants_results[1], d2_non_pop_subtier, grant_non_pop_subtier,
+                                 sub_grant_non_pop_subtier, parent_duns, duns, dom_country, int_country, created_at,
+                                 updated_at) is True
     # Note: Aggregates should not be linked
-    assert compare_grant_results(grants_results[0], d2_non, grant_non, sub_grant_non, parent_duns, duns, dom_country,
+    assert compare_grant_results(grants_results[2], None, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
                                  int_country, created_at, updated_at) is True
-    assert compare_grant_results(grants_results[1], None, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
+
+    # Adding dup awards to ensure dup award links *cannot* happen
+    # If a FABS record matches two awards, it gets linked to neither
+    sub2 = SubmissionFactory(submission_id=2)
+    d2_non_pop_subtier_dup = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub2.submission_id,
+        record_type=2,
+        unique_award_key='NON-POP-SUB',
+        fain='NON-FAIN-WITH-DASHES-POP-SUB',
+        awarding_sub_tier_agency_c='1234',
+        is_active=True
+    )
+    d2_non_null_sub_dup = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub.submission_id,
+        record_type=2,
+        unique_award_key='NON-NULL-SUB',
+        fain='NON-FAIN-WITH-DASHES-NULL-SUB',
+        awarding_sub_tier_agency_c='5678',
+        is_active=True
+    )
+    sess.query(Subaward).delete()
+    sess.add_all([sub2, d2_non_pop_subtier_dup, d2_non_null_sub_dup])
+    sess.commit()
+
+    populate_subaward_table(sess, 'grant_service', ids=[grant_agg.id, grant_non_pop_subtier.id, grant_non_null_sub.id])
+
+    grants_results = sess.query(Subaward).order_by(Subaward.award_id).all()
+
+    created_at = updated_at = grants_results[0].created_at
+
+    # Expected Results - *not* linked this time
+    assert compare_grant_results(grants_results[1], None, grant_non_null_sub, sub_grant_non_null_sub,
+                                 parent_duns, duns, dom_country, int_country, created_at, updated_at) is True
+    assert compare_grant_results(grants_results[2], None, grant_non_pop_subtier,
+                                 sub_grant_non_pop_subtier, parent_duns, duns, dom_country, int_country, created_at,
+                                 updated_at) is True
+    # Note: Aggregates should still not be linked
+    assert compare_grant_results(grants_results[0], None, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
                                  int_country, created_at, updated_at) is True
 
 
@@ -515,16 +591,20 @@ def test_fix_broken_links(database, monkeypatch):
 
     # Setup - Grants
     sub = SubmissionFactory(submission_id=1)
-    d2_non = PublishedAwardFinancialAssistanceFactory(
+    sub2 = SubmissionFactory(submission_id=2)
+    sub3 = SubmissionFactory(submission_id=3)
+    d2_non_pop_subtier = PublishedAwardFinancialAssistanceFactory(
         submission_id=sub.submission_id,
+        awarding_sub_tier_agency_c='1234',
         record_type=2,
-        unique_award_key='NON',
-        fain='NON-FAIN-WITH-DASHES',
+        unique_award_key='NON-POP-SUB',
+        fain='NON-FAIN-WITH-DASHES-POP-SUB',
         is_active=True,
         updated_at=award_updated_at
     )
-    grant_non = FSRSGrantFactory(
-        fain=d2_non.fain.replace('-', ''),
+    grant_non_pop_subtier = FSRSGrantFactory(
+        fain=d2_non_pop_subtier.fain.replace('-', ''),
+        federal_agency_id='1234',
         awardee_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
@@ -532,8 +612,71 @@ def test_fix_broken_links(database, monkeypatch):
         obligation_date=datetime.now(),
         date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
     )
-    sub_grant_non = FSRSSubgrantFactory(
-        parent=grant_non,
+    sub_grant_non_pop_subtier = FSRSSubgrantFactory(
+        parent=grant_non_pop_subtier,
+        awardee_address_country=dom_country.country_code,
+        principle_place_country=int_country.country_code,
+        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        duns=duns.awardee_or_recipient_uniqu,
+        subaward_date=datetime.now()
+    )
+    d2_non_null_subtier = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub.submission_id,
+        awarding_sub_tier_agency_c='5678',
+        record_type=2,
+        unique_award_key='NON-NULL-SUB',
+        fain='NON-FAIN-WITH-DASHES-NULL-SUB',
+        is_active=True,
+        updated_at=award_updated_at
+    )
+    grant_non_null_subtier = FSRSGrantFactory(
+        fain=d2_non_null_subtier.fain.replace('-', ''),
+        federal_agency_id=None,
+        awardee_address_country=int_country.country_code,
+        principle_place_country=dom_country.country_code,
+        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
+        obligation_date=datetime.now(),
+        date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
+    )
+    sub_grant_non_null_subtier = FSRSSubgrantFactory(
+        parent=grant_non_null_subtier,
+        awardee_address_country=dom_country.country_code,
+        principle_place_country=int_country.country_code,
+        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        duns=duns.awardee_or_recipient_uniqu,
+        subaward_date=datetime.now()
+    )
+    d2_non_other = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub2.submission_id,
+        awarding_sub_tier_agency_c='1357',
+        record_type=2,
+        unique_award_key='NON-OTHER',
+        fain='NON-FAIN-WITH-DASHES-OTHER',
+        is_active=True,
+        updated_at=award_updated_at
+    )
+    d2_non_other_dup = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub3.submission_id,
+        awarding_sub_tier_agency_c='2468',
+        record_type=2,
+        unique_award_key='NON-OTHER',
+        fain='NON-FAIN-WITH-DASHES-OTHER',
+        is_active=True,
+        updated_at=award_updated_at
+    )
+    grant_non_other = FSRSGrantFactory(
+        fain=d2_non_other.fain.replace('-', ''),
+        federal_agency_id=None,
+        awardee_address_country=int_country.country_code,
+        principle_place_country=dom_country.country_code,
+        parent_duns=parent_duns.awardee_or_recipient_uniqu,
+        cfda_numbers='00.001 CFDA 1; 00.002 CFDA 2',
+        obligation_date=datetime.now(),
+        date_submitted=datetime(2019, 5, 30, 16, 25, 12, 34)
+    )
+    sub_grant_non_other = FSRSSubgrantFactory(
+        parent=grant_non_other,
         awardee_address_country=dom_country.country_code,
         principle_place_country=int_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
@@ -542,6 +685,7 @@ def test_fix_broken_links(database, monkeypatch):
     )
     d2_agg = PublishedAwardFinancialAssistanceFactory(
         submission_id=sub.submission_id,
+        awarding_sub_tier_agency_c='1234',
         record_type=1,
         unique_award_key='AGG',
         fain='AGG-FAIN-WITH-DASHES',
@@ -550,6 +694,7 @@ def test_fix_broken_links(database, monkeypatch):
     )
     grant_agg = FSRSGrantFactory(
         fain=d2_agg.fain.replace('-', ''),
+        federal_agency_id='1234',
         awardee_address_country=int_country.country_code,
         principle_place_country=dom_country.country_code,
         parent_duns=parent_duns.awardee_or_recipient_uniqu,
@@ -618,15 +763,17 @@ def test_fix_broken_links(database, monkeypatch):
 
     # Note: not including d1/d2 data
     sess.add_all([sub, contract_awd, sub_contract_awd, contract_idv, sub_contract_idv])
-    sess.add_all([sub, grant_non, sub_grant_non, grant_agg, sub_grant_agg])
+    sess.add_all([sub, grant_non_pop_subtier, sub_grant_non_pop_subtier, grant_non_null_subtier,
+                  sub_grant_non_null_subtier, grant_non_other, sub_grant_non_other, grant_agg, sub_grant_agg])
     sess.commit()
 
     populate_subaward_table(sess, 'procurement_service', ids=[contract_awd.id, contract_idv.id])
-    populate_subaward_table(sess, 'grant_service', ids=[grant_agg.id, grant_non.id])
+    populate_subaward_table(sess, 'grant_service', ids=[grant_agg.id, grant_non_pop_subtier.id,
+                                                        grant_non_null_subtier.id, grant_non_other.id])
 
     contracts_results = sess.query(Subaward).order_by(Subaward.unique_award_key).\
         filter(Subaward.subaward_type == 'sub-contract').all()
-    grants_results = sess.query(Subaward).order_by(Subaward.unique_award_key).\
+    grants_results = sess.query(Subaward).order_by(Subaward.award_id).\
         filter(Subaward.subaward_type == 'sub-grant').all()
     original_ids = [result.id for result in contracts_results + grants_results]
 
@@ -639,25 +786,31 @@ def test_fix_broken_links(database, monkeypatch):
                                     dom_country, int_country, contract_created_at, contract_updated_at) is False
     assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, parent_duns, duns,
                                     dom_country, int_country, contract_created_at, contract_updated_at) is False
-    assert compare_grant_results(grants_results[0], d2_non, grant_non, sub_grant_non, parent_duns, duns, dom_country,
+    assert compare_grant_results(grants_results[3], d2_non_pop_subtier, grant_non_pop_subtier,
+                                 sub_grant_non_pop_subtier, parent_duns, duns, dom_country,
                                  int_country, grant_created_at, grant_updated_at) is False
-    assert compare_grant_results(grants_results[1], None, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
-                                 int_country, grant_created_at, grant_updated_at) is True
+    assert compare_grant_results(grants_results[2], d2_non_null_subtier, grant_non_null_subtier,
+                                 sub_grant_non_null_subtier, parent_duns, duns, dom_country,
+                                 int_country, grant_created_at, grant_updated_at) is False
+    assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
+                                 int_country, grant_created_at, grant_updated_at) is False
+    assert compare_grant_results(grants_results[1], d2_non_other, grant_non_other, sub_grant_non_other, parent_duns,
+                                 duns, dom_country, int_country, grant_created_at, grant_updated_at) is False
 
     # now add the awards and fix the broken links
-    sess.add_all([d1_awd, d2_non, d1_idv, d2_agg])
+    sess.add_all([d1_awd, d1_idv, d2_non_null_subtier, d2_non_pop_subtier, d2_non_other, d2_non_other_dup, d2_agg])
     sess.commit()
 
     updated_proc_count = fix_broken_links(sess, 'procurement_service', min_date=min_date)
     updated_grant_count = fix_broken_links(sess, 'grant_service', min_date=min_date)
 
     assert updated_proc_count == 2
-    # Note: Aggregates should still not be linked
-    assert updated_grant_count == 1
+    # Note: Aggregates should still not be linked, so 2 and not 3
+    assert updated_grant_count == 2
 
     contracts_results = sess.query(Subaward).order_by(Subaward.unique_award_key).\
         filter(Subaward.subaward_type == 'sub-contract').all()
-    grants_results = sess.query(Subaward).order_by(Subaward.unique_award_key).\
+    grants_results = sess.query(Subaward).order_by(Subaward.award_id).\
         filter(Subaward.subaward_type == 'sub-grant').all()
     updated_ids = [result.id for result in contracts_results + grants_results]
 
@@ -671,10 +824,16 @@ def test_fix_broken_links(database, monkeypatch):
                                     dom_country, int_country, contract_created_at, contract_updated_at) is True
     assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, parent_duns, duns,
                                     dom_country, int_country, contract_created_at, contract_updated_at) is True
-    assert compare_grant_results(grants_results[0], d2_non, grant_non, sub_grant_non, parent_duns, duns, dom_country,
+    assert compare_grant_results(grants_results[3], d2_non_pop_subtier, grant_non_pop_subtier,
+                                 sub_grant_non_pop_subtier, parent_duns, duns, dom_country,
                                  int_country, grant_created_at, grant_updated_at) is True
-    assert compare_grant_results(grants_results[1], None, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
+    assert compare_grant_results(grants_results[1], d2_non_null_subtier, grant_non_null_subtier,
+                                 sub_grant_non_null_subtier, parent_duns, duns, dom_country,
                                  int_country, grant_created_at, grant_updated_at) is True
+    assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
+                                 int_country, grant_created_at, grant_updated_at) is False
+    assert compare_grant_results(grants_results[2], d2_non_other, grant_non_other, sub_grant_non_other, parent_duns,
+                                 duns, dom_country, int_country, grant_created_at, grant_updated_at) is False
 
     # Ensuring only updates occurred, no deletes/inserts
     assert set(original_ids) == set(updated_ids)
