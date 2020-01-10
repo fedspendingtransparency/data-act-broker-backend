@@ -24,7 +24,7 @@ from dataactcore.interfaces.function_bag import (
     populate_job_error_info, get_action_dates
 )
 
-from dataactcore.models.domainModels import matching_cars_subquery, Office
+from dataactcore.models.domainModels import matching_cars_subquery, Office, concat_tas_dict, concat_display_tas_dict
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT, FIELD_TYPE_DICT
 from dataactcore.models.validationModels import FileColumn
@@ -235,6 +235,7 @@ class ValidationManager:
         number_fields = []
         boolean_fields = []
         length_fields = []
+        padded_fields = []
         for field in fields:
             expected_headers.append(field.name_short)
             if field.field_types_id in number_field_types:
@@ -245,6 +246,8 @@ class ValidationManager:
                 required_fields.append(field.name_short)
             if field.length:
                 length_fields.append(field.name_short)
+            if field.padded_flag:
+                padded_fields.append(field.name_short)
             sess.expunge(field)
 
         csv_schema = {row.name_short: row for row in fields}
@@ -277,36 +280,43 @@ class ValidationManager:
             # Replace whatever the user included so we're using the database headers
             data.rename(columns=reader.header_dict, inplace=True)
 
-            if len(data.index) > 0:
+            empty_file = (data.empty)
+            row_number = 1
+
+            if not empty_file:
                 data = data.applymap(clean_col)
 
-            # Adding row number
-            data = data.reset_index()
-            data['row_number'] = data.index + 2
-            data = data.drop(['index'], axis=1)
-            # Add one to count for the header
-            row_number = len(data.index) + 1
+                # Adding row number
+                data = data.reset_index()
+                data['row_number'] = data.index + 2
+                data = data.drop(['index'], axis=1)
+                # Add one to count for the header
+                row_number = len(data.index) + 1
 
-            # Drop all rows that have 1 or less filled in values (row_number is always filled in so this is how we have
-            # to drop all rows that are just empty)
-            data.dropna(thresh=2, inplace=True)
+                # TODO: Handle if empty file after dropping these rows
+                # Drop all rows that have 1 or less filled in values (row_number is always filled in so this is how we
+                # have to drop all rows that are just empty)
+                data.dropna(thresh=2, inplace=True)
+                empty_file = (data.empty)
 
-            flex_data = None
-            if reader.flex_fields:
-                flex_data = data.loc[:, list(reader.flex_fields + ['row_number'])]
+                flex_data = None
+                if reader.flex_fields:
+                    flex_data = data.loc[:, list(reader.flex_fields + ['row_number'])]
 
-            if flex_data is not None:
-                flex_data['concatted'] = flex_data.apply(lambda x: concat_flex(x), axis=1)
+                if flex_data is not None and not flex_data.empty:
+                    flex_data['concatted'] = flex_data.apply(lambda x: concat_flex(x), axis=1)
 
-            data = data[list(expected_headers + ['row_number'])]
+                data = data[list(expected_headers + ['row_number'])]
 
-            # Cleaning up numbers so they can be inserted properly
-            for field in number_fields:
-                data[field] = data.apply(lambda x: clean_numbers(x[field]), axis=1)
+                for field in padded_fields:
+                    data[field] = data.apply(lambda x: FieldCleaner.pad_field(csv_schema[field], x[field]), axis=1)
 
             # TODO: Add row formatting errors here
             error_df = pd.DataFrame(columns=self.report_headers)
             warning_df = pd.DataFrame(columns=self.report_headers)
+
+            total_errors = error_df.copy()
+            total_warnings = warning_df.copy()
 
             # list to keep track of rows that fail validations
             error_rows = []
@@ -330,7 +340,7 @@ class ValidationManager:
             required_list = None
             type_list = None
             office_list = {}
-            if is_fabs:
+            if not empty_file and is_fabs:
                 # create a list of all required/type labels for FABS
                 labels = sess.query(ValidationLabel).all()
                 required_list = {}
@@ -350,7 +360,11 @@ class ValidationManager:
                 del offices
 
             # Only do validations if it's not a D file
-            if file_type not in ['award', 'award_procurement']:
+            if not empty_file and file_type not in ['award', 'award_procurement']:
+                # Cleaning up numbers so they can be inserted properly
+                for field in number_fields:
+                    data[field] = data.apply(lambda x: clean_numbers(x[field]), axis=1)
+
                 if is_fabs:
                     data['is_valid'] = True
                     data['awarding_sub_tier_agency_c'] = data.apply(lambda x:
@@ -360,6 +374,8 @@ class ValidationManager:
                     data['unique_award_key'] = data.apply(lambda x: derive_fabs_unique_award_key(x), axis=1)
 
                 data['unique_id'] = data.apply(lambda x: derive_unique_id(x, is_fabs), axis=1)
+                data['tas'] = data.apply(lambda x: concat_tas_dict(x), axis=1)
+                data['display_tas'] = data.apply(lambda x: concat_display_tas_dict(x), axis=1)
 
                 # Separate each of the checks to their own dataframes, then concat them together
                 req_errors = check_required(data, required_fields, required_list, self.report_headers,
@@ -425,22 +441,22 @@ class ValidationManager:
                 total_errors.drop(['error_type'], axis=1, inplace=True, errors='ignore')
                 total_warnings.drop(['error_type'], axis=1, inplace=True, errors='ignore')
 
-                total_errors.to_csv(error_file_path, columns=self.report_headers, index=False, quoting=csv.QUOTE_ALL)
-                total_warnings.to_csv(warning_file_path, columns=self.report_headers, index=False,
-                                      quoting=csv.QUOTE_ALL)
-
                 # Remove type error rows from original dataframe
                 data = data[~data['row_number'].isin(type_error_rows)]
                 data.drop(['unique_id'], axis=1, inplace=True)
 
-            now = datetime.now()
-            data['created_at'] = now
-            data['updated_at'] = now
-            data['job_id'] = job_id
-            data['submission_id'] = submission_id
-            insert_dataframe(data, model.__table__.name, sess.connection())
+            total_errors.to_csv(error_file_path, columns=self.report_headers, index=False, quoting=csv.QUOTE_ALL)
+            total_warnings.to_csv(warning_file_path, columns=self.report_headers, index=False, quoting=csv.QUOTE_ALL)
 
-            if flex_data is not None and not data.empty:
+            if not empty_file:
+                now = datetime.now()
+                data['created_at'] = now
+                data['updated_at'] = now
+                data['job_id'] = job_id
+                data['submission_id'] = submission_id
+                insert_dataframe(data, model.__table__.name, sess.connection())
+
+            if not empty_file and flex_data is not None:
                 flex_data.drop(['concatted'], axis=1, inplace=True)
                 flex_data = flex_data[flex_data['row_number'].isin(data['row_number'])]
 
