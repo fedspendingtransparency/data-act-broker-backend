@@ -22,9 +22,9 @@ from dataactcore.interfaces.function_bag import (
     populate_job_error_info, get_action_dates
 )
 
-from dataactcore.models.domainModels import matching_cars_subquery, Office
+from dataactcore.models.domainModels import matching_cars_subquery, Office, concat_display_tas_dict
 from dataactcore.models.jobModels import Submission
-from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
+from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT, FIELD_TYPE_DICT, FIELD_TYPE_DICT_ID
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, FlexField
 from dataactcore.models.errorModels import ErrorMetadata
@@ -229,8 +229,21 @@ class ValidationManager:
             .order_by(FileColumn.daims_name.asc()).all()
 
         expected_headers = []
+        required_fields = []
+        number_field_types = [FIELD_TYPE_DICT['INT'], FIELD_TYPE_DICT['DECIMAL'], FIELD_TYPE_DICT['LONG']]
+        number_fields = []
+        boolean_fields = []
+        length_fields = []
         for field in fields:
-            expected_headers.append(FieldCleaner.clean_name(field.name_short))
+            expected_headers.append(field.name_short)
+            if field.field_types_id in number_field_types:
+                number_fields.append(field.name_short)
+            elif field.field_types_id == FIELD_TYPE_DICT['BOOLEAN']:
+                boolean_fields.append(field.name_short)
+            if field.required:
+                required_fields.append(field.name_short)
+            if field.length:
+                length_fields.append(field.name_short)
             sess.expunge(field)
 
         csv_schema = {row.name_short: row for row in fields}
@@ -255,20 +268,27 @@ class ValidationManager:
                              self.short_to_daims_dict[job.file_type_id], is_local=self.is_local)
 
             # Getting the dataframe for now
-            # TODO: this is temporary to make sure the file can be read the old-fashioned way until this is working
             reader.file.seek(0)
-            data = pd.read_csv(reader.file, dtype=str, delimiter=reader.delimiter)
+            data = pd.read_csv(reader.file, dtype=str, delimiter=reader.delimiter, error_bad_lines=False,
+                               keep_default_na=False)
 
             # TODO: Move all this dataframe stuff to some reasonable location
             # Replace whatever the user included so we're using the database headers
             data.rename(columns=reader.header_dict, inplace=True)
 
-            def clean_col(datum):
-                if isnull(datum) or not str(datum).strip():
+            def clean_col(value):
+                if isnull(value) or not str(value).strip():
                     return None
 
-                # Trim
-                return str(datum).strip()
+                # Trim and remove extra quotes around the outside. If removing quotes and stripping leaves nothing, set
+                # it to None
+                value = str(value).strip()
+                if value.startswith('"') and value.endswith('"'):
+                    value = value[1:-1].strip()
+                    if not value:
+                        return None
+
+                return value
 
             if len(data.index) > 0:
                 data = data.applymap(clean_col)
@@ -277,14 +297,43 @@ class ValidationManager:
             data = data.reset_index()
             data['row_number'] = data.index + 2
             data = data.drop(['index'], axis=1)
+            # Add one to count for the header
+            row_number = len(data.index) + 1
+
+            # Drop all rows that have 1 or less filled in values (row_number is always filled in so this is how we have
+            # to drop all rows that are just empty)
+            data.dropna(thresh=2, inplace=True)
 
             flex_data = None
             if reader.flex_fields:
                 flex_data = data[list(reader.flex_fields + ['row_number'])]
 
-            data = data[list(expected_headers + ['row_number'])]
-            data['is_valid'] = True
+            # TODO: Move this
+            def concat_flex(row):
+                return ', '.join([name + ': ' + (row[name] or '') for name in sorted(row.keys()) if name is not 'row_number'])
 
+            if flex_data is not None:
+                flex_data['concatted'] = flex_data.apply(lambda x: concat_flex(x), axis=1)
+
+            data = data[list(expected_headers + ['row_number'])]
+
+            # TODO: Check if we even need this
+            def clean_numbers(value):
+                if value is not None:
+                    temp_value = value.replace(',', '')
+                    if FieldCleaner.is_numeric(temp_value):
+                        return temp_value
+                return value
+
+            # Cleaning up numbers so they can be inserted properly
+            for field in number_fields:
+                data[field] = data.apply(lambda x: clean_numbers(x[field]), axis=1)
+
+            # TODO: Add row formatting errors here
+            error_df = pd.DataFrame(columns=self.report_headers)
+            warning_df = pd.DataFrame(columns=self.report_headers)
+
+            # TODO: this is temporary to make sure the file can be read the old-fashioned way until this is working
             reader.file.seek(0)
             reader.file.readline()
 
@@ -305,164 +354,300 @@ class ValidationManager:
                 'start_time': loading_start
             })
 
-            with open(error_file_path, 'w', newline='') as error_file,\
-                    open(warning_file_path, 'w', newline='') as warning_file:
-                error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-                warning_csv = csv.writer(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-
-                required_list = None
-                type_list = None
-                office_list = {}
-                if file_type == "fabs":
-                    # create a list of all required/type labels for FABS
-                    labels = sess.query(ValidationLabel).all()
-                    required_list = {}
-                    type_list = {}
-                    for label in labels:
-                        if label.label_type == "requirement":
-                            required_list[label.column_name] = label.label
-                        else:
-                            type_list[label.column_name] = label.label
-
-                    # Create a list of all offices
-                    offices = sess.query(Office.office_code, Office.sub_tier_code).all()
-                    for office in offices:
-                        office_list[office.office_code] = office.sub_tier_code
-
-                    # Clear out office list to save space
-                    del offices
-
-                # write headers to file
-                error_csv.writerow(self.report_headers)
-                warning_csv.writerow(self.report_headers)
-                valid_row_nums = []
-                while not reader.is_finished:
-                    row_number += 1
-
-                    if row_number % 100 == 0:
-                        elapsed_time = (datetime.now()-loading_start).total_seconds()
-                        logger.info({
-                            'message': 'Loading row: {} {}'.format(str(row_number), log_str),
-                            'message_type': 'ValidatorInfo',
-                            'submission_id': submission_id,
-                            'job_id': job_id,
-                            'file_type': file_type,
-                            'action': 'data_loading',
-                            'status': 'loading',
-                            'rows_loaded': row_number,
-                            'start_time': loading_start,
-                            'elapsed_time': elapsed_time
-                        })
-
-                    # first phase of validations: read record and record a formatting error if there's a problem
-                    (record, reduceRow, skip_row, doneReading, rowErrorHere, flex_cols) = \
-                        self.read_record(reader, error_csv, row_number, job, fields, error_list)
-                    if reduceRow:
-                        row_number -= 1
-                    if rowErrorHere:
-                        error_rows.append(row_number)
-                    if doneReading:
-                        # Stop reading from input file
-                        break
-                    elif skip_row:
-                        # Do not write this row to staging, but continue processing future rows
-                        continue
-
-                    # second phase of validations: do basic schema checks (e.g., require fields, field length,
-                    # data type)
-
-                    # D files are generated from other systems (FABS and FPDS) that perform their own basic
-                    # validations, so these validations are not repeated here
-                    if file_type in ["award", "award_procurement"]:
-                        # Skip basic validations for D files, set as valid to trigger write to staging
-                        passed_validations = True
-                        valid = True
+            required_list = None
+            type_list = None
+            office_list = {}
+            if file_type == "fabs":
+                # create a list of all required/type labels for FABS
+                labels = sess.query(ValidationLabel).all()
+                required_list = {}
+                type_list = {}
+                for label in labels:
+                    if label.label_type == "requirement":
+                        required_list[label.column_name] = label.label
                     else:
-                        if file_type == "fabs":
-                            # Derive awarding sub tier agency code if it wasn't provided
-                            if not record.get('awarding_sub_tier_agency_c'):
-                                office_code = record.get('awarding_office_code')
-                                record['awarding_sub_tier_agency_c'] = office_list.get(office_code)
+                        type_list[label.column_name] = label.label
 
-                            # Create afa_generated_unique
-                            record['afa_generated_unique'] = (record['awarding_sub_tier_agency_c'] or '-none-') + "_" +\
-                                                             (record['fain'] or '-none-') + "_" + \
-                                                             (record['uri'] or '-none-') + "_" + \
-                                                             (record['cfda_number'] or '-none-') + "_" + \
-                                                             (record['award_modification_amendme'] or '-none-')
-                            # Create unique_award_key
-                            if str(record['record_type']) == '1':
-                                unique_award_key_list = ['ASST_AGG', record['uri'] or '-none-']
-                            else:
-                                unique_award_key_list = ['ASST_NON', record['fain'] or '-none-']
-                            unique_award_key_list.append(record['awarding_sub_tier_agency_c'] or '-none-')
+                # Create a list of all offices
+                offices = sess.query(Office.office_code, Office.sub_tier_code).all()
+                for office in offices:
+                    office_list[office.office_code] = office.sub_tier_code
 
-                            record['unique_award_key'] = '_'.join(unique_award_key_list).upper()
+                # Clear out office list to save space
+                del offices
 
-                        passed_validations, failures, valid = Validator.validate(record, csv_schema,
-                                                                                 file_type == "fabs",
-                                                                                 required_list, type_list)
-                    if valid:
-                        # todo: update this logic later when we have actual validations
-                        if file_type == "fabs":
-                            record["is_valid"] = True
+            # Only do validations if it's not a D file
+            if file_type not in ['award', 'award_procurement']:
+                # TODO: Move these functions
+                def derive_unique_id(row, is_fabs):
+                    if not is_fabs:
+                        return 'TAS: {}'.format(concat_display_tas_dict(row))
 
-                        model_instance = model(job_id=job_id, submission_id=submission_id,
-                                               valid_record=passed_validations, **record)
-                        skip_row = not insert_staging_model(model_instance, job, error_csv, error_list)
-                        # TODO: Why are we adding these flex cols even on rows that didn't get inserted properly?
-                        # This should have been after the continue to begin with I think?
-                        # if flex_cols:
-                        #     sess.add_all(flex_cols)
-                        #     sess.commit()
+                    return 'AssistanceTransactionUniqueKey: {}'.format(row['afa_generated_unique'])
 
-                        if skip_row:
-                            error_rows.append(row_number)
-                            continue
-                        # TODO: Do this from the valid rows in the dataframe, we just haven't swapped to it yet
-                        valid_row_nums.append(row_number)
+                def derive_fabs_awarding_sub_tier(row):
+                    if not row['awarding_sub_tier_agency_c']:
+                        return office_list.get(row['awarding_office_code'])
+                    return row['awarding_sub_tier_agency_c']
 
-                    if not passed_validations:
-                        fatal = write_errors(failures, job, self.short_to_long_dict[job.file_type_id], error_csv,
-                                             warning_csv, row_number, error_list, flex_cols)
-                        if fatal:
-                            error_rows.append(row_number)
+                def derive_fabs_afa_generated_unique(row):
+                    return (row['awarding_sub_tier_agency_c'] or '-none-') + '_' + \
+                           (row['fain'] or '-none-') + '_' + \
+                           (row['uri'] or '-none-') + '_' + \
+                           (row['cfda_number'] or '-none-') + '_' + \
+                           (row['award_modification_amendme'] or '-none-')
 
-                if flex_data is not None and valid_row_nums:
-                    flex_data = flex_data[flex_data['row_number'].isin(valid_row_nums)]
+                def derive_fabs_unique_award_key(row):
+                    if str(row['record_type']) == '1':
+                        unique_award_key_list = ['ASST_AGG', row['uri'] or '-none-']
+                    else:
+                        unique_award_key_list = ['ASST_NON', row['fain'] or '-none-']
 
-                    flex_rows = pd.melt(flex_data, id_vars=['row_number'], value_vars=reader.flex_fields,
-                                        var_name='header', value_name='cell')
+                    unique_award_key_list.append(row['awarding_sub_tier_agency_c'] or '-none-')
 
-                    # Filling in all the shared data for these flex fields
-                    now = datetime.now()
-                    flex_rows['created_at'] = now
-                    flex_rows['updated_at'] = now
-                    flex_rows['job_id'] = job_id
-                    flex_rows['submission_id'] = submission_id
-                    flex_rows['file_type_id'] = job.file_type_id
+                    return '_'.join(unique_award_key_list).upper()
 
-                    # Adding the entire set of flex fields
-                    insert_dataframe(flex_rows, FlexField.__table__.name, sess.connection())
-                    sess.commit()
+                def apply_label(row, labels, is_fabs):
+                    if is_fabs and labels and row['Field Name'] in labels:
+                        return labels[row['Field Name']]
+                    return ''
 
-                loading_duration = (datetime.now()-loading_start).total_seconds()
+                def gather_flex_fields(row, flex_data):
+                    if flex_data is not None:
+                        return flex_data.loc[flex_data['row_number'] == row['Row Number'], 'concatted'].values[0]
+                    return ''
+
+                def valid_type(row, csv_schema):
+                    current_field = csv_schema[row['Field Name']]
+                    return Validator.check_type(row['Value Provided'], FIELD_TYPE_DICT_ID[current_field.field_types_id])
+
+                def expected_type(row, csv_schema):
+                    current_field = csv_schema[row['Field Name']]
+                    return 'This field must be a {}'.format(FIELD_TYPE_DICT_ID[current_field.field_types_id].lower())
+
+                def valid_length(row, csv_schema):
+                    current_field = csv_schema[row['Field Name']]
+                    if current_field.length:
+                        return len(row['Value Provided']) <= current_field.length
+                    return True
+
+                def expected_length(row, csv_schema):
+                    current_field = csv_schema[row['Field Name']]
+                    return 'Max length: {}'.format(current_field.length)
+
+                def update_field_name(row, short_cols):
+                    if row['Field Name'] in short_cols:
+                        return short_cols[row['Field Name']]
+                    return row['Field Name']
+
+                def add_field_name_to_value(row):
+                    return row['Field Name'] + ': ' + row['Value Provided']
+
+                def check_required(data, required, required_labels, report_headers, short_cols, flex_data, is_fabs):
+                    req_data = data[required + ['row_number', 'unique_id']]
+                    errors = pd.melt(req_data, id_vars=['row_number', 'unique_id'], value_vars=required,
+                                     var_name='Field Name', value_name='Value Provided')
+                    errors = errors[errors['Value Provided'].isnull()]
+                    errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
+                    errors = errors.reset_index()
+                    errors['Value Provided'] = ''
+                    errors['Error Message'] = ValidationError.requiredErrorMsg
+                    errors['Expected Value'] = '(not blank)'
+                    errors['Difference'] = ''
+                    if not errors.empty:
+                        errors['Rule Label'] = errors.apply(lambda x: apply_label(x, required_labels, is_fabs), axis=1)
+                        errors['Flex Field'] = errors.apply(lambda x: gather_flex_fields(x, flex_data), axis=1)
+                        errors['Field Name'] = errors.apply(lambda x: update_field_name(x, short_cols), axis=1)
+                    else:
+                        errors['Rule Label'] = ''
+                        errors['Flex Field'] = ''
+                    errors = errors[report_headers]
+                    errors['error_type'] = ValidationError.requiredError
+                    return errors
+
+                def check_type(data, type_fields, type_labels, report_headers, csv_schema, short_cols, flex_data,
+                               is_fabs):
+                    type_data = data[type_fields + ['row_number', 'unique_id']]
+                    errors = pd.melt(type_data, id_vars=['row_number', 'unique_id'], value_vars=type_fields,
+                                     var_name='Field Name', value_name='Value Provided')
+                    errors = errors[~errors['Value Provided'].isnull()]
+                    if not errors.empty:
+                        errors['matches_type'] = errors.apply(lambda x: valid_type(x, csv_schema), axis=1)
+                        errors = errors[~errors['matches_type']]
+                        errors.drop(['matches_type'], axis=1, inplace=True)
+                    errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
+                    errors = errors.reset_index()
+                    errors['Error Message'] = ValidationError.typeErrorMsg
+                    errors['Difference'] = ''
+                    if not errors.empty:
+                        errors['Expected Value'] = errors.apply(lambda x: expected_type(x, csv_schema), axis=1)
+                        errors['Rule Label'] = errors.apply(lambda x: apply_label(x, type_labels, is_fabs), axis=1)
+                        errors['Flex Field'] = errors.apply(lambda x: gather_flex_fields(x, flex_data), axis=1)
+                        errors['Field Name'] = errors.apply(lambda x: update_field_name(x, short_cols), axis=1)
+                        errors['Value Provided'] = errors.apply(lambda x: add_field_name_to_value(x), axis=1)
+                    else:
+                        errors['Expected Value'] = ''
+                        errors['Rule Label'] = ''
+                        errors['Flex Field'] = ''
+                    errors = errors[report_headers]
+                    errors['error_type'] = ValidationError.typeError
+                    return errors
+
+                def check_length(data, length_fields, report_headers, csv_schema, short_cols, flex_data,
+                                 type_error_rows):
+                    length_data = data[length_fields + ['row_number', 'unique_id']]
+                    errors = pd.melt(length_data, id_vars=['row_number', 'unique_id'], value_vars=length_fields,
+                                     var_name='Field Name', value_name='Value Provided')
+                    errors = errors[~errors['Value Provided'].isnull() & ~errors['row_number'].isin(type_error_rows)]
+                    if not errors.empty:
+                        errors['valid_length'] = errors.apply(lambda x: valid_length(x, csv_schema), axis=1)
+                        errors = errors[~errors['valid_length']]
+                        errors.drop(['valid_length'], axis=1, inplace=True)
+                    errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
+                    errors = errors.reset_index()
+                    errors['Error Message'] = ValidationError.lengthErrorMsg
+                    errors['Difference'] = ''
+                    errors['Rule Label'] = ''
+                    if not errors.empty:
+                        errors['Expected Value'] = errors.apply(lambda x: expected_length(x, csv_schema), axis=1)
+                        errors['Flex Field'] = errors.apply(lambda x: gather_flex_fields(x, flex_data), axis=1)
+                        errors['Field Name'] = errors.apply(lambda x: update_field_name(x, short_cols), axis=1)
+                        errors['Value Provided'] = errors.apply(lambda x: add_field_name_to_value(x), axis=1)
+                    else:
+                        errors['Expected Value'] = ''
+                        errors['Flex Field'] = ''
+                    errors = errors[report_headers]
+                    errors['error_type'] = ValidationError.lengthError
+                    return errors
+
+                if file_type == 'fabs':
+                    data['is_valid'] = True
+                    data['awarding_sub_tier_agency_c'] = data.apply(lambda x: derive_fabs_awarding_sub_tier(x), axis=1)
+                    data['afa_generated_unique'] = data.apply(lambda x: derive_fabs_afa_generated_unique(x), axis=1)
+                    data['unique_award_key'] = data.apply(lambda x: derive_fabs_unique_award_key(x), axis=1)
+
+                data['unique_id'] = data.apply(lambda x: derive_unique_id(x, file_type == 'fabs'), axis=1)
+
+                # Separate each of the checks to their own dataframes, then concat them together
+                req_errors = check_required(data, required_fields, required_list, self.report_headers,
+                                            self.short_to_long_dict[job.file_type_id], flex_data,
+                                            is_fabs=(file_type == 'fabs'))
                 logger.info({
-                    'message': 'Completed data loading {}'.format(log_str),
+                    'message': 'Finished required checks',
                     'message_type': 'ValidatorInfo',
                     'submission_id': submission_id,
                     'job_id': job_id,
                     'file_type': file_type,
                     'action': 'data_loading',
-                    'status': 'finish',
-                    'start_time': loading_start,
-                    'end_time': datetime.now(),
-                    'duration': loading_duration,
-                    'total_rows': row_number
+                    'status': 'start',
+                    'start_time': loading_start
+                })
+                type_errors = check_type(data, number_fields + boolean_fields, type_list, self.report_headers,
+                                         csv_schema, self.short_to_long_dict[job.file_type_id], flex_data,
+                                         is_fabs=(file_type == 'fabs'))
+                logger.info({
+                    'message': 'Finished type checks',
+                    'message_type': 'ValidatorInfo',
+                    'submission_id': submission_id,
+                    'job_id': job_id,
+                    'file_type': file_type,
+                    'action': 'data_loading',
+                    'status': 'start',
+                    'start_time': loading_start
+                })
+                type_error_rows = type_errors['Row Number'].tolist()
+                length_errors = check_length(data, length_fields, self.report_headers, csv_schema,
+                                             self.short_to_long_dict[job.file_type_id], flex_data, type_error_rows)
+                logger.info({
+                    'message': 'Finished length checks',
+                    'message_type': 'ValidatorInfo',
+                    'submission_id': submission_id,
+                    'job_id': job_id,
+                    'file_type': file_type,
+                    'action': 'data_loading',
+                    'status': 'start',
+                    'start_time': loading_start
                 })
 
-                if file_type in ('appropriations', 'program_activity', 'award_financial'):
-                    update_tas_ids(model, submission_id)
+                if file_type == 'fabs':
+                    error_dfs = [req_errors, type_errors, length_errors]
+                    warning_dfs = [pd.DataFrame(columns=self.report_headers)]
+                else:
+                    error_dfs = [req_errors, type_errors]
+                    warning_dfs = [length_errors]
+                total_errors = pd.concat(error_dfs, ignore_index=True)
+                total_warnings = pd.concat(warning_dfs, ignore_index=True)
+
+                error_rows = [int(x) for x in total_errors['Row Number'].tolist()]
+
+                for index, row in total_errors.iterrows():
+                    error_list.record_row_error(job_id, job.filename, row['Field Name'], row['error_type'],
+                                                row['Row Number'], row['Rule Label'], job.file_type_id, None,
+                                                RULE_SEVERITY_DICT['fatal'])
+
+                for index, row in total_warnings.iterrows():
+                    error_list.record_row_error(job_id, job.filename, row['Field Name'], row['error_type'],
+                                                row['Row Number'], row['Rule Label'], job.file_type_id, None,
+                                                RULE_SEVERITY_DICT['warning'])
+
+                total_errors.drop(['error_type'], axis=1, inplace=True, errors='ignore')
+                total_warnings.drop(['error_type'], axis=1, inplace=True, errors='ignore')
+
+                total_errors.to_csv(error_file_path, columns=self.report_headers, index=False, quoting=csv.QUOTE_ALL)
+                total_warnings.to_csv(warning_file_path, columns=self.report_headers, index=False, quoting=csv.QUOTE_ALL)
+
+                # Remove type error rows from original dataframe
+                data = data[~data['row_number'].isin(type_error_rows)]
+                data.drop(['unique_id'], axis=1, inplace=True)
+
+            now = datetime.now()
+            data['created_at'] = now
+            data['updated_at'] = now
+            data['job_id'] = job_id
+            data['submission_id'] = submission_id
+            insert_dataframe(data, model.__table__.name, sess.connection())
+
+            if flex_data is not None and not data.empty:
+                flex_data.drop(['concatted'], axis=1, inplace=True)
+                flex_data = flex_data[flex_data['row_number'].isin(data['row_number'])]
+
+                flex_rows = pd.melt(flex_data, id_vars=['row_number'], value_vars=reader.flex_fields,
+                                    var_name='header', value_name='cell')
+
+                # Filling in all the shared data for these flex fields
+                now = datetime.now()
+                flex_rows['created_at'] = now
+                flex_rows['updated_at'] = now
+                flex_rows['job_id'] = job_id
+                flex_rows['submission_id'] = submission_id
+                flex_rows['file_type_id'] = job.file_type_id
+
+                # Adding the entire set of flex fields
+                insert_dataframe(flex_rows, FlexField.__table__.name, sess.connection())
+            sess.commit()
+
+            loading_duration = (datetime.now()-loading_start).total_seconds()
+            logger.info({
+                'message': 'Completed data loading {}'.format(log_str),
+                'message_type': 'ValidatorInfo',
+                'submission_id': submission_id,
+                'job_id': job_id,
+                'file_type': file_type,
+                'action': 'data_loading',
+                'status': 'finish',
+                'start_time': loading_start,
+                'end_time': datetime.now(),
+                'duration': loading_duration,
+                'total_rows': row_number
+            })
+
+            if file_type in ('appropriations', 'program_activity', 'award_financial'):
+                update_tas_ids(model, submission_id)
+
+            with open(error_file_path, 'a', newline='') as error_file,\
+                    open(warning_file_path, 'a', newline='') as warning_file:
+                error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+                warning_csv = csv.writer(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
 
                 # third phase of validations: run validation rules as specified in the schema guidance. These
                 # validations are sql-based.
@@ -487,8 +672,7 @@ class ValidationManager:
                 warning_csv_file.close()
                 os.remove(warning_file_path)
 
-            # Calculate total number of rows in file
-            # that passed validations
+            # Calculate total number of rows in file that passed validations
             error_rows_unique = set(error_rows)
             total_rows_excluding_header = row_number - 1
             valid_rows = total_rows_excluding_header - len(error_rows_unique)
