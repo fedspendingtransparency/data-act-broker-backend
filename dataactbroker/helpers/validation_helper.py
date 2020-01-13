@@ -2,7 +2,6 @@ import pandas as pd
 
 from pandas import isnull
 
-from dataactcore.models.domainModels import concat_display_tas_dict
 from dataactcore.models.lookups import FIELD_TYPE_DICT_ID
 
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
@@ -40,7 +39,7 @@ def concat_flex(row):
 
 def derive_unique_id(row, is_fabs):
     if not is_fabs:
-        return 'TAS: {}'.format(concat_display_tas_dict(row))
+        return 'TAS: {}'.format(row['display_tas'])
 
     return 'AssistanceTransactionUniqueKey: {}'.format(row['afa_generated_unique'])
 

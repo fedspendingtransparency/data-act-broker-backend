@@ -43,13 +43,13 @@ def test_normalize_headers():
     ]
     mapping = {'allocationtransferagencyidentifier': 'ata', 'beginningperiodofavailability': 'boa'}
 
-    result = csvReader.normalize_headers(headers, False, mapping)
+    result = csvReader.normalize_headers(headers, False, mapping, {})
     assert list(result) == [
         'allocationtransferagencyidentifier', 'beginningperiodofavailability', 'flex_mycol', 'flex_another'
     ]
 
     # Verify names are properly lowercased and mapped to short names if long_headers is true
-    result = csvReader.normalize_headers(headers, True, mapping)
+    result = csvReader.normalize_headers(headers, True, mapping, {})
     assert list(result) == ['ata', 'boa', 'flex_mycol', 'flex_another']
 
     # Verify that special hardcoded exceptions are properly handled
@@ -64,13 +64,13 @@ def test_normalize_headers():
     }
 
     # Test for long special headers to be properly mapped
-    result = csvReader.normalize_headers(headers, False, mapping)
+    result = csvReader.normalize_headers(headers, False, mapping, {})
     assert list(result) == [
         'deobligationsrecoveriesrefundsdofprioryearbyprogramobjectclass_cpe', 'facevalueofdirectloanorloanguarantee',
         'totalbudgetaryresources_cpe', 'correctiondeleteindicator', 'place_of_performance_zip4a']
 
     # Test for short special headers to be properly mapped
-    result = csvReader.normalize_headers(headers, True, mapping)
+    result = csvReader.normalize_headers(headers, True, mapping, {})
     assert list(result) == ['drfpbpo', 'fvdllg', 'tbr', 'cdi', 'zip4a']
 
     # Verify names are not mapped if they include extra characters (spaces, parentheses, etc.)
@@ -79,7 +79,7 @@ def test_normalize_headers():
     ]
     mapping = {'allocationtransferagencyidentifier': 'ata', 'legalentityzip+4': 'legal_entity_zip4'}
 
-    result = csvReader.normalize_headers(headers, True, mapping)
+    result = csvReader.normalize_headers(headers, True, mapping, {})
     assert list(result) == [
         'allocation transfer agency identifier', 'flex(another)', 'legal_entity_zip4'
     ]
@@ -89,5 +89,5 @@ def test_normalize_headers():
     ]
     mapping = {'ata_identifier': 'ata', 'legalentityzip+4': 'legal_entity_zip4'}
 
-    result = csvReader.normalize_headers(headers, False, mapping)
+    result = csvReader.normalize_headers(headers, False, mapping, {})
     assert list(result) == headers

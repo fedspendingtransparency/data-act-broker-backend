@@ -259,7 +259,23 @@ class ValidationManager:
 
             # Count file rows: throws a File Level Error for non-UTF8 characters
             temp_file = open(reader.get_filename(region_name, bucket_name, file_name), encoding='utf-8')
-            file_row_count = sum(1 for line in csv.reader(temp_file) if line)
+            file_row_count = 0
+            header_length = 0
+            long_rows = []
+            short_rows = []
+            for line in csv.reader(temp_file):
+                if line:
+                    file_row_count += 1
+                    line_length = len(line)
+                    # Setting the expected length for the file
+                    if header_length == 0:
+                        header_length = line_length
+                    # All lines that are shorter than they should be
+                    elif line_length < header_length:
+                        short_rows.append(file_row_count)
+                    # All lines that are longer than they should be
+                    elif line_length > header_length:
+                        long_rows.append(file_row_count)
             try:
                 temp_file.close()
             except AttributeError:
@@ -280,7 +296,7 @@ class ValidationManager:
             # Replace whatever the user included so we're using the database headers
             data.rename(columns=reader.header_dict, inplace=True)
 
-            empty_file = (data.empty)
+            empty_file = data.empty
             row_number = 1
 
             if not empty_file:
@@ -289,15 +305,26 @@ class ValidationManager:
                 # Adding row number
                 data = data.reset_index()
                 data['row_number'] = data.index + 2
+                # Add one to count for the header and the total number of ignored rows for length (only too long are
+                # not inserted into pandas)
+                row_number = len(data.index) + 1 + len(long_rows)
+
+                # Increment row numbers if any were ignored being too long
+                for row in sorted(long_rows):
+                    data.loc[data['row_number'] >= row, 'row_number'] = data['row_number'] + 1
+
+                # print(data)
+
+                # Drop rows that were too short and pandas filled in with Nones
+                data = data[~data['row_number'].isin(short_rows)]
+
                 data = data.drop(['index'], axis=1)
-                # Add one to count for the header
-                row_number = len(data.index) + 1
 
                 # TODO: Handle if empty file after dropping these rows
                 # Drop all rows that have 1 or less filled in values (row_number is always filled in so this is how we
                 # have to drop all rows that are just empty)
                 data.dropna(thresh=2, inplace=True)
-                empty_file = (data.empty)
+                empty_file = data.empty
 
                 flex_data = None
                 if reader.flex_fields:
@@ -308,15 +335,28 @@ class ValidationManager:
 
                 data = data[list(expected_headers + ['row_number'])]
 
-                for field in padded_fields:
-                    data[field] = data.apply(lambda x: FieldCleaner.pad_field(csv_schema[field], x[field]), axis=1)
+                if not empty_file:
+                    for field in padded_fields:
+                        data[field] = data.apply(lambda x: FieldCleaner.pad_field(csv_schema[field], x[field]), axis=1)
 
-            # TODO: Add row formatting errors here
-            error_df = pd.DataFrame(columns=self.report_headers)
-            warning_df = pd.DataFrame(columns=self.report_headers)
+            # Appending formatting errors
+            format_error_list = []
+            for format_row in sorted(short_rows + long_rows):
+                format_error = {
+                    'Unique ID': '',
+                    'Field Name': 'Formatting Error',
+                    'Error Message': ValidationError.readErrorMsg,
+                    'Value Provided': '',
+                    'Expected Value': '',
+                    'Difference': '',
+                    'Flex Field': '',
+                    'Row Number': str(format_row),
+                    'Rule Label': '',
+                    'error_type': ValidationError.readError
+                }
+                format_error_list.append(format_error)
 
-            total_errors = error_df.copy()
-            total_warnings = warning_df.copy()
+            format_error_df = pd.DataFrame(format_error_list, columns=list(self.report_headers + ['error_type']))
 
             # list to keep track of rows that fail validations
             error_rows = []
@@ -372,11 +412,13 @@ class ValidationManager:
                                                                     axis=1)
                     data['afa_generated_unique'] = data.apply(lambda x: derive_fabs_afa_generated_unique(x), axis=1)
                     data['unique_award_key'] = data.apply(lambda x: derive_fabs_unique_award_key(x), axis=1)
+                else:
+                    data['tas'] = data.apply(lambda x: concat_tas_dict(x), axis=1)
+                    data['display_tas'] = data.apply(lambda x: concat_display_tas_dict(x), axis=1)
 
                 data['unique_id'] = data.apply(lambda x: derive_unique_id(x, is_fabs), axis=1)
-                data['tas'] = data.apply(lambda x: concat_tas_dict(x), axis=1)
-                data['display_tas'] = data.apply(lambda x: concat_display_tas_dict(x), axis=1)
 
+                print(data)
                 # Separate each of the checks to their own dataframes, then concat them together
                 req_errors = check_required(data, required_fields, required_list, self.report_headers,
                                             self.short_to_long_dict[job.file_type_id], flex_data, is_fabs=is_fabs)
@@ -418,13 +460,18 @@ class ValidationManager:
                 })
 
                 if is_fabs:
-                    error_dfs = [req_errors, type_errors, length_errors]
+                    error_dfs = [format_error_df, req_errors, type_errors, length_errors]
                     warning_dfs = [pd.DataFrame(columns=self.report_headers)]
                 else:
-                    error_dfs = [req_errors, type_errors]
+                    error_dfs = [format_error_df, req_errors, type_errors]
                     warning_dfs = [length_errors]
+
                 total_errors = pd.concat(error_dfs, ignore_index=True)
                 total_warnings = pd.concat(warning_dfs, ignore_index=True)
+
+                # Converting these to ints because pandas likes to change them to floats randomly
+                total_errors[['Row Number', 'error_type']] = total_errors[['Row Number', 'error_type']].astype(int)
+                total_warnings[['Row Number', 'error_type']] = total_warnings[['Row Number', 'error_type']].astype(int)
 
                 error_rows = [int(x) for x in total_errors['Row Number'].tolist()]
 
