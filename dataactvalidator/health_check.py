@@ -37,7 +37,7 @@ def run_app():
 
     # This is for DataDog (Do Not Delete)
     if USE_DATADOG:
-        TraceMiddleware(flask_app, tracer, service="broker-dd", distributed_tracing=False)
+        TraceMiddleware(flask_app, tracer, service="validator.health_check", distributed_tracing=False)
 
     flask_app.run(
         threaded=True,

@@ -45,7 +45,7 @@ def run_app():
 
     # This is for DataDog (Do Not Delete)
     if USE_DATADOG:
-        TraceMiddleware(app, tracer, service="broker-dd", distributed_tracing=False)
+        TraceMiddleware(app, tracer, service="validator", distributed_tracing=False)
 
     with app.app_context():
         current_app.debug = CONFIG_SERVICES['debug']
