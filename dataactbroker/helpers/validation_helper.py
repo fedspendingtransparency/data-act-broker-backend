@@ -24,7 +24,6 @@ def clean_col(value):
     return value
 
 
-# TODO: Check if we even need this
 def clean_numbers(value):
     if value is not None:
         temp_value = value.replace(',', '')
