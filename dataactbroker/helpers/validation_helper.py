@@ -2,7 +2,7 @@ import pandas as pd
 
 from pandas import isnull
 
-from dataactcore.models.lookups import FIELD_TYPE_DICT_ID
+from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FIELD_TYPE_DICT
 
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactvalidator.validation_handlers.validator import Validator
@@ -188,3 +188,48 @@ def check_length(data, length_fields, report_headers, csv_schema, short_cols, fl
     errors = errors[report_headers]
     errors['error_type'] = ValidationError.lengthError
     return errors
+
+
+def parse_fields(sess, fields):
+    parsed_fields = {
+        'required': [],
+        'number': [],
+        'boolean': [],
+        'length': [],
+        'padded': []
+    }
+    expected_headers = []
+    number_field_types = [FIELD_TYPE_DICT['INT'], FIELD_TYPE_DICT['DECIMAL'], FIELD_TYPE_DICT['LONG']]
+    for field in fields:
+        expected_headers.append(field.name_short)
+        if field.field_types_id in number_field_types:
+            parsed_fields['number'].append(field.name_short)
+        elif field.field_types_id == FIELD_TYPE_DICT['BOOLEAN']:
+            parsed_fields['boolean'].append(field.name_short)
+        if field.required:
+            parsed_fields['required'].append(field.name_short)
+        if field.length:
+            parsed_fields['length'].append(field.name_short)
+        if field.padded_flag:
+            parsed_fields['padded'].append(field.name_short)
+        sess.expunge(field)
+    return expected_headers, parsed_fields
+
+
+def process_formatting_errors(short_rows, long_rows, report_headers):
+    format_error_list = []
+    for format_row in sorted(short_rows + long_rows):
+        format_error = {
+            'Unique ID': '',
+            'Field Name': 'Formatting Error',
+            'Error Message': ValidationError.readErrorMsg,
+            'Value Provided': '',
+            'Expected Value': '',
+            'Difference': '',
+            'Flex Field': '',
+            'Row Number': str(format_row),
+            'Rule Label': '',
+            'error_type': ValidationError.readError
+        }
+        format_error_list.append(format_error)
+    return pd.DataFrame(format_error_list, columns=list(report_headers + ['error_type']))
