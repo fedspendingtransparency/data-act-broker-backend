@@ -1,4 +1,5 @@
 import pandas as pd
+import csv
 
 from pandas import isnull
 
@@ -233,3 +234,45 @@ def process_formatting_errors(short_rows, long_rows, report_headers):
         }
         format_error_list.append(format_error)
     return pd.DataFrame(format_error_list, columns=list(report_headers + ['error_type']))
+
+
+def simple_file_scan(reader, bucket_name, region_name, file_name):
+    """ Does an initial scan of the file, figuring out the file row count and which rows are too long/short
+
+        Args:
+            reader: the csv reader
+            bucket_name: the bucket to pull from
+            region_name: the region to pull from
+            file_name: name of the file to pull
+
+        Returns:
+            file_row_count: the number of lines in the file
+            short_rows: a list of row numbers that have too few fields
+            long_rows: a list of rows that have too many fields
+    """
+    # Count file rows: throws a File Level Error for non-UTF8 characters
+    # Also getting short and long rows for formatting errors and pandas processing
+    temp_file = open(reader.get_filename(region_name, bucket_name, file_name), encoding='utf-8')
+    file_row_count = 0
+    header_length = 0
+    short_rows = []
+    long_rows = []
+    for line in csv.reader(temp_file):
+        if line:
+            file_row_count += 1
+            line_length = len(line)
+            # Setting the expected length for the file
+            if header_length == 0:
+                header_length = line_length
+            # All lines that are shorter than they should be
+            elif line_length < header_length:
+                short_rows.append(file_row_count)
+            # All lines that are longer than they should be
+            elif line_length > header_length:
+                long_rows.append(file_row_count)
+    try:
+        temp_file.close()
+    except AttributeError:
+        # File does not exist, and so does not need to be closed
+        pass
+    return file_row_count, short_rows, long_rows

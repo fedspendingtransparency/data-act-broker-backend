@@ -13,7 +13,7 @@ from dataactbroker.handlers.submission_handler import populate_submission_error_
 from dataactbroker.helpers.validation_helper import (
     derive_fabs_awarding_sub_tier, derive_fabs_afa_generated_unique, derive_fabs_unique_award_key, derive_unique_id,
     check_required, check_type, check_length, clean_col, clean_numbers, concat_flex, process_formatting_errors,
-    parse_fields)
+    parse_fields, simple_file_scan)
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
@@ -72,11 +72,14 @@ class ValidationManager:
         self.file_name = None
         self.is_fabs = False
         self.model = None
-        self.warning_file_path = None
+        self.error_file_name = None
         self.error_file_path = None
+        self.warning_file_name = None
+        self.warning_file_path = None
 
         # Schema info
         self.csv_schema = {}
+        self.fields = {}
         self.parsed_fields = {}
         self.expected_headers = []
         self.long_to_short_dict = {}
@@ -144,6 +147,8 @@ class ValidationManager:
         self.long_rows = []
 
         validation_start = datetime.now()
+        bucket_name = CONFIG_BROKER['aws_bucket']
+        region_name = CONFIG_BROKER['aws_region']
 
         self.log_str = 'on submission_id: {}, job_id: {}, file_type: {}'.format(
             str(self.submission_id), str(self.job.job_id), self.file_type.name)
@@ -187,8 +192,88 @@ class ValidationManager:
         self.job.file_size = file_size
         sess.commit()
 
+        # Get fields for this file
+        self.fields = sess.query(FileColumn).filter(FileColumn.file_id == FILE_TYPE_DICT[self.file_type.name])\
+            .order_by(FileColumn.daims_name.asc()).all()
+        self.expected_headers, self.parsed_fields = parse_fields(sess, self.fields)
+        self.csv_schema = {row.name_short: row for row in self.fields}
+
         try:
-            self.load_file_data(sess)
+            # Loading data and initial validations
+            file_row_count = self.load_file_data(sess, bucket_name, region_name)
+
+            if self.file_type.name in ('appropriations', 'program_activity', 'award_financial'):
+                update_tas_ids(self.model, self.submission_id)
+
+            # SQL Validations
+            with open(self.error_file_path, 'a', newline='') as error_file, \
+                    open(self.warning_file_path, 'a', newline='') as warning_file:
+                error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+                warning_csv = csv.writer(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+
+                # third phase of validations: run validation rules as specified in the schema guidance. These
+                # validations are sql-based.
+                sql_error_rows = self.run_sql_validations(self.short_to_long_dict[self.file_type.file_type_id],
+                                                          error_csv, warning_csv)
+                self.error_rows.extend(sql_error_rows)
+            error_file.close()
+            warning_file.close()
+
+            # stream file to S3 when not local
+            if not self.is_local:
+                s3_resource = boto3.resource('s3', region_name=region_name)
+                # stream error file
+                with open(self.error_file_path, 'rb') as csv_file:
+                    s3_resource.Object(bucket_name, self.get_file_name(self.error_file_name)).put(Body=csv_file)
+                csv_file.close()
+                os.remove(self.error_file_path)
+
+                # stream warning file
+                with open(self.warning_file_path, 'rb') as warning_csv_file:
+                    s3_resource.Object(bucket_name,
+                                       self.get_file_name(self.warning_file_name)).put(Body=warning_csv_file)
+                warning_csv_file.close()
+                os.remove(self.warning_file_path)
+
+            # Calculate total number of rows in file that passed validations
+            error_rows_unique = set(self.error_rows)
+            total_rows_excluding_header = self.total_rows - 1
+            valid_rows = total_rows_excluding_header - len(error_rows_unique)
+
+            # Update fabs is_valid rows where applicable
+            # Update submission to include action dates where applicable
+            if self.is_fabs:
+                sess.query(DetachedAwardFinancialAssistance). \
+                    filter(DetachedAwardFinancialAssistance.row_number.in_(error_rows_unique),
+                           DetachedAwardFinancialAssistance.submission_id == self.submission_id). \
+                    update({"is_valid": False}, synchronize_session=False)
+                sess.commit()
+                min_action_date, max_action_date = get_action_dates(self.submission_id)
+                sess.query(Submission).filter(Submission.submission_id == self.submission_id). \
+                    update({"reporting_start_date": min_action_date, "reporting_end_date": max_action_date},
+                           synchronize_session=False)
+
+            # Ensure validated rows match initial row count
+            if file_row_count != self.total_rows:
+                raise ResponseException("", StatusCode.CLIENT_ERROR, None, ValidationError.rowCountError)
+
+            # Update job metadata
+            self.job.number_of_rows = self.total_rows
+            self.job.number_of_rows_valid = valid_rows
+            sess.commit()
+
+            self.error_list.write_all_row_errors(self.job.job_id)
+            # Update error info for submission
+            populate_job_error_info(self.job)
+
+            if self.is_fabs:
+                # set number of errors and warnings for detached submission
+                populate_submission_error_info(self.submission_id)
+
+            # Mark validation as finished in job tracker
+            mark_job_status(self.job.job_id, "finished")
+            mark_file_complete(self.job.job_id, self.file_name)
+
         except Exception:
             logger.error({
                 'message': 'An exception occurred during validation',
@@ -220,11 +305,14 @@ class ValidationManager:
 
         return True
 
-    def load_file_data(self, sess):
+    def load_file_data(self, sess, bucket_name, region_name):
         """ Loads in the file data and performs validations
 
             Args:
                 sess: the database connection
+
+            Returns:
+                the number of lines in the file
         """
         loading_start = datetime.now()
         logger.info({
@@ -238,47 +326,22 @@ class ValidationManager:
             'start_time': loading_start
         })
 
-        # Get fields for this file
-        fields = sess.query(FileColumn).filter(FileColumn.file_id == FILE_TYPE_DICT[self.file_type.name]) \
-            .order_by(FileColumn.daims_name.asc()).all()
-        self.expected_headers, self.parsed_fields = parse_fields(sess, fields)
-        self.csv_schema = {row.name_short: row for row in fields}
-
         # Extension Check
         extension = os.path.splitext(self.file_name)[1]
         if not extension or extension.lower() not in ['.csv', '.txt']:
             raise ResponseException("", StatusCode.CLIENT_ERROR, None, ValidationError.fileTypeError)
 
-        # Count file rows: throws a File Level Error for non-UTF8 characters
-        # Also getting short and long rows for formatting errors and pandas processing
-        bucket_name = CONFIG_BROKER['aws_bucket']
-        region_name = CONFIG_BROKER['aws_region']
-        temp_file = open(self.reader.get_filename(region_name, bucket_name, self.file_name), encoding='utf-8')
-        file_row_count = 0
-        header_length = 0
-        for line in csv.reader(temp_file):
-            if line:
-                file_row_count += 1
-                line_length = len(line)
-                # Setting the expected length for the file
-                if header_length == 0:
-                    header_length = line_length
-                # All lines that are shorter than they should be
-                elif line_length < header_length:
-                    self.short_rows.append(file_row_count)
-                # All lines that are longer than they should be
-                elif line_length > header_length:
-                    self.long_rows.append(file_row_count)
-        try:
-            temp_file.close()
-        except AttributeError:
-            # File does not exist, and so does not need to be closed
-            pass
+        # Base file check
+        file_row_count, self.short_rows, self.long_rows = simple_file_scan(self.reader, bucket_name, region_name,
+                                                                           self.file_name)
+        # total_rows = header + long_rows (and will be added on per chunk)
+        self.total_rows = 1 + len(self.long_rows)
 
-        error_file_name = report_file_name(self.submission_id, False, self.file_type.name)
-        self.error_file_path = "".join([CONFIG_SERVICES['error_report_path'], error_file_name])
-        warning_file_name = report_file_name(self.submission_id, True, self.file_type.name)
-        self.warning_file_path = "".join([CONFIG_SERVICES['error_report_path'], warning_file_name])
+        # Making base error/warning files
+        self.error_file_name = report_file_name(self.submission_id, False, self.file_type.name)
+        self.error_file_path = "".join([CONFIG_SERVICES['error_report_path'], self.error_file_name])
+        self.warning_file_name = report_file_name(self.submission_id, True, self.file_type.name)
+        self.warning_file_path = "".join([CONFIG_SERVICES['error_report_path'], self.warning_file_name])
 
         with open(self.error_file_path, 'w', newline='') as error_file, \
                 open(self.warning_file_path, 'w', newline='') as warning_file:
@@ -287,23 +350,20 @@ class ValidationManager:
             error_csv.writerow(self.report_headers)
             warning_csv.writerow(self.report_headers)
 
+        # Adding formatting errors to error file
         format_error_df = process_formatting_errors(self.short_rows, self.long_rows, self.report_headers)
         format_error_df.to_csv(self.error_file_path, columns=self.report_headers, index=False, quoting=csv.QUOTE_ALL,
                                mode='a', header=False)
 
-        # Pull file and return info on whether it's using short or long col headers
-        self.reader.open_file(region_name, bucket_name, self.file_name, fields, bucket_name,
-                              self.get_file_name(error_file_name),
+        # Finally open the file for loading into the database with baseline validations
+        self.reader.open_file(region_name, bucket_name, self.file_name, self.fields, bucket_name,
+                              self.get_file_name(self.error_file_name),
                               self.daims_to_short_dict[self.file_type.file_type_id],
                               self.short_to_daims_dict[self.file_type.file_type_id],
                               is_local=self.is_local)
         self.reader.file.seek(0)
         reader_obj = pd.read_csv(self.reader.file, dtype=str, delimiter=self.reader.delimiter, error_bad_lines=False,
                                  keep_default_na=False, chunksize=CHUNK_SIZE, warn_bad_lines=False)
-        # total_rows = header + long_rows (and will be added on per chunk)
-        self.total_rows = 1 + len(self.long_rows)
-
-        # Iterate over each chunk and process
         for chunk_df in reader_obj:
             self.process_data_chunk(sess, chunk_df)
 
@@ -322,75 +382,7 @@ class ValidationManager:
             'total_rows': self.total_rows
         })
 
-        if self.file_type.name in ('appropriations', 'program_activity', 'award_financial'):
-            update_tas_ids(self.model, self.submission_id)
-
-        with open(self.error_file_path, 'a', newline='') as error_file, \
-                open(self.warning_file_path, 'a', newline='') as warning_file:
-            error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-            warning_csv = csv.writer(warning_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-
-            # third phase of validations: run validation rules as specified in the schema guidance. These
-            # validations are sql-based.
-            sql_error_rows = self.run_sql_validations(self.short_to_long_dict[self.file_type.file_type_id],
-                                                      error_csv, warning_csv)
-            self.error_rows.extend(sql_error_rows)
-        error_file.close()
-        warning_file.close()
-
-        # stream file to S3 when not local
-        if not self.is_local:
-            s3_resource = boto3.resource('s3', region_name=region_name)
-            # stream error file
-            with open(self.error_file_path, 'rb') as csv_file:
-                s3_resource.Object(bucket_name, self.get_file_name(error_file_name)).put(Body=csv_file)
-            csv_file.close()
-            os.remove(self.error_file_path)
-
-            # stream warning file
-            with open(self.warning_file_path, 'rb') as warning_csv_file:
-                s3_resource.Object(bucket_name, self.get_file_name(warning_file_name)).put(Body=warning_csv_file)
-            warning_csv_file.close()
-            os.remove(self.warning_file_path)
-
-        # Calculate total number of rows in file that passed validations
-        error_rows_unique = set(self.error_rows)
-        total_rows_excluding_header = self.total_rows - 1
-        valid_rows = total_rows_excluding_header - len(error_rows_unique)
-
-        # Update fabs is_valid rows where applicable
-        # Update submission to include action dates where applicable
-        if self.is_fabs:
-            sess.query(DetachedAwardFinancialAssistance). \
-                filter(DetachedAwardFinancialAssistance.row_number.in_(error_rows_unique),
-                       DetachedAwardFinancialAssistance.submission_id == self.submission_id). \
-                update({"is_valid": False}, synchronize_session=False)
-            sess.commit()
-            min_action_date, max_action_date = get_action_dates(self.submission_id)
-            sess.query(Submission).filter(Submission.submission_id == self.submission_id). \
-                update({"reporting_start_date": min_action_date, "reporting_end_date": max_action_date},
-                       synchronize_session=False)
-
-        # Ensure validated rows match initial row count
-        if file_row_count != self.total_rows:
-            raise ResponseException("", StatusCode.CLIENT_ERROR, None, ValidationError.rowCountError)
-
-        # Update job metadata
-        self.job.number_of_rows = self.total_rows
-        self.job.number_of_rows_valid = valid_rows
-        sess.commit()
-
-        self.error_list.write_all_row_errors(self.job.job_id)
-        # Update error info for submission
-        populate_job_error_info(self.job)
-
-        if self.is_fabs:
-            # set number of errors and warnings for detached submission
-            populate_submission_error_info(self.submission_id)
-
-        # Mark validation as finished in job tracker
-        mark_job_status(self.job.job_id, "finished")
-        mark_file_complete(self.job.job_id, self.file_name)
+        return file_row_count
 
     def process_data_chunk(self, sess, chunk_df):
         logger.info({
