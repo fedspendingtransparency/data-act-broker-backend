@@ -8,7 +8,6 @@ import pandas as pd
 from datetime import datetime
 
 from sqlalchemy import and_, or_
-from sqlalchemy.exc import SQLAlchemyError
 
 from dataactbroker.handlers.submission_handler import populate_submission_error_info
 from dataactbroker.helpers.validation_helper import (
@@ -102,58 +101,6 @@ class ValidationManager:
             return os.path.join(self.directory, path)
         # Forcing forward slash here instead of using os.path to write a valid path for S3
         return "".join(["errors/", path])
-
-    def read_record(self, reader, writer, row_number, job, fields, error_list):
-        """ Read and process the next record
-
-        Args:
-            reader: CsvReader object
-            writer: CsvWriter object
-            row_number: Next row number to be read
-            job: current job
-            fields: List of FileColumn objects for this file type
-            error_list: instance of ErrorInterface to keep track of errors
-
-        Returns:
-            Tuple with six elements:
-            1. Dict of record after preprocessing
-            2. Boolean indicating whether to reduce row count
-            3. Boolean indicating whether to skip row
-            4. Boolean indicating whether to stop reading
-            5. Row error has been found
-            6. Dict of flex columns
-        """
-        reduce_row = False
-        row_error_found = False
-        job_id = job.job_id
-        try:
-            (next_record, flex_fields) = reader.get_next_record()
-            record = FieldCleaner.clean_row(next_record, self.long_to_short_dict[job.file_type_id], fields)
-            record["row_number"] = row_number
-            for flex_field in flex_fields:
-                flex_field.submission_id = job.submission_id
-                flex_field.job_id = job.job_id
-                flex_field.row_number = row_number
-                flex_field.file_type_id = job.file_type_id
-
-            if reader.is_finished and len(record) < 2:
-                # This is the last line and is empty, don't record an error
-                return {}, True, True, True, False, []  # Don't count this row
-        except ResponseException:
-            if reader.is_finished and reader.extra_line:
-                # Last line may be blank don't record an error,
-                # reader.extra_line indicates a case where the last valid line has extra line breaks
-                # Don't count last row if empty
-                reduce_row = True
-            else:
-                writer.writerow(['', 'Formatting Error', ValidationError.readErrorMsg, '', '', '', '', str(row_number),
-                                 ''])
-                error_list.record_row_error(job_id, job.filename, 'Formatting Error', ValidationError.readError,
-                                            row_number, severity_id=RULE_SEVERITY_DICT['fatal'])
-                row_error_found = True
-
-            return {}, reduce_row, True, False, row_error_found, []
-        return record, reduce_row, False, False, row_error_found, flex_fields
 
     def run_validation(self, job):
         """ Run validations for specified job
@@ -875,89 +822,3 @@ def update_tas_ids(model_class, submission_id):
     sess.query(model_class).filter_by(submission_id=submission_id).\
         update({getattr(model_class, 'tas_id'): subquery}, synchronize_session=False)
     sess.commit()
-
-
-def insert_staging_model(model, job, writer, error_list):
-    """ If there is an error during ORM insertion, mark that and continue
-
-    Args:
-        model: ORM model instance for the current row
-        job: Current job
-        writer: CsvWriter object
-        error_list: instance of ErrorInterface to keep track of errors
-
-    Returns:
-        True if insertion was a success, False otherwise
-    """
-    sess = GlobalDB.db().session
-    try:
-        sess.add(model)
-        sess.commit()
-    except SQLAlchemyError:
-        sess.rollback()
-        # Write failed, move to next record
-        writer.writerow(['Formatting Error', ValidationError.writeErrorMsg, '', '', '', '', model.row_number, ''])
-        error_list.record_row_error(job.job_id, job.filename, 'Formatting Error', ValidationError.writeError,
-                                    model.row_number, severity_id=RULE_SEVERITY_DICT['fatal'])
-        return False
-    return True
-
-
-def write_errors(failures, job, short_colnames, writer, warning_writer, row_number, error_list, flex_cols):
-    """ Write errors to error database
-
-        Args:
-            failures: List of Failures to be written
-            job: Current job
-            short_colnames: Dict mapping short names to long names
-            writer: CsvWriter object for error file
-            warning_writer: CsvWriter object for warning file
-            row_number: Current row number
-            error_list: instance of ErrorInterface to keep track of errors
-            flex_cols: all flex columns for this row
-
-        Returns:
-            True if any fatal errors were found, False if only warnings are present
-    """
-    fatal_error_found = False
-    # prepare flex cols for all the errors for this row
-    flex_col_cells = []
-    for flex_col in flex_cols:
-        flex_val = flex_col.cell if flex_col.cell else ''
-        flex_col_cells.append(flex_col.header + ': ' + flex_val)
-
-    # join the flex column values so we have a string to use, they will all be the same for the same row
-    flex_values = ", ".join(flex_col_cells)
-
-    # For each failure, record it in error report and metadata
-    for failure in failures:
-        # map short column names back to long names
-        if failure.field in short_colnames:
-            field_name = short_colnames[failure.field]
-        else:
-            field_name = failure.field
-
-        severity_id = RULE_SEVERITY_DICT[failure.severity]
-        try:
-            # If error is an int, it's one of our pre-stored messages
-            error_type = int(failure.description)
-            error_msg = ValidationError.get_error_message(error_type)
-        except ValueError:
-            # If not, treat it literally
-            error_msg = failure.description
-
-        # Get the fail value if it exists
-        fail_value = field_name + ": " + failure.value if failure.value else ''
-
-        if failure.severity == 'fatal':
-            fatal_error_found = True
-            writer.writerow([failure.unique_id, field_name, error_msg, fail_value, failure.expected, '', flex_values,
-                             str(row_number), failure.label])
-        elif failure.severity == 'warning':
-            # write to warnings file
-            warning_writer.writerow([failure.unique_id, field_name, error_msg, fail_value, failure.expected, '',
-                                     flex_values, str(row_number), failure.label])
-        # Non-labeled errors
-        error_list.record_row_error(job.job_id, job.filename, field_name, failure.description, row_number,
-                                    failure.label, severity_id=severity_id)
-    return fatal_error_found

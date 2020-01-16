@@ -5,7 +5,6 @@ import boto3
 from collections import OrderedDict
 
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.stagingModels import FlexField
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
@@ -129,53 +128,6 @@ class CsvReader(object):
                     contents += bytes((",".join(line) + "\n").encode())
             s3client.put_object(Bucket=bucket_name, Key=filename, Body=contents)
 
-    def get_next_record(self):
-        """
-        Read the next record into a dict and return it
-        Returns:
-            pair of (dictionary of expected fields, list of FlexFields)
-        """
-        return_dict = {}
-        flex_fields = []
-
-        row = self._get_line()
-        if len(row) != self.column_count:
-            raise ResponseException(
-                "Wrong number of fields in this row, expected %s got %s" %
-                (self.column_count, len(row)), StatusCode.CLIENT_ERROR,
-                ValueError, ValidationError.readError)
-        for idx, cell in enumerate(row):
-            if idx >= self.column_count:
-                raise ResponseException(
-                    "Record contains too many fields", StatusCode.CLIENT_ERROR,
-                    ValueError, ValidationError.readError)
-            # Use None instead of empty strings for sqlalchemy
-            if cell == "":
-                cell = None
-            # self.expected_headers uses the short, machine-readable column names
-            if self.expected_headers[idx] is None and self.flex_headers[idx] is not None:
-                flex_fields.append(FlexField(header=self.flex_headers[idx], cell=cell))
-            # We skip headers which aren't expected and aren't flex
-            elif self.expected_headers[idx] is not None:
-                return_dict[self.expected_headers[idx]] = cell
-        # Sort flex fields so they always come back in the same order
-        flex_fields.sort(key=lambda x: x.header)
-        return return_dict, flex_fields
-
-    def _get_line(self):
-        try:
-            # read next until we get a non-empty line or get an empty string signifying end of file
-            line = next(self.csv_reader)
-            while line == '\n' or line == []:
-                line = next(self.csv_reader)
-        except:
-            # If we cannot continue, we've reached the end of the file
-            line = ''
-            self.is_finished = True
-            self.extra_line = True
-
-        return line
-
     def handle_missing_duplicate_headers(self, expected_fields, bucket_name, error_filename, short_to_daims_dict):
         """ Check for missing or duplicated headers. If present, raise an exception with a meaningful message.
 
@@ -253,12 +205,6 @@ class CsvReader(object):
         except AttributeError:
             # File does not exist, and so does not need to be closed
             pass
-
-    def _get_file_size(self):
-        """
-        Gets the size of the file
-        """
-        return os.path.getsize(self.filename)
 
 
 def use_daims_headers(header_row, daims_to_short_dict):

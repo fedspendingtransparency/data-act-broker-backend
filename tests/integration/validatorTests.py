@@ -124,23 +124,3 @@ class ValidatorTests(BaseTestValidator):
         self.assertTrue(Validator.check_type('1234.00', 'DECIMAL'))
         self.assertFalse(Validator.check_type('1234.0', 'LONG'))
         self.assertFalse(Validator.check_type('1234.0', 'BOOLEAN'))
-
-    def test_schema_optional_field(self):
-        """ Test optional fields. """
-        schema = self.schema
-        record = {
-            'test1': 'hello',
-            'test2': '1.0',
-            'test3': 'YES',
-            'test4': '1',
-            'test5': '1',
-            'afa_generated_unique': ''
-        }
-        self.assertTrue(Validator.validate(record, schema, fabs_record=True))
-        record['test5'] = ''
-        self.assertTrue(Validator.validate(record, schema, fabs_record=True))
-        record['test5'] = 's'
-        self.assertTrue(Validator.validate(record, schema, fabs_record=True))
-        record['test5'] = ''
-        record['test3'] = ''
-        self.assertTrue(Validator.validate(record, schema, fabs_record=True))

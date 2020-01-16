@@ -3,10 +3,8 @@ from decimal import Decimal, DecimalException
 from datetime import datetime
 import logging
 
-from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FILE_TYPE_DICT, RULE_SEVERITY_DICT
+from dataactcore.models.lookups import FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import RuleSql
-from dataactcore.models.domainModels import concat_display_tas_dict
-from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.interfaces.db import GlobalDB
 
 logger = logging.getLogger(__name__)
@@ -22,101 +20,6 @@ class Validator(object):
     Checks individual records against specified validation tests
     """
     BOOLEAN_VALUES = ["TRUE", "FALSE", "YES", "NO", "1", "0"]
-    tableAbbreviations = {"appropriations": "approp", "award_financial_assistance": "afa", "award_financial": "af",
-                          "object_class_program_activity": "op", "appropriation": "approp"}
-    # Set of metadata fields that should not be directly validated
-    META_FIELDS = ["row_number", "afa_generated_unique", "unique_award_key"]
-
-    @classmethod
-    def validate(cls, record, csv_schema, fabs_record=False, required_labels=None, type_labels=None):
-        """
-        Run initial set of single file validation:
-        - check if required fields are present
-        - check if data type matches data type specified in schema
-        - check that field length matches field length specified in schema
-
-        Args:
-        record -- dict representation of a single record of data
-        csv_schema -- dict of schema for the current file.
-
-        Returns:
-        Tuple of three values:
-        True if validation passed, False if failed
-        List of Failure tuples
-        True if type check passed, False if type failed
-        """
-        record_failed = False
-        record_type_failure = False
-        failed_rules = []
-
-        if not fabs_record:
-            unique_id = 'TAS: {}'.format(concat_display_tas_dict(record))
-        else:
-            unique_id = 'AssistanceTransactionUniqueKey: {}'.format(record['afa_generated_unique'])
-
-        total_fields = 0
-        blank_fields = 0
-        for field_name in record:
-            if field_name in cls.META_FIELDS:
-                # Skip fields that are not user submitted
-                continue
-            check_required_only = False
-            current_schema = csv_schema[field_name]
-            total_fields += 1
-
-            current_data = record[field_name]
-            if current_data is not None:
-                current_data = current_data.strip()
-
-            if current_data is None or len(current_data) == 0:
-                blank_fields += 1
-                if current_schema.required:
-                    # If empty and required return field name and error
-                    record_failed = True
-                    # if it's a FABS record and the required column is in the list, label it specifically
-                    if fabs_record and required_labels and current_schema.name_short in required_labels:
-                        failed_rules.append(Failure(unique_id, field_name, ValidationError.requiredError, '',
-                                                    required_labels[current_schema.name_short], '(not blank)', 'fatal'))
-                    else:
-                        failed_rules.append(Failure(unique_id, field_name, ValidationError.requiredError, '', '',
-                                                    '(not blank)', 'fatal'))
-                    continue
-                else:
-                    # If field is empty and not required its valid
-                    check_required_only = True
-
-            current_type = FIELD_TYPE_DICT_ID[current_schema.field_types_id]
-            # Always check the type in the schema
-            if not check_required_only and not Validator.check_type(current_data, current_type):
-                record_type_failure = True
-                record_failed = True
-                # if it's a FABS record and the type column is in the list, label it specifically
-                if fabs_record and type_labels and current_schema.name_short in type_labels:
-                    failed_rules.append(Failure(unique_id, field_name, ValidationError.typeError, current_data,
-                                                type_labels[current_schema.name_short],
-                                                'This field must be a {}'.format(current_type.lower()), 'fatal'))
-                else:
-                    failed_rules.append(Failure(unique_id, field_name, ValidationError.typeError, current_data, '',
-                                                'This field must be a {}'.format(current_type.lower()), 'fatal'))
-                # Don't check value rules if type failed
-                continue
-
-            # Check length based on schema
-            if current_schema.length is not None and current_data is not None and \
-               len(current_data.strip()) > current_schema.length:
-                # Length failure, add to failedRules
-                record_failed = True
-                warning_type = 'fatal' if fabs_record else 'warning'
-                failed_rules.append(Failure(unique_id, field_name, ValidationError.lengthError, current_data, '',
-                                            'Max length: {}'.format(current_schema.length),
-                                            warning_type))
-
-        # if all columns are blank (empty row), set it so it doesn't add to the error messages or write the line,
-        # just ignore it
-        if total_fields == blank_fields:
-            record_failed = False
-            record_type_failure = True
-        return (not record_failed), failed_rules, (not record_type_failure)
 
     @staticmethod
     def check_type(data, datatype):

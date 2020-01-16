@@ -1,5 +1,3 @@
-import csv
-
 from unittest.mock import Mock
 
 from dataactvalidator.filestreaming import csvReader
@@ -15,22 +13,6 @@ def test_count_and_set_headers_flex():
     assert result == {'some_col': 2, 'other': 0}
     assert reader.expected_headers == [None, None, None, None, 'some_col', None, 'some_col']
     assert reader.flex_headers == [None, 'flex_my_col', None, None, None, 'flex_other', None]
-
-
-def test_get_next_record_flex():
-    """Verify that we get a list of FlexFields if present"""
-    reader = csvReader.CsvReader()
-    reader.column_count = 6
-    reader.expected_headers = ['a', 'b', 'c', None, None, None]
-    reader.flex_headers = [None, None, None, 'flex_d', 'flex_e', None]
-    reader.csv_reader = csv.reader(['A,"B\n",C,D,E,F'], dialect='excel', delimiter=',')
-    return_dict, flex_fields = reader.get_next_record()
-    assert return_dict == {'a': 'A', 'b': 'B\n', 'c': 'C'}
-    assert len(flex_fields) == 2
-    assert flex_fields[0].header == 'flex_d'
-    assert flex_fields[0].cell == 'D'
-    assert flex_fields[1].header == 'flex_e'
-    assert flex_fields[1].cell == 'E'
 
 
 def test_normalize_headers():
