@@ -11,11 +11,19 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 
 
 def clean_col(value):
+    """ Takes a value and returns None if it's empty, removes extra whitespace and surrounding quotes.
+
+        Args:
+            value: the value to clean
+
+        Returns:
+            None if the value is empty or just whitespace, a stripped version of the value without surrounding quotes
+            otherwise
+    """
     if isnull(value) or not str(value).strip():
         return None
 
-    # Trim and remove extra quotes around the outside. If removing quotes and stripping leaves nothing, set
-    # it to None
+    # Trim and remove extra quotes around the outside. If removing quotes and stripping leaves nothing, return None
     value = str(value).strip()
     if value.startswith('"') and value.endswith('"'):
         value = value[1:-1].strip()
@@ -26,6 +34,14 @@ def clean_col(value):
 
 
 def clean_numbers(value):
+    """ Removes commas from strings representing numbers
+
+        Args:
+            value: the value to remove commas from
+
+        Returns:
+            The original value with commas removed if there were any
+    """
     if value is not None:
         temp_value = value.replace(',', '')
         if FieldCleaner.is_numeric(temp_value):
@@ -34,10 +50,28 @@ def clean_numbers(value):
 
 
 def concat_flex(row):
+    """ Concatenates the headers and contents of all the flex cells in one row of a submission and joins the list
+        on commas
+
+        Args:
+            row: the dataframe row containing the submission row flex fields
+
+        Returns:
+            A concatenated list of "header: cell" pairs for the flex fields, joined by commas
+    """
     return ', '.join([name + ': ' + (row[name] or '') for name in sorted(row.keys()) if name is not 'row_number'])
 
 
 def derive_unique_id(row, is_fabs):
+    """ Derives the unique ID of a row and puts it in the proper format for the error/warning report.
+
+        Args:
+            row: the dataframe row to derive the unique ID for
+            is_fabs: a boolean indicating if the submission is a FABS submission or not
+
+        Returns:
+            A properly formatted unique ID for the row depending on if it's a FABS or DABS submission
+    """
     if not is_fabs:
         return 'TAS: {}'.format(row['display_tas'])
 
@@ -45,12 +79,30 @@ def derive_unique_id(row, is_fabs):
 
 
 def derive_fabs_awarding_sub_tier(row, office_list):
+    """ Derives the awarding sub tier agency code if it wasn't provided and can be derived from the office code.
+
+        Args:
+            row: the dataframe row to derive the awarding sub tier agency code for
+            office_list: A dictionary of sub tier codes keyed by their office codes
+
+        Returns:
+            the results of trying to get the awarding sub tier agency code using the office code if there is no
+            sub tier code provided, otherwise just returns the provided code
+    """
     if not row['awarding_sub_tier_agency_c']:
         return office_list.get(row['awarding_office_code'])
     return row['awarding_sub_tier_agency_c']
 
 
 def derive_fabs_afa_generated_unique(row):
+    """ Derives the afa_generated_unique for a row.
+
+        Args:
+            row: the dataframe row to derive the unique key for
+
+        Returns:
+            The afa_generated_unique for the row
+    """
     return (row['awarding_sub_tier_agency_c'] or '-none-') + '_' + \
            (row['fain'] or '-none-') + '_' + \
            (row['uri'] or '-none-') + '_' + \
@@ -59,6 +111,14 @@ def derive_fabs_afa_generated_unique(row):
 
 
 def derive_fabs_unique_award_key(row):
+    """ Derives the unique award key for a row.
+
+        Args:
+            row: the dataframe row to derive the unique award key for
+
+        Returns:
+            A unique award key for the row, generated based on record type and uppercased
+    """
     if str(row['record_type']) == '1':
         unique_award_key_list = ['ASST_AGG', row['uri'] or '-none-']
     else:
@@ -70,28 +130,75 @@ def derive_fabs_unique_award_key(row):
 
 
 def apply_label(row, labels, is_fabs):
+    """ Get special rule labels for required or type checks for FABS submissions.
+
+        Args:
+            row: the dataframe row to get the label for
+            labels: the list of labels that could be applied in this rule
+            is_fabs: a boolean indicating if the submission is a FABS submission or not
+
+        Returns:
+            The label if it's a FABS submission and the header matches one of the ones there are labels for, empty
+            string otherwise
+    """
     if is_fabs and labels and row['Field Name'] in labels:
         return labels[row['Field Name']]
     return ''
 
 
 def gather_flex_fields(row, flex_data):
+    """ Getting the flex data, formatted for the error and warning report, for a row.
+
+        Args:
+            row: the dataframe row to get the flex data for
+            flex_data: the dataframe containing flex fields for the file
+
+        Returns:
+            The concatenated flex data for the row if there is any, an empty string otherwise.
+    """
     if flex_data is not None:
         return flex_data.loc[flex_data['row_number'] == row['Row Number'], 'concatted'].values[0]
     return ''
 
 
 def valid_type(row, csv_schema):
+    """ Checks if the value provided is of a valid type.
+
+        Args:
+            row: the dataframe row containing information about a cell, including the header and contents
+            csv_schema: the schema containing the details about the columns for this file
+
+        Returns:
+            True or False depending on if the content of the cell is valid for the expected type
+    """
     current_field = csv_schema[row['Field Name']]
     return Validator.check_type(row['Value Provided'], FIELD_TYPE_DICT_ID[current_field.field_types_id])
 
 
 def expected_type(row, csv_schema):
+    """ Formats and returns an error message explaining what the expected type of a field is.
+
+        Args:
+            row: the dataframe row containing information about a cell, including the header and contents
+            csv_schema: the schema containing the details about the columns for this file
+
+        Returns:
+            A formatted message explaining what type the field should be
+    """
     current_field = csv_schema[row['Field Name']]
     return 'This field must be a {}'.format(FIELD_TYPE_DICT_ID[current_field.field_types_id].lower())
 
 
 def valid_length(row, csv_schema):
+    """ Checks if the value provided is longer than the maximum allowed length for a particular field.
+
+        Args:
+            row: the dataframe row containing information about a cell, including the header and contents
+            csv_schema: the schema containing the details about the columns for this file
+
+        Returns:
+            True if the value is an acceptable length or doesn't have a maximum length, False otherwise
+    """
     current_field = csv_schema[row['Field Name']]
     if current_field.length:
         return len(row['Value Provided']) <= current_field.length
@@ -99,24 +206,67 @@ def valid_length(row, csv_schema):
 
 
 def expected_length(row, csv_schema):
+    """ Formats and returns an error message explaining what the maximum length of a field is.
+
+            Args:
+                row: the dataframe row containing information about a cell, including the header and contents
+                csv_schema: the schema containing the details about the columns for this file
+
+            Returns:
+                A formatted message explaining what the maximum length of the field is
+        """
     current_field = csv_schema[row['Field Name']]
     return 'Max length: {}'.format(current_field.length)
 
 
 def update_field_name(row, short_cols):
+    """ Update all field names provided to match the lowercased DAIMS headers rather than the database names
+
+        Args:
+            row: the dataframe row containing information about a cell, including the header and contents
+            short_cols: A dictionary of lowercased DAIMS headers keyed by database column names
+
+        Returns:
+            The DAIMS version of the header if it can be derived from the column list, otherwise the header provided
+    """
     if row['Field Name'] in short_cols:
         return short_cols[row['Field Name']]
     return row['Field Name']
 
 
 def add_field_name_to_value(row):
+    """ Combine the field name and value provided into one string.
+
+        Args:
+            row: the dataframe row containing information about a cell, including the header and contents
+
+        Returns:
+            The field name and value provided combined into one string
+    """
     return row['Field Name'] + ': ' + row['Value Provided']
 
 
 def check_required(data, required, required_labels, report_headers, short_cols, flex_data, is_fabs):
+    """ Check if all fields that are required to have content in the file have content.
+
+        Args:
+            data: the dataframe containing the data for the submission
+            required: A list of headers that represent the required fields in the file
+            required_labels: A list of labels that will get added to required field errors in FABS submissions
+            report_headers: The list of error/warning report headers in order
+            short_cols: A mapping of the database column names to the lowercased DAIMS headers
+            flex_data: the dataframe containing flex data for this file
+            is_fabs: A boolean indicating if this is a FABS submission or not
+
+        Returns:
+            A dataframe containing error text that can be turned into an error report for required fields
+    """
+    # Get just the required columns along with the row number and unique ID
     req_data = data[required + ['row_number', 'unique_id']]
+    # Flip the data so each header + cell combination is its own row, keeping the relevant row numbers and unique IDs
     errors = pd.melt(req_data, id_vars=['row_number', 'unique_id'], value_vars=required,
                      var_name='Field Name', value_name='Value Provided')
+    # Throw out all rows that have data
     errors = errors[errors['Value Provided'].isnull()]
     errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
     errors = errors.reset_index()
@@ -137,10 +287,29 @@ def check_required(data, required, required_labels, report_headers, short_cols, 
 
 
 def check_type(data, type_fields, type_labels, report_headers, csv_schema, short_cols, flex_data, is_fabs):
+    """ Check if all fields that are a type other than string match that type.
+
+        Args:
+            data: the dataframe containing the data for the submission
+            type_fields: A list of headers that represent the non-string fields in the file
+            type_labels: A list of labels that will get added to non-string field errors in FABS submissions
+            report_headers: The list of error/warning report headers in order
+            csv_schema: the schema containing the details about the columns for this file
+            short_cols: A mapping of the database column names to the lowercased DAIMS headers
+            flex_data: the dataframe containing flex data for this file
+            is_fabs: A boolean indicating if this is a FABS submission or not
+
+        Returns:
+            A dataframe containing error text that can be turned into an error report for non-string fields
+    """
+    # Get just the non-string columns along with the row number and unique ID
     type_data = data[type_fields + ['row_number', 'unique_id']]
+    # Flip the data so each header + cell combination is its own row, keeping the relevant row numbers and unique IDs
     errors = pd.melt(type_data, id_vars=['row_number', 'unique_id'], value_vars=type_fields,
                      var_name='Field Name', value_name='Value Provided')
+    # Throw out all rows that don't have data, they don't have a type
     errors = errors[~errors['Value Provided'].isnull()]
+    # If there is data that needs checking, keep only the data that doesn't have the right type
     if not errors.empty:
         errors['matches_type'] = errors.apply(lambda x: valid_type(x, csv_schema), axis=1)
         errors = errors[~errors['matches_type']]
@@ -165,10 +334,28 @@ def check_type(data, type_fields, type_labels, report_headers, csv_schema, short
 
 
 def check_length(data, length_fields, report_headers, csv_schema, short_cols, flex_data, type_error_rows):
+    """ Check if all fields that have a maximum length are at or under that length.
+
+        Args:
+            data: the dataframe containing the data for the submission
+            length_fields: A list of headers that represent the fields in the file with maximum lengths
+            report_headers: The list of error/warning report headers in order
+            csv_schema: the schema containing the details about the columns for this file
+            short_cols: A mapping of the database column names to the lowercased DAIMS headers
+            flex_data: the dataframe containing flex data for this file
+            type_error_rows: A list of row numbers indicating what rows have type errors
+
+        Returns:
+            A dataframe containing error text that can be turned into an error report for fields that are too long
+    """
+    # Get just the columns with a maximum length along with the row number and unique ID
     length_data = data[length_fields + ['row_number', 'unique_id']]
+    # Flip the data so each header + cell combination is its own row, keeping the relevant row numbers and unique IDs
     errors = pd.melt(length_data, id_vars=['row_number', 'unique_id'], value_vars=length_fields,
                      var_name='Field Name', value_name='Value Provided')
+    # Throw out all rows that don't have data or have a type error
     errors = errors[~errors['Value Provided'].isnull() & ~errors['row_number'].isin(type_error_rows)]
+    # If there is data that needs checking, keep only the data that is too long
     if not errors.empty:
         errors['valid_length'] = errors.apply(lambda x: valid_length(x, csv_schema), axis=1)
         errors = errors[~errors['valid_length']]
@@ -192,6 +379,17 @@ def check_length(data, length_fields, report_headers, csv_schema, short_cols, fl
 
 
 def parse_fields(sess, fields):
+    """ Parse through all the fields in the file type and sort them into the relevant rule lists.
+
+        Args:
+            sess: the database connection
+            fields: The fields in the file header
+
+        Returns:
+            A list of the names of the headers that this type of file should have and a dictionary containing lists
+            of headers that are: required, must be some kind of number, must be a boolean, have a maximum length,
+            and need to be padded if they're too short
+    """
     parsed_fields = {
         'required': [],
         'number': [],
@@ -202,7 +400,10 @@ def parse_fields(sess, fields):
     expected_headers = []
     number_field_types = [FIELD_TYPE_DICT['INT'], FIELD_TYPE_DICT['DECIMAL'], FIELD_TYPE_DICT['LONG']]
     for field in fields:
+        # Create a list of just the header names
         expected_headers.append(field.name_short)
+
+        # Add fields to the lists in the dictionary that they are relevant to (type, length, etc)
         if field.field_types_id in number_field_types:
             parsed_fields['number'].append(field.name_short)
         elif field.field_types_id == FIELD_TYPE_DICT['BOOLEAN']:
@@ -218,7 +419,18 @@ def parse_fields(sess, fields):
 
 
 def process_formatting_errors(short_rows, long_rows, report_headers):
+    """ Creates a dataframe containing all the formatting errors in the file.
+
+        Args:
+            short_rows: A list of row numbers where there were not enough cells in the row
+            long_rows: A list of row numbers where there were too many cells in the row
+            report_headers: The list of error/warning report headers in order
+
+        Returns:
+            A dataframe containing error text that can be turned into an error report for poorly formatted CSV rows
+    """
     format_error_list = []
+    # Create a list of dictionaries that contain information about poorly formatted rows
     for format_row in sorted(short_rows + long_rows):
         format_error = {
             'Unique ID': '',
@@ -233,6 +445,7 @@ def process_formatting_errors(short_rows, long_rows, report_headers):
             'error_type': ValidationError.readError
         }
         format_error_list.append(format_error)
+    # Turn the list of dictionaries into a dataframe
     return pd.DataFrame(format_error_list, columns=list(report_headers + ['error_type']))
 
 
