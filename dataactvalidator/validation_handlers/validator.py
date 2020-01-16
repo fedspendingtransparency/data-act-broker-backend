@@ -16,53 +16,51 @@ ValidationFailure = namedtuple('ValidationFailure', ['unique_id', 'field_name', 
 
 
 class Validator(object):
-    """
-    Checks individual records against specified validation tests
-    """
+    """ Checks individual records against specified validation tests """
     BOOLEAN_VALUES = ["TRUE", "FALSE", "YES", "NO", "1", "0"]
 
     @staticmethod
-    def check_type(data, datatype):
+    def check_type(data, data_type):
         """ Determine whether data is of the correct type
 
-        Args:
-            data: Data to be checked
-            datatype: Type to check against
+            Args:
+                data: Data to be checked
+                data_type: Type to check against
 
-        Returns:
-            True if data is of specified type, False otherwise
+            Returns:
+                True if data is of specified type, False otherwise
         """
-        if datatype is None:
+        if data_type is None:
             # If no type specified, don't need to check anything
             return True
         if data.strip() == "":
             # An empty string matches all types
             return True
-        if datatype == "STRING":
+        if data_type == "STRING":
             return len(data) > 0
-        if datatype == "BOOLEAN":
+        if data_type == "BOOLEAN":
             if data.upper() in Validator.BOOLEAN_VALUES:
                 return True
             return False
-        if datatype == "INT":
+        if data_type == "INT":
             try:
                 int(data)
                 return True
             except ValueError:
                 return False
-        if datatype == "DECIMAL":
+        if data_type == "DECIMAL":
             try:
                 Decimal(data)
                 return True
             except DecimalException:
                 return False
-        if datatype == "LONG":
+        if data_type == "LONG":
             try:
                 int(data)
                 return True
             except ValueError:
                 return False
-        raise ValueError("".join(["Data Type Error, Type: ", datatype, ", Value: ", data]))
+        raise ValueError("".join(["Data Type Error, Type: ", data_type, ", Value: ", data]))
 
 
 def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_csv, warning_csv, error_list):
@@ -218,13 +216,13 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
 def validate_file_by_sql(job, file_type, short_to_long_dict):
     """ Check all SQL rules
 
-    Args:
-        job: the Job which is running
-        file_type: file type being checked
-        short_to_long_dict: mapping of short to long schema column names
+        Args:
+            job: the Job which is running
+            file_type: file type being checked
+            short_to_long_dict: mapping of short to long schema column names
 
-    Returns:
-        List of ValidationFailures
+        Returns:
+            List of ValidationFailures
     """
 
     sql_val_start = datetime.now()
@@ -314,8 +312,15 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
 
 
 def relevant_flex_data(failures, job_id):
-    """Create a dictionary mapping row numbers of failures to lists of
-    FlexFields"""
+    """ Create a dictionary mapping row numbers of failures to lists of FlexFields
+
+        Args:
+            failures: list of failure rows from the SQL validations
+            job_id: the current job_id
+
+        Returns:
+            a dictionary of row numbers as keys and a list of flex_field objects as the values
+    """
     sess = GlobalDB.db().session
     flex_data = defaultdict(list)
     fail_string = "), (".join(str(f['row_number']) for f in failures if f['row_number'])
