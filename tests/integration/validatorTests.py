@@ -1,5 +1,5 @@
 from dataactcore.models.validationModels import FieldType, FileColumn
-from dataactvalidator.validation_handlers.validator import Validator
+from dataactbroker.helpers.validation_helper import is_valid_type
 from tests.integration.baseTestValidator import BaseTestValidator
 from dataactcore.models.lookups import FIELD_TYPE_DICT
 
@@ -101,26 +101,26 @@ class ValidatorTests(BaseTestValidator):
 
     def test_types(self):
         """Test data type checks."""
-        self.assertTrue(Validator.check_type('1234Test', 'STRING'))
-        self.assertFalse(Validator.check_type('1234Test', 'INT'))
-        self.assertFalse(Validator.check_type('1234Test', 'DECIMAL'))
-        self.assertFalse(Validator.check_type('1234Test', 'BOOLEAN'))
-        self.assertFalse(Validator.check_type('1234Test', 'LONG'))
+        self.assertTrue(is_valid_type('1234Test', 'STRING'))
+        self.assertFalse(is_valid_type('1234Test', 'INT'))
+        self.assertFalse(is_valid_type('1234Test', 'DECIMAL'))
+        self.assertFalse(is_valid_type('1234Test', 'BOOLEAN'))
+        self.assertFalse(is_valid_type('1234Test', 'LONG'))
 
-        self.assertTrue(Validator.check_type('', 'STRING'))
-        self.assertTrue(Validator.check_type('', 'INT'))
-        self.assertTrue(Validator.check_type('', 'DECIMAL'))
-        self.assertTrue(Validator.check_type('', 'BOOLEAN'))
-        self.assertTrue(Validator.check_type('', 'LONG'))
+        self.assertTrue(is_valid_type('', 'STRING'))
+        self.assertTrue(is_valid_type('', 'INT'))
+        self.assertTrue(is_valid_type('', 'DECIMAL'))
+        self.assertTrue(is_valid_type('', 'BOOLEAN'))
+        self.assertTrue(is_valid_type('', 'LONG'))
 
-        self.assertTrue(Validator.check_type('01234', 'STRING'))
-        self.assertTrue(Validator.check_type('01234', 'INT'))
-        self.assertTrue(Validator.check_type('01234', 'DECIMAL'))
-        self.assertTrue(Validator.check_type('01234', 'LONG'))
-        self.assertFalse(Validator.check_type('01234', 'BOOLEAN'))
+        self.assertTrue(is_valid_type('01234', 'STRING'))
+        self.assertTrue(is_valid_type('01234', 'INT'))
+        self.assertTrue(is_valid_type('01234', 'DECIMAL'))
+        self.assertTrue(is_valid_type('01234', 'LONG'))
+        self.assertFalse(is_valid_type('01234', 'BOOLEAN'))
 
-        self.assertTrue(Validator.check_type('1234.0', 'STRING'))
-        self.assertFalse(Validator.check_type('1234.0', 'INT'))
-        self.assertTrue(Validator.check_type('1234.00', 'DECIMAL'))
-        self.assertFalse(Validator.check_type('1234.0', 'LONG'))
-        self.assertFalse(Validator.check_type('1234.0', 'BOOLEAN'))
+        self.assertTrue(is_valid_type('1234.0', 'STRING'))
+        self.assertFalse(is_valid_type('1234.0', 'INT'))
+        self.assertTrue(is_valid_type('1234.00', 'DECIMAL'))
+        self.assertFalse(is_valid_type('1234.0', 'LONG'))
+        self.assertFalse(is_valid_type('1234.0', 'BOOLEAN'))

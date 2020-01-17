@@ -1,13 +1,56 @@
 import pandas as pd
 import csv
-
+from decimal import Decimal, DecimalException
 from pandas import isnull
 
 from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FIELD_TYPE_DICT
-
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
-from dataactvalidator.validation_handlers.validator import Validator
 from dataactvalidator.validation_handlers.validationError import ValidationError
+
+BOOLEAN_VALUES = ["TRUE", "FALSE", "YES", "NO", "1", "0"]
+
+
+def is_valid_type(data, data_type):
+    """ Determine whether data is of the correct type
+
+        Args:
+            data: Data to be checked
+            data_type: Type to check against
+
+        Returns:
+            True if data is of specified type, False otherwise
+    """
+    if data_type is None:
+        # If no type specified, don't need to check anything
+        return True
+    if data.strip() == "":
+        # An empty string matches all types
+        return True
+    if data_type == "STRING":
+        return len(data) > 0
+    if data_type == "BOOLEAN":
+        if data.upper() in BOOLEAN_VALUES:
+            return True
+        return False
+    if data_type == "INT":
+        try:
+            int(data)
+            return True
+        except ValueError:
+            return False
+    if data_type == "DECIMAL":
+        try:
+            Decimal(data)
+            return True
+        except DecimalException:
+            return False
+    if data_type == "LONG":
+        try:
+            int(data)
+            return True
+        except ValueError:
+            return False
+    raise ValueError("".join(["Data Type Error, Type: ", data_type, ", Value: ", data]))
 
 
 def clean_col(value):
@@ -172,7 +215,7 @@ def valid_type(row, csv_schema):
             True or False depending on if the content of the cell is valid for the expected type
     """
     current_field = csv_schema[row['Field Name']]
-    return Validator.check_type(row['Value Provided'], FIELD_TYPE_DICT_ID[current_field.field_types_id])
+    return is_valid_type(row['Value Provided'], FIELD_TYPE_DICT_ID[current_field.field_types_id])
 
 
 def expected_type(row, csv_schema):

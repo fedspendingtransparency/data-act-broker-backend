@@ -1,5 +1,4 @@
 from collections import defaultdict, namedtuple
-from decimal import Decimal, DecimalException
 from datetime import datetime
 import logging
 
@@ -13,54 +12,6 @@ Failure = namedtuple('Failure', ['unique_id', 'field', 'description', 'value', '
 ValidationFailure = namedtuple('ValidationFailure', ['unique_id', 'field_name', 'error', 'failed_value',
                                                      'expected_value', 'difference', 'flex_fields', 'row',
                                                      'original_label', 'file_type_id', 'target_file_id', 'severity_id'])
-
-
-class Validator(object):
-    """ Checks individual records against specified validation tests """
-    BOOLEAN_VALUES = ["TRUE", "FALSE", "YES", "NO", "1", "0"]
-
-    @staticmethod
-    def check_type(data, data_type):
-        """ Determine whether data is of the correct type
-
-            Args:
-                data: Data to be checked
-                data_type: Type to check against
-
-            Returns:
-                True if data is of specified type, False otherwise
-        """
-        if data_type is None:
-            # If no type specified, don't need to check anything
-            return True
-        if data.strip() == "":
-            # An empty string matches all types
-            return True
-        if data_type == "STRING":
-            return len(data) > 0
-        if data_type == "BOOLEAN":
-            if data.upper() in Validator.BOOLEAN_VALUES:
-                return True
-            return False
-        if data_type == "INT":
-            try:
-                int(data)
-                return True
-            except ValueError:
-                return False
-        if data_type == "DECIMAL":
-            try:
-                Decimal(data)
-                return True
-            except DecimalException:
-                return False
-        if data_type == "LONG":
-            try:
-                int(data)
-                return True
-            except ValueError:
-                return False
-        raise ValueError("".join(["Data Type Error, Type: ", data_type, ", Value: ", data]))
 
 
 def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_csv, warning_csv, error_list):
