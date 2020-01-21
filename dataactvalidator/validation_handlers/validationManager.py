@@ -142,6 +142,7 @@ class ValidationManager:
         self.job = job
         self.submission_id = job.submission_id
         self.file_type = job.file_type
+        self.file_name = job.filename
         self.is_fabs = (self.file_type.name == 'fabs')
 
         # initializing processing metadata vars for a new validation
@@ -175,11 +176,9 @@ class ValidationManager:
         # Delete existing file level errors for this submission
         sess.query(ErrorMetadata).filter(ErrorMetadata.job_id == self.job.job_id).delete()
         sess.commit()
-
         # Clear existing records for this submission
         sess.query(self.model).filter_by(submission_id=self.submission_id).delete()
         sess.commit()
-
         # Clear existing flex fields for this job
         sess.query(FlexField).filter_by(job_id=self.job.job_id).delete()
         sess.commit()
@@ -187,8 +186,6 @@ class ValidationManager:
         # If local, make the error report directory
         if self.is_local and not os.path.exists(self.directory):
             os.makedirs(self.directory)
-
-        self.file_name = job.filename
         create_file_if_needed(self.job.job_id, self.file_name)
 
         # Get file size and write to jobs table
@@ -337,6 +334,7 @@ class ValidationManager:
         file_row_count, self.short_rows, self.long_rows = simple_file_scan(self.reader, bucket_name, region_name,
                                                                            self.file_name)
         # total_rows = header + long_rows (and will be added on per chunk)
+        # Note: we're adding long_rows here because pandas will exclude long_rows when we're loading the data
         self.total_rows = 1 + len(self.long_rows)
 
         # Making base error/warning files
@@ -363,6 +361,7 @@ class ValidationManager:
                               self.daims_to_short_dict[self.file_type.file_type_id],
                               self.short_to_daims_dict[self.file_type.file_type_id],
                               is_local=self.is_local)
+        # Going back to reprocess the header row
         self.reader.file.seek(0)
         reader_obj = pd.read_csv(self.reader.file, dtype=str, delimiter=self.reader.delimiter, error_bad_lines=False,
                                  keep_default_na=False, chunksize=CHUNK_SIZE, warn_bad_lines=False)
@@ -412,11 +411,10 @@ class ValidationManager:
         total_errors = pd.DataFrame(columns=self.report_headers)
         total_warnings = pd.DataFrame(columns=self.report_headers)
         flex_data = None
-        required_list = None
-        type_list = None
+        required_list = {}
+        type_list = {}
         office_list = {}
 
-        # TODO: Move all this dataframe stuff to some reasonable location
         # Replace whatever the user included so we're using the database headers
         chunk_df.rename(columns=self.reader.header_dict, inplace=True)
 
@@ -427,10 +425,12 @@ class ValidationManager:
 
             # Adding row number
             chunk_df = chunk_df.reset_index()
+            # index gets reset for each chunk, adding the header, and adding previous rows
             chunk_df['row_number'] = chunk_df.index + 1 + self.max_row_number
             self.total_rows += len(chunk_df.index)
 
             # Increment row numbers if any were ignored being too long
+            # This syncs the row numbers back to their original values
             for row in sorted(self.long_rows):
                 chunk_df.loc[chunk_df['row_number'] >= row, 'row_number'] = chunk_df['row_number'] + 1
 
@@ -452,25 +452,9 @@ class ValidationManager:
             empty_file = chunk_df.empty
 
         if not empty_file:
-            # Gathering flex data
-            if self.reader.flex_fields:
-                flex_data = chunk_df.loc[:, list(self.reader.flex_fields + ['row_number'])]
-            if flex_data is not None and not flex_data.empty:
-                flex_data['concatted'] = flex_data.apply(lambda x: concat_flex(x), axis=1)
-
-            # Setting order of columns
-            chunk_df = chunk_df[list(self.expected_headers + ['row_number'])]
-
-            # Padding specific fields
-            for field in self.parsed_fields['padded']:
-                chunk_df[field] = chunk_df.apply(
-                    lambda x: FieldCleaner.pad_field(self.csv_schema[field], x[field]), axis=1)
-
             if self.is_fabs:
                 # create a list of all required/type labels for FABS
                 labels = sess.query(ValidationLabel).all()
-                required_list = {}
-                type_list = {}
                 for label in labels:
                     if label.label_type == "requirement":
                         required_list[label.column_name] = label.label
@@ -486,6 +470,19 @@ class ValidationManager:
 
             # Only do validations if it's not a D file
             if self.file_type.name not in ['award', 'award_procurement']:
+                # Gathering flex data
+                if self.reader.flex_fields:
+                    flex_data = chunk_df.loc[:, list(self.reader.flex_fields + ['row_number'])]
+                if flex_data is not None and not flex_data.empty:
+                    flex_data['concatted'] = flex_data.apply(lambda x: concat_flex(x), axis=1)
+
+                # Dropping any extraneous fields included + flex data
+                chunk_df = chunk_df[list(self.expected_headers + ['row_number'])]
+
+                # Padding specific fields
+                for field in self.parsed_fields['padded']:
+                    chunk_df[field] = chunk_df.apply(
+                        lambda x: FieldCleaner.pad_field(self.csv_schema[field], x[field]), axis=1)
                 # Cleaning up numbers so they can be inserted properly
                 for field in self.parsed_fields['number']:
                     chunk_df[field] = chunk_df.apply(lambda x: clean_numbers(x[field]), axis=1)

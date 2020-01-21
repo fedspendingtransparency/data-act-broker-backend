@@ -86,7 +86,7 @@ def clean_numbers(value):
             The original value with commas removed if there were any
     """
     if value is not None:
-        temp_value = value.replace(',', '')
+        temp_value = str(value).replace(',', '')
         if FieldCleaner.is_numeric(temp_value):
             return temp_value
     return value
@@ -116,9 +116,10 @@ def derive_unique_id(row, is_fabs):
             A properly formatted unique ID for the row depending on if it's a FABS or DABS submission
     """
     if not is_fabs:
-        return 'TAS: {}'.format(row['display_tas'])
-
-    return 'AssistanceTransactionUniqueKey: {}'.format(row['afa_generated_unique'])
+        unique_id = 'TAS: {}'.format(row['display_tas'])
+    else:
+        unique_id = 'AssistanceTransactionUniqueKey: {}'.format(row['afa_generated_unique'])
+    return unique_id
 
 
 def derive_fabs_awarding_sub_tier(row, office_list):
@@ -295,7 +296,7 @@ def check_required(data, required, required_labels, report_headers, short_cols, 
         Args:
             data: the dataframe containing the data for the submission
             required: A list of headers that represent the required fields in the file
-            required_labels: A list of labels that will get added to required field errors in FABS submissions
+            required_labels: A mapping of labels that will get added to required field errors in FABS submissions
             report_headers: The list of error/warning report headers in order
             short_cols: A mapping of the database column names to the lowercased DAIMS headers
             flex_data: the dataframe containing flex data for this file
@@ -307,8 +308,8 @@ def check_required(data, required, required_labels, report_headers, short_cols, 
     # Get just the required columns along with the row number and unique ID
     req_data = data[required + ['row_number', 'unique_id']]
     # Flip the data so each header + cell combination is its own row, keeping the relevant row numbers and unique IDs
-    errors = pd.melt(req_data, id_vars=['row_number', 'unique_id'], value_vars=required,
-                     var_name='Field Name', value_name='Value Provided')
+    errors = pd.melt(req_data, id_vars=['row_number', 'unique_id'], value_vars=required, var_name='Field Name',
+                     value_name='Value Provided')
     # Throw out all rows that have data
     errors = errors[errors['Value Provided'].isnull()]
     errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
@@ -324,6 +325,7 @@ def check_required(data, required, required_labels, report_headers, short_cols, 
     else:
         errors['Rule Label'] = ''
         errors['Flex Field'] = ''
+    # sorting the headers after all the moving around
     errors = errors[report_headers]
     errors['error_type'] = ValidationError.requiredError
     return errors
@@ -335,7 +337,7 @@ def check_type(data, type_fields, type_labels, report_headers, csv_schema, short
         Args:
             data: the dataframe containing the data for the submission
             type_fields: A list of headers that represent the non-string fields in the file
-            type_labels: A list of labels that will get added to non-string field errors in FABS submissions
+            type_labels: A mapping of labels that will get added to non-string field errors in FABS submissions
             report_headers: The list of error/warning report headers in order
             csv_schema: the schema containing the details about the columns for this file
             short_cols: A mapping of the database column names to the lowercased DAIMS headers
@@ -371,6 +373,7 @@ def check_type(data, type_fields, type_labels, report_headers, csv_schema, short
         errors['Expected Value'] = ''
         errors['Rule Label'] = ''
         errors['Flex Field'] = ''
+    # sorting the headers after all the moving around
     errors = errors[report_headers]
     errors['error_type'] = ValidationError.typeError
     return errors
@@ -416,6 +419,7 @@ def check_length(data, length_fields, report_headers, csv_schema, short_cols, fl
     else:
         errors['Expected Value'] = ''
         errors['Flex Field'] = ''
+    # sorting the headers after all the moving around
     errors = errors[report_headers]
     errors['error_type'] = ValidationError.lengthError
     return errors
