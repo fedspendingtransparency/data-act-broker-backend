@@ -245,6 +245,7 @@ class DunsFactory(factory.Factory):
     congressional_district = fuzzy.FuzzyText()
     entity_structure = fuzzy.FuzzyText()
     business_types_codes = ['A', 'B', 'C']
+    business_types_codes = ['Full Name A', 'Full Name B', 'Full Name C']
     ultimate_parent_unique_ide = fuzzy.FuzzyText()
     ultimate_parent_legal_enti = fuzzy.FuzzyText()
     high_comp_officer1_full_na = fuzzy.FuzzyText()
