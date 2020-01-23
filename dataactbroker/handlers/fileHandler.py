@@ -492,6 +492,8 @@ class FileHandler:
                 if not existing_submission_obj.d2_submission:
                     raise ResponseException("Existing submission must be a FABS submission", StatusCode.CLIENT_ERROR)
                 jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
+                if existing_submission_obj.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
+                    raise ResponseException("FABS submission has already been published", StatusCode.CLIENT_ERROR)
                 for job in jobs:
                     if job.job_status_id == JOB_STATUS_DICT['running']:
                         raise ResponseException("Submission already has a running job", StatusCode.CLIENT_ERROR)
