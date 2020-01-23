@@ -8,6 +8,7 @@ from sqlalchemy import and_, func
 from dataactbroker.helpers.sam_wsdl_helper import config_valid, get_entities
 from dataactbroker.helpers.generic_helper import get_client
 from dataactcore.models.domainModels import DUNS
+from dataactcore.models.lookups import DUNS_BUSINESS_TYPE_DICT
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,8 @@ def get_duns_props_from_sam(client, duns_list):
                     value = nested_obj
             if duns_props_name == 'business_types_codes':
                 value = [business_type.code for business_type in getattr(nested_obj, 'businessType', [])]
+                duns_props_dict['business_types'] = [DUNS_BUSINESS_TYPE_DICT[type] for type in value
+                                                     if type in DUNS_BUSINESS_TYPE_DICT]
             if duns_props_name == 'executive_comp_data':
                 for index in range(1, 6):
                     duns_props_dict['high_comp_officer{}_full_na'.format(index)] = None
