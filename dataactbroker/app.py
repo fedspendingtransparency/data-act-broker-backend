@@ -8,6 +8,8 @@ from flask import Flask, g, session, request
 import logging
 import json
 
+from ddtrace import config as ddconfig, tracer, patch_all
+
 from dataactbroker.exception_handler import add_exception_handlers
 from dataactbroker.handlers.account_handler import AccountHandler
 from dataactbroker.handlers.aws.sesEmail import SesEmail
@@ -29,13 +31,15 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
-# DataDog Import (the below value gets changed via Ansible during deployment. DO NOT DELETE)
-USE_DATADOG = False
 logger = logging.getLogger(__name__)
 
-if USE_DATADOG:
-    from ddtrace import tracer
-    from ddtrace.contrib.flask import TraceMiddleware
+# Datadog APM Tracer configuration for Flask integration
+tracer.enabled = False  # value toggled True/False via Ansible during deployment. DO NOT DELETE
+if tracer.enabled:
+    patch_all()
+    ddconfig.flask["service_name"] = "api"
+    ddconfig.flask["analytics_enabled"] = True  # sample rate defaults to 100%
+    ddconfig.flask["distributed_tracing_enabled"] = False
 
 
 def create_app():
@@ -138,16 +142,12 @@ def create_app():
 def run_app():
     """runs the application"""
     flask_app = create_app()
-
-    # This is for DataDog (Do Not Delete)
-    if USE_DATADOG:
-        TraceMiddleware(flask_app, tracer, service="api", distributed_tracing=False)
-
     flask_app.run(
         threaded=True,
         host=CONFIG_SERVICES['broker_api_host'],
         port=CONFIG_SERVICES['broker_api_port']
     )
+
 
 if __name__ == '__main__':
     configure_logging()
