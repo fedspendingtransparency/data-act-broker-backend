@@ -298,7 +298,7 @@ SELECT
          THEN fsrs_subgrant.awardee_address_zip
          ELSE NULL
     END AS "sub_legal_entity_foreign_posta",
-    array_to_string(subgrant_duns.business_types, ', ') AS "sub_business_types",
+    array_to_string(subgrant_duns.business_types, ',') AS "sub_business_types",
     fsrs_subgrant.principle_place_city AS "sub_place_of_perform_city_name",
     fsrs_subgrant.principle_place_state AS "sub_place_of_perform_state_code",
     fsrs_subgrant.principle_place_state_name AS "sub_place_of_perform_state_name",
