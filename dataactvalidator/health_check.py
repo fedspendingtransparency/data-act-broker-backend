@@ -4,14 +4,6 @@ from dataactcore.config import CONFIG_SERVICES
 from dataactcore.logging import configure_logging
 from dataactcore.utils.jsonResponse import JsonResponse
 
-# DataDog Import (the below value gets changed via Ansible during deployment. DO NOT DELETE)
-USE_DATADOG = False
-
-if USE_DATADOG:
-    from ddtrace import tracer
-    from ddtrace.contrib.flask import TraceMiddleware
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -34,11 +26,6 @@ def create_app():
 def run_app():
     """Run the application."""
     flask_app = create_app()
-
-    # This is for DataDog (Do Not Delete)
-    if USE_DATADOG:
-        TraceMiddleware(flask_app, tracer, service="validator.health_check", distributed_tracing=False)
-
     flask_app.run(
         threaded=True,
         host=CONFIG_SERVICES['validator_host'],
