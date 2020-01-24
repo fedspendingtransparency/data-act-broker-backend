@@ -31,6 +31,8 @@ def run_app():
         host=CONFIG_SERVICES['validator_host'],
         port=CONFIG_SERVICES['validator_port']
     )
+
+
 if __name__ == "__main__":
     configure_logging()
     run_app()

@@ -36,10 +36,10 @@ logger = logging.getLogger(__name__)
 # Datadog APM Tracer configuration for Flask integration
 tracer.enabled = False  # value toggled True/False via Ansible during deployment. DO NOT DELETE
 if tracer.enabled:
-    patch_all()
     ddconfig.flask["service_name"] = "api"
     ddconfig.flask["analytics_enabled"] = True  # sample rate defaults to 100%
     ddconfig.flask["distributed_tracing_enabled"] = False
+    patch_all()
 
 
 def create_app():

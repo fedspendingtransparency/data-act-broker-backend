@@ -31,10 +31,10 @@ logger = logging.getLogger(__name__)
 # Datadog APM Tracer configuration for Flask integration
 tracer.enabled = False  # value toggled True/False via Ansible during deployment. DO NOT DELETE
 if tracer.enabled:
-    patch_all()
     ddconfig.flask["service_name"] = "validator"
     ddconfig.flask["analytics_enabled"] = True  # sample rate defaults to 100%
     ddconfig.flask["distributed_tracing_enabled"] = False
+    patch_all()
 
 READY_STATUSES = [JOB_STATUS_DICT['waiting'], JOB_STATUS_DICT['ready']]
 RUNNING_STATUSES = READY_STATUSES + [JOB_STATUS_DICT['running']]
@@ -380,4 +380,10 @@ class DatadogEagerlyDropTraceFilter:
 
 if __name__ == "__main__":
     configure_logging()
+    if tracer.enabled:
+        # Drop uninteresting polls of the queue from the Tracer
+        if tracer.writer._filters:
+            tracer.writer._filters.append(DatadogEagerlyDropTraceFilter())
+        else:
+            tracer.writer._filters = [DatadogEagerlyDropTraceFilter()]
     run_app()
