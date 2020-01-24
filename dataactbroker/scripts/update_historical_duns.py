@@ -10,6 +10,8 @@ from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 from dataactcore.models.domainModels import HistoricDUNS, DUNS
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.jobModels import Submission # noqa
+from dataactcore.models.userModel import User # noqa
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 import dataactcore.utils.parentDuns

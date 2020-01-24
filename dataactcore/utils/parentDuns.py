@@ -10,6 +10,9 @@ from dataactbroker.helpers.generic_helper import get_client
 from dataactcore.models.domainModels import DUNS
 from dataactcore.models.lookups import DUNS_BUSINESS_TYPE_DICT
 
+from dataactcore.models.jobModels import Submission # noqa
+from dataactcore.models.userModel import User # noqa
+
 logger = logging.getLogger(__name__)
 
 
