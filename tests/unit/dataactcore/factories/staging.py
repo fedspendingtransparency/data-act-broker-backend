@@ -286,6 +286,7 @@ class PublishedAwardFinancialAssistanceFactory(factory.Factory):
 
     published_award_financial_assistance_id = None
     afa_generated_unique = fuzzy.FuzzyText()
+    unique_award_key = fuzzy.FuzzyText()
     action_date = fuzzy.FuzzyDate(date(2015, 1, 1), date(2015, 12, 31))
     action_type = fuzzy.FuzzyText()
     action_type_description = fuzzy.FuzzyText()
@@ -635,6 +636,7 @@ class DetachedAwardProcurementFactory(factory.Factory):
 
     detached_award_procurement_id = None
     detached_award_proc_unique = fuzzy.FuzzyText()
+    unique_award_key = fuzzy.FuzzyText()
     piid = fuzzy.FuzzyText()
     agency_id = fuzzy.FuzzyText()
     awarding_sub_tier_agency_c = fuzzy.FuzzyText()
