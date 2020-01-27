@@ -21,7 +21,7 @@ class CsvReader(object):
     header_report_headers = ["Error type", "Header name"]
 
     def get_filename(self, region, bucket, filename):
-        """Creates a filename based on the file path
+        """ Creates a filename based on the file path
         Args:
             region: AWS region where the bucket is located
             bucket: Optional parameter; if set, file will be retrieved from S3
@@ -177,7 +177,6 @@ class CsvReader(object):
         # Track how many times we've seen a field we were expecting. Keyed by the shorter, machine-readable column names
         expected_fields = OrderedDict()
 
-        # TODO: Since I had to do this earlier, we might be able to just pass this along instead of recreating it
         for schema in csv_schema:
             expected_fields[FieldCleaner.clean_name(schema.name_short)] = 0
 
@@ -197,7 +196,7 @@ class CsvReader(object):
         return expected_fields
 
     def close(self):
-        """Closes file if it exists """
+        """ Closes file if it exists """
         try:
             self.file.close()
             if self.has_tempfile:
@@ -226,8 +225,7 @@ def use_daims_headers(header_row, daims_to_short_dict):
 
 
 def normalize_headers(header_row, daims_headers, daims_to_short_dict, header_dict):
-    """ Clean the headers (lowercase) and convert them to short headers if we're given long
-        headers
+    """ Clean the headers (lowercase) and convert them to short headers if we're given long headers
 
         Args:
             header_row: an array of the file headers given
@@ -263,7 +261,7 @@ def normalize_headers(header_row, daims_headers, daims_to_short_dict, header_dic
 
 
 def raise_missing_duplicated_exception(missing_headers, duplicated_headers):
-    """Construct and raise an exception about missing and/or duplicated headers"""
+    """ Construct and raise an exception about missing and/or duplicated headers """
     error_string, extra_info = '', {}
     duplicated_str = ', '.join(duplicated_headers)
     missing_str = ', '.join(missing_headers)
