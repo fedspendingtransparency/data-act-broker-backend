@@ -7,7 +7,7 @@ from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FIELD_TYPE_DICT
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
-BOOLEAN_VALUES = ["TRUE", "FALSE", "YES", "NO", "1", "0"]
+BOOLEAN_VALUES = ['TRUE', 'FALSE', 'YES', 'NO', '1', '0']
 
 
 def is_valid_type(data, data_type):
@@ -23,34 +23,34 @@ def is_valid_type(data, data_type):
     if data_type is None:
         # If no type specified, don't need to check anything
         return True
-    if data.strip() == "":
+    if data.strip() == '':
         # An empty string matches all types
         return True
-    if data_type == "STRING":
+    if data_type == 'STRING':
         return len(data) > 0
-    if data_type == "BOOLEAN":
+    if data_type == 'BOOLEAN':
         if data.upper() in BOOLEAN_VALUES:
             return True
         return False
-    if data_type == "INT":
+    if data_type == 'INT':
         try:
             int(data)
             return True
         except ValueError:
             return False
-    if data_type == "DECIMAL":
+    if data_type == 'DECIMAL':
         try:
             Decimal(data)
             return True
         except DecimalException:
             return False
-    if data_type == "LONG":
+    if data_type == 'LONG':
         try:
             int(data)
             return True
         except ValueError:
             return False
-    raise ValueError("".join(["Data Type Error, Type: ", data_type, ", Value: ", data]))
+    raise ValueError(''.join(['Data Type Error, Type: ', data_type, ', Value: ', data]))
 
 
 def clean_col(value):
@@ -258,7 +258,7 @@ def expected_length(row, csv_schema):
 
             Returns:
                 A formatted message explaining what the maximum length of the field is
-        """
+    """
     current_field = csv_schema[row['Field Name']]
     return 'Max length: {}'.format(current_field.length)
 

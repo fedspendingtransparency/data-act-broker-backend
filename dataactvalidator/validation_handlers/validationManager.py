@@ -59,7 +59,7 @@ class ValidationManager:
                                  'Error Message', 'Source Value Provided', 'Target Value Provided', 'Difference',
                                  'Source Flex Field', 'Source Row Number', 'Rule Label']
 
-    def __init__(self, is_local=True, directory=""):
+    def __init__(self, is_local=True, directory=''):
         # Initialize instance variables
         self.is_local = is_local
         self.directory = directory
@@ -126,7 +126,7 @@ class ValidationManager:
         if self.is_local:
             return os.path.join(self.directory, path)
         # Forcing forward slash here instead of using os.path to write a valid path for S3
-        return "".join(["errors/", path])
+        return ''.join(['errors/', path])
 
     def run_validation(self, job):
         """ Run validations for specified job
@@ -189,7 +189,7 @@ class ValidationManager:
         create_file_if_needed(self.job.job_id, self.file_name)
 
         # Get file size and write to jobs table
-        if CONFIG_BROKER["use_aws"]:
+        if CONFIG_BROKER['use_aws']:
             file_size = S3Handler.get_file_size(self.file_name)
         else:
             file_size = os.path.getsize(self.file_name)
@@ -250,11 +250,11 @@ class ValidationManager:
                 sess.query(DetachedAwardFinancialAssistance). \
                     filter(DetachedAwardFinancialAssistance.row_number.in_(error_rows_unique),
                            DetachedAwardFinancialAssistance.submission_id == self.submission_id). \
-                    update({"is_valid": False}, synchronize_session=False)
+                    update({'is_valid': False}, synchronize_session=False)
                 sess.commit()
                 min_action_date, max_action_date = get_action_dates(self.submission_id)
                 sess.query(Submission).filter(Submission.submission_id == self.submission_id). \
-                    update({"reporting_start_date": min_action_date, "reporting_end_date": max_action_date},
+                    update({'reporting_start_date': min_action_date, 'reporting_end_date': max_action_date},
                            synchronize_session=False)
 
             # Update job metadata
@@ -271,7 +271,7 @@ class ValidationManager:
                 populate_submission_error_info(self.submission_id)
 
             # Mark validation as finished in job tracker
-            mark_job_status(self.job.job_id, "finished")
+            mark_job_status(self.job.job_id, 'finished')
             mark_file_complete(self.job.job_id, self.file_name)
 
         except Exception:
@@ -328,7 +328,7 @@ class ValidationManager:
         # Extension Check
         extension = os.path.splitext(self.file_name)[1]
         if not extension or extension.lower() not in ['.csv', '.txt']:
-            raise ResponseException("", StatusCode.CLIENT_ERROR, None, ValidationError.fileTypeError)
+            raise ResponseException('', StatusCode.CLIENT_ERROR, None, ValidationError.fileTypeError)
 
         # Base file check
         file_row_count, self.short_rows, self.long_rows = simple_file_scan(self.reader, bucket_name, region_name,
@@ -339,9 +339,9 @@ class ValidationManager:
 
         # Making base error/warning files
         self.error_file_name = report_file_name(self.submission_id, False, self.file_type.name)
-        self.error_file_path = "".join([CONFIG_SERVICES['error_report_path'], self.error_file_name])
+        self.error_file_path = ''.join([CONFIG_SERVICES['error_report_path'], self.error_file_name])
         self.warning_file_name = report_file_name(self.submission_id, True, self.file_type.name)
-        self.warning_file_path = "".join([CONFIG_SERVICES['error_report_path'], self.warning_file_name])
+        self.warning_file_path = ''.join([CONFIG_SERVICES['error_report_path'], self.warning_file_name])
 
         with open(self.error_file_path, 'w', newline='') as error_file, \
                 open(self.warning_file_path, 'w', newline='') as warning_file:
@@ -370,7 +370,7 @@ class ValidationManager:
 
         # Ensure validated rows match initial row count
         if file_row_count != self.total_rows:
-            raise ResponseException("", StatusCode.CLIENT_ERROR, None, ValidationError.rowCountError)
+            raise ResponseException('', StatusCode.CLIENT_ERROR, None, ValidationError.rowCountError)
 
         loading_duration = (datetime.now() - loading_start).total_seconds()
         logger.info({
@@ -456,7 +456,7 @@ class ValidationManager:
                 # create a list of all required/type labels for FABS
                 labels = sess.query(ValidationLabel).all()
                 for label in labels:
-                    if label.label_type == "requirement":
+                    if label.label_type == 'requirement':
                         required_list[label.column_name] = label.label
                     else:
                         type_list[label.column_name] = label.label
@@ -684,9 +684,9 @@ class ValidationManager:
 
             # get error file name/path
             error_file_name = report_file_name(submission_id, False, first_file.name, second_file.name)
-            error_file_path = "".join([CONFIG_SERVICES['error_report_path'], error_file_name])
+            error_file_path = ''.join([CONFIG_SERVICES['error_report_path'], error_file_name])
             warning_file_name = report_file_name(submission_id, True, first_file.name, second_file.name)
-            warning_file_path = "".join([CONFIG_SERVICES['error_report_path'], warning_file_name])
+            warning_file_path = ''.join([CONFIG_SERVICES['error_report_path'], warning_file_name])
 
             # open error report and gather failed rules within it
             with open(error_file_path, 'w', newline='') as error_file,\
@@ -729,8 +729,8 @@ class ValidationManager:
         # Update error info for submission
         populate_job_error_info(job)
 
-        # mark job status as "finished"
-        mark_job_status(job_id, "finished")
+        # mark job status as 'finished'
+        mark_job_status(job_id, 'finished')
         job_duration = (datetime.now()-job_start).total_seconds()
         logger.info({
             'message': 'Completed cross-file validations on submission_id: ' + str(submission_id),
@@ -791,18 +791,18 @@ class ValidationManager:
                 StatusCode.CLIENT_ERROR, None, validation_error_type)
 
         # set job status to running and do validations
-        mark_job_status(job_id, "running")
+        mark_job_status(job_id, 'running')
         if job_type_name == 'csv_record_validation':
             self.run_validation(job)
         elif job_type_name == 'validation':
             self.run_cross_validation(job)
         else:
-            raise ResponseException("Bad job type for validator", StatusCode.INTERNAL_ERROR)
+            raise ResponseException('Bad job type for validator', StatusCode.INTERNAL_ERROR)
 
         # Update last validated date
         job.last_validated = datetime.utcnow()
         sess.commit()
-        return JsonResponse.create(StatusCode.OK, {"message": "Validation complete"})
+        return JsonResponse.create(StatusCode.OK, {'message': 'Validation complete'})
 
 
 def update_tas_ids(model_class, submission_id):
