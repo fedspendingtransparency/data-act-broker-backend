@@ -90,11 +90,11 @@ def test_derive_unique_id():
 
 
 def test_derive_fabs_awarding_sub_tier():
-    row = {'awarding_sub_tier_agency_c': '0123', 'awarding_office_code': '4567'}
+    row = {'awarding_sub_tier_agency_c': '9876', 'awarding_office_code': '4567'}
     derive_row = {'awarding_sub_tier_agency_c': None, 'awarding_office_code': '4567'}
     office_list = {'4567': '0123'}
     # Normal
-    assert validation_helper.derive_fabs_awarding_sub_tier(row, office_list) == '0123'
+    assert validation_helper.derive_fabs_awarding_sub_tier(row, office_list) == '9876'
     # Derivation
     assert validation_helper.derive_fabs_awarding_sub_tier(derive_row, office_list) == '0123'
     # Failed Derivation
