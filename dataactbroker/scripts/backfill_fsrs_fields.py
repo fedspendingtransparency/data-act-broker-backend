@@ -34,15 +34,26 @@ if __name__ == '__main__':
             logger.error("Must run one either/both of procurement and grant backfills")
             sys.exit(1)
         else:
-            if args.max_procurement_id:
-                logger.info('Reloading existing FSRS reports up to procurement id {}'.format(args.max_procurement_id))
-                old_proc_ids = sess.query(FSRSProcurement.id).filter(FSRSProcurement.id < args.max_procurement_id)\
-                    .order_by(FSRSProcurement.id).all()
-                for proc_id in old_proc_ids:
-                    procs = fetch_and_replace_batch(sess, PROCUREMENT, proc_id[0])
-            if args.max_grant_id:
-                logger.info('Loading FSRS reports up to grant id {}'.format(args.max_grant_id))
-                old_grant_ids = sess.query(FSRSGrant.id).filter(FSRSGrant.id < args.max_grant_id)\
-                    .order_by(FSRSGrant.id).all()
-                for grant_id in old_grant_ids:
-                    grants = fetch_and_replace_batch(sess, GRANT, grant_id[0])
+            next_proc_id = 1
+            max_proc_id = args.max_procurement_id if args.max_procurement_id else 0
+            if max_proc_id:
+                logger.info('Loading FSRS contracts up to {}'.format(max_proc_id))
+            next_grant_id = 1
+            max_grant_id = args.max_grant_id if args.max_grant_id else 0
+            if max_grant_id:
+                logger.info('Loading FSRS grants up to {}'.format(max_grant_id))
+
+            awards = ['Starting']
+            while len(awards) > 0:
+                procs = []
+                if max_proc_id:
+                    procs = fetch_and_replace_batch(sess, PROCUREMENT, next_proc_id, min_id=True, max_id=max_proc_id)
+                    if procs:
+                        next_proc_id = procs[-1].id + 1
+                grants = []
+                if max_grant_id:
+                    grants = fetch_and_replace_batch(sess, GRANT, next_grant_id, min_id=True, max_id=max_grant_id)
+                    if grants:
+                        next_grant_id = grants[-1].id + 1
+                awards = procs + grants
+        logger.info('Finished FSRS backfill.')

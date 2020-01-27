@@ -285,7 +285,7 @@ def to_subgrant(soap_dict):
     return FSRSSubgrant(**model_attrs)
 
 
-def retrieve_batch(service_type, id, min_id=False):
+def retrieve_batch(service_type, id, min_id=False, max_id=None):
     """ The FSRS web service returns records in batches (500 at a time). Retrieve one such batch, converting each result
         (and sub-results) into dicts.
 
@@ -293,6 +293,7 @@ def retrieve_batch(service_type, id, min_id=False):
             service_type: type of service to ping (usually 'procurement_service' or 'grant_service')
             id: id to specifically update, or minimum id to update all new records
             min_id: whether the id provided was a minimum id and all records since then will be updated
+            max_id: a max id to stop loading in additional records
 
         Yields:
             list of prime contracts or prime grants requested
@@ -301,7 +302,7 @@ def retrieve_batch(service_type, id, min_id=False):
     # Subtracting 1 from min_id since FSRS API starts one after value
     # If the last id is 50 for example the min_id is 51, the API will retrieve 52 and greater
     for report in new_client(service_type).service.getData(id=id-1)['reports']:
-        if (report['id'] == id and not min_id) or min_id:
+        if ((report['id'] == id and not max_id) or min_id) and (not max_id or report['id'] < max_id):
             as_dict = soap_to_dict(report)
             if service_type == PROCUREMENT:
                 yield to_prime_contract(as_dict)
@@ -309,7 +310,7 @@ def retrieve_batch(service_type, id, min_id=False):
                 yield to_prime_grant(as_dict)
 
 
-def fetch_and_replace_batch(sess, service_type, id, min_id=False):
+def fetch_and_replace_batch(sess, service_type, id, min_id=False, max_id=None):
     """ Hit one of the FSRS APIs and replace any local records that match. Returns the award models.
 
         Args:
@@ -317,10 +318,11 @@ def fetch_and_replace_batch(sess, service_type, id, min_id=False):
             service_type: type of service to ping (usually 'procurement_service' or 'grant_service')
             id: id to specifically update, or minimum id to update all new records
             min_id: whether the id provided was a minimum id and all records since then will be updated
+            max_id: a max id to stop loading in additional records
     """
     model = SERVICE_MODEL[service_type]
 
-    awards = list(retrieve_batch(service_type, id, min_id=min_id))
+    awards = list(retrieve_batch(service_type, id, min_id=min_id, max_id=max_id))
     ids = [a.internal_id for a in awards]
     sess.query(model).filter(model.internal_id.in_(ids)).delete(synchronize_session=False)
     sess.add_all(awards)
