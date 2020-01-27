@@ -1,5 +1,6 @@
 daimsname,fieldname,fieldname_short,required,data_type,field_length,padded_flag
 ContractTransactionUniqueKey,contracttransactionuniquekey,detached_award_proc_unique,FALSE,str,,
+PrimeAwardUniqueKey,primeawarduniquekey,unique_award_key,FALSE,str,,
 PIID,piid,piid,FALSE,str,,
 AwardingSubTierAgencyCode,awardingsubtieragencycode,awarding_sub_tier_agency_c,FALSE,str,,
 AwardingSubTierAgencyName,awardingsubtieragencyname,awarding_sub_tier_agency_n,FALSE,str,,
@@ -72,8 +73,8 @@ Simplified Procedures for Certain Commercial Items,simplified_procedures_for_cer
 Commercial Item Test Program Description Tag,commercial_item_test_program_description_tag,commercial_item_test_desc,FALSE,str,,
 Consolidated Contract,consolidated_contract,consolidated_contract,FALSE,str,,
 Consolidated Contract Description Tag,consolidated_contract_description_tag,consolidated_contract_desc,FALSE,str,,
-Contingency Humanitarian or Peacekeeping Operation,contingency_humanitarian_or_peacekeeping_operation,contingency_humanitarian_o,FALSE,str,,
-Contingency Humanitarian or Peacekeeping Operation Description Tag,contingency_humanitarian_or_peacekeeping_operation_description_tag,contingency_humanitar_desc,FALSE,str,,
+Emergency Acquisition,emergency_acquisition,contingency_humanitarian_o,FALSE,str,,
+Emergency Acquisition Description Tag,emergency_acquisition_description_tag,contingency_humanitar_desc,FALSE,str,,
 Contract Bundling,contract_bundling,contract_bundling,FALSE,str,,
 Contract Bundling Description Tag,contract_bundling_description_tag,contract_bundling_descrip,FALSE,str,,
 Contract Financing,contract_financing,contract_financing,FALSE,str,,
