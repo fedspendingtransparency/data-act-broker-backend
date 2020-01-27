@@ -298,7 +298,7 @@ SELECT
          THEN fsrs_subgrant.awardee_address_zip
          ELSE NULL
     END AS "sub_legal_entity_foreign_posta",
-    CASE WHEN cardinality(duns.business_types_codes) > 0
+    CASE WHEN cardinality(subgrant_duns.business_types) > 0
          THEN array_to_string(subgrant_duns.business_types, ',')
          ELSE NULL
     END AS "sub_business_types",

@@ -339,7 +339,7 @@ def compare_grant_results(sub, d2, grant, sub_grant, parent_duns, duns, dom_coun
         'sub_legal_entity_zip': sub_grant.awardee_address_zip,
         'sub_legal_entity_congressional': sub_grant.awardee_address_district,
         'sub_legal_entity_foreign_posta': None,
-        'sub_business_types': ','.join(duns.business_types),
+        'sub_business_types': ','.join(duns.business_types) if duns.business_types else None,
         'sub_place_of_perform_city_name': sub_grant.principle_place_city,
         'sub_place_of_perform_state_code': sub_grant.principle_place_state,
         'sub_place_of_perform_state_name': sub_grant.principle_place_state_name,
