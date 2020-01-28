@@ -10,6 +10,8 @@ from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 from dataactcore.models.domainModels import HistoricDUNS, DUNS
 from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.jobModels import Submission # noqa
+from dataactcore.models.userModel import User # noqa
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 import dataactcore.utils.parentDuns
@@ -35,6 +37,7 @@ props_columns = {
     'country_code': None,
     'congressional_district': None,
     'business_types_codes': [],
+    'business_types': [],
     'dba_name': None,
     'ultimate_parent_unique_ide': None,
     'ultimate_parent_legal_enti': None,
@@ -214,6 +217,7 @@ def import_historic_duns(sess):
             country_code,
             congressional_district,
             business_types_codes,
+            business_types,
             high_comp_officer1_amount,
             high_comp_officer1_full_na,
             high_comp_officer2_amount,
@@ -247,6 +251,7 @@ def import_historic_duns(sess):
             hd.country_code,
             hd.congressional_district,
             hd.business_types_codes,
+            hd.business_types,
             hd.high_comp_officer1_amount,
             hd.high_comp_officer1_full_na,
             hd.high_comp_officer2_amount,
