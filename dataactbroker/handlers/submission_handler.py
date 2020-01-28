@@ -18,7 +18,7 @@ from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffi
                                           Comment, CertifiedComment)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
-                                              CertifiedAwardFinancial)
+                                              CertifiedAwardFinancial, FlexField, CertifiedFlexField)
 from dataactcore.models.errorModels import File
 
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -565,7 +565,8 @@ def move_certified_data(sess, submission_id):
                                                      'submission'],
                    'award_financial': [AwardFinancial, CertifiedAwardFinancial, 'submission'],
                    'error_metadata': [ErrorMetadata, CertifiedErrorMetadata, 'job'],
-                   'comment': [Comment, CertifiedComment, 'submission']}
+                   'comment': [Comment, CertifiedComment, 'submission'],
+                   'flex_field': [FlexField, CertifiedFlexField, 'submission']}
 
     # Get list of jobs so we can use them for filtering
     job_list = sess.query(Job.job_id).filter_by(submission_id=submission_id).all()
