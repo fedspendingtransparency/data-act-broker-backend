@@ -15,6 +15,7 @@ from dataactcore.models.domainModels import States
 logger = logging.getLogger(__name__)
 PROCUREMENT = 'procurement_service'
 GRANT = 'grant_service'
+MAX_RETRIES = 5
 SERVICE_MODEL = {PROCUREMENT: FSRSProcurement, GRANT: FSRSGrant}
 g_state_by_code = {}
 
@@ -297,11 +298,25 @@ def retrieve_batch(service_type, id, min_id=False, max_id=None):
 
         Yields:
             list of prime contracts or prime grants requested
+
+        Raises:
+            Exception if the FSRS service is unavailable after MAX_RETRIES
     """
 
     # Subtracting 1 from min_id since FSRS API starts one after value
     # If the last id is 50 for example the min_id is 51, the API will retrieve 52 and greater
-    for report in new_client(service_type).service.getData(id=id-1)['reports']:
+    reports = None
+    retry = 1
+    while retry <= MAX_RETRIES:
+        try:
+            reports = new_client(service_type).service.getData(id=id-1)['reports']
+            break
+        except Exception as e:
+            logger.warning('Connection to service failed: {}'.format(e))
+            retry += 1
+    if retry > MAX_RETRIES:
+        raise Exception('Couldn\'t connect to the FSRS service after {} retries.'.format(MAX_RETRIES))
+    for report in reports:
         if ((report['id'] == id and not max_id) or min_id) and (not max_id or report['id'] < max_id):
             as_dict = soap_to_dict(report)
             if service_type == PROCUREMENT:
