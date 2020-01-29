@@ -14,6 +14,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.domainModels import DUNS
 from dataactvalidator.scripts.loader_utils import clean_data, insert_dataframe
 from dataactbroker.helpers.uri_helper import RetrieveFileFromUri
+from dataactcore.models.lookups import DUNS_BUSINESS_TYPE_DICT
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +94,7 @@ def clean_sam_data(data):
             "congressional_district": "congressional_district",
             "entity_structure": "entity_structure",
             "business_types_codes": "business_types_codes",
+            "business_types": "business_types",
             "ultimate_parent_legal_enti": "ultimate_parent_legal_enti",
             "ultimate_parent_unique_ide": "ultimate_parent_unique_ide"
         }, {})
@@ -171,6 +173,9 @@ def parse_duns_file(file_path, sess, monthly=False, benchmarks=False, metrics=No
     # convert business types string to array
     bt_func = (lambda bt_raw: pd.Series([[str(code) for code in str(bt_raw).split('~') if isinstance(bt_raw, str)]]))
     total_data = total_data.assign(business_types_codes=total_data["business_types_raw"].apply(bt_func))
+    bt_str_func = (lambda bt_codes: pd.Series([[DUNS_BUSINESS_TYPE_DICT[code] for code in bt_codes
+                                                if code in DUNS_BUSINESS_TYPE_DICT]]))
+    total_data = total_data.assign(business_types=total_data["business_types_codes"].apply(bt_str_func))
     del total_data["business_types_raw"]
 
     relevant_data = total_data[total_data['sam_extract_code'].isin(['A', 'E', '1', '2', '3'])]
@@ -238,6 +243,7 @@ def create_temp_duns_table(sess, table_name, data):
             country_code TEXT,
             congressional_district TEXT,
             business_types_codes TEXT[],
+            business_types TEXT[],
             entity_structure TEXT
         );
     """.format(table_name)
@@ -304,6 +310,7 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
         country_code = tdu.country_code,
         congressional_district = tdu.congressional_district,
         business_types_codes = tdu.business_types_codes,
+        business_types = tdu.business_types,
         entity_structure = tdu.entity_structure,
     """
     if deletes:
@@ -343,6 +350,7 @@ def update_duns(sess, duns_data, metrics=None, deletes=False):
             country_code,
             congressional_district,
             business_types_codes,
+            business_types,
             entity_structure,
             historic
         )
