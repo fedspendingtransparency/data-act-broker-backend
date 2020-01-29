@@ -11,6 +11,9 @@ from dataactcore.interfaces.db import GlobalDB
 
 class SQSMockQueue:
     UNITTEST_MOCK_DEAD_LETTER_QUEUE = "unittest-mock-dead-letter-queue"
+    _LOCAL_FAKE_QUEUE_NAME = "local-fake-queue"
+    _FAKE_AWS_ACCT = "localfakeawsaccount"
+    _FAKE_QUEUE_URL = "https://fake-us-region.queue.amazonaws.com/{}/{}".format(_FAKE_AWS_ACCT, _LOCAL_FAKE_QUEUE_NAME)
 
     def __init__(self, max_receive_count=1):
         self.max_receive_count = max_receive_count
@@ -43,6 +46,10 @@ class SQSMockQueue:
         mock_redrive = '{{"deadLetterTargetArn": "FAKE_ARN:{}", ' \
                        '"maxReceiveCount": {}}}'.format(self.UNITTEST_MOCK_DEAD_LETTER_QUEUE, self.max_receive_count)
         return {"ReceiveMessageWaitTimeSeconds": "10", "RedrivePolicy": mock_redrive}
+
+    @property
+    def url(self):
+        return self._FAKE_QUEUE_URL
 
 
 class SQSMockDeadLetterQueue:

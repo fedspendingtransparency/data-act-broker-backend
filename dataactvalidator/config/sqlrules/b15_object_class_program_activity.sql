@@ -47,7 +47,7 @@ SELECT DISTINCT
         SUM(ussgl490800_authority_outl_cpe) - SUM(ussgl490800_authority_outl_fyb) +
         SUM(ussgl498100_upward_adjustm_cpe) +
         SUM(ussgl498200_upward_adjustm_cpe)
-    ) - sf.amount AS "difference",
+    ) + sf.amount AS "difference",
     op.display_tas AS "uniqueid_TAS"
 FROM object_class_program_activity_b15_{0} AS op
     INNER JOIN sf_133 AS sf
