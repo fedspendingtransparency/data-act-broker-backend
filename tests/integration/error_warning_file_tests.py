@@ -350,6 +350,17 @@ class ErrorWarningTests(BaseTestValidator):
                 'Expected Value': '',
                 'Difference': '',
                 'Flex Field': '',
+                'Row Number': '3',
+                'Rule Label': ''
+            },
+            {
+                'Unique ID': '',
+                'Field Name': 'Formatting Error',
+                'Error Message': 'Could not parse this record correctly.',
+                'Value Provided': '',
+                'Expected Value': '',
+                'Difference': '',
+                'Flex Field': '',
                 'Row Number': '6',
                 'Rule Label': ''
             }
