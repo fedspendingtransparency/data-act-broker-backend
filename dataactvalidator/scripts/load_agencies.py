@@ -3,8 +3,9 @@ import logging
 import requests
 import re
 import numpy as np
-
 import pandas as pd
+
+from pandas import isnull
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -15,6 +16,12 @@ from dataactvalidator.scripts.loader_utils import clean_data
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
 
 logger = logging.getLogger(__name__)
+
+
+def clean_null(value):
+    if isnull(value) or not str(value).strip():
+        return None
+    return str(value).strip()
 
 
 def extract_abbreviation(row):
@@ -64,7 +71,7 @@ def update_cgacs(models, new_data):
     """ Modify existing models or create new ones.
 
         Args:
-            models: all existing frec models in the database
+            models: all existing cgac models in the database
             new_data: All the entries gathered from the agency file
     """
     for _, row in new_data.iterrows():
@@ -94,10 +101,11 @@ def load_cgac(file_name, force_reload=False):
     data = clean_data(
         data,
         CGAC,
-        {'cgac_agency_code': 'cgac_code', 'agency_name': 'agency_name',
-         'agency_abbreviation': 'agency_abbreviation'},
+        {'cgac_agency_code': 'cgac_code', 'agency_name': 'agency_name', 'agency_abbreviation': 'agency_abbreviation',
+         'icon_filename': 'icon_name'},
         {'cgac_code': {'pad_to_length': 3}}
     )
+    data['icon_name'] = data['icon_name'].apply(clean_null)
     # de-dupe
     data.drop_duplicates(subset=['cgac_code'], inplace=True)
 
@@ -173,9 +181,11 @@ def load_frec(file_name, force_reload=False):
         data,
         FREC,
         {'frec': 'frec_code', 'cgac_agency_code': 'cgac_code', 'frec_entity_description': 'agency_name',
-         'agency_abbreviation': 'agency_abbreviation', 'frec_cgac_association': 'frec_cgac'},
+         'agency_abbreviation': 'agency_abbreviation', 'frec_cgac_association': 'frec_cgac',
+         'icon_filename': 'icon_name'},
         {'frec': {'keep_null': False}, 'cgac_code': {'pad_to_length': 3}, 'frec_code': {'pad_to_length': 4}}
     )
+    data['icon_name'] = data['icon_name'].apply(clean_null)
     # de-dupe
     data = data[data.frec_cgac == 'TRUE']
     data.drop(['frec_cgac'], axis=1, inplace=True)
