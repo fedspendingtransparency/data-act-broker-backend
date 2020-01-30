@@ -74,7 +74,7 @@ def update_cgacs(models, new_data):
             models[cgac_code] = CGAC()
         for field, value in row.items():
             if field == 'agency_name':
-                value = ("%s (%s)" % (value, agency_abbreviation))
+                value = ('%s (%s)' % (value, agency_abbreviation))
             setattr(models[cgac_code], field, value)
 
 
@@ -94,9 +94,9 @@ def load_cgac(file_name, force_reload=False):
     data = clean_data(
         data,
         CGAC,
-        {"cgac_agency_code": "cgac_code", "agency_name": "agency_name",
-         "agency_abbreviation": "agency_abbreviation"},
-        {"cgac_code": {"pad_to_length": 3}}
+        {'cgac_agency_code': 'cgac_code', 'agency_name': 'agency_name',
+         'agency_abbreviation': 'agency_abbreviation'},
+        {'cgac_code': {'pad_to_length': 3}}
     )
     # de-dupe
     data.drop_duplicates(subset=['cgac_code'], inplace=True)
@@ -151,7 +151,7 @@ def update_frecs(models, new_data, cgac_dict):
             models[frec_code] = FREC()
         for field, value in row.items():
             if field == 'agency_name' and agency_abbreviation:
-                value = ("%s (%s)" % (value, agency_abbreviation))
+                value = ('%s (%s)' % (value, agency_abbreviation))
             setattr(models[frec_code], field, value)
 
 
@@ -172,9 +172,9 @@ def load_frec(file_name, force_reload=False):
     data = clean_data(
         data,
         FREC,
-        {"frec": "frec_code", "cgac_agency_code": "cgac_code", "frec_entity_description": "agency_name",
-         "agency_abbreviation": "agency_abbreviation", "frec_cgac_association": "frec_cgac"},
-        {"frec": {"keep_null": False}, "cgac_code": {"pad_to_length": 3}, "frec_code": {"pad_to_length": 4}}
+        {'frec': 'frec_code', 'cgac_agency_code': 'cgac_code', 'frec_entity_description': 'agency_name',
+         'agency_abbreviation': 'agency_abbreviation', 'frec_cgac_association': 'frec_cgac'},
+        {'frec': {'keep_null': False}, 'cgac_code': {'pad_to_length': 3}, 'frec_code': {'pad_to_length': 4}}
     )
     # de-dupe
     data = data[data.frec_cgac == 'TRUE']
@@ -182,7 +182,7 @@ def load_frec(file_name, force_reload=False):
     data.drop_duplicates(subset=['frec_code'], inplace=True)
     # create foreign key dicts
     cgac_dict = {str(cgac.cgac_code): cgac.cgac_id for
-                 cgac in sess.query(CGAC).filter(CGAC.cgac_code.in_(data["cgac_code"])).all()}
+                 cgac in sess.query(CGAC).filter(CGAC.cgac_code.in_(data['cgac_code'])).all()}
     cgac_dict_flipped = {cgac_id: cgac_code for cgac_code, cgac_id in cgac_dict.items()}
 
     # compare to existing content in table
@@ -260,27 +260,27 @@ def load_sub_tier_agencies(file_name, force_reload=False):
     data = pd.read_csv(file_name, dtype=str)
 
     condition = data['TOPTIER_FLAG'] == 'TRUE'
-    data.loc[condition, "PRIORITY"] = 1
-    data.loc[~condition, "PRIORITY"] = 2
+    data.loc[condition, 'PRIORITY'] = 1
+    data.loc[~condition, 'PRIORITY'] = 2
     data.replace({'TRUE': True, 'FALSE': False}, inplace=True)
 
     # clean data
     data = clean_data(
         data,
         SubTierAgency,
-        {"cgac_agency_code": "cgac_code", "subtier_code": "sub_tier_agency_code", "priority": "priority",
-         "frec": "frec_code", "subtier_name": "sub_tier_agency_name", "is_frec": "is_frec"},
-        {"cgac_code": {"pad_to_length": 3}, "frec_code": {"pad_to_length": 4},
-         "sub_tier_agency_code": {"pad_to_length": 4}}
+        {'cgac_agency_code': 'cgac_code', 'subtier_code': 'sub_tier_agency_code', 'priority': 'priority',
+         'frec': 'frec_code', 'subtier_name': 'sub_tier_agency_name', 'is_frec': 'is_frec'},
+        {'cgac_code': {'pad_to_length': 3}, 'frec_code': {'pad_to_length': 4},
+         'sub_tier_agency_code': {'pad_to_length': 4}}
     )
     # de-dupe
     data.drop_duplicates(subset=['sub_tier_agency_code'], inplace=True)
     # create foreign key dicts
     cgac_dict = {str(cgac.cgac_code): cgac.cgac_id for
-                 cgac in sess.query(CGAC).filter(CGAC.cgac_code.in_(data["cgac_code"])).all()}
+                 cgac in sess.query(CGAC).filter(CGAC.cgac_code.in_(data['cgac_code'])).all()}
     cgac_dict_flipped = {cgac_id: cgac_code for cgac_code, cgac_id in cgac_dict.items()}
     frec_dict = {str(frec.frec_code): frec.frec_id for
-                 frec in sess.query(FREC).filter(FREC.frec_code.in_(data["frec_code"])).all()}
+                 frec in sess.query(FREC).filter(FREC.frec_code.in_(data['frec_code'])).all()}
     frec_dict_flipped = {frec_id: frec_code for frec_code, frec_id in frec_dict.items()}
 
     # compare to existing content in table
@@ -338,4 +338,4 @@ def load_agency_data(base_path, force_reload=False):
 
 if __name__ == '__main__':
     configure_logging()
-    load_agency_data(os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"))
+    load_agency_data(os.path.join(CONFIG_BROKER['path'], 'dataactvalidator', 'config'))
