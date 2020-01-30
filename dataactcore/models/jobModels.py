@@ -216,6 +216,7 @@ class QuarterlyRevalidationThreshold(Base):
     year = Column(Integer, nullable=False)
     quarter = Column(Integer, nullable=False)
     window_start = Column(DateTime)
+    window_end = Column(DateTime)
 
 
 class FPDSUpdate(Base):
