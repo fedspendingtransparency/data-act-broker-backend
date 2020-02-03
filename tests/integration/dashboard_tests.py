@@ -1,9 +1,11 @@
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.domainModels import CGAC
 from dataactcore.models.userModel import User
 
 from dataactvalidator.health_check import create_app
 
 from tests.integration.baseTestAPI import BaseTestAPI
+from tests.integration.integration_test_helper import insert_submission
 
 
 class DashboardTests(BaseTestAPI):
@@ -28,6 +30,9 @@ class DashboardTests(BaseTestAPI):
             no_submissions_user = sess.query(User).filter(User.email == cls.test_users['no_permissions_user']).one()
             cls.no_submissions_user_email = no_submissions_user.email
             cls.no_submissions_user_id = no_submissions_user.user_id
+
+            cls.quarter_sub = insert_submission(cls.session, cls.submission_user_id, cgac_code='SYS',
+                                                start_date='01/2017', end_date='03/2017', is_quarter=True)
 
     def setUp(self):
         """ Test set-up. """
@@ -294,3 +299,52 @@ class DashboardTests(BaseTestAPI):
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'Rules must be a list of strings, or an empty list.')
+
+    def test_active_submission_overview(self):
+        """ Test successfully getting the active submission overview """
+        # Error type not specified
+        params = {'submission_id': self.quarter_sub, 'file': 'A'}
+        response = self.app.get('/v1/active_submission_overview/', params, headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 200)
+
+        # Error type specified
+        params = {'submission_id': self.quarter_sub, 'file': 'A', 'error_level': 'mixed'}
+        response = self.app.get('/v1/active_submission_overview/', params, headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 200)
+
+    def test_active_submission_overview_fail(self):
+        """ Test successfully getting the active submission overview """
+        # Invalid submission ID
+        params = {'submission_id': -1, 'file': 'A'}
+        response = self.app.get('/v1/active_submission_overview/', params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'No such submission')
+
+        # Invalid file type
+        params = {'submission_id': self.quarter_sub, 'file': 'Q'}
+        response = self.app.get('/v1/active_submission_overview/', params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'file: Must be A, B, C, cross-AB, cross-BC, cross-CD1, or cross-CD2')
+
+        # Invalid error level
+        params = {'submission_id': self.quarter_sub, 'file': 'A', 'error_level': 'all'}
+        response = self.app.get('/v1/active_submission_overview/', params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'error_level: Must be either warning, error, or mixed')
+
+        # Missing submission ID
+        params = {'file': 'A'}
+        response = self.app.get('/v1/active_submission_overview/', params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'submission_id is required')
+
+        # Missing file
+        params = {'submission_id': self.quarter_sub}
+        response = self.app.get('/v1/active_submission_overview/', params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'file: Missing data for required field.')
