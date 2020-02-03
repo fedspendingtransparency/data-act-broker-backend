@@ -609,9 +609,15 @@ class FileHandler:
         if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
             raise ResponseException('Submission has already been published', StatusCode.CLIENT_ERROR)
 
-        # if it's an unpublished FABS submission, we can start the process
         sess = GlobalDB.db().session
         submission_id = submission.submission_id
+        # Check to make sure all jobs are finished
+        unfinished_jobs = sess.query(Job).filter(Job.submission_id == submission_id,
+                                                 Job.job_status_id != JOB_STATUS_DICT['finished']).count()
+        if unfinished_jobs > 0:
+            raise ResponseException("Submission has unfinished jobs and cannot be published", StatusCode.CLIENT_ERROR)
+
+        # if it's an unpublished FABS submission that has only finished jobs, we can start the process
         log_data = {
             'message': 'Starting FABS submission publishing',
             'message_type': 'BrokerDebug',
