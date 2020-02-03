@@ -2070,7 +2070,7 @@ This endpoint returns an overview of the requested submission, along with detail
 - `icon_name`: (string) The name of the icon (if one exists, else null) associated with the agency.
 - `agency_name`: (string) The name of the agency associated with the submission.
 - `certification_deadline`: (string) The day the certification for this submission is due. `Past Due` for submissions whose deadline has passed and Null for monthly submissions.
-- `days_remaining`: (integer) The number of days left until the certification deadline. Null for submissions whose deadline has passed and monthly submissions.
+- `days_remaining`: (integer/string) The number of days left until the certification deadline. `Due Today` for submissions that are due that day, null for submissions whose deadline has passed and monthly submissions.
 - `reporting_period`: (string) The reporting period of the submission. Formatted `FY # / Q#` for quarterly submissions and `MM/YYYY` for monthly submissions.
 - `duration`: (string) The type of submission it is. Possible values:
     - `Quarterly`
