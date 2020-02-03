@@ -26,7 +26,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (
     create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, get_last_validated_date,
-    get_lastest_certified_date)
+    get_lastest_certified_date, get_window_end, get_time_period)
 
 from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
                                              Office, DUNS)
@@ -1574,7 +1574,9 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
     submission_columns = [Submission.submission_id, Submission.cgac_code, Submission.frec_code, Submission.user_id,
                           Submission.publish_status_id, Submission.d2_submission, Submission.number_of_warnings,
                           Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
-                          Submission.reporting_end_date, Submission.certifying_user_id]
+                          Submission.reporting_end_date, Submission.certifying_user_id,
+                          Submission.reporting_fiscal_year, Submission.reporting_fiscal_period,
+                          Submission.is_quarter_format]
     cgac_columns = [CGAC.cgac_code, CGAC.agency_name.label('cgac_agency_name')]
     frec_columns = [FREC.frec_code, FREC.agency_name.label('frec_agency_name')]
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
@@ -1622,11 +1624,13 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
 
     # Determine what to order by, default to 'modified'
     options = {
+        'submission_id': {'model': Submission, 'col': 'submission_id'},
         'modified': {'model': submission_updated_view, 'col': 'updated_at'},
         'reporting': {'model': Submission, 'col': 'reporting_start_date'},
         'agency': {'model': CGAC, 'col': 'agency_name'},
         'submitted_by': {'model': User, 'col': 'name'},
-        'certified_date': {'model': sub_query.c, 'col': 'certified_date'}
+        'certified_date': {'model': sub_query.c, 'col': 'certified_date'},
+        'quarterly_submission': {'model': Submission, 'col': 'is_quarter_format'}
     }
 
     if not options.get(sort):
@@ -1787,6 +1791,8 @@ def serialize_submission(submission):
     files = get_submission_files(jobs)
     status = get_submission_status(submission, jobs)
     certified_on = get_lastest_certified_date(submission)
+    window_end = get_window_end(submission)
+    time_period = get_time_period(submission)
     agency_name = submission.cgac_agency_name if submission.cgac_agency_name else submission.frec_agency_name
     return {
         'submission_id': submission.submission_id,
@@ -1801,7 +1807,9 @@ def serialize_submission(submission):
         'certifying_user': submission.certifying_user_name if submission.certifying_user_name else '',
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
         'certified_on': str(certified_on) if certified_on else '',
-
+        'quarterly_submission': submission.is_quarter_format,
+        'window_end': str(window_end) if window_end else '',
+        'time_period': time_period
     }
 
 
