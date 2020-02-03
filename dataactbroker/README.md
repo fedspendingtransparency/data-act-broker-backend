@@ -1170,11 +1170,13 @@ This endpoint lists submissions for all agencies for which the current user is a
     - `false` - only include submissions that have never been certified/published
     - `mixed` - include both certified/published and non-certified/published submissions
 - `sort` - **optional** - a string denoting what value to sort by. Defaults to `modified` if not provided. Valid values are:
+    - `submission_id` - submission id
     - `modified` - last modified date
     - `reporting` - reporting start date
     - `agency` - agency name
     - `submitted_by` - name of user that created the submission
     - `certified_date` - latest certified date
+    - `quarterly_submission` - quarterly submission or not
 - `order` - **optional** - a string indicating the sort order. Defaults to `desc` if not provided. Valid values are:
     - `desc`
     - `asc`
@@ -1262,6 +1264,9 @@ This endpoint lists submissions for all agencies for which the current user is a
         - `publishing`
     - `certifying_user` - a string containing the name of the last user to certify the submission
     - `certified_on` - a string containing the last time/date the submission was certified. (`YYYY-MM-DD HH:mm:ss`)
+    - `quarterly_submission` - whether the submission is quarterly
+    - `window_end` - a string containing the last date of the submission window
+    - `time_period` - a string representing the time frame for the submission
 
 ##### Errors
 Possible HTTP Status Codes:
