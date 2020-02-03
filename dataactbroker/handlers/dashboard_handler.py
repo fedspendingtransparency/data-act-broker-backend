@@ -597,6 +597,12 @@ def active_submission_overview(submission, file, error_level):
         join(Job, Job.job_id == ErrorMetadata.job_id).filter(Job.submission_id == submission.submission_id).\
         group_by(ErrorMetadata.job_id)
 
+    # If the error level isn't "mixed" add a filter on which severity to pull
+    if error_level == 'error':
+        rule_query = rule_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['fatal'])
+    elif error_level == 'warning':
+        rule_query = rule_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['warning'])
+
     rule_query = file_filter(rule_query, ErrorMetadata, [file])
 
     rule_values = rule_query.first()
