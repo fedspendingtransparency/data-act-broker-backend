@@ -2,6 +2,7 @@ import logging
 from operator import attrgetter
 import time
 import uuid
+import math
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
@@ -10,7 +11,8 @@ from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.errorModels import ErrorMetadata, File
-from dataactcore.models.jobModels import Job, Submission, JobDependency, CertifyHistory, CertifiedFilesHistory
+from dataactcore.models.jobModels import (Job, Submission, JobDependency, CertifyHistory, CertifiedFilesHistory,
+                                          QuarterlyRevalidationThreshold)
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance
 from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
@@ -21,8 +23,8 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.aws.sqsHandler import sqs_queue
 
 
-# This is a holding place for functions from a previous iteration of
-# broker databases and database access code. Work still to do:
+# This is a holding place for functions from a previous iteration of broker databases and database access code.
+# Work still to do:
 # - simplify functions
 # - move functions to a better place?
 # - replace GlobalDB function, which is deprecated now that db logic is refactored
@@ -556,6 +558,44 @@ def get_lastest_certified_date(submission, is_fabs=False):
         elif last_certified:
             return last_certified.created_at
     return None
+
+
+def get_window_end(submission):
+    """ Return the window end for the given submission
+
+        Arguments:
+            submission: the submission object to find its end window
+
+        Returns:
+            the datetime of the submission's window end
+    """
+    sess = GlobalDB.db().session
+    window_end = None
+    if not submission.d2_submission:
+        sub_quarter = math.ceil(submission.reporting_fiscal_period / 3)
+        sub_year = submission.reporting_fiscal_year
+        quarter_reval = sess.query(QuarterlyRevalidationThreshold).filter_by(year=sub_year, quarter=sub_quarter).\
+            one_or_none()
+        window_end = quarter_reval.window_end.date() if quarter_reval else None
+    return window_end
+
+
+def get_time_period(submission):
+    """ Return the time period for the given submission
+
+        Arguments:
+            submission: the submission object to find its end window
+
+        Returns:
+            the time period of the submission
+    """
+    if not submission.d2_submission and submission.is_quarter_format:
+        sub_quarter = submission.reporting_fiscal_period // 3
+        sub_year = submission.reporting_fiscal_year
+        time_period = 'FY {} / Q{}'.format(str(sub_year)[2:], sub_quarter)
+    else:
+        time_period = submission.reporting_start_date.strftime('%m / %Y')
+    return time_period
 
 
 def get_last_validated_date(submission_id):
