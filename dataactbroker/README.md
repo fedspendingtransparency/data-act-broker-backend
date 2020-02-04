@@ -1139,7 +1139,6 @@ Possible HTTP Status Codes:
 This endpoint lists submissions for all agencies for which the current user is a member of. Optional filters allow for more refined lists.
 
 ##### Body (JSON)
-
 ```
 {
     "page": 2
@@ -1163,30 +1162,32 @@ This endpoint lists submissions for all agencies for which the current user is a
 
 ##### Body Description
 
-- `page` - **optional** - an integer representing the page of submissions to view (offsets the list by `limit * (page - 1)`). Defaults to `1` if not provided
-- `limit` - **optional** - an integer representing the total number of results to see from this request. Defaults to `5` if not provided
-- `certified` - **required** - a string denoting the certification/publish status of the submissions listed. Allowed values are:
-    - `true` - only include submissions that have been certified/published
-    - `false` - only include submissions that have never been certified/published
-    - `mixed` - include both certified/published and non-certified/published submissions
-- `sort` - **optional** - a string denoting what value to sort by. Defaults to `modified` if not provided. Valid values are:
-    - `modified` - last modified date
-    - `reporting` - reporting start date
-    - `agency` - agency name
-    - `submitted_by` - name of user that created the submission
-    - `certified_date` - latest certified date
-- `order` - **optional** - a string indicating the sort order. Defaults to `desc` if not provided. Valid values are:
+- `page`: (integer) the page of submissions to view (offsets the list by `limit * (page - 1)`). Defaults to `1` if not provided
+- `limit`: (integer) the total number of results to see from this request. Defaults to `5` if not provided
+- `certified`: (required, string) the certification/publish status of the submissions listed. Allowed values are:
+    - `true`: only include submissions that have been certified/published
+    - `false`: only include submissions that have never been certified/published
+    - `mixed`: include both certified/published and non-certified/published submissions
+- `sort`: (string) what value to sort by. Defaults to `modified` if not provided. Valid values are:
+    - `submission_id`: submission id
+    - `modified`: last modified date
+    - `reporting`: reporting start date
+    - `agency`: agency name
+    - `submitted_by`: name of user that created the submission
+    - `certified_date`: latest certified date
+    - `quarterly_submission`: quarterly submission or not
+- `order`: (string) the sort order. Defaults to `desc` if not provided. Valid values are:
     - `desc`
     - `asc`
-- `fabs` - **optional** - a boolean indicating if the submissions listed should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
-- `filters` - **optional** - an object containing additional filters to narrow the results returned by the endpoint. Possible filters are:
-    - `submission_ids` - an array of integers or strings that limits the submission IDs returned to only the values listed in the array.
-    - `last_modified_range` - an object containing a start and end date for the last modified date range. Both must be provided if this filter is used.
-        - `start_date` - a string indicating the start date for the last modified date range (inclusive) (MM/DD/YYYY)
-        - `end_date` - a string indicating the end date for the last modified date range (inclusive) (MM/DD/YYYY)
-    - `agency_codes` - an array of strings containing CGAC and FREC codes
-    - `file_names` - an array of strings containing total or partial matches to file names (including timestamps), will match any file name including generated ones
-    - `user_ids` - an array of integers or strings that limits the list of submissions to only ones created by users within the array.
+- `fabs`: (boolean) if the submissions listed should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
+- `filters`: (dict) additional filters to narrow the results returned by the endpoint. Possible filters are:
+    - `submission_ids`: ([integer]) an array of integers or strings that limits the submission IDs returned to only the values listed in the array.
+    - `last_modified_range`: (dict) a start and end date for the last modified date range. Both must be provided if this filter is used.
+        - `start_date`: (string) the start date for the last modified date range (inclusive) (MM/DD/YYYY)
+        - `end_date`: (string) the end date for the last modified date range (inclusive) (MM/DD/YYYY)
+    - `agency_codes`: ([string]) CGAC and FREC codes
+    - `file_names`: ([string]) total or partial matches to file names (including timestamps), will match any file name including generated ones
+    - `user_ids`: ([string, integer]) limits the list of submissions to only ones created by users within the array.
 
 ##### Response (JSON)
 
@@ -1202,12 +1203,15 @@ This endpoint lists submissions for all agencies for which the current user is a
         "user_id": 1
       },
       "files": ["file1.csv", "file2.csv"],
-      "agency": "Department of the Treasury (TREAS)"
+      "agency": "Department of the Treasury (TREAS)",
       "status": "validation_successful",
       "last_modified": "2016-08-30 12:59:37.053424",
       "publish_status": "published",
       "certifying_user": "Certifier",
-      "certified_on": "2016-08-30 12:53:37.053424"
+      "certified_on": "2016-08-30 12:53:37.053424",
+      "quarterly_submission": true,
+      "window_end": "2016-10-05",
+      "time_period": "FY 16 / Q4"
     },
     {
       "reporting_end_date": "2015-09-01",
@@ -1218,12 +1222,15 @@ This endpoint lists submissions for all agencies for which the current user is a
         "user_id": 2
       },
       "files": ["file1.csv", "file2.csv"],
-      "agency": "Department of Defense (DOD)"
+      "agency": "Department of Defense (DOD)",
       "status": "file_errors",
       "last_modified": "2016-08-31 15:59:37.053424",
       "publish_status": "unpublished",
       "certifying_user": "",
-      "certified_on": ""
+      "certified_on": "",
+      "quarterly_submission": true,
+      "window_end": "2015-10-05",
+      "time_period": "FY 15 / Q4"
     }
   ],
   "total": 2,
@@ -1233,18 +1240,18 @@ This endpoint lists submissions for all agencies for which the current user is a
 
 ##### Response Attributes
 
-- `total` - An integer indicating the total submissions that match the provided parameters (including those that didn't fit within the limit)
-- `min_last_modified` - A string indicating the minimum last modified date for submissions with the same type (FABS/DABS) and certify status (certified/published, unpublished, both) as the request (additional filters do not affect this number)
-- `submissions` - An array of objects that contain details about submissions. Contents of each object are:
-    - `submission_id` - an integer indicating ID of the submission
-    - `reporting_start_date` - a string containing the start date of the submission (`YYYY-MM-DD`)
-    - `reporting_end_date` - a string containing the end date of the submission (`YYYY-MM-DD`)
-    - `user` - an object containing details of the user that created the submission:
-        - `name` - a string containing the name of the user
-        - `user_id` - an integer indicating the ID of the user
-    - `files` - an array of file names associated with the submission
-    - `agency` - a string containing the name of the agency the submission is for
-    - `status` - a string containing the current status of the submission. Possible values are:
+- `total`: (integer) the total submissions that match the provided parameters (including those that didn't fit within the limit)
+- `min_last_modified`: (string) the minimum last modified date for submissions with the same type (FABS/DABS) and certify status (certified/published, unpublished, both) as the request (additional filters do not affect this number)
+- `submissions`: ([dict]) details about submissions. Contents of each object are:
+    - `submission_id`: (integer) ID of the submission
+    - `reporting_start_date`: (string) the start date of the submission (`YYYY-MM-DD`)
+    - `reporting_end_date`: (string) the end date of the submission (`YYYY-MM-DD`)
+    - `user`: (dict) details of the user that created the submission:
+        - `name`: (string) the name of the user
+        - `user_id`: (integer) the ID of the user
+    - `files`: ([string]) file names associated with the submission
+    - `agency`: (string) the name of the agency the submission is for
+    - `status`: (string) the current status of the submission. Possible values are:
         - `failed`
         - `file_errors`
         - `running`
@@ -1254,14 +1261,17 @@ This endpoint lists submissions for all agencies for which the current user is a
         - `validation_successful_warnings`
         - `certified`
         - `validation_errors`
-    - `last_modified` - a string containing the last time/date the submission was modified in any way (`YYYY-MM-DD HH:mm:ss`)
-    - `publish_status` - a string indicating the publish status of the submission. Possible values are:
+    - `last_modified`: (string) the last time/date the submission was modified in any way (`YYYY-MM-DD HH:mm:ss`)
+    - `publish_status`: (stringr) the publish status of the submission. Possible values are:
         - `unpublished`
         - `published`
         - `updated`
         - `publishing`
-    - `certifying_user` - a string containing the name of the last user to certify the submission
-    - `certified_on` - a string containing the last time/date the submission was certified. (`YYYY-MM-DD HH:mm:ss`)
+    - `certifying_user`: (string) the name of the last user to certify the submission
+    - `certified_on`: (string) the last time/date the submission was certified. (`YYYY-MM-DD HH:mm:ss`)
+    - `quarterly_submission`: (boolean) whether the submission is quarterly
+    - `window_end`: (string) the last date of the submission window
+    - `time_period`: (string) the time frame for the submission
 
 ##### Errors
 Possible HTTP Status Codes:
