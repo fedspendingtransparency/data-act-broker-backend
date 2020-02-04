@@ -628,6 +628,7 @@ def test_derive_pii_redacted_ppop_data(database):
     assert obj['place_of_performance_city'] == 'Test City 2'
     assert obj['place_of_perform_county_co'] == '001'
     assert obj['place_of_perform_county_na'] == 'Test County'
+    assert obj['place_of_perfor_state_code'] == 'NY'
     assert obj['place_of_perform_state_nam'] == 'New York'
     assert obj['place_of_performance_zip4a'] == '54321'
     assert obj['place_of_performance_congr'] == '05'
