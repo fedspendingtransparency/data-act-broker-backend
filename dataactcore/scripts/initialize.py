@@ -12,6 +12,8 @@ from dataactcore.interfaces.function_bag import create_user_with_password
 from dataactcore.logging import configure_logging
 from dataactcore.models.userModel import User
 from dataactcore.models.jobModels import FileGeneration
+from dataactcore.models.validationModels import RuleSql, RuleSetting
+from dataactcore.models.lookups import RULE_IMPACT_DICT
 from dataactcore.scripts.setup_all_db import setup_all_db
 
 from dataactvalidator.health_check import create_app
@@ -70,6 +72,21 @@ def load_sql_rules():
     SQLLoader.load_sql("sqlRules.csv")
     logger.info('Loading non-SQL-based validation labels')
     LabelLoader.load_labels("validationLabels.csv")
+
+
+def load_rule_settings():
+    """Load the default rule settings."""
+    logger.info('Loading the default rule settings')
+    with create_app().app_context():
+        sess = GlobalDB.db().session
+        priority = 1
+        rule_settings = []
+        for rule in sess.query(RuleSql.rule_sql_id).order_by(RuleSql.rule_sql_id).all():
+            rule_settings.append(RuleSetting(rule_id=rule, agency_code=None, priority=priority,
+                                             impact_id=RULE_IMPACT_DICT['high']))
+            priority += 1
+        sess.add_all(rule_settings)
+        sess.commit()
 
 
 def load_domain_value_files(base_path, force=False):
@@ -152,6 +169,7 @@ def main():
     parser.add_argument('-l', '--load_location', help='Load city and county codes', action='store_true')
     parser.add_argument('-z', '--load_zips', help='Load zip code data', action='store_true')
     parser.add_argument('-o', '--load_offices', help='Load FPDS Office Codes', action='store_true')
+    parser.add_argument('-rs', '--load_rule_settings', help='Load default rule settings', action='store_true')
     parser.add_argument('-qrt', '--load_quarterly_revalidation', help='Load Quarterly Revalidation Threshold',
                         action='store_true')
     parser.add_argument('-u', '--uncache_all_files', help='Un-cache file generation requests', action='store_true')
@@ -162,6 +180,7 @@ def main():
     if args.initialize:
         setup_db()
         load_sql_rules()
+        load_rule_settings()
         load_domain_value_files(validator_config_path, args.force)
         load_agency_data(validator_config_path, args.force)
         load_tas_lookup()
@@ -181,6 +200,9 @@ def main():
 
     if args.load_rules:
         load_sql_rules()
+
+    if args.load_rule_settings:
+        load_rule_settings()
 
     if args.update_domain:
         load_domain_value_files(validator_config_path, args.force)
