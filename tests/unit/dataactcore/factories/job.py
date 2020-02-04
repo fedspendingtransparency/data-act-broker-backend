@@ -159,3 +159,4 @@ class QuarterlyRevalidationThresholdFactory(factory.Factory):
     year = fuzzy.FuzzyInteger(2010, 3000)
     quarter = fuzzy.FuzzyChoice((1, 2, 3, 4))
     window_start = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
+    window_end = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
