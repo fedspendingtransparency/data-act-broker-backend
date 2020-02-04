@@ -53,11 +53,12 @@ def is_valid_type(data, data_type):
     raise ValueError(''.join(['Data Type Error, Type: ', data_type, ', Value: ', data]))
 
 
-def clean_col(value):
+def clean_col(value, clean_quotes=True):
     """ Takes a value and returns None if it's empty, removes extra whitespace and surrounding quotes.
 
         Args:
             value: the value to clean
+            clean_quotes: whether to clean extra quotes or not
 
         Returns:
             None if the value is empty or just whitespace, a stripped version of the value without surrounding quotes
@@ -66,12 +67,13 @@ def clean_col(value):
     if isnull(value) or not str(value).strip():
         return None
 
-    # Trim and remove extra quotes around the outside. If removing quotes and stripping leaves nothing, return None
     value = str(value).strip()
-    if value.startswith('"') and value.endswith('"'):
-        value = value[1:-1].strip()
-        if not value:
-            return None
+    if clean_quotes:
+        # Trim and remove extra quotes around the outside. If removing quotes and stripping leaves nothing, return None
+        if value.startswith('"') and value.endswith('"'):
+            value = value[1:-1].strip()
+            if not value:
+                return None
 
     return value
 
