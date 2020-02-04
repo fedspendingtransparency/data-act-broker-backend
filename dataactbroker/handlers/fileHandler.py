@@ -625,7 +625,7 @@ class FileHandler:
         }
         logger.info(log_data)
 
-        # set publish_status to 'publishing'
+        # set publish_status to "publishing"
         sess.query(Submission).filter_by(submission_id=submission_id).\
             update({'publish_status_id': PUBLISH_STATUS_DICT['publishing'], 'updated_at': datetime.utcnow()},
                    synchronize_session=False)
@@ -949,7 +949,7 @@ class FileHandler:
                 # these are dependent on file D2 validation
                 job.job_status_id = JOB_STATUS_DICT['waiting']
 
-        # update upload jobs to 'running' for files A, B, and C for DABS submissions or for the upload job in FABS
+        # update upload jobs to "running" for files A, B, and C for DABS submissions or for the upload job in FABS
         upload_jobs = [job for job in jobs if job.job_type_id in [JOB_TYPE_DICT['file_upload']] and
                        job.file_type_id in initial_file_types]
 
