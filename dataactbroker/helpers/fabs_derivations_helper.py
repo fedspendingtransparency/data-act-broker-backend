@@ -427,6 +427,7 @@ def derive_pii_redacted_ppop_data(obj):
             obj['place_of_performance_city'] = obj['legal_entity_city_name']
             obj['place_of_perform_county_co'] = obj['legal_entity_county_code']
             obj['place_of_perform_county_na'] = obj['legal_entity_county_name']
+            obj['place_of_perfor_state_code'] = obj['legal_entity_state_code']
             obj['place_of_perform_state_nam'] = obj['legal_entity_state_name']
             obj['place_of_performance_zip4a'] = obj['legal_entity_zip5']
             obj['place_of_performance_congr'] = obj['legal_entity_congressional']
