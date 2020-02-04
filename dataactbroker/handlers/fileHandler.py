@@ -707,8 +707,8 @@ class FileHandler:
             # they can be pretty big
             cfdas = sess.query(CFDAProgram.program_number, CFDAProgram.program_title).all()
             for cfda in cfdas:
-                # This is so the key is always '##.###', which is what's required based on the SQL
-                # Could also be '###.###' which this will still pad correctly
+                # This is so the key is always "##.###", which is what's required based on the SQL
+                # Could also be "###.###" which this will still pad correctly
                 cfda_dict['%06.3f' % cfda.program_number] = cfda.program_title
             del cfdas
 
@@ -934,7 +934,7 @@ class FileHandler:
 
         jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id).all()
 
-        # set all jobs to their initial status of either 'waiting' or 'ready'
+        # set all jobs to their initial status of either "waiting" or "ready"
         for job in jobs:
             if job.job_type_id == JOB_TYPE_DICT['file_upload'] and \
                job.file_type_id in [FILE_TYPE_DICT['award'], FILE_TYPE_DICT['award_procurement']]:
@@ -1628,7 +1628,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
         except (ResponseException, ValueError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
 
-    # Determine what to order by, default to 'modified'
+    # Determine what to order by, default to "modified"
     options = {
         'submission_id': {'model': Submission, 'col': 'submission_id'},
         'modified': {'model': submission_updated_view, 'col': 'updated_at'},
