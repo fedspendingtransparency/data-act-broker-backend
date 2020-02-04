@@ -1165,9 +1165,9 @@ This endpoint lists submissions for all agencies for which the current user is a
 - `page`: (integer) the page of submissions to view (offsets the list by `limit * (page - 1)`). Defaults to `1` if not provided
 - `limit`: (integer) the total number of results to see from this request. Defaults to `5` if not provided
 - `certified`: (required, string) the certification/publish status of the submissions listed. Allowed values are:
-    - `true` - only include submissions that have been certified/published
-    - `false` - only include submissions that have never been certified/published
-    - `mixed` - include both certified/published and non-certified/published submissions
+    - `true`: only include submissions that have been certified/published
+    - `false`: only include submissions that have never been certified/published
+    - `mixed`: include both certified/published and non-certified/published submissions
 - `sort`: (string) what value to sort by. Defaults to `modified` if not provided. Valid values are:
     - `submission_id`: submission id
     - `modified`: last modified date
