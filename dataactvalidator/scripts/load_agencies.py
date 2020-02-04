@@ -5,8 +5,6 @@ import re
 import numpy as np
 import pandas as pd
 
-from pandas import isnull
-
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
@@ -14,14 +12,9 @@ from dataactcore.models.domainModels import CGAC, SubTierAgency, FREC
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import clean_data
 from dataactbroker.helpers.pandas_helper import check_dataframe_diff
+from dataactbroker.helpers.validation_helper import clean_col
 
 logger = logging.getLogger(__name__)
-
-
-def clean_null(value):
-    if isnull(value) or not str(value).strip():
-        return None
-    return str(value).strip()
 
 
 def extract_abbreviation(row):
@@ -105,7 +98,7 @@ def load_cgac(file_name, force_reload=False):
          'icon_filename': 'icon_name'},
         {'cgac_code': {'pad_to_length': 3}}
     )
-    data['icon_name'] = data['icon_name'].apply(clean_null)
+    data['icon_name'] = data['icon_name'].apply(clean_col, args=False)
     # de-dupe
     data.drop_duplicates(subset=['cgac_code'], inplace=True)
 
@@ -185,7 +178,7 @@ def load_frec(file_name, force_reload=False):
          'icon_filename': 'icon_name'},
         {'frec': {'keep_null': False}, 'cgac_code': {'pad_to_length': 3}, 'frec_code': {'pad_to_length': 4}}
     )
-    data['icon_name'] = data['icon_name'].apply(clean_null)
+    data['icon_name'] = data['icon_name'].apply(clean_col, args=False)
     # de-dupe
     data = data[data.frec_cgac == 'TRUE']
     data.drop(['frec_cgac'], axis=1, inplace=True)

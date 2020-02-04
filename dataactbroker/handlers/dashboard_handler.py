@@ -549,6 +549,12 @@ def active_submission_overview(submission, file, error_level):
             submission: submission to get the overview for
             file: The type of file to get the overview data for
             error_level: whether to get warning or error counts for the overview (possible: warning, error, mixed)
+
+        Returns:
+            A response containing overview information of the provided submission for the active DABS dashboard.
+
+        Raises:
+            ResponseException if submission provided is a FABS submission.
     """
     if submission.d2_submission:
         raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
