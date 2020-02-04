@@ -555,7 +555,6 @@ def active_submission_overview(submission, file, error_level):
     # Basic data that can be gathered from just the submission and passed filters
     response = {
         'submission_id': submission.submission_id,
-        'file': file,
         'duration': 'Quarterly' if submission.is_quarter_format else 'Monthly',
         # 'reporting_period': get_time_period(submission),
         'certification_deadline': 'N/A',
@@ -563,6 +562,12 @@ def active_submission_overview(submission, file, error_level):
         'number_of_rules': 0,
         'total_instances': 0
     }
+
+    # File type
+    if file in ['A', 'B', 'C']:
+        response['file'] = 'File ' + file
+    else:
+        response['file'] = 'Cross: ' + file.split('-')[1]
 
     sess = GlobalDB.db().session
 
