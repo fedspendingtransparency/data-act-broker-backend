@@ -170,6 +170,7 @@ class CGAC(Base):
     cgac_id = Column(Integer, primary_key=True)
     cgac_code = Column(Text, nullable=False, index=True, unique=True)
     agency_name = Column(Text)
+    icon_name = Column(Text)
 
 
 class FREC(Base):
@@ -179,6 +180,7 @@ class FREC(Base):
     agency_name = Column(Text)
     cgac_id = Column(Integer, ForeignKey("cgac.cgac_id", name='fk_frec_cgac', ondelete="CASCADE"), nullable=False)
     cgac = relationship('CGAC', foreign_keys='FREC.cgac_id', cascade="delete")
+    icon_name = Column(Text)
 
 
 class SubTierAgency(Base):

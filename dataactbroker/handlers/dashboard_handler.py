@@ -6,11 +6,12 @@ from datetime import datetime
 from sqlalchemy import case, func
 
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import get_time_period
 from dataactcore.models.domainModels import CGAC, FREC
-from dataactcore.models.errorModels import CertifiedErrorMetadata
+from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID,
                                         FILE_TYPE_DICT_LETTER)
-from dataactcore.models.jobModels import Submission, Job
+from dataactcore.models.jobModels import Submission, Job, QuarterlyRevalidationThreshold
 from dataactcore.models.userModel import User
 from dataactcore.models.validationModels import RuleSql
 
@@ -537,5 +538,89 @@ def historic_dabs_warning_table(filters, page, limit, sort='period', order='desc
                 'filename': getattr(error_metadata, 'file_{}_name'.format(target_file_type))
             })
         response['results'].append(data)
+
+    return JsonResponse.create(StatusCode.OK, response)
+
+
+def active_submission_overview(submission, file, error_level):
+    """ Gathers information for the overview section of the active DABS dashboard.
+
+        Args:
+            submission: submission to get the overview for
+            file: The type of file to get the overview data for
+            error_level: whether to get warning or error counts for the overview (possible: warning, error, mixed)
+
+        Returns:
+            A response containing overview information of the provided submission for the active DABS dashboard.
+
+        Raises:
+            ResponseException if submission provided is a FABS submission.
+    """
+    if submission.d2_submission:
+        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+
+    # Basic data that can be gathered from just the submission and passed filters
+    response = {
+        'submission_id': submission.submission_id,
+        'duration': 'Quarterly' if submission.is_quarter_format else 'Monthly',
+        'reporting_period': get_time_period(submission),
+        'certification_deadline': 'N/A',
+        'days_remaining': 'N/A',
+        'number_of_rules': 0,
+        'total_instances': 0
+    }
+
+    # File type
+    if file in ['A', 'B', 'C']:
+        response['file'] = 'File ' + file
+    else:
+        response['file'] = 'Cross: ' + file.split('-')[1]
+
+    sess = GlobalDB.db().session
+
+    # Agency-specific data
+    if submission.frec_code:
+        agency = sess.query(FREC).filter_by(frec_code=submission.frec_code).one()
+    else:
+        agency = sess.query(CGAC).filter_by(cgac_code=submission.cgac_code).one()
+
+    response['agency_name'] = agency.agency_name
+    response['icon_name'] = agency.icon_name
+
+    # Deadline information, updates the default values of N/A only if it's a quarter format and the deadline exists
+    if submission.is_quarter_format:
+        deadline = sess.query(QuarterlyRevalidationThreshold.window_end).\
+            filter_by(year=submission.reporting_fiscal_year, quarter=submission.reporting_fiscal_period // 3).first()
+        if deadline:
+            deadline = deadline.window_end.date()
+            today = datetime.now().date()
+            if today > deadline:
+                response['certification_deadline'] = 'Past Due'
+            elif today == deadline:
+                response['certification_deadline'] = deadline.strftime('%B %-d, %Y')
+                response['days_remaining'] = 'Due Today'
+            else:
+                response['certification_deadline'] = deadline.strftime('%B %-d, %Y')
+                response['days_remaining'] = (deadline - today).days
+
+    # Getting rule counts
+    rule_query = sess.query(func.sum(ErrorMetadata.occurrences).label('total_instances'),
+                            func.count(1).label('number_of_rules')).\
+        join(Job, Job.job_id == ErrorMetadata.job_id).filter(Job.submission_id == submission.submission_id).\
+        group_by(ErrorMetadata.job_id)
+
+    # If the error level isn't "mixed" add a filter on which severity to pull
+    if error_level == 'error':
+        rule_query = rule_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['fatal'])
+    elif error_level == 'warning':
+        rule_query = rule_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['warning'])
+
+    rule_query = file_filter(rule_query, ErrorMetadata, [file])
+
+    rule_values = rule_query.first()
+
+    if rule_values:
+        response['number_of_rules'] = rule_values.number_of_rules
+        response['total_instances'] = rule_values.total_instances
 
     return JsonResponse.create(StatusCode.OK, response)
