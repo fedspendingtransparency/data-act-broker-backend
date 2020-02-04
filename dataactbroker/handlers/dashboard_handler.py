@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import case, func
 
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import get_time_period
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID,
@@ -556,7 +557,7 @@ def active_submission_overview(submission, file, error_level):
     response = {
         'submission_id': submission.submission_id,
         'duration': 'Quarterly' if submission.is_quarter_format else 'Monthly',
-        # 'reporting_period': get_time_period(submission),
+        'reporting_period': get_time_period(submission),
         'certification_deadline': 'N/A',
         'days_remaining': 'N/A',
         'number_of_rules': 0,

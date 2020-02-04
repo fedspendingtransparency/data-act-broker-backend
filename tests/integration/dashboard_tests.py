@@ -1,5 +1,4 @@
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import CGAC
 from dataactcore.models.userModel import User
 
 from dataactvalidator.health_check import create_app

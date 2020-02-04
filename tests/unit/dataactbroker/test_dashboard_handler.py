@@ -143,7 +143,8 @@ def setup_submissions(sess, admin=False):
     monthly_sub = SubmissionFactory(submission_id=6, reporting_fiscal_period=9, reporting_fiscal_year=2017,
                                     certifying_user_id=agency_user.user_id, cgac_code=cgac1.cgac_code, frec_code=None,
                                     publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
-                                    user_id=agency_user.user_id, is_quarter_format=False)
+                                    user_id=agency_user.user_id, is_quarter_format=False,
+                                    reporting_start_date=datetime(2017, 6, 1))
     db_objects.extend([sub1, sub2, sub3, sub4, fabs_sub, monthly_sub])
 
     # Setup validation jobs
@@ -1056,7 +1057,7 @@ def test_active_submission_overview(database, monkeypatch):
         'agency_name': 'CGAC',
         'certification_deadline': 'N/A',
         'days_remaining': 'N/A',
-        # 'reporting_period': '09 / 2019',
+        'reporting_period': '06 / 2017',
         'duration': 'Monthly',
         'file': 'File B',
         'number_of_rules': 0,
@@ -1075,7 +1076,7 @@ def test_active_submission_overview(database, monkeypatch):
         'agency_name': 'CGAC',
         'certification_deadline': 'Past Due',
         'days_remaining': 'N/A',
-        # 'reporting_period': 'FY 17 / Q3',
+        'reporting_period': 'FY 17 / Q3',
         'duration': 'Quarterly',
         'file': 'File A',
         'number_of_rules': 2,
@@ -1093,7 +1094,7 @@ def test_active_submission_overview(database, monkeypatch):
         'agency_name': 'Other CGAC',
         'certification_deadline': (today + timedelta(days=1)).strftime('%B %-d, %Y'),
         'days_remaining': 1,
-        # 'reporting_period': 'FY 18 / Q2',
+        'reporting_period': 'FY 18 / Q2',
         'duration': 'Quarterly',
         'file': 'File C',
         'number_of_rules': 0,
@@ -1110,7 +1111,7 @@ def test_active_submission_overview(database, monkeypatch):
         'agency_name': 'Other CGAC',
         'certification_deadline': today.strftime('%B %-d, %Y'),
         'days_remaining': 'Due Today',
-        # 'reporting_period': 'FY 19 / Q1',
+        'reporting_period': 'FY 19 / Q1',
         'duration': 'Quarterly',
         'file': 'File C',
         'number_of_rules': 2,
