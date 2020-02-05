@@ -23,16 +23,17 @@ def list_rule_settings(agency_code, file):
 
         Returns:
             Ordered list of rules prioritized by an agency
+
+        Raises:
+            ResponseException if invalid agency code or file type
     """
     sess = GlobalDB.db().session
 
     if file not in FILE_TYPES:
-        return JsonResponse.error(ValueError('Invalid file type: {}'.format(file)), StatusCode.CLIENT_ERROR)
-
+        return ResponseException('Invalid file type: {}'.format(file), StatusCode.CLIENT_ERROR)
     if (sess.query(CGAC).filter(CGAC.cgac_code == agency_code).count() == 0) and \
             (sess.query(FREC).filter(FREC.frec_code == agency_code).count() == 0):
-        raise ResponseException("agency_code must be a valid agency code",
-                                StatusCode.CLIENT_ERROR)
+        raise ResponseException('Invalid agency_code: {}'.format(agency_code), StatusCode.CLIENT_ERROR)
 
     # Get the base query with the file filter
     rule_settings_query = sess.query(RuleSetting.priority, RuleSql.rule_label, RuleImpact.name,
