@@ -2097,7 +2097,6 @@ This endpoint returns an overview of the requested submission, along with detail
 - `total_instances`: (integer) The total number of times rules were violated in this submission, matching the severity and file indicated.
 
 ##### Errors
-
 Possible HTTP Status Codes:
 
 - 400:
@@ -2161,7 +2160,6 @@ following attributes:
         - `high`
 
 #### Errors
-
 Possible HTTP Status Codes:
 
 - 400:
