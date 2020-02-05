@@ -81,6 +81,7 @@ class RuleSetting(Base):
     priority = Column(Integer, nullable=False)
     impact_id = Column(Integer, ForeignKey("rule_impact.rule_impact_id", name="fk_impact"), nullable=False)
 
+
 class RuleImpact(Base):
     __tablename__ = "rule_impact"
 
