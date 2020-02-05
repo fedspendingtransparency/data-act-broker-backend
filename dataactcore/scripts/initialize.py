@@ -5,6 +5,7 @@ import os
 from flask_bcrypt import Bcrypt
 
 from dataactbroker.scripts.setup_emails import setup_emails
+from dataactbroker.handlers.settings_handler import load_default_rule_settings
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -12,8 +13,6 @@ from dataactcore.interfaces.function_bag import create_user_with_password
 from dataactcore.logging import configure_logging
 from dataactcore.models.userModel import User
 from dataactcore.models.jobModels import FileGeneration
-from dataactcore.models.validationModels import RuleSql, RuleSetting
-from dataactcore.models.lookups import RULE_IMPACT_DICT
 from dataactcore.scripts.setup_all_db import setup_all_db
 
 from dataactvalidator.health_check import create_app
@@ -79,14 +78,7 @@ def load_rule_settings():
     logger.info('Loading the default rule settings')
     with create_app().app_context():
         sess = GlobalDB.db().session
-        priority = 1
-        rule_settings = []
-        for rule in sess.query(RuleSql.rule_sql_id).order_by(RuleSql.rule_sql_id).all():
-            rule_settings.append(RuleSetting(rule_id=rule, agency_code=None, priority=priority,
-                                             impact_id=RULE_IMPACT_DICT['high']))
-            priority += 1
-        sess.add_all(rule_settings)
-        sess.commit()
+        load_default_rule_settings(sess)
 
 
 def load_domain_value_files(base_path, force=False):

@@ -7,11 +7,28 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
 from dataactbroker.handlers.dashboard_handler import FILE_TYPES
 from dataactbroker.helpers.filters_helper import file_filter
+from dataactcore.models.lookups import RULE_IMPACT_DICT
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.validationModels import RuleSetting, RuleImpact, RuleSql
 
 
 logger = logging.getLogger(__name__)
+
+
+def load_default_rule_settings(sess):
+    """ Populates the default rule settings to the database
+
+        Args:
+            sess: connection to the database
+    """
+    priority = 1
+    rule_settings = []
+    for rule in sess.query(RuleSql.rule_sql_id).order_by(RuleSql.rule_sql_id).all():
+        rule_settings.append(RuleSetting(rule_id=rule, agency_code=None, priority=priority,
+                                         impact_id=RULE_IMPACT_DICT['high']))
+        priority += 1
+    sess.add_all(rule_settings)
+    sess.commit()
 
 
 def list_rule_settings(agency_code, file):
@@ -30,7 +47,7 @@ def list_rule_settings(agency_code, file):
     sess = GlobalDB.db().session
 
     if file not in FILE_TYPES:
-        return ResponseException('Invalid file type: {}'.format(file), StatusCode.CLIENT_ERROR)
+        raise ResponseException('Invalid file type: {}'.format(file), StatusCode.CLIENT_ERROR)
     if (sess.query(CGAC).filter(CGAC.cgac_code == agency_code).count() == 0) and \
             (sess.query(FREC).filter(FREC.frec_code == agency_code).count() == 0):
         raise ResponseException('Invalid agency_code: {}'.format(agency_code), StatusCode.CLIENT_ERROR)
