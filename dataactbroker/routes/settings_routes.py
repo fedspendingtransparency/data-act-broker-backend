@@ -9,7 +9,7 @@ from dataactbroker.handlers.dashboard_handler import FILE_TYPES
 
 # Add the settings routes
 def add_settings_routes(app):
-    """ Create routes related to agency data  for flask app """
+    """ Create routes related to settings """
 
     @app.route('/v1/rule_settings/', methods=['GET'])
     @requires_login
