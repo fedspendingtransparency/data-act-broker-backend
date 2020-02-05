@@ -2104,6 +2104,7 @@ Possible HTTP Status Codes:
     - Invalid parameter
     - Missing required parameter
 - 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
 
 ## Settings Routes
 
@@ -2167,7 +2168,6 @@ Possible HTTP Status Codes:
     - Invalid parameter
     - Missing required parameter
 - 401: Login required
-- 403: Permission denied, user does not have permission to view this submission
 
 ## Automated Tests
 
