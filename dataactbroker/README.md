@@ -2027,6 +2027,66 @@ Possible HTTP Status Codes:
     - Missing required parameter
 - 401: Login required
 
+### GET "/v1/get\_agency\_rule\_settings"
+This route lists an agency's stored rule settings. 
+
+#### Sample Request
+`v1/rule_settings?agency_code=097&file=cross-CD1`
+
+#### Request Params
+- `agency_code`: (required, string) the CGAC/FREC of the agency
+- `file`: (required, string) The file to filter the rule settings. Allowed values are:
+    - `A`: Appropriations
+    - `B`: Program Activity
+    - `C`: Award Financial
+    - `cross-AB`: cross-file between Appropriations and Program Activity
+    - `cross-BC`: cross-file between Program Activity and Award Financial
+    - `cross-CD1`: cross-file between Award Financial and Award Procurement
+    - `cross-CD2`: cross-file between Award Financial and Award Financial Assistance
+
+#### Response (JSON)
+
+```
+{
+    "rules": [
+        {
+            "description": "Each unique PIID (or combination of PIID/ParentAwardId) from ...",
+            "impact": "low",
+            "significance": 1,
+            "label": "C11"
+        },
+        ...
+        {
+            "description": "For each unique combination of PIID/ParentAwardId in File C...",
+            "impact": "high",
+            "significance": 4,
+            "label": "C23.2"
+        }
+    ]
+}
+```
+
+#### Response Attributes
+
+The response is a dictionary of lists representing the submission graphs, each with a list of dicts with the 
+following attributes:
+
+- `rules`: ([dict]) the list of row results
+    - `label`: (string) the rule number
+    - `description`: (string) the rule's text
+    - `impact`:  (string) the impact group. Possible values are:
+        - `low`
+        - `medium`
+        - `high`
+
+#### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid parameter
+    - Missing required parameter
+- 401: Login required
+
 ## Automated Tests
 
 Many of the broker tests involve interaction with a test database. However, these test databases are all created and 
