@@ -8,7 +8,7 @@ from tests.integration.baseTestAPI import BaseTestAPI
 
 
 class SettingsTests(BaseTestAPI):
-    """ Test dashboard routes. """
+    """ Test settings routes. """
 
     @classmethod
     def setUpClass(cls):
@@ -36,7 +36,7 @@ class SettingsTests(BaseTestAPI):
         self.login_admin_user()
 
     def test_get_rule_settings(self):
-        """ Test successfully getting the dabs summary """
+        """ Test successfully getting the agency rules settings """
         # Basic passing test
         rule_settings_params = {'agency_code': '097', 'file': 'B'}
         response = self.app.get('/v1/rule_settings/', rule_settings_params, headers={'x-session-id': self.session_id})
@@ -45,7 +45,7 @@ class SettingsTests(BaseTestAPI):
         assert 'rules' in response.json
 
     def test_get_rule_settings_fail(self):
-        """ Test failing getting the dabs summary """
+        """ Test failing getting the agency rules settings """
         # Not including any required filters
         rule_settings_params = {}
         response = self.app.get('/v1/rule_settings/', rule_settings_params, expect_errors=True,
