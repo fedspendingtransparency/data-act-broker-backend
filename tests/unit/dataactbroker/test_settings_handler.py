@@ -115,7 +115,6 @@ def test_list_rule_settings(database):
     assert results['rules'] == [rule_b1, rule_b2]
 
     # Change up the significances/impacts to show the change in order and content
-    # Note: these are still the defaults, we'll test the saved settings on the save tests
     changed_settings = sess.query(RuleSetting).filter(RuleSetting.priority.in_([1, 3])).all()
     for changed_setting in changed_settings:
         changed_setting.priority += 5
@@ -133,3 +132,26 @@ def test_list_rule_settings(database):
 
     results = rule_settings_endpoint(agency_code='097', file='B')
     assert results['rules'] == [rule_b2, rule_b1]
+
+    # Testing with a populated agency
+    cgac_rule_settings = []
+    priority = 1
+    for rule in sess.query(RuleSql.rule_sql_id).order_by(RuleSql.rule_sql_id).all():
+        cgac_rule_settings.append(RuleSetting(rule_id=rule, agency_code='1125', priority=priority,
+                                              impact_id=RULE_IMPACT_DICT['low']))
+        priority += 1
+    sess.add_all(cgac_rule_settings)
+
+    rule_a1['significance'] = 1
+    rule_a1['impact'] = 'low'
+    rule_a2['significance'] = 2
+    rule_a2['impact'] = 'low'
+    rule_b1['significance'] = 1
+    rule_b1['impact'] = 'low'
+    rule_b2['significance'] = 2
+    rule_b2['impact'] = 'low'
+
+    results = rule_settings_endpoint(agency_code='1125', file='A')
+    assert results['rules'] == [rule_a1, rule_a2]
+    results = rule_settings_endpoint(agency_code='1125', file='B')
+    assert results['rules'] == [rule_b1, rule_b2]
