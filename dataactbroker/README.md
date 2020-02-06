@@ -2107,7 +2107,7 @@ Possible HTTP Status Codes:
 
 ## Settings Routes
 
-### GET "/v1/get\_agency\_rule\_settings"
+### GET "/v1/rule\_settings"
 This route lists an agency's stored rule settings. 
 
 #### Sample Request
