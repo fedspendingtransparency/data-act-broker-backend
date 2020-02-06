@@ -31,6 +31,32 @@ def load_default_rule_settings(sess):
     sess.commit()
 
 
+def recalculate_significance(results):
+    """ Given a list of results, recalculate the significances based on their current values
+
+        Args:
+            results: list of result dicts containing the keys "rule_label" and "significance"
+
+        Returns:
+            the same list with updated "significance" values
+
+        Raises:
+            ValueError if "significance" isn't found in a result
+    """
+    for result in results:
+        if not {'rule_label', 'significance'} <= set(result.keys()):
+            raise ValueError('Each result must have a rule_label and significance')
+
+    significance_mapping = {}
+    significance = 1
+    for result in sorted(results, key=lambda result: result['significance']):
+        significance_mapping[result['rule_label']] = significance
+        significance += 1
+    for result in results:
+        result['significance'] = significance_mapping[result['rule_label']]
+    return results
+
+
 def list_rule_settings(agency_code, file):
     """ Returns a list of prioritized rules an agency.
 
@@ -73,14 +99,15 @@ def list_rule_settings(agency_code, file):
     # Note: significance/priority values may still match for the same agency as they are grouped by file types
     # if this grouping is dropped, the significance values between file types will need to be figured out
     rules = []
-    significance = 1
     for rule in rule_settings_query.all():
         rules.append({
-            'label': rule.rule_label,
+            'rule_label': rule.rule_label,
             'description': rule.rule_error_message,
-            'significance': significance,
+            'significance': rule.priority,
             'impact': rule.name
         })
-        significance += 1
+    rules = recalculate_significance(rules)
+    for rule in rules:
+        rule['label'] = rule.pop('rule_label')
 
     return JsonResponse.create(StatusCode.OK, {'rules': rules})

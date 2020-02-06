@@ -155,3 +155,62 @@ def test_list_rule_settings(database):
     assert results['rules'] == [rule_a1, rule_a2]
     results = rule_settings_endpoint(agency_code='1125', file='B')
     assert results['rules'] == [rule_b1, rule_b2]
+
+
+def test_recalculate_signficance():
+    """ Testing recalculate_signficance function. """
+    result_a = {
+        'rule_label': 'A',
+        'significance': 42
+    }
+    result_b = {
+        'rule_label': 'B',
+        'significance': 20
+    }
+    result_c = {
+        'rule_label': 'C',
+        'significance': 100,
+        'another key': 'value'
+    }
+    result_a_updated = {
+        'rule_label': 'A',
+        'significance': 2
+    }
+    result_b_updated = {
+        'rule_label': 'B',
+        'significance': 1
+    }
+    result_c_updated = {
+        'rule_label': 'C',
+        'significance': 3,
+        'another key': 'value'
+    }
+    results = [result_a, result_c, result_b]
+    expected_results = [result_a_updated, result_c_updated, result_b_updated]
+    assert settings_handler.recalculate_significance(results) == expected_results
+
+    # Invalid entries
+    invalid_a = {
+        'rule_label': 'A'
+    }
+    invalid_b = {
+        'significance': 20
+    }
+    invalid_c = {
+        'something entirely': 'C'
+    }
+
+    invalid_results = [invalid_a, result_c, result_b]
+    with pytest.raises(ValueError) as resp_except:
+        settings_handler.recalculate_significance(invalid_results)
+    assert str(resp_except.value) == 'Each result must have a rule_label and significance'
+
+    invalid_results = [result_a, invalid_c, result_b]
+    with pytest.raises(ValueError) as resp_except:
+        settings_handler.recalculate_significance(invalid_results)
+    assert str(resp_except.value) == 'Each result must have a rule_label and significance'
+
+    invalid_results = [result_a, result_c, invalid_b]
+    with pytest.raises(ValueError) as resp_except:
+        settings_handler.recalculate_significance(invalid_results)
+    assert str(resp_except.value) == 'Each result must have a rule_label and significance'
