@@ -60,11 +60,12 @@ def list_rule_settings(agency_code, file):
     rule_settings_query = file_filter(rule_settings_query, RuleSql, [file])
 
     # Filter settings by agency. If they haven't set theirs, use the defaults.
-    agency_code_filter = RuleSetting.agency_code.is_(None)
     prev_agency_settings = sess.query(RuleSetting).filter(RuleSetting.agency_code == agency_code).first()
     if prev_agency_settings:
-        rule_settings_query = rule_settings_query.filter(RuleSetting.agency_code == agency_code)
-    rule_settings_query.filter(agency_code_filter)
+        agency_code_filter = (RuleSetting.agency_code == agency_code)
+    else:
+        agency_code_filter = RuleSetting.agency_code.is_(None)
+    rule_settings_query = rule_settings_query.filter(agency_code_filter)
 
     # Order by priority/significance
     rule_settings_query = rule_settings_query.order_by(RuleSetting.priority)
