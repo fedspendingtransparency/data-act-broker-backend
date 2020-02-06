@@ -2132,7 +2132,7 @@ This endpoint returns a dictionary containing metadata about a table and a set o
     - `instances` - the number of times this rule occurred in this submission/file (secondary: significance)
     - `category` - the category of the rule (secondary: significance)
     - `impact` - the impact specified for this rule (secondary: significance)
-    - `description` - the description of the rule (secondary: significance)
+    - `description` - the description of the rule
 - `order`: (string) the sort order. Defaults to `desc` if not provided. Valid values are:
     - `desc`
     - `asc`
@@ -2200,6 +2200,7 @@ Possible HTTP Status Codes:
     - Invalid parameter
     - Missing required parameter
 - 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
 
 ## Automated Tests
 

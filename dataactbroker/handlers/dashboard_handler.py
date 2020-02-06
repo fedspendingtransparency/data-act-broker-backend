@@ -624,3 +624,99 @@ def active_submission_overview(submission, file, error_level):
         response['total_instances'] = rule_values.total_instances
 
     return JsonResponse.create(StatusCode.OK, response)
+
+
+def active_submission_table(submission, file, error_level, page, limit, sort='period', order='desc'):
+    """ Gather a list of warnings/errors based on the filters provided to display in the active dashboard table.
+
+        Args:
+            submission: submission to get the table data for
+            file: The type of file to get the table data for
+            error_level: whether to get warnings, errors, or both for the table (possible: warning, error, mixed)
+            page: page number to use in getting the list
+            limit: the number of entries per page
+            sort: the column to order on
+            order: order ascending or descending
+
+        Returns:
+            A response containing a list of results for the active submission dashboard table and the metadata for
+            the table.
+
+        Raises:
+            ResponseException if submission provided is a FABS submission.
+    """
+    if submission.d2_submission:
+        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+
+    # Basic information that is provided by the user and defaults for the rest
+    response = {
+        'page_metadata': {
+            'total': 0,
+            'page': page,
+            'limit': limit,
+            'submission_id': submission.submission_id,
+            'files': []
+        },
+        'results': []
+    }
+
+    # File type
+    if file in ['A', 'B', 'C']:
+        response['page_metadata']['files'] = [file]
+    else:
+        letters = file.split('-')[1]
+        response['page_metadata']['files'] = [letters[:1], letters[1:]]
+
+    sess = GlobalDB.db().session
+
+    # Initial query
+    table_query = sess.query(ErrorMetadata).\
+        join(Job, Job.job_id == ErrorMetadata.job_id).\
+        join(RuleSql, RuleSql.rule_label == ErrorMetadata.original_rule_label).\
+        filter(Job.submission_id == submission.submission_id)
+
+    # If the error level isn't "mixed" add a filter on which severity to pull
+    if error_level == 'error':
+        table_query = table_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['fatal'])
+    elif error_level == 'warning':
+        table_query = table_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['warning'])
+
+    table_query = file_filter(table_query, ErrorMetadata, [file])
+
+    # Total number of entries in the table
+    response['page_metadata']['total'] = table_query.count()
+
+    # Determine what to order by, default to "significance"
+    options = {
+        'significance': {'model': RuleSetting, 'col': 'priority'},
+        'rule_label': {'model': ErrorMetadata, 'col': 'original_rule_label'},
+        'instances': {'model': ErrorMetadata, 'col': 'occurrences'},
+        'category': {'model': RuleSql, 'col': 'category'},
+        'impact': {'model': RuleSetting, 'col': 'impact_id'},
+        'description': {'model': ErrorMetadata, 'col': 'rule_failed'}
+    }
+
+    sort_order = [getattr(options[sort]['model'], options[sort]['col'])]
+
+    # add secondary sorts
+    if sort in ['instances', 'category', 'impact']:
+        sort_order.append(RuleSetting.priority)
+
+    # Set the sort order
+    if order == 'desc':
+        sort_order = [order.desc() for order in sort_order]
+
+    table_query = table_query.order_by(*sort_order)
+
+    results = table_query.all()
+    for result in results:
+        response['results'].append({
+            'significance': None,
+            'rule_label': result.original_rule_label,
+            'instance_count': result.occurrences,
+            'category': None,
+            'impact': None,
+            'rule_description': result.rule_failed
+        })
+
+    return JsonResponse.create(StatusCode.OK, response)
