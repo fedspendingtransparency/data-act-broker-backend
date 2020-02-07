@@ -9,9 +9,9 @@ from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory, JobFactory, QuarterlyRevalidationThresholdFactory
 from dataactcore.models.userModel import UserAffiliation
 from dataactcore.models.lookups import (PERMISSION_TYPE_DICT, PUBLISH_STATUS_DICT, FILE_TYPE_DICT_LETTER_ID,
-                                        RULE_SEVERITY_DICT)
+                                        RULE_SEVERITY_DICT, RULE_IMPACT_DICT)
 from dataactcore.models.jobModels import Submission
-from dataactcore.models.validationModels import RuleSql
+from dataactcore.models.validationModels import RuleSql, RuleSetting
 from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
 from dataactbroker.helpers.generic_helper import fy
 from dataactbroker.helpers import filters_helper
@@ -40,6 +40,12 @@ def historic_dabs_warning_table_endpoint(filters, page=1, limit=5, sort='period'
 
 def active_submission_overview_endpoint(submission, file, error_level):
     json_response = dashboard_handler.active_submission_overview(submission, file, error_level)
+    assert json_response.status_code == 200
+    return json.loads(json_response.get_data().decode('UTF-8'))
+
+
+def active_submission_table_endpoint(submission, file, error_level, page=1, limit=5, sort='significance', order='desc'):
+    json_response = dashboard_handler.active_submission_table(submission, file, error_level, page, limit, sort, order)
     assert json_response.status_code == 200
     return json.loads(json_response.get_data().decode('UTF-8'))
 
@@ -162,21 +168,34 @@ def setup_submissions(sess, admin=False):
                         original_filename='sub3_filec.csv')
     db_objects.extend([sub1_a, sub1_b, sub1_ab, sub2_b, sub2_c, sub2_bc, sub3_c])
 
+    # Setup a couple of rules
+    rule_a1 = RuleSql(rule_sql='', rule_label='A1', rule_error_message='first rule', query_name='',
+                      file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['warning'],
+                      rule_cross_file_flag=False, category='completeness')
+    rule_a2 = RuleSql(rule_sql='', rule_label='A2', rule_error_message='second rule', query_name='',
+                      file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['warning'],
+                      rule_cross_file_flag=False, category='accuracy')
+    rule_ab1 = RuleSql(rule_sql='', rule_label='A3', rule_error_message='first cross rule', query_name='',
+                       file_id=FILE_TYPE_DICT_LETTER_ID['A'], target_file_id=FILE_TYPE_DICT_LETTER_ID['B'],
+                       rule_severity_id=RULE_SEVERITY_DICT['warning'], rule_cross_file_flag=True, category='existence')
+    rule_ab2 = RuleSql(rule_sql='', rule_label='B1', rule_error_message='second cross rule', query_name='',
+                       file_id=FILE_TYPE_DICT_LETTER_ID['B'], target_file_id=FILE_TYPE_DICT_LETTER_ID['A'],
+                       rule_severity_id=RULE_SEVERITY_DICT['warning'], rule_cross_file_flag=True, category='existence')
+    db_objects.extend([rule_a1, rule_a2, rule_ab1, rule_ab2])
+
     # Setup error metadata
-    sub1_a1 = ErrorMetadata(job=sub1_a, original_rule_label='A1', occurrences=20,
+    sub1_a1 = ErrorMetadata(job=sub1_a, original_rule_label=rule_a1.rule_label, occurrences=20,
                             file_type_id=FILE_TYPE_DICT_LETTER_ID['A'], target_file_type_id=None,
-                            rule_failed='first rule', severity_id=RULE_SEVERITY_DICT['warning'])
-    sub1_a2 = ErrorMetadata(job=sub1_a, original_rule_label='A2', occurrences=30,
+                            rule_failed=rule_a1.rule_error_message, severity_id=rule_a1.rule_severity_id)
+    sub1_a2 = ErrorMetadata(job=sub1_a, original_rule_label=rule_a2.rule_label, occurrences=30,
                             file_type_id=FILE_TYPE_DICT_LETTER_ID['A'], target_file_type_id=None,
-                            rule_failed='second rule', severity_id=RULE_SEVERITY_DICT['warning'])
-    sub1_ab1 = ErrorMetadata(job=sub1_ab, original_rule_label='A3', occurrences=70,
-                             file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
-                             target_file_type_id=FILE_TYPE_DICT_LETTER_ID['B'], rule_failed='first cross rule',
-                             severity_id=RULE_SEVERITY_DICT['warning'])
-    sub1_ab2 = ErrorMetadata(job=sub1_ab, original_rule_label='B1', occurrences=130,
-                             file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
-                             target_file_type_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_failed='second cross rule',
-                             severity_id=RULE_SEVERITY_DICT['warning'])
+                            rule_failed=rule_a2.rule_error_message, severity_id=rule_a2.rule_severity_id)
+    sub1_ab1 = ErrorMetadata(job=sub1_ab, original_rule_label=rule_ab1.rule_label, occurrences=70,
+                             file_type_id=rule_ab1.file_id, target_file_type_id=rule_ab1.target_file_id,
+                             rule_failed=rule_ab1.rule_error_message, severity_id=rule_ab1.rule_severity_id)
+    sub1_ab2 = ErrorMetadata(job=sub1_ab, original_rule_label=rule_ab2.rule_label, occurrences=130,
+                             file_type_id=rule_ab2.file_id, target_file_type_id=rule_ab2.target_file_id,
+                             rule_failed=rule_ab2.rule_error_message, severity_id=rule_ab2.rule_severity_id)
     sub2_b1 = ErrorMetadata(job=sub2_b, original_rule_label='B2', occurrences=70,
                             file_type_id=FILE_TYPE_DICT_LETTER_ID['B'], target_file_type_id=None,
                             rule_failed='first B rule', severity_id=RULE_SEVERITY_DICT['warning'])
@@ -184,14 +203,14 @@ def setup_submissions(sess, admin=False):
                              file_type_id=FILE_TYPE_DICT_LETTER_ID['B'],
                              target_file_type_id=FILE_TYPE_DICT_LETTER_ID['C'], rule_failed='another cross rule',
                              severity_id=RULE_SEVERITY_DICT['warning'])
-    sub3_c3 = ErrorMetadata(job=sub3_c, original_rule_label='C3', occurrences=20,
+    sub3_c1 = ErrorMetadata(job=sub3_c, original_rule_label='C1', occurrences=20,
                             file_type_id=FILE_TYPE_DICT_LETTER_ID['C'], target_file_type_id=None,
                             rule_failed='first rule', severity_id=RULE_SEVERITY_DICT['fatal'])
-    sub3_c4 = ErrorMetadata(job=sub3_c, original_rule_label='C4', occurrences=15,
+    sub3_c2 = ErrorMetadata(job=sub3_c, original_rule_label='C2', occurrences=15,
                             file_type_id=FILE_TYPE_DICT_LETTER_ID['C'], target_file_type_id=None,
                             rule_failed='first rule', severity_id=RULE_SEVERITY_DICT['warning'])
 
-    db_objects.extend([sub1_a1, sub1_a2, sub1_ab1, sub1_ab2, sub2_b1, sub2_bc1, sub3_c3, sub3_c4])
+    db_objects.extend([sub1_a1, sub1_a2, sub1_ab1, sub1_ab2, sub2_b1, sub2_bc1, sub3_c1, sub3_c2])
 
     # Setup certified error metadata
     cert_sub1_a1 = CertifiedErrorMetadata(job=sub1_a, original_rule_label='A1', occurrences=20,
@@ -228,6 +247,22 @@ def setup_submissions(sess, admin=False):
     db_objects.extend([quart_3_year_2017, quart_2_year_2018, quart_1_year_2019])
 
     sess.add_all(db_objects)
+    sess.commit()
+
+    # Create initial rule settings
+    setting_a1 = RuleSetting(agency_code=None, rule_id=rule_a1.rule_sql_id, priority=1,
+                             impact_id=RULE_IMPACT_DICT['high'])
+    setting_a2 = RuleSetting(agency_code=None, rule_id=rule_a2.rule_sql_id, priority=2,
+                             impact_id=RULE_IMPACT_DICT['high'])
+    setting_ab1 = RuleSetting(agency_code=None, rule_id=rule_ab1.rule_sql_id, priority=1,
+                              impact_id=RULE_IMPACT_DICT['high'])
+    setting_ab2 = RuleSetting(agency_code=None, rule_id=rule_ab2.rule_sql_id, priority=2,
+                              impact_id=RULE_IMPACT_DICT['high'])
+    setting_ab1_cgac = RuleSetting(agency_code=sub1.cgac_code, rule_id=rule_ab1.rule_sql_id, priority=2,
+                                   impact_id=RULE_IMPACT_DICT['high'])
+    setting_ab2_cgac = RuleSetting(agency_code=sub1.cgac_code, rule_id=rule_ab2.rule_sql_id, priority=1,
+                                   impact_id=RULE_IMPACT_DICT['high'])
+    sess.add_all([setting_a1, setting_a2, setting_ab1, setting_ab2, setting_ab1_cgac, setting_ab2_cgac])
     sess.commit()
 
     user = agency_user if not admin else admin_user
@@ -1038,7 +1073,7 @@ def test_active_submission_overview(database, monkeypatch):
     sess = database.session
     today = datetime.now().date()
 
-    user = setup_submissions(sess, admin=False)
+    user = setup_submissions(sess, admin=True)
     monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
 
     # FABS submissions should throw an error
@@ -1124,4 +1159,144 @@ def test_active_submission_overview(database, monkeypatch):
     expected_response['number_of_rules'] = 1
     expected_response['total_instances'] = 20
     response = active_submission_overview_endpoint(due_today, 'C', 'error')
+    assert response == expected_response
+
+
+@pytest.mark.usefixtures('job_constants')
+@pytest.mark.usefixtures('user_constants')
+@pytest.mark.usefixtures('validation_constants')
+def test_active_submission_table(database, monkeypatch):
+    sess = database.session
+    today = datetime.now().date()
+
+    user = setup_submissions(sess, admin=True)
+    monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
+
+    # Shared results
+    a1_error = {
+        'significance': 1,
+        'rule_label': 'A1',
+        'instance_count': 20,
+        'category': 'completeness',
+        'impact': 'high',
+        'rule_description': 'first rule'
+    }
+    a2_error = {
+        'significance': 2,
+        'rule_label': 'A2',
+        'instance_count': 30,
+        'category': 'accuracy',
+        'impact': 'high',
+        'rule_description': 'second rule'
+    }
+
+    # FABS submissions should throw an error
+    fabs_sub = sess.query(Submission).filter(Submission.d2_submission.is_(True)).first()
+    expected_error = 'Submission must be a DABS submission.'
+    with pytest.raises(ResponseException) as resp_except:
+        dashboard_handler.active_submission_table(fabs_sub, 'B', 'warning')
+    assert str(resp_except.value) == expected_error
+
+    # all defaults, no results
+    monthly_sub = sess.query(Submission).filter(Submission.d2_submission.is_(False),
+                                                Submission.is_quarter_format.is_(False)).first()
+    expected_response = {
+        'page_metadata': {
+            'total': 0,
+            'page': 1,
+            'limit': 5,
+            'submission_id': monthly_sub.submission_id,
+            'files': ['A', 'B']
+        },
+        'results': []
+    }
+    response = active_submission_table_endpoint(monthly_sub, 'cross-AB', 'warning')
+    assert response == expected_response
+
+    # all defaults, 2 results
+    sub1 = sess.query(Submission).filter(Submission.submission_id == 1).first()
+    expected_response = {
+        'page_metadata': {
+            'total': 2,
+            'page': 1,
+            'limit': 5,
+            'submission_id': sub1.submission_id,
+            'files': ['A']
+        },
+        'results': [a2_error, a1_error]
+    }
+    response = active_submission_table_endpoint(sub1, 'A', 'warning')
+    assert response == expected_response
+
+    # page limit of 1
+    expected_response = {
+        'page_metadata': {
+            'total': 2,
+            'page': 1,
+            'limit': 1,
+            'submission_id': sub1.submission_id,
+            'files': ['A']
+        },
+        'results': [a2_error]
+    }
+    response = active_submission_table_endpoint(sub1, 'A', 'warning', limit=1)
+    assert response == expected_response
+
+    # order by impact
+    expected_response = {
+        'page_metadata': {
+            'total': 2,
+            'page': 1,
+            'limit': 5,
+            'submission_id': sub1.submission_id,
+            'files': ['A']
+        },
+        'results': [a2_error, a1_error]
+    }
+    response = active_submission_table_endpoint(sub1, 'A', 'warning', sort='impact')
+    assert response == expected_response
+
+    # ascending order
+    expected_response = {
+        'page_metadata': {
+            'total': 2,
+            'page': 1,
+            'limit': 5,
+            'submission_id': sub1.submission_id,
+            'files': ['A']
+        },
+        'results': [a1_error, a2_error]
+    }
+    response = active_submission_table_endpoint(sub1, 'A', 'warning', order='asc')
+    assert response == expected_response
+
+    # sub1 with specified priorities
+    expected_response = {
+        'page_metadata': {
+            'total': 2,
+            'page': 1,
+            'limit': 5,
+            'submission_id': sub1.submission_id,
+            'files': ['A', 'B']
+        },
+        'results': [
+            {
+                'significance': 2,
+                'rule_label': 'A3',
+                'instance_count': 70,
+                'category': 'existence',
+                'impact': 'high',
+                'rule_description': 'first cross rule'
+            },
+            {
+                'significance': 1,
+                'rule_label': 'B1',
+                'instance_count': 130,
+                'category': 'existence',
+                'impact': 'high',
+                'rule_description': 'second cross rule'
+            }
+        ]
+    }
+    response = active_submission_table_endpoint(sub1, 'cross-AB', 'warning')
     assert response == expected_response
