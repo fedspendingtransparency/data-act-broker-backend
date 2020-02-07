@@ -670,7 +670,8 @@ def active_submission_table(submission, file, error_level, page, limit, sort='pe
     sess = GlobalDB.db().session
 
     # Initial query
-    table_query = sess.query(ErrorMetadata).\
+    table_query = sess.query(ErrorMetadata.original_rule_label, ErrorMetadata.occurrences, ErrorMetadata.rule_failed,
+                             RuleSql.category).\
         join(Job, Job.job_id == ErrorMetadata.job_id).\
         join(RuleSql, RuleSql.rule_label == ErrorMetadata.original_rule_label).\
         filter(Job.submission_id == submission.submission_id)
@@ -714,7 +715,7 @@ def active_submission_table(submission, file, error_level, page, limit, sort='pe
             'significance': None,
             'rule_label': result.original_rule_label,
             'instance_count': result.occurrences,
-            'category': None,
+            'category': result.category,
             'impact': None,
             'rule_description': result.rule_failed
         })
