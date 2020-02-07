@@ -114,6 +114,13 @@ RULE_SEVERITY = [
 ]
 RULE_SEVERITY_DICT = {item.name: item.id for item in RULE_SEVERITY}
 
+RULE_IMPACT = [
+    LookupType(1, 'low', 'low'),
+    LookupType(2, 'medium', 'medium'),
+    LookupType(3, 'high', 'high')
+]
+RULE_IMPACT_DICT = {item.name: item.id for item in RULE_IMPACT}
+
 SUBMISSION_TYPE = [
     LookupType(1, 'all', 'Warning for all pages'),
     LookupType(2, 'dabs', 'Warning for DABS pages'),
