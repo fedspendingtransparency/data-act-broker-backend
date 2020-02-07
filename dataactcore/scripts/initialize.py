@@ -5,6 +5,7 @@ import os
 from flask_bcrypt import Bcrypt
 
 from dataactbroker.scripts.setup_emails import setup_emails
+from dataactbroker.handlers.settings_handler import load_default_rule_settings
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -70,6 +71,14 @@ def load_sql_rules():
     SQLLoader.load_sql("sqlRules.csv")
     logger.info('Loading non-SQL-based validation labels')
     LabelLoader.load_labels("validationLabels.csv")
+
+
+def load_rule_settings():
+    """Load the default rule settings."""
+    logger.info('Loading the default rule settings')
+    with create_app().app_context():
+        sess = GlobalDB.db().session
+        load_default_rule_settings(sess)
 
 
 def load_domain_value_files(base_path, force=False):
@@ -152,6 +161,7 @@ def main():
     parser.add_argument('-l', '--load_location', help='Load city and county codes', action='store_true')
     parser.add_argument('-z', '--load_zips', help='Load zip code data', action='store_true')
     parser.add_argument('-o', '--load_offices', help='Load FPDS Office Codes', action='store_true')
+    parser.add_argument('-rs', '--load_rule_settings', help='Load default rule settings', action='store_true')
     parser.add_argument('-qrt', '--load_quarterly_revalidation', help='Load Quarterly Revalidation Threshold',
                         action='store_true')
     parser.add_argument('-u', '--uncache_all_files', help='Un-cache file generation requests', action='store_true')
@@ -162,6 +172,7 @@ def main():
     if args.initialize:
         setup_db()
         load_sql_rules()
+        load_rule_settings()
         load_domain_value_files(validator_config_path, args.force)
         load_agency_data(validator_config_path, args.force)
         load_tas_lookup()
@@ -181,6 +192,9 @@ def main():
 
     if args.load_rules:
         load_sql_rules()
+
+    if args.load_rule_settings:
+        load_rule_settings()
 
     if args.update_domain:
         load_domain_value_files(validator_config_path, args.force)
