@@ -42,7 +42,7 @@ class SettingsTests(BaseTestAPI):
         response = self.app.get('/v1/rule_settings/', rule_settings_params, headers={'x-session-id': self.session_id})
 
         self.assertEqual(response.status_code, 200)
-        assert 'rules' in response.json
+        assert {'errors', 'warnings'} <= set(response.json.keys())
 
     def test_get_rule_settings_fail(self):
         """ Test failing getting the agency rules settings """

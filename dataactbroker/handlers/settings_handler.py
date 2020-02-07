@@ -5,9 +5,9 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactbroker.handlers.dashboard_handler import FILE_TYPES
+from dataactbroker.handlers.dashboard_handler import FILE_TYPES, generate_file_type
 from dataactbroker.helpers.filters_helper import file_filter
-from dataactcore.models.lookups import RULE_IMPACT_DICT
+from dataactcore.models.lookups import RULE_IMPACT_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.validationModels import RuleSetting, RuleImpact, RuleSql
 
@@ -21,40 +21,26 @@ def load_default_rule_settings(sess):
         Args:
             sess: connection to the database
     """
-    priority = 1
+    priorities = {}
     rule_settings = []
-    for rule in sess.query(RuleSql.rule_sql_id).order_by(RuleSql.rule_sql_id).all():
-        rule_settings.append(RuleSetting(rule_id=rule, agency_code=None, priority=priority,
-                                         impact_id=RULE_IMPACT_DICT['high']))
-        priority += 1
+    for rule in sess.query(RuleSql).order_by(RuleSql.rule_sql_id).all():
+        file_type = generate_file_type(rule.file_id, rule.target_file_id)
+        if file_type not in priorities:
+            priorities[file_type] = {'error': 1, 'warning': 1}
+
+        if rule.rule_severity_id == RULE_SEVERITY_DICT['warning']:
+            rule_settings.append(RuleSetting(rule_id=rule.rule_sql_id, agency_code=None,
+                                             priority=priorities[file_type]['warning'],
+                                             impact_id=RULE_IMPACT_DICT['high']))
+            priorities[file_type]['warning'] += 1
+        else:
+            rule_settings.append(RuleSetting(rule_id=rule.rule_sql_id, agency_code=None,
+                                             priority=priorities[file_type]['error'],
+                                             impact_id=RULE_IMPACT_DICT['high']))
+            priorities[file_type]['error'] += 1
+
     sess.add_all(rule_settings)
     sess.commit()
-
-
-def recalculate_significance(results):
-    """ Given a list of results, recalculate the significances based on their current values
-
-        Args:
-            results: list of result dicts containing the keys "rule_label" and "significance"
-
-        Returns:
-            the same list with updated "significance" values
-
-        Raises:
-            ValueError if "significance" isn't found in a result
-    """
-    for result in results:
-        if not {'rule_label', 'significance'} <= set(result.keys()):
-            raise ValueError('Each result must have a rule_label and significance')
-
-    significance_mapping = {}
-    significance = 1
-    for result in sorted(results, key=lambda result: result['significance']):
-        significance_mapping[result['rule_label']] = significance
-        significance += 1
-    for result in results:
-        result['significance'] = significance_mapping[result['rule_label']]
-    return results
 
 
 def list_rule_settings(agency_code, file):
@@ -80,7 +66,7 @@ def list_rule_settings(agency_code, file):
 
     # Get the base query with the file filter
     rule_settings_query = sess.query(RuleSetting.priority, RuleSql.rule_label, RuleImpact.name,
-                                     RuleSql.rule_error_message).\
+                                     RuleSql.rule_error_message, RuleSql.rule_severity_id).\
         join(RuleSql, RuleSql.rule_sql_id == RuleSetting.rule_id).\
         join(RuleImpact, RuleImpact.rule_impact_id == RuleSetting.impact_id)
     rule_settings_query = file_filter(rule_settings_query, RuleSql, [file])
@@ -96,18 +82,18 @@ def list_rule_settings(agency_code, file):
     # Order by priority/significance
     rule_settings_query = rule_settings_query.order_by(RuleSetting.priority)
 
-    # Note: significance/priority values may still match for the same agency as they are grouped by file types
-    # if this grouping is dropped, the significance values between file types will need to be figured out
-    rules = []
+    errors = []
+    warnings = []
     for rule in rule_settings_query.all():
-        rules.append({
-            'rule_label': rule.rule_label,
+        rule_dict = {
+            'label': rule.rule_label,
             'description': rule.rule_error_message,
             'significance': rule.priority,
             'impact': rule.name
-        })
-    rules = recalculate_significance(rules)
-    for rule in rules:
-        rule['label'] = rule.pop('rule_label')
+        }
+        if rule.rule_severity_id == RULE_SEVERITY_DICT['warning']:
+            warnings.append(rule_dict)
+        else:
+            errors.append(rule_dict)
 
-    return JsonResponse.create(StatusCode.OK, {'rules': rules})
+    return JsonResponse.create(StatusCode.OK, {'warnings': warnings, 'errors': errors})

@@ -2111,7 +2111,7 @@ Possible HTTP Status Codes:
 This route lists an agency's stored rule settings. 
 
 #### Sample Request
-`v1/rule_settings?agency_code=097&file=cross-CD1`
+`/v1/rule_settings?agency_code=097&file=cross-AB`
 
 #### Request Params
 - `agency_code`: (required, string) the CGAC/FREC of the agency
@@ -2128,19 +2128,38 @@ This route lists an agency's stored rule settings.
 
 ```
 {
-    "rules": [
+    "warnings": [
         {
-            "description": "Each unique PIID (or combination of PIID/ParentAwardId) from ...",
-            "impact": "low",
+            "description": "The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal the sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values in the award financial file (B).",
+            "label": "A18",
             "significance": 1,
-            "label": "C11"
+            "impact": "high"
         },
-        ...
         {
-            "description": "For each unique combination of PIID/ParentAwardId in File C...",
-            "impact": "high",
-            "significance": 4,
-            "label": "C23.2"
+            "description": "The ObligationsIncurredTotalByTAS_CPE amount in the appropriation file (A) does not equal the negative sum of the corresponding ObligationsIncurredByProgramObjectClass_CPE values in the award financial file (B).",
+            "label": "A19",
+            "significance": 2,
+            "impact": "high"
+        },
+        {
+            "description": "DeobligationsRecoveriesRefundsByTAS_CPE in File A should equal USSGL (4871_CPE+ 4971_CPE+ 4872_CPE+ 4972_CPE) for the TAS in File B.",
+            "label": "A35",
+            "significance": 3,
+            "impact": "high"
+        }
+    ],
+    "errors": [
+        {
+            "description": "All TAS values in File A (appropriations) should exist in File B (object class program activity)",
+            "label": "A30.1",
+            "significance": 1,
+            "impact": "high"
+        },
+        {
+            "description": "All TAS values in File B (object class program activity) should exist in File A (appropriations)",
+            "label": "A30.2",
+            "significance": 2,
+            "impact": "high"
         }
     ]
 }
@@ -2148,16 +2167,14 @@ This route lists an agency's stored rule settings.
 
 #### Response Attributes
 
-The response is a dictionary of lists representing the submission graphs, each with a list of dicts with the 
+The response is two dictionaries (`warnings` and `errors`) representing the rule settings, each with a list of dicts with the 
 following attributes:
-
-- `rules`: ([dict]) the list of row results
-    - `label`: (string) the rule number
-    - `description`: (string) the rule's text
-    - `impact`:  (string) the impact group. Possible values are:
-        - `low`
-        - `medium`
-        - `high`
+- `label`: (string) the rule number
+- `description`: (string) the rule's text
+- `impact`:  (string) the impact group. Possible values are:
+    - `low`
+    - `medium`
+    - `high`
 
 #### Errors
 Possible HTTP Status Codes:

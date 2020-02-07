@@ -5,6 +5,7 @@ from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_ID, RULE_SEVERITY_DICT, RULE_IMPACT_DICT
 from dataactcore.models.validationModels import RuleSql, RuleSetting
 from dataactbroker.handlers import settings_handler
+from dataactbroker.handlers.dashboard_handler import generate_file_type
 from dataactcore.scripts.initialize import load_default_rule_settings
 from dataactcore.utils.responseException import ResponseException
 
@@ -24,19 +25,31 @@ def setup_tests(sess):
     db_objects.extend([cgac1, frec])
 
     # Setup rules
-    rule_sql_1 = RuleSql(rule_sql='', rule_label='A1', rule_error_message='A1 Description', query_name='',
-                         file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['warning'],
-                         rule_cross_file_flag=False)
-    rule_sql_2 = RuleSql(rule_sql='', rule_label='A2', rule_error_message='A2 Description', query_name='',
-                         file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
-                         rule_cross_file_flag=False)
-    rule_sql_3 = RuleSql(rule_sql='', rule_label='B1', rule_error_message='B1 Description', query_name='',
-                         file_id=FILE_TYPE_DICT_LETTER_ID['B'], rule_severity_id=RULE_SEVERITY_DICT['warning'],
-                         rule_cross_file_flag=False)
-    rule_sql_4 = RuleSql(rule_sql='', rule_label='B2', rule_error_message='B2 Description', query_name='',
-                         file_id=FILE_TYPE_DICT_LETTER_ID['B'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
-                         rule_cross_file_flag=False)
-    sess.add_all([rule_sql_1, rule_sql_2, rule_sql_3, rule_sql_4])
+    rsql_a1 = RuleSql(rule_sql='', rule_label='A1', rule_error_message='A1 Description', query_name='',
+                      file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['warning'],
+                      rule_cross_file_flag=False)
+    rsql_a2 = RuleSql(rule_sql='', rule_label='A2', rule_error_message='A2 Description', query_name='',
+                      file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
+                      rule_cross_file_flag=False)
+    rsql_a3 = RuleSql(rule_sql='', rule_label='A3', rule_error_message='A3 Description', query_name='',
+                      file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['warning'],
+                      rule_cross_file_flag=False)
+    rsql_a4 = RuleSql(rule_sql='', rule_label='A4', rule_error_message='A4 Description', query_name='',
+                      file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
+                      rule_cross_file_flag=False)
+    rsql_b1 = RuleSql(rule_sql='', rule_label='B1', rule_error_message='B1 Description', query_name='',
+                      file_id=FILE_TYPE_DICT_LETTER_ID['B'], rule_severity_id=RULE_SEVERITY_DICT['warning'],
+                      rule_cross_file_flag=False)
+    rsql_b2 = RuleSql(rule_sql='', rule_label='B2', rule_error_message='B2 Description', query_name='',
+                      file_id=FILE_TYPE_DICT_LETTER_ID['B'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
+                      rule_cross_file_flag=False)
+    rsql_b3 = RuleSql(rule_sql='', rule_label='B3', rule_error_message='B3 Description', query_name='',
+                      file_id=FILE_TYPE_DICT_LETTER_ID['B'], rule_severity_id=RULE_SEVERITY_DICT['warning'],
+                      rule_cross_file_flag=False)
+    rsql_b4 = RuleSql(rule_sql='', rule_label='B4', rule_error_message='B4 Description', query_name='',
+                      file_id=FILE_TYPE_DICT_LETTER_ID['B'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
+                      rule_cross_file_flag=False)
+    sess.add_all([rsql_a1, rsql_a2, rsql_a3, rsql_a4, rsql_b1, rsql_b2, rsql_b3, rsql_b4])
 
     # Setup default rules
     load_default_rule_settings(sess)
@@ -89,10 +102,22 @@ def test_list_rule_settings(database):
         'description': 'A1 Description',
         'impact': 'high'
     }
-    rule_a2 = {
+    rule_a3 = {
         'significance': 2,
+        'label': 'A3',
+        'description': 'A3 Description',
+        'impact': 'high'
+    }
+    rule_a2 = {
+        'significance': 1,
         'label': 'A2',
         'description': 'A2 Description',
+        'impact': 'high'
+    }
+    rule_a4 = {
+        'significance': 2,
+        'label': 'A4',
+        'description': 'A4 Description',
         'impact': 'high'
     }
     rule_b1 = {
@@ -101,116 +126,61 @@ def test_list_rule_settings(database):
         'description': 'B1 Description',
         'impact': 'high'
     }
-    rule_b2 = {
+    rule_b3 = {
         'significance': 2,
+        'label': 'B3',
+        'description': 'B3 Description',
+        'impact': 'high'
+    }
+    rule_b2 = {
+        'significance': 1,
         'label': 'B2',
         'description': 'B2 Description',
         'impact': 'high'
     }
+    rule_b4 = {
+        'significance': 2,
+        'label': 'B4',
+        'description': 'B4 Description',
+        'impact': 'high'
+    }
     # Normal results
     results = rule_settings_endpoint(agency_code='097', file='A')
-    assert results['rules'] == [rule_a1, rule_a2]
+    assert results['errors'] == [rule_a2, rule_a4]
+    assert results['warnings'] == [rule_a1, rule_a3]
 
     results = rule_settings_endpoint(agency_code='1125', file='B')
-    assert results['rules'] == [rule_b1, rule_b2]
+    assert results['errors'] == [rule_b2, rule_b4]
+    assert results['warnings'] == [rule_b1, rule_b3]
 
-    # Change up the significances/impacts to show the change in order and content
-    changed_settings = sess.query(RuleSetting).filter(RuleSetting.priority.in_([1, 3])).all()
-    for changed_setting in changed_settings:
-        changed_setting.priority += 5
-        changed_setting.impact_id = RULE_IMPACT_DICT['medium']
-    sess.commit()
-    rule_a1['significance'] = 2
-    rule_a1['impact'] = 'medium'
-    rule_a2['significance'] = 1
-    rule_b1['significance'] = 2
-    rule_b1['impact'] = 'medium'
-    rule_b2['significance'] = 1
-
-    results = rule_settings_endpoint(agency_code='1125', file='A')
-    assert results['rules'] == [rule_a2, rule_a1]
-
-    results = rule_settings_endpoint(agency_code='097', file='B')
-    assert results['rules'] == [rule_b2, rule_b1]
-
-    # Testing with a populated agency
+    # Testing with a populated agency with reverse order of significance
     cgac_rule_settings = []
-    priority = 1
-    for rule in sess.query(RuleSql.rule_sql_id).order_by(RuleSql.rule_sql_id).all():
-        cgac_rule_settings.append(RuleSetting(rule_id=rule, agency_code='1125', priority=priority,
-                                              impact_id=RULE_IMPACT_DICT['low']))
-        priority += 1
+    priorities = {}
+    for rule in sess.query(RuleSql).order_by(RuleSql.rule_sql_id).all():
+        file_type = generate_file_type(rule.file_id, rule.target_file_id)
+        if file_type not in priorities:
+            priorities[file_type] = {'error': 2, 'warning': 2}
+
+        if rule.rule_severity_id == RULE_SEVERITY_DICT['warning']:
+            cgac_rule_settings.append(RuleSetting(rule_id=rule.rule_sql_id, agency_code='1125',
+                                                  priority=priorities[file_type]['warning'],
+                                                  impact_id=RULE_IMPACT_DICT['low']))
+            priorities[file_type]['warning'] -= 1
+        else:
+            cgac_rule_settings.append(RuleSetting(rule_id=rule.rule_sql_id, agency_code='1125',
+                                                  priority=priorities[file_type]['error'],
+                                                  impact_id=RULE_IMPACT_DICT['medium']))
+            priorities[file_type]['error'] -= 1
     sess.add_all(cgac_rule_settings)
 
-    rule_a1['significance'] = 1
-    rule_a1['impact'] = 'low'
-    rule_a2['significance'] = 2
-    rule_a2['impact'] = 'low'
-    rule_b1['significance'] = 1
-    rule_b1['impact'] = 'low'
-    rule_b2['significance'] = 2
-    rule_b2['impact'] = 'low'
+    rule_a1['significance'] = rule_b1['significance'] = rule_a2['significance'] = rule_b2['significance'] = 2
+    rule_a1['impact'] = rule_b1['impact'] = rule_a3['impact'] = rule_b3['impact'] = 'low'
+    rule_a3['significance'] = rule_b3['significance'] = rule_a4['significance'] = rule_b4['significance'] = 1
+    rule_a2['impact'] = rule_b2['impact'] = rule_a4['impact'] = rule_b4['impact'] = 'medium'
 
     results = rule_settings_endpoint(agency_code='1125', file='A')
-    assert results['rules'] == [rule_a1, rule_a2]
+    assert results['errors'] == [rule_a4, rule_a2]
+    assert results['warnings'] == [rule_a3, rule_a1]
     results = rule_settings_endpoint(agency_code='1125', file='B')
-    assert results['rules'] == [rule_b1, rule_b2]
-
-
-def test_recalculate_signficance():
-    """ Testing recalculate_signficance function. """
-    result_a = {
-        'rule_label': 'A',
-        'significance': 42
-    }
-    result_b = {
-        'rule_label': 'B',
-        'significance': 20
-    }
-    result_c = {
-        'rule_label': 'C',
-        'significance': 100,
-        'another key': 'value'
-    }
-    result_a_updated = {
-        'rule_label': 'A',
-        'significance': 2
-    }
-    result_b_updated = {
-        'rule_label': 'B',
-        'significance': 1
-    }
-    result_c_updated = {
-        'rule_label': 'C',
-        'significance': 3,
-        'another key': 'value'
-    }
-    results = [result_a, result_c, result_b]
-    expected_results = [result_a_updated, result_c_updated, result_b_updated]
-    assert settings_handler.recalculate_significance(results) == expected_results
-
-    # Invalid entries
-    invalid_a = {
-        'rule_label': 'A'
-    }
-    invalid_b = {
-        'significance': 20
-    }
-    invalid_c = {
-        'something entirely': 'C'
-    }
-
-    invalid_results = [invalid_a, result_c, result_b]
-    with pytest.raises(ValueError) as resp_except:
-        settings_handler.recalculate_significance(invalid_results)
-    assert str(resp_except.value) == 'Each result must have a rule_label and significance'
-
-    invalid_results = [result_a, invalid_c, result_b]
-    with pytest.raises(ValueError) as resp_except:
-        settings_handler.recalculate_significance(invalid_results)
-    assert str(resp_except.value) == 'Each result must have a rule_label and significance'
-
-    invalid_results = [result_a, result_c, invalid_b]
-    with pytest.raises(ValueError) as resp_except:
-        settings_handler.recalculate_significance(invalid_results)
-    assert str(resp_except.value) == 'Each result must have a rule_label and significance'
+    assert results['errors'] == [rule_b4, rule_b2]
+    assert results['warnings'] == [rule_b3, rule_b1]
