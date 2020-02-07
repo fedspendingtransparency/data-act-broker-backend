@@ -13,7 +13,7 @@ from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT,
                                         FILE_TYPE_DICT_LETTER)
 from dataactcore.models.jobModels import Submission, Job, QuarterlyRevalidationThreshold
 from dataactcore.models.userModel import User
-from dataactcore.models.validationModels import RuleSql
+from dataactcore.models.validationModels import RuleSql, RuleSetting, RuleImpact
 
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
@@ -21,12 +21,11 @@ from dataactcore.utils.statusCode import StatusCode
 
 from dataactbroker.helpers.generic_helper import fy
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter, file_filter
+from dataactbroker.helpers.dashboard_helper import FILE_TYPES, agency_has_settings, generate_file_type
 from dataactbroker.handlers.agency_handler import get_accessible_agencies
 
 
 logger = logging.getLogger(__name__)
-
-FILE_TYPES = ['A', 'B', 'C', 'cross-AB', 'cross-BC', 'cross-CD1', 'cross-CD2']
 
 
 def list_rule_labels(files, error_level='warning', fabs=False):
@@ -274,26 +273,6 @@ def historic_dabs_warning_summary(filters):
                 for agency_name, submissions in results.items()]
 
     return JsonResponse.create(StatusCode.OK, response)
-
-
-def generate_file_type(source_file_type_id, target_file_type_id):
-    """ Helper function to generate the file type given the file types
-
-        Args:
-            source_file_type_id: id of the source file type
-            target_file_type_id: id of the target file type (None for single-file)
-
-        Return:
-            string representing the file type
-    """
-    file_type = FILE_TYPE_DICT_LETTER.get(source_file_type_id)
-    target_file_type = FILE_TYPE_DICT_LETTER.get(target_file_type_id)
-    if file_type and target_file_type is None:
-        return file_type
-    elif file_type and target_file_type:
-        return 'cross-{}'.format(''.join(sorted([file_type, target_file_type])))
-    else:
-        return None
 
 
 def historic_dabs_warning_graphs(filters):
@@ -626,7 +605,7 @@ def active_submission_overview(submission, file, error_level):
     return JsonResponse.create(StatusCode.OK, response)
 
 
-def active_submission_table(submission, file, error_level, page, limit, sort='period', order='desc'):
+def active_submission_table(submission, file, error_level, page=1, limit=5, sort='significance', order='desc'):
     """ Gather a list of warnings/errors based on the filters provided to display in the active dashboard table.
 
         Args:
@@ -669,12 +648,23 @@ def active_submission_table(submission, file, error_level, page, limit, sort='pe
 
     sess = GlobalDB.db().session
 
+    agency_code = submission.frec_code or submission.cgac_code
+    has_settings = agency_has_settings(sess, agency_code, file)
+
     # Initial query
     table_query = sess.query(ErrorMetadata.original_rule_label, ErrorMetadata.occurrences, ErrorMetadata.rule_failed,
-                             RuleSql.category).\
+                             RuleSql.category, RuleSetting.priority, RuleImpact.name.label('impact_name')).\
         join(Job, Job.job_id == ErrorMetadata.job_id).\
         join(RuleSql, RuleSql.rule_label == ErrorMetadata.original_rule_label).\
+        join(RuleSetting, RuleSetting.rule_id == RuleSql.rule_sql_id).\
+        join(RuleImpact, RuleImpact.rule_impact_id == RuleSetting.impact_id).\
         filter(Job.submission_id == submission.submission_id)
+
+    # Determining which settings to use
+    if has_settings:
+        table_query = table_query.filter(RuleSetting.agency_code == agency_code)
+    else:
+        table_query = table_query.filter(RuleSetting.agency_code.is_(None))
 
     # If the error level isn't "mixed" add a filter on which severity to pull
     if error_level == 'error':
@@ -712,11 +702,11 @@ def active_submission_table(submission, file, error_level, page, limit, sort='pe
     results = table_query.all()
     for result in results:
         response['results'].append({
-            'significance': None,
+            'significance': result.priority,
             'rule_label': result.original_rule_label,
             'instance_count': result.occurrences,
             'category': result.category,
-            'impact': None,
+            'impact': result.impact_name,
             'rule_description': result.rule_failed
         })
 

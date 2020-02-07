@@ -5,8 +5,8 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactbroker.handlers.dashboard_handler import FILE_TYPES, generate_file_type
 from dataactbroker.helpers.filters_helper import file_filter
+from dataactbroker.helpers.dashboard_helper import FILE_TYPES, generate_file_type
 from dataactcore.models.lookups import RULE_IMPACT_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.validationModels import RuleSetting, RuleImpact, RuleSql
@@ -41,24 +41,6 @@ def load_default_rule_settings(sess):
 
     sess.add_all(rule_settings)
     sess.commit()
-
-
-def agency_has_settings(sess, agency_code, file):
-    """ Helper function to determine if the agency has saved any settings of this file type
-
-        Args:
-            agency_code: the agency code to work with
-            file: the rule's file type
-
-        Returns:
-            True if the agency has saved their settings for this file type
-    """
-
-    # Check to see if agency has saved their settings for this file type
-    query = sess.query(RuleSetting).\
-        join(RuleSql, RuleSql.rule_sql_id == RuleSetting.rule_id).filter(RuleSetting.agency_code == agency_code)
-    query = file_filter(query, RuleSql, [file])
-    return (query.count() > 0)
 
 
 def list_rule_settings(agency_code, file):
