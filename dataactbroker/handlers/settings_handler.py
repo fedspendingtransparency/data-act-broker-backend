@@ -43,6 +43,24 @@ def load_default_rule_settings(sess):
     sess.commit()
 
 
+def agency_has_settings(sess, agency_code, file):
+    """ Helper function to determine if the agency has saved any settings of this file type
+
+        Args:
+            agency_code: the agency code to work with
+            file: the rule's file type
+
+        Returns:
+            True if the agency has saved their settings for this file type
+    """
+
+    # Check to see if agency has saved their settings for this file type
+    query = sess.query(RuleSetting).\
+        join(RuleSql, RuleSql.rule_sql_id == RuleSetting.rule_id).filter(RuleSetting.agency_code == agency_code)
+    query = file_filter(query, RuleSql, [file])
+    return (query.count() > 0)
+
+
 def list_rule_settings(agency_code, file):
     """ Returns a list of prioritized rules an agency.
 
@@ -72,12 +90,11 @@ def list_rule_settings(agency_code, file):
     rule_settings_query = file_filter(rule_settings_query, RuleSql, [file])
 
     # Filter settings by agency. If they haven't set theirs, use the defaults.
-    prev_agency_settings = sess.query(RuleSetting).filter(RuleSetting.agency_code == agency_code).first()
-    if prev_agency_settings:
-        agency_code_filter = (RuleSetting.agency_code == agency_code)
+    if agency_has_settings(sess, agency_code, file):
+        agency_filter = (RuleSetting.agency_code == agency_code)
     else:
-        agency_code_filter = RuleSetting.agency_code.is_(None)
-    rule_settings_query = rule_settings_query.filter(agency_code_filter)
+        agency_filter = RuleSetting.agency_code.is_(None)
+    rule_settings_query = rule_settings_query.filter(agency_filter)
 
     # Order by priority/significance
     rule_settings_query = rule_settings_query.order_by(RuleSetting.priority)
