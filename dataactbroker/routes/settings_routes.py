@@ -3,7 +3,7 @@ from webargs.flaskparser import use_kwargs
 
 from dataactbroker.permissions import requires_login
 
-from dataactbroker.handlers.settings_handler import list_rule_settings
+from dataactbroker.handlers.settings_handler import list_rule_settings, save_rule_settings
 from dataactbroker.handlers.dashboard_handler import FILE_TYPES
 
 
@@ -25,3 +25,15 @@ def add_settings_routes(app):
         agency_code = kwargs.get('agency_code')
         file = kwargs.get('file')
         return list_rule_settings(agency_code, file)
+
+    @app.route('/v1/save_rule_settings/', methods=['POST'])
+    @requires_login
+    @use_kwargs({
+        'agency_code': webargs_fields.String(required=True),
+        'rules': webargs_fields.List(webargs_fields.Dict(keys=webargs_fields.String()), required=True)
+    })
+    def post_save_rule_settings(**kwargs):
+        """ Set the rule settings based on the rules provided """
+        agency_code = kwargs.get('agency_code')
+        rules = kwargs.get('rules')
+        return save_rule_settings(agency_code, rules)

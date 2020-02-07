@@ -88,3 +88,57 @@ class SettingsTests(BaseTestAPI):
                                 headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'file: Must be A, B, C, cross-AB, cross-BC, cross-CD1, or cross-CD2')
+
+    def test_save_rule_settings(self):
+        """ Test successfully saving the agency rule settings """
+        # Basic passing test
+        rule_settings_params = {'agency_code': '097', 'rules': []}
+        response = self.app.get('/v1/save_rule_settings/', rule_settings_params, headers={'x-session-id': self.session_id})
+
+        self.assertEqual(response.status_code, 200)
+        assert response.json == {"message": "Agency 097 rules saved."}
+
+    def test_save_rule_settings_fail(self):
+        """ Test failing saving the agency rule settings """
+        # Not including any required filters
+        rule_settings_params = {}
+        response = self.app.get('/v1/rule_settings/', rule_settings_params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'agency_code: Missing data for required field.'
+                                                   ' file: Missing data for required field.')
+
+        # Not including some required filters
+        rule_settings_params = {'agency_code': ''}
+        response = self.app.get('/v1/rule_settings/', rule_settings_params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'file: Missing data for required field.')
+
+        # Not including some required filters
+        rule_settings_params = {'agency_code': '', 'file': ''}
+        response = self.app.get('/v1/rule_settings/', rule_settings_params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'file: Must be A, B, C, cross-AB, cross-BC, cross-CD1, or cross-CD2')
+
+        # Not including some required filters
+        rule_settings_params = {'agency_code': '', 'file': 'cross-D1'}
+        response = self.app.get('/v1/rule_settings/', rule_settings_params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'file: Must be A, B, C, cross-AB, cross-BC, cross-CD1, or cross-CD2')
+
+        # Wrong agency code
+        rule_settings_params = {'agency_code': 'BAD', 'file': 'C'}
+        response = self.app.get('/v1/rule_settings/', rule_settings_params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'Invalid agency_code: BAD')
+
+        # Wrong file
+        rule_settings_params = {'agency_code': '097', 'file': 'BAD'}
+        response = self.app.get('/v1/rule_settings/', rule_settings_params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'file: Must be A, B, C, cross-AB, cross-BC, cross-CD1, or cross-CD2')

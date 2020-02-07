@@ -2167,6 +2167,67 @@ Possible HTTP Status Codes:
     - Missing required parameter
 - 401: Login required
 
+### POST "/v1/save\_rule\_settings"
+This route saves an agency's rule settings. 
+
+#### Body (JSON)
+```
+    {
+        "agency_code": "097",
+        "rules": [
+            {
+                "impact": "low",
+                "label": "C11",
+                "significance": 4
+            },
+            {
+                "impact": "medium",
+                "label": "C12",
+                "significance": 2
+            },
+            {
+                "impact": "high",
+                "label": "C23.1",
+                "significance": 3
+            },
+            {
+                "impact": "low",
+                "label": "C23.2",
+                "significance": 1
+            }
+        ]
+    }
+```
+
+#### Body Description
+- `agency_code`: (required, string) the CGAC/FREC of the agency
+- `rules`: (required, [dict]) The settings of the agency's rules. Comprised of the following:
+    - `label`: (required, string) the label of the rule
+    - `impact`: (required, string) the new impact of the rule
+    - `significance`: (required, string) the new significance of the rule 
+
+#### Response (JSON)
+
+```
+{
+    "message": "Agency 097 rules saved."
+}
+```
+
+#### Response Attributes
+
+The response is a dictionary of a message letting you know it is complete:
+
+- `message`: letting you know the agency rules have been saved
+
+#### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid parameter
+    - Missing required parameter
+- 401: Login required
+
 ## Automated Tests
 
 Many of the broker tests involve interaction with a test database. However, these test databases are all created and 
