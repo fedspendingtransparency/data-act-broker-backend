@@ -6,7 +6,7 @@ from dataactcore.utils.statusCode import StatusCode
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactbroker.helpers.filters_helper import file_filter
-from dataactbroker.helpers.dashboard_helper import FILE_TYPES, generate_file_type
+from dataactbroker.helpers.dashboard_helper import FILE_TYPES, generate_file_type, agency_has_settings
 from dataactcore.models.lookups import RULE_IMPACT_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.validationModels import RuleSetting, RuleImpact, RuleSql
