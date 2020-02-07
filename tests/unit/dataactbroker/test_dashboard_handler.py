@@ -1167,7 +1167,6 @@ def test_active_submission_overview(database, monkeypatch):
 @pytest.mark.usefixtures('validation_constants')
 def test_active_submission_table(database, monkeypatch):
     sess = database.session
-    today = datetime.now().date()
 
     user = setup_submissions(sess, admin=True)
     monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
@@ -1240,6 +1239,20 @@ def test_active_submission_table(database, monkeypatch):
         'results': [a2_error]
     }
     response = active_submission_table_endpoint(sub1, 'A', 'warning', limit=1)
+    assert response == expected_response
+
+    # page limit of 1, page 2
+    expected_response = {
+        'page_metadata': {
+            'total': 2,
+            'page': 2,
+            'limit': 1,
+            'submission_id': sub1.submission_id,
+            'files': ['A']
+        },
+        'results': [a1_error]
+    }
+    response = active_submission_table_endpoint(sub1, 'A', 'warning', page=2, limit=1)
     assert response == expected_response
 
     # order by impact

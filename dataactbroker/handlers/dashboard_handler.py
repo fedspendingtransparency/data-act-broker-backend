@@ -699,8 +699,11 @@ def active_submission_table(submission, file, error_level, page=1, limit=5, sort
 
     table_query = table_query.order_by(*sort_order)
 
-    results = table_query.all()
-    for result in results:
+    # The page we're on
+    offset = limit * (page - 1)
+    table_query = table_query.slice(offset, offset + limit)
+
+    for result in table_query.all():
         response['results'].append({
             'significance': result.priority,
             'rule_label': result.original_rule_label,
