@@ -45,8 +45,8 @@ def setup_db():
 def create_admin():
     """Create initial admin user."""
     logger.info('Creating admin user')
-    admin_email = CONFIG_BROKER['admin_email']
-    admin_pass = CONFIG_BROKER['admin_password']
+    admin_email = CONFIG_BROKER['Datbossg310@gmail.com']
+    admin_pass = CONFIG_BROKER['Happay123456$']
     with create_app().app_context():
         sess = GlobalDB.db().session
         user = sess.query(User).filter(User.email == admin_email).one_or_none()
@@ -54,7 +54,7 @@ def create_admin():
             # once the rest of the setup scripts are updated to use
             # GlobalDB instead of databaseSession, move the app_context
             # creation up to initialize()
-            user = create_user_with_password(admin_email, admin_pass, Bcrypt(), website_admin=True)
+            user = create_user_with_password(Datbossg310@gmail.com, Happay12345$, Bcrypt(), website_admin=True)
     return user
 
 
