@@ -30,10 +30,17 @@ def add_settings_routes(app):
     @requires_login
     @use_kwargs({
         'agency_code': webargs_fields.String(required=True),
-        'rules': webargs_fields.List(webargs_fields.Dict(keys=webargs_fields.String()), required=True)
+        'file': webargs_fields.String(validate=webargs_validate.
+                                      OneOf(FILE_TYPES, error='Must be {}, or {}'.format(', '.join(FILE_TYPES[:-1]),
+                                                                                         FILE_TYPES[-1])),
+                                      required=True),
+        'errors': webargs_fields.List(webargs_fields.Dict),
+        'warnings': webargs_fields.List(webargs_fields.Dict)
     })
     def post_save_rule_settings(**kwargs):
         """ Set the rule settings based on the rules provided """
         agency_code = kwargs.get('agency_code')
-        rules = kwargs.get('rules')
-        return save_rule_settings(agency_code, rules)
+        file = kwargs.get('file')
+        errors = kwargs.get('errors', [])
+        warnings = kwargs.get('warnings', [])
+        return save_rule_settings(agency_code, file, errors, warnings)
