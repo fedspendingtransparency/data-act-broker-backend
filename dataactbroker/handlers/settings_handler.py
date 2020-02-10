@@ -94,5 +94,77 @@ def list_rule_settings(agency_code, file):
             warnings.append(rule_dict)
         else:
             errors.append(rule_dict)
-
     return JsonResponse.create(StatusCode.OK, {'warnings': warnings, 'errors': errors})
+
+
+def validate_rule_dict(rule_dict, rule_label_mapping):
+    """ Given a dictionary representing a rule to save, validate it.
+
+        Args:
+            rule_dict: the rule dict provided
+            rule_label_mapping: dict of available rule labels to rule ids
+
+        Raises:
+            ResponseException if rule dict is invalid
+    """
+    rule_dict_keys = {'label', 'impact'}
+    if not rule_dict_keys <= set(rule_dict.keys()):
+        raise ResponseException('Rule setting must have each of the following: {}'.format(', '.join(rule_dict_keys)),
+                                StatusCode.CLIENT_ERROR)
+
+    if rule_dict['impact'] not in RULE_IMPACT_DICT:
+        raise ResponseException('Invalid impact: {}'.format(rule_dict['impact']), StatusCode.CLIENT_ERROR)
+
+
+def save_rule_settings(agency_code, file, errors, warnings):
+    """ Given two lists of rules, their settings, agency code, and file, save them in the database.
+
+        Args:
+            agency_code: string of the agency's CGAC/FREC code
+            file: the rule's file type
+            errors: list of error objects and their settings
+            warnings: list of warning objects and their settings
+
+        Raises:
+            ResponseException if invalid agency code or rule dict
+    """
+    sess = GlobalDB.db().session
+
+    if (sess.query(CGAC).filter(CGAC.cgac_code == agency_code).count() == 0) and \
+            (sess.query(FREC).filter(FREC.frec_code == agency_code).count() == 0):
+        raise ResponseException('Invalid agency_code: {}'.format(agency_code), StatusCode.CLIENT_ERROR)
+
+    has_settings = agency_has_settings(sess=sess, agency_code=agency_code, file=file)
+
+    for rule_type, rules in {'fatal': errors, 'warning': warnings}.items():
+        # Get the rule ids from the labels
+        rule_label_query = file_filter(sess.query(RuleSql.rule_label, RuleSql.rule_sql_id), RuleSql, [file])
+        rule_label_query = rule_label_query.filter(RuleSql.rule_severity_id == RULE_SEVERITY_DICT[rule_type])
+        rule_label_mapping = {}
+        for result in rule_label_query.all():
+            rule_label_mapping[result.rule_label] = result.rule_sql_id
+
+        # Compare them with the list provided
+        rule_labels = [rule['label'] for rule in rules if 'label' in rule]
+        if sorted(rule_labels) != sorted(rule_label_mapping):
+            logger.info('{} {}'.format(sorted(rule_labels), sorted(rule_label_mapping)))
+            raise ResponseException(
+                'Rules list provided doesn\'t match the rules expected: {}'.format(', '.join(rule_labels)),
+                StatusCode.CLIENT_ERROR)
+
+        # resetting priorities by the order of the incoming lists
+        priority = 1
+        for rule_dict in rules:
+            validate_rule_dict(rule_dict, rule_label_mapping)
+            rule_id = rule_label_mapping[rule_dict['label']]
+            impact_id = RULE_IMPACT_DICT[rule_dict['impact']]
+
+            if not has_settings:
+                sess.add(RuleSetting(agency_code=agency_code, rule_id=rule_id, priority=priority, impact_id=impact_id))
+            else:
+                update_params = {'priority': priority, 'impact_id': impact_id}
+                sess.query(RuleSetting).filter(RuleSetting.agency_code == agency_code, RuleSetting.rule_id == rule_id).\
+                    update(update_params)
+            priority += 1
+    sess.commit()
+    return JsonResponse.create(StatusCode.OK, {'message': 'Agency {} rules saved.'.format(agency_code)})
