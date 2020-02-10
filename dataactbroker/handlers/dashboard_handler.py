@@ -13,7 +13,7 @@ from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT,
                                         FILE_TYPE_DICT_LETTER)
 from dataactcore.models.jobModels import Submission, Job, QuarterlyRevalidationThreshold
 from dataactcore.models.userModel import User
-from dataactcore.models.validationModels import RuleSql
+from dataactcore.models.validationModels import RuleSql, RuleSetting, RuleImpact
 
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
@@ -21,12 +21,11 @@ from dataactcore.utils.statusCode import StatusCode
 
 from dataactbroker.helpers.generic_helper import fy
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter, file_filter
+from dataactbroker.helpers.dashboard_helper import FILE_TYPES, agency_has_settings, generate_file_type
 from dataactbroker.handlers.agency_handler import get_accessible_agencies
 
 
 logger = logging.getLogger(__name__)
-
-FILE_TYPES = ['A', 'B', 'C', 'cross-AB', 'cross-BC', 'cross-CD1', 'cross-CD2']
 
 
 def list_rule_labels(files, error_level='warning', fabs=False):
@@ -274,26 +273,6 @@ def historic_dabs_warning_summary(filters):
                 for agency_name, submissions in results.items()]
 
     return JsonResponse.create(StatusCode.OK, response)
-
-
-def generate_file_type(source_file_type_id, target_file_type_id):
-    """ Helper function to generate the file type given the file types
-
-        Args:
-            source_file_type_id: id of the source file type
-            target_file_type_id: id of the target file type (None for single-file)
-
-        Return:
-            string representing the file type
-    """
-    file_type = FILE_TYPE_DICT_LETTER.get(source_file_type_id)
-    target_file_type = FILE_TYPE_DICT_LETTER.get(target_file_type_id)
-    if file_type and target_file_type is None:
-        return file_type
-    elif file_type and target_file_type:
-        return 'cross-{}'.format(''.join(sorted([file_type, target_file_type])))
-    else:
-        return None
 
 
 def historic_dabs_warning_graphs(filters):
@@ -622,5 +601,116 @@ def active_submission_overview(submission, file, error_level):
     if rule_values:
         response['number_of_rules'] = rule_values.number_of_rules
         response['total_instances'] = rule_values.total_instances
+
+    return JsonResponse.create(StatusCode.OK, response)
+
+
+def active_submission_table(submission, file, error_level, page=1, limit=5, sort='significance', order='desc'):
+    """ Gather a list of warnings/errors based on the filters provided to display in the active dashboard table.
+
+        Args:
+            submission: submission to get the table data for
+            file: The type of file to get the table data for
+            error_level: whether to get warnings, errors, or both for the table (possible: warning, error, mixed)
+            page: page number to use in getting the list
+            limit: the number of entries per page
+            sort: the column to order on
+            order: order ascending or descending
+
+        Returns:
+            A response containing a list of results for the active submission dashboard table and the metadata for
+            the table.
+
+        Raises:
+            ResponseException if submission provided is a FABS submission.
+    """
+    if submission.d2_submission:
+        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+
+    # Basic information that is provided by the user and defaults for the rest
+    response = {
+        'page_metadata': {
+            'total': 0,
+            'page': page,
+            'limit': limit,
+            'submission_id': submission.submission_id,
+            'files': []
+        },
+        'results': []
+    }
+
+    # File type
+    if file in ['A', 'B', 'C']:
+        response['page_metadata']['files'] = [file]
+    else:
+        letters = file.split('-')[1]
+        response['page_metadata']['files'] = [letters[:1], letters[1:]]
+
+    sess = GlobalDB.db().session
+
+    agency_code = submission.frec_code or submission.cgac_code
+    has_settings = agency_has_settings(sess, agency_code, file)
+
+    # Initial query
+    table_query = sess.query(ErrorMetadata.original_rule_label, ErrorMetadata.occurrences, ErrorMetadata.rule_failed,
+                             RuleSql.category, RuleSetting.priority, RuleImpact.name.label('impact_name')).\
+        join(Job, Job.job_id == ErrorMetadata.job_id).\
+        join(RuleSql, RuleSql.rule_label == ErrorMetadata.original_rule_label).\
+        join(RuleSetting, RuleSetting.rule_id == RuleSql.rule_sql_id).\
+        join(RuleImpact, RuleImpact.rule_impact_id == RuleSetting.impact_id).\
+        filter(Job.submission_id == submission.submission_id)
+
+    # Determining which settings to use
+    if has_settings:
+        table_query = table_query.filter(RuleSetting.agency_code == agency_code)
+    else:
+        table_query = table_query.filter(RuleSetting.agency_code.is_(None))
+
+    # If the error level isn't "mixed" add a filter on which severity to pull
+    if error_level == 'error':
+        table_query = table_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['fatal'])
+    elif error_level == 'warning':
+        table_query = table_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['warning'])
+
+    table_query = file_filter(table_query, ErrorMetadata, [file])
+
+    # Total number of entries in the table
+    response['page_metadata']['total'] = table_query.count()
+
+    # Determine what to order by, default to "significance"
+    options = {
+        'significance': {'model': RuleSetting, 'col': 'priority'},
+        'rule_label': {'model': ErrorMetadata, 'col': 'original_rule_label'},
+        'instances': {'model': ErrorMetadata, 'col': 'occurrences'},
+        'category': {'model': RuleSql, 'col': 'category'},
+        'impact': {'model': RuleSetting, 'col': 'impact_id'},
+        'description': {'model': ErrorMetadata, 'col': 'rule_failed'}
+    }
+
+    sort_order = [getattr(options[sort]['model'], options[sort]['col'])]
+
+    # add secondary sorts
+    if sort in ['instances', 'category', 'impact']:
+        sort_order.append(RuleSetting.priority)
+
+    # Set the sort order
+    if order == 'desc':
+        sort_order = [order.desc() for order in sort_order]
+
+    table_query = table_query.order_by(*sort_order)
+
+    # The page we're on
+    offset = limit * (page - 1)
+    table_query = table_query.slice(offset, offset + limit)
+
+    for result in table_query.all():
+        response['results'].append({
+            'significance': result.priority,
+            'rule_label': result.original_rule_label,
+            'instance_count': result.occurrences,
+            'category': result.category,
+            'impact': result.impact_name,
+            'rule_description': result.rule_failed
+        })
 
     return JsonResponse.create(StatusCode.OK, response)
