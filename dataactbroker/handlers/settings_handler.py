@@ -152,6 +152,8 @@ def save_rule_settings(agency_code, file, errors, warnings):
             (sess.query(FREC).filter(FREC.frec_code == agency_code).count() == 0):
         raise ResponseException('Invalid agency_code: {}'.format(agency_code), StatusCode.CLIENT_ERROR)
 
+    has_settings = agency_has_settings(sess=sess, agency_code=agency_code, file=file)
+
     for rule_type, rules in {'fatal': errors, 'warning': warnings}.items():
         # Get the rule ids from the labels
         rule_label_query = file_filter(sess.query(RuleSql.rule_label, RuleSql.rule_sql_id), RuleSql, [file])
@@ -175,14 +177,12 @@ def save_rule_settings(agency_code, file, errors, warnings):
             rule_id = rule_label_mapping[rule_dict['label']]
             impact_id = RULE_IMPACT_DICT[rule_dict['impact']]
 
-            setting = sess.query(RuleSetting).filter(RuleSetting.agency_code == agency_code,
-                                                     RuleSetting.rule_id == rule_id).one_or_none()
-            if not setting:
-                setting = RuleSetting(agency_code=agency_code, rule_id=rule_id, priority=priority, impact_id=impact_id)
-                sess.add(setting)
+            if not has_settings:
+                sess.add(RuleSetting(agency_code=agency_code, rule_id=rule_id, priority=priority, impact_id=impact_id))
             else:
-                setting.priority = priority
-                setting.impact_id = impact_id
+                update_params = {'priority': priority, 'impact_id': impact_id}
+                sess.query(RuleSetting).filter(RuleSetting.agency_code == agency_code, RuleSetting.rule_id == rule_id).\
+                    update(update_params)
             priority += 1
     sess.commit()
     return JsonResponse.create(StatusCode.OK, {'message': 'Agency {} rules saved.'.format(agency_code)})
