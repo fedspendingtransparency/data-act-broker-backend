@@ -2185,7 +2185,7 @@ Possible HTTP Status Codes:
 - 401: Login required
 
 ### POST "/v1/save\_rule\_settings"
-This route saves an agency's rule settings. 
+This route saves an agency's rule settings. Note that all the rules associated with the file type and error type must be sent together. Additionally, the order of them determines their significance.
 
 #### Body (JSON)
 ```
@@ -2250,6 +2250,7 @@ Possible HTTP Status Codes:
 - 400:
     - Invalid parameter
     - Missing required parameter
+    - Invalid rules provided, or missing rules
 - 401: Login required
 
 ## Automated Tests
