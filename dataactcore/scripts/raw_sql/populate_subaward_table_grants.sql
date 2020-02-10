@@ -63,11 +63,11 @@ subgrant_pduns AS (
     WHERE sub_pduns_from.row = 1),
 subgrant_duns AS (
     SELECT sub_duns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
-        sub_duns_from.business_types_codes AS business_types_codes
+        sub_duns_from.business_types AS business_types
     FROM (
         SELECT
             duns.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
-            duns.business_types_codes AS business_types_codes,
+            duns.business_types AS business_types,
             row_number() OVER (PARTITION BY
                 duns.awardee_or_recipient_uniqu
             ) AS row
@@ -298,7 +298,10 @@ SELECT
          THEN fsrs_subgrant.awardee_address_zip
          ELSE NULL
     END AS "sub_legal_entity_foreign_posta",
-    array_to_string(subgrant_duns.business_types_codes, ', ') AS "sub_business_types",
+    CASE WHEN cardinality(subgrant_duns.business_types) > 0
+         THEN array_to_string(subgrant_duns.business_types, ',')
+         ELSE NULL
+    END AS "sub_business_types",
     fsrs_subgrant.principle_place_city AS "sub_place_of_perform_city_name",
     fsrs_subgrant.principle_place_state AS "sub_place_of_perform_state_code",
     fsrs_subgrant.principle_place_state_name AS "sub_place_of_perform_state_name",

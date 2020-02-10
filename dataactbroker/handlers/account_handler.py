@@ -238,7 +238,7 @@ class AccountHandler:
         # Check if email template type is valid
         get_email_template(template_type)
 
-        link = "".join([AccountHandler.FRONT_END, '#/reviewData/', str(submission.submission_id)])
+        link = "".join([AccountHandler.FRONT_END, '#/submission/', str(submission.submission_id)])
         email_template = {'[REV_USER_NAME]': g.user.name, '[REV_AGENCY]': agency.agency_name, '[REV_URL]': link}
 
         users = []
