@@ -267,6 +267,28 @@ def test_save_rule_settings(database):
     assert a_warning_settings[1].rule_label == 'A1'
     assert a_warning_settings[1].impact_id == RULE_IMPACT_DICT['medium']
 
+    # Normal results - update that's already save
+    errors = [
+        {'label': 'A2', 'impact': 'medium'},
+        {'label': 'A4', 'impact': 'low'}
+    ]
+    warnings = [
+        {'label': 'A1', 'impact': 'low'},
+        {'label': 'A3', 'impact': 'high'}
+    ]
+    save_rule_settings_endpoint(agency_code='1125', file='A', errors=errors, warnings=warnings)
+
+    a_error_settings = get_rule_settings_results('1125', 'A', 'fatal')
+    assert a_error_settings[0].rule_label == 'A2'
+    assert a_error_settings[0].impact_id == RULE_IMPACT_DICT['medium']
+    assert a_error_settings[1].rule_label == 'A4'
+    assert a_error_settings[1].impact_id == RULE_IMPACT_DICT['low']
+    a_warning_settings = get_rule_settings_results('1125', 'A', 'warning')
+    assert a_warning_settings[0].rule_label == 'A1'
+    assert a_warning_settings[0].impact_id == RULE_IMPACT_DICT['low']
+    assert a_warning_settings[1].rule_label == 'A3'
+    assert a_warning_settings[1].impact_id == RULE_IMPACT_DICT['high']
+
     # Testing the case if it still updates when there are errors and no warnings (visa versa)
     errors = [
         {'label': 'C2', 'impact': 'medium'},
