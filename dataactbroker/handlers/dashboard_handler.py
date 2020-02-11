@@ -672,7 +672,7 @@ def active_submission_table(submission, file, error_level, page=1, limit=5, sort
     elif error_level == 'warning':
         table_query = table_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['warning'])
 
-    table_query = file_filter(table_query, ErrorMetadata, [file])
+    table_query = file_filter(table_query, RuleSql, [file])
 
     # Total number of entries in the table
     response['page_metadata']['total'] = table_query.count()
