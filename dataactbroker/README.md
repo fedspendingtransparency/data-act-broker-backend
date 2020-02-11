@@ -2321,11 +2321,9 @@ This route saves an agency's rule settings. Note that all the rules associated w
 - `errors`: (required, [dict]) The settings of the agency's errors for that file. *Note: the order of this determines the significance.* Comprised of the following:
     - `label`: (required, string) the label of the rule
     - `impact`: (required, string) the new impact of the rule
-    - `significance`: (required, string) the new significance of the rule 
 - `warnings`: (required, [dict]) The settings of the agency's warnings for that file. *Note: the order of this determines the significance.* Comprised of the following:
     - `label`: (required, string) the label of the rule
     - `impact`: (required, string) the new impact of the rule
-    - `significance`: (required, string) the new significance of the rule
 
 #### Response (JSON)
 
