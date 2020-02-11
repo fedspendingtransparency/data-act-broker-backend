@@ -594,7 +594,7 @@ def get_time_period(submission):
         sub_year = submission.reporting_fiscal_year
         time_period = 'FY {} / Q{}'.format(str(sub_year)[2:], sub_quarter)
     else:
-        time_period = submission.reporting_start_date.strftime('%m / %Y')
+        time_period = submission.reporting_start_date.strftime('%m / %Y') if submission.reporting_start_date else ''
     return time_period
 
 
