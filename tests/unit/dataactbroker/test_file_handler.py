@@ -155,7 +155,8 @@ def test_list_submissions_success(database, monkeypatch):
     delete_models(database, [user, sub, job])
 
     user = UserFactory(user_id=1)
-    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1, d2_submission=True)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1, d2_submission=True,
+                            reporting_start_date=None)
     job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['ready'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
@@ -163,6 +164,7 @@ def test_list_submissions_success(database, monkeypatch):
     result = list_submissions_result(is_fabs=True)
     assert result['total'] == 1
     assert result['submissions'][0]['status'] == "ready"
+    assert result['submissions'][0]['time_period'] == ""
     delete_models(database, [user, sub, job])
 
 
