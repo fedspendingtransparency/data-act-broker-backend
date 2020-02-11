@@ -78,9 +78,10 @@ class RuleSetting(Base):
 
     rule_settings_id = Column(Integer, primary_key=True)
     agency_code = Column(Text)
-    rule_id = Column(Integer, ForeignKey("rule_sql.rule_sql_id", name="fk_rule"), nullable=False)
+    rule_id = Column(Integer, ForeignKey("rule_sql.rule_sql_id", ondelete="CASCADE", name="fk_rule"), nullable=False)
     priority = Column(Integer, nullable=False)
-    impact_id = Column(Integer, ForeignKey("rule_impact.rule_impact_id", name="fk_impact"), nullable=False)
+    impact_id = Column(Integer, ForeignKey("rule_impact.rule_impact_id", ondelete="CASCADE", name="fk_impact"),
+                       nullable=False)
 
 
 class RuleImpact(Base):

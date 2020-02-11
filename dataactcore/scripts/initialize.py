@@ -161,7 +161,6 @@ def main():
     parser.add_argument('-l', '--load_location', help='Load city and county codes', action='store_true')
     parser.add_argument('-z', '--load_zips', help='Load zip code data', action='store_true')
     parser.add_argument('-o', '--load_offices', help='Load FPDS Office Codes', action='store_true')
-    parser.add_argument('-rs', '--load_rule_settings', help='Load default rule settings', action='store_true')
     parser.add_argument('-qrt', '--load_quarterly_revalidation', help='Load Quarterly Revalidation Threshold',
                         action='store_true')
     parser.add_argument('-u', '--uncache_all_files', help='Un-cache file generation requests', action='store_true')
@@ -192,8 +191,6 @@ def main():
 
     if args.load_rules:
         load_sql_rules()
-
-    if args.load_rule_settings:
         load_rule_settings()
 
     if args.update_domain:
