@@ -35,7 +35,8 @@ ERROR_TYPE = [
     LookupType(4, 'read_error', 'Could not parse this record correctly.'),
     LookupType(5, 'write_error', 'Could not write this record into the staging table.'),
     LookupType(6, 'rule_failed', 'A rule failed for this value.'),
-    LookupType(7, 'length_error', 'Value was longer than allowed length.')
+    LookupType(7, 'length_error', 'Value was longer than allowed length.'),
+    LookupType(8, 'field_format_error', 'Date should follow the YYYYMMDD format.')
 ]
 ERROR_TYPE_DICT = {item.name: item.id for item in ERROR_TYPE}
 
@@ -103,7 +104,8 @@ FIELD_TYPE = [
     LookupType(2, 'DECIMAL', 'decimal type '),
     LookupType(3, 'BOOLEAN', 'yes/no'),
     LookupType(4, 'STRING', 'string type'),
-    LookupType(5, 'LONG', 'long integer')
+    LookupType(5, 'LONG', 'long integer'),
+    LookupType(6, 'DATE', 'date type')
 ]
 FIELD_TYPE_DICT = {item.name: item.id for item in FIELD_TYPE}
 FIELD_TYPE_DICT_ID = {item.id: item.name for item in FIELD_TYPE}
