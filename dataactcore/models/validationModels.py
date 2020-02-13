@@ -58,6 +58,7 @@ class RuleSql(Base):
     target_file = relationship("FileType", uselist=False, foreign_keys=[target_file_id])
     query_name = Column(Text)
     expected_value = Column(Text)
+    category = Column(Text)
 
 
 class ValidationLabel(Base):
@@ -70,3 +71,24 @@ class ValidationLabel(Base):
     file = relationship("FileType", uselist=False, foreign_keys=[file_id])
     column_name = Column(Text)
     label_type = Column(Enum('requirement', 'type', name='label_types'))
+
+
+class RuleSetting(Base):
+    __tablename__ = "rule_settings"
+
+    rule_settings_id = Column(Integer, primary_key=True)
+    agency_code = Column(Text)
+    rule_id = Column(Integer, ForeignKey("rule_sql.rule_sql_id", ondelete="CASCADE", name="fk_rule"), nullable=False)
+    priority = Column(Integer, nullable=False)
+    impact_id = Column(Integer, ForeignKey("rule_impact.rule_impact_id", ondelete="CASCADE", name="fk_impact"),
+                       nullable=False)
+
+
+class RuleImpact(Base):
+    __tablename__ = "rule_impact"
+
+    rule_impact_id = Column(Integer, primary_key=True)
+    name = Column(Text, nullable=False)
+    description = Column(Text, nullable=False)
+
+    IMPACT_DICT = None

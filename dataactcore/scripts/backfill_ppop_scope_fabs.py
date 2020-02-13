@@ -11,7 +11,7 @@ BACKFILL_FABS_PPOP_SCOPE_SQL_1 = """
     UPDATE published_award_financial_assistance
     SET place_of_performance_scope =
         CASE WHEN place_of_performance_code ~ '^00\*{5}$'
-             THEN 'Multi-State'
+             THEN 'Multi-state'
              WHEN place_of_performance_code ~ '^[a-zA-Z]{2}\*{5}$'
              THEN 'State-wide'
              WHEN place_of_performance_code ~ '^[a-zA-Z]{2}\*\*\d{3}$'
@@ -28,7 +28,7 @@ BACKFILL_FABS_PPOP_SCOPE_SQL_2 = """
         CASE WHEN LOWER(place_of_performance_zip4a) = 'city-wide'
              THEN 'City-wide'
              WHEN place_of_performance_zip4a ~ '^\d{5}(-?\d{4})?$'
-             THEN 'Single Zip Code'
+             THEN 'Single ZIP Code'
          END
     WHERE (place_of_performance_code ~ '^[a-zA-Z]{2}\d{4}[\dRr]$'
         AND place_of_performance_scope IS NULL);
