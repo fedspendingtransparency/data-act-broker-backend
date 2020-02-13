@@ -1287,7 +1287,7 @@ This endpoint lists all users with submissions that the requesting user can view
 `/v1/list_submission_users/?d2_submission=False`
 
 ##### Request Params
-- `d2_submission` - **optional** - a boolean indicating if the submissions checked should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
+- `d2_submission`: (boolean) if the submissions checked should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
 
 ##### Response (JSON)
 
@@ -1296,11 +1296,13 @@ This endpoint lists all users with submissions that the requesting user can view
   "users": [
     {
       "user_id": 4,
-      "name": "Another User"
+      "name": "Another User",
+      "email": "another_user@domain.com"
     },
     {
       "user_id": 1,
-      "name": "User One"
+      "name": "User One",
+      "email": "user1@domain.com"
     }
   ]
 }
@@ -1308,9 +1310,10 @@ This endpoint lists all users with submissions that the requesting user can view
 
 ##### Response Attributes
 
-- `users` - An array of objects that contain the user's ID and name:
-    - `user_id` - an integer indicating ID of the user
-    - `name` - a string containing the name of the user
+- `users`: ([dict]) contain the user's ID, name, and email:
+    - `user_id`: (int) ID of the user
+    - `name`: (string) name of the user
+    - `email`: (string) email of the user
 
 ##### Errors
 Possible HTTP Status Codes:
