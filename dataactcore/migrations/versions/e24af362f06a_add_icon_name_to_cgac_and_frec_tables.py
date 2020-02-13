@@ -1,7 +1,7 @@
 """Add icon_name to CGAC and FREC tables
 
 Revision ID: e24af362f06a
-Revises: c3db0b20bdef
+Revises: 9e58ce58e4ee
 Create Date: 2020-01-30 13:12:42.720743
 
 """
