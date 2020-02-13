@@ -13,7 +13,7 @@ from dataactbroker.handlers.submission_handler import populate_submission_error_
 from dataactbroker.helpers.validation_helper import (
     derive_fabs_awarding_sub_tier, derive_fabs_afa_generated_unique, derive_fabs_unique_award_key, derive_unique_id,
     check_required, check_type, check_length, clean_col, clean_numbers, concat_flex, process_formatting_errors,
-    parse_fields, simple_file_scan)
+    parse_fields, simple_file_scan, check_field_format)
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
@@ -512,12 +512,14 @@ class ValidationManager:
                 length_errors = check_length(chunk_df, self.parsed_fields['length'], self.report_headers,
                                              self.csv_schema, self.short_to_long_dict[self.file_type.file_type_id],
                                              flex_data, type_error_rows)
+                format_errors = check_field_format(chunk_df, self.parsed_fields['format'], self.report_headers,
+                                                   self.short_to_long_dict[self.file_type.file_type_id], flex_data)
 
                 if self.is_fabs:
-                    error_dfs = [req_errors, type_errors, length_errors]
+                    error_dfs = [req_errors, type_errors, length_errors, format_errors]
                     warning_dfs = [pd.DataFrame(columns=list(self.report_headers + ['error_type']))]
                 else:
-                    error_dfs = [req_errors, type_errors]
+                    error_dfs = [req_errors, type_errors, format_errors]
                     warning_dfs = [length_errors]
 
                 total_errors = pd.concat(error_dfs, ignore_index=True)

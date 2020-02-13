@@ -1,6 +1,9 @@
 import pandas as pd
 import csv
+import re
+
 from decimal import Decimal, DecimalException
+from datetime import datetime
 from pandas import isnull
 
 from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FIELD_TYPE_DICT
@@ -265,6 +268,23 @@ def expected_length(row, csv_schema):
     return 'Max length: {}'.format(current_field.length)
 
 
+def valid_format(row):
+    """ Checks if the value provided is formatted correctly (dates must be YYYYMMDD format).
+
+        Args:
+            row: the dataframe row containing information about a cell, including the header and contents
+
+        Returns:
+            True if the value is formatted correctly, False otherwise
+    """
+    # Try to convert it using this specific format. If it doesn't work, it's not formatted right.
+    try:
+        datetime.strptime(row['Value Provided'], '%Y%m%d')
+    except ValueError:
+        return False
+    return True
+
+
 def update_field_name(row, short_cols):
     """ Update all field names provided to match the lowercased DAIMS headers rather than the database names
 
@@ -427,6 +447,49 @@ def check_length(data, length_fields, report_headers, csv_schema, short_cols, fl
     return errors
 
 
+def check_field_format(data, format_fields, report_headers, short_cols, flex_data):
+    """ Check if all fields that are a type other than string match that type.
+
+        Args:
+            data: the dataframe containing the data for the submission
+            format_fields: A list of headers that represent the format check fields in the file
+            report_headers: The list of error/warning report headers in order
+            short_cols: A mapping of the database column names to the lowercased DAIMS headers
+            flex_data: the dataframe containing flex data for this file
+
+        Returns:
+            A dataframe containing error text that can be turned into an error report for non-string fields
+    """
+    # Get just the non-string columns along with the row number and unique ID
+    type_data = data[format_fields + ['row_number', 'unique_id']]
+    # Flip the data so each header + cell combination is its own row, keeping the relevant row numbers and unique IDs
+    errors = pd.melt(type_data, id_vars=['row_number', 'unique_id'], value_vars=format_fields,
+                     var_name='Field Name', value_name='Value Provided')
+    # Throw out all rows that don't have data, they don't have a format check
+    errors = errors[~errors['Value Provided'].isnull()]
+    # If there is data that needs checking, keep only the data that doesn't have the right type
+    if not errors.empty:
+        errors['matches_format'] = errors.apply(lambda x: valid_format(x), axis=1)
+        errors = errors[~errors['matches_format']]
+        errors.drop(['matches_format'], axis=1, inplace=True)
+    errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
+    errors = errors.reset_index()
+    errors['Error Message'] = ValidationError.fieldFormatErrorMsg
+    errors['Difference'] = ''
+    errors['Rule Label'] = 'DABSDATETIME'
+    errors['Expected Value'] = 'A date in the YYYYMMDD format.'
+    if not errors.empty:
+        errors['Flex Field'] = errors.apply(lambda x: gather_flex_fields(x, flex_data), axis=1)
+        errors['Field Name'] = errors.apply(lambda x: update_field_name(x, short_cols), axis=1)
+        errors['Value Provided'] = errors.apply(lambda x: add_field_name_to_value(x), axis=1)
+    else:
+        errors['Flex Field'] = ''
+    # sorting the headers after all the moving around
+    errors = errors[report_headers]
+    errors['error_type'] = ValidationError.fieldFormatError
+    return errors
+
+
 def parse_fields(sess, fields):
     """ Parse through all the fields in the file type and sort them into the relevant rule lists.
 
@@ -443,6 +506,7 @@ def parse_fields(sess, fields):
         'required': [],
         'number': [],
         'boolean': [],
+        'format': [],
         'length': [],
         'padded': []
     }
@@ -457,6 +521,8 @@ def parse_fields(sess, fields):
             parsed_fields['number'].append(field.name_short)
         elif field.field_types_id == FIELD_TYPE_DICT['BOOLEAN']:
             parsed_fields['boolean'].append(field.name_short)
+        elif field.field_types_id == FIELD_TYPE_DICT['DATE']:
+            parsed_fields['format'].append(field.name_short)
         if field.required:
             parsed_fields['required'].append(field.name_short)
         if field.length:
