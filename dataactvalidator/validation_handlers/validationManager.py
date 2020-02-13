@@ -513,20 +513,10 @@ class ValidationManager:
                                              self.csv_schema, self.short_to_long_dict[self.file_type.file_type_id],
                                              flex_data, type_error_rows)
 
-                if self.is_fabs:
-                    error_dfs = [req_errors, type_errors, length_errors]
-                    warning_dfs = [pd.DataFrame(columns=list(self.report_headers + ['error_type']))]
-                else:
-                    error_dfs = [req_errors, type_errors]
-                    warning_dfs = [length_errors]
-
-                total_errors = pd.concat(error_dfs, ignore_index=True)
-                total_warnings = pd.concat(warning_dfs, ignore_index=True)
+                total_errors = pd.concat([req_errors, type_errors, length_errors], ignore_index=True)
 
                 # Converting these to ints because pandas likes to change them to floats randomly
                 total_errors[['Row Number', 'error_type']] = total_errors[['Row Number', 'error_type']].astype(int)
-                total_warnings[['Row Number', 'error_type']] = total_warnings[['Row Number', 'error_type']]. \
-                    astype(int)
 
                 self.error_rows.extend([int(x) for x in total_errors['Row Number'].tolist()])
 
@@ -535,13 +525,7 @@ class ValidationManager:
                                                      row['error_type'], row['Row Number'], row['Rule Label'],
                                                      self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
 
-                for index, row in total_warnings.iterrows():
-                    self.error_list.record_row_error(self.job.job_id, self.file_name, row['Field Name'],
-                                                     row['error_type'], row['Row Number'], row['Rule Label'],
-                                                     self.file_type.file_type_id, None, RULE_SEVERITY_DICT['warning'])
-
                 total_errors.drop(['error_type'], axis=1, inplace=True, errors='ignore')
-                total_warnings.drop(['error_type'], axis=1, inplace=True, errors='ignore')
 
                 # Remove type error rows from original dataframe
                 chunk_df = chunk_df[~chunk_df['row_number'].isin(type_error_rows)]
