@@ -29,16 +29,15 @@ def load_default_rule_settings(sess):
             priorities[file_type] = {'error': 1, 'warning': 1}
 
         if rule.rule_severity_id == RULE_SEVERITY_DICT['warning']:
-            rule_settings.append(RuleSetting(rule_id=rule.rule_sql_id, agency_code=None,
-                                             priority=priorities[file_type]['warning'],
-                                             impact_id=RULE_IMPACT_DICT['high']))
+            priority = priorities[file_type]['warning']
             priorities[file_type]['warning'] += 1
         else:
-            rule_settings.append(RuleSetting(rule_id=rule.rule_sql_id, agency_code=None,
-                                             priority=priorities[file_type]['error'],
-                                             impact_id=RULE_IMPACT_DICT['high']))
+            priority = priorities[file_type]['error']
             priorities[file_type]['error'] += 1
 
+        rule_settings.append(RuleSetting(rule_label=rule.rule_label, file_id=rule.file_id,
+                                         target_file_id=rule.target_file_id, agency_code=None,
+                                         priority=priority, impact_id=RULE_IMPACT_DICT['high']))
     sess.add_all(rule_settings)
     sess.commit()
 
