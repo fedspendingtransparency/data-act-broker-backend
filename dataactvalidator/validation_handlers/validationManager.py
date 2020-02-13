@@ -513,12 +513,8 @@ class ValidationManager:
                                              self.csv_schema, self.short_to_long_dict[self.file_type.file_type_id],
                                              flex_data, type_error_rows)
 
-                if self.is_fabs:
-                    error_dfs = [req_errors, type_errors, length_errors]
-                    warning_dfs = [pd.DataFrame(columns=list(self.report_headers + ['error_type']))]
-                else:
-                    error_dfs = [req_errors, type_errors]
-                    warning_dfs = [length_errors]
+                error_dfs = [req_errors, type_errors, length_errors]
+                warning_dfs = [pd.DataFrame(columns=list(self.report_headers + ['error_type']))]
 
                 total_errors = pd.concat(error_dfs, ignore_index=True)
                 total_warnings = pd.concat(warning_dfs, ignore_index=True)
