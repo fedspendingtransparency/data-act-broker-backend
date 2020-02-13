@@ -51,8 +51,8 @@ def test_list_user_emails(database, user_app):
 def test_list_submission_users_admin(database):
     """ Test listing all users with a submission (admin called the function) """
     cgacs = [CGACFactory(cgac_code='000'), CGACFactory(cgac_code='111')]
-    admin_user = UserFactory(website_admin=True, name='Admin User')
-    other_user = UserFactory.with_cgacs(cgacs[0], name='Test User')
+    admin_user = UserFactory(website_admin=True, name='Admin User', email='admin@domain.com')
+    other_user = UserFactory.with_cgacs(cgacs[0], name='Test User', email='test@domain.com')
     database.session.add_all(cgacs + [admin_user, other_user])
     database.session.commit()
 
@@ -68,6 +68,7 @@ def test_list_submission_users_admin(database):
     assert len(user_response) == 1
     assert user_response[0]['user_id'] == other_user.user_id
     assert user_response[0]['name'] == other_user.name
+    assert user_response[0]['email'] == other_user.email
 
 
 @pytest.mark.usefixtures("user_constants")
@@ -75,8 +76,8 @@ def test_list_submission_users_admin(database):
 def test_list_submission_users_cgac_affil(database):
     """ Test listing users based on cgac affiliations """
     cgacs = [CGACFactory(cgac_code='000'), CGACFactory(cgac_code='111')]
-    first_user = UserFactory.with_cgacs(cgacs[0], name='Test User 1')
-    other_user = UserFactory.with_cgacs(cgacs[1], name='Test User')
+    first_user = UserFactory.with_cgacs(cgacs[0], name='Test User 1', email='test1@domain.com')
+    other_user = UserFactory.with_cgacs(cgacs[1], name='Test User', email='test@domain.com')
     database.session.add_all(cgacs + [first_user, other_user])
     database.session.commit()
 
@@ -93,6 +94,7 @@ def test_list_submission_users_cgac_affil(database):
     assert len(user_response) == 2
     assert {user_response[0]['user_id'], user_response[1]['user_id']} == {first_user.user_id, other_user.user_id}
     assert {user_response[0]['name'], user_response[1]['name']} == {first_user.name, other_user.name}
+    assert {user_response[0]['email'], user_response[1]['email']} == {first_user.email, other_user.email}
 
     g.user = other_user
     response = list_submission_users(False)
@@ -102,6 +104,7 @@ def test_list_submission_users_cgac_affil(database):
     assert len(user_response) == 1
     assert user_response[0]['user_id'] == other_user.user_id
     assert user_response[0]['name'] == other_user.name
+    assert user_response[0]['email'] == other_user.email
 
 
 @pytest.mark.usefixtures("user_constants")
@@ -110,9 +113,9 @@ def test_list_submission_users_frec_affil(database):
     """ Test listing users based on frec affiliations """
     cgacs = [CGACFactory(cgac_code='000'), CGACFactory(cgac_code='111')]
     frecs = [FRECFactory(frec_code='0000', cgac=cgacs[0]), FRECFactory(frec_code='1111', cgac=cgacs[1])]
-    first_user = UserFactory.with_cgacs(cgacs[0], name='Test User 1')
-    other_user = UserFactory.with_cgacs(cgacs[1], name='Test User')
-    third_user = UserFactory(name='Frec User')
+    first_user = UserFactory.with_cgacs(cgacs[0], name='Test User 1', email='test1@domain.com')
+    other_user = UserFactory.with_cgacs(cgacs[1], name='Test User', email='test@domain.com')
+    third_user = UserFactory(name='Frec User', email='frec@domain.com')
     third_user.affiliations = [UserAffiliation(frec=frecs[0], user_id=third_user.user_id,
                                                permission_type_id=PERMISSION_TYPE_DICT['reader'])]
     database.session.add_all(cgacs + frecs + [first_user, other_user])
@@ -132,6 +135,7 @@ def test_list_submission_users_frec_affil(database):
     assert len(user_response) == 1
     assert user_response[0]['user_id'] == first_user.user_id
     assert user_response[0]['name'] == first_user.name
+    assert user_response[0]['email'] == first_user.email
 
 
 @pytest.mark.usefixtures("user_constants")
@@ -140,9 +144,9 @@ def test_list_submission_users_cgac_frec_affil(database):
     """ Test listing users based on both cgac and frec affiliations """
     cgacs = [CGACFactory(cgac_code='000'), CGACFactory(cgac_code='111')]
     frecs = [FRECFactory(frec_code='0000', cgac=cgacs[0]), FRECFactory(frec_code='1111', cgac=cgacs[1])]
-    first_user = UserFactory.with_cgacs(cgacs[0], name='Test User 1')
-    other_user = UserFactory.with_cgacs(cgacs[1], name='Test User')
-    third_user = UserFactory.with_cgacs(cgacs[1], name='Frec User')
+    first_user = UserFactory.with_cgacs(cgacs[0], name='Test User 1', email='test1@domain.com')
+    other_user = UserFactory.with_cgacs(cgacs[1], name='Test User', email='test@domain.com')
+    third_user = UserFactory.with_cgacs(cgacs[1], name='Frec User', email='frec@domain.com')
     third_user.affiliations =\
         third_user.affiliations + [UserAffiliation(frec=frecs[0], user_id=third_user.user_id,
                                                    permission_type_id=PERMISSION_TYPE_DICT['reader'])]
@@ -164,6 +168,7 @@ def test_list_submission_users_cgac_frec_affil(database):
     assert len(user_response) == 2
     assert {user_response[0]['user_id'], user_response[1]['user_id']} == {first_user.user_id, other_user.user_id}
     assert {user_response[0]['name'], user_response[1]['name']} == {first_user.name, other_user.name}
+    assert {user_response[0]['email'], user_response[1]['email']} == {first_user.email, other_user.email}
 
 
 @pytest.mark.usefixtures("user_constants")
@@ -171,8 +176,8 @@ def test_list_submission_users_cgac_frec_affil(database):
 def test_list_submission_users_owned(database):
     """ Test listing users based on owned submissions """
     cgacs = [CGACFactory(cgac_code='000'), CGACFactory(cgac_code='111')]
-    first_user = UserFactory.with_cgacs(cgacs[0], name='Test User 1')
-    other_user = UserFactory.with_cgacs(cgacs[0], name='Test User')
+    first_user = UserFactory.with_cgacs(cgacs[0], name='Test User 1', email='test1@domain.com')
+    other_user = UserFactory.with_cgacs(cgacs[0], name='Test User', email='test@domain.com')
     database.session.add_all(cgacs + [first_user, other_user])
     database.session.commit()
 
@@ -195,6 +200,7 @@ def test_list_submission_users_owned(database):
     assert len(user_response) == 1
     assert user_response[0]['user_id'] == other_user.user_id
     assert user_response[0]['name'] == other_user.name
+    assert user_response[0]['email'] == other_user.email
 
 
 @pytest.mark.usefixtures("user_constants")
@@ -202,8 +208,8 @@ def test_list_submission_users_owned(database):
 def test_list_submission_users_fabs_dabs(database):
     """ Test listing DABS vs FABS users """
     cgacs = [CGACFactory(cgac_code='000'), CGACFactory(cgac_code='111')]
-    first_user = UserFactory.with_cgacs(cgacs[0], name='Test User 1')
-    other_user = UserFactory.with_cgacs(cgacs[1], name='Test User')
+    first_user = UserFactory.with_cgacs(cgacs[0], name='Test User 1', email='test1@domain.com')
+    other_user = UserFactory.with_cgacs(cgacs[1], name='Test User', email='test@domain.com')
     database.session.add_all(cgacs + [first_user, other_user])
     database.session.commit()
 
@@ -228,3 +234,4 @@ def test_list_submission_users_fabs_dabs(database):
     assert len(user_response) == 1
     assert user_response[0]['user_id'] == other_user.user_id
     assert user_response[0]['name'] == other_user.name
+    assert user_response[0]['email'] == other_user.email
