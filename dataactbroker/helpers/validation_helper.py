@@ -1,6 +1,5 @@
 import pandas as pd
 import csv
-import re
 
 from decimal import Decimal, DecimalException
 from datetime import datetime
@@ -277,9 +276,13 @@ def valid_format(row):
         Returns:
             True if the value is formatted correctly, False otherwise
     """
+    current_value = row['Value Provided']
+    # Make sure the length is right
+    if len(current_value) != 8:
+        return False
     # Try to convert it using this specific format. If it doesn't work, it's not formatted right.
     try:
-        datetime.strptime(row['Value Provided'], '%Y%m%d')
+        datetime.strptime(current_value, '%Y%m%d')
     except ValueError:
         return False
     return True

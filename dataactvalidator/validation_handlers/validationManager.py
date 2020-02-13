@@ -512,14 +512,16 @@ class ValidationManager:
                 length_errors = check_length(chunk_df, self.parsed_fields['length'], self.report_headers,
                                              self.csv_schema, self.short_to_long_dict[self.file_type.file_type_id],
                                              flex_data, type_error_rows)
-                format_errors = check_field_format(chunk_df, self.parsed_fields['format'], self.report_headers,
-                                                   self.short_to_long_dict[self.file_type.file_type_id], flex_data)
+                field_format_errors = check_field_format(chunk_df, self.parsed_fields['format'], self.report_headers,
+                                                         self.short_to_long_dict[self.file_type.file_type_id],
+                                                         flex_data)
+                field_format_error_rows = field_format_errors['Row Number'].tolist()
 
                 if self.is_fabs:
-                    error_dfs = [req_errors, type_errors, length_errors, format_errors]
+                    error_dfs = [req_errors, type_errors, length_errors, field_format_errors]
                     warning_dfs = [pd.DataFrame(columns=list(self.report_headers + ['error_type']))]
                 else:
-                    error_dfs = [req_errors, type_errors, format_errors]
+                    error_dfs = [req_errors, type_errors, field_format_errors]
                     warning_dfs = [length_errors]
 
                 total_errors = pd.concat(error_dfs, ignore_index=True)
@@ -546,7 +548,7 @@ class ValidationManager:
                 total_warnings.drop(['error_type'], axis=1, inplace=True, errors='ignore')
 
                 # Remove type error rows from original dataframe
-                chunk_df = chunk_df[~chunk_df['row_number'].isin(type_error_rows)]
+                chunk_df = chunk_df[~chunk_df['row_number'].isin(type_error_rows + field_format_error_rows)]
                 chunk_df.drop(['unique_id'], axis=1, inplace=True)
 
         # Write all the errors/warnings to their files
