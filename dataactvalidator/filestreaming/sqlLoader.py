@@ -32,9 +32,9 @@ class SQLLoader:
         """ Load SQL-based validation rules to db. """
         with create_app().app_context():
             sess = GlobalDB.db().session
-
             filename = os.path.join(cls.sql_rules_path, filename)
 
+            # Initial load
             sql_data = pd.read_csv(filename, dtype=str, usecols=cls.headers)
             sql_data = clean_data(
                 sql_data,
@@ -45,16 +45,24 @@ class SQLLoader:
                  'severity_name': 'severity_name'},
                 {}
             )
+
+            # Processing certain values
             sql_data['rule_sql'] = sql_data['query_name'].apply(lambda name: cls.read_sql_str(name))
             sql_data['file_id'] = sql_data['file_type'].apply(lambda type: FILE_TYPE_DICT.get(type, None))
+            if sql_data['file_id'].isnull().values.any():
+                raise Exception('Invalid file_type value found in sqlLoader. Must be one of the following: {}'
+                                .format(', '.join(list(FILE_TYPE_DICT.keys()))))
             sql_data['target_file_id'] = sql_data['target_file'].apply(lambda type: FILE_TYPE_DICT.get(type, None))
             sql_data['rule_cross_file_flag'] = sql_data['rule_cross_file_flag'].apply(lambda flag:
                                                                                       flag in ('true', 't', 'y', 'yes'))
             sql_data['rule_severity_id'] = sql_data['severity_name'].apply(lambda severity_name:
                                                                            RULE_SEVERITY_DICT.get(severity_name, None))
-
+            if sql_data['rule_severity_id'].isnull().values.any():
+                raise Exception('Invalid severity_name value found in sqlLoader Must be one of the following: {}'
+                                .format(', '.join(list(RULE_SEVERITY_DICT.keys()))))
             sql_data.drop(['file_type', 'severity_name', 'target_file'], axis=1, inplace=True)
 
+            # Final check if we need to actually reload
             if check_dataframe_diff(sql_data, RuleSql, del_cols=['rule_sql_id', 'created_at', 'updated_at'],
                                     sort_cols=['rule_label', 'file_id', 'target_file_id']):
                 # Delete and reload all records currently in table
