@@ -26,7 +26,8 @@ class SettingsTests(BaseTestAPI):
                            file_id=1, rule_severity_id=2, rule_cross_file_flag=False)
             sess.add_all([cgac, rule])
             sess.commit()
-            default_setting = RuleSetting(agency_code='097', rule_id=rule.rule_sql_id, priority=1, impact_id=1)
+            default_setting = RuleSetting(agency_code='097', rule_label=rule.rule_label, file_id=rule.file_id,
+                                          target_file_id=rule.target_file_id, priority=1, impact_id=1)
             sess.add(default_setting)
             sess.commit()
 

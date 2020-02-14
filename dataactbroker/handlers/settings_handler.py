@@ -1,4 +1,5 @@
 import logging
+from sqlalchemy import and_
 
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
@@ -8,7 +9,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactbroker.helpers.filters_helper import file_filter
 from dataactbroker.helpers.dashboard_helper import FILE_TYPES, generate_file_type, agency_has_settings
 from dataactcore.models.lookups import RULE_IMPACT_DICT, RULE_SEVERITY_DICT
-from dataactcore.models.domainModels import CGAC, FREC
+from dataactcore.models.domainModels import CGAC, FREC, is_not_distinct_from
 from dataactcore.models.validationModels import RuleSetting, RuleImpact, RuleSql
 
 
@@ -66,9 +67,10 @@ def list_rule_settings(agency_code, file):
     # Get the base query with the file filter
     rule_settings_query = sess.query(RuleSetting.priority, RuleSql.rule_label, RuleImpact.name,
                                      RuleSql.rule_error_message, RuleSql.rule_severity_id).\
-        join(RuleSql, RuleSql.rule_sql_id == RuleSetting.rule_id).\
+        join(RuleSql, and_(RuleSql.rule_label == RuleSetting.rule_label, RuleSql.file_id == RuleSetting.file_id,
+                           is_not_distinct_from(RuleSql.target_file_id, RuleSetting.target_file_id))).\
         join(RuleImpact, RuleImpact.rule_impact_id == RuleSetting.impact_id)
-    rule_settings_query = file_filter(rule_settings_query, RuleSql, [file])
+    rule_settings_query = file_filter(rule_settings_query, RuleSetting, [file])
 
     # Filter settings by agency. If they haven't set theirs, use the defaults.
     if agency_has_settings(sess, agency_code, file):
@@ -96,12 +98,11 @@ def list_rule_settings(agency_code, file):
     return JsonResponse.create(StatusCode.OK, {'warnings': warnings, 'errors': errors})
 
 
-def validate_rule_dict(rule_dict, rule_label_mapping):
+def validate_rule_dict(rule_dict):
     """ Given a dictionary representing a rule to save, validate it.
 
         Args:
             rule_dict: the rule dict provided
-            rule_label_mapping: dict of available rule labels to rule ids
 
         Raises:
             ResponseException if rule dict is invalid
@@ -137,11 +138,11 @@ def save_rule_settings(agency_code, file, errors, warnings):
 
     for rule_type, rules in {'fatal': errors, 'warning': warnings}.items():
         # Get the rule ids from the labels
-        rule_label_query = file_filter(sess.query(RuleSql.rule_label, RuleSql.rule_sql_id), RuleSql, [file])
+        rule_label_query = file_filter(sess.query(RuleSql.rule_label, RuleSql.file_id, RuleSql.target_file_id),
+                                       RuleSql, [file])
         rule_label_query = rule_label_query.filter(RuleSql.rule_severity_id == RULE_SEVERITY_DICT[rule_type])
-        rule_label_mapping = {}
-        for result in rule_label_query.all():
-            rule_label_mapping[result.rule_label] = result.rule_sql_id
+        rule_label_mapping = {rule.rule_label: {'file_id': rule.file_id, 'target_file_id': rule.target_file_id}
+                              for rule in rule_label_query.all()}
 
         # Compare them with the list provided
         rule_labels = [rule['label'] for rule in rules if 'label' in rule]
@@ -154,16 +155,21 @@ def save_rule_settings(agency_code, file, errors, warnings):
         # resetting priorities by the order of the incoming lists
         priority = 1
         for rule_dict in rules:
-            validate_rule_dict(rule_dict, rule_label_mapping)
-            rule_id = rule_label_mapping[rule_dict['label']]
+            validate_rule_dict(rule_dict)
+            rule_label = rule_dict['label']
             impact_id = RULE_IMPACT_DICT[rule_dict['impact']]
+            file_id = rule_label_mapping[rule_label]['file_id']
+            target_file_id = rule_label_mapping[rule_label]['target_file_id']
 
             if not has_settings:
-                sess.add(RuleSetting(agency_code=agency_code, rule_id=rule_id, priority=priority, impact_id=impact_id))
+                sess.add(RuleSetting(agency_code=agency_code, rule_label=rule_label, file_id=file_id,
+                                     target_file_id=target_file_id, priority=priority, impact_id=impact_id))
             else:
-                update_params = {'priority': priority, 'impact_id': impact_id}
-                sess.query(RuleSetting).filter(RuleSetting.agency_code == agency_code, RuleSetting.rule_id == rule_id).\
-                    update(update_params)
+                sess.query(RuleSetting).filter(RuleSetting.agency_code == agency_code,
+                                               RuleSetting.rule_label == rule_label,
+                                               RuleSetting.file_id == file_id,
+                                               RuleSetting.target_file_id == target_file_id).\
+                    update({'priority': priority, 'impact_id': impact_id}, synchronize_session=False)
             priority += 1
     sess.commit()
     return JsonResponse.create(StatusCode.OK, {'message': 'Agency {} rules saved.'.format(agency_code)})
