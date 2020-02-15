@@ -147,6 +147,7 @@ def main():
     parser.add_argument('-db', '--setup_db', help='Create broker database and helper tables', action='store_true')
     parser.add_argument('-a', '--create_admin', help='Create an admin user', action='store_true')
     parser.add_argument('-r', '--load_rules', help='Load SQL-based validation rules', action='store_true')
+    parser.add_argument('-rs', '--load_rules_settings', help='Load default rule settings', action='store_true')
     parser.add_argument('-d', '--update_domain', help='load slowly changing domain values such as object class',
                         action='store_true')
     parser.add_argument('-cc', '--update_country_codes', help='update country codes', action='store_true')
@@ -191,6 +192,8 @@ def main():
 
     if args.load_rules:
         load_sql_rules()
+
+    if args.load_rules_settings:
         load_rule_settings()
 
     if args.update_domain:
