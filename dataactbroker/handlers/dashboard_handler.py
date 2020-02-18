@@ -10,7 +10,7 @@ from dataactcore.interfaces.function_bag import get_time_period
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID,
-                                        FILE_TYPE_DICT_LETTER)
+                                        FILE_TYPE_DICT_LETTER, RULE_IMPACT_DICT_ID)
 from dataactcore.models.jobModels import Submission, Job, QuarterlyRevalidationThreshold
 from dataactcore.models.userModel import User
 from dataactcore.models.validationModels import RuleSql, RuleSetting, RuleImpact
@@ -601,6 +601,78 @@ def active_submission_overview(submission, file, error_level):
     if rule_values:
         response['number_of_rules'] = rule_values.number_of_rules
         response['total_instances'] = rule_values.total_instances
+
+    return JsonResponse.create(StatusCode.OK, response)
+
+
+def get_impact_counts(submission, file, error_level):
+    """ Gathers information for the impact count section of the active DABS dashboard.
+
+            Args:
+                submission: submission to get the impact counts for
+                file: The type of file to get the impact counts for
+                error_level: whether to get warning or error counts for the impact counts (possible: warning, error,
+                    mixed)
+
+            Returns:
+                A response containing impact count information of the provided submission for the active DABS dashboard.
+
+            Raises:
+                ResponseException if submission provided is a FABS submission.
+        """
+    if submission.d2_submission:
+        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+
+    # Basic data that can be gathered from just the submission and passed filters
+    response = {
+        'low': {
+            'total': 0,
+            'rules': []
+        },
+        'medium': {
+            'total': 0,
+            'rules': []
+        },
+        'high': {
+            'total': 0,
+            'rules': []
+        }
+    }
+
+    sess = GlobalDB.db().session
+
+    agency_code = submission.frec_code or submission.cgac_code
+    has_settings = agency_has_settings(sess, agency_code, file)
+
+    # Initial query
+    impact_query = sess.query(ErrorMetadata.original_rule_label, ErrorMetadata.occurrences, ErrorMetadata.rule_failed,
+                              RuleSetting.impact_id).\
+        join(Job, Job.job_id == ErrorMetadata.job_id). \
+        join(RuleSql, RuleSql.rule_label == ErrorMetadata.original_rule_label). \
+        join(RuleSetting, RuleSetting.rule_id == RuleSql.rule_sql_id). \
+        filter(Job.submission_id == submission.submission_id)
+
+    # Determining which settings to use
+    if has_settings:
+        impact_query = impact_query.filter(RuleSetting.agency_code == agency_code)
+    else:
+        impact_query = impact_query.filter(RuleSetting.agency_code.is_(None))
+
+    # If the error level isn't "mixed" add a filter on which severity to pull
+    if error_level == 'error':
+        impact_query = impact_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['fatal'])
+    elif error_level == 'warning':
+        impact_query = impact_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['warning'])
+
+    impact_query = file_filter(impact_query, RuleSql, [file])
+
+    for result in impact_query.all():
+        response[RULE_IMPACT_DICT_ID[result.impact_id]]['total'] += 1
+        response[RULE_IMPACT_DICT_ID[result.impact_id]]['rules'].append({
+            'rule_label': result.original_rule_label,
+            'instances': result.occurrences,
+            'rule_description': result.rule_failed
+        })
 
     return JsonResponse.create(StatusCode.OK, response)
 
