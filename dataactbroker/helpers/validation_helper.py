@@ -451,7 +451,7 @@ def check_length(data, length_fields, report_headers, csv_schema, short_cols, fl
 
 
 def check_field_format(data, format_fields, report_headers, short_cols, flex_data):
-    """ Check if all fields that are a type other than string match that type.
+    """ Check if all the fields are in the appropriate format.
 
         Args:
             data: the dataframe containing the data for the submission
