@@ -5,7 +5,7 @@ from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_ID
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
 from dataactcore.models.jobModels import Submission
-from dataactcore.models.validationModels import RuleSql
+from dataactcore.models.validationModels import RuleSql, RuleSetting
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
@@ -90,7 +90,8 @@ def file_filter(query, file_model, files):
     model_file_type_id = {
         CertifiedErrorMetadata: 'file_type_id',
         ErrorMetadata: 'file_type_id',
-        RuleSql: 'file_id'
+        RuleSql: 'file_id',
+        RuleSetting: 'file_id'
     }
     if file_model not in model_file_type_id:
         valid_file_models = [model_file_type.__name__ for model_file_type in model_file_type_id.keys()]

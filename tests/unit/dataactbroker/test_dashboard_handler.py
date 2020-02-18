@@ -250,18 +250,24 @@ def setup_submissions(sess, admin=False):
     sess.commit()
 
     # Create initial rule settings
-    setting_a1 = RuleSetting(agency_code=None, rule_id=rule_a1.rule_sql_id, priority=1,
-                             impact_id=RULE_IMPACT_DICT['high'])
-    setting_a2 = RuleSetting(agency_code=None, rule_id=rule_a2.rule_sql_id, priority=2,
-                             impact_id=RULE_IMPACT_DICT['high'])
-    setting_ab1 = RuleSetting(agency_code=None, rule_id=rule_ab1.rule_sql_id, priority=1,
-                              impact_id=RULE_IMPACT_DICT['high'])
-    setting_ab2 = RuleSetting(agency_code=None, rule_id=rule_ab2.rule_sql_id, priority=2,
-                              impact_id=RULE_IMPACT_DICT['high'])
-    setting_ab1_cgac = RuleSetting(agency_code=sub1.cgac_code, rule_id=rule_ab1.rule_sql_id, priority=2,
-                                   impact_id=RULE_IMPACT_DICT['high'])
-    setting_ab2_cgac = RuleSetting(agency_code=sub1.cgac_code, rule_id=rule_ab2.rule_sql_id, priority=1,
-                                   impact_id=RULE_IMPACT_DICT['high'])
+    setting_a1 = RuleSetting(agency_code=None, rule_label=rule_a1.rule_label, priority=1,
+                             impact_id=RULE_IMPACT_DICT['high'], file_id=rule_a1.file_id,
+                             target_file_id=rule_a1.target_file_id)
+    setting_a2 = RuleSetting(agency_code=None, rule_label=rule_a2.rule_label, priority=2,
+                             impact_id=RULE_IMPACT_DICT['high'], file_id=rule_a2.file_id,
+                             target_file_id=rule_a2.target_file_id)
+    setting_ab1 = RuleSetting(agency_code=None, rule_label=rule_ab1.rule_label, priority=1,
+                              impact_id=RULE_IMPACT_DICT['high'], file_id=rule_ab1.file_id,
+                              target_file_id=rule_ab1.target_file_id)
+    setting_ab2 = RuleSetting(agency_code=None, rule_label=rule_ab2.rule_label, priority=2,
+                              impact_id=RULE_IMPACT_DICT['high'], file_id=rule_ab2.file_id,
+                              target_file_id=rule_ab2.target_file_id)
+    setting_ab1_cgac = RuleSetting(agency_code=sub1.cgac_code, rule_label=rule_ab1.rule_label, priority=2,
+                                   impact_id=RULE_IMPACT_DICT['high'], file_id=rule_ab1.file_id,
+                                   target_file_id=rule_ab1.target_file_id)
+    setting_ab2_cgac = RuleSetting(agency_code=sub1.cgac_code, rule_label=rule_ab2.rule_label, priority=1,
+                                   impact_id=RULE_IMPACT_DICT['high'], file_id=rule_ab2.file_id,
+                                   target_file_id=rule_ab2.target_file_id)
     sess.add_all([setting_a1, setting_a2, setting_ab1, setting_ab2, setting_ab1_cgac, setting_ab2_cgac])
     sess.commit()
 
