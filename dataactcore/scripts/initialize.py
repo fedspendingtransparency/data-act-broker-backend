@@ -13,6 +13,7 @@ from dataactcore.interfaces.function_bag import create_user_with_password
 from dataactcore.logging import configure_logging
 from dataactcore.models.userModel import User
 from dataactcore.models.jobModels import FileGeneration
+from dataactcore.models.validationModels import RuleSetting
 from dataactcore.scripts.setup_all_db import setup_all_db
 
 from dataactvalidator.health_check import create_app
@@ -78,6 +79,9 @@ def load_rule_settings():
     logger.info('Loading the default rule settings')
     with create_app().app_context():
         sess = GlobalDB.db().session
+        # Clearing the current defaults before reloading them
+        sess.query(RuleSetting).filter(RuleSetting.agency_code.is_(None)).delete(synchronize_session=False)
+        sess.commit()
         load_default_rule_settings(sess)
 
 
