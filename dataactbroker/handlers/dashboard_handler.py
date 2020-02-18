@@ -648,8 +648,7 @@ def get_impact_counts(submission, file, error_level):
     impact_query = sess.query(ErrorMetadata.original_rule_label, ErrorMetadata.occurrences, ErrorMetadata.rule_failed,
                               RuleSetting.impact_id).\
         join(Job, Job.job_id == ErrorMetadata.job_id). \
-        join(RuleSql, RuleSql.rule_label == ErrorMetadata.original_rule_label). \
-        join(RuleSetting, RuleSetting.rule_id == RuleSql.rule_sql_id). \
+        join(RuleSetting, RuleSetting.rule_label == ErrorMetadata.original_rule_label). \
         filter(Job.submission_id == submission.submission_id)
 
     # Determining which settings to use
@@ -664,7 +663,7 @@ def get_impact_counts(submission, file, error_level):
     elif error_level == 'warning':
         impact_query = impact_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['warning'])
 
-    impact_query = file_filter(impact_query, RuleSql, [file])
+    impact_query = file_filter(impact_query, RuleSetting, [file])
 
     for result in impact_query.all():
         response[RULE_IMPACT_DICT_ID[result.impact_id]]['total'] += 1
