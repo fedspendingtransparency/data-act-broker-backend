@@ -3,11 +3,11 @@ from collections import OrderedDict
 import copy
 
 from datetime import datetime
-from sqlalchemy import case, func
+from sqlalchemy import case, func, and_
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import get_time_period
-from dataactcore.models.domainModels import CGAC, FREC
+from dataactcore.models.domainModels import CGAC, FREC, is_not_distinct_from
 from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID,
                                         FILE_TYPE_DICT_LETTER, RULE_IMPACT_DICT_ID)
@@ -728,7 +728,8 @@ def active_submission_table(submission, file, error_level, page=1, limit=5, sort
                              RuleSql.category, RuleSetting.priority, RuleImpact.name.label('impact_name')).\
         join(Job, Job.job_id == ErrorMetadata.job_id).\
         join(RuleSql, RuleSql.rule_label == ErrorMetadata.original_rule_label).\
-        join(RuleSetting, RuleSetting.rule_id == RuleSql.rule_sql_id).\
+        join(RuleSetting, and_(RuleSql.rule_label == RuleSetting.rule_label, RuleSql.file_id == RuleSetting.file_id,
+                               is_not_distinct_from(RuleSql.target_file_id, RuleSetting.target_file_id))).\
         join(RuleImpact, RuleImpact.rule_impact_id == RuleSetting.impact_id).\
         filter(Job.submission_id == submission.submission_id)
 

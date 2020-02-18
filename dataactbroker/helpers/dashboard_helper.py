@@ -1,6 +1,6 @@
 from dataactbroker.helpers.filters_helper import file_filter
 from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER
-from dataactcore.models.validationModels import RuleSetting, RuleSql
+from dataactcore.models.validationModels import RuleSetting
 
 FILE_TYPES = ['A', 'B', 'C', 'cross-AB', 'cross-BC', 'cross-CD1', 'cross-CD2']
 
@@ -38,7 +38,6 @@ def agency_has_settings(sess, agency_code, file):
     """
 
     # Check to see if agency has saved their settings for this file type
-    query = sess.query(RuleSetting).\
-        join(RuleSql, RuleSql.rule_sql_id == RuleSetting.rule_id).filter(RuleSetting.agency_code == agency_code)
-    query = file_filter(query, RuleSql, [file])
+    query = sess.query(RuleSetting).filter(RuleSetting.agency_code == agency_code)
+    query = file_filter(query, RuleSetting, [file])
     return query.count() > 0
