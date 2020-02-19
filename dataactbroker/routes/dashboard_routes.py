@@ -101,7 +101,7 @@ def add_dashboard_routes(app):
                                              missing='warning')
     })
     def impact_counts(submission, file, **kwargs):
-        """ Returns an overview of the requested submission for the active dashboard """
+        """ Returns the impact counts of the requested submission for the active dashboard """
         error_level = kwargs.get('error_level')
         return get_impact_counts(submission, file, error_level)
 

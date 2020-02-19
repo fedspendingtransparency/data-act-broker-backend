@@ -2202,6 +2202,7 @@ Possible HTTP Status Codes:
     - Invalid submission
     - Invalid parameter
     - Missing required parameter
+    - FABS submission requested
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
@@ -2276,6 +2277,7 @@ Possible HTTP Status Codes:
 - 400:
     - Invalid parameter
     - Missing required parameter
+    - FABS submission requested
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
