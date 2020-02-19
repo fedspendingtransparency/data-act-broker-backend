@@ -44,6 +44,12 @@ def active_submission_overview_endpoint(submission, file, error_level):
     return json.loads(json_response.get_data().decode('UTF-8'))
 
 
+def get_impact_counts_endpoint(submission, file, error_level):
+    json_response = dashboard_handler.get_impact_counts(submission, file, error_level)
+    assert json_response.status_code == 200
+    return json.loads(json_response.get_data().decode('UTF-8'))
+
+
 def active_submission_table_endpoint(submission, file, error_level, page=1, limit=5, sort='significance', order='desc'):
     json_response = dashboard_handler.active_submission_table(submission, file, error_level, page, limit, sort, order)
     assert json_response.status_code == 200
@@ -263,7 +269,7 @@ def setup_submissions(sess, admin=False):
                               impact_id=RULE_IMPACT_DICT['high'], file_id=rule_ab2.file_id,
                               target_file_id=rule_ab2.target_file_id)
     setting_ab1_cgac = RuleSetting(agency_code=sub1.cgac_code, rule_label=rule_ab1.rule_label, priority=2,
-                                   impact_id=RULE_IMPACT_DICT['high'], file_id=rule_ab1.file_id,
+                                   impact_id=RULE_IMPACT_DICT['low'], file_id=rule_ab1.file_id,
                                    target_file_id=rule_ab1.target_file_id)
     setting_ab2_cgac = RuleSetting(agency_code=sub1.cgac_code, rule_label=rule_ab2.rule_label, priority=1,
                                    impact_id=RULE_IMPACT_DICT['high'], file_id=rule_ab2.file_id,
@@ -1171,6 +1177,103 @@ def test_active_submission_overview(database, monkeypatch):
 @pytest.mark.usefixtures('job_constants')
 @pytest.mark.usefixtures('user_constants')
 @pytest.mark.usefixtures('validation_constants')
+def test_get_impact_counts(database, monkeypatch):
+    sess = database.session
+
+    user = setup_submissions(sess, admin=True)
+    monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
+
+    # FABS submissions should throw an error
+    fabs_sub = sess.query(Submission).filter(Submission.d2_submission.is_(True)).first()
+    expected_error = 'Submission must be a DABS submission.'
+    with pytest.raises(ResponseException) as resp_except:
+        dashboard_handler.get_impact_counts(fabs_sub, 'B', 'warning')
+    assert str(resp_except.value) == expected_error
+
+    # No occurrences of rules that have settings
+    monthly_sub = sess.query(Submission).filter(Submission.d2_submission.is_(False),
+                                                Submission.is_quarter_format.is_(False)).first()
+    expected_response = {
+        'low': {
+            'total': 0,
+            'rules': []
+        },
+        'medium': {
+            'total': 0,
+            'rules': []
+        },
+        'high': {
+            'total': 0,
+            'rules': []
+        }
+    }
+    response = get_impact_counts_endpoint(monthly_sub, 'cross-AB', 'mixed')
+    assert response == expected_response
+
+    # Rule with occurrences
+    sub1 = sess.query(Submission).filter(Submission.submission_id == 1).first()
+    expected_response = {
+        'low': {
+            'total': 0,
+            'rules': []
+        },
+        'medium': {
+            'total': 0,
+            'rules': []
+        },
+        'high': {
+            'total': 2,
+            'rules': [
+                {
+                    'rule_label': 'A1',
+                    'instances': 20,
+                    'rule_description': 'first rule'
+                },
+                {
+                    'rule_label': 'A2',
+                    'instances': 30,
+                    'rule_description': 'second rule'
+                }
+            ]
+        }
+    }
+    response = get_impact_counts_endpoint(sub1, 'A', 'mixed')
+    assert response == expected_response
+
+    # Rule with occurrences at different impacts (based on per-agency setting)
+    expected_response = {
+        'low': {
+            'total': 1,
+            'rules': [
+                {
+                    'rule_label': 'A3',
+                    'instances': 70,
+                    'rule_description': 'first cross rule'
+                }
+            ]
+        },
+        'medium': {
+            'total': 0,
+            'rules': []
+        },
+        'high': {
+            'total': 1,
+            'rules': [
+                {
+                    'rule_label': 'B1',
+                    'instances': 130,
+                    'rule_description': 'second cross rule'
+                }
+            ]
+        }
+    }
+    response = get_impact_counts_endpoint(sub1, 'cross-AB', 'mixed')
+    assert response == expected_response
+
+
+@pytest.mark.usefixtures('job_constants')
+@pytest.mark.usefixtures('user_constants')
+@pytest.mark.usefixtures('validation_constants')
 def test_active_submission_table(database, monkeypatch):
     sess = database.session
 
@@ -1304,7 +1407,7 @@ def test_active_submission_table(database, monkeypatch):
                 'rule_label': 'A3',
                 'instance_count': 70,
                 'category': 'existence',
-                'impact': 'high',
+                'impact': 'low',
                 'rule_description': 'first cross rule'
             },
             {
