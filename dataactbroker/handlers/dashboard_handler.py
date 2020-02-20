@@ -676,6 +676,76 @@ def get_impact_counts(submission, file, error_level):
     return JsonResponse.create(StatusCode.OK, response)
 
 
+def get_significance_counts(submission, file, error_level):
+    """ Gathers information for the signficances section of the active DABS dashboard.
+
+            Args:
+                submission: submission to get the impact counts for
+                file: The type of file to get the impact counts for
+                error_level: whether to get warning or error counts for the impact counts (possible: warning, error,
+                    mixed)
+
+            Returns:
+                A response containing significance data of the provided submission for the active DABS dashboard.
+
+            Raises:
+                ResponseException if submission provided is a FABS submission.
+        """
+    if submission.d2_submission:
+        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+
+    # Basic data that can be gathered from just the submission and passed filters
+    response = {
+        'total_instances': 0,
+        'rules': []
+    }
+
+    sess = GlobalDB.db().session
+
+    agency_code = submission.frec_code or submission.cgac_code
+    has_settings = agency_has_settings(sess, agency_code, file)
+
+    # Initial query
+    significance_query = sess.query(ErrorMetadata.original_rule_label, ErrorMetadata.occurrences,
+                                    ErrorMetadata.rule_failed, RuleSetting.priority, RuleSql.category).\
+        join(Job, Job.job_id == ErrorMetadata.job_id). \
+        join(RuleSetting, RuleSetting.rule_label == ErrorMetadata.original_rule_label). \
+        join(RuleSql, RuleSql.rule_label == ErrorMetadata.original_rule_label). \
+        filter(Job.submission_id == submission.submission_id)
+
+    # Determining which settings to use
+    if has_settings:
+        significance_query = significance_query.filter(RuleSetting.agency_code == agency_code)
+    else:
+        significance_query = significance_query.filter(RuleSetting.agency_code.is_(None))
+
+    # If the error level isn't "mixed" add a filter on which severity to pull
+    if error_level == 'error':
+        significance_query = significance_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['fatal'])
+    elif error_level == 'warning':
+        significance_query = significance_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['warning'])
+
+    significance_query = file_filter(significance_query, RuleSetting, [file])
+
+    # Ordering by significance to help process the results
+    significance_query = significance_query.order_by(RuleSetting.priority)
+
+    for result in significance_query.all():
+        response['rules'].append({
+            'rule_label': result.original_rule_label,
+            'category': result.category,
+            'significance': result.priority,
+            'instances': result.occurrences
+        })
+        response['total_instances'] += result.occurrences
+
+    # Calculate the percentages
+    for rule_dict in response['rules']:
+        rule_dict['percentage'] = round((rule_dict['instances']/response['total_instances'])*100, 1)
+
+    return JsonResponse.create(StatusCode.OK, response)
+
+
 def active_submission_table(submission, file, error_level, page=1, limit=5, sort='significance', order='desc'):
     """ Gather a list of warnings/errors based on the filters provided to display in the active dashboard table.
 
