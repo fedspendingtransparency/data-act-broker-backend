@@ -20,8 +20,8 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactbroker.helpers.generic_helper import fy
-from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter, file_filter
-from dataactbroker.helpers.dashboard_helper import FILE_TYPES, agency_has_settings, generate_file_type
+from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter, file_filter, rule_severity_filter
+from dataactbroker.helpers.dashboard_helper import FILE_TYPES, agency_settings_filter, generate_file_type
 from dataactbroker.handlers.agency_handler import get_accessible_agencies
 
 
@@ -588,12 +588,7 @@ def active_submission_overview(submission, file, error_level):
         join(Job, Job.job_id == ErrorMetadata.job_id).filter(Job.submission_id == submission.submission_id).\
         group_by(ErrorMetadata.job_id)
 
-    # If the error level isn't "mixed" add a filter on which severity to pull
-    if error_level == 'error':
-        rule_query = rule_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['fatal'])
-    elif error_level == 'warning':
-        rule_query = rule_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['warning'])
-
+    rule_query = rule_severity_filter(rule_query, error_level, ErrorMetadata)
     rule_query = file_filter(rule_query, ErrorMetadata, [file])
 
     rule_values = rule_query.first()
@@ -641,9 +636,6 @@ def get_impact_counts(submission, file, error_level):
 
     sess = GlobalDB.db().session
 
-    agency_code = submission.frec_code or submission.cgac_code
-    has_settings = agency_has_settings(sess, agency_code, file)
-
     # Initial query
     impact_query = sess.query(ErrorMetadata.original_rule_label, ErrorMetadata.occurrences, ErrorMetadata.rule_failed,
                               RuleSetting.impact_id).\
@@ -651,18 +643,9 @@ def get_impact_counts(submission, file, error_level):
         join(RuleSetting, RuleSetting.rule_label == ErrorMetadata.original_rule_label). \
         filter(Job.submission_id == submission.submission_id)
 
-    # Determining which settings to use
-    if has_settings:
-        impact_query = impact_query.filter(RuleSetting.agency_code == agency_code)
-    else:
-        impact_query = impact_query.filter(RuleSetting.agency_code.is_(None))
-
-    # If the error level isn't "mixed" add a filter on which severity to pull
-    if error_level == 'error':
-        impact_query = impact_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['fatal'])
-    elif error_level == 'warning':
-        impact_query = impact_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['warning'])
-
+    agency_code = submission.frec_code or submission.cgac_code
+    impact_query = agency_settings_filter(sess, impact_query, agency_code, file)
+    impact_query = rule_severity_filter(impact_query, error_level, ErrorMetadata)
     impact_query = file_filter(impact_query, RuleSetting, [file])
 
     for result in impact_query.all():
@@ -702,9 +685,6 @@ def get_significance_counts(submission, file, error_level):
 
     sess = GlobalDB.db().session
 
-    agency_code = submission.frec_code or submission.cgac_code
-    has_settings = agency_has_settings(sess, agency_code, file)
-
     # Initial query
     significance_query = sess.query(ErrorMetadata.original_rule_label, ErrorMetadata.occurrences,
                                     ErrorMetadata.rule_failed, RuleSetting.priority, RuleSql.category).\
@@ -713,18 +693,9 @@ def get_significance_counts(submission, file, error_level):
         join(RuleSql, RuleSql.rule_label == ErrorMetadata.original_rule_label). \
         filter(Job.submission_id == submission.submission_id)
 
-    # Determining which settings to use
-    if has_settings:
-        significance_query = significance_query.filter(RuleSetting.agency_code == agency_code)
-    else:
-        significance_query = significance_query.filter(RuleSetting.agency_code.is_(None))
-
-    # If the error level isn't "mixed" add a filter on which severity to pull
-    if error_level == 'error':
-        significance_query = significance_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['fatal'])
-    elif error_level == 'warning':
-        significance_query = significance_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['warning'])
-
+    agency_code = submission.frec_code or submission.cgac_code
+    significance_query = agency_settings_filter(sess, significance_query, agency_code, file)
+    significance_query = rule_severity_filter(significance_query, error_level, ErrorMetadata)
     significance_query = file_filter(significance_query, RuleSetting, [file])
 
     # Ordering by significance to help process the results
@@ -789,9 +760,6 @@ def active_submission_table(submission, file, error_level, page=1, limit=5, sort
 
     sess = GlobalDB.db().session
 
-    agency_code = submission.frec_code or submission.cgac_code
-    has_settings = agency_has_settings(sess, agency_code, file)
-
     # Initial query
     table_query = sess.query(ErrorMetadata.original_rule_label, ErrorMetadata.occurrences, ErrorMetadata.rule_failed,
                              RuleSql.category, RuleSetting.priority, RuleImpact.name.label('impact_name')).\
@@ -802,18 +770,9 @@ def active_submission_table(submission, file, error_level, page=1, limit=5, sort
         join(RuleImpact, RuleImpact.rule_impact_id == RuleSetting.impact_id).\
         filter(Job.submission_id == submission.submission_id)
 
-    # Determining which settings to use
-    if has_settings:
-        table_query = table_query.filter(RuleSetting.agency_code == agency_code)
-    else:
-        table_query = table_query.filter(RuleSetting.agency_code.is_(None))
-
-    # If the error level isn't "mixed" add a filter on which severity to pull
-    if error_level == 'error':
-        table_query = table_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['fatal'])
-    elif error_level == 'warning':
-        table_query = table_query.filter(ErrorMetadata.severity_id == RULE_SEVERITY_DICT['warning'])
-
+    agency_code = submission.frec_code or submission.cgac_code
+    table_query = agency_settings_filter(sess, table_query, agency_code, file)
+    table_query = rule_severity_filter(table_query, error_level, ErrorMetadata)
     table_query = file_filter(table_query, RuleSql, [file])
 
     # Total number of entries in the table
