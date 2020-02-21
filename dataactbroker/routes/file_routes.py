@@ -9,7 +9,7 @@ from dataactbroker.handlers.fileHandler import (
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
     certify_dabs_submission, find_existing_submissions_in_period, get_submission_metadata, get_submission_data,
-    get_revalidation_threshold, get_latest_certification_period)
+    get_revalidation_threshold, get_latest_certification_period, revert_to_certified)
 from dataactbroker.decorators import convert_to_submission_id
 from dataactbroker.permissions import (requires_login, requires_submission_perms, requires_agency_perms,
                                        requires_sub_agency_perms)
@@ -243,3 +243,10 @@ def add_file_routes(app, is_local, server_path):
     def restart_validation(submission, **kwargs):
         d2_submission = kwargs.get('d2_submission')
         return FileHandler.restart_validation(submission, d2_submission)
+
+    @app.route("/v1/revert_submission/", methods=['POST'])
+    @convert_to_submission_id
+    @requires_submission_perms('submitter')
+    def revert_submission(submission):
+        """ Revert an updated DABS submission to the state it was when it was last certified """
+        return revert_to_certified(submission)

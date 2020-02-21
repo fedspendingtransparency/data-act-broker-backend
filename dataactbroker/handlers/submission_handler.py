@@ -18,10 +18,13 @@ from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffi
                                           Comment, CertifiedComment)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
-                                              CertifiedAwardFinancial, FlexField, CertifiedFlexField)
+                                              CertifiedAwardFinancial, FlexField, CertifiedFlexField, AwardProcurement,
+                                              AwardFinancialAssistance, CertifiedAwardProcurement,
+                                              CertifiedAwardFinancialAssistance)
 from dataactcore.models.errorModels import File
 
 from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 
@@ -553,17 +556,21 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
     return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
 
-def move_certified_data(sess, submission_id):
-    """ Move data from the staging tables to the certified tables for a submission.
+def move_certified_data(sess, submission_id, direction='certify'):
+    """ Move data from the staging tables to the certified tables for a submission or do the reverse for a revert.
 
         Args:
             sess: the database connection
             submission_id: The ID of the submission to move data for
+            direction: The direction to move the certified data (certify or revert)
     """
     table_types = {'appropriation': [Appropriation, CertifiedAppropriation, 'submission'],
                    'object_class_program_activity': [ObjectClassProgramActivity, CertifiedObjectClassProgramActivity,
                                                      'submission'],
                    'award_financial': [AwardFinancial, CertifiedAwardFinancial, 'submission'],
+                   'award_procurement': [AwardProcurement, CertifiedAwardProcurement, 'submission'],
+                   'award_financial_assistance': [AwardFinancialAssistance, CertifiedAwardFinancialAssistance,
+                                                  'submission'],
                    'error_metadata': [ErrorMetadata, CertifiedErrorMetadata, 'job'],
                    'comment': [Comment, CertifiedComment, 'submission'],
                    'flex_field': [FlexField, CertifiedFlexField, 'submission']}
@@ -573,39 +580,44 @@ def move_certified_data(sess, submission_id):
     job_list = [item[0] for item in job_list]
 
     for table_type, table_object in table_types.items():
+        if direction == 'certify':
+            source_table = table_object[0]
+            target_table = table_object[1]
+        else:
+            source_table = table_object[1]
+            target_table = table_object[0]
+
         logger.info({
-            "message": "Deleting old certified data from {} table".format("certified_" + table_type),
-            "message_type": "BrokerInfo",
-            "submission_id": submission_id
+            'message': 'Deleting old data from {} table'.format(source_table.__table__.name),
+            'message_type': 'BrokerInfo',
+            'submission_id': submission_id
         })
 
-        # Delete the old certified data in the table
+        # Delete the old data in the target table
         if table_object[2] == 'submission':
-            sess.query(table_object[1]).filter_by(submission_id=submission_id).delete(synchronize_session=False)
+            sess.query(target_table).filter_by(submission_id=submission_id).delete(synchronize_session=False)
         else:
-            sess.query(table_object[1]).filter(table_object[1].job_id.in_(job_list)).delete(synchronize_session=False)
+            sess.query(target_table).filter(target_table.job_id.in_(job_list)).delete(synchronize_session=False)
 
         logger.info({
-            "message": "Moving certified data from {} table".format(table_type),
-            "message_type": "BrokerInfo",
-            "submission_id": submission_id
+            'message': 'Moving certified data from {} table'.format(source_table.__table__.name),
+            'message_type': 'BrokerInfo',
+            'submission_id': submission_id
         })
 
         column_list = [col.key for col in table_object[0].__table__.columns]
         column_list.remove('created_at')
         column_list.remove('updated_at')
-        if 'display_tas' in column_list:
-            column_list.remove('display_tas')
         column_list.remove(table_type + '_id')
 
-        col_string = ", ".join(column_list)
+        col_string = ', '.join(column_list)
 
         insert_string = """
-            INSERT INTO certified_{table} (created_at, updated_at, {cols})
+            INSERT INTO {target} (created_at, updated_at, {cols})
             SELECT NOW() AS created_at, NOW() AS updated_at, {cols}
-            FROM {table}
+            FROM {source}
             WHERE
-        """.format(table=table_type, cols=col_string)
+        """.format(source=source_table.__table__.name, target=target_table.__table__.name, cols=col_string)
 
         # Filter by either submission ID or job IDs depending on the situation
         if table_object[2] == 'submission':
@@ -701,3 +713,36 @@ def certify_dabs_submission(submission, file_manager):
         sess.commit()
 
     return response
+
+
+def revert_to_certified(submission):
+    """ Revert an updated DABS submission to its last certified state
+
+        Args:
+            submission: the submission to be reverted
+
+        Returns:
+            A JsonResponse containing a success message
+
+        Raises:
+            ResponseException: if submission provided is a FABS submission or is not in an "updated" status
+    """
+
+    if submission.d2_submission:
+        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+
+    if submission.publish_status_id != PUBLISH_STATUS_DICT['updated']:
+        raise ResponseException('Submission has not been certified or has not been updated since certification.',
+                                status=StatusCode.CLIENT_ERROR)
+
+    sess = GlobalDB.db().session
+    move_certified_data(sess, submission.submission_id, direction='revert')
+
+    # Copy file paths from certified_files_history
+    # Set submission to certified status
+    # Commit here
+    # Copy warning files back over from certified bucket (ignore locally)
+    # Clear error files for submission to just be headers (can still clear locally)
+
+    return JsonResponse.create(StatusCode.OK, {'message': 'Submission {} successfully reverted to certified status.'.
+                               format(submission.submission_id)})
