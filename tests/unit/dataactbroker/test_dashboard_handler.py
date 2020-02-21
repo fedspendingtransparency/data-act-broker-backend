@@ -1312,6 +1312,7 @@ def test_get_significance_counts(database, monkeypatch):
             {
                 'rule_label': 'A1',
                 'significance': 1,
+                'impact': 'high',
                 "category": 'completeness',
                 'instances': 20,
                 "percentage": 40.0
@@ -1319,6 +1320,7 @@ def test_get_significance_counts(database, monkeypatch):
             {
                 'rule_label': 'A2',
                 'significance': 2,
+                'impact': 'high',
                 "category": 'accuracy',
                 'instances': 30,
                 "percentage": 60.0
@@ -1335,6 +1337,7 @@ def test_get_significance_counts(database, monkeypatch):
             {
                 'rule_label': 'B1',
                 'significance': 1,
+                'impact': 'high',
                 "category": 'existence',
                 'instances': 130,
                 "percentage": 65.0
@@ -1342,6 +1345,7 @@ def test_get_significance_counts(database, monkeypatch):
             {
                 'rule_label': 'A3',
                 'significance': 2,
+                'impact': 'low',
                 "category": 'existence',
                 'instances': 70,
                 "percentage": 35.0
@@ -1359,6 +1363,7 @@ def test_get_significance_counts(database, monkeypatch):
             {
                 'rule_label': 'A3',
                 'significance': 2,
+                'impact': 'low',
                 "category": 'existence',
                 'instances': 70,
                 "percentage": 100.0

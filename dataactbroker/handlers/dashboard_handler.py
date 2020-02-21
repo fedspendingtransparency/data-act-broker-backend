@@ -687,7 +687,8 @@ def get_significance_counts(submission, file, error_level):
 
     # Initial query
     significance_query = sess.query(ErrorMetadata.original_rule_label, ErrorMetadata.occurrences,
-                                    ErrorMetadata.rule_failed, RuleSetting.priority, RuleSql.category).\
+                                    ErrorMetadata.rule_failed, RuleSetting.priority, RuleSql.category,
+                                    RuleSetting.impact_id).\
         join(Job, Job.job_id == ErrorMetadata.job_id). \
         join(RuleSetting, RuleSetting.rule_label == ErrorMetadata.original_rule_label). \
         join(RuleSql, RuleSql.rule_label == ErrorMetadata.original_rule_label). \
@@ -706,6 +707,7 @@ def get_significance_counts(submission, file, error_level):
             'rule_label': result.original_rule_label,
             'category': result.category,
             'significance': result.priority,
+            'impact': RULE_IMPACT_DICT_ID[result.impact_id],
             'instances': result.occurrences
         })
         response['total_instances'] += result.occurrences

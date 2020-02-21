@@ -2311,6 +2311,7 @@ This endpoint gets the breakdown of rules and their counts by their categories o
             "rule_label": "C23.3",
             "category": "Accuracy",
             "significance": 3,
+            "impact": "high",
             "instances": 36,
             "percentage": 0.0
         },
@@ -2318,6 +2319,7 @@ This endpoint gets the breakdown of rules and their counts by their categories o
             "rule_label": "C9",
             "category": "Completeness",
             "significance": 4,
+            "impact": "low",
             "instances": 73,
             "percentage": 0.1
         },
@@ -2325,6 +2327,7 @@ This endpoint gets the breakdown of rules and their counts by their categories o
             "rule_label": "C8",
             "category": "Completeness",
             "significance": 9,
+            "impact": "medium",
             "instances": 42240,
             "percentage": 99.7
         }
@@ -2340,6 +2343,7 @@ The response is a dictionary representing the rules and their significances/cate
     - `rule_label`: (string) the label of the rule
     - `category`: (string) the category of the rule
     - `significance`: (integer) the significance of the rule
+    - `impact`: (string) the impact of the rule
     - `instances`: (integer) the number of times this rule was triggered
     - `percentage`: (float, rounded to tenth) the number of times this rule was triggered
 
