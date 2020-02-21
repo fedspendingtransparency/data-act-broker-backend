@@ -398,7 +398,7 @@ class DashboardTests(BaseTestAPI):
         self.assertEqual(response.json['message'], 'file: Missing data for required field.')
 
     def test_get_significance_counts(self):
-        """ Test successfully getting the impact counts for a submission """
+        """ Test successfully getting the significance counts for a submission """
         # Error type not specified
         params = {'submission_id': self.quarter_sub, 'file': 'A'}
         response = self.app.get('/v1/get_significance_counts/', params, headers={'x-session-id': self.session_id})
@@ -410,7 +410,7 @@ class DashboardTests(BaseTestAPI):
         self.assertEqual(response.status_code, 200)
 
     def test_get_significance_counts_fail(self):
-        """ Test failing to get impact counts for a submission """
+        """ Test failing to get significance counts for a submission """
         # Invalid submission ID
         params = {'submission_id': -1, 'file': 'A'}
         response = self.app.get('/v1/get_significance_counts/', params, expect_errors=True,

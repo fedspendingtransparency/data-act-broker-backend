@@ -119,7 +119,7 @@ def add_dashboard_routes(app):
                                              missing='warning')
     })
     def significance_counts(submission, file, **kwargs):
-        """ Returns the impact counts of the requested submission for the active dashboard """
+        """ Returns the significance counts of the requested submission for the active dashboard """
         error_level = kwargs.get('error_level')
         return get_significance_counts(submission, file, error_level)
 

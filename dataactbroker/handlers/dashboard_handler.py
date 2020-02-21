@@ -663,10 +663,10 @@ def get_significance_counts(submission, file, error_level):
     """ Gathers information for the signficances section of the active DABS dashboard.
 
             Args:
-                submission: submission to get the impact counts for
-                file: The type of file to get the impact counts for
-                error_level: whether to get warning or error counts for the impact counts (possible: warning, error,
-                    mixed)
+                submission: submission to get the significance counts for
+                file: The type of file to get the significance counts for
+                error_level: whether to get warning or error counts for the significance counts (possible: warning,
+                             error, mixed)
 
             Returns:
                 A response containing significance data of the provided submission for the active DABS dashboard.
