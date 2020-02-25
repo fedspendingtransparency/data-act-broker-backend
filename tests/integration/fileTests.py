@@ -229,7 +229,7 @@ class FileTests(BaseTestAPI):
         self.assertIn("Date must be provided as", update_response.json["message"])
 
     def test_submit_file_certified_period(self):
-        """ Test file submissions for Q4, 2015, submission w same period already been certified """
+        """ Test file submissions for Q4, 2015, submission with same period already been certified """
         update_json = {
             "cgac_code": "SYS",
             "frec_code": None,
@@ -238,9 +238,8 @@ class FileTests(BaseTestAPI):
             "reporting_period_end_date": "09/2015"}
         response = self.app.post("/v1/upload_dabs_files/", update_json,
                                  upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
-                                 headers={"x-session-id": self.session_id}, expect_errors=True)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], "A submission with the same period already exists.")
+                                 headers={"x-session-id": self.session_id})
+        self.assertEqual(response.status_code, 200)
 
     def test_submit_file_fabs_dabs_route(self):
         """ Test trying to update a FABS submission via the DABS route """

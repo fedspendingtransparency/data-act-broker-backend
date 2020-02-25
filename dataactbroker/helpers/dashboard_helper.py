@@ -1,6 +1,6 @@
 from dataactbroker.helpers.filters_helper import file_filter
 from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER
-from dataactcore.models.validationModels import RuleSetting, RuleSql
+from dataactcore.models.validationModels import RuleSetting
 
 FILE_TYPES = ['A', 'B', 'C', 'cross-AB', 'cross-BC', 'cross-CD1', 'cross-CD2']
 
@@ -38,7 +38,26 @@ def agency_has_settings(sess, agency_code, file):
     """
 
     # Check to see if agency has saved their settings for this file type
-    query = sess.query(RuleSetting).\
-        join(RuleSql, RuleSql.rule_sql_id == RuleSetting.rule_id).filter(RuleSetting.agency_code == agency_code)
-    query = file_filter(query, RuleSql, [file])
+    query = sess.query(RuleSetting).filter(RuleSetting.agency_code == agency_code)
+    query = file_filter(query, RuleSetting, [file])
     return query.count() > 0
+
+
+def agency_settings_filter(sess, query, agency_code, file):
+    """ Given the provided query, determine to filter on the default settings or not
+
+        Arguments:
+            sess: the database connection
+            query: the sqlalchemy query to apply the filters to
+            agency_code: the agency code to see if they have saved settings already
+            file:
+
+        Returns:
+            the same queryset provided with agency settings filter included
+    """
+    has_settings = agency_has_settings(sess, agency_code, file)
+    if has_settings:
+        query = query.filter(RuleSetting.agency_code == agency_code)
+    else:
+        query = query.filter(RuleSetting.agency_code.is_(None))
+    return query

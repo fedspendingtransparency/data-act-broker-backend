@@ -1,9 +1,11 @@
 import json
 import pytest
+from sqlalchemy import and_
 
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_ID, RULE_SEVERITY_DICT, RULE_IMPACT_DICT
 from dataactcore.models.validationModels import RuleSql, RuleSetting
+from dataactcore.models.domainModels import is_not_distinct_from
 from dataactbroker.handlers import settings_handler
 from dataactbroker.handlers.dashboard_handler import generate_file_type
 from dataactcore.scripts.initialize import load_default_rule_settings
@@ -34,34 +36,34 @@ def setup_tests(sess):
     # Setup rules
     rsql_a1 = RuleSql(rule_sql='', rule_label='A1', rule_error_message='A1 Description', query_name='',
                       file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['warning'],
-                      rule_cross_file_flag=False)
+                      rule_cross_file_flag=False, target_file_id=None)
     rsql_a2 = RuleSql(rule_sql='', rule_label='A2', rule_error_message='A2 Description', query_name='',
                       file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
-                      rule_cross_file_flag=False)
+                      rule_cross_file_flag=False, target_file_id=None)
     rsql_a3 = RuleSql(rule_sql='', rule_label='A3', rule_error_message='A3 Description', query_name='',
                       file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['warning'],
-                      rule_cross_file_flag=False)
+                      rule_cross_file_flag=False, target_file_id=None)
     rsql_a4 = RuleSql(rule_sql='', rule_label='A4', rule_error_message='A4 Description', query_name='',
                       file_id=FILE_TYPE_DICT_LETTER_ID['A'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
-                      rule_cross_file_flag=False)
+                      rule_cross_file_flag=False, target_file_id=None)
     rsql_b1 = RuleSql(rule_sql='', rule_label='B1', rule_error_message='B1 Description', query_name='',
                       file_id=FILE_TYPE_DICT_LETTER_ID['B'], rule_severity_id=RULE_SEVERITY_DICT['warning'],
-                      rule_cross_file_flag=False)
+                      rule_cross_file_flag=False, target_file_id=None)
     rsql_b2 = RuleSql(rule_sql='', rule_label='B2', rule_error_message='B2 Description', query_name='',
                       file_id=FILE_TYPE_DICT_LETTER_ID['B'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
-                      rule_cross_file_flag=False)
+                      rule_cross_file_flag=False, target_file_id=None)
     rsql_b3 = RuleSql(rule_sql='', rule_label='B3', rule_error_message='B3 Description', query_name='',
                       file_id=FILE_TYPE_DICT_LETTER_ID['B'], rule_severity_id=RULE_SEVERITY_DICT['warning'],
-                      rule_cross_file_flag=False)
+                      rule_cross_file_flag=False, target_file_id=None)
     rsql_b4 = RuleSql(rule_sql='', rule_label='B4', rule_error_message='B4 Description', query_name='',
                       file_id=FILE_TYPE_DICT_LETTER_ID['B'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
-                      rule_cross_file_flag=False)
+                      rule_cross_file_flag=False, target_file_id=None)
     rsql_c1 = RuleSql(rule_sql='', rule_label='C1', rule_error_message='C1 Description', query_name='',
                       file_id=FILE_TYPE_DICT_LETTER_ID['C'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
-                      rule_cross_file_flag=False)
+                      rule_cross_file_flag=False, target_file_id=None)
     rsql_c2 = RuleSql(rule_sql='', rule_label='C2', rule_error_message='C2 Description', query_name='',
                       file_id=FILE_TYPE_DICT_LETTER_ID['C'], rule_severity_id=RULE_SEVERITY_DICT['fatal'],
-                      rule_cross_file_flag=False)
+                      rule_cross_file_flag=False, target_file_id=None)
     sess.add_all([rsql_a1, rsql_a2, rsql_a3, rsql_a4, rsql_b1, rsql_b2, rsql_b3, rsql_b4, rsql_c1, rsql_c2])
 
     # Setup default rules
@@ -115,14 +117,16 @@ def test_agency_has_settings(database):
             order_by(RuleSql.rule_sql_id).all():
 
         if rule.rule_severity_id == RULE_SEVERITY_DICT['warning']:
-            rule_settings.append(RuleSetting(rule_id=rule.rule_sql_id, agency_code='1125',
+            rule_settings.append(RuleSetting(rule_label=rule.rule_label, agency_code='1125',
                                              priority=priorities['warning'],
-                                             impact_id=RULE_IMPACT_DICT['high']))
+                                             impact_id=RULE_IMPACT_DICT['high'],
+                                             file_id=rule.file_id, target_file_id=rule.target_file_id))
             priorities['warning'] += 1
         else:
-            rule_settings.append(RuleSetting(rule_id=rule.rule_sql_id, agency_code='1125',
+            rule_settings.append(RuleSetting(rule_label=rule.rule_label, agency_code='1125',
                                              priority=priorities['error'],
-                                             impact_id=RULE_IMPACT_DICT['high']))
+                                             impact_id=RULE_IMPACT_DICT['high'],
+                                             file_id=rule.file_id, target_file_id=rule.target_file_id))
             priorities['error'] += 1
     sess.add_all(rule_settings)
     sess.commit()
@@ -206,14 +210,16 @@ def test_list_rule_settings(database):
             priorities[file_type] = {'error': 2, 'warning': 2}
 
         if rule.rule_severity_id == RULE_SEVERITY_DICT['warning']:
-            cgac_rule_settings.append(RuleSetting(rule_id=rule.rule_sql_id, agency_code='1125',
+            cgac_rule_settings.append(RuleSetting(rule_label=rule.rule_label, agency_code='1125',
                                                   priority=priorities[file_type]['warning'],
-                                                  impact_id=RULE_IMPACT_DICT['low']))
+                                                  impact_id=RULE_IMPACT_DICT['low'],
+                                                  file_id=rule.file_id, target_file_id=rule.target_file_id))
             priorities[file_type]['warning'] -= 1
         else:
-            cgac_rule_settings.append(RuleSetting(rule_id=rule.rule_sql_id, agency_code='1125',
+            cgac_rule_settings.append(RuleSetting(rule_label=rule.rule_label, agency_code='1125',
                                                   priority=priorities[file_type]['error'],
-                                                  impact_id=RULE_IMPACT_DICT['medium']))
+                                                  impact_id=RULE_IMPACT_DICT['medium'],
+                                                  file_id=rule.file_id, target_file_id=rule.target_file_id))
             priorities[file_type]['error'] -= 1
     sess.add_all(cgac_rule_settings)
 
@@ -239,7 +245,8 @@ def test_save_rule_settings(database):
 
     def get_rule_settings_results(agency_code, file, rule_type):
         query = sess.query(RuleSetting.impact_id, RuleSql.rule_label).\
-            join(RuleSql, RuleSetting.rule_id == RuleSql.rule_sql_id).\
+            join(RuleSql, and_(RuleSql.rule_label == RuleSetting.rule_label, RuleSql.file_id == RuleSetting.file_id,
+                               is_not_distinct_from(RuleSql.target_file_id, RuleSetting.target_file_id))).\
             filter(RuleSql.file_id == FILE_TYPE_DICT_LETTER_ID[file], RuleSetting.agency_code == agency_code,
                    RuleSql.rule_severity_id == RULE_SEVERITY_DICT[rule_type]).\
             order_by(RuleSetting.priority)
