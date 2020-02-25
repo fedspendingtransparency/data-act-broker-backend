@@ -39,15 +39,15 @@ def test_list_submissions_sort_success(database, monkeypatch):
     user1 = UserFactory(user_id=1, name='Oliver Queen', website_admin=True)
     user2 = UserFactory(user_id=2, name='Barry Allen')
     sub1 = SubmissionFactory(user_id=1, submission_id=1, number_of_warnings=1, reporting_start_date=date(2010, 1, 1),
-                             publish_status_id=1)
+                             publish_status_id=1, is_quarter_format=False)
     sub2 = SubmissionFactory(user_id=1, submission_id=2, number_of_warnings=1, reporting_start_date=date(2010, 1, 2),
-                             publish_status_id=1)
+                             publish_status_id=1, is_quarter_format=False)
     sub3 = SubmissionFactory(user_id=2, submission_id=3, number_of_warnings=1, reporting_start_date=date(2010, 1, 3),
-                             publish_status_id=1)
+                             publish_status_id=1, is_quarter_format=False)
     sub4 = SubmissionFactory(user_id=2, submission_id=4, number_of_warnings=1, reporting_start_date=date(2010, 1, 4),
-                             publish_status_id=1)
+                             publish_status_id=1, is_quarter_format=True)
     sub5 = SubmissionFactory(user_id=2, submission_id=5, number_of_warnings=1, reporting_start_date=date(2010, 1, 5),
-                             publish_status_id=1)
+                             publish_status_id=1, is_quarter_format=True)
     add_models(database, [user1, user2, sub1, sub2, sub3, sub4, sub5])
 
     monkeypatch.setattr(filters_helper, 'g', Mock(user=user1))
@@ -80,6 +80,21 @@ def test_list_submissions_sort_success(database, monkeypatch):
     for subit in result['submissions']:
         assert subit['user']['name'] <= sub['user']['name']
         sub = subit
+
+    result = list_submissions_sort('sub_id', 'desc')
+    assert result['total'] == 5
+    sub = result['submissions'][0]
+    for subit in result['submissions']:
+        assert subit['submission_id'] <= sub['submission_id']
+        sub = subit
+
+    result = list_submissions_sort('quarterly_submission', 'desc')
+    assert result['total'] == 5
+    for subit in result['submissions'][:2]:
+        assert subit['quarterly_submission'] is True
+    for subit in result['submissions'][2:]:
+        assert subit['quarterly_submission'] is False
+
     delete_models(database, [user1, user2, sub1, sub2, sub3, sub4, sub5])
 
 
@@ -140,7 +155,8 @@ def test_list_submissions_success(database, monkeypatch):
     delete_models(database, [user, sub, job])
 
     user = UserFactory(user_id=1)
-    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1, d2_submission=True)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1, d2_submission=True,
+                            reporting_start_date=None)
     job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['ready'],
                      job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
     add_models(database, [user, sub, job])
@@ -148,6 +164,7 @@ def test_list_submissions_success(database, monkeypatch):
     result = list_submissions_result(is_fabs=True)
     assert result['total'] == 1
     assert result['submissions'][0]['status'] == "ready"
+    assert result['submissions'][0]['time_period'] == ""
     delete_models(database, [user, sub, job])
 
 

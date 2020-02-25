@@ -1,10 +1,13 @@
 from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import use_kwargs
 
-from dataactbroker.permissions import requires_login
+from dataactbroker.decorators import convert_to_submission_id
+from dataactbroker.permissions import requires_login, requires_submission_perms
 
 from dataactbroker.handlers.dashboard_handler import (historic_dabs_warning_summary, historic_dabs_warning_table,
-                                                      list_rule_labels, historic_dabs_warning_graphs)
+                                                      list_rule_labels, historic_dabs_warning_graphs,
+                                                      active_submission_overview, active_submission_table)
+from dataactbroker.helpers.dashboard_helper import FILE_TYPES
 
 
 # Add the agency data dashboard routes
@@ -64,3 +67,47 @@ def add_dashboard_routes(app):
         order = kwargs.get('order')
         filters = kwargs.get('filters')
         return historic_dabs_warning_table(filters, page, limit, sort, order)
+
+    @app.route("/v1/active_submission_overview/", methods=["GET"])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    @use_kwargs({
+        'file': webargs_fields.String(validate=webargs_validate.
+                                      OneOf(['A', 'B', 'C', 'cross-AB', 'cross-BC', 'cross-CD1', 'cross-CD2'],
+                                            error='Must be A, B, C, cross-AB, cross-BC, cross-CD1, or cross-CD2'),
+                                      required=True),
+        'error_level': webargs_fields.String(validate=webargs_validate.
+                                             OneOf(['warning', 'error', 'mixed'],
+                                                   error='Must be either warning, error, or mixed'),
+                                             missing='warning')
+    })
+    def get_active_submission_overview(submission, file, **kwargs):
+        """ Returns an overview of the requested submission for the active dashboard """
+        error_level = kwargs.get('error_level')
+        return active_submission_overview(submission, file, error_level)
+
+    @app.route("/v1/active_submission_table/", methods=["GET"])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    @use_kwargs({
+        'file': webargs_fields.String(validate=webargs_validate.
+                                      OneOf(FILE_TYPES,
+                                            error='Must be one of the following: {}'.format(', '.join(FILE_TYPES))),
+                                      required=True),
+        'error_level': webargs_fields.String(validate=webargs_validate.
+                                             OneOf(['warning', 'error', 'mixed'],
+                                                   error='Must be either warning, error, or mixed'),
+                                             missing='warning'),
+        'page': webargs_fields.Int(missing=1),
+        'limit': webargs_fields.Int(missing=5),
+        'sort': webargs_fields.String(missing='significance'),
+        'order': webargs_fields.String(missing='desc')
+    })
+    def get_active_submission_table(submission, file, **kwargs):
+        """ Returns an overview of the requested submission for the active dashboard """
+        error_level = kwargs.get('error_level')
+        page = kwargs.get('page')
+        limit = kwargs.get('limit')
+        sort = kwargs.get('sort')
+        order = kwargs.get('order')
+        return active_submission_table(submission, file, error_level, page, limit, sort, order)
