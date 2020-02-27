@@ -250,6 +250,50 @@ def test_get_submission_metadata_published_fabs(database):
     assert results == expected_results
 
 
+@pytest.mark.usefixtures("job_constants")
+def test_get_submission_metadata_test_submission(database):
+    """ Tests the get_submission_metadata function for published fabs submissions """
+    sess = database.session
+
+    now = datetime.datetime.utcnow()
+    cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
+
+    sub1 = SubmissionFactory(submission_id=1, created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
+                             reporting_fiscal_period=3, reporting_fiscal_year=2017, is_quarter_format=True,
+                             publish_status_id=PUBLISH_STATUS_DICT['updated'], d2_submission=False, number_of_errors=40,
+                             number_of_warnings=200)
+    sub2 = SubmissionFactory(submission_id=2, created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
+                             reporting_fiscal_period=3, reporting_fiscal_year=2017, is_quarter_format=True,
+                             publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
+                             number_of_errors=40, number_of_warnings=200)
+
+    sess.add_all([cgac, sub1, sub2])
+    sess.commit()
+
+    # Test for test submission
+    expected_results = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'agency_name': cgac.agency_name,
+        'number_of_errors': 40,
+        'number_of_warnings': 200,
+        'number_of_rows': 0,
+        'total_size': 0,
+        'created_on': now.strftime('%m/%d/%Y'),
+        'last_updated': now.strftime("%Y-%m-%dT%H:%M:%S"),
+        'last_validated': '',
+        'reporting_period': 'Q1/2017',
+        'publish_status': 'unpublished',
+        'quarterly_submission': True,
+        'test_submission': True,
+        'fabs_submission': False,
+        'fabs_meta': None
+    }
+
+    results = get_submission_metadata(sub2)
+    assert results == expected_results
+
+
 def test_get_revalidation_threshold(database):
     """ Tests the get_revalidation_threshold function to make sure it returns the correct, properly formatted date """
     sess = database.session
