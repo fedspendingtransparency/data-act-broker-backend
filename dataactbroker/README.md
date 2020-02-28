@@ -510,6 +510,7 @@ This endpoint returns metadata for the requested submission.
     "reporting_period": "Q2/2018",
     "publish_status": "unpublished",
     "quarterly_submission": false,
+    "test_submission": false,
     "fabs_submission": true,
     "fabs_meta": {
         "valid_rows": 1,
@@ -538,6 +539,7 @@ This endpoint returns metadata for the requested submission.
     - `updated`
     - `publishing`
 - `quarterly_submission`: boolean, whether the submission is quarterly or monthly
+- `test_submission`: boolean, a flag indicating whether this is a test submission or not (if this is a quarterly DABS submission and a certified submission exists for the same agency/period as this one, this is a test submission)
 - `fabs_submission`: boolean, whether the submission is FABS or DABS (True for FABS)
 - `fabs_meta`: object, data specific to FABS submissions (null for DABS submissions)
     - `publish_date`: string, Date/time submission was published (H:mm(AM/PM) MM/DD/YYYY) (null if unpublished)
