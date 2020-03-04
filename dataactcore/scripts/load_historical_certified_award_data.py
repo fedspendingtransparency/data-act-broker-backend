@@ -17,11 +17,46 @@ from dataactcore.models.lookups import PUBLISH_STATUS_DICT, FILE_TYPE_DICT, JOB_
 from dataactcore.models.stagingModels import (AwardFinancialAssistance, AwardProcurement,
                                               CertifiedAwardFinancialAssistance, CertifiedAwardProcurement)
 from dataactcore.scripts.load_historical_certified_dabs import clean_col
+from dataactbroker.helpers.validation_helper import derive_fabs_afa_generated_unique
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import insert_dataframe
 
 logger = logging.getLogger(__name__)
+
+RENAMED_COLS = {
+    FILE_TYPE_DICT['award_procurement']: {
+        'a76_fair_act_action': 'a_76_fair_act_action',
+        'native_hawaiian_owned_business': 'native_hawaiian_owned_busi',
+        'davis_bacon_act': 'construction_wage_rate_req',
+        'subchapter_scorporation': 'subchapter_s_corporation',
+        'receives_contracts_and_grants': 'receives_contracts_and_gra',
+        'alaskan_native_owned_corporation_or_firm': 'alaskan_native_owned_corpo',
+        'sba_certified_8a_joint_venture': 'sba_certified_8_a_joint_ve',
+        'service_contract_act': 'labor_standards',
+        'primaryplaceofperformancezip_4': 'place_of_performance_zip4a',
+        'gfe_gfp': 'government_furnished_prope',
+        'legalentityzip_4': 'legal_entity_zip4',
+        'commercial_item_test_program': 'commercial_item_test_progr',
+        'program_system_or_equipment_code': 'program_system_or_equipmen',
+        'contracting_officer_determination_of_business_size': 'contracting_officers_deter',
+        'walsh_healey_act': 'materials_supplies_article'
+    },
+    FILE_TYPE_DICT['award']: {
+        'facevalueloanguarantee': 'face_value_loan_guarantee'
+    }
+}
+DELETED_COLS = {
+    FILE_TYPE_DICT['award_procurement']: [
+        'legalentityaddressline3',
+        'primaryplaceofperformancelocationcode'
+    ],
+    FILE_TYPE_DICT['award_procurement']: [
+        'submissiontype',
+        'fiscalyearandquartercorrection',
+        'lastmodifieddate'
+    ]
+}
 
 
 def copy_certified_submission_award_data(staging_table, certified_table, staging_table_id):
@@ -70,15 +105,13 @@ def copy_certified_submission_award_data(staging_table, certified_table, staging
     logger.info('Moved certified {} fields'.format(staging_table_name))
 
 
-def load_updated_award_data(staging_table, certified_table, file_type_id, daims_to_short, csv_schema):
+def load_updated_award_data(staging_table, certified_table, file_type_id):
     """ Load in award data from updated submissions as they were at the latest certification
 
         Args:
             staging_table: the base table to copy from
             certified_table: the certified table to copy to
             file_type_id: the file type id indicating whether it's procurements or assistance data
-            daims_to_short: mapping from DAIMS name to short name to identify the right fields
-            csv_schema: mapping from the short name to the appropriate FileColumn object
     """
     staging_table_name = staging_table.__table__.name
     logger.info('Moving updated {} data'.format(staging_table_name))
@@ -103,6 +136,12 @@ def load_updated_award_data(staging_table, certified_table, file_type_id, daims_
         join(certified_ids, certified_ids.c.max_cert_id == CertifiedFilesHistory.certify_history_id).\
         filter(CertifiedFilesHistory.file_type_id == file_type_id, CertifiedFilesHistory.filename.isnot(None))
 
+    # Load all certified files with file_type_id matching the file_type_id
+    file_columns = sess.query(FileColumn).filter(FileColumn.file_id == file_type_id).all()
+    daims_to_short = {f.daims_name.lower().strip(): f.name_short for f in file_columns}
+    long_to_short = {f.name.lower().strip(): f.name_short for f in file_columns}
+    csv_schema = {f.name_short: f for f in file_columns}
+
     # Loop through each updated submission
     for historical_file in historical_files:
         filename = historical_file.filename
@@ -122,14 +161,23 @@ def load_updated_award_data(staging_table, certified_table, file_type_id, daims_
             # Get file delimiter, get an array of the header row, and reset reader to start of file
             header_line = file.readline()
             delim = '|' if header_line.count('|') != 0 else ','
+            col_mapping = daims_to_short if ' ' in header_line else long_to_short
             file.seek(0)
 
             # Create dataframe from file
             data = pd.read_csv(file, dtype=str, delimiter=delim)
 
         # Only use the columns needed for the DB table
+        if data.empty:
+            logger.info('Empty file for submission {}, {} file. Skipping'.format(submission_id,
+                                                                                 FILE_TYPE_DICT_ID[file_type_id]))
+            continue
+
         data = data.rename(columns=lambda x: x.lower().strip())
-        data = data.rename(index=str, columns=daims_to_short)
+        data = data.rename(index=str, columns=RENAMED_COLS[file_type_id])
+        data = data.rename(index=str, columns=col_mapping)
+        for null_col in set(list(csv_schema.keys())) - set(list(data.columns)):
+            data[null_col] = None
         data = data[list(csv_schema.keys())]
 
         # Clean rows
@@ -143,6 +191,13 @@ def load_updated_award_data(staging_table, certified_table, file_type_id, daims_
         data['updated_at'] = now
         data['submission_id'] = submission_id
         data['job_id'] = job.job_id
+        if file_type_id == FILE_TYPE_DICT['award']:
+            data['afa_generated_unique'] = data.apply(lambda row: derive_fabs_afa_generated_unique(row), axis=1)
+        else:
+            # Can't derive this value as agency_id isn't stored in D1 files
+            # data['detached_award_proc_unique'] = data.apply()
+            pass
+
         data = data.reset_index()
         data['row_number'] = data.index + 2
         data = data.drop(['index'], axis=1)
@@ -176,15 +231,9 @@ def main():
     }
 
     for award_type, award_dict in aw_data_map.items():
-        # Load all certified files with file_type_id matching the file_type_id
-        file_columns = sess.query(FileColumn).filter(FileColumn.file_id == award_dict['file_type_id']).all()
-        daims_to_short = {f.daims_name.lower().strip(): f.name_short for f in file_columns}
-        csv_schema = {f.name_short: f for f in file_columns}
-
         copy_certified_submission_award_data(award_dict['staging_table'], award_dict['certified_table'],
                                              award_dict['id'])
-        load_updated_award_data(award_dict['staging_table'], award_dict['certified_table'], award_dict['file_type_id'],
-                                daims_to_short, csv_schema)
+        load_updated_award_data(award_dict['staging_table'], award_dict['certified_table'], award_dict['file_type_id'])
 
 
 if __name__ == '__main__':
