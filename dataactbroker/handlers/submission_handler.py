@@ -1,4 +1,5 @@
 import logging
+import json
 
 from datetime import datetime
 from flask import g
@@ -136,6 +137,12 @@ def get_submission_metadata(submission):
     test_sub = find_existing_submissions_in_period(submission.cgac_code, submission.frec_code,
                                                    submission.reporting_fiscal_year,
                                                    submission.reporting_fiscal_period, submission.submission_id)
+    certified_submission = None
+
+    if test_sub.status_code != StatusCode.OK:
+        result = test_sub.data.decode('UTF-8')
+        result = json.loads(result)
+        certified_submission = result.get('submissionId')
 
     return {
         'cgac_code': submission.cgac_code,
@@ -151,7 +158,7 @@ def get_submission_metadata(submission):
         'reporting_period': reporting_date(submission),
         'publish_status': submission.publish_status.name,
         'quarterly_submission': submission.is_quarter_format,
-        'test_submission': test_sub.status_code != StatusCode.OK,
+        'certified_submission': certified_submission,
         'fabs_submission': submission.d2_submission,
         'fabs_meta': fabs_meta
     }
