@@ -16,8 +16,7 @@ from dataactcore.models.userModel import User # noqa
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT, FILE_TYPE_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT_ID
 from dataactcore.models.stagingModels import (AwardFinancialAssistance, AwardProcurement,
                                               CertifiedAwardFinancialAssistance, CertifiedAwardProcurement)
-from dataactcore.scripts.load_historical_certified_dabs import clean_col
-from dataactbroker.helpers.validation_helper import derive_fabs_afa_generated_unique
+from dataactbroker.helpers.validation_helper import clean_col
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import insert_dataframe
@@ -47,15 +46,15 @@ RENAMED_COLS = {
     }
 }
 DELETED_COLS = {
-    FILE_TYPE_DICT['award_procurement']: [
-        'legalentityaddressline3',
-        'primaryplaceofperformancelocationcode'
-    ],
-    FILE_TYPE_DICT['award_procurement']: [
-        'submissiontype',
-        'fiscalyearandquartercorrection',
-        'lastmodifieddate'
-    ]
+    FILE_TYPE_DICT['award_procurement']: {
+        'legalentityaddressline3': 'legal_entity_address_line3',
+        'primaryplaceofperformancelocationcode': 'place_of_performance_locat'
+    },
+    FILE_TYPE_DICT['award']: {
+        # 'submissiontype',
+        'legalentityaddressline3': 'legal_entity_address_line3',
+        'fiscalyearandquartercorrection': 'fiscal_year_and_quarter_co'
+    }
 }
 
 
@@ -142,6 +141,10 @@ def load_updated_award_data(staging_table, certified_table, file_type_id):
     long_to_short = {f.name.lower().strip(): f.name_short for f in file_columns}
     csv_schema = {f.name_short: f for f in file_columns}
 
+    rename_cols = RENAMED_COLS[file_type_id]
+    rename_cols.update(DELETED_COLS[file_type_id])
+    all_cols = list(csv_schema.keys()) + list(DELETED_COLS[file_type_id].values())
+
     # Loop through each updated submission
     for historical_file in historical_files:
         filename = historical_file.filename
@@ -173,17 +176,18 @@ def load_updated_award_data(staging_table, certified_table, file_type_id):
                                                                                  FILE_TYPE_DICT_ID[file_type_id]))
             continue
 
+        # Renaming columns to short db names regardless of how old the files are
         data = data.rename(columns=lambda x: x.lower().strip())
-        data = data.rename(index=str, columns=RENAMED_COLS[file_type_id])
+        data = data.rename(index=str, columns=rename_cols)
         data = data.rename(index=str, columns=col_mapping)
-        for null_col in set(list(csv_schema.keys())) - set(list(data.columns)):
-            data[null_col] = None
-        data = data[list(csv_schema.keys())]
+        # If the file is missing new columns added over time, just set them to None
+        data = data.reindex(columns=list(data.columns) + list(set(all_cols) - set(list(data.columns))))
+        # Keep only what we need from the schema + any deleted columns
+        data = data[[col for col in all_cols if col in data.columns]]
 
         # Clean rows
         if len(data.index) > 0:
-            for col in daims_to_short.values():
-                data[col] = data.apply(lambda x: clean_col(x, col, file_type_id, csv_schema), axis=1)
+            data = data.applymap(clean_col)
 
         # Populate columns that aren't in the file
         now = datetime.datetime.now()
@@ -191,12 +195,6 @@ def load_updated_award_data(staging_table, certified_table, file_type_id):
         data['updated_at'] = now
         data['submission_id'] = submission_id
         data['job_id'] = job.job_id
-        if file_type_id == FILE_TYPE_DICT['award']:
-            data['afa_generated_unique'] = data.apply(lambda row: derive_fabs_afa_generated_unique(row), axis=1)
-        else:
-            # Can't derive this value as agency_id isn't stored in D1 files
-            # data['detached_award_proc_unique'] = data.apply()
-            pass
 
         data = data.reset_index()
         data['row_number'] = data.index + 2
