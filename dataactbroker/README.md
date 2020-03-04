@@ -539,7 +539,7 @@ This endpoint returns metadata for the requested submission.
     - `updated`
     - `publishing`
 - `quarterly_submission`: boolean, whether the submission is quarterly or monthly
-- `test_submission`: int, an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
+- `certified_submission`: int, an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
 - `fabs_submission`: boolean, whether the submission is FABS or DABS (True for FABS)
 - `fabs_meta`: object, data specific to FABS submissions (null for DABS submissions)
     - `publish_date`: string, Date/time submission was published (H:mm(AM/PM) MM/DD/YYYY) (null if unpublished)
