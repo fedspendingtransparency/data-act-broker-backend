@@ -745,6 +745,7 @@ def revert_to_certified(submission, file_manager):
     # Copy file paths from certified_files_history
     max_cert_history = sess.query(func.max(CertifyHistory.certify_history_id), func.max(CertifyHistory.updated_at)).\
         filter(CertifyHistory.submission_id == submission.submission_id).one()
+    print(max_cert_history)
     remove_timestamp = [str(FILE_TYPE_DICT['appropriations']), str(FILE_TYPE_DICT['program_activity']),
                         str(FILE_TYPE_DICT['award_financial'])]
     if file_manager.is_local:
@@ -779,7 +780,8 @@ def revert_to_certified(submission, file_manager):
 
     # Set errors/warnings for the submission
     submission.number_of_errors = 0
-    submission.number_of_warnings = sess.query(func.sum(CertifiedErrorMetadata.occurrences).label('total_warnings')).\
+    submission.number_of_warnings =\
+        sess.query(func.coalesce(func.sum(CertifiedErrorMetadata.occurrences), 0).label('total_warnings')).\
         join(Job, CertifiedErrorMetadata.job_id == Job.job_id).\
         filter(Job.submission_id == submission.submission_id).one().total_warnings
 
