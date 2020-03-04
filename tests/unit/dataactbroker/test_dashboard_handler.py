@@ -50,6 +50,12 @@ def get_impact_counts_endpoint(submission, file, error_level):
     return json.loads(json_response.get_data().decode('UTF-8'))
 
 
+def get_significance_counts_endpoint(submission, file, error_level):
+    json_response = dashboard_handler.get_significance_counts(submission, file, error_level)
+    assert json_response.status_code == 200
+    return json.loads(json_response.get_data().decode('UTF-8'))
+
+
 def active_submission_table_endpoint(submission, file, error_level, page=1, limit=5, sort='significance', order='desc'):
     json_response = dashboard_handler.active_submission_table(submission, file, error_level, page, limit, sort, order)
     assert json_response.status_code == 200
@@ -268,6 +274,7 @@ def setup_submissions(sess, admin=False):
     setting_ab2 = RuleSetting(agency_code=None, rule_label=rule_ab2.rule_label, priority=2,
                               impact_id=RULE_IMPACT_DICT['high'], file_id=rule_ab2.file_id,
                               target_file_id=rule_ab2.target_file_id)
+    # Flipping the priorities based on a specific agency
     setting_ab1_cgac = RuleSetting(agency_code=sub1.cgac_code, rule_label=rule_ab1.rule_label, priority=2,
                                    impact_id=RULE_IMPACT_DICT['low'], file_id=rule_ab1.file_id,
                                    target_file_id=rule_ab1.target_file_id)
@@ -1268,6 +1275,102 @@ def test_get_impact_counts(database, monkeypatch):
         }
     }
     response = get_impact_counts_endpoint(sub1, 'cross-AB', 'mixed')
+    assert response == expected_response
+
+
+@pytest.mark.usefixtures('job_constants')
+@pytest.mark.usefixtures('user_constants')
+@pytest.mark.usefixtures('validation_constants')
+def test_get_significance_counts(database, monkeypatch):
+    sess = database.session
+
+    user = setup_submissions(sess, admin=True)
+    monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
+
+    # FABS submissions should throw an error
+    fabs_sub = sess.query(Submission).filter(Submission.d2_submission.is_(True)).first()
+    expected_error = 'Submission must be a DABS submission.'
+    with pytest.raises(ResponseException) as resp_except:
+        dashboard_handler.get_significance_counts(fabs_sub, 'B', 'warning')
+    assert str(resp_except.value) == expected_error
+
+    # No occurrences of rules that have settings
+    monthly_sub = sess.query(Submission).filter(Submission.d2_submission.is_(False),
+                                                Submission.is_quarter_format.is_(False)).first()
+    expected_response = {
+        'total_instances': 0,
+        'rules': []
+    }
+    response = get_significance_counts_endpoint(monthly_sub, 'cross-AB', 'mixed')
+    assert response == expected_response
+
+    # Rule with occurrences
+    sub1 = sess.query(Submission).filter(Submission.submission_id == 1).first()
+    expected_response = {
+        'total_instances': 50,
+        'rules': [
+            {
+                'rule_label': 'A1',
+                'significance': 1,
+                'impact': 'high',
+                "category": 'completeness',
+                'instances': 20,
+                "percentage": 40.0
+            },
+            {
+                'rule_label': 'A2',
+                'significance': 2,
+                'impact': 'high',
+                "category": 'accuracy',
+                'instances': 30,
+                "percentage": 60.0
+            }
+        ]
+    }
+    response = get_significance_counts_endpoint(sub1, 'A', 'mixed')
+    assert response == expected_response
+
+    # Rule with occurrences at different significances (based on per-agency setting)
+    expected_response = {
+        'total_instances': 200,
+        'rules': [
+            {
+                'rule_label': 'B1',
+                'significance': 1,
+                'impact': 'high',
+                "category": 'existence',
+                'instances': 130,
+                "percentage": 65.0
+            },
+            {
+                'rule_label': 'A3',
+                'significance': 2,
+                'impact': 'low',
+                "category": 'existence',
+                'instances': 70,
+                "percentage": 35.0
+            }
+        ]
+    }
+    response = get_significance_counts_endpoint(sub1, 'cross-AB', 'mixed')
+    assert response == expected_response
+
+    # Removing all B1 instances to see if the endpoint still properly provides the right values
+    sess.query(ErrorMetadata).filter(ErrorMetadata.original_rule_label == 'B1').delete()
+    expected_response = {
+        'total_instances': 70,
+        'rules': [
+            {
+                'rule_label': 'A3',
+                'significance': 2,
+                'impact': 'low',
+                "category": 'existence',
+                'instances': 70,
+                "percentage": 100.0
+            }
+        ]
+    }
+    response = get_significance_counts_endpoint(sub1, 'cross-AB', 'mixed')
     assert response == expected_response
 
 

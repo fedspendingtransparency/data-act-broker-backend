@@ -139,6 +139,10 @@ def get_submission_metadata(submission):
         filter_by(submission_id=submission.submission_id).\
         scalar() or 0
 
+    test_sub = find_existing_submissions_in_period(submission.cgac_code, submission.frec_code,
+                                                   submission.reporting_fiscal_year,
+                                                   submission.reporting_fiscal_period, submission.submission_id)
+
     return {
         'cgac_code': submission.cgac_code,
         'frec_code': submission.frec_code,
@@ -153,6 +157,7 @@ def get_submission_metadata(submission):
         'reporting_period': reporting_date(submission),
         'publish_status': submission.publish_status.name,
         'quarterly_submission': submission.is_quarter_format,
+        'test_submission': test_sub.status_code != StatusCode.OK,
         'fabs_submission': submission.d2_submission,
         'fabs_meta': fabs_meta
     }
@@ -542,7 +547,8 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
         (Submission.cgac_code == cgac_code) if cgac_code else (Submission.frec_code == frec_code),
         Submission.reporting_fiscal_year == reporting_fiscal_year,
         Submission.reporting_fiscal_period == reporting_fiscal_period,
-        Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
+        Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'],
+        Submission.d2_submission.is_(False))
 
     # Filter out the submission we are potentially re-certifying if one is provided
     if submission_id:

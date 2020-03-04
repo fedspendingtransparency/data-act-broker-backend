@@ -11,7 +11,7 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from flask import g, current_app
-from sqlalchemy import func, and_, desc, or_
+from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import case
 
@@ -114,7 +114,7 @@ class FileHandler:
         end_date = submission_request.get('reporting_period_end_date')
         is_quarter = str(submission_request.get('is_quarter')).upper() == 'TRUE'
 
-        # If both start and end date are provided, make sure no other submission is already published for that period
+        # If both start and end date are provided, make sure monthly submissions are only one month long
         if not (start_date is None or end_date is None):
             formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(start_date,
                                                                                           end_date, is_quarter)
@@ -123,28 +123,6 @@ class FileHandler:
                                        formatted_start_date.year == formatted_end_date.year):
                 data = {
                     'message': 'A monthly submission must be exactly one month.'
-                }
-                return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
-
-            submissions = sess.query(Submission).filter(
-                Submission.cgac_code == submission_request.get('cgac_code'),
-                Submission.frec_code == submission_request.get('frec_code'),
-                Submission.reporting_start_date == formatted_start_date,
-                Submission.reporting_end_date == formatted_end_date,
-                Submission.is_quarter_format == is_quarter,
-                Submission.d2_submission.is_(False),
-                Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
-
-            if 'existing_submission_id' in submission_request:
-                submissions.filter(Submission.submission_id !=
-                                   submission_request['existing_submission_id'])
-
-            submissions = submissions.order_by(desc(Submission.created_at))
-
-            if submissions.count() > 0:
-                data = {
-                    'message': 'A submission with the same period already exists.',
-                    'submissionId': submissions[0].submission_id
                 }
                 return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
 
