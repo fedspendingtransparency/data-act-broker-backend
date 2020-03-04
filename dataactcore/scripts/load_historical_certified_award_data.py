@@ -22,6 +22,7 @@ from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loader_utils import insert_dataframe
 
 logger = logging.getLogger(__name__)
+CHUNK_SIZE = 10000
 
 RENAMED_COLS = {
     FILE_TYPE_DICT['award_procurement']: {
@@ -104,6 +105,69 @@ def copy_certified_submission_award_data(staging_table, certified_table, staging
     logger.info('Moved certified {} fields'.format(staging_table_name))
 
 
+def process_file_chunk(sess, data, certified_table, job, submission_id, file_type_id, rename_cols, col_mapping,
+                       all_cols, row_offset):
+    """ Load in a chunk of award data from updated submissions
+
+        Args:
+            sess: the database connection
+            data: the chunked dataframe
+            certified_table: the certified table to copy to
+            job: the certified validation job associated with the file type
+            submission_id: the submission associated with the file
+            file_type_id: the file type id associated with the file
+            rename_cols: mapping of columns that have been renamed over time
+            col_mapping: mapping of either daims name or long name to the short names
+            all_cols: all the schema columns and deleted columns over time
+            row_offset: with the chunking, indicates the row starting point in the file
+
+        Returns:
+            updated row_offset to be reused
+    """
+
+    # Only use the columns needed for the DB table
+    if data.empty:
+        logger.info('Empty file for submission {}, {} file. Skipping'.format(submission_id,
+                                                                             FILE_TYPE_DICT_ID[file_type_id]))
+        return
+
+    # Renaming columns to short db names regardless of how old the files are
+    data = data.rename(columns=lambda x: x.lower().strip())
+    data = data.rename(index=str, columns=rename_cols)
+    data = data.rename(index=str, columns=col_mapping)
+    # If the file is missing new columns added over time, just set them to None
+    data = data.reindex(columns=list(data.columns) + list(set(all_cols) - set(list(data.columns))))
+    # Keep only what we need from the schema + any deleted columns
+    data = data[[col for col in all_cols if col in data.columns]]
+
+    # Clean rows
+    if len(data.index) > 0:
+        data = data.applymap(clean_col)
+
+    # Populate columns that aren't in the file
+    now = datetime.datetime.now()
+    data['created_at'] = now
+    data['updated_at'] = now
+    data['submission_id'] = submission_id
+    data['job_id'] = job.job_id
+
+    data = data.reset_index()
+    original_row_offset = row_offset
+    data['row_number'] = row_offset + data.index + 2
+    row_offset += CHUNK_SIZE
+
+    data = data.drop(['index'], axis=1)
+
+    logger.info('Moving chunk data for submission {}, {} file, starting from row {}'.format(
+        submission_id, FILE_TYPE_DICT_ID[file_type_id], original_row_offset))
+
+    # Process and insert the data
+    insert_dataframe(data, certified_table.__table__.name, sess.connection())
+    sess.commit()
+
+    return row_offset
+
+
 def load_updated_award_data(staging_table, certified_table, file_type_id):
     """ Load in award data from updated submissions as they were at the latest certification
 
@@ -168,51 +232,17 @@ def load_updated_award_data(staging_table, certified_table, file_type_id):
             file.seek(0)
 
             # Create dataframe from file
-            data = pd.read_csv(file, dtype=str, delimiter=delim)
-
-        # Only use the columns needed for the DB table
-        if data.empty:
-            logger.info('Empty file for submission {}, {} file. Skipping'.format(submission_id,
-                                                                                 FILE_TYPE_DICT_ID[file_type_id]))
-            continue
-
-        # Renaming columns to short db names regardless of how old the files are
-        data = data.rename(columns=lambda x: x.lower().strip())
-        data = data.rename(index=str, columns=rename_cols)
-        data = data.rename(index=str, columns=col_mapping)
-        # If the file is missing new columns added over time, just set them to None
-        data = data.reindex(columns=list(data.columns) + list(set(all_cols) - set(list(data.columns))))
-        # Keep only what we need from the schema + any deleted columns
-        data = data[[col for col in all_cols if col in data.columns]]
-
-        # Clean rows
-        if len(data.index) > 0:
-            data = data.applymap(clean_col)
-
-        # Populate columns that aren't in the file
-        now = datetime.datetime.now()
-        data['created_at'] = now
-        data['updated_at'] = now
-        data['submission_id'] = submission_id
-        data['job_id'] = job.job_id
-
-        data = data.reset_index()
-        data['row_number'] = data.index + 2
-        data = data.drop(['index'], axis=1)
-
-        logger.info('Moving award data for submission {}, {} file'.format(submission_id,
-                                                                          FILE_TYPE_DICT_ID[file_type_id]))
-
-        # Process and insert the data
-        insert_dataframe(data, certified_table.__table__.name, sess.connection())
-        sess.commit()
+            row_offset = 0
+            reader_obj = pd.read_csv(file, dtype=str, delimiter=delim, chunksize=CHUNK_SIZE)
+            for chunk_df in reader_obj:
+                row_offset = process_file_chunk(sess, chunk_df, certified_table, job, submission_id, file_type_id,
+                                                rename_cols, col_mapping, all_cols, row_offset)
 
     logger.info('Moved updated {} data'.format(staging_table_name))
 
 
 def main():
     """ Load award data for certified submissions that haven't been loaded into the certified award tables. """
-    sess = GlobalDB.db().session
     aw_data_map = {
         'award_procurement': {
             'staging_table': AwardProcurement,
