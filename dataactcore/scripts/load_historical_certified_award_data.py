@@ -13,7 +13,8 @@ from dataactcore.models.jobModels import CertifiedFilesHistory, Job
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.models.userModel import User # noqa
-from dataactcore.models.lookups import PUBLISH_STATUS_DICT, FILE_TYPE_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT_ID
+from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, FILE_TYPE_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT_ID,
+                                        FIELD_TYPE_DICT)
 from dataactcore.models.stagingModels import (AwardFinancialAssistance, AwardProcurement,
                                               CertifiedAwardFinancialAssistance, CertifiedAwardProcurement)
 from dataactbroker.helpers.validation_helper import clean_col
@@ -57,7 +58,6 @@ DELETED_COLS = {
         'fiscalyearandquartercorrection': 'fiscal_year_and_quarter_co'
     }
 }
-
 
 def copy_certified_submission_award_data(staging_table, certified_table, staging_table_id):
     """ Copy data from the award table to the certified award table for certified DABS submissions.
@@ -106,7 +106,7 @@ def copy_certified_submission_award_data(staging_table, certified_table, staging
 
 
 def process_file_chunk(sess, data, certified_table, job, submission_id, file_type_id, rename_cols, col_mapping,
-                       all_cols, row_offset):
+                       all_cols, row_offset, float_cols):
     """ Load in a chunk of award data from updated submissions
 
         Args:
@@ -120,6 +120,7 @@ def process_file_chunk(sess, data, certified_table, job, submission_id, file_typ
             col_mapping: mapping of either daims name or long name to the short names
             all_cols: all the schema columns and deleted columns over time
             row_offset: with the chunking, indicates the row starting point in the file
+            float_cols: columns that are floats (to remove the commas)
 
         Returns:
             updated row_offset to be reused
@@ -136,13 +137,17 @@ def process_file_chunk(sess, data, certified_table, job, submission_id, file_typ
     data = data.rename(index=str, columns=rename_cols)
     data = data.rename(index=str, columns=col_mapping)
     # If the file is missing new columns added over time, just set them to None
-    data = data.reindex(columns=list(data.columns) + list(set(all_cols) - set(list(data.columns))))
+    blank_cols = list(set(all_cols) - set(list(data.columns)))
+    logger.info('The following fields were not found in this chunk: {}'.format(blank_cols))
+    data = data.reindex(columns=list(data.columns) + blank_cols)
     # Keep only what we need from the schema + any deleted columns
     data = data[[col for col in all_cols if col in data.columns]]
 
     # Clean rows
     if len(data.index) > 0:
         data = data.applymap(clean_col)
+        for field in [col for col in list(data.columns) if col in float_cols]:
+            data[field] = data[field].apply(lambda x: x.replace(',', '') if x else None)
 
     # Populate columns that aren't in the file
     now = datetime.datetime.now()
@@ -159,7 +164,7 @@ def process_file_chunk(sess, data, certified_table, job, submission_id, file_typ
     data = data.drop(['index'], axis=1)
 
     logger.info('Moving chunk data for submission {}, {} file, starting from row {}'.format(
-        submission_id, FILE_TYPE_DICT_ID[file_type_id], original_row_offset))
+        submission_id, FILE_TYPE_DICT_ID[file_type_id], original_row_offset + 2))
 
     # Process and insert the data
     insert_dataframe(data, certified_table.__table__.name, sess.connection())
@@ -204,6 +209,7 @@ def load_updated_award_data(staging_table, certified_table, file_type_id):
     daims_to_short = {f.daims_name.lower().strip(): f.name_short for f in file_columns}
     long_to_short = {f.name.lower().strip(): f.name_short for f in file_columns}
     csv_schema = {f.name_short: f for f in file_columns}
+    float_cols = [f.name_short for f in file_columns if f.field_types_id == FIELD_TYPE_DICT['DECIMAL']]
 
     rename_cols = RENAMED_COLS[file_type_id]
     rename_cols.update(DELETED_COLS[file_type_id])
@@ -236,7 +242,7 @@ def load_updated_award_data(staging_table, certified_table, file_type_id):
             reader_obj = pd.read_csv(file, dtype=str, delimiter=delim, chunksize=CHUNK_SIZE)
             for chunk_df in reader_obj:
                 row_offset = process_file_chunk(sess, chunk_df, certified_table, job, submission_id, file_type_id,
-                                                rename_cols, col_mapping, all_cols, row_offset)
+                                                rename_cols, col_mapping, all_cols, row_offset, float_cols)
 
     logger.info('Moved updated {} data'.format(staging_table_name))
 
