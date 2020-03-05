@@ -257,13 +257,14 @@ def process_file_chunk(sess, data, certified_table, job, submission_id, file_typ
     return row_offset
 
 
-def load_updated_award_data(staging_table, certified_table, file_type_id):
+def load_updated_award_data(staging_table, certified_table, file_type_id, internal_cols):
     """ Load in award data from updated submissions as they were at the latest certification
 
         Args:
             staging_table: the base table to copy from
             certified_table: the certified table to copy to
             file_type_id: the file type id indicating whether it's procurements or assistance data
+            internal_cols: the internal cols of the certified table
     """
     staging_table_name = staging_table.__table__.name
     logger.info('Moving updated {} data'.format(staging_table_name))
@@ -292,12 +293,11 @@ def load_updated_award_data(staging_table, certified_table, file_type_id):
     file_columns = sess.query(FileColumn).filter(FileColumn.file_id == file_type_id).all()
     daims_to_short = {f.daims_name.lower().strip(): f.name_short for f in file_columns}
     long_to_short = {f.name.lower().strip(): f.name_short for f in file_columns}
-    csv_schema = {f.name_short: f for f in file_columns}
     float_cols = [f.name_short for f in file_columns if f.field_types_id == FIELD_TYPE_DICT['DECIMAL']]
 
     rename_cols = RENAMED_COLS[file_type_id]
     rename_cols.update(DELETED_COLS[file_type_id])
-    all_cols = list(csv_schema.keys()) + list(DELETED_COLS[file_type_id].values())
+    all_cols = [col.key for col in certified_table.__table__.columns if col.key not in internal_cols]
 
     # Loop through each updated submission
     for historical_file in historical_files:
@@ -333,25 +333,29 @@ def load_updated_award_data(staging_table, certified_table, file_type_id):
 
 def main():
     """ Load award data for certified submissions that haven't been loaded into the certified award tables. """
+    shared_internal_cols = ['submission_id', 'row_number', 'updated_at', 'created_at', 'job_id']
     aw_data_map = {
         'award_procurement': {
             'staging_table': AwardProcurement,
             'certified_table': CertifiedAwardProcurement,
-            'id': 'award_procurement_id',
+            'staging_id': 'award_procurement_id',
+            'certified_id': 'certified_award_procurement_id',
             'file_type_id': FILE_TYPE_DICT['award_procurement']
         },
         'award_financial_assistance': {
             'staging_table': AwardFinancialAssistance,
             'certified_table': CertifiedAwardFinancialAssistance,
-            'id': 'award_financial_assistance_id',
+            'staging_id': 'award_financial_assistance_id',
+            'certified_id': 'certified_award_financial_assistance_id',
             'file_type_id': FILE_TYPE_DICT['award']
         }
     }
 
     for award_type, award_dict in aw_data_map.items():
         copy_certified_submission_award_data(award_dict['staging_table'], award_dict['certified_table'],
-                                             award_dict['id'])
-        load_updated_award_data(award_dict['staging_table'], award_dict['certified_table'], award_dict['file_type_id'])
+                                             award_dict['staging_id'])
+        load_updated_award_data(award_dict['staging_table'], award_dict['certified_table'], award_dict['file_type_id'],
+                                shared_internal_cols + [award_dict['certified_id']])
 
 
 if __name__ == '__main__':
