@@ -66,7 +66,7 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
         'reporting_period': 'Q1/2017',
         'publish_status': 'updated',
         'quarterly_submission': True,
-        'test_submission': False,
+        'certified_submission': None,
         'fabs_submission': False,
         'fabs_meta': None
     }
@@ -106,7 +106,7 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
         'reporting_period': 'Q2/2010',
         'publish_status': 'published',
         'quarterly_submission': True,
-        'test_submission': False,
+        'certified_submission': None,
         'fabs_submission': False,
         'fabs_meta': None
     }
@@ -147,7 +147,7 @@ def test_get_submission_metadata_monthly_dabs(database):
         'reporting_period': start_date.strftime('%m/%Y'),
         'publish_status': 'unpublished',
         'quarterly_submission': False,
-        'test_submission': False,
+        'certified_submission': None,
         'fabs_submission': False,
         'fabs_meta': None
     }
@@ -189,7 +189,7 @@ def test_get_submission_metadata_unpublished_fabs(database):
         'reporting_period': start_date.strftime('%m/%Y'),
         'publish_status': 'unpublished',
         'quarterly_submission': False,
-        'test_submission': False,
+        'certified_submission': None,
         'fabs_submission': True,
         'fabs_meta': {'publish_date': None, 'published_file': None, 'total_rows': 0, 'valid_rows': 0}
     }
@@ -236,7 +236,7 @@ def test_get_submission_metadata_published_fabs(database):
         'reporting_period': start_date.strftime('%m/%Y'),
         'publish_status': 'published',
         'quarterly_submission': False,
-        'test_submission': False,
+        'certified_submission': None,
         'fabs_submission': True,
         'fabs_meta': {
             'publish_date': now_plus_10.strftime('%-I:%M%p %m/%d/%Y'),
@@ -285,7 +285,7 @@ def test_get_submission_metadata_test_submission(database):
         'reporting_period': 'Q1/2017',
         'publish_status': 'unpublished',
         'quarterly_submission': True,
-        'test_submission': True,
+        'certified_submission': 1,
         'fabs_submission': False,
         'fabs_meta': None
     }
