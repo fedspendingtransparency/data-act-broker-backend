@@ -139,9 +139,13 @@ def get_submission_metadata(submission):
         filter_by(submission_id=submission.submission_id).\
         scalar() or 0
 
-    test_sub = find_existing_submissions_in_period(submission.cgac_code, submission.frec_code,
-                                                   submission.reporting_fiscal_year,
-                                                   submission.reporting_fiscal_period, submission.submission_id)
+    test_sub = get_existing_submission_list(submission.cgac_code, submission.frec_code,
+                                            submission.reporting_fiscal_year, submission.reporting_fiscal_period,
+                                            submission.submission_id)
+    certified_submission = None
+
+    if test_sub.count() > 0:
+        certified_submission = test_sub[0].submission_id
 
     return {
         'cgac_code': submission.cgac_code,
@@ -157,7 +161,7 @@ def get_submission_metadata(submission):
         'reporting_period': reporting_date(submission),
         'publish_status': submission.publish_status.name,
         'quarterly_submission': submission.is_quarter_format,
-        'test_submission': test_sub.status_code != StatusCode.OK,
+        'certified_submission': certified_submission,
         'fabs_submission': submission.d2_submission,
         'fabs_meta': fabs_meta
     }
@@ -541,6 +545,33 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
     if not cgac_code and not frec_code:
         return JsonResponse.error(ValueError("CGAC or FR Entity Code required"), StatusCode.CLIENT_ERROR)
 
+    submission_query = get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year,
+                                                    reporting_fiscal_period, submission_id)
+
+    if submission_query.count() > 0:
+        data = {
+            "message": "A submission with the same period already exists.",
+            "submissionId": submission_query[0].submission_id
+        }
+        return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+    return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
+
+def get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
+                                 submission_id=None):
+    """ Get the list of the submissions in the given period for the given CGAC or FREC code
+
+        Args:
+            cgac_code: the CGAC code to check against or None if checking a FREC agency
+            frec_code: the FREC code to check against or None if checking a CGAC agency
+            reporting_fiscal_year: the year to check for
+            reporting_fiscal_period: the period in the year to check for
+            submission_id: the submission ID to check against (used when checking if this submission is being
+                re-certified)
+
+        Returns:
+            A query to get the certified submissions in the given period
+    """
     sess = GlobalDB.db().session
 
     submission_query = sess.query(Submission).filter(
@@ -554,15 +585,7 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
     if submission_id:
         submission_query = submission_query.filter(Submission.submission_id != submission_id)
 
-    submission_query = submission_query.order_by(desc(Submission.created_at))
-
-    if submission_query.count() > 0:
-        data = {
-            "message": "A submission with the same period already exists.",
-            "submissionId": submission_query[0].submission_id
-        }
-        return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
-    return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+    return submission_query.order_by(desc(Submission.created_at))
 
 
 def move_certified_data(sess, submission_id, direction='certify'):
