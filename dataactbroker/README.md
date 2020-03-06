@@ -510,6 +510,7 @@ This endpoint returns metadata for the requested submission.
     "reporting_period": "Q2/2018",
     "publish_status": "unpublished",
     "quarterly_submission": false,
+    "certified_submission": 2,
     "fabs_submission": true,
     "fabs_meta": {
         "valid_rows": 1,
@@ -538,6 +539,7 @@ This endpoint returns metadata for the requested submission.
     - `updated`
     - `publishing`
 - `quarterly_submission`: boolean, whether the submission is quarterly or monthly
+- `certified_submission`: int, an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
 - `fabs_submission`: boolean, whether the submission is FABS or DABS (True for FABS)
 - `fabs_meta`: object, data specific to FABS submissions (null for DABS submissions)
     - `publish_date`: string, Date/time submission was published (H:mm(AM/PM) MM/DD/YYYY) (null if unpublished)
@@ -1132,6 +1134,40 @@ This route alters a submission's jobs' statuses so they are no longer complete (
 Possible HTTP Status Codes:
 
 - 400: Submission does not exist
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
+#### POST "/v1/revert\_submission/"
+This endpoint returns an updated submission to the state it was in at the latest certification.
+
+##### Body (JSON)
+```
+    {
+        "submission_id": 1234
+    }
+```
+
+##### Body Description
+
+- `submission_id`: (required, integer) An integer corresponding to the ID of the submission to be reverted.
+
+##### Response (JSON)
+```
+{
+    "message": "Submission 1234 successfully reverted to certified status."
+}
+```
+
+##### Response Attributes
+- `message `: (string) A message indicating the submission was successfully reverted
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Submission does not exist
+    - Submission is FABS
+    - Submission has never been certified or has not been updated since certification
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
