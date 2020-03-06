@@ -625,7 +625,7 @@ def move_certified_data(sess, submission_id, direction='certify'):
             raise ResponseException('Direction to move data must be certify or revert.', status=StatusCode.CLIENT_ERROR)
 
         logger.info({
-            'message': 'Deleting old data from {} table'.format(source_table.__table__.name),
+            'message': 'Deleting old data from {} table'.format(target_table.__table__.name),
             'message_type': 'BrokerInfo',
             'submission_id': submission_id
         })
@@ -637,7 +637,7 @@ def move_certified_data(sess, submission_id, direction='certify'):
             sess.query(target_table).filter(target_table.job_id.in_(job_list)).delete(synchronize_session=False)
 
         logger.info({
-            'message': 'Moving old data from {} table'.format(source_table.__table__.name),
+            'message': 'Moving certified data from {} table'.format(source_table.__table__.name),
             'message_type': 'BrokerInfo',
             'submission_id': submission_id
         })
