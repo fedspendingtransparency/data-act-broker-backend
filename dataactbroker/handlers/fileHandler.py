@@ -1095,10 +1095,9 @@ class FileHandler:
                 sess: the database connection
                 certify_history_id: the ID of the CertifyHistory object that represents the latest certification
         """
-        warning_files = sess.query(CertifiedFilesHistory). \
+        warning_files = sess.query(CertifiedFilesHistory.warning_files). \
             filter(CertifiedFilesHistory.certify_history_id == certify_history_id,
                    CertifiedFilesHistory.warning_filename.isnot(None)).all()
-        warning_files = [warn.warning_filename for warn in warning_files]
         for warning in warning_files:
             # Getting headers and file names
             if 'cross' in warning:
@@ -1114,8 +1113,8 @@ class FileHandler:
                 submission_bucket = CONFIG_BROKER['aws_bucket']
                 certified_bucket = CONFIG_BROKER['certified_bucket']
 
-                error_file_name = error.split('/')[-1]
-                warning_file_name = warning.split('/')[-1]
+                error_file_name = os.path.basename(error)
+                warning_file_name = os.path.basename(warning)
                 error_file_path = ''.join([CONFIG_SERVICES['error_report_path'], error_file_name])
 
                 # Create clean error file

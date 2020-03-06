@@ -595,6 +595,9 @@ def move_certified_data(sess, submission_id, direction='certify'):
             sess: the database connection
             submission_id: The ID of the submission to move data for
             direction: The direction to move the certified data (certify or revert)
+
+        Raises:
+            ResponseException if a value other than "certify" or "revert" is specified for the direction.
     """
     table_types = {'appropriation': [Appropriation, CertifiedAppropriation, 'submission'],
                    'object_class_program_activity': [ObjectClassProgramActivity, CertifiedObjectClassProgramActivity,
@@ -615,9 +618,11 @@ def move_certified_data(sess, submission_id, direction='certify'):
         if direction == 'certify':
             source_table = table_object[0]
             target_table = table_object[1]
-        else:
+        elif direction == 'revert':
             source_table = table_object[1]
             target_table = table_object[0]
+        else:
+            raise ResponseException('Direction to move data must be certify or revert.', status=StatusCode.CLIENT_ERROR)
 
         logger.info({
             'message': 'Deleting old data from {} table'.format(source_table.__table__.name),
@@ -632,7 +637,7 @@ def move_certified_data(sess, submission_id, direction='certify'):
             sess.query(target_table).filter(target_table.job_id.in_(job_list)).delete(synchronize_session=False)
 
         logger.info({
-            'message': 'Moving certified data from {} table'.format(source_table.__table__.name),
+            'message': 'Moving old data from {} table'.format(source_table.__table__.name),
             'message_type': 'BrokerInfo',
             'submission_id': submission_id
         })
@@ -774,7 +779,6 @@ def revert_to_certified(submission, file_manager):
     # Copy file paths from certified_files_history
     max_cert_history = sess.query(func.max(CertifyHistory.certify_history_id), func.max(CertifyHistory.updated_at)).\
         filter(CertifyHistory.submission_id == submission.submission_id).one()
-    print(max_cert_history)
     remove_timestamp = [str(FILE_TYPE_DICT['appropriations']), str(FILE_TYPE_DICT['program_activity']),
                         str(FILE_TYPE_DICT['award_financial'])]
     if file_manager.is_local:
@@ -784,6 +788,25 @@ def revert_to_certified(submission, file_manager):
         filepath = '{}/'.format(submission.submission_id)
         ef_path = filepath
         remove_timestamp.extend([str(FILE_TYPE_DICT['executive_compensation']), str(FILE_TYPE_DICT['sub_award'])])
+
+    # Certified filename -> Job filename, original filename
+    # Local:
+    #   A/B/C:
+    #     filename -> '[broker_files dir][certified file base name]'
+    #     original_filename -> '[certified file base name without the timestamp]'
+    #   D1/D2:
+    #     filename -> '[broker_files dir][certified file base name]'
+    #     original_filename -> '[certified file base name]'
+    #   E/F:
+    #     filename -> '[certified file base name]'
+    #     original_filename -> '[certified file base name]'
+    # Remote:
+    #   A/B/C/E/F:
+    #     filename -> '[submission_id]/[certified file base name]'
+    #     original_filename -> '[certified file base name without the timestamp]'
+    #   D1/D2:
+    #     filename -> '[submission_id dir][certified file base name]'
+    #     original_filename -> '[certified file base name]'
     update_string = """
         WITH filenames AS (
             SELECT REVERSE(SPLIT_PART(REVERSE(filename), '/', 1)) AS simple_name,

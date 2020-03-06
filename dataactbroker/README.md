@@ -1167,6 +1167,7 @@ Possible HTTP Status Codes:
 - 400:
     - Submission does not exist
     - Submission is FABS
+    - Submission has never been certified or has not been updated since certification
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
