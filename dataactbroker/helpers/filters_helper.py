@@ -1,6 +1,6 @@
 from sqlalchemy import or_, and_
 from flask import g
-from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_ID
+from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER_ID, RULE_SEVERITY_DICT
 
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
@@ -114,3 +114,23 @@ def file_filter(query, file_model, files):
                 file_type_filters.append(and_(file_id == FILE_TYPE_DICT_LETTER_ID[file_types[1:]],
                                               target_file_id == FILE_TYPE_DICT_LETTER_ID[file_types[:1]]))
     return query.filter(or_(*file_type_filters))
+
+
+def rule_severity_filter(query, error_level, error_model=ErrorMetadata):
+    """ Given the provided query, add a filter by files provided the files list.
+
+        Arguments:
+            query: the sqlalchemy query to apply the filters to
+            error_level: the error level to filter on (could be 'error' or 'warning')
+            error_model: the model to apply the filter to (must have a severity_id field)
+
+        Returns:
+            the same queryset provided with rule severity filter included
+    """
+    # If the error level isn't "mixed" add a filter on which severity to pull
+    if error_level == 'error':
+        query = query.filter(error_model.severity_id == RULE_SEVERITY_DICT['fatal'])
+    elif error_level == 'warning':
+        query = query.filter(error_model.severity_id == RULE_SEVERITY_DICT['warning'])
+
+    return query

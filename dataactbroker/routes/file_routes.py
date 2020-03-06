@@ -249,4 +249,5 @@ def add_file_routes(app, is_local, server_path):
     @requires_submission_perms('submitter')
     def revert_submission(submission):
         """ Revert an updated DABS submission to the state it was when it was last certified """
-        return revert_to_certified(submission)
+        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+        return revert_to_certified(submission, file_manager)
