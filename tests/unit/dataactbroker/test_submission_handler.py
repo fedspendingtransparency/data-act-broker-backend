@@ -650,7 +650,8 @@ def test_revert_submission(database, monkeypatch):
     """ Tests reverting an updated DABS certification """
     sess = database.session
 
-    sub = Submission(publish_status_id=PUBLISH_STATUS_DICT['updated'], is_quarter_format=True, d2_submission=False)
+    sub = Submission(publish_status_id=PUBLISH_STATUS_DICT['updated'], is_quarter_format=True, d2_submission=False,
+                     publishable=False, number_of_errors=20, number_of_warnings=15)
     sess.add(sub)
     sess.commit()
 
@@ -701,6 +702,13 @@ def test_revert_submission(database, monkeypatch):
     assert len(file_query) == 1
     assert file_query[0].headers_missing is None
     assert file_query[0].file_status_id == FILE_STATUS_DICT['complete']
+
+    # Make sure submission got updated
+    sub_query = sess.query(Submission).filter_by(submission_id=sub.submission_id).all()
+    assert len(sub_query) == 1
+    assert sub_query[0].publishable is True
+    assert sub_query[0].number_of_errors == 0
+    assert sub_query[0].number_of_warnings == 25
 
 
 @pytest.mark.usefixtures('job_constants')
