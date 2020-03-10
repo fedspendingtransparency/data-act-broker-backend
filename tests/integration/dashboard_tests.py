@@ -312,7 +312,7 @@ class DashboardTests(BaseTestAPI):
         self.assertEqual(response.status_code, 200)
 
     def test_active_submission_overview_fail(self):
-        """ Test successfully getting the active submission overview """
+        """ Test failing to get the active submission overview """
         # Invalid submission ID
         params = {'submission_id': -1, 'file': 'A'}
         response = self.app.get('/v1/active_submission_overview/', params, expect_errors=True,
@@ -344,6 +344,104 @@ class DashboardTests(BaseTestAPI):
         # Missing file
         params = {'submission_id': self.quarter_sub}
         response = self.app.get('/v1/active_submission_overview/', params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'file: Missing data for required field.')
+
+    def test_get_impact_counts(self):
+        """ Test successfully getting the impact counts for a submission """
+        # Error type not specified
+        params = {'submission_id': self.quarter_sub, 'file': 'A'}
+        response = self.app.get('/v1/get_impact_counts/', params, headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 200)
+
+        # Error type specified
+        params = {'submission_id': self.quarter_sub, 'file': 'A', 'error_level': 'mixed'}
+        response = self.app.get('/v1/get_impact_counts/', params, headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_impact_counts_fail(self):
+        """ Test failing to get impact counts for a submission """
+        # Invalid submission ID
+        params = {'submission_id': -1, 'file': 'A'}
+        response = self.app.get('/v1/get_impact_counts/', params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'No such submission')
+
+        # Invalid file type
+        params = {'submission_id': self.quarter_sub, 'file': 'Q'}
+        response = self.app.get('/v1/get_impact_counts/', params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'file: Must be A, B, C, cross-AB, cross-BC, cross-CD1, or cross-CD2')
+
+        # Invalid error level
+        params = {'submission_id': self.quarter_sub, 'file': 'A', 'error_level': 'all'}
+        response = self.app.get('/v1/get_impact_counts/', params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'error_level: Must be either warning, error, or mixed')
+
+        # Missing submission ID
+        params = {'file': 'A'}
+        response = self.app.get('/v1/get_impact_counts/', params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'submission_id is required')
+
+        # Missing file
+        params = {'submission_id': self.quarter_sub}
+        response = self.app.get('/v1/get_impact_counts/', params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'file: Missing data for required field.')
+
+    def test_get_significance_counts(self):
+        """ Test successfully getting the significance counts for a submission """
+        # Error type not specified
+        params = {'submission_id': self.quarter_sub, 'file': 'A'}
+        response = self.app.get('/v1/get_significance_counts/', params, headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 200)
+
+        # Error type specified
+        params = {'submission_id': self.quarter_sub, 'file': 'A', 'error_level': 'mixed'}
+        response = self.app.get('/v1/get_significance_counts/', params, headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_significance_counts_fail(self):
+        """ Test failing to get significance counts for a submission """
+        # Invalid submission ID
+        params = {'submission_id': -1, 'file': 'A'}
+        response = self.app.get('/v1/get_significance_counts/', params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'No such submission')
+
+        # Invalid file type
+        params = {'submission_id': self.quarter_sub, 'file': 'Q'}
+        response = self.app.get('/v1/get_significance_counts/', params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'file: Must be A, B, C, cross-AB, cross-BC, cross-CD1, or cross-CD2')
+
+        # Invalid error level
+        params = {'submission_id': self.quarter_sub, 'file': 'A', 'error_level': 'all'}
+        response = self.app.get('/v1/get_significance_counts/', params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'error_level: Must be either warning, error, or mixed')
+
+        # Missing submission ID
+        params = {'file': 'A'}
+        response = self.app.get('/v1/get_significance_counts/', params, expect_errors=True,
+                                headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'submission_id is required')
+
+        # Missing file
+        params = {'submission_id': self.quarter_sub}
+        response = self.app.get('/v1/get_significance_counts/', params, expect_errors=True,
                                 headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'file: Missing data for required field.')

@@ -18,6 +18,8 @@ BACKFILL_FABS_PPOP_SCOPE_SQL_1 = """
              THEN 'County-wide'
              WHEN UPPER(place_of_performance_code) = '00FORGN'
              THEN 'Foreign'
+             WHEN place_of_performance_code ~ '^[a-zA-Z]{2}\d{4}[\dRr]$'
+             THEN 'City-wide'
          END
     WHERE (place_of_performance_zip4a IS NULL
         AND place_of_performance_scope IS NULL);
@@ -52,6 +54,6 @@ if __name__ == '__main__':
         affected += executed.rowcount
         sess.commit()
 
-        logger.info('Backfill completed, {} rows affected\n'.format(executed.rowcount))
+        logger.info('Backfill completed, {} rows affected\n'.format(affected))
 
         sess.close()
