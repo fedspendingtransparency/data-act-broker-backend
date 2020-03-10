@@ -43,10 +43,7 @@ For example, when `env` is set to `local` (or defaults to `local`), these are th
 - `dataactcore/config.yml`
 - `dataactcore/local_config.yml`
 - `dataactcore/local_secrets.yml`
-
-- `dataactvalidator/config/agency_codes_list.csv`
 - `dataactvalidator/config/cars_tas.csv`
-- `dataactvalidator/config/cgac.csv`
 - `dataactvalidator/config/object_class.csv`
 - `dataactvalidator/config/program_activity.csv`
 
@@ -59,11 +56,12 @@ $ cp dataactcore/config_example.yml dataactcore/config.yml
 $ cp dataactcore/local_config_example.yml dataactcore/local_config.yml
 $ cp dataactcore/local_secrets_example.yml dataactcore/local_secrets.yml
 ```
+_**IMPORTANT**_: If running with Docker, change `broker_api_host` and `validator_host` under `services` in `local_config.yml` to `0.0.0.0`.
+
 _**Copy Data Files**_
+
 ```
-$ cp dataactvalidator/config/example_agency_codes_list.csv dataactvalidator/config/agency_codes_list.csv
 $ cp dataactvalidator/config/example_cars_tas.csv dataactvalidator/config/cars_tas.csv
-$ cp dataactvalidator/config/example_cgac.csv dataactvalidator/config/cgac.csv
 $ cp dataactvalidator/config/example_object_class.csv dataactvalidator/config/object_class.csv
 $ cp dataactvalidator/config/example_program_activity.csv dataactvalidator/config/program_activity.csv
 ```
@@ -87,6 +85,7 @@ $ docker-compose -f docker-compose.yml -f docker-compose.frontend.yml build
 ```
 
 Now start the containers using these built images:
+
 ```
 $ docker-compose -f docker-compose.yml -f docker-compose.frontend.yml up
 ```
@@ -111,7 +110,7 @@ $ curl http://localhost:9999/v1/current_user/
 _(This is fine, we haven't loaded data yet)_
 
 _**To the frontend web app:**_
-Browse to http://localhost:3000
+Browse to http://localhost:3002
 
 Take note of these useful commands when working with Docker Compose:
 _Be sure to add in `-f docker-compose.yml -f docker-compose.frontend.yml` to the command to have it apply to backend and frontend containers_
@@ -138,14 +137,16 @@ For the final step before you can use the Broker, you will need to create a loca
 _:bulb: TIP: Many of the commands below use the format `docker exec -it dataact-broker-backend <cmd>`. You can alternatively run them by first attaching to the container with `docker exec -it dataact-broker-backend /bin/bash`, and then from within the container run `<cmd>` on the command line._
 
 **Create a User**
+
 ```bash
 $ docker exec -it dataact-broker-backend python dataactcore/scripts/initialize.py -a
 ```
 This creates a local admin user that you can use to log in. The Broker utilizes MAX.gov for login when using a remote server, but we cannot recieve their response locally so we use a username and password for local development login. The credentials for the user created are the values you have configured in the `db.admin_email` and `db.admin_password` config params in `config.yml` or overridden in `local_config.yml`.
 
-Now try to browse to http://localhost:3000, and login with the configured credentials (`valid.email@domain.com` / `password`). You should get past the login screen to the home screen.
+Now try to browse to http://localhost:3002, and login with the configured credentials (`valid.email@domain.com` / `password`). You should get past the login screen to the home screen.
 
 **Initialize Database**
+
 ```bash
 $ docker exec -it dataact-broker-backend python dataactcore/scripts/initialize.py -i
 ```
@@ -154,56 +155,65 @@ This loads the information needed to validate data submissions: schemas, rules, 
 ```python
 setup_db()
 load_sql_rules()
-load_domain_value_files(validator_config_path)
-load_agency_data(validator_config_path)
+load_rule_settings()
+load_domain_value_files(validator_config_path, args.force)
+load_agency_data(validator_config_path, args.force)
 load_tas_lookup()
 load_sf133()
 load_validator_schema()
-load_location_codes()
+load_location_codes(args.force)
 load_zip_codes()
 load_offices()
+load_quarterly_revalidation_threshold()
 ```
 
-_**Important Notes:**_
-* By default, the broker installs with a small sample of [GTAS financial data](https://www.fiscal.treasury.gov/fsservices/gov/acctg/gtas/gtas_home.htm "GTAS"), which is used during the validation process. See the next section for more comprehensive options.
+**You are now done installing the Broker and may begin development. The next section covers more comprehensive data loading for testing purposes**
 
-### Loading SF-133 data
+### Optional Data Loading
+By default, the broker installs with a small sample of [GTAS financial data](https://www.fiscal.treasury.gov/fsservices/gov/acctg/gtas/gtas_home.htm "GTAS"), which is used during the validation process.
+
+#### Loading SF-133 data
 
 If you'd like to install the broker using real GTAS data for your agency, replace the sample file with data representing the GTAS periods you want to validate against (using the same headers and data format as the sample file). The files should be named `dataactvalidator/config/sf_133_yyyy_mm.csv`, where `yyyy` is the fiscal year, and `mm` is the fiscal year period. This is only necessary for local installs.
 
 If instead, you want to match the production environment (and are a developer on the DATA Act team), you can access our SF-133 files through S3. The data is sensitive, so we do not host it publicly. In the `prod-data-act-submission` bucket, within the `config` directory, you should see a series of `sf_133_yyyy_mm.csv` files. Download these and store them in your local `dataactvalidator/config` folder.
 
 Once you've placed those files, run:
+
 ```bash
-$ docker exec -it dataact-broker-backend python dataactvalidator/scripts/load_sf133.py
+$ docker exec -it dataact-broker-backend python dataactcore/scripts/initialize.py -s
 ```
 
 This will only load the new SF133 entries. To force load from your files, you can add the `-f` or `--force` flag:
 
 ```bash
-$ docker exec -it dataact-broker-backend python dataactvalidator/scripts/load_sf133.py -f
+$ docker exec -it dataact-broker-backend python dataactcore/scripts/initialize.py -s --force
 ```
 
 This will take several minutes to process.
 
-### CGAC, Object Class, and Program Activity data
+#### Object Class, and Program Activity data
 
-CGAC file location: `dataactvalidator/config/cgac.csv`
+If you want to load your own object class or program activity data, simply replace the existing files with the ones you want loaded and run the provided command.
 
 Object Class file location: `dataactvalidator/config/object_class.csv`
 
 Program Activity file location: `dataactvalidator/config/program_activity.csv`
 
 To load these files:
+
 ```bash
 $ docker exec -it dataact-broker-backend python dataactcore/scripts/initialize.py -d
 ```
 
-### TAS data:
+#### TAS data:
+
+If you want to load your own TAS data, simply replace the existing files with the ones you want loaded and run the provided command.
 
 TAS file location: `dataactvalidator/config/cars_tas.csv`
 
 To load TAS data:
+
 ```bash
 $ docker exec -it dataact-broker-backend python dataactcore/scripts/initialize.py -t
 ```

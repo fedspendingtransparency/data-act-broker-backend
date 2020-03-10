@@ -1,10 +1,13 @@
 import logging
+import os
 
 from datetime import datetime
 from flask import g
 from sqlalchemy import func, or_, desc
 from sqlalchemy.sql.expression import case
 
+from dataactcore.aws.s3Handler import S3Handler
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (sum_number_of_errors_for_job_list, get_last_validated_date,
                                                  get_fabs_meta, get_error_type, get_error_metrics_by_job_id)
@@ -18,10 +21,13 @@ from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffi
                                           Comment, CertifiedComment)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
-                                              CertifiedAwardFinancial, FlexField, CertifiedFlexField)
+                                              CertifiedAwardFinancial, FlexField, CertifiedFlexField, AwardProcurement,
+                                              AwardFinancialAssistance, CertifiedAwardProcurement,
+                                              CertifiedAwardFinancialAssistance)
 from dataactcore.models.errorModels import File
 
 from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 
@@ -133,6 +139,14 @@ def get_submission_metadata(submission):
         filter_by(submission_id=submission.submission_id).\
         scalar() or 0
 
+    test_sub = get_existing_submission_list(submission.cgac_code, submission.frec_code,
+                                            submission.reporting_fiscal_year, submission.reporting_fiscal_period,
+                                            submission.submission_id)
+    certified_submission = None
+
+    if test_sub.count() > 0:
+        certified_submission = test_sub[0].submission_id
+
     return {
         'cgac_code': submission.cgac_code,
         'frec_code': submission.frec_code,
@@ -147,6 +161,7 @@ def get_submission_metadata(submission):
         'reporting_period': reporting_date(submission),
         'publish_status': submission.publish_status.name,
         'quarterly_submission': submission.is_quarter_format,
+        'certified_submission': certified_submission,
         'fabs_submission': submission.d2_submission,
         'fabs_meta': fabs_meta
     }
@@ -530,19 +545,8 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
     if not cgac_code and not frec_code:
         return JsonResponse.error(ValueError("CGAC or FR Entity Code required"), StatusCode.CLIENT_ERROR)
 
-    sess = GlobalDB.db().session
-
-    submission_query = sess.query(Submission).filter(
-        (Submission.cgac_code == cgac_code) if cgac_code else (Submission.frec_code == frec_code),
-        Submission.reporting_fiscal_year == reporting_fiscal_year,
-        Submission.reporting_fiscal_period == reporting_fiscal_period,
-        Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
-
-    # Filter out the submission we are potentially re-certifying if one is provided
-    if submission_id:
-        submission_query = submission_query.filter(Submission.submission_id != submission_id)
-
-    submission_query = submission_query.order_by(desc(Submission.created_at))
+    submission_query = get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year,
+                                                    reporting_fiscal_period, submission_id)
 
     if submission_query.count() > 0:
         data = {
@@ -553,17 +557,55 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
     return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
 
-def move_certified_data(sess, submission_id):
-    """ Move data from the staging tables to the certified tables for a submission.
+def get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
+                                 submission_id=None):
+    """ Get the list of the submissions in the given period for the given CGAC or FREC code
+
+        Args:
+            cgac_code: the CGAC code to check against or None if checking a FREC agency
+            frec_code: the FREC code to check against or None if checking a CGAC agency
+            reporting_fiscal_year: the year to check for
+            reporting_fiscal_period: the period in the year to check for
+            submission_id: the submission ID to check against (used when checking if this submission is being
+                re-certified)
+
+        Returns:
+            A query to get the certified submissions in the given period
+    """
+    sess = GlobalDB.db().session
+
+    submission_query = sess.query(Submission).filter(
+        (Submission.cgac_code == cgac_code) if cgac_code else (Submission.frec_code == frec_code),
+        Submission.reporting_fiscal_year == reporting_fiscal_year,
+        Submission.reporting_fiscal_period == reporting_fiscal_period,
+        Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'],
+        Submission.d2_submission.is_(False))
+
+    # Filter out the submission we are potentially re-certifying if one is provided
+    if submission_id:
+        submission_query = submission_query.filter(Submission.submission_id != submission_id)
+
+    return submission_query.order_by(desc(Submission.created_at))
+
+
+def move_certified_data(sess, submission_id, direction='certify'):
+    """ Move data from the staging tables to the certified tables for a submission or do the reverse for a revert.
 
         Args:
             sess: the database connection
             submission_id: The ID of the submission to move data for
+            direction: The direction to move the certified data (certify or revert)
+
+        Raises:
+            ResponseException if a value other than "certify" or "revert" is specified for the direction.
     """
     table_types = {'appropriation': [Appropriation, CertifiedAppropriation, 'submission'],
                    'object_class_program_activity': [ObjectClassProgramActivity, CertifiedObjectClassProgramActivity,
                                                      'submission'],
                    'award_financial': [AwardFinancial, CertifiedAwardFinancial, 'submission'],
+                   'award_procurement': [AwardProcurement, CertifiedAwardProcurement, 'submission'],
+                   'award_financial_assistance': [AwardFinancialAssistance, CertifiedAwardFinancialAssistance,
+                                                  'submission'],
                    'error_metadata': [ErrorMetadata, CertifiedErrorMetadata, 'job'],
                    'comment': [Comment, CertifiedComment, 'submission'],
                    'flex_field': [FlexField, CertifiedFlexField, 'submission']}
@@ -573,39 +615,46 @@ def move_certified_data(sess, submission_id):
     job_list = [item[0] for item in job_list]
 
     for table_type, table_object in table_types.items():
+        if direction == 'certify':
+            source_table = table_object[0]
+            target_table = table_object[1]
+        elif direction == 'revert':
+            source_table = table_object[1]
+            target_table = table_object[0]
+        else:
+            raise ResponseException('Direction to move data must be certify or revert.', status=StatusCode.CLIENT_ERROR)
+
         logger.info({
-            "message": "Deleting old certified data from {} table".format("certified_" + table_type),
-            "message_type": "BrokerInfo",
-            "submission_id": submission_id
+            'message': 'Deleting old data from {} table'.format(target_table.__table__.name),
+            'message_type': 'BrokerInfo',
+            'submission_id': submission_id
         })
 
-        # Delete the old certified data in the table
+        # Delete the old data in the target table
         if table_object[2] == 'submission':
-            sess.query(table_object[1]).filter_by(submission_id=submission_id).delete(synchronize_session=False)
+            sess.query(target_table).filter_by(submission_id=submission_id).delete(synchronize_session=False)
         else:
-            sess.query(table_object[1]).filter(table_object[1].job_id.in_(job_list)).delete(synchronize_session=False)
+            sess.query(target_table).filter(target_table.job_id.in_(job_list)).delete(synchronize_session=False)
 
         logger.info({
-            "message": "Moving certified data from {} table".format(table_type),
-            "message_type": "BrokerInfo",
-            "submission_id": submission_id
+            'message': 'Moving certified data from {} table'.format(source_table.__table__.name),
+            'message_type': 'BrokerInfo',
+            'submission_id': submission_id
         })
 
         column_list = [col.key for col in table_object[0].__table__.columns]
         column_list.remove('created_at')
         column_list.remove('updated_at')
-        if 'display_tas' in column_list:
-            column_list.remove('display_tas')
         column_list.remove(table_type + '_id')
 
-        col_string = ", ".join(column_list)
+        col_string = ', '.join(column_list)
 
         insert_string = """
-            INSERT INTO certified_{table} (created_at, updated_at, {cols})
+            INSERT INTO {target} (created_at, updated_at, {cols})
             SELECT NOW() AS created_at, NOW() AS updated_at, {cols}
-            FROM {table}
+            FROM {source}
             WHERE
-        """.format(table=table_type, cols=col_string)
+        """.format(source=source_table.__table__.name, target=target_table.__table__.name, cols=col_string)
 
         # Filter by either submission ID or job IDs depending on the situation
         if table_object[2] == 'submission':
@@ -701,3 +750,152 @@ def certify_dabs_submission(submission, file_manager):
         sess.commit()
 
     return response
+
+
+def revert_to_certified(submission, file_manager):
+    """ Revert an updated DABS submission to its last certified state
+
+        Args:
+            submission: the submission to be reverted
+            file_manager: a FileHandler object to be used to call revert_certified_error_files and determine is_local
+
+        Returns:
+            A JsonResponse containing a success message
+
+        Raises:
+            ResponseException: if submission provided is a FABS submission or is not in an "updated" status
+    """
+
+    if submission.d2_submission:
+        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+
+    if submission.publish_status_id != PUBLISH_STATUS_DICT['updated']:
+        raise ResponseException('Submission has not been certified or has not been updated since certification.',
+                                status=StatusCode.CLIENT_ERROR)
+
+    sess = GlobalDB.db().session
+    move_certified_data(sess, submission.submission_id, direction='revert')
+
+    # Copy file paths from certified_files_history
+    max_cert_history = sess.query(func.max(CertifyHistory.certify_history_id), func.max(CertifyHistory.updated_at)).\
+        filter(CertifyHistory.submission_id == submission.submission_id).one()
+    remove_timestamp = [str(FILE_TYPE_DICT['appropriations']), str(FILE_TYPE_DICT['program_activity']),
+                        str(FILE_TYPE_DICT['award_financial'])]
+    if file_manager.is_local:
+        filepath = CONFIG_BROKER['broker_files']
+        ef_path = ''
+    else:
+        filepath = '{}/'.format(submission.submission_id)
+        ef_path = filepath
+        remove_timestamp.extend([str(FILE_TYPE_DICT['executive_compensation']), str(FILE_TYPE_DICT['sub_award'])])
+
+    # Certified filename -> Job filename, original filename
+    # Local:
+    #   A/B/C:
+    #     filename -> '[broker_files dir][certified file base name]'
+    #     original_filename -> '[certified file base name without the timestamp]'
+    #   D1/D2:
+    #     filename -> '[broker_files dir][certified file base name]'
+    #     original_filename -> '[certified file base name]'
+    #   E/F:
+    #     filename -> '[certified file base name]'
+    #     original_filename -> '[certified file base name]'
+    # Remote:
+    #   A/B/C/E/F:
+    #     filename -> '[submission_id]/[certified file base name]'
+    #     original_filename -> '[certified file base name without the timestamp]'
+    #   D1/D2:
+    #     filename -> '[submission_id dir][certified file base name]'
+    #     original_filename -> '[certified file base name]'
+    update_string = """
+        WITH filenames AS (
+            SELECT REVERSE(SPLIT_PART(REVERSE(filename), '/', 1)) AS simple_name,
+                file_type_id
+            FROM certified_files_history
+            WHERE certify_history_id = {history_id}
+        )
+        UPDATE job
+        SET filename = CASE WHEN job.file_type_id NOT IN (6, 7)
+                THEN '{filepath}'
+                ELSE '{ef_path}'
+                END || simple_name,
+            original_filename = CASE WHEN job.file_type_id NOT IN ({remove_timestamp})
+                THEN simple_name
+                ELSE substring(simple_name, position('_' in simple_name) + 1)
+                END
+        FROM filenames
+        WHERE job.file_type_id = filenames.file_type_id
+            AND job.submission_id = {submission_id};
+    """.format(history_id=max_cert_history[0], filepath=filepath, ef_path=ef_path,
+               remove_timestamp=', '.join(remove_timestamp), submission_id=submission.submission_id)
+    sess.execute(update_string)
+
+    # Set errors/warnings for the submission
+    submission.number_of_errors = 0
+    submission.number_of_warnings =\
+        sess.query(func.coalesce(func.sum(CertifiedErrorMetadata.occurrences), 0).label('total_warnings')).\
+        join(Job, CertifiedErrorMetadata.job_id == Job.job_id).\
+        filter(Job.submission_id == submission.submission_id).one().total_warnings
+
+    # Set default numbers/status/last validation date for jobs then update warnings
+    sess.query(Job).filter_by(submission_id=submission.submission_id).\
+        update({'number_of_errors': 0, 'number_of_warnings': 0, 'job_status_id': JOB_STATUS_DICT['finished'],
+                'last_validated': max_cert_history[1], 'error_message': None, 'file_generation_id': None})
+
+    # Get list of jobs so we can update them
+    job_list = sess.query(Job).\
+        filter(Job.submission_id == submission.submission_id,
+               Job.job_type_id.in_([JOB_TYPE_DICT['csv_record_validation'], JOB_TYPE_DICT['validation']]),
+               Job.file_type_id.notin_([FILE_TYPE_DICT['sub_award'], FILE_TYPE_DICT['executive_compensation']])).all()
+
+    # Fixing File table
+    job_ids = [str(job.job_id) for job in job_list]
+    update_string = """
+            UPDATE file
+            SET filename = job.filename,
+                file_status_id = 1,
+                headers_missing = NULL,
+                headers_duplicated = NULL
+            FROM job
+            WHERE job.job_id = file.job_id
+                AND job.job_id IN ({job_ids});
+        """.format(job_ids=', '.join(job_ids))
+    sess.execute(update_string)
+
+    file_type_mapping = {
+        FILE_TYPE_DICT['appropriations']: CertifiedAppropriation,
+        FILE_TYPE_DICT['program_activity']: CertifiedObjectClassProgramActivity,
+        FILE_TYPE_DICT['award_financial']: CertifiedAwardFinancial,
+        FILE_TYPE_DICT['award']: CertifiedAwardFinancialAssistance,
+        FILE_TYPE_DICT['award_procurement']: CertifiedAwardProcurement
+    }
+    # Update the number of warnings for each job in the list
+    for job in job_list:
+        job.number_of_warnings = sess.query(func.coalesce(func.sum(CertifiedErrorMetadata.occurrences), 0).
+                                            label('total_warnings')). \
+            filter_by(job_id=job.job_id).one().total_warnings
+        # For non-cross-file jobs, also update the row count and file size
+        if job.job_type_id != JOB_TYPE_DICT['validation']:
+            file_type_model = file_type_mapping[job.file_type_id]
+            total_rows = sess.query(file_type_model).filter_by(submission_id=submission.submission_id).count()
+            job.number_of_rows = total_rows + 1
+            job.number_of_rows_valid = total_rows
+            if file_manager.is_local:
+                # local file size
+                try:
+                    job.file_size = os.path.getsize(job.filename)
+                except:
+                    logger.warning("File doesn't exist locally: %s", job.filename)
+                    job.file_size = 0
+            else:
+                # boto file size
+                job.file_size = S3Handler.get_file_size(job.filename)
+    # Set submission to certified status
+    submission.publish_status_id = PUBLISH_STATUS_DICT['published']
+    sess.commit()
+
+    # Move warning files back non-locally and clear out error files for all environments
+    file_manager.revert_certified_error_files(sess, max_cert_history[0])
+
+    return JsonResponse.create(StatusCode.OK, {'message': 'Submission {} successfully reverted to certified status.'.
+                               format(submission.submission_id)})
