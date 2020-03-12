@@ -12,8 +12,8 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ For PrimaryPlaceOfPerformanceCode XX##### or XX####R, where PrimaryPlaceOfPerformanceZIP+4 is blank or
-        "city-wide": city code ##### or ####R must be valid and exist in the provided state.
+    """ For PrimaryPlaceOfPerformanceCode XX##### or XX####R, where PrimaryPlaceOfPerformanceZIP+4 is "city-wide":
+        city code ##### or ####R must be valid and exist in the provided state.
     """
 
     city_code = CityCode(city_code='10987', state_code='NY')
@@ -53,30 +53,44 @@ def test_success(database):
     det_award_11 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='ny10986',
                                                            place_of_performance_zip4a=None,
                                                            correction_delete_indicatr='d')
+    # Passing if place of performance zip4 is None
+    det_award_12 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='ny10986',
+                                                          place_of_performance_zip4a=None,
+                                                          correction_delete_indicatr=None)
+    det_award_13 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='NY10986',
+                                                          place_of_performance_zip4a='',
+                                                          correction_delete_indicatr='')
+    det_award_14 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='na10987',
+                                                          place_of_performance_zip4a=None,
+                                                          correction_delete_indicatr='c')
+    det_award_15 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='na1098R',
+                                                          place_of_performance_zip4a=None,
+                                                          correction_delete_indicatr='C')
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
                                                        det_award_6, det_award_7, det_award_8, det_award_9, det_award_10,
-                                                       det_award_11, city_code, city_code_2])
+                                                       det_award_11, det_award_12, det_award_13, det_award_14,
+                                                       det_award_15, city_code, city_code_2])
     assert errors == 0
 
 
 def test_failure(database):
     """ Test failure for PrimaryPlaceOfPerformanceCode XX##### or XX####R, where PrimaryPlaceOfPerformanceZIP+4 is
-        blank or "city-wide": city code ##### or ####R must be valid and exist in the provided state.
+        "city-wide": city code ##### or ####R must be valid and exist in the provided state.
     """
 
     city_code = CityCode(city_code='10987', state_code='NY')
     city_code_2 = CityCode(city_code='1098R', state_code='NY')
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='ny10986',
-                                                          place_of_performance_zip4a=None,
+                                                          place_of_performance_zip4a='city-wide',
                                                           correction_delete_indicatr=None)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='NY10986',
-                                                          place_of_performance_zip4a='',
+                                                          place_of_performance_zip4a='city-wide',
                                                           correction_delete_indicatr='')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='na10987',
-                                                          place_of_performance_zip4a=None,
+                                                          place_of_performance_zip4a='city-wide',
                                                           correction_delete_indicatr='c')
     det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='na1098R',
-                                                          place_of_performance_zip4a=None,
+                                                          place_of_performance_zip4a='city-wide',
                                                           correction_delete_indicatr='C')
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, city_code,
                                                        city_code_2])
