@@ -1095,10 +1095,11 @@ class FileHandler:
                 sess: the database connection
                 certify_history_id: the ID of the CertifyHistory object that represents the latest certification
         """
-        warning_files = sess.query(CertifiedFilesHistory.warning_files). \
+        warning_files = sess.query(CertifiedFilesHistory.warning_filename). \
             filter(CertifiedFilesHistory.certify_history_id == certify_history_id,
                    CertifiedFilesHistory.warning_filename.isnot(None)).all()
         for warning in warning_files:
+            warning = warning.warning_filename
             # Getting headers and file names
             if 'cross' in warning:
                 error = warning.replace('_warning_', '_')

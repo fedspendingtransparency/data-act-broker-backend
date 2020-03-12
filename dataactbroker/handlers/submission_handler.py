@@ -836,6 +836,7 @@ def revert_to_certified(submission, file_manager):
         sess.query(func.coalesce(func.sum(CertifiedErrorMetadata.occurrences), 0).label('total_warnings')).\
         join(Job, CertifiedErrorMetadata.job_id == Job.job_id).\
         filter(Job.submission_id == submission.submission_id).one().total_warnings
+    submission.publishable = True
 
     # Set default numbers/status/last validation date for jobs then update warnings
     sess.query(Job).filter_by(submission_id=submission.submission_id).\
