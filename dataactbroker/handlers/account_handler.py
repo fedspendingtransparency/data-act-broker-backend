@@ -238,7 +238,7 @@ class AccountHandler:
         # Check if email template type is valid
         get_email_template(template_type)
 
-        link = "".join([AccountHandler.FRONT_END, '#/reviewData/', str(submission.submission_id)])
+        link = "".join([AccountHandler.FRONT_END, '#/submission/', str(submission.submission_id)])
         email_template = {'[REV_USER_NAME]': g.user.name, '[REV_AGENCY]': agency.agency_name, '[REV_URL]': link}
 
         users = []
@@ -516,11 +516,11 @@ def list_submission_users(d2_submission):
     exists_query = exists_query.exists()
 
     # Get all the relevant users
-    user_results = sess.query(User.user_id, User.name).filter(exists_query).order_by(User.name).all()
+    user_results = sess.query(User.user_id, User.name, User.email).filter(exists_query).order_by(User.name).all()
 
     # Create an array containing relevant users in a readable format
     user_list = []
     for user in user_results:
-        user_list.append({'user_id': user[0], 'name': user[1]})
+        user_list.append({'user_id': user[0], 'name': user[1], 'email': user[2]})
 
     return JsonResponse.create(StatusCode.OK, {"users": user_list})

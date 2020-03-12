@@ -5,12 +5,13 @@ import os
 import requests
 import threading
 import math
+import csv
 
 from collections import namedtuple
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from flask import g, current_app
-from sqlalchemy import func, and_, desc, or_
+from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import case
 
@@ -50,6 +51,7 @@ from dataactcore.utils.stringCleaner import StringCleaner
 
 from dataactvalidator.filestreaming.csv_selection import write_stream_query
 from dataactvalidator.validation_handlers.file_generation_manager import GEN_FILENAMES
+from dataactvalidator.validation_handlers.validationManager import ValidationManager
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +114,7 @@ class FileHandler:
         end_date = submission_request.get('reporting_period_end_date')
         is_quarter = str(submission_request.get('is_quarter')).upper() == 'TRUE'
 
-        # If both start and end date are provided, make sure no other submission is already published for that period
+        # If both start and end date are provided, make sure monthly submissions are only one month long
         if not (start_date is None or end_date is None):
             formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(start_date,
                                                                                           end_date, is_quarter)
@@ -121,28 +123,6 @@ class FileHandler:
                                        formatted_start_date.year == formatted_end_date.year):
                 data = {
                     'message': 'A monthly submission must be exactly one month.'
-                }
-                return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
-
-            submissions = sess.query(Submission).filter(
-                Submission.cgac_code == submission_request.get('cgac_code'),
-                Submission.frec_code == submission_request.get('frec_code'),
-                Submission.reporting_start_date == formatted_start_date,
-                Submission.reporting_end_date == formatted_end_date,
-                Submission.is_quarter_format == is_quarter,
-                Submission.d2_submission.is_(False),
-                Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
-
-            if 'existing_submission_id' in submission_request:
-                submissions.filter(Submission.submission_id !=
-                                   submission_request['existing_submission_id'])
-
-            submissions = submissions.order_by(desc(Submission.created_at))
-
-            if submissions.count() > 0:
-                data = {
-                    'message': 'A submission with the same period already exists.',
-                    'submissionId': submissions[0].submission_id
                 }
                 return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
 
@@ -1106,6 +1086,58 @@ class FileHandler:
 
         log_data['message'] = 'Completed move_certified_files'
         logger.debug(log_data)
+
+    def revert_certified_error_files(self, sess, certify_history_id):
+        """ Copy warning files (non-locally) back to the errors folder and revert error files to just headers for a
+            submission that is being reverted to certified status
+
+            Args:
+                sess: the database connection
+                certify_history_id: the ID of the CertifyHistory object that represents the latest certification
+        """
+        warning_files = sess.query(CertifiedFilesHistory.warning_filename). \
+            filter(CertifiedFilesHistory.certify_history_id == certify_history_id,
+                   CertifiedFilesHistory.warning_filename.isnot(None)).all()
+        for warning in warning_files:
+            warning = warning.warning_filename
+            # Getting headers and file names
+            if 'cross' in warning:
+                error = warning.replace('_warning_', '_')
+                headers = ValidationManager.cross_file_report_headers
+            else:
+                error = warning.replace('warning', 'error')
+                headers = ValidationManager.report_headers
+
+            # Moving/clearing files
+            if not self.is_local:
+                s3_resource = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
+                submission_bucket = CONFIG_BROKER['aws_bucket']
+                certified_bucket = CONFIG_BROKER['certified_bucket']
+
+                error_file_name = os.path.basename(error)
+                warning_file_name = os.path.basename(warning)
+                error_file_path = ''.join([CONFIG_SERVICES['error_report_path'], error_file_name])
+
+                # Create clean error file
+                with open(error_file_path, 'w', newline='') as error_file:
+                    error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+                    error_csv.writerow(headers)
+                error_file.close()
+
+                # Write error file
+                with open(error_file_path, 'rb') as csv_file:
+                    s3_resource.Object(submission_bucket, 'errors/' + error_file_name).put(Body=csv_file)
+                csv_file.close()
+                os.remove(error_file_path)
+
+                # Copy warning file back over
+                S3Handler.copy_file(original_bucket=certified_bucket, new_bucket=submission_bucket,
+                                    original_path=warning, new_path='errors/' + warning_file_name)
+            else:
+                with open(error, 'w', newline='') as error_file:
+                    error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+                    error_csv.writerow(headers)
+                error_file.close()
 
 
 def get_submission_comments(submission):

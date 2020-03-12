@@ -78,7 +78,10 @@ class RuleSetting(Base):
 
     rule_settings_id = Column(Integer, primary_key=True)
     agency_code = Column(Text)
-    rule_id = Column(Integer, ForeignKey("rule_sql.rule_sql_id", ondelete="CASCADE", name="fk_rule"), nullable=False)
+    rule_label = Column(Text, nullable=False)
+    file_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_setting_file_type"), nullable=True)
+    target_file_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_setting_target_file_type"),
+                            nullable=True)
     priority = Column(Integer, nullable=False)
     impact_id = Column(Integer, ForeignKey("rule_impact.rule_impact_id", ondelete="CASCADE", name="fk_impact"),
                        nullable=False)

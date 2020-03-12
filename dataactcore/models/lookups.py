@@ -122,6 +122,7 @@ RULE_IMPACT = [
     LookupType(3, 'high', 'high')
 ]
 RULE_IMPACT_DICT = {item.name: item.id for item in RULE_IMPACT}
+RULE_IMPACT_DICT_ID = {item.id: item.name for item in RULE_IMPACT}
 
 SUBMISSION_TYPE = [
     LookupType(1, 'all', 'Warning for all pages'),

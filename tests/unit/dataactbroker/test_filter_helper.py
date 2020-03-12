@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import Mock
 
 from dataactbroker.helpers import filters_helper
-from dataactcore.models.errorModels import CertifiedErrorMetadata
+from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT, FILE_TYPE_DICT_LETTER_ID, RULE_SEVERITY_DICT
 from dataactcore.models.userModel import UserAffiliation
@@ -250,7 +250,29 @@ def test_file_filter_wrong_file_model(database):
     base_query = sess.query(CertifiedErrorMetadata)
 
     # should break cause
-    error_text = 'Invalid file model. Use one of the following instead: CertifiedErrorMetadata, ErrorMetadata, RuleSql.'
+    error_text = 'Invalid file model. Use one of the following instead: CertifiedErrorMetadata, ErrorMetadata, ' \
+                 'RuleSetting, RuleSql.'
     with pytest.raises(ResponseException) as resp_except:
         filters_helper.file_filter(base_query, Submission, [])
     assert str(resp_except.value) == error_text
+
+
+@pytest.mark.usefixtures('validation_constants')
+def test_rule_severity_filter(database):
+    sess = database.session
+
+    # Setup ErrorMetadata
+    error = ErrorMetadata(severity_id=RULE_SEVERITY_DICT['fatal'])
+    warning = ErrorMetadata(severity_id=RULE_SEVERITY_DICT['warning'])
+    sess.add_all([error, warning])
+    sess.commit()
+
+    # Ensure the filter is working correctly
+    base_query = sess.query(ErrorMetadata)
+    err_query = filters_helper.rule_severity_filter(base_query, 'error', ErrorMetadata)
+    warning_query = filters_helper.rule_severity_filter(base_query, 'warning', ErrorMetadata)
+    mixed_query = filters_helper.rule_severity_filter(base_query, 'mixed', ErrorMetadata)
+
+    assert err_query.first() == error
+    assert warning_query.first() == warning
+    assert mixed_query.count() == 2

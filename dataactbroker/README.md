@@ -510,6 +510,7 @@ This endpoint returns metadata for the requested submission.
     "reporting_period": "Q2/2018",
     "publish_status": "unpublished",
     "quarterly_submission": false,
+    "certified_submission": 2,
     "fabs_submission": true,
     "fabs_meta": {
         "valid_rows": 1,
@@ -538,6 +539,7 @@ This endpoint returns metadata for the requested submission.
     - `updated`
     - `publishing`
 - `quarterly_submission`: boolean, whether the submission is quarterly or monthly
+- `certified_submission`: int, an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
 - `fabs_submission`: boolean, whether the submission is FABS or DABS (True for FABS)
 - `fabs_meta`: object, data specific to FABS submissions (null for DABS submissions)
     - `publish_date`: string, Date/time submission was published (H:mm(AM/PM) MM/DD/YYYY) (null if unpublished)
@@ -1135,6 +1137,40 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
+#### POST "/v1/revert\_submission/"
+This endpoint returns an updated submission to the state it was in at the latest certification.
+
+##### Body (JSON)
+```
+    {
+        "submission_id": 1234
+    }
+```
+
+##### Body Description
+
+- `submission_id`: (required, integer) An integer corresponding to the ID of the submission to be reverted.
+
+##### Response (JSON)
+```
+{
+    "message": "Submission 1234 successfully reverted to certified status."
+}
+```
+
+##### Response Attributes
+- `message `: (string) A message indicating the submission was successfully reverted
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Submission does not exist
+    - Submission is FABS
+    - Submission has never been certified or has not been updated since certification
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
 #### POST "/v1/list\_submissions/"
 This endpoint lists submissions for all agencies for which the current user is a member of. Optional filters allow for more refined lists.
 
@@ -1287,7 +1323,7 @@ This endpoint lists all users with submissions that the requesting user can view
 `/v1/list_submission_users/?d2_submission=False`
 
 ##### Request Params
-- `d2_submission` - **optional** - a boolean indicating if the submissions checked should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
+- `d2_submission`: (boolean) if the submissions checked should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
 
 ##### Response (JSON)
 
@@ -1296,11 +1332,13 @@ This endpoint lists all users with submissions that the requesting user can view
   "users": [
     {
       "user_id": 4,
-      "name": "Another User"
+      "name": "Another User",
+      "email": "another_user@domain.com"
     },
     {
       "user_id": 1,
-      "name": "User One"
+      "name": "User One",
+      "email": "user1@domain.com"
     }
   ]
 }
@@ -1308,9 +1346,10 @@ This endpoint lists all users with submissions that the requesting user can view
 
 ##### Response Attributes
 
-- `users` - An array of objects that contain the user's ID and name:
-    - `user_id` - an integer indicating ID of the user
-    - `name` - a string containing the name of the user
+- `users`: ([dict]) contain the user's ID, name, and email:
+    - `user_id`: (int) ID of the user
+    - `name`: (string) name of the user
+    - `email`: (string) email of the user
 
 ##### Errors
 Possible HTTP Status Codes:
@@ -2199,6 +2238,158 @@ Possible HTTP Status Codes:
     - Invalid submission
     - Invalid parameter
     - Missing required parameter
+    - FABS submission requested
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
+#### GET "/v1/get\_impact\_counts/"
+This endpoint gets the breakdown of each impact level in a given submission/file, returning the total number of rules that fall under each impact level and the details of each rule.
+
+##### Sample Request
+`/v1/get_impact_counts/?submission_id=1234&file=A&error_level=warning`
+
+##### Request Params
+- `submission_id`: (required, integer) the ID of the submission to view
+- `file`: (required, string) The file to get the warning or error data for. Allowed values are:
+    - `A`: Appropriations
+    - `B`: Program Activity
+    - `C`: Award Financial
+    - `cross-AB`: cross-file between Appropriations and Program Activity
+    - `cross-BC`: cross-file between Program Activity and Award Financial
+    - `cross-CD1`: cross-file between Award Financial and Award Procurement
+    - `cross-CD2`: cross-file between Award Financial and Award Financial Assistance
+- `error_level`: (string) The level of error data to gather an overview for. Defaults to warning. Allowed values:
+    - `warning`
+    - `error`
+    - `mixed`
+
+##### Response (JSON)
+```
+{
+    "low": {
+        "total": 2,
+        "rules": [
+            {
+                "rule_label": "C9",
+                "instances": 72,
+                "rule_description": "Lorem ipsum"
+            },
+            {
+                "rule_label": "C23.3",
+                "instances": 32,
+                "rule_description": "Lorem ipsum"
+            }
+        ]
+    },
+    "medium": {
+        "total": 0,
+        "rules": []
+    },
+    "high": {
+        "total": 1,
+        "rules": [
+            {
+                "rule_label": "C18",
+                "instances": 50,
+                "rule_description": "Lorem ipsum"
+            }
+        ]
+    }
+}
+```
+
+##### Response Attributes
+The response is a dictionary containing three keys, `low`, `medium` and `high` denoting the three levels of impact. Each of these contain a dictionary with a breakdown of the contents of each level. These dictionaries contain:
+
+- `total`: (integer) the total number of rules with this impact level that are present in this submission/file
+- `rules `: ([dict]) a detailed breakdown of each rule that is present in this submission/file containing the following keys:
+    - `rule_label`: (string) the label of the rule
+    - `instances`: (integer) the number of times this rule was triggered
+    - `rule_description`: (string) the description of the rule
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid parameter
+    - Missing required parameter
+    - FABS submission requested
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
+#### GET "/v1/get\_significance\_counts/"
+This endpoint gets the breakdown of rules and their counts by their categories or significances in a given submission/file, returning the total number of rules and the rule counts.
+
+##### Sample Request
+`/v1/get_significance_counts/?submission_id=1234&file=A&error_level=warning`
+
+##### Request Params
+- `submission_id`: (required, integer) the ID of the submission to view
+- `file`: (required, string) The file to get the warning or error data for. Allowed values are:
+    - `A`: Appropriations
+    - `B`: Program Activity
+    - `C`: Award Financial
+    - `cross-AB`: cross-file between Appropriations and Program Activity
+    - `cross-BC`: cross-file between Program Activity and Award Financial
+    - `cross-CD1`: cross-file between Award Financial and Award Procurement
+    - `cross-CD2`: cross-file between Award Financial and Award Financial Assistance
+- `error_level`: (string) The level of error data to gather an overview for. Defaults to warning. Allowed values:
+    - `warning`
+    - `error`
+    - `mixed`
+
+##### Response (JSON)
+```
+{
+    "total_instances": 42349
+    "rules": [
+        {
+            "rule_label": "C23.3",
+            "category": "Accuracy",
+            "significance": 3,
+            "impact": "high",
+            "instances": 36,
+            "percentage": 0.0
+        },
+        {
+            "rule_label": "C9",
+            "category": "Completeness",
+            "significance": 4,
+            "impact": "low",
+            "instances": 73,
+            "percentage": 0.1
+        },
+        {
+            "rule_label": "C8",
+            "category": "Completeness",
+            "significance": 9,
+            "impact": "medium",
+            "instances": 42240,
+            "percentage": 99.7
+        }
+    ]
+}
+```
+
+##### Response Attributes
+The response is a dictionary representing the rules and their significances/categories/counts with the following:
+
+- `total_instances`: (integer) the total number of instances (errors or warnings) for this file in this submission
+- `rules `: ([dict]) a detailed breakdown of each rule that is present in this submission/file containing the following keys:
+    - `rule_label`: (string) the label of the rule
+    - `category`: (string) the category of the rule
+    - `significance`: (integer) the significance of the rule
+    - `impact`: (string) the impact of the rule
+    - `instances`: (integer) the number of times this rule was triggered
+    - `percentage`: (float, rounded to tenth) the number of times this rule was triggered
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid parameter
+    - Missing required parameter
+    - FABS submission requested
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 

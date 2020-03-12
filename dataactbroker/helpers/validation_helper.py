@@ -588,7 +588,11 @@ def simple_file_scan(reader, bucket_name, region_name, file_name):
     header_length = 0
     short_rows = []
     long_rows = []
-    for line in csv.reader(temp_file):
+    # Getting the delimiter
+    header_line = temp_file.readline()
+    delimiter = '|' if header_line.count('|') > header_line.count(',') else ','
+    temp_file.seek(0)
+    for line in csv.reader(temp_file, delimiter=delimiter):
         if line:
             file_row_count += 1
             line_length = len(line)

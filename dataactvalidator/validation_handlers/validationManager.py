@@ -468,16 +468,17 @@ class ValidationManager:
                 # Clear out office list to save space
                 del offices
 
+            # Gathering flex data (must be done before chunk limiting)
+            if self.reader.flex_fields:
+                flex_data = chunk_df.loc[:, list(self.reader.flex_fields + ['row_number'])]
+            if flex_data is not None and not flex_data.empty:
+                flex_data['concatted'] = flex_data.apply(lambda x: concat_flex(x), axis=1)
+
+            # Dropping any extraneous fields included + flex data (must be done before file type checking)
+            chunk_df = chunk_df[list(self.expected_headers + ['row_number'])]
+
             # Only do validations if it's not a D file
             if self.file_type.name not in ['award', 'award_procurement']:
-                # Gathering flex data
-                if self.reader.flex_fields:
-                    flex_data = chunk_df.loc[:, list(self.reader.flex_fields + ['row_number'])]
-                if flex_data is not None and not flex_data.empty:
-                    flex_data['concatted'] = flex_data.apply(lambda x: concat_flex(x), axis=1)
-
-                # Dropping any extraneous fields included + flex data
-                chunk_df = chunk_df[list(self.expected_headers + ['row_number'])]
 
                 # Padding specific fields
                 for field in self.parsed_fields['padded']:
