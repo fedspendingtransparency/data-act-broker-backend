@@ -12,10 +12,11 @@ def test_column_headers(database):
     assert expected_subset == actual
 
 
+
 def test_success(database):
-    """ Test valid. For ActionType = A, the CFDA_Number must be active as of the ActionDate.
-        Not apply to those with CorrectionDeleteIndicator = C.
-        If publish_date <= action_date <= archived_date, it passes validation (active).
+    """ Test valid. For new (ActionType = A) or mixed aggregate (ActionType = E) assistance awards specifically, the
+        CFDA_Number must be active as of the ActionDate. This does not apply to correction records
+        (those with CorrectionDeleteIndicator = C and delete records).
     """
 
     cfda = CFDAProgram(program_number=12.340, published_date='20130427', archived_date='')
@@ -55,9 +56,9 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test invalid. For ActionType = A, the CFDA_Number must be active as of the ActionDate.
-        Not apply to those with CorrectionDeleteIndicator = C.
-        If publish_date > action_date > archive_date, reject that (not active).
+    """ Test invalid. For new (ActionType = A) or mixed aggregate (ActionType = E) assistance awards specifically, the
+        CFDA_Number must be active as of the ActionDate. This does not apply to correction records
+        (those with CorrectionDeleteIndicator = C and delete records).
     """
 
     cfda = CFDAProgram(program_number=12.340, published_date='20130427', archived_date='')
