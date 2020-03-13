@@ -12,7 +12,6 @@ def test_column_headers(database):
     assert expected_subset == actual
 
 
-
 def test_success(database):
     """ Test valid. For new (ActionType = A) or mixed aggregate (ActionType = E) assistance awards specifically, the
         CFDA_Number must be active as of the ActionDate. This does not apply to correction records
