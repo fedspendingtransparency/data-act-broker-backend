@@ -15,7 +15,9 @@ SELECT
     dafa.afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_fabs41_1_{0} AS dafa
 WHERE UPPER(dafa.place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d[\dR]$'
-    AND dafa.place_of_performance_zip4a = 'city-wide'
+    AND (COALESCE(dafa.place_of_performance_zip4a, '') = ''
+         OR dafa.place_of_performance_zip4a = 'city-wide'
+    )
     AND dafa.row_number NOT IN (
         SELECT DISTINCT sub_dafa.row_number
         FROM detached_award_financial_assistance_fabs41_1_{0} AS sub_dafa
