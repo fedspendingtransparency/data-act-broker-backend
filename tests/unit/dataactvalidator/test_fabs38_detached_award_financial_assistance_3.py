@@ -54,7 +54,7 @@ def test_failure(database):
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='', action_type='A',
                                                           action_date='10/01/2018', correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_office_code=None, action_type='E',
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_office_code=None, action_type='e',
                                                           action_date='10/02/2018', correction_delete_indicatr='C')
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2])
     assert errors == 2
