@@ -20,11 +20,11 @@ def test_success(database):
     # All factors as stated
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='AAAAAA', action_type='A',
                                                           action_date='10/01/2018', correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='111111', action_type=None,
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='111111', action_type='e',
                                                           action_date='10/01/2018', correction_delete_indicatr='C')
 
     # Rule ignored for earlier dates
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='', action_type=None,
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='', action_type='E',
                                                           action_date='10/01/2017', correction_delete_indicatr='C')
 
     # Rule ignored for other action types
