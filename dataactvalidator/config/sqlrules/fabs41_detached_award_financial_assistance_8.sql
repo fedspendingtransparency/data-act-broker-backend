@@ -1,5 +1,5 @@
 -- When PrimaryPlaceOfPerformanceCode is in XX##### or XX####R format, PrimaryPlaceOfPerformanceZIP+4 must not be
--- blank (containing either a zip code or ‘city-wide’).
+-- blank (containing either a zip code or 'city-wide').
 SELECT
     row_number,
     place_of_performance_code,

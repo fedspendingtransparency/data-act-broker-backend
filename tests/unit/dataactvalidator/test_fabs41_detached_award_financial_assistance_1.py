@@ -66,7 +66,7 @@ def test_failure(database):
 
     city_code = CityCode(city_code='10987', state_code='NY')
     city_code_2 = CityCode(city_code='1098R', state_code='NY')
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='ny10986',
+    det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='ny109\86',
                                                           place_of_performance_zip4a=None,
                                                           correction_delete_indicatr=None)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='NY10986',

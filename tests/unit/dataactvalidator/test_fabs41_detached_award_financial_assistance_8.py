@@ -13,7 +13,7 @@ def test_column_headers(database):
 
 def test_success(database):
     """ When PrimaryPlaceOfPerformanceCode is in XX##### or XX####R format, PrimaryPlaceOfPerformanceZIP+4 must not be
-        blank (containing either a zip code or ‘city-wide’). """
+        blank (containing either a zip code or 'city-wide'). """
     det_award = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='Ny12345',
                                                         place_of_performance_zip4a='not blank')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='nY1234R',
@@ -29,7 +29,7 @@ def test_success(database):
 
 def test_failure(database):
     """ Test fail When PrimaryPlaceOfPerformanceCode is in XX##### or XX####R format, PrimaryPlaceOfPerformanceZIP+4
-        must not be blank (containing either a zip code or ‘city-wide’). """
+        must not be blank (containing either a zip code or 'city-wide'). """
 
     det_award = DetachedAwardFinancialAssistanceFactory(place_of_performance_code='Ny12345',
                                                         place_of_performance_zip4a=None)
