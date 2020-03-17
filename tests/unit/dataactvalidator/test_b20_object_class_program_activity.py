@@ -8,10 +8,11 @@ _FILE = 'b20_object_class_program_activity'
 
 
 def test_column_headers(database):
-    expected_subset = {'source_row_number', 'source_value_program_activity_code', 'source_value_object_class',
-                       'uniqueid_TAS', 'uniqueid_ProgramActivityCode', 'uniqueid_ObjectClass'}
+    expected_subset = {'source_row_number', 'source_value_program_activity_code', 'source_value_program_activity_name',
+                       'source_value_object_class', 'uniqueid_TAS', 'uniqueid_ProgramActivityCode',
+                       'uniqueid_ProgramActivityName', 'uniqueid_ObjectClass'}
     actual = set(query_columns(_FILE, database))
-    assert (actual & expected_subset) == expected_subset
+    assert actual == expected_subset
 
 
 def test_success(database):
