@@ -22,25 +22,12 @@ WITH aw_pafa AS
         AND EXISTS (
             SELECT 1
             FROM fsrs_grant
-            WHERE UPPER(TRANSLATE(fsrs_grant.fain, '-', '')) = UPPER(TRANSLATE(pafa.fain, '-', ''))
+            WHERE record_type != 1
                 AND fsrs_grant.id {0} {1}
-                AND record_type != 1
-                AND (fsrs_grant.federal_agency_id IS NULL OR UPPER(fsrs_grant.federal_agency_id)=UPPER(pafa.awarding_sub_tier_agency_c))
+                AND UPPER(TRANSLATE(fsrs_grant.fain, '-', '')) = UPPER(TRANSLATE(pafa.fain, '-', ''))
+                AND UPPER(fsrs_grant.federal_agency_id) IS NOT DISTINCT FROM UPPER(pafa.awarding_sub_tier_agency_c)
         )
     ORDER BY UPPER(pafa.fain), pafa.action_date),
-grouped_pafa AS (
-    SELECT *
-    FROM aw_pafa
-    WHERE EXISTS (
-        SELECT 1
-        FROM (SELECT fain, awarding_sub_tier_agency_c, COUNT(1)
-            FROM aw_pafa
-            GROUP BY fain, awarding_sub_tier_agency_c
-            HAVING COUNT(1) = 1) AS singled_pafa
-        WHERE (singled_pafa.fain = aw_pafa.fain
-            AND singled_pafa.awarding_sub_tier_agency_c = aw_pafa.awarding_sub_tier_agency_c)
-    )
-),
 grant_pduns AS
     (SELECT grand_pduns_from.awardee_or_recipient_uniqu AS awardee_or_recipient_uniqu,
         grand_pduns_from.legal_business_name AS legal_business_name
@@ -225,24 +212,24 @@ INSERT INTO subaward (
 )
 SELECT
     -- File F Prime Awards
-    grouped_pafa.unique_award_key AS "unique_award_key",
+    aw_pafa.unique_award_key AS "unique_award_key",
     fsrs_grant.fain AS "award_id",
     NULL AS "parent_award_id",
     fsrs_grant.total_fed_funding_amount AS "award_amount",
     fsrs_grant.obligation_date AS "action_date",
     'FY' || fy(obligation_date) AS "fy",
-    grouped_pafa.awarding_agency_code AS "awarding_agency_code",
-    grouped_pafa.awarding_agency_name AS "awarding_agency_name",
+    aw_pafa.awarding_agency_code AS "awarding_agency_code",
+    aw_pafa.awarding_agency_name AS "awarding_agency_name",
     fsrs_grant.federal_agency_id AS "awarding_sub_tier_agency_c",
-    grouped_pafa.awarding_sub_tier_agency_n AS "awarding_sub_tier_agency_n",
-    grouped_pafa.awarding_office_code AS "awarding_office_code",
-    grouped_pafa.awarding_office_name AS "awarding_office_name",
-    grouped_pafa.funding_agency_code AS "funding_agency_code",
-    grouped_pafa.funding_agency_name AS "funding_agency_name",
-    grouped_pafa.funding_sub_tier_agency_co AS "funding_sub_tier_agency_co",
-    grouped_pafa.funding_sub_tier_agency_na AS "funding_sub_tier_agency_na",
-    grouped_pafa.funding_office_code AS "funding_office_code",
-    grouped_pafa.funding_office_name AS "funding_office_name",
+    aw_pafa.awarding_sub_tier_agency_n AS "awarding_sub_tier_agency_n",
+    aw_pafa.awarding_office_code AS "awarding_office_code",
+    aw_pafa.awarding_office_name AS "awarding_office_name",
+    aw_pafa.funding_agency_code AS "funding_agency_code",
+    aw_pafa.funding_agency_name AS "funding_agency_name",
+    aw_pafa.funding_sub_tier_agency_co AS "funding_sub_tier_agency_co",
+    aw_pafa.funding_sub_tier_agency_na AS "funding_sub_tier_agency_na",
+    aw_pafa.funding_office_code AS "funding_office_code",
+    aw_pafa.funding_office_name AS "funding_office_name",
     fsrs_grant.duns AS "awardee_or_recipient_uniqu",
     fsrs_grant.awardee_name AS "awardee_or_recipient_legal",
     fsrs_grant.dba_name AS "dba_name",
@@ -263,7 +250,7 @@ SELECT
         THEN fsrs_grant.awardee_address_zip
         ELSE NULL
     END AS "legal_entity_foreign_posta",
-    grouped_pafa.business_types_desc AS "business_types",
+    aw_pafa.business_types_desc AS "business_types",
     fsrs_grant.principle_place_city AS "place_of_perform_city_name",
     fsrs_grant.principle_place_state AS "place_of_perform_state_code",
     fsrs_grant.principle_place_state_name AS "place_of_perform_state_name",
@@ -388,8 +375,9 @@ SELECT
 FROM fsrs_grant
     JOIN fsrs_subgrant
         ON fsrs_subgrant.parent_id = fsrs_grant.id
-    LEFT OUTER JOIN grouped_pafa
-        ON UPPER(TRANSLATE(fsrs_grant.fain, '-', '')) = UPPER(TRANSLATE(grouped_pafa.fain, '-', ''))
+    LEFT OUTER JOIN aw_pafa
+        ON UPPER(TRANSLATE(fsrs_grant.fain, '-', '')) = UPPER(TRANSLATE(aw_pafa.fain, '-', ''))
+        AND UPPER(fsrs_grant.federal_agency_id) IS NOT DISTINCT FROM UPPER(aw_pafa.awarding_sub_tier_agency_c)
     LEFT OUTER JOIN country_code AS le_country
         ON UPPER(fsrs_grant.awardee_address_country) = UPPER(le_country.country_code)
     LEFT OUTER JOIN country_code AS ppop_country

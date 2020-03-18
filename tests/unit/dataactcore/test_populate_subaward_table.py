@@ -441,7 +441,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         unique_award_key='NON-POP-SUB',
         fain='NON-FAIN-WITH-DASHES-POP-SUB',
         awarding_sub_tier_agency_c='1234',
-        is_active=True
+        is_active=True,
     )
     grant_non_pop_subtier = FSRSGrantFactory(
         fain=d2_non_pop_subtier.fain.replace('-', ''),
@@ -523,58 +523,21 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
     populate_subaward_table(sess, 'grant_service', ids=[grant_agg.id, grant_non_pop_subtier.id, grant_non_null_sub.id])
 
     # Get the records
-    grants_results = sess.query(Subaward).order_by(Subaward.unique_award_key).all()
+    grants_results = sess.query(Subaward).order_by(Subaward.award_id).all()
+    print([grant.award_id for grant in grants_results])
 
     created_at = updated_at = grants_results[0].created_at
 
     # Expected Results
-    assert compare_grant_results(grants_results[0], d2_non_null_sub, grant_non_null_sub, sub_grant_non_null_sub,
-                                 parent_duns, duns, dom_country, int_country, created_at, updated_at) is True
-    assert compare_grant_results(grants_results[1], d2_non_pop_subtier, grant_non_pop_subtier,
-                                 sub_grant_non_pop_subtier, parent_duns, duns, dom_country, int_country, created_at,
-                                 updated_at) is True
     # Note: Aggregates should not be linked
-    assert compare_grant_results(grants_results[2], None, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
-                                 int_country, created_at, updated_at) is True
-
-    # Adding dup awards to ensure dup award links *cannot* happen
-    # If a FABS record matches two awards, it gets linked to neither
-    sub2 = SubmissionFactory(submission_id=2)
-    d2_non_pop_subtier_dup = PublishedAwardFinancialAssistanceFactory(
-        submission_id=sub2.submission_id,
-        record_type=2,
-        unique_award_key='NON-POP-SUB',
-        fain='NON-FAIN-WITH-DASHES-POP-SUB',
-        awarding_sub_tier_agency_c='1234',
-        is_active=True
-    )
-    d2_non_null_sub_dup = PublishedAwardFinancialAssistanceFactory(
-        submission_id=sub.submission_id,
-        record_type=2,
-        unique_award_key='NON-NULL-SUB',
-        fain='NON-FAIN-WITH-DASHES-NULL-SUB',
-        awarding_sub_tier_agency_c='5678',
-        is_active=True
-    )
-    sess.query(Subaward).delete()
-    sess.add_all([sub2, d2_non_pop_subtier_dup, d2_non_null_sub_dup])
-    sess.commit()
-
-    populate_subaward_table(sess, 'grant_service', ids=[grant_agg.id, grant_non_pop_subtier.id, grant_non_null_sub.id])
-
-    grants_results = sess.query(Subaward).order_by(Subaward.award_id).all()
-
-    created_at = updated_at = grants_results[0].created_at
-
-    # Expected Results - *not* linked this time
-    assert compare_grant_results(grants_results[1], None, grant_non_null_sub, sub_grant_non_null_sub,
-                                 parent_duns, duns, dom_country, int_country, created_at, updated_at) is True
-    assert compare_grant_results(grants_results[2], None, grant_non_pop_subtier,
+    assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
+                                 int_country, created_at, updated_at) is False
+    # Note: If federal_agency_id is blank, no link should happen and FSRS data needs to be updated
+    assert compare_grant_results(grants_results[1], d2_non_null_sub, grant_non_null_sub, sub_grant_non_null_sub,
+                                 parent_duns, duns, dom_country, int_country, created_at, updated_at) is False
+    assert compare_grant_results(grants_results[2], d2_non_pop_subtier, grant_non_pop_subtier,
                                  sub_grant_non_pop_subtier, parent_duns, duns, dom_country, int_country, created_at,
                                  updated_at) is True
-    # Note: Aggregates should still not be linked
-    assert compare_grant_results(grants_results[0], None, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
-                                 int_country, created_at, updated_at) is True
 
 
 def test_fix_broken_links(database, monkeypatch):
@@ -781,21 +744,21 @@ def test_fix_broken_links(database, monkeypatch):
     contract_created_at = contract_updated_at = contracts_results[0].created_at
 
     # Expected Results - should be False as the award isn't provided
-    # Note: Aggregates should not be linked
     assert compare_contract_results(contracts_results[0], d1_awd, contract_awd, sub_contract_awd, parent_duns, duns,
                                     dom_country, int_country, contract_created_at, contract_updated_at) is False
     assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, parent_duns, duns,
                                     dom_country, int_country, contract_created_at, contract_updated_at) is False
-    assert compare_grant_results(grants_results[3], d2_non_pop_subtier, grant_non_pop_subtier,
-                                 sub_grant_non_pop_subtier, parent_duns, duns, dom_country,
-                                 int_country, grant_created_at, grant_updated_at) is False
-    assert compare_grant_results(grants_results[2], d2_non_null_subtier, grant_non_null_subtier,
-                                 sub_grant_non_null_subtier, parent_duns, duns, dom_country,
-                                 int_country, grant_created_at, grant_updated_at) is False
+
     assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
                                  int_country, grant_created_at, grant_updated_at) is False
     assert compare_grant_results(grants_results[1], d2_non_other, grant_non_other, sub_grant_non_other, parent_duns,
                                  duns, dom_country, int_country, grant_created_at, grant_updated_at) is False
+    assert compare_grant_results(grants_results[2], d2_non_null_subtier, grant_non_null_subtier,
+                                 sub_grant_non_null_subtier, parent_duns, duns, dom_country,
+                                 int_country, grant_created_at, grant_updated_at) is False
+    assert compare_grant_results(grants_results[3], d2_non_pop_subtier, grant_non_pop_subtier,
+                                 sub_grant_non_pop_subtier, parent_duns, duns, dom_country,
+                                 int_country, grant_created_at, grant_updated_at) is False
 
     # now add the awards and fix the broken links
     sess.add_all([d1_awd, d1_idv, d2_non_null_subtier, d2_non_pop_subtier, d2_non_other, d2_non_other_dup, d2_agg])
@@ -805,8 +768,8 @@ def test_fix_broken_links(database, monkeypatch):
     updated_grant_count = fix_broken_links(sess, 'grant_service', min_date=min_date)
 
     assert updated_proc_count == 2
-    # Note: Aggregates should still not be linked, so 2 and not 3
-    assert updated_grant_count == 2
+    # Note: Aggregates and blank federal_agency_ids should still not be linked, so 1 and not 3
+    assert updated_grant_count == 1
 
     contracts_results = sess.query(Subaward).order_by(Subaward.unique_award_key).\
         filter(Subaward.subaward_type == 'sub-contract').all()
@@ -824,16 +787,16 @@ def test_fix_broken_links(database, monkeypatch):
                                     dom_country, int_country, contract_created_at, contract_updated_at) is True
     assert compare_contract_results(contracts_results[1], d1_idv, contract_idv, sub_contract_idv, parent_duns, duns,
                                     dom_country, int_country, contract_created_at, contract_updated_at) is True
-    assert compare_grant_results(grants_results[3], d2_non_pop_subtier, grant_non_pop_subtier,
-                                 sub_grant_non_pop_subtier, parent_duns, duns, dom_country,
-                                 int_country, grant_created_at, grant_updated_at) is True
+    assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
+                                 int_country, grant_created_at, grant_updated_at) is False
     assert compare_grant_results(grants_results[1], d2_non_null_subtier, grant_non_null_subtier,
                                  sub_grant_non_null_subtier, parent_duns, duns, dom_country,
-                                 int_country, grant_created_at, grant_updated_at) is True
-    assert compare_grant_results(grants_results[0], d2_agg, grant_agg, sub_grant_agg, parent_duns, duns, dom_country,
                                  int_country, grant_created_at, grant_updated_at) is False
     assert compare_grant_results(grants_results[2], d2_non_other, grant_non_other, sub_grant_non_other, parent_duns,
                                  duns, dom_country, int_country, grant_created_at, grant_updated_at) is False
+    assert compare_grant_results(grants_results[3], d2_non_pop_subtier, grant_non_pop_subtier,
+                                 sub_grant_non_pop_subtier, parent_duns, duns, dom_country,
+                                 int_country, grant_created_at, grant_updated_at) is True
 
     # Ensuring only updates occurred, no deletes/inserts
     assert set(original_ids) == set(updated_ids)
