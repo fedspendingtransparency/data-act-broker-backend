@@ -3,29 +3,29 @@ from collections import OrderedDict
 import copy
 
 from datetime import datetime
-from sqlalchemy import case, func
+from sqlalchemy import case, func, and_
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import CGAC, FREC
-from dataactcore.models.errorModels import CertifiedErrorMetadata
+from dataactcore.interfaces.function_bag import get_time_period
+from dataactcore.models.domainModels import CGAC, FREC, is_not_distinct_from
+from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID,
-                                        FILE_TYPE_DICT_LETTER)
-from dataactcore.models.jobModels import Submission, Job
+                                        FILE_TYPE_DICT_LETTER, RULE_IMPACT_DICT_ID)
+from dataactcore.models.jobModels import Submission, Job, QuarterlyRevalidationThreshold
 from dataactcore.models.userModel import User
-from dataactcore.models.validationModels import RuleSql
+from dataactcore.models.validationModels import RuleSql, RuleSetting, RuleImpact
 
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
 from dataactbroker.helpers.generic_helper import fy
-from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter, file_filter
+from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter, file_filter, rule_severity_filter
+from dataactbroker.helpers.dashboard_helper import FILE_TYPES, agency_settings_filter, generate_file_type
 from dataactbroker.handlers.agency_handler import get_accessible_agencies
 
 
 logger = logging.getLogger(__name__)
-
-FILE_TYPES = ['A', 'B', 'C', 'cross-AB', 'cross-BC', 'cross-CD1', 'cross-CD2']
 
 
 def list_rule_labels(files, error_level='warning', fabs=False):
@@ -275,26 +275,6 @@ def historic_dabs_warning_summary(filters):
     return JsonResponse.create(StatusCode.OK, response)
 
 
-def generate_file_type(source_file_type_id, target_file_type_id):
-    """ Helper function to generate the file type given the file types
-
-        Args:
-            source_file_type_id: id of the source file type
-            target_file_type_id: id of the target file type (None for single-file)
-
-        Return:
-            string representing the file type
-    """
-    file_type = FILE_TYPE_DICT_LETTER.get(source_file_type_id)
-    target_file_type = FILE_TYPE_DICT_LETTER.get(target_file_type_id)
-    if file_type and target_file_type is None:
-        return file_type
-    elif file_type and target_file_type:
-        return 'cross-{}'.format(''.join(sorted([file_type, target_file_type])))
-    else:
-        return None
-
-
 def historic_dabs_warning_graphs(filters):
     """ Generate a list of submission graphs appropriate on the filters provided
 
@@ -537,5 +517,303 @@ def historic_dabs_warning_table(filters, page, limit, sort='period', order='desc
                 'filename': getattr(error_metadata, 'file_{}_name'.format(target_file_type))
             })
         response['results'].append(data)
+
+    return JsonResponse.create(StatusCode.OK, response)
+
+
+def active_submission_overview(submission, file, error_level):
+    """ Gathers information for the overview section of the active DABS dashboard.
+
+        Args:
+            submission: submission to get the overview for
+            file: The type of file to get the overview data for
+            error_level: whether to get warning or error counts for the overview (possible: warning, error, mixed)
+
+        Returns:
+            A response containing overview information of the provided submission for the active DABS dashboard.
+
+        Raises:
+            ResponseException if submission provided is a FABS submission.
+    """
+    if submission.d2_submission:
+        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+
+    # Basic data that can be gathered from just the submission and passed filters
+    response = {
+        'submission_id': submission.submission_id,
+        'duration': 'Quarterly' if submission.is_quarter_format else 'Monthly',
+        'reporting_period': get_time_period(submission),
+        'certification_deadline': 'N/A',
+        'days_remaining': 'N/A',
+        'number_of_rules': 0,
+        'total_instances': 0
+    }
+
+    # File type
+    if file in ['A', 'B', 'C']:
+        response['file'] = 'File ' + file
+    else:
+        response['file'] = 'Cross: ' + file.split('-')[1]
+
+    sess = GlobalDB.db().session
+
+    # Agency-specific data
+    if submission.frec_code:
+        agency = sess.query(FREC).filter_by(frec_code=submission.frec_code).one()
+    else:
+        agency = sess.query(CGAC).filter_by(cgac_code=submission.cgac_code).one()
+
+    response['agency_name'] = agency.agency_name
+    response['icon_name'] = agency.icon_name
+
+    # Deadline information, updates the default values of N/A only if it's a quarter format and the deadline exists
+    if submission.is_quarter_format:
+        deadline = sess.query(QuarterlyRevalidationThreshold.window_end).\
+            filter_by(year=submission.reporting_fiscal_year, quarter=submission.reporting_fiscal_period // 3).first()
+        if deadline:
+            deadline = deadline.window_end.date()
+            today = datetime.now().date()
+            if today > deadline:
+                response['certification_deadline'] = 'Past Due'
+            elif today == deadline:
+                response['certification_deadline'] = deadline.strftime('%B %-d, %Y')
+                response['days_remaining'] = 'Due Today'
+            else:
+                response['certification_deadline'] = deadline.strftime('%B %-d, %Y')
+                response['days_remaining'] = (deadline - today).days
+
+    # Getting rule counts
+    rule_query = sess.query(func.sum(ErrorMetadata.occurrences).label('total_instances'),
+                            func.count(1).label('number_of_rules')).\
+        join(Job, Job.job_id == ErrorMetadata.job_id).filter(Job.submission_id == submission.submission_id).\
+        group_by(ErrorMetadata.job_id)
+
+    rule_query = rule_severity_filter(rule_query, error_level, ErrorMetadata)
+    rule_query = file_filter(rule_query, ErrorMetadata, [file])
+
+    rule_values = rule_query.first()
+
+    if rule_values:
+        response['number_of_rules'] = rule_values.number_of_rules
+        response['total_instances'] = rule_values.total_instances
+
+    return JsonResponse.create(StatusCode.OK, response)
+
+
+def get_impact_counts(submission, file, error_level):
+    """ Gathers information for the impact count section of the active DABS dashboard.
+
+            Args:
+                submission: submission to get the impact counts for
+                file: The type of file to get the impact counts for
+                error_level: whether to get warning or error counts for the impact counts (possible: warning, error,
+                    mixed)
+
+            Returns:
+                A response containing impact count information of the provided submission for the active DABS dashboard.
+
+            Raises:
+                ResponseException if submission provided is a FABS submission.
+        """
+    if submission.d2_submission:
+        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+
+    # Basic data that can be gathered from just the submission and passed filters
+    response = {
+        'low': {
+            'total': 0,
+            'rules': []
+        },
+        'medium': {
+            'total': 0,
+            'rules': []
+        },
+        'high': {
+            'total': 0,
+            'rules': []
+        }
+    }
+
+    sess = GlobalDB.db().session
+
+    # Initial query
+    impact_query = sess.query(ErrorMetadata.original_rule_label, ErrorMetadata.occurrences, ErrorMetadata.rule_failed,
+                              RuleSetting.impact_id).\
+        join(Job, Job.job_id == ErrorMetadata.job_id). \
+        join(RuleSetting, RuleSetting.rule_label == ErrorMetadata.original_rule_label). \
+        filter(Job.submission_id == submission.submission_id)
+
+    agency_code = submission.frec_code or submission.cgac_code
+    impact_query = agency_settings_filter(sess, impact_query, agency_code, file)
+    impact_query = rule_severity_filter(impact_query, error_level, ErrorMetadata)
+    impact_query = file_filter(impact_query, RuleSetting, [file])
+
+    for result in impact_query.all():
+        response[RULE_IMPACT_DICT_ID[result.impact_id]]['total'] += 1
+        response[RULE_IMPACT_DICT_ID[result.impact_id]]['rules'].append({
+            'rule_label': result.original_rule_label,
+            'instances': result.occurrences,
+            'rule_description': result.rule_failed
+        })
+
+    return JsonResponse.create(StatusCode.OK, response)
+
+
+def get_significance_counts(submission, file, error_level):
+    """ Gathers information for the signficances section of the active DABS dashboard.
+
+            Args:
+                submission: submission to get the significance counts for
+                file: The type of file to get the significance counts for
+                error_level: whether to get warning or error counts for the significance counts (possible: warning,
+                             error, mixed)
+
+            Returns:
+                A response containing significance data of the provided submission for the active DABS dashboard.
+
+            Raises:
+                ResponseException if submission provided is a FABS submission.
+        """
+    if submission.d2_submission:
+        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+
+    # Basic data that can be gathered from just the submission and passed filters
+    response = {
+        'total_instances': 0,
+        'rules': []
+    }
+
+    sess = GlobalDB.db().session
+
+    # Initial query
+    significance_query = sess.query(ErrorMetadata.original_rule_label, ErrorMetadata.occurrences,
+                                    ErrorMetadata.rule_failed, RuleSetting.priority, RuleSql.category,
+                                    RuleSetting.impact_id).\
+        join(Job, Job.job_id == ErrorMetadata.job_id). \
+        join(RuleSetting, RuleSetting.rule_label == ErrorMetadata.original_rule_label). \
+        join(RuleSql, RuleSql.rule_label == ErrorMetadata.original_rule_label). \
+        filter(Job.submission_id == submission.submission_id)
+
+    agency_code = submission.frec_code or submission.cgac_code
+    significance_query = agency_settings_filter(sess, significance_query, agency_code, file)
+    significance_query = rule_severity_filter(significance_query, error_level, ErrorMetadata)
+    significance_query = file_filter(significance_query, RuleSetting, [file])
+
+    # Ordering by significance to help process the results
+    significance_query = significance_query.order_by(RuleSetting.priority)
+
+    for result in significance_query.all():
+        response['rules'].append({
+            'rule_label': result.original_rule_label,
+            'category': result.category,
+            'significance': result.priority,
+            'impact': RULE_IMPACT_DICT_ID[result.impact_id],
+            'instances': result.occurrences
+        })
+        response['total_instances'] += result.occurrences
+
+    # Calculate the percentages
+    for rule_dict in response['rules']:
+        rule_dict['percentage'] = round((rule_dict['instances']/response['total_instances'])*100, 1)
+
+    return JsonResponse.create(StatusCode.OK, response)
+
+
+def active_submission_table(submission, file, error_level, page=1, limit=5, sort='significance', order='desc'):
+    """ Gather a list of warnings/errors based on the filters provided to display in the active dashboard table.
+
+        Args:
+            submission: submission to get the table data for
+            file: The type of file to get the table data for
+            error_level: whether to get warnings, errors, or both for the table (possible: warning, error, mixed)
+            page: page number to use in getting the list
+            limit: the number of entries per page
+            sort: the column to order on
+            order: order ascending or descending
+
+        Returns:
+            A response containing a list of results for the active submission dashboard table and the metadata for
+            the table.
+
+        Raises:
+            ResponseException if submission provided is a FABS submission.
+    """
+    if submission.d2_submission:
+        raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
+
+    # Basic information that is provided by the user and defaults for the rest
+    response = {
+        'page_metadata': {
+            'total': 0,
+            'page': page,
+            'limit': limit,
+            'submission_id': submission.submission_id,
+            'files': []
+        },
+        'results': []
+    }
+
+    # File type
+    if file in ['A', 'B', 'C']:
+        response['page_metadata']['files'] = [file]
+    else:
+        letters = file.split('-')[1]
+        response['page_metadata']['files'] = [letters[:1], letters[1:]]
+
+    sess = GlobalDB.db().session
+
+    # Initial query
+    table_query = sess.query(ErrorMetadata.original_rule_label, ErrorMetadata.occurrences, ErrorMetadata.rule_failed,
+                             RuleSql.category, RuleSetting.priority, RuleImpact.name.label('impact_name')).\
+        join(Job, Job.job_id == ErrorMetadata.job_id).\
+        join(RuleSql, RuleSql.rule_label == ErrorMetadata.original_rule_label).\
+        join(RuleSetting, and_(RuleSql.rule_label == RuleSetting.rule_label, RuleSql.file_id == RuleSetting.file_id,
+                               is_not_distinct_from(RuleSql.target_file_id, RuleSetting.target_file_id))).\
+        join(RuleImpact, RuleImpact.rule_impact_id == RuleSetting.impact_id).\
+        filter(Job.submission_id == submission.submission_id)
+
+    agency_code = submission.frec_code or submission.cgac_code
+    table_query = agency_settings_filter(sess, table_query, agency_code, file)
+    table_query = rule_severity_filter(table_query, error_level, ErrorMetadata)
+    table_query = file_filter(table_query, RuleSql, [file])
+
+    # Total number of entries in the table
+    response['page_metadata']['total'] = table_query.count()
+
+    # Determine what to order by, default to "significance"
+    options = {
+        'significance': {'model': RuleSetting, 'col': 'priority'},
+        'rule_label': {'model': ErrorMetadata, 'col': 'original_rule_label'},
+        'instances': {'model': ErrorMetadata, 'col': 'occurrences'},
+        'category': {'model': RuleSql, 'col': 'category'},
+        'impact': {'model': RuleSetting, 'col': 'impact_id'},
+        'description': {'model': ErrorMetadata, 'col': 'rule_failed'}
+    }
+
+    sort_order = [getattr(options[sort]['model'], options[sort]['col'])]
+
+    # add secondary sorts
+    if sort in ['instances', 'category', 'impact']:
+        sort_order.append(RuleSetting.priority)
+
+    # Set the sort order
+    if order == 'desc':
+        sort_order = [order.desc() for order in sort_order]
+
+    table_query = table_query.order_by(*sort_order)
+
+    # The page we're on
+    offset = limit * (page - 1)
+    table_query = table_query.slice(offset, offset + limit)
+
+    for result in table_query.all():
+        response['results'].append({
+            'significance': result.priority,
+            'rule_label': result.original_rule_label,
+            'instance_count': result.occurrences,
+            'category': result.category,
+            'impact': result.impact_name,
+            'rule_description': result.rule_failed
+        })
 
     return JsonResponse.create(StatusCode.OK, response)

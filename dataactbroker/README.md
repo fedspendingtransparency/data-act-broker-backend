@@ -510,6 +510,7 @@ This endpoint returns metadata for the requested submission.
     "reporting_period": "Q2/2018",
     "publish_status": "unpublished",
     "quarterly_submission": false,
+    "certified_submission": 2,
     "fabs_submission": true,
     "fabs_meta": {
         "valid_rows": 1,
@@ -538,6 +539,7 @@ This endpoint returns metadata for the requested submission.
     - `updated`
     - `publishing`
 - `quarterly_submission`: boolean, whether the submission is quarterly or monthly
+- `certified_submission`: int, an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
 - `fabs_submission`: boolean, whether the submission is FABS or DABS (True for FABS)
 - `fabs_meta`: object, data specific to FABS submissions (null for DABS submissions)
     - `publish_date`: string, Date/time submission was published (H:mm(AM/PM) MM/DD/YYYY) (null if unpublished)
@@ -1135,11 +1137,44 @@ Possible HTTP Status Codes:
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
+#### POST "/v1/revert\_submission/"
+This endpoint returns an updated submission to the state it was in at the latest certification.
+
+##### Body (JSON)
+```
+    {
+        "submission_id": 1234
+    }
+```
+
+##### Body Description
+
+- `submission_id`: (required, integer) An integer corresponding to the ID of the submission to be reverted.
+
+##### Response (JSON)
+```
+{
+    "message": "Submission 1234 successfully reverted to certified status."
+}
+```
+
+##### Response Attributes
+- `message `: (string) A message indicating the submission was successfully reverted
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Submission does not exist
+    - Submission is FABS
+    - Submission has never been certified or has not been updated since certification
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
 #### POST "/v1/list\_submissions/"
 This endpoint lists submissions for all agencies for which the current user is a member of. Optional filters allow for more refined lists.
 
 ##### Body (JSON)
-
 ```
 {
     "page": 2
@@ -1163,30 +1198,32 @@ This endpoint lists submissions for all agencies for which the current user is a
 
 ##### Body Description
 
-- `page` - **optional** - an integer representing the page of submissions to view (offsets the list by `limit * (page - 1)`). Defaults to `1` if not provided
-- `limit` - **optional** - an integer representing the total number of results to see from this request. Defaults to `5` if not provided
-- `certified` - **required** - a string denoting the certification/publish status of the submissions listed. Allowed values are:
-    - `true` - only include submissions that have been certified/published
-    - `false` - only include submissions that have never been certified/published
-    - `mixed` - include both certified/published and non-certified/published submissions
-- `sort` - **optional** - a string denoting what value to sort by. Defaults to `modified` if not provided. Valid values are:
-    - `modified` - last modified date
-    - `reporting` - reporting start date
-    - `agency` - agency name
-    - `submitted_by` - name of user that created the submission
-    - `certified_date` - latest certified date
-- `order` - **optional** - a string indicating the sort order. Defaults to `desc` if not provided. Valid values are:
+- `page`: (integer) the page of submissions to view (offsets the list by `limit * (page - 1)`). Defaults to `1` if not provided
+- `limit`: (integer) the total number of results to see from this request. Defaults to `5` if not provided
+- `certified`: (required, string) the certification/publish status of the submissions listed. Allowed values are:
+    - `true`: only include submissions that have been certified/published
+    - `false`: only include submissions that have never been certified/published
+    - `mixed`: include both certified/published and non-certified/published submissions
+- `sort`: (string) what value to sort by. Defaults to `modified` if not provided. Valid values are:
+    - `submission_id`: submission id
+    - `modified`: last modified date
+    - `reporting`: reporting start date
+    - `agency`: agency name
+    - `submitted_by`: name of user that created the submission
+    - `certified_date`: latest certified date
+    - `quarterly_submission`: quarterly submission or not
+- `order`: (string) the sort order. Defaults to `desc` if not provided. Valid values are:
     - `desc`
     - `asc`
-- `fabs` - **optional** - a boolean indicating if the submissions listed should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
-- `filters` - **optional** - an object containing additional filters to narrow the results returned by the endpoint. Possible filters are:
-    - `submission_ids` - an array of integers or strings that limits the submission IDs returned to only the values listed in the array.
-    - `last_modified_range` - an object containing a start and end date for the last modified date range. Both must be provided if this filter is used.
-        - `start_date` - a string indicating the start date for the last modified date range (inclusive) (MM/DD/YYYY)
-        - `end_date` - a string indicating the end date for the last modified date range (inclusive) (MM/DD/YYYY)
-    - `agency_codes` - an array of strings containing CGAC and FREC codes
-    - `file_names` - an array of strings containing total or partial matches to file names (including timestamps), will match any file name including generated ones
-    - `user_ids` - an array of integers or strings that limits the list of submissions to only ones created by users within the array.
+- `fabs`: (boolean) if the submissions listed should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
+- `filters`: (dict) additional filters to narrow the results returned by the endpoint. Possible filters are:
+    - `submission_ids`: ([integer]) an array of integers or strings that limits the submission IDs returned to only the values listed in the array.
+    - `last_modified_range`: (dict) a start and end date for the last modified date range. Both must be provided if this filter is used.
+        - `start_date`: (string) the start date for the last modified date range (inclusive) (MM/DD/YYYY)
+        - `end_date`: (string) the end date for the last modified date range (inclusive) (MM/DD/YYYY)
+    - `agency_codes`: ([string]) CGAC and FREC codes
+    - `file_names`: ([string]) total or partial matches to file names (including timestamps), will match any file name including generated ones
+    - `user_ids`: ([string, integer]) limits the list of submissions to only ones created by users within the array.
 
 ##### Response (JSON)
 
@@ -1202,12 +1239,15 @@ This endpoint lists submissions for all agencies for which the current user is a
         "user_id": 1
       },
       "files": ["file1.csv", "file2.csv"],
-      "agency": "Department of the Treasury (TREAS)"
+      "agency": "Department of the Treasury (TREAS)",
       "status": "validation_successful",
       "last_modified": "2016-08-30 12:59:37.053424",
       "publish_status": "published",
       "certifying_user": "Certifier",
-      "certified_on": "2016-08-30 12:53:37.053424"
+      "certified_on": "2016-08-30 12:53:37.053424",
+      "quarterly_submission": true,
+      "window_end": "2016-10-05",
+      "time_period": "FY 16 / Q4"
     },
     {
       "reporting_end_date": "2015-09-01",
@@ -1218,12 +1258,15 @@ This endpoint lists submissions for all agencies for which the current user is a
         "user_id": 2
       },
       "files": ["file1.csv", "file2.csv"],
-      "agency": "Department of Defense (DOD)"
+      "agency": "Department of Defense (DOD)",
       "status": "file_errors",
       "last_modified": "2016-08-31 15:59:37.053424",
       "publish_status": "unpublished",
       "certifying_user": "",
-      "certified_on": ""
+      "certified_on": "",
+      "quarterly_submission": true,
+      "window_end": "2015-10-05",
+      "time_period": "FY 15 / Q4"
     }
   ],
   "total": 2,
@@ -1233,18 +1276,18 @@ This endpoint lists submissions for all agencies for which the current user is a
 
 ##### Response Attributes
 
-- `total` - An integer indicating the total submissions that match the provided parameters (including those that didn't fit within the limit)
-- `min_last_modified` - A string indicating the minimum last modified date for submissions with the same type (FABS/DABS) and certify status (certified/published, unpublished, both) as the request (additional filters do not affect this number)
-- `submissions` - An array of objects that contain details about submissions. Contents of each object are:
-    - `submission_id` - an integer indicating ID of the submission
-    - `reporting_start_date` - a string containing the start date of the submission (`YYYY-MM-DD`)
-    - `reporting_end_date` - a string containing the end date of the submission (`YYYY-MM-DD`)
-    - `user` - an object containing details of the user that created the submission:
-        - `name` - a string containing the name of the user
-        - `user_id` - an integer indicating the ID of the user
-    - `files` - an array of file names associated with the submission
-    - `agency` - a string containing the name of the agency the submission is for
-    - `status` - a string containing the current status of the submission. Possible values are:
+- `total`: (integer) the total submissions that match the provided parameters (including those that didn't fit within the limit)
+- `min_last_modified`: (string) the minimum last modified date for submissions with the same type (FABS/DABS) and certify status (certified/published, unpublished, both) as the request (additional filters do not affect this number)
+- `submissions`: ([dict]) details about submissions. Contents of each object are:
+    - `submission_id`: (integer) ID of the submission
+    - `reporting_start_date`: (string) the start date of the submission (`YYYY-MM-DD`)
+    - `reporting_end_date`: (string) the end date of the submission (`YYYY-MM-DD`)
+    - `user`: (dict) details of the user that created the submission:
+        - `name`: (string) the name of the user
+        - `user_id`: (integer) the ID of the user
+    - `files`: ([string]) file names associated with the submission
+    - `agency`: (string) the name of the agency the submission is for
+    - `status`: (string) the current status of the submission. Possible values are:
         - `failed`
         - `file_errors`
         - `running`
@@ -1254,14 +1297,17 @@ This endpoint lists submissions for all agencies for which the current user is a
         - `validation_successful_warnings`
         - `certified`
         - `validation_errors`
-    - `last_modified` - a string containing the last time/date the submission was modified in any way (`YYYY-MM-DD HH:mm:ss`)
-    - `publish_status` - a string indicating the publish status of the submission. Possible values are:
+    - `last_modified`: (string) the last time/date the submission was modified in any way (`YYYY-MM-DD HH:mm:ss`)
+    - `publish_status`: (stringr) the publish status of the submission. Possible values are:
         - `unpublished`
         - `published`
         - `updated`
         - `publishing`
-    - `certifying_user` - a string containing the name of the last user to certify the submission
-    - `certified_on` - a string containing the last time/date the submission was certified. (`YYYY-MM-DD HH:mm:ss`)
+    - `certifying_user`: (string) the name of the last user to certify the submission
+    - `certified_on`: (string) the last time/date the submission was certified. (`YYYY-MM-DD HH:mm:ss`)
+    - `quarterly_submission`: (boolean) whether the submission is quarterly
+    - `window_end`: (string) the last date of the submission window
+    - `time_period`: (string) the time frame for the submission
 
 ##### Errors
 Possible HTTP Status Codes:
@@ -1277,7 +1323,7 @@ This endpoint lists all users with submissions that the requesting user can view
 `/v1/list_submission_users/?d2_submission=False`
 
 ##### Request Params
-- `d2_submission` - **optional** - a boolean indicating if the submissions checked should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
+- `d2_submission`: (boolean) if the submissions checked should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
 
 ##### Response (JSON)
 
@@ -1286,11 +1332,13 @@ This endpoint lists all users with submissions that the requesting user can view
   "users": [
     {
       "user_id": 4,
-      "name": "Another User"
+      "name": "Another User",
+      "email": "another_user@domain.com"
     },
     {
       "user_id": 1,
-      "name": "User One"
+      "name": "User One",
+      "email": "user1@domain.com"
     }
   ]
 }
@@ -1298,9 +1346,10 @@ This endpoint lists all users with submissions that the requesting user can view
 
 ##### Response Attributes
 
-- `users` - An array of objects that contain the user's ID and name:
-    - `user_id` - an integer indicating ID of the user
-    - `name` - a string containing the name of the user
+- `users`: ([dict]) contain the user's ID, name, and email:
+    - `user_id`: (int) ID of the user
+    - `name`: (string) name of the user
+    - `email`: (string) email of the user
 
 ##### Errors
 Possible HTTP Status Codes:
@@ -1887,8 +1936,7 @@ Note: the results will only include the submissions the user has access to based
 
 #### Response Attributes
 
-The response is a dictionary of lists representing the submission graphs, each with a list of dicts with the 
-following attributes:
+The response is a dictionary of lists representing the submission graphs, each with a list of dicts with the following attributes:
 
 - `submission_id`: (integer) the submission ID of the summary
 - `agency`:  (dict) the submission's agency, with the following attributes
@@ -2000,8 +2048,7 @@ Note: the results will only include the submissions the user has access to based
 
 #### Response Attributes
 
-The response is a dictionary of lists representing the submission graphs, each with a list of dicts with the 
-following attributes:
+The response is a dictionary containing a list with the details of each warning with the following attributes and a metadata dictionary containing information pertaining to the table in general:
 
 - `results`: ([dict]) the list of row results
     - `submission_id`: (integer) the submission ID of the warning
@@ -2025,6 +2072,471 @@ Possible HTTP Status Codes:
 - 400:
     - Invalid parameter
     - Missing required parameter
+- 401: Login required
+
+#### GET "/v1/active\_submission\_overview/"
+This endpoint returns an overview of the requested submission, along with details about the errors and/or warnings associated
+
+##### Sample Request
+`/v1/active_submission_overview/?submission_id=123&file=B&error_level=warning`
+
+##### Request Params
+
+- `submission_id`: (required, integer) the ID of the submission to view
+- `file`: (required, string) The file to get the warning or error data for. Allowed values are:
+    - `A`: Appropriations
+    - `B`: Program Activity
+    - `C`: Award Financial
+    - `cross-AB`: cross-file between Appropriations and Program Activity
+    - `cross-BC`: cross-file between Program Activity and Award Financial
+    - `cross-CD1`: cross-file between Award Financial and Award Procurement
+    - `cross-CD2`: cross-file between Award Financial and Award Financial Assistance
+- `error_level`: (string) The level of error data to gather an overview for. Defaults to warning. Allowed values:
+    - `warning`
+    - `error`
+    - `mixed`
+
+##### Response (JSON)
+```
+{
+    "submission_id": 1234,
+    "icon_name": "ABC.jpg",
+    "agency_name": "Fake Agency (FAKE)"
+    "certification_deadline": "January 1, 2020",
+    "days_remaining": 10,
+    "reporting_period": "FY 20 / Q1",
+    "duration": "Quarterly",
+    "file": "File B",
+    "number_of_rules": 8,
+    "total_instances": 12345
+}
+```
+
+##### Response Attributes
+- `submission_id`: (integer) The ID of the submission
+- `icon_name`: (string) The name of the icon (if one exists, else null) associated with the agency.
+- `agency_name`: (string) The name of the agency associated with the submission.
+- `certification_deadline`: (string) The day the certification for this submission is due. `Past Due` for submissions whose deadline has passed and Null for monthly submissions.
+- `days_remaining`: (integer/string) The number of days left until the certification deadline. `Due Today` for submissions that are due that day, null for submissions whose deadline has passed and monthly submissions.
+- `reporting_period`: (string) The reporting period of the submission. Formatted `FY # / Q#` for quarterly submissions and `MM/YYYY` for monthly submissions.
+- `duration`: (string) The type of submission it is. Possible values:
+    - `Quarterly`
+    - `Monthly`
+- `file`: (string) The name of the file being looked at. Possible values:
+    - `A`: Appropriations
+    - `B`: Program Activity
+    - `C`: Award Financial
+    - `cross-AB`: cross-file between Appropriations and Program Activity
+    - `cross-BC`: cross-file between Program Activity and Award Financial
+    - `cross-CD1`: cross-file between Award Financial and Award Procurement
+    - `cross-CD2`: cross-file between Award Financial and Award Financial Assistance
+- `number_of_rules`: (integer) The total number of rules that have been violated in this submission, matching the severity and file indicated.
+- `total_instances`: (integer) The total number of times rules were violated in this submission, matching the severity and file indicated.
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid parameter
+    - Missing required parameter
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
+#### GET "/v1/active\_submission\_table/"
+This endpoint returns a dictionary containing metadata about a table and a set of individual table rows for the active DABS dashboard
+
+##### Sample Request
+`/v1/active_submission_table/?submission_id=123&file=B&error_level=warning&page=1&limit=10&sort=significance&order=desc`
+
+##### Request Params
+
+- `submission_id`: (required, integer) the ID of the submission to view
+- `file`: (required, string) The file to get the warning or error data for. Allowed values are:
+    - `A`: Appropriations
+    - `B`: Program Activity
+    - `C`: Award Financial
+    - `cross-AB`: cross-file between Appropriations and Program Activity
+    - `cross-BC`: cross-file between Program Activity and Award Financial
+    - `cross-CD1`: cross-file between Award Financial and Award Procurement
+    - `cross-CD2`: cross-file between Award Financial and Award Financial Assistance
+- `error_level`: (string) The level of error data to gather an overview for. Defaults to warning. Allowed values:
+    - `warning`
+    - `error`
+    - `mixed`
+- `page`: (integer) the page of submissions to view (offsets the list by `limit * (page - 1)`). Defaults to `1` if not provided
+- `limit`: (integer) the total number of results to see from this request. Defaults to `5` if not provided
+- `sort`: (string) What value to sort by. Defaults to `significance` if not provided. NOTE: Some sort values have a secondary sort value to break ties. Valid values are:
+    - `significance` - significance
+    - `rule_label` - the label of the rule (e.g. `B9`)
+    - `instances` - the number of times this rule occurred in this submission/file (secondary: significance)
+    - `category` - the category of the rule (secondary: significance)
+    - `impact` - the impact specified for this rule (secondary: significance)
+    - `description` - the description of the rule
+- `order`: (string) the sort order. Defaults to `desc` if not provided. Valid values are:
+    - `desc`
+    - `asc`
+
+##### Response (JSON)
+```
+{
+    "results": [
+        {
+            "significance": 1,
+            "rule_label": "C8",
+            "instance_count": 609,
+            "category": "Completeness",
+            "impact": "High",
+            "rule_description": "lorem ipsum whatever"
+        },
+        {
+            "significance": 2,
+            "rule_label": "C9",
+            "instance_count": 543,
+            "category": "Accuracy",
+            "impact": "Low",
+            "rule_description": "lorem ipsum dolor"
+        },
+        ...
+    ],
+    "page_metadata": {
+        "total": 20,
+        "page": 1,
+        "limit": 10,
+        "submission_id": 1234,
+        "files": ["B", "C"]
+    }
+}
+```
+
+##### Response Attributes
+The response is a dictionary containing a list with the details of each warning with the following attributes and a metadata dictionary containing information pertaining to the table in general:
+
+- `results`: ([dict]) the list of row results
+    - `significance `: (integer) the significance of the rule as defined by the agency
+    - `rule_label`: (string) the label associated with the rule
+    - `instance_count`: (integer) the number of times the rule occurred within the submission/file
+    - `category`: (string) the category associated with the rule. Possible values are:
+        - `Completeness`
+        - `Accuracy`
+        - `Existence`
+    - `impact`: (string) the impact the rule has as defined by the agency. Possible values are:
+        - `Low`
+        - `Medium`
+        - `High`
+    - `rule_description`: (string) the text of the rule
+- `page_metadata`: (dict) metadata associated with the table
+    - `total`: (int) total number of metadata rows these filters found
+    - `page`: (int) the current page requested by the user
+    - `limit`: (int) the total number of results to display per page as requested by the user
+    - `submission_id`: (integer) the submission ID selected
+    - `files`: ([string]) The file type(s) requested (one for single file, two for cross file)
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400: 
+    - Invalid submission
+    - Invalid parameter
+    - Missing required parameter
+    - FABS submission requested
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
+#### GET "/v1/get\_impact\_counts/"
+This endpoint gets the breakdown of each impact level in a given submission/file, returning the total number of rules that fall under each impact level and the details of each rule.
+
+##### Sample Request
+`/v1/get_impact_counts/?submission_id=1234&file=A&error_level=warning`
+
+##### Request Params
+- `submission_id`: (required, integer) the ID of the submission to view
+- `file`: (required, string) The file to get the warning or error data for. Allowed values are:
+    - `A`: Appropriations
+    - `B`: Program Activity
+    - `C`: Award Financial
+    - `cross-AB`: cross-file between Appropriations and Program Activity
+    - `cross-BC`: cross-file between Program Activity and Award Financial
+    - `cross-CD1`: cross-file between Award Financial and Award Procurement
+    - `cross-CD2`: cross-file between Award Financial and Award Financial Assistance
+- `error_level`: (string) The level of error data to gather an overview for. Defaults to warning. Allowed values:
+    - `warning`
+    - `error`
+    - `mixed`
+
+##### Response (JSON)
+```
+{
+    "low": {
+        "total": 2,
+        "rules": [
+            {
+                "rule_label": "C9",
+                "instances": 72,
+                "rule_description": "Lorem ipsum"
+            },
+            {
+                "rule_label": "C23.3",
+                "instances": 32,
+                "rule_description": "Lorem ipsum"
+            }
+        ]
+    },
+    "medium": {
+        "total": 0,
+        "rules": []
+    },
+    "high": {
+        "total": 1,
+        "rules": [
+            {
+                "rule_label": "C18",
+                "instances": 50,
+                "rule_description": "Lorem ipsum"
+            }
+        ]
+    }
+}
+```
+
+##### Response Attributes
+The response is a dictionary containing three keys, `low`, `medium` and `high` denoting the three levels of impact. Each of these contain a dictionary with a breakdown of the contents of each level. These dictionaries contain:
+
+- `total`: (integer) the total number of rules with this impact level that are present in this submission/file
+- `rules `: ([dict]) a detailed breakdown of each rule that is present in this submission/file containing the following keys:
+    - `rule_label`: (string) the label of the rule
+    - `instances`: (integer) the number of times this rule was triggered
+    - `rule_description`: (string) the description of the rule
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid parameter
+    - Missing required parameter
+    - FABS submission requested
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
+#### GET "/v1/get\_significance\_counts/"
+This endpoint gets the breakdown of rules and their counts by their categories or significances in a given submission/file, returning the total number of rules and the rule counts.
+
+##### Sample Request
+`/v1/get_significance_counts/?submission_id=1234&file=A&error_level=warning`
+
+##### Request Params
+- `submission_id`: (required, integer) the ID of the submission to view
+- `file`: (required, string) The file to get the warning or error data for. Allowed values are:
+    - `A`: Appropriations
+    - `B`: Program Activity
+    - `C`: Award Financial
+    - `cross-AB`: cross-file between Appropriations and Program Activity
+    - `cross-BC`: cross-file between Program Activity and Award Financial
+    - `cross-CD1`: cross-file between Award Financial and Award Procurement
+    - `cross-CD2`: cross-file between Award Financial and Award Financial Assistance
+- `error_level`: (string) The level of error data to gather an overview for. Defaults to warning. Allowed values:
+    - `warning`
+    - `error`
+    - `mixed`
+
+##### Response (JSON)
+```
+{
+    "total_instances": 42349
+    "rules": [
+        {
+            "rule_label": "C23.3",
+            "category": "Accuracy",
+            "significance": 3,
+            "impact": "high",
+            "instances": 36,
+            "percentage": 0.0
+        },
+        {
+            "rule_label": "C9",
+            "category": "Completeness",
+            "significance": 4,
+            "impact": "low",
+            "instances": 73,
+            "percentage": 0.1
+        },
+        {
+            "rule_label": "C8",
+            "category": "Completeness",
+            "significance": 9,
+            "impact": "medium",
+            "instances": 42240,
+            "percentage": 99.7
+        }
+    ]
+}
+```
+
+##### Response Attributes
+The response is a dictionary representing the rules and their significances/categories/counts with the following:
+
+- `total_instances`: (integer) the total number of instances (errors or warnings) for this file in this submission
+- `rules `: ([dict]) a detailed breakdown of each rule that is present in this submission/file containing the following keys:
+    - `rule_label`: (string) the label of the rule
+    - `category`: (string) the category of the rule
+    - `significance`: (integer) the significance of the rule
+    - `impact`: (string) the impact of the rule
+    - `instances`: (integer) the number of times this rule was triggered
+    - `percentage`: (float, rounded to tenth) the number of times this rule was triggered
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid parameter
+    - Missing required parameter
+    - FABS submission requested
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
+## Settings Routes
+
+### GET "/v1/rule\_settings"
+This route lists an agency's stored rule settings. 
+
+#### Sample Request
+`/v1/rule_settings?agency_code=097&file=cross-AB`
+
+#### Request Params
+- `agency_code`: (required, string) the CGAC/FREC of the agency
+- `file`: (required, string) The file to filter the rule settings. Allowed values are:
+    - `A`: Appropriations
+    - `B`: Program Activity
+    - `C`: Award Financial
+    - `cross-AB`: cross-file between Appropriations and Program Activity
+    - `cross-BC`: cross-file between Program Activity and Award Financial
+    - `cross-CD1`: cross-file between Award Financial and Award Procurement
+    - `cross-CD2`: cross-file between Award Financial and Award Financial Assistance
+
+#### Response (JSON)
+
+```
+{
+    "warnings": [
+        {
+            "description": "The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal the sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values in the award financial file (B).",
+            "label": "A18",
+            "significance": 1,
+            "impact": "high"
+        },
+        {
+            "description": "The ObligationsIncurredTotalByTAS_CPE amount in the appropriation file (A) does not equal the negative sum of the corresponding ObligationsIncurredByProgramObjectClass_CPE values in the award financial file (B).",
+            "label": "A19",
+            "significance": 2,
+            "impact": "high"
+        },
+        {
+            "description": "DeobligationsRecoveriesRefundsByTAS_CPE in File A should equal USSGL (4871_CPE+ 4971_CPE+ 4872_CPE+ 4972_CPE) for the TAS in File B.",
+            "label": "A35",
+            "significance": 3,
+            "impact": "high"
+        }
+    ],
+    "errors": [
+        {
+            "description": "All TAS values in File A (appropriations) should exist in File B (object class program activity)",
+            "label": "A30.1",
+            "significance": 1,
+            "impact": "high"
+        },
+        {
+            "description": "All TAS values in File B (object class program activity) should exist in File A (appropriations)",
+            "label": "A30.2",
+            "significance": 2,
+            "impact": "high"
+        }
+    ]
+}
+```
+
+#### Response Attributes
+
+The response is two dictionaries (`warnings` and `errors`) representing the rule settings, each with a list of dicts with the 
+following attributes:
+- `label`: (string) the rule number
+- `description`: (string) the rule's text
+- `impact`:  (string) the impact group. Possible values are:
+    - `low`
+    - `medium`
+    - `high`
+
+#### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid parameter
+    - Missing required parameter
+- 401: Login required
+
+### POST "/v1/save\_rule\_settings"
+This route saves an agency's rule settings. Note that all the rules associated with the file type and error type must be sent together. Additionally, the order of them determines their significance.
+
+#### Body (JSON)
+```
+{
+	"agency_code": "097",
+	"file": "cross-BC",
+    "warnings": [
+        {
+            "label": "C21",
+            "impact": "medium"
+        },
+        {
+            "label": "C20",
+            "impact": "low"
+        }
+    ],
+    "errors": [
+        {
+            "label": "B20",
+            "impact": "medium"
+        }
+    ]
+}
+```
+
+#### Body Description
+- `agency_code`: (required, string) the CGAC/FREC of the agency
+- `file`: (required, string) The file to filter the rule settings. Allowed values are:
+    - `A`: Appropriations
+    - `B`: Program Activity
+    - `C`: Award Financial
+    - `cross-AB`: cross-file between Appropriations and Program Activity
+    - `cross-BC`: cross-file between Program Activity and Award Financial
+    - `cross-CD1`: cross-file between Award Financial and Award Procurement
+    - `cross-CD2`: cross-file between Award Financial and Award Financial Assistance
+- `errors`: (required, [dict]) The settings of the agency's errors for that file. *Note: the order of this determines the significance.* Comprised of the following:
+    - `label`: (required, string) the label of the rule
+    - `impact`: (required, string) the new impact of the rule
+- `warnings`: (required, [dict]) The settings of the agency's warnings for that file. *Note: the order of this determines the significance.* Comprised of the following:
+    - `label`: (required, string) the label of the rule
+    - `impact`: (required, string) the new impact of the rule
+
+#### Response (JSON)
+
+```
+{
+    "message": "Agency 097 rules saved."
+}
+```
+
+#### Response Attributes
+
+The response is a dictionary of a message letting you know it is complete:
+
+- `message`: letting you know the agency rules have been saved
+
+#### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - Invalid parameter
+    - Missing required parameter
+    - Invalid rules provided, or missing rules
 - 401: Login required
 
 ## Automated Tests

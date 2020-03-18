@@ -46,6 +46,11 @@ class FABSUploadTests(BaseTestAPI):
                                                          start_date="07/2015", end_date="09/2015",
                                                          is_quarter=True, d2_submission=False)
 
+            cls.running_submission = cls.insert_submission(sess, cls.admin_user_id, cgac_code="SYS",
+                                                           start_date="10/2015", end_date="12/2015", is_quarter=True)
+            cls.insert_job(sess, cls.running_submission, JOB_STATUS_DICT['running'],
+                           JOB_TYPE_DICT['csv_record_validation'])
+
             cls.test_agency_user_submission_id = cls.insert_submission(sess, cls.agency_user_id, cgac_code="NOT",
                                                                        start_date="10/2015", end_date="12/2015",
                                                                        is_quarter=True, d2_submission=True)
@@ -80,6 +85,14 @@ class FABSUploadTests(BaseTestAPI):
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json["message"], "Submission has already been published")
+
+    def test_unfinished_job(self):
+        """ Test a publish failure because the submission has a running job """
+        submission = {"submission_id": self.running_submission}
+        response = self.app.post_json("/v1/publish_fabs_file/", submission,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json["message"], "Submission has unfinished jobs and cannot be published")
 
     def test_not_fabs(self):
         """ Test a publish failure because the submission is not FABS """
@@ -149,16 +162,24 @@ class FABSUploadTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "Existing submission must be a FABS submission")
 
+    def test_upload_published_fabs_submission(self):
+        response = self.app.post("/v1/upload_fabs_file/", {"existing_submission_id": str(self.published_submission)},
+                                 upload_files=[('fabs', 'fabs.csv',
+                                                open('tests/integration/data/fabs.csv', 'rb').read())],
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "FABS submission has already been published")
+
     def test_upload_fabs_duplicate_running(self):
         """ Test file submissions for when the job is already running """
         # Mark a job as already running
         self.session.add(Job(file_type_id=FILE_TYPE_DICT['fabs'], job_status_id=JOB_STATUS_DICT['running'],
-                             job_type_id=JOB_TYPE_DICT['file_upload'], submission_id=str(self.d2_submission),
+                             job_type_id=JOB_TYPE_DICT['file_upload'], submission_id=str(self.d2_submission_2),
                              original_filename=None, file_size=None, number_of_rows=None))
         self.session.commit()
 
         response = self.app.post("/v1/upload_fabs_file/",
-                                 {"existing_submission_id": str(self.d2_submission)},
+                                 {"existing_submission_id": str(self.d2_submission_2)},
                                  upload_files=[('fabs', 'fabs.csv',
                                                 open('tests/integration/data/fabs.csv', 'rb').read())],
                                  headers={"x-session-id": self.session_id}, expect_errors=True)
@@ -205,6 +226,25 @@ class FABSUploadTests(BaseTestAPI):
         sess.add(sub)
         sess.commit()
         return sub.submission_id
+
+    @staticmethod
+    def insert_job(sess, submission_id, job_status_id, job_type_id):
+        """ Insert one job into job tracker and get job ID back.
+
+            Args:
+                sess: the current session
+                submission_id: the ID of the submission the job is attached to
+                job_status_id: the status of the job
+                job_type_id: the type of the job
+
+            Returns:
+                the job ID of the created job
+        """
+        job = Job(file_type_id=FILE_TYPE_DICT['fabs'], job_status_id=job_status_id, job_type_id=job_type_id,
+                  submission_id=submission_id, original_filename=None, file_size=None, number_of_rows=None)
+        sess.add(job)
+        sess.commit()
+        return job.job_id
 
     @staticmethod
     def insert_agency_user_submission_data(sess, submission_id):

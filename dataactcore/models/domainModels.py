@@ -170,6 +170,7 @@ class CGAC(Base):
     cgac_id = Column(Integer, primary_key=True)
     cgac_code = Column(Text, nullable=False, index=True, unique=True)
     agency_name = Column(Text)
+    icon_name = Column(Text)
 
 
 class FREC(Base):
@@ -179,6 +180,7 @@ class FREC(Base):
     agency_name = Column(Text)
     cgac_id = Column(Integer, ForeignKey("cgac.cgac_id", name='fk_frec_cgac', ondelete="CASCADE"), nullable=False)
     cgac = relationship('CGAC', foreign_keys='FREC.cgac_id', cascade="delete")
+    icon_name = Column(Text)
 
 
 class SubTierAgency(Base):
@@ -294,6 +296,7 @@ class DUNS(Base):
     congressional_district = Column(Text)
     entity_structure = Column(Text)
     business_types_codes = Column(ARRAY(Text))
+    business_types = Column(ARRAY(Text))
     ultimate_parent_unique_ide = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
     high_comp_officer1_full_na = Column(Text)
@@ -331,6 +334,7 @@ class HistoricDUNS(Base):
     country_code = Column(Text)
     congressional_district = Column(Text)
     business_types_codes = Column(ARRAY(Text))
+    business_types = Column(ARRAY(Text))
     ultimate_parent_unique_ide = Column(Text)
     ultimate_parent_legal_enti = Column(Text)
     high_comp_officer1_full_na = Column(Text)

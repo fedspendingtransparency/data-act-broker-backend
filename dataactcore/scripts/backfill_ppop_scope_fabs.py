@@ -11,13 +11,15 @@ BACKFILL_FABS_PPOP_SCOPE_SQL_1 = """
     UPDATE published_award_financial_assistance
     SET place_of_performance_scope =
         CASE WHEN place_of_performance_code ~ '^00\*{5}$'
-             THEN 'Multi-State'
+             THEN 'Multi-state'
              WHEN place_of_performance_code ~ '^[a-zA-Z]{2}\*{5}$'
              THEN 'State-wide'
              WHEN place_of_performance_code ~ '^[a-zA-Z]{2}\*\*\d{3}$'
              THEN 'County-wide'
              WHEN UPPER(place_of_performance_code) = '00FORGN'
              THEN 'Foreign'
+             WHEN place_of_performance_code ~ '^[a-zA-Z]{2}\d{4}[\dRr]$'
+             THEN 'City-wide'
          END
     WHERE (place_of_performance_zip4a IS NULL
         AND place_of_performance_scope IS NULL);
@@ -28,7 +30,7 @@ BACKFILL_FABS_PPOP_SCOPE_SQL_2 = """
         CASE WHEN LOWER(place_of_performance_zip4a) = 'city-wide'
              THEN 'City-wide'
              WHEN place_of_performance_zip4a ~ '^\d{5}(-?\d{4})?$'
-             THEN 'Single Zip Code'
+             THEN 'Single ZIP Code'
          END
     WHERE (place_of_performance_code ~ '^[a-zA-Z]{2}\d{4}[\dRr]$'
         AND place_of_performance_scope IS NULL);
@@ -52,6 +54,6 @@ if __name__ == '__main__':
         affected += executed.rowcount
         sess.commit()
 
-        logger.info('Backfill completed, {} rows affected\n'.format(executed.rowcount))
+        logger.info('Backfill completed, {} rows affected\n'.format(affected))
 
         sess.close()

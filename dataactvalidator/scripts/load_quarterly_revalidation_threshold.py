@@ -19,11 +19,11 @@ def load_quarterly_threshold():
     if CONFIG_BROKER["use_aws"]:
         s3_client = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
         threshold_file = s3_client.generate_presigned_url('get_object', {'Bucket': CONFIG_BROKER['sf_133_bucket'],
-                                                                         'Key': "quarterly_submission_starts.csv"},
+                                                                         'Key': "quarterly_submission_dates.csv"},
                                                           ExpiresIn=600)
     else:
         threshold_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config",
-                                      "quarterly_submission_starts.csv")
+                                      "quarterly_submission_dates.csv")
 
     logger.info('Loading quarterly revalidation threshold data')
     with create_app().app_context():
@@ -32,7 +32,7 @@ def load_quarterly_threshold():
         data = clean_data(
             data,
             QuarterlyRevalidationThreshold,
-            {"year": "year", "quarter": "quarter", "window_start": "window_start"},
+            {"year": "year", "quarter": "quarter", "window_start": "window_start", "window_end": "window_end"},
             {}
         )
 
