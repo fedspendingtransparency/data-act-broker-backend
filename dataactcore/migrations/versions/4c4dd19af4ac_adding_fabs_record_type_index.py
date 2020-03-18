@@ -1,14 +1,14 @@
 """ Adding FABS record_type index, FSRSGrant federal_agency_id
 
 Revision ID: 4c4dd19af4ac
-Revises: 6a7dfeb64b27
+Revises: 81969f6e3733
 Create Date: 2019-12-20 16:29:32.890994
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '4c4dd19af4ac'
-down_revision = '6a7dfeb64b27'
+down_revision = '81969f6e3733'
 branch_labels = None
 depends_on = None
 
