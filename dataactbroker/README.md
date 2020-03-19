@@ -1207,7 +1207,8 @@ This endpoint lists submissions for all agencies for which the current user is a
 - `sort`: (string) what value to sort by. Defaults to `modified` if not provided. Valid values are:
     - `submission_id`: submission id
     - `modified`: last modified date
-    - `reporting`: reporting start date
+    - `reporting_start`: reporting start date
+    - `reporting_end`: reporting end date
     - `agency`: agency name
     - `submitted_by`: name of user that created the submission
     - `certified_date`: latest certified date
