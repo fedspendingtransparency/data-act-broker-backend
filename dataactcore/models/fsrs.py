@@ -135,6 +135,7 @@ Index("ix_fsrs_proc_contract_number_upper", func.upper(FSRSProcurement.contract_
 Index("ix_fsrs_proc_idv_ref_upper", func.upper(FSRSProcurement.idv_reference_number))
 Index("ix_fsrs_proc_contract_office_aid_upper", func.upper(FSRSProcurement.contracting_office_aid))
 Index("ix_fsrs_grant_fain_upper", func.upper(FSRSGrant.fain))
+Index("ix_fsrs_grant_federal_agency_id_upper", func.upper(FSRSGrant.federal_agency_id))
 
 
 class Subaward(Base):
