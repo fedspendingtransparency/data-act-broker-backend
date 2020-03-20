@@ -5,6 +5,7 @@ import os
 import requests
 import threading
 import math
+import csv
 
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -50,6 +51,7 @@ from dataactcore.utils.stringCleaner import StringCleaner
 
 from dataactvalidator.filestreaming.csv_selection import write_stream_query
 from dataactvalidator.validation_handlers.file_generation_manager import GEN_FILENAMES
+from dataactvalidator.validation_handlers.validationManager import ValidationManager
 
 logger = logging.getLogger(__name__)
 
@@ -1084,6 +1086,58 @@ class FileHandler:
 
         log_data['message'] = 'Completed move_certified_files'
         logger.debug(log_data)
+
+    def revert_certified_error_files(self, sess, certify_history_id):
+        """ Copy warning files (non-locally) back to the errors folder and revert error files to just headers for a
+            submission that is being reverted to certified status
+
+            Args:
+                sess: the database connection
+                certify_history_id: the ID of the CertifyHistory object that represents the latest certification
+        """
+        warning_files = sess.query(CertifiedFilesHistory.warning_filename). \
+            filter(CertifiedFilesHistory.certify_history_id == certify_history_id,
+                   CertifiedFilesHistory.warning_filename.isnot(None)).all()
+        for warning in warning_files:
+            warning = warning.warning_filename
+            # Getting headers and file names
+            if 'cross' in warning:
+                error = warning.replace('_warning_', '_')
+                headers = ValidationManager.cross_file_report_headers
+            else:
+                error = warning.replace('warning', 'error')
+                headers = ValidationManager.report_headers
+
+            # Moving/clearing files
+            if not self.is_local:
+                s3_resource = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
+                submission_bucket = CONFIG_BROKER['aws_bucket']
+                certified_bucket = CONFIG_BROKER['certified_bucket']
+
+                error_file_name = os.path.basename(error)
+                warning_file_name = os.path.basename(warning)
+                error_file_path = ''.join([CONFIG_SERVICES['error_report_path'], error_file_name])
+
+                # Create clean error file
+                with open(error_file_path, 'w', newline='') as error_file:
+                    error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+                    error_csv.writerow(headers)
+                error_file.close()
+
+                # Write error file
+                with open(error_file_path, 'rb') as csv_file:
+                    s3_resource.Object(submission_bucket, 'errors/' + error_file_name).put(Body=csv_file)
+                csv_file.close()
+                os.remove(error_file_path)
+
+                # Copy warning file back over
+                S3Handler.copy_file(original_bucket=certified_bucket, new_bucket=submission_bucket,
+                                    original_path=warning, new_path='errors/' + warning_file_name)
+            else:
+                with open(error, 'w', newline='') as error_file:
+                    error_csv = csv.writer(error_file, delimiter=',', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+                    error_csv.writerow(headers)
+                error_file.close()
 
 
 def get_submission_comments(submission):
