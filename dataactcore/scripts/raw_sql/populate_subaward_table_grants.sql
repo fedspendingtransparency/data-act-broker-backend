@@ -22,7 +22,7 @@ WITH aw_pafa AS
         AND EXISTS (
             SELECT 1
             FROM fsrs_grant
-            WHERE record_type != 1
+            WHERE record_type <> 1
                 AND fsrs_grant.id {0} {1}
                 AND UPPER(TRANSLATE(fsrs_grant.fain, '-', '')) = UPPER(TRANSLATE(pafa.fain, '-', ''))
                 AND UPPER(fsrs_grant.federal_agency_id) IS NOT DISTINCT FROM UPPER(pafa.awarding_sub_tier_agency_c)

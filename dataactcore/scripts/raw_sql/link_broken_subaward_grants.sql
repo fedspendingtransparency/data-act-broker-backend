@@ -33,7 +33,7 @@ aw_pafa AS
         AND EXISTS (
             SELECT 1
             FROM unlinked_subs
-            WHERE pafa.record_type != 1
+            WHERE pafa.record_type <> 1
                 AND UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(pafa.fain, '-', ''))
                 AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) IS NOT DISTINCT FROM UPPER(pafa.awarding_sub_tier_agency_c)
         )
