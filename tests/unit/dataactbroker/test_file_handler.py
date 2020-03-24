@@ -51,7 +51,7 @@ def test_list_submissions_sort_success(database, monkeypatch):
     add_models(database, [user1, user2, sub1, sub2, sub3, sub4, sub5])
 
     monkeypatch.setattr(filters_helper, 'g', Mock(user=user1))
-    result = list_submissions_sort('reporting', 'desc')
+    result = list_submissions_sort('reporting_start', 'desc')
     assert result['total'] == 5
     sub = result['submissions'][0]
     index = 0
@@ -60,11 +60,27 @@ def test_list_submissions_sort_success(database, monkeypatch):
         assert subit['reporting_start_date'] <= sub['reporting_start_date']
         sub = subit
 
-    result = list_submissions_sort('reporting', 'asc')
+    result = list_submissions_sort('reporting_start', 'asc')
     assert result['total'] == 5
     sub = result['submissions'][0]
     for subit in result['submissions']:
         assert subit['reporting_start_date'] >= sub['reporting_start_date']
+        sub = subit
+
+    result = list_submissions_sort('reporting_end', 'desc')
+    assert result['total'] == 5
+    sub = result['submissions'][0]
+    index = 0
+    for subit in result['submissions']:
+        index += 1
+        assert subit['reporting_end_date'] <= sub['reporting_end_date']
+        sub = subit
+
+    result = list_submissions_sort('reporting_end', 'asc')
+    assert result['total'] == 5
+    sub = result['submissions'][0]
+    for subit in result['submissions']:
+        assert subit['reporting_end_date'] >= sub['reporting_end_date']
         sub = subit
 
     result = list_submissions_sort('submitted_by', 'asc')
