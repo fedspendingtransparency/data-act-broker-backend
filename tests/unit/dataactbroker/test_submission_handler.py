@@ -8,14 +8,18 @@ from unittest.mock import Mock
 from dataactbroker.handlers import fileHandler
 from dataactbroker.handlers.submission_handler import (certify_dabs_submission, get_submission_metadata,
                                                        get_revalidation_threshold, get_submission_data,
-                                                       move_certified_data, get_latest_certification_period)
+                                                       move_certified_data, get_latest_certification_period,
+                                                       revert_to_certified)
 
-from dataactcore.models.lookups import PUBLISH_STATUS_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
-from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
-from dataactcore.models.jobModels import CertifyHistory, CertifiedComment
+from dataactcore.config import CONFIG_BROKER
+from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT,
+                                        FILE_STATUS_DICT)
+from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata, File
+from dataactcore.models.jobModels import CertifyHistory, CertifiedComment, Job, Submission, CertifiedFilesHistory
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
                                               CertifiedAwardFinancial, FlexField, CertifiedFlexField)
+from dataactcore.utils.responseException import ResponseException
 
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import (SubmissionFactory, JobFactory, CertifyHistoryFactory,
@@ -66,7 +70,7 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
         'reporting_period': 'Q1/2017',
         'publish_status': 'updated',
         'quarterly_submission': True,
-        'test_submission': False,
+        'certified_submission': None,
         'fabs_submission': False,
         'fabs_meta': None
     }
@@ -106,7 +110,7 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
         'reporting_period': 'Q2/2010',
         'publish_status': 'published',
         'quarterly_submission': True,
-        'test_submission': False,
+        'certified_submission': None,
         'fabs_submission': False,
         'fabs_meta': None
     }
@@ -147,7 +151,7 @@ def test_get_submission_metadata_monthly_dabs(database):
         'reporting_period': start_date.strftime('%m/%Y'),
         'publish_status': 'unpublished',
         'quarterly_submission': False,
-        'test_submission': False,
+        'certified_submission': None,
         'fabs_submission': False,
         'fabs_meta': None
     }
@@ -189,7 +193,7 @@ def test_get_submission_metadata_unpublished_fabs(database):
         'reporting_period': start_date.strftime('%m/%Y'),
         'publish_status': 'unpublished',
         'quarterly_submission': False,
-        'test_submission': False,
+        'certified_submission': None,
         'fabs_submission': True,
         'fabs_meta': {'publish_date': None, 'published_file': None, 'total_rows': 0, 'valid_rows': 0}
     }
@@ -236,7 +240,7 @@ def test_get_submission_metadata_published_fabs(database):
         'reporting_period': start_date.strftime('%m/%Y'),
         'publish_status': 'published',
         'quarterly_submission': False,
-        'test_submission': False,
+        'certified_submission': None,
         'fabs_submission': True,
         'fabs_meta': {
             'publish_date': now_plus_10.strftime('%-I:%M%p %m/%d/%Y'),
@@ -285,7 +289,7 @@ def test_get_submission_metadata_test_submission(database):
         'reporting_period': 'Q1/2017',
         'publish_status': 'unpublished',
         'quarterly_submission': True,
-        'test_submission': True,
+        'certified_submission': 1,
         'fabs_submission': False,
         'fabs_meta': None
     }
@@ -638,6 +642,116 @@ def test_certify_dabs_submission_quarterly_revalidation_multiple_thresholds(data
         file_handler = fileHandler.FileHandler({}, is_local=True)
         response = certify_dabs_submission(submission, file_handler)
         assert response.status_code == 200
+
+
+@pytest.mark.usefixtures('error_constants')
+@pytest.mark.usefixtures('job_constants')
+def test_revert_submission(database, monkeypatch):
+    """ Tests reverting an updated DABS certification """
+    sess = database.session
+
+    sub = Submission(publish_status_id=PUBLISH_STATUS_DICT['updated'], is_quarter_format=True, d2_submission=False,
+                     publishable=False, number_of_errors=20, number_of_warnings=15)
+    sess.add(sub)
+    sess.commit()
+
+    job = Job(submission_id=sub.submission_id, job_status_id=JOB_STATUS_DICT['finished'],
+              job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['appropriations'],
+              number_of_warnings=0, number_of_errors=10, filename='new/test/file.csv', number_of_rows=5,
+              number_of_rows_valid=0)
+    cert_history = CertifyHistory(submission_id=sub.submission_id)
+    sess.add_all([job, cert_history])
+    sess.commit()
+
+    cert_approp = CertifiedAppropriation(submission_id=sub.submission_id, job_id=job.job_id, row_number=1,
+                                         spending_authority_from_of_cpe=2, tas='test')
+    approp = Appropriation(submission_id=sub.submission_id, job_id=job.job_id, row_number=1,
+                           spending_authority_from_of_cpe=15, tas='test')
+    cert_files = CertifiedFilesHistory(certify_history_id=cert_history.certify_history_id,
+                                       submission_id=sub.submission_id, filename='old/test/file2.csv',
+                                       file_type_id=FILE_TYPE_DICT['appropriations'], warning_filename='a/warning.csv')
+    cert_meta1 = CertifiedErrorMetadata(job_id=job.job_id, file_type_id=FILE_TYPE_DICT['appropriations'],
+                                        target_file_type_id=None, occurrences=15)
+    cert_meta2 = CertifiedErrorMetadata(job_id=job.job_id, file_type_id=FILE_TYPE_DICT['appropriations'],
+                                        target_file_type_id=None, occurrences=10)
+    file_entry = File(file_id=FILE_TYPE_DICT['appropriations'], job_id=job.job_id,
+                      file_status_id=FILE_STATUS_DICT['incomplete'], headers_missing='something')
+    sess.add_all([cert_approp, approp, cert_files, cert_meta1, cert_meta2, file_entry])
+    sess.commit()
+
+    file_handler = fileHandler.FileHandler({}, is_local=True)
+    monkeypatch.setattr(file_handler, 'revert_certified_error_files', Mock())
+    revert_to_certified(sub, file_handler)
+
+    # Test that certified data is moved back
+    approp_query = sess.query(Appropriation).filter_by(submission_id=sub.submission_id).all()
+    assert len(approp_query) == 1
+    assert approp_query[0].spending_authority_from_of_cpe == 2
+
+    # Test that the job got updated
+    job_query = sess.query(Job).filter_by(submission_id=sub.submission_id).all()
+    assert len(job_query) == 1
+    assert job_query[0].filename == CONFIG_BROKER['broker_files'] + 'file2.csv'
+    assert job_query[0].number_of_warnings == 25
+    assert job_query[0].number_of_errors == 0
+    assert job_query[0].number_of_rows == 2
+    assert job_query[0].number_of_rows_valid == 1
+
+    # Test that File got updated
+    file_query = sess.query(File).filter_by(job_id=job.job_id).all()
+    assert len(file_query) == 1
+    assert file_query[0].headers_missing is None
+    assert file_query[0].file_status_id == FILE_STATUS_DICT['complete']
+
+    # Make sure submission got updated
+    sub_query = sess.query(Submission).filter_by(submission_id=sub.submission_id).all()
+    assert len(sub_query) == 1
+    assert sub_query[0].publishable is True
+    assert sub_query[0].number_of_errors == 0
+    assert sub_query[0].number_of_warnings == 25
+
+
+@pytest.mark.usefixtures('job_constants')
+def test_revert_submission_fabs_submission(database):
+    """ Tests reverting an updated DABS certification failure for FABS submission """
+    sess = database.session
+
+    sub = Submission(d2_submission=True)
+    sess.add(sub)
+    sess.commit()
+
+    file_handler = fileHandler.FileHandler({}, is_local=True)
+    with pytest.raises(ResponseException) as resp_except:
+        revert_to_certified(sub, file_handler)
+
+    assert resp_except.value.status == 400
+    assert str(resp_except.value) == 'Submission must be a DABS submission.'
+
+
+@pytest.mark.usefixtures('job_constants')
+def test_revert_submission_not_updated_submission(database):
+    """ Tests reverting an updated DABS certification failure for non-updated submission """
+    sess = database.session
+
+    sub1 = Submission(publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False)
+    sub2 = Submission(publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False)
+    sess.add_all([sub1, sub2])
+    sess.commit()
+
+    file_handler = fileHandler.FileHandler({}, is_local=True)
+    # Certified submission
+    with pytest.raises(ResponseException) as resp_except:
+        revert_to_certified(sub1, file_handler)
+
+    assert resp_except.value.status == 400
+    assert str(resp_except.value) == 'Submission has not been certified or has not been updated since certification.'
+
+    # Uncertified submission
+    with pytest.raises(ResponseException) as resp_except:
+        revert_to_certified(sub2, file_handler)
+
+    assert resp_except.value.status == 400
+    assert str(resp_except.value) == 'Submission has not been certified or has not been updated since certification.'
 
 
 @pytest.mark.usefixtures("job_constants")
