@@ -1528,23 +1528,27 @@ def add_list_submission_filters(query, filters, submission_updated_view):
             start_date = mod_dates.get('start_date')
             end_date = mod_dates.get('end_date')
 
-            # Make sure that, if it has content, start_date and end_date are both part of this filter
-            if not start_date or not end_date:
-                raise ResponseException('Both start_date and end_date must be provided', StatusCode.CLIENT_ERROR)
+            # Make sure that, if it has content, at least start_date or end_date is part of this filter
+            if not start_date and not end_date:
+                raise ResponseException('At least start_date or end_date must be provided when using '
+                                        'last_modified_range filter', StatusCode.CLIENT_ERROR)
 
-            # Start and end dates must be in the format MM/DD/YYYY and be
-            if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
+            # Start and end dates, when provided must be in the format MM/DD/YYYY format
+            if (start_date and not StringCleaner.is_date(start_date)) or\
+                    (end_date and not StringCleaner.is_date(end_date)):
                 raise ResponseException('Start or end date cannot be parsed into a date of format MM/DD/YYYY',
                                         StatusCode.CLIENT_ERROR)
-            # Make sure start date is not greater than end date (checking for >= because we add a day)
-            start_date = datetime.strptime(start_date, '%m/%d/%Y')
-            end_date = datetime.strptime(end_date, '%m/%d/%Y') + timedelta(days=1)
-            if start_date >= end_date:
+            # Make sure start date is not greater than end date when both are provided (checking for >= because we add a
+            # day)
+            start_date = datetime.strptime(start_date, '%m/%d/%Y') if start_date else None
+            end_date = datetime.strptime(end_date, '%m/%d/%Y') + timedelta(days=1) if end_date else None
+            if start_date and end_date and start_date >= end_date:
                 raise ResponseException('Last modified start date cannot be greater than the end date',
                                         StatusCode.CLIENT_ERROR)
-
-            query = query.filter(submission_updated_view.updated_at >= start_date,
-                                 submission_updated_view.updated_at < end_date)
+            if start_date:
+                query = query.filter(submission_updated_view.updated_at >= start_date)
+            if end_date:
+                query = query.filter(submission_updated_view.updated_at < end_date)
         elif mod_dates:
             raise ResponseException('last_modified_range filter must be null or an object', StatusCode.CLIENT_ERROR)
     # Agency code filter
