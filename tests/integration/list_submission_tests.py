@@ -268,7 +268,7 @@ class ListSubmissionTests(BaseTestAPI):
         }
         response = self.app.post_json('/v1/list_submissions/', post_json, headers={'x-session-id': self.session_id},
                                       expect_errors=True)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'At least start_date or end_date must be provided when using '
                                                    'last_modified_range filter')
 
@@ -277,6 +277,18 @@ class ListSubmissionTests(BaseTestAPI):
             'last_modified_range': {
                 'start_date': '30/30/2010',
                 'end_date': '01/01/2010'
+            }
+        }
+        response = self.app.post_json('/v1/list_submissions/', post_json, headers={'x-session-id': self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'Start or end date cannot be parsed into a date of format '
+                                                   'MM/DD/YYYY')
+
+        # Format check still happens if there's only one date
+        post_json['filters'] = {
+            'last_modified_range': {
+                'start_date': '30/30/2010'
             }
         }
         response = self.app.post_json('/v1/list_submissions/', post_json, headers={'x-session-id': self.session_id},
