@@ -774,6 +774,8 @@ def revert_to_certified(submission, file_manager):
                                 status=StatusCode.CLIENT_ERROR)
 
     sess = GlobalDB.db().session
+    submission.publish_status_id = PUBLISH_STATUS_DICT['reverting']
+    sess.commit()
     move_certified_data(sess, submission.submission_id, direction='revert')
 
     # Copy file paths from certified_files_history
