@@ -644,6 +644,32 @@ def test_certify_dabs_submission_quarterly_revalidation_multiple_thresholds(data
         assert response.status_code == 200
 
 
+@pytest.mark.usefixtures("job_constants")
+def test_certify_dabs_submission_reverting(database):
+    """ Tests that a DABS submission cannot be certified while reverting. """
+    with Flask('test-app').app_context():
+        now = datetime.datetime.utcnow()
+        earlier = now - datetime.timedelta(days=1)
+        sess = database.session
+
+        user = UserFactory()
+        cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
+        submission = SubmissionFactory(created_at=earlier, updated_at=earlier, cgac_code=cgac.cgac_code,
+                                       reporting_fiscal_period=3, reporting_fiscal_year=2017,
+                                       reporting_start_date='2016-10-01', is_quarter_format=True, publishable=True,
+                                       publish_status_id=PUBLISH_STATUS_DICT['reverting'], d2_submission=False,
+                                       number_of_errors=0, number_of_warnings=200, certifying_user_id=None)
+        sess.add_all([user, cgac, submission])
+        sess.commit()
+
+        g.user = user
+        file_handler = fileHandler.FileHandler({}, is_local=True)
+        response = certify_dabs_submission(submission, file_handler)
+        response_json = json.loads(response.data.decode('UTF-8'))
+        assert response.status_code == 400
+        assert response_json['message'] == 'Submission is certifying or reverting'
+
+
 @pytest.mark.usefixtures('error_constants')
 @pytest.mark.usefixtures('job_constants')
 def test_revert_submission(database, monkeypatch):

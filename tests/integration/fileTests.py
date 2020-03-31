@@ -88,6 +88,11 @@ class FileTests(BaseTestAPI):
                                                                is_quarter=True, number_of_errors=0,
                                                                publish_status_id=3)
 
+            cls.test_reverting_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                                 start_date="07/2020", end_date="09/2020",
+                                                                 is_quarter=True, number_of_errors=0,
+                                                                 publish_status_id=PUBLISH_STATUS_DICT['reverting'])
+
             cls.test_uncertified_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
                                                                    start_date="04/2015", end_date="06/2015",
                                                                    is_quarter=True, number_of_errors=0)
@@ -187,6 +192,15 @@ class FileTests(BaseTestAPI):
                                         headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(update_response.status_code, 400)
         self.assertEqual(update_response.json["message"], "All submitted files must be CSV or TXT format")
+
+    def test_upload_dabs_files_reverting_status_submission(self):
+        """ Test file submissions for submissions that are currently publishing or reverting """
+        update_json = {'existing_submission_id': self.test_reverting_submission_id}
+        update_response = self.app.post("/v1/upload_dabs_files/", update_json,
+                                        upload_files=[AWARD_FILE_T],
+                                        headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(update_response.status_code, 400)
+        self.assertEqual(update_response.json['message'], 'Existing submission must not be certifying or reverting')
 
     def test_bad_quarter(self):
         """ Test file submissions for Q5 """
@@ -850,6 +864,14 @@ class FileTests(BaseTestAPI):
         response = self.app.post_json("/v1/restart_validation/", post_json,
                                       headers={"x-session-id": self.session_id})
         self.assertEqual(response.json['message'], "Success")
+
+    def test_fail_revalidate_submission(self):
+        """ Test that a submission cannot be revalidated while it's reverting. """
+        post_json = {'submission_id': self.test_reverting_submission_id}
+        response = self.app.post_json('/v1/restart_validation/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'Submission is certifying or reverting')
 
     def test_submission_report_url(self):
         """ Test that the submission's report is successfully generated """

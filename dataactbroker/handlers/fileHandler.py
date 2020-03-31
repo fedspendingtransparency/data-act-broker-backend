@@ -197,6 +197,10 @@ class FileHandler:
                 # If the existing submission is a FABS submission, stop everything
                 if existing_submission_obj.d2_submission:
                     raise ResponseException('Existing submission must be a DABS submission', StatusCode.CLIENT_ERROR)
+                if existing_submission_obj.publish_status_id in (PUBLISH_STATUS_DICT['publishing'],
+                                                                 PUBLISH_STATUS_DICT['reverting']):
+                    raise ResponseException('Existing submission must not be certifying or reverting',
+                                            StatusCode.CLIENT_ERROR)
                 jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
                 for job in jobs:
                     if job.job_status_id == JOB_STATUS_DICT['running']:
@@ -904,6 +908,9 @@ class FileHandler:
             Returns:
                 JsonResponse object with a "success" message
         """
+        if submission.publish_status_id in (PUBLISH_STATUS_DICT['publishing'], PUBLISH_STATUS_DICT['reverting']):
+            return JsonResponse.error(ValueError('Submission is certifying or reverting'), StatusCode.CLIENT_ERROR)
+
         sess = GlobalDB.db().session
         # Determine which job types to start
         if not fabs:

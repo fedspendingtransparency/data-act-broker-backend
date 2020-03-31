@@ -689,6 +689,9 @@ def certify_dabs_submission(submission, file_manager):
     if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
         return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
 
+    if submission.publish_status_id in (PUBLISH_STATUS_DICT['publishing'], PUBLISH_STATUS_DICT['reverting']):
+        return JsonResponse.error(ValueError('Submission is certifying or reverting'), StatusCode.CLIENT_ERROR)
+
     windows = get_windows()
     for window in windows:
         if window.block_certification:
