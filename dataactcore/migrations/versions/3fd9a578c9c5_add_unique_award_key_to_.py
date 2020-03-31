@@ -1,14 +1,14 @@
 """Add unique_award_key to AwardProcurement, AwardFinancialAssistance, CertifiedAwardProcurement, and CertifiedAwardFinancialAssistance
 
 Revision ID: 3fd9a578c9c5
-Revises: 81969f6e3733
+Revises: 0225d53e520a
 Create Date: 2020-01-23 14:39:59.527010
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '3fd9a578c9c5'
-down_revision = '81969f6e3733'
+down_revision = '0225d53e520a'
 branch_labels = None
 depends_on = None
 
