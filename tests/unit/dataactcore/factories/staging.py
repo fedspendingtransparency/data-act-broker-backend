@@ -916,22 +916,3 @@ class DetachedAwardProcurementFactory(factory.Factory):
     inherently_government_desc = fuzzy.FuzzyText()
     organizational_type = fuzzy.FuzzyText()
     additional_reporting = fuzzy.FuzzyText()
-
-
-class FPDSContractingOfficeFactory(factory.Factory):
-    class Meta:
-        model = stagingModels.FPDSContractingOffice
-
-    FPDS_contracting_office_id = fuzzy.FuzzyInteger(1, 9999)
-    department_id = fuzzy.FuzzyText()
-    department_name = fuzzy.FuzzyText()
-    agency_code = fuzzy.FuzzyText()
-    agency_name = fuzzy.FuzzyText()
-    contracting_office_code = fuzzy.FuzzyText()
-    contracting_office_name = fuzzy.FuzzyText()
-    start_date = fuzzy.FuzzyDate(date(2015, 1, 1), date(2015, 12, 31))
-    end_date = fuzzy.FuzzyDate(date(2015, 1, 1), date(2015, 12, 31))
-    address_city = fuzzy.FuzzyText()
-    address_state = fuzzy.FuzzyText()
-    zip_code = fuzzy.FuzzyText()
-    country_code = fuzzy.FuzzyText()

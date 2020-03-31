@@ -1701,28 +1701,3 @@ Index("ix_pafa_fain_upper", func.upper(PublishedAwardFinancialAssistance.fain))
 Index("ix_pafa_uri_upper", func.upper(PublishedAwardFinancialAssistance.uri))
 Index("ix_pafa_awarding_subtier_c_upper", func.upper(PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c))
 Index("ix_pafa_afa_generated_unique_upper", func.upper(PublishedAwardFinancialAssistance.afa_generated_unique))
-
-
-class FPDSContractingOffice(Base):
-    """Model for FPDS Contracting Offices """
-    __tablename__ = "fpds_contracting_offices"
-
-    FPDS_contracting_office_id = Column(Integer, primary_key=True)
-    department_id = Column(Text, index=True)
-    department_name = Column(Text)
-    agency_code = Column(Text, index=True)
-    agency_name = Column(Text)
-    contracting_office_code = Column(Text, index=True)
-    contracting_office_name = Column(Text)
-    start_date = Column(DateTime)
-    end_date = Column(DateTime)
-    address_city = Column(Text)
-    address_state = Column(Text)
-    zip_code = Column(Text)
-    country_code = Column(Text)
-
-    def __init__(self, **kwargs):
-        # broker is set up to ignore extra columns in submitted data
-        # so get rid of any extraneous kwargs before instantiating
-        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(FPDSContractingOffice, self).__init__(**clean_kwargs)

@@ -28,7 +28,6 @@ from dataactvalidator.scripts.load_tas import load_tas
 from dataactvalidator.scripts.load_location_data import load_location_data
 from dataactvalidator.scripts.read_zips import read_zips
 from dataactvalidator.scripts.load_agencies import load_agency_data
-from dataactvalidator.scripts.load_offices import load_offices
 from dataactvalidator.scripts.load_program_activity import load_program_activity_data
 from dataactvalidator.scripts.load_quarterly_revalidation_threshold import load_quarterly_threshold
 
@@ -165,7 +164,6 @@ def main():
     parser.add_argument('-v', '--update_validator', help='Update validator schema', action='store_true')
     parser.add_argument('-l', '--load_location', help='Load city and county codes', action='store_true')
     parser.add_argument('-z', '--load_zips', help='Load zip code data', action='store_true')
-    parser.add_argument('-o', '--load_offices', help='Load FPDS Office Codes', action='store_true')
     parser.add_argument('-qrt', '--load_quarterly_revalidation', help='Load Quarterly Revalidation Threshold',
                         action='store_true')
     parser.add_argument('-u', '--uncache_all_files', help='Un-cache file generation requests', action='store_true')
@@ -184,7 +182,6 @@ def main():
         load_validator_schema()
         load_location_codes(args.force)
         load_zip_codes()
-        load_offices()
         load_quarterly_revalidation_threshold()
         return
 
@@ -233,9 +230,6 @@ def main():
     if args.load_zips:
         load_zip_codes()
         load_location_codes(args.force)
-
-    if args.load_offices:
-        load_offices()
 
     if args.load_quarterly_revalidation:
         load_quarterly_revalidation_threshold()
