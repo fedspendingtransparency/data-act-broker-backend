@@ -29,7 +29,7 @@ from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssis
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_get_submission_metadata_quarterly_dabs_cgac(database):
     """ Tests the get_submission_metadata function for quarterly dabs submissions """
     sess = database.session
@@ -65,7 +65,7 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
         'number_of_rows': 8,
         'total_size': 20000,
         'created_on': now.strftime('%m/%d/%Y'),
-        'last_updated': now_plus_10.strftime("%Y-%m-%dT%H:%M:%S"),
+        'last_updated': now_plus_10.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': now_plus_10.strftime('%Y-%m-%dT%H:%M:%S'),
         'reporting_period': 'Q1/2017',
         'publish_status': 'updated',
@@ -79,7 +79,7 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
     assert results == expected_results
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_get_submission_metadata_quarterly_dabs_frec(database):
     """ Tests the get_submission_metadata function for quarterly dabs submissions frec """
     sess = database.session
@@ -105,7 +105,7 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
         'number_of_rows': 0,
         'total_size': 0,
         'created_on': now.strftime('%m/%d/%Y'),
-        'last_updated': now.strftime("%Y-%m-%dT%H:%M:%S"),
+        'last_updated': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': '',
         'reporting_period': 'Q2/2010',
         'publish_status': 'published',
@@ -119,7 +119,7 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
     assert results == expected_results
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_get_submission_metadata_monthly_dabs(database):
     """ Tests the get_submission_metadata function for monthly dabs submissions """
     sess = database.session
@@ -146,7 +146,7 @@ def test_get_submission_metadata_monthly_dabs(database):
         'number_of_rows': 0,
         'total_size': 0,
         'created_on': now.strftime('%m/%d/%Y'),
-        'last_updated': now_plus_10.strftime("%Y-%m-%dT%H:%M:%S"),
+        'last_updated': now_plus_10.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': '',
         'reporting_period': start_date.strftime('%m/%Y'),
         'publish_status': 'unpublished',
@@ -160,7 +160,7 @@ def test_get_submission_metadata_monthly_dabs(database):
     assert results == expected_results
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_get_submission_metadata_unpublished_fabs(database):
     """ Tests the get_submission_metadata function for unpublished fabs submissions """
     sess = database.session
@@ -188,7 +188,7 @@ def test_get_submission_metadata_unpublished_fabs(database):
         'number_of_rows': 0,
         'total_size': 0,
         'created_on': now.strftime('%m/%d/%Y'),
-        'last_updated': now.strftime("%Y-%m-%dT%H:%M:%S"),
+        'last_updated': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': '',
         'reporting_period': start_date.strftime('%m/%Y'),
         'publish_status': 'unpublished',
@@ -202,7 +202,7 @@ def test_get_submission_metadata_unpublished_fabs(database):
     assert results == expected_results
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_get_submission_metadata_published_fabs(database):
     """ Tests the get_submission_metadata function for published fabs submissions """
     sess = database.session
@@ -235,7 +235,7 @@ def test_get_submission_metadata_published_fabs(database):
         'number_of_rows': 0,
         'total_size': 0,
         'created_on': now.strftime('%m/%d/%Y'),
-        'last_updated': now.strftime("%Y-%m-%dT%H:%M:%S"),
+        'last_updated': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': '',
         'reporting_period': start_date.strftime('%m/%Y'),
         'publish_status': 'published',
@@ -254,7 +254,7 @@ def test_get_submission_metadata_published_fabs(database):
     assert results == expected_results
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_get_submission_metadata_test_submission(database):
     """ Tests the get_submission_metadata function for published fabs submissions """
     sess = database.session
@@ -284,7 +284,7 @@ def test_get_submission_metadata_test_submission(database):
         'number_of_rows': 0,
         'total_size': 0,
         'created_on': now.strftime('%m/%d/%Y'),
-        'last_updated': now.strftime("%Y-%m-%dT%H:%M:%S"),
+        'last_updated': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': '',
         'reporting_period': 'Q1/2017',
         'publish_status': 'unpublished',
@@ -342,7 +342,7 @@ def test_get_latest_certification_period_no_threshold():
     assert results['year'] is None
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_get_submission_data_dabs(database):
     """ Tests the get_submission_data function for dabs records """
     sess = database.session
@@ -381,8 +381,8 @@ def test_get_submission_data_dabs(database):
         'file_size': job.file_size,
         'number_of_rows': job.number_of_rows - 1,
         'file_type': job.file_type_name,
-        'file_status': "",
-        'error_type': "",
+        'file_status': '',
+        'error_type': '',
         'error_data': [],
         'warning_data': [],
         'missing_headers': [],
@@ -398,8 +398,8 @@ def test_get_submission_data_dabs(database):
         'file_size': None,
         'number_of_rows': 0,
         'file_type': '',
-        'file_status': "",
-        'error_type': "",
+        'file_status': '',
+        'error_type': '',
         'error_data': [],
         'warning_data': [],
         'missing_headers': [],
@@ -415,8 +415,8 @@ def test_get_submission_data_dabs(database):
         'file_size': job_2.file_size,
         'number_of_rows': job_2.number_of_rows,
         'file_type': job_2.file_type_name,
-        'file_status': "",
-        'error_type': "",
+        'file_status': '',
+        'error_type': '',
         'error_data': [],
         'warning_data': [],
         'missing_headers': [],
@@ -432,8 +432,8 @@ def test_get_submission_data_dabs(database):
         'file_size': job_5.file_size,
         'number_of_rows': job_5.number_of_rows,
         'file_type': job_5.file_type_name,
-        'file_status': "",
-        'error_type': "",
+        'file_status': '',
+        'error_type': '',
         'error_data': [],
         'warning_data': [],
         'missing_headers': [],
@@ -456,7 +456,7 @@ def test_get_submission_data_dabs(database):
     assert results[0] == correct_job
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_certify_dabs_submission(database, monkeypatch):
     """ Tests the certify_dabs_submission function """
     with Flask('test-app').app_context():
@@ -511,7 +511,7 @@ def test_certify_dabs_submission(database, monkeypatch):
         assert certified_flex is not None
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_certify_dabs_submission_revalidation_needed(database):
     """ Tests the certify_dabs_submission function preventing certification when revalidation threshold isn't met """
     with Flask('test-app').app_context():
@@ -539,12 +539,12 @@ def test_certify_dabs_submission_revalidation_needed(database):
         response = certify_dabs_submission(submission, file_handler)
         response_json = json.loads(response.data.decode('UTF-8'))
         assert response.status_code == 400
-        assert response_json['message'] == "This submission has not been validated since before the revalidation " \
-                                           "threshold ({}), it must be revalidated before certifying.". \
+        assert response_json['message'] == 'This submission has not been validated since before the revalidation ' \
+                                           'threshold ({}), it must be revalidated before certifying.'. \
             format(now.strftime('%Y-%m-%d %H:%M:%S'))
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_certify_dabs_submission_quarterly_revalidation_not_in_db(database):
     """ Tests that a DABS submission that doesnt have its year/quarter in the system won't be able to certify. """
     with Flask('test-app').app_context():
@@ -571,11 +571,11 @@ def test_certify_dabs_submission_quarterly_revalidation_not_in_db(database):
         response = certify_dabs_submission(submission, file_handler)
         response_json = json.loads(response.data.decode('UTF-8'))
         assert response.status_code == 400
-        assert response_json['message'] == "No submission window for this year and quarter was found. If this is an " \
-                                           "error, please contact the Service Desk."
+        assert response_json['message'] == 'No submission window for this year and quarter was found. If this is an ' \
+                                           'error, please contact the Service Desk.'
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_certify_dabs_submission_quarterly_revalidation_too_early(database):
     """ Tests that a DABS submission that was last validated before the window start cannot be certified. """
     with Flask('test-app').app_context():
@@ -604,13 +604,13 @@ def test_certify_dabs_submission_quarterly_revalidation_too_early(database):
         response = certify_dabs_submission(submission, file_handler)
         response_json = json.loads(response.data.decode('UTF-8'))
         assert response.status_code == 400
-        assert response_json['message'] == "This submission was last validated or its D files generated before the " \
-                                           "start of the submission window ({}). Please revalidate before " \
-                                           "certifying.".\
+        assert response_json['message'] == 'This submission was last validated or its D files generated before the ' \
+                                           'start of the submission window ({}). Please revalidate before ' \
+                                           'certifying.'.\
             format(quarter_reval.window_start.strftime('%m/%d/%Y'))
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_certify_dabs_submission_quarterly_revalidation_multiple_thresholds(database):
     """ Tests that a DABS submission is not affected by a different quarterly revalidation threshold than the one that
         matches its reporting_start_date.
@@ -644,7 +644,7 @@ def test_certify_dabs_submission_quarterly_revalidation_multiple_thresholds(data
         assert response.status_code == 200
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_certify_dabs_submission_reverting(database):
     """ Tests that a DABS submission cannot be certified while reverting. """
     with Flask('test-app').app_context():
@@ -780,7 +780,7 @@ def test_revert_submission_not_updated_submission(database):
     assert str(resp_except.value) == 'Submission has not been certified or has not been updated since certification.'
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_move_certified_data(database):
     """ Tests the move_certified_data function """
     with Flask('test-app').app_context():

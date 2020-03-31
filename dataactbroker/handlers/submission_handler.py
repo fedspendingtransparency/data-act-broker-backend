@@ -95,9 +95,9 @@ def get_submission_stats(submission_id):
     procurement = base_query.filter(AwardFinancial.piid.isnot(None))
     fin_assist = base_query.filter(or_(AwardFinancial.fain.isnot(None), AwardFinancial.uri.isnot(None)))
     return {
-        "total_obligations": float(base_query.scalar() or 0),
-        "total_procurement_obligations": float(procurement.scalar() or 0),
-        "total_assistance_obligations": float(fin_assist.scalar() or 0)
+        'total_obligations': float(base_query.scalar() or 0),
+        'total_procurement_obligations': float(procurement.scalar() or 0),
+        'total_assistance_obligations': float(fin_assist.scalar() or 0)
     }
 
 
@@ -156,7 +156,7 @@ def get_submission_metadata(submission):
         'number_of_rows': number_of_rows,
         'total_size': total_size,
         'created_on': submission.created_at.strftime('%m/%d/%Y'),
-        'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
+        'last_updated': submission.updated_at.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': last_validated,
         'reporting_period': reporting_date(submission),
         'publish_status': submission.publish_status.name,
@@ -213,7 +213,7 @@ def get_revalidation_threshold():
     reval_thresh = sess.query(RevalidationThreshold).one_or_none()
 
     return {
-        'revalidation_threshold': reval_thresh.revalidation_date.strftime("%Y-%m-%dT%H:%M:%S") if reval_thresh else ''
+        'revalidation_threshold': reval_thresh.revalidation_date.strftime('%Y-%m-%dT%H:%M:%S') if reval_thresh else ''
     }
 
 
@@ -247,7 +247,7 @@ def reporting_date(submission):
     if submission.is_quarter_format:
         return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3, submission.reporting_fiscal_year)
     else:
-        return submission.reporting_start_date.strftime("%m/%Y")
+        return submission.reporting_start_date.strftime('%m/%Y')
 
 
 def job_to_dict(job):
@@ -276,8 +276,8 @@ def job_to_dict(job):
     if file_results is None:
         # Job ID not in error database, probably did not make it to validation, or has not yet been validated
         job_info.update({
-            'file_status': "",
-            'error_type': "",
+            'file_status': '',
+            'error_type': '',
             'error_data': [],
             'warning_data': [],
             'missing_headers': [],
@@ -288,11 +288,11 @@ def job_to_dict(job):
         # headers and parse as a list
         job_info['file_status'] = file_results.file_status_name
         job_info['missing_headers'] = StringCleaner.split_csv(file_results.headers_missing)
-        job_info["duplicated_headers"] = StringCleaner.split_csv(file_results.headers_duplicated)
-        job_info["error_type"] = get_error_type(job.job_id)
-        job_info["error_data"] = get_error_metrics_by_job_id(job.job_id, job.job_type_name == 'validation',
+        job_info['duplicated_headers'] = StringCleaner.split_csv(file_results.headers_duplicated)
+        job_info['error_type'] = get_error_type(job.job_id)
+        job_info['error_data'] = get_error_metrics_by_job_id(job.job_id, job.job_type_name == 'validation',
                                                              severity_id=RULE_SEVERITY_DICT['fatal'])
-        job_info["warning_data"] = get_error_metrics_by_job_id(job.job_id, job.job_type_name == 'validation',
+        job_info['warning_data'] = get_error_metrics_by_job_id(job.job_id, job.job_type_name == 'validation',
                                                                severity_id=RULE_SEVERITY_DICT['warning'])
     return job_info
 
@@ -314,28 +314,28 @@ def get_submission_status(submission, jobs):
         job_status = job.job_status.name
         statuses[job_status] += 1
 
-    status = "unknown"
+    status = 'unknown'
 
-    if statuses["failed"] != 0:
-        status = "failed"
-    elif statuses["invalid"] != 0:
-        status = "file_errors"
-    elif statuses["running"] != 0:
-        status = "running"
-    elif statuses["waiting"] != 0:
-        status = "waiting"
-    elif statuses["ready"] != 0:
-        status = "ready"
-    elif statuses["finished"] == jobs.count():
-        status = "validation_successful"
+    if statuses['failed'] != 0:
+        status = 'failed'
+    elif statuses['invalid'] != 0:
+        status = 'file_errors'
+    elif statuses['running'] != 0:
+        status = 'running'
+    elif statuses['waiting'] != 0:
+        status = 'waiting'
+    elif statuses['ready'] != 0:
+        status = 'ready'
+    elif statuses['finished'] == jobs.count():
+        status = 'validation_successful'
         if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
-            status = "validation_successful_warnings"
+            status = 'validation_successful_warnings'
         if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
-            status = "certified"
+            status = 'certified'
 
     # Check if submission has errors
     if submission.number_of_errors is not None and submission.number_of_errors > 0:
-        status = "validation_errors"
+        status = 'validation_errors'
 
     return status
 
@@ -367,7 +367,7 @@ def delete_all_submission_data(submission):
     """
     # check if the submission has been published, if so, do not allow deletion
     if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
-        return JsonResponse.error(ValueError("Submissions that have been certified cannot be deleted"),
+        return JsonResponse.error(ValueError('Submissions that have been certified cannot be deleted'),
                                   StatusCode.CLIENT_ERROR)
 
     sess = GlobalDB.db().session
@@ -376,13 +376,13 @@ def delete_all_submission_data(submission):
     running_jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
                                           Job.job_status_id == JOB_STATUS_DICT['running']).all()
     if running_jobs:
-        return JsonResponse.error(ValueError("Submissions with running jobs cannot be deleted"),
+        return JsonResponse.error(ValueError('Submissions with running jobs cannot be deleted'),
                                   StatusCode.CLIENT_ERROR)
 
     logger.info({
-        "message": "Deleting submission with id {}".format(submission.submission_id),
-        "message_type": "BrokerInfo",
-        "submission_id": submission.submission_id
+        'message': 'Deleting submission with id {}'.format(submission.submission_id),
+        'message_type': 'BrokerInfo',
+        'submission_id': submission.submission_id
     })
 
     sess.query(SubmissionSubTierAffiliation).\
@@ -393,7 +393,7 @@ def delete_all_submission_data(submission):
 
     sess.expire_all()
 
-    return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+    return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
 
 
 def list_windows():
@@ -421,7 +421,7 @@ def list_windows():
                 'banner_type': window.banner_type
             })
 
-    return JsonResponse.create(StatusCode.OK, {"data": data})
+    return JsonResponse.create(StatusCode.OK, {'data': data})
 
 
 def get_windows():
@@ -456,8 +456,8 @@ def check_current_submission_page(submission):
     # DetachedFiles
     if submission.d2_submission:
         data = {
-            "message": "The current progress of this submission ID is on /v1/uploadDetachedFiles/ page.",
-            "step": "6"
+            'message': 'The current progress of this submission ID is on /v1/uploadDetachedFiles/ page.',
+            'step': '6'
         }
         return JsonResponse.create(StatusCode.OK, data)
 
@@ -472,16 +472,16 @@ def check_current_submission_page(submission):
 
     if review_data.count() == 2 and generate_ef.count() > 0:
         data = {
-            "message": "The current progress of this submission ID is on /v1/reviewData/ page.",
-            "step": "5"
+            'message': 'The current progress of this submission ID is on /v1/reviewData/ page.',
+            'step': '5'
         }
         return JsonResponse.create(StatusCode.OK, data)
 
     # /v1/generateEF/
     if generate_ef.count() > 0:
         data = {
-            "message": "The current progress of this submission ID is on /v1/generateEF/ page.",
-            "step": "4"
+            'message': 'The current progress of this submission ID is on /v1/generateEF/ page.',
+            'step': '4'
         }
         return JsonResponse.create(StatusCode.OK, data)
 
@@ -496,16 +496,16 @@ def check_current_submission_page(submission):
     # /v1/validateCrossFile/
     if validate_cross_file.count() == 2 and generate_files.count() == 3:
         data = {
-            "message": "The current progress of this submission ID is on /v1/validateCrossFile/ page.",
-            "step": "3"
+            'message': 'The current progress of this submission ID is on /v1/validateCrossFile/ page.',
+            'step': '3'
         }
         return JsonResponse.create(StatusCode.OK, data)
 
     # /v1/generateFiles/
     if generate_files.count() == 3:
         data = {
-            "message": "The current progress of this submission ID is on /v1/generateFiles/ page.",
-            "step": "2"
+            'message': 'The current progress of this submission ID is on /v1/generateFiles/ page.',
+            'step': '2'
         }
         return JsonResponse.create(StatusCode.OK, data)
 
@@ -516,13 +516,13 @@ def check_current_submission_page(submission):
                                                  Job.job_type_id == 2, Job.job_status_id != 4)
     if validate_data.count() or check_header_errors.count() > 0:
         data = {
-            "message": "The current progress of this submission ID is on /v1/validateData/ page.",
-            "step": "1"
+            'message': 'The current progress of this submission ID is on /v1/validateData/ page.',
+            'step': '1'
         }
         return JsonResponse.create(StatusCode.OK, data)
 
     else:
-        return JsonResponse.error(ValueError("The submission ID returns no response"), StatusCode.CLIENT_ERROR)
+        return JsonResponse.error(ValueError('The submission ID returns no response'), StatusCode.CLIENT_ERROR)
 
 
 def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
@@ -543,18 +543,18 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
     """
     # We need either a cgac or a frec code for this function
     if not cgac_code and not frec_code:
-        return JsonResponse.error(ValueError("CGAC or FR Entity Code required"), StatusCode.CLIENT_ERROR)
+        return JsonResponse.error(ValueError('CGAC or FR Entity Code required'), StatusCode.CLIENT_ERROR)
 
     submission_query = get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year,
                                                     reporting_fiscal_period, submission_id)
 
     if submission_query.count() > 0:
         data = {
-            "message": "A submission with the same period already exists.",
-            "submissionId": submission_query[0].submission_id
+            'message': 'A submission with the same period already exists.',
+            'submissionId': submission_query[0].submission_id
         }
         return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
-    return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+    return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
 
 
 def get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
@@ -680,14 +680,14 @@ def certify_dabs_submission(submission, file_manager):
     current_user_id = g.user.user_id
 
     if not submission.publishable:
-        return JsonResponse.error(ValueError("Submission cannot be certified due to critical errors"),
+        return JsonResponse.error(ValueError('Submission cannot be certified due to critical errors'),
                                   StatusCode.CLIENT_ERROR)
 
     if not submission.is_quarter_format:
-        return JsonResponse.error(ValueError("Monthly submissions cannot be certified"), StatusCode.CLIENT_ERROR)
+        return JsonResponse.error(ValueError('Monthly submissions cannot be certified'), StatusCode.CLIENT_ERROR)
 
     if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
-        return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
+        return JsonResponse.error(ValueError('Submission has already been certified'), StatusCode.CLIENT_ERROR)
 
     if submission.publish_status_id in (PUBLISH_STATUS_DICT['publishing'], PUBLISH_STATUS_DICT['reverting']):
         return JsonResponse.error(ValueError('Submission is certifying or reverting'), StatusCode.CLIENT_ERROR)
@@ -702,8 +702,8 @@ def certify_dabs_submission(submission, file_manager):
     last_validated = get_last_validated_date(submission.submission_id)
     reval_thresh = get_revalidation_threshold()['revalidation_threshold']
     if reval_thresh and reval_thresh >= last_validated:
-        return JsonResponse.error(ValueError("This submission has not been validated since before the revalidation "
-                                             "threshold ({}), it must be revalidated before certifying.".
+        return JsonResponse.error(ValueError('This submission has not been validated since before the revalidation '
+                                             'threshold ({}), it must be revalidated before certifying.'.
                                              format(reval_thresh.replace('T', ' '))),
                                   StatusCode.CLIENT_ERROR)
 
@@ -715,15 +715,15 @@ def certify_dabs_submission(submission, file_manager):
 
     # If we don't have a quarterly revalidation threshold for this year/quarter, they can't submit
     if not quarter_reval:
-        return JsonResponse.error(ValueError("No submission window for this year and quarter was found. If this is an "
-                                             "error, please contact the Service Desk."), StatusCode.CLIENT_ERROR)
+        return JsonResponse.error(ValueError('No submission window for this year and quarter was found. If this is an '
+                                             'error, please contact the Service Desk.'), StatusCode.CLIENT_ERROR)
 
     # Make sure everything was last validated after the start of the submission window
     last_validated = datetime.strptime(last_validated, '%Y-%m-%dT%H:%M:%S')
     if last_validated < quarter_reval.window_start:
-        return JsonResponse.error(ValueError("This submission was last validated or its D files generated before the "
-                                             "start of the submission window ({}). Please revalidate before "
-                                             "certifying.".format(quarter_reval.window_start.strftime('%m/%d/%Y'))),
+        return JsonResponse.error(ValueError('This submission was last validated or its D files generated before the '
+                                             'start of the submission window ({}). Please revalidate before '
+                                             'certifying.'.format(quarter_reval.window_start.strftime('%m/%d/%Y'))),
                                   StatusCode.CLIENT_ERROR)
 
     response = find_existing_submissions_in_period(submission.cgac_code, submission.frec_code,
@@ -891,7 +891,7 @@ def revert_to_certified(submission, file_manager):
                 try:
                     job.file_size = os.path.getsize(job.filename)
                 except:
-                    logger.warning("File doesn't exist locally: %s", job.filename)
+                    logger.warning('File doesn\'t exist locally: %s', job.filename)
                     job.file_size = 0
             else:
                 # boto file size
