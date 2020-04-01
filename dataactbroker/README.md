@@ -1219,7 +1219,7 @@ This endpoint lists submissions for all agencies for which the current user is a
 - `fabs`: (boolean) if the submissions listed should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
 - `filters`: (dict) additional filters to narrow the results returned by the endpoint. Possible filters are:
     - `submission_ids`: ([integer]) an array of integers or strings that limits the submission IDs returned to only the values listed in the array.
-    - `last_modified_range`: (dict) a start and end date for the last modified date range. Both must be provided if this filter is used.
+    - `last_modified_range`: (dict) a start and end date for the last modified date range. If either is not provided, the search is unbounded in that direction (e.g. if the end date is not provided, it finds all submissions that have been modified since the start date)
         - `start_date`: (string) the start date for the last modified date range (inclusive) (MM/DD/YYYY)
         - `end_date`: (string) the end date for the last modified date range (inclusive) (MM/DD/YYYY)
     - `agency_codes`: ([string]) CGAC and FREC codes
