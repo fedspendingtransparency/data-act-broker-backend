@@ -197,6 +197,10 @@ class FileHandler:
                 # If the existing submission is a FABS submission, stop everything
                 if existing_submission_obj.d2_submission:
                     raise ResponseException('Existing submission must be a DABS submission', StatusCode.CLIENT_ERROR)
+                if existing_submission_obj.publish_status_id in (PUBLISH_STATUS_DICT['publishing'],
+                                                                 PUBLISH_STATUS_DICT['reverting']):
+                    raise ResponseException('Existing submission must not be certifying or reverting',
+                                            StatusCode.CLIENT_ERROR)
                 jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
                 for job in jobs:
                     if job.job_status_id == JOB_STATUS_DICT['running']:
@@ -241,7 +245,7 @@ class FileHandler:
                         filename = filename.format(formatted_start_date.strftime('%Y%m%d'),
                                                    formatted_end_date.strftime('%Y%m%d'), 'awarding', 'csv')
                     if not self.is_local:
-                        upload_name = "{}/{}".format(submission.submission_id,
+                        upload_name = '{}/{}'.format(submission.submission_id,
                                                      S3Handler.get_timestamped_filename(filename))
                     else:
                         upload_name = filename
@@ -362,7 +366,7 @@ class FileHandler:
         # clients call the API directly
         if start_date > end_date:
             raise ResponseException(
-                "Submission start date {} is after the end date {}".format(start_date, end_date),
+                'Submission start date {} is after the end date {}'.format(start_date, end_date),
                 StatusCode.CLIENT_ERROR)
 
         # Currently, broker allows quarterly submissions for a single quarter only. the front-end handles this
@@ -595,7 +599,7 @@ class FileHandler:
         unfinished_jobs = sess.query(Job).filter(Job.submission_id == submission_id,
                                                  Job.job_status_id != JOB_STATUS_DICT['finished']).count()
         if unfinished_jobs > 0:
-            raise ResponseException("Submission has unfinished jobs and cannot be published", StatusCode.CLIENT_ERROR)
+            raise ResponseException('Submission has unfinished jobs and cannot be published', StatusCode.CLIENT_ERROR)
 
         # if it's an unpublished FABS submission that has only finished jobs, we can start the process
         log_data = {
@@ -904,6 +908,9 @@ class FileHandler:
             Returns:
                 JsonResponse object with a "success" message
         """
+        if submission.publish_status_id in (PUBLISH_STATUS_DICT['publishing'], PUBLISH_STATUS_DICT['reverting']):
+            return JsonResponse.error(ValueError('Submission is certifying or reverting'), StatusCode.CLIENT_ERROR)
+
         sess = GlobalDB.db().session
         # Determine which job types to start
         if not fabs:

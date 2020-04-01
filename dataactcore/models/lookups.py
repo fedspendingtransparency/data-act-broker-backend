@@ -62,7 +62,8 @@ PUBLISH_STATUS = [
     LookupType(1, 'unpublished', 'Has not yet been moved to data store'),
     LookupType(2, 'published', 'Has been moved to data store'),
     LookupType(3, 'updated', 'Submission was updated after being published'),
-    LookupType(4, 'publishing', 'Submission is being published')
+    LookupType(4, 'publishing', 'Submission is being published'),
+    LookupType(5, 'reverting', 'Submission is being reverted to certified status')
 ]
 PUBLISH_STATUS_DICT = {item.name: item.id for item in PUBLISH_STATUS}
 PUBLISH_STATUS_DICT_ID = {item.id: item.name for item in PUBLISH_STATUS}
