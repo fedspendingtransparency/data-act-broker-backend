@@ -197,6 +197,10 @@ class FileHandler:
                 # If the existing submission is a FABS submission, stop everything
                 if existing_submission_obj.d2_submission:
                     raise ResponseException('Existing submission must be a DABS submission', StatusCode.CLIENT_ERROR)
+                if existing_submission_obj.publish_status_id in (PUBLISH_STATUS_DICT['publishing'],
+                                                                 PUBLISH_STATUS_DICT['reverting']):
+                    raise ResponseException('Existing submission must not be certifying or reverting',
+                                            StatusCode.CLIENT_ERROR)
                 jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
                 for job in jobs:
                     if job.job_status_id == JOB_STATUS_DICT['running']:
@@ -241,7 +245,7 @@ class FileHandler:
                         filename = filename.format(formatted_start_date.strftime('%Y%m%d'),
                                                    formatted_end_date.strftime('%Y%m%d'), 'awarding', 'csv')
                     if not self.is_local:
-                        upload_name = "{}/{}".format(submission.submission_id,
+                        upload_name = '{}/{}'.format(submission.submission_id,
                                                      S3Handler.get_timestamped_filename(filename))
                     else:
                         upload_name = filename
@@ -362,7 +366,7 @@ class FileHandler:
         # clients call the API directly
         if start_date > end_date:
             raise ResponseException(
-                "Submission start date {} is after the end date {}".format(start_date, end_date),
+                'Submission start date {} is after the end date {}'.format(start_date, end_date),
                 StatusCode.CLIENT_ERROR)
 
         # Currently, broker allows quarterly submissions for a single quarter only. the front-end handles this
@@ -595,7 +599,7 @@ class FileHandler:
         unfinished_jobs = sess.query(Job).filter(Job.submission_id == submission_id,
                                                  Job.job_status_id != JOB_STATUS_DICT['finished']).count()
         if unfinished_jobs > 0:
-            raise ResponseException("Submission has unfinished jobs and cannot be published", StatusCode.CLIENT_ERROR)
+            raise ResponseException('Submission has unfinished jobs and cannot be published', StatusCode.CLIENT_ERROR)
 
         # if it's an unpublished FABS submission that has only finished jobs, we can start the process
         log_data = {
@@ -904,6 +908,9 @@ class FileHandler:
             Returns:
                 JsonResponse object with a "success" message
         """
+        if submission.publish_status_id in (PUBLISH_STATUS_DICT['publishing'], PUBLISH_STATUS_DICT['reverting']):
+            return JsonResponse.error(ValueError('Submission is certifying or reverting'), StatusCode.CLIENT_ERROR)
+
         sess = GlobalDB.db().session
         # Determine which job types to start
         if not fabs:
@@ -1528,23 +1535,27 @@ def add_list_submission_filters(query, filters, submission_updated_view):
             start_date = mod_dates.get('start_date')
             end_date = mod_dates.get('end_date')
 
-            # Make sure that, if it has content, start_date and end_date are both part of this filter
-            if not start_date or not end_date:
-                raise ResponseException('Both start_date and end_date must be provided', StatusCode.CLIENT_ERROR)
+            # Make sure that, if it has content, at least start_date or end_date is part of this filter
+            if not start_date and not end_date:
+                raise ResponseException('At least start_date or end_date must be provided when using '
+                                        'last_modified_range filter', StatusCode.CLIENT_ERROR)
 
-            # Start and end dates must be in the format MM/DD/YYYY and be
-            if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
+            # Start and end dates, when provided must be in the format MM/DD/YYYY format
+            if (start_date and not StringCleaner.is_date(start_date)) or\
+                    (end_date and not StringCleaner.is_date(end_date)):
                 raise ResponseException('Start or end date cannot be parsed into a date of format MM/DD/YYYY',
                                         StatusCode.CLIENT_ERROR)
-            # Make sure start date is not greater than end date (checking for >= because we add a day)
-            start_date = datetime.strptime(start_date, '%m/%d/%Y')
-            end_date = datetime.strptime(end_date, '%m/%d/%Y') + timedelta(days=1)
-            if start_date >= end_date:
+            # Make sure start date is not greater than end date when both are provided (checking for >= because we add a
+            # day)
+            start_date = datetime.strptime(start_date, '%m/%d/%Y') if start_date else None
+            end_date = datetime.strptime(end_date, '%m/%d/%Y') + timedelta(days=1) if end_date else None
+            if start_date and end_date and start_date >= end_date:
                 raise ResponseException('Last modified start date cannot be greater than the end date',
                                         StatusCode.CLIENT_ERROR)
-
-            query = query.filter(submission_updated_view.updated_at >= start_date,
-                                 submission_updated_view.updated_at < end_date)
+            if start_date:
+                query = query.filter(submission_updated_view.updated_at >= start_date)
+            if end_date:
+                query = query.filter(submission_updated_view.updated_at < end_date)
         elif mod_dates:
             raise ResponseException('last_modified_range filter must be null or an object', StatusCode.CLIENT_ERROR)
     # Agency code filter
