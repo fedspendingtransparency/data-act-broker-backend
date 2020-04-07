@@ -3,14 +3,13 @@ WITH unlinked_subs AS
         SELECT id,
             prime_id,
             sub_id,
-            award_id
+            award_id,
+            awarding_sub_tier_agency_c
         FROM subaward
         WHERE subaward.unique_award_key IS NULL
             AND subaward.subaward_type = 'sub-grant'),
 aw_pafa AS
-    (SELECT DISTINCT ON (
-            UPPER(pafa.fain)
-        )
+    (SELECT
         pafa.fain AS fain,
         pafa.uri AS uri,
         pafa.award_description AS award_description,
@@ -34,7 +33,9 @@ aw_pafa AS
         AND EXISTS (
             SELECT 1
             FROM unlinked_subs
-            WHERE UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(pafa.fain, '-', ''))
+            WHERE pafa.record_type <> 1
+                AND UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(pafa.fain, '-', ''))
+                AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) IS NOT DISTINCT FROM UPPER(pafa.awarding_sub_tier_agency_c)
         )
         {0}
     ORDER BY UPPER(pafa.fain), pafa.action_date)
@@ -57,4 +58,5 @@ SET
 FROM unlinked_subs
      JOIN aw_pafa
         ON UPPER(TRANSLATE(unlinked_subs.award_id, '-', '')) = UPPER(TRANSLATE(aw_pafa.fain, '-', ''))
+        AND UPPER(unlinked_subs.awarding_sub_tier_agency_c) IS NOT DISTINCT FROM UPPER(aw_pafa.awarding_sub_tier_agency_c)
 WHERE subaward.id = unlinked_subs.id;

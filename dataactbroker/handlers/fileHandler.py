@@ -1664,7 +1664,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
     options = {
         'submission_id': {'model': Submission, 'col': 'submission_id'},
         'modified': {'model': submission_updated_view, 'col': 'updated_at'},
-        'reporting': {'model': Submission, 'col': 'reporting_start_date'},
+        'reporting_start': {'model': Submission, 'col': 'reporting_start_date'},
+        'reporting_end': {'model': Submission, 'col': 'reporting_end_date'},
         'agency': {'model': CGAC, 'col': 'agency_name'},
         'submitted_by': {'model': User, 'col': 'name'},
         'certified_date': {'model': sub_query.c, 'col': 'certified_date'},
