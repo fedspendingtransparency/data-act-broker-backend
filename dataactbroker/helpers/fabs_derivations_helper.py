@@ -288,7 +288,8 @@ def derive_le_location_data(obj, sess, ppop_code, state_dict, ppop_state_code, p
             obj['legal_entity_state_name'] = ppop_state_name
 
         # legal entity cd data
-        if not obj['legal_entity_congressional'] and county_wide_pattern.match(ppop_code):
+        if not obj['legal_entity_congressional'] and (county_wide_pattern.match(ppop_code) or
+                                                      state_wide_pattern.match(ppop_code)):
             obj['legal_entity_congressional'] = obj['place_of_performance_congr']
 
 

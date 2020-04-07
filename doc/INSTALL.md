@@ -163,7 +163,6 @@ load_sf133()
 load_validator_schema()
 load_location_codes(args.force)
 load_zip_codes()
-load_offices()
 load_quarterly_revalidation_threshold()
 ```
 
