@@ -31,11 +31,14 @@ def test_success_ignore_null_pafa(database):
     pub_award_4 = PublishedAwardFinancialAssistanceFactory(awarding_office_code='12345A', unique_award_key='1234_abc',
                                                            action_date='20181019', award_modification_amendme='0',
                                                            is_active=True)
-    # Earliest record inactive, newer record has valid entry
+    # Earliest record inactive, newer record has valid entry, inactive date matching active doesn't mess it up
     pub_award_5 = PublishedAwardFinancialAssistanceFactory(awarding_office_code='abc', unique_award_key='4321_cba',
                                                            action_date='20181018', award_modification_amendme='0',
                                                            is_active=False)
-    pub_award_6 = PublishedAwardFinancialAssistanceFactory(awarding_office_code='12345a', unique_award_key='4321_cba',
+    pub_award_6 = PublishedAwardFinancialAssistanceFactory(awarding_office_code='abc', unique_award_key='4321_cba',
+                                                           action_date='20181019', award_modification_amendme='1',
+                                                           is_active=False)
+    pub_award_7 = PublishedAwardFinancialAssistanceFactory(awarding_office_code='12345a', unique_award_key='4321_cba',
                                                            action_date='20181019', award_modification_amendme='1',
                                                            is_active=True)
 
@@ -60,8 +63,8 @@ def test_success_ignore_null_pafa(database):
                                                           action_date='20181020', award_modification_amendme='2',
                                                           correction_delete_indicatr=None)
     errors = number_of_errors(_FILE, database, models=[office, pub_award_1, pub_award_2, pub_award_3, pub_award_4,
-                                                       pub_award_5, pub_award_6, det_award_1, det_award_2, det_award_3,
-                                                       det_award_4, det_award_5])
+                                                       pub_award_5, pub_award_6, pub_award_7, det_award_1, det_award_2,
+                                                       det_award_3, det_award_4, det_award_5])
     assert errors == 0
 
 
