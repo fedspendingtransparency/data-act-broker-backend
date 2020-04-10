@@ -62,7 +62,7 @@ While the Submission API has been designed to be as easy to understand as possib
 ### Generate E, F Files
 - Once cross-file validation completes with 0 errors (warnings are acceptable), E/F file generation can begin.
 - Call `/v1/generate_file/` to generate E and F files, will require being called twice (once for E and once for F). For details on its use, click [here](./dataactbroker/README.md#post-v1generate_file)
-- Poll `/v1/check_generation_status/` for each file individually to see if generation has completed. Pinging should continue until status is not `waiting` or `running`. For details on its use, click [here](./dataactbroker/README.md#check-v1check_generation_status)
+- Poll `/v1/check_generation_status/` for each file individually to see if generation has completed. Pinging should continue until status is not `waiting` or `running`. For details on its use, click [here](./dataactbroker/README.md#get-v1check_generation_status)
 
 ### Review and Add Comments
 - Once the E and F files are generated successfully, the results can be reviewed using a series of calls.
