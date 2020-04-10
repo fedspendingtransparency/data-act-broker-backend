@@ -1,5 +1,5 @@
 # Submission Process
-- **NOTE**: When pinging for status in any step, do not do it constantly, limit it to once every 10 seconds or longer.
+**IMPORTANT NOTE**: When pinging for status in any step, do not do it constantly, limit it to once every 10 seconds or longer.
 
 ## Introduction
 While the Submission API has been designed to be as easy to understand as possible, it is intended to be used by those who are familiar with REST APIs and their request and authentication types. The Submission API provides the same functionality offered at broker.usaspending.gov. If you are unable to use the inbound api at broker-api.usaspending.gov based on this guide, please submit feedback to [Service Desk](https://servicedesk.usaspending.gov)
@@ -51,7 +51,7 @@ While the Submission API has been designed to be as easy to understand as possib
 ### Generate D1, D2 Files
 - D File generation must be manually started ONLY AFTER all errors in A, B, C files have been fixed (warnings are allowed)
 - Step 1: Call `/v1/generate_file/` for each of the D files (two calls, one for D1 and one for D2). For details on its use, click [here](./dataactbroker/README.md#post-v1generate_file)
-- Step 2: Poll `/v1/check_generation_status/` for each D file individually to see if generation has completed. Pinging should continue until status is not `waiting` or `running`. For details on its use, click [here](./dataactbroker/README.md#post-v1check_generation_status)
+- Step 2: Poll `/v1/check_generation_status/` for each D file individually to see if generation has completed. Pinging should continue until status is not `waiting` or `running`. For details on its use, click [here](./dataactbroker/README.md#get-v1check_generation_status)
 
 ### Cross-file validations
 - Cross-file validation begins automatically upon successful completion of D file generation (no errors)
@@ -62,7 +62,7 @@ While the Submission API has been designed to be as easy to understand as possib
 ### Generate E, F Files
 - Once cross-file validation completes with 0 errors (warnings are acceptable), E/F file generation can begin.
 - Call `/v1/generate_file/` to generate E and F files, will require being called twice (once for E and once for F). For details on its use, click [here](./dataactbroker/README.md#post-v1generate_file)
-- Poll `/v1/check_generation_status/` for each file individually to see if generation has completed. Pinging should continue until status is not `waiting` or `running`. For details on its use, click [here](./dataactbroker/README.md#post-v1check_generation_status)
+- Poll `/v1/check_generation_status/` for each file individually to see if generation has completed. Pinging should continue until status is not `waiting` or `running`. For details on its use, click [here](./dataactbroker/README.md#check-v1check_generation_status)
 
 ### Review and Add Comments
 - Once the E and F files are generated successfully, the results can be reviewed using a series of calls.
