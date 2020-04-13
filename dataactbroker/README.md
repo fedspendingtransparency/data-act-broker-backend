@@ -2173,7 +2173,7 @@ This endpoint returns a dictionary containing metadata about a table and a set o
     - `category` - the category of the rule (secondary: significance)
     - `impact` - the impact specified for this rule (secondary: significance)
     - `description` - the description of the rule
-- `order`: (string) the sort order. Defaults to `desc` if not provided. Valid values are:
+- `order`: (string) the sort order. Defaults to `asc` if not provided. Valid values are:
     - `desc`
     - `asc`
 
