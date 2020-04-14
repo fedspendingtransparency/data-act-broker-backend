@@ -195,7 +195,7 @@ def setup_submissions(sess, admin=False):
                        rule_severity_id=RULE_SEVERITY_DICT['warning'], rule_cross_file_flag=True, category='existence')
     # Adding a rule with the same rule label as another but different file
     rule_b = RuleSql(rule_sql='', rule_label='B1', rule_error_message='extra cross rule', query_name='',
-                       file_id=FILE_TYPE_DICT_LETTER_ID['B'], target_file_id=None,
+                     file_id=FILE_TYPE_DICT_LETTER_ID['B'], target_file_id=None,
                      rule_severity_id=RULE_SEVERITY_DICT['warning'], rule_cross_file_flag=False, category='existence')
     db_objects.extend([rule_a1, rule_a2, rule_ab1, rule_ab2, rule_b])
 
@@ -213,8 +213,8 @@ def setup_submissions(sess, admin=False):
                              file_type_id=rule_ab2.file_id, target_file_type_id=rule_ab2.target_file_id,
                              rule_failed=rule_ab2.rule_error_message, severity_id=rule_ab2.rule_severity_id)
     sub1_b1 = ErrorMetadata(job=sub1_b, original_rule_label=rule_b.rule_label, occurrences=10,
-                             file_type_id=rule_b.file_id, target_file_type_id=rule_b.target_file_id,
-                             rule_failed=rule_b.rule_error_message, severity_id=rule_b.rule_severity_id)
+                            file_type_id=rule_b.file_id, target_file_type_id=rule_b.target_file_id,
+                            rule_failed=rule_b.rule_error_message, severity_id=rule_b.rule_severity_id)
     sub2_b1 = ErrorMetadata(job=sub2_b, original_rule_label='B2', occurrences=70,
                             file_type_id=FILE_TYPE_DICT_LETTER_ID['B'], target_file_type_id=None,
                             rule_failed='first B rule', severity_id=RULE_SEVERITY_DICT['warning'])
@@ -282,8 +282,8 @@ def setup_submissions(sess, admin=False):
                               impact_id=RULE_IMPACT_DICT['high'], file_id=rule_ab2.file_id,
                               target_file_id=rule_ab2.target_file_id)
     setting_b1 = RuleSetting(agency_code=None, rule_label=rule_b.rule_label, priority=2,
-                              impact_id=RULE_IMPACT_DICT['high'], file_id=rule_b.file_id,
-                              target_file_id=rule_b.target_file_id)
+                             impact_id=RULE_IMPACT_DICT['high'], file_id=rule_b.file_id,
+                             target_file_id=rule_b.target_file_id)
     # Flipping the priorities based on a specific agency
     setting_ab1_cgac = RuleSetting(agency_code=sub1.cgac_code, rule_label=rule_ab1.rule_label, priority=2,
                                    impact_id=RULE_IMPACT_DICT['low'], file_id=rule_ab1.file_id,
