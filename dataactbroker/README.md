@@ -2472,6 +2472,7 @@ Possible HTTP Status Codes:
     - Invalid parameter
     - Missing required parameter
 - 401: Login required
+- 403: Permission denied, user does not have permission
 
 ### POST "/v1/save\_rule\_settings"
 This route saves an agency's rule settings. Note that all the rules associated with the file type and error type must be sent together. Additionally, the order of them determines their significance.
@@ -2539,6 +2540,7 @@ Possible HTTP Status Codes:
     - Missing required parameter
     - Invalid rules provided, or missing rules
 - 401: Login required
+- 403: Permission denied, user does not have permission
 
 ## Automated Tests
 
