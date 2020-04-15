@@ -98,6 +98,9 @@ PERMISSION_SHORT_DICT = {item.name[0]: item.id for item in PERMISSION_TYPES}
 # These are split into DABS and FABS permissions but having DABS permissions gives read-access to FABS submissions
 DABS_PERMISSION_ID_LIST = [item.id for item in PERMISSION_TYPES[:3]]
 FABS_PERMISSION_ID_LIST = [item.id for item in PERMISSION_TYPES[3:]]
+# These are split into groups between DABS and FABS (not to be confused with just DABS writer/submitter)
+WRITER_ID_LIST = [item.id for item in PERMISSION_TYPES[1:]]
+SUBMITTER_ID_LIST = [item.id for item in [PERMISSION_TYPES[2], PERMISSION_TYPES[4]]]
 
 FIELD_TYPE = [
     LookupType(1, 'INT', 'integer type'),
