@@ -1,3 +1,6 @@
+from webargs import fields as webargs_fields, validate as webargs_validate
+from webargs.flaskparser import use_kwargs
+
 from dataactbroker.decorators import get_fabs_sub_tier_agencies, requires_login
 from dataactbroker.handlers.agency_handler import get_accessible_agencies, get_all_agencies, organize_sub_tier_agencies
 
@@ -11,9 +14,17 @@ def add_domain_routes(app):
 
     @app.route("/v1/list_agencies/", methods=["GET"])
     @requires_login
-    def list_agencies():
+    @use_kwargs({
+        'perm_level': webargs_fields.String(
+            missing='reader',
+            validate=webargs_validate.OneOf(('reader', 'writer', 'submitter'))),
+        'perm_type': webargs_fields.String(
+            missing='mixed',
+            validate=webargs_validate.OneOf(('mixed', 'fabs', 'dabs'))),
+    })
+    def list_agencies(perm_level, perm_type):
         """ Get all agencies the current user has DABS access to. """
-        return JsonResponse.create(StatusCode.OK, get_accessible_agencies())
+        return JsonResponse.create(StatusCode.OK, get_accessible_agencies(perm_level, perm_type))
 
     @app.route("/v1/list_all_agencies/", methods=["GET"])
     def list_all_agencies():

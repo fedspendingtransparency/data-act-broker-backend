@@ -1459,7 +1459,14 @@ Gets all CGACs/FRECs that the user has permissions for.
 `/v1/list_agencies/`
 
 ##### Request Params
-N/A
+- `perm_level` - a string indicating the permission level to filter on. Allowable values are:
+    - `reader` - include all agencies with affiliations
+    - `writer` - include all agencies with writer/editfabs affiliation or above
+    - `submitter` - include all agencies with submitter/fabs affiliation
+- `perm_type` - a string indicating the permission type to filter on. Allowable values are:
+    - `dabs` - include all agencies with dabs affiliations
+    - `fabs` - include all agencies with fabs affiliations
+    - `mixed` - include all agencies with dabs or fabs affiliation
 
 ##### Response (JSON)
 ```
