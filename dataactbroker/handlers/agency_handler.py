@@ -49,10 +49,9 @@ def get_accessible_agencies(perm_level='reader', perm_type='mixed'):
     """ List all CGAC and FREC Agencies user has DABS permissions for
 
         Args:
-            perm_level: only return agencies the user has 'reader', 'writer', or 'submitter' affiliations
-                        (Note: the higher the level, the more gets filtered out. Thus, the reader level includes all
-                        available agencies)
-            perm_type: only return agencies with either 'dabs', 'fabs', or 'mixed' affiliations
+            perm_level: only return agencies the user has at least 'reader', 'writer', or 'submitter' affiliations for
+            perm_type: filters results to agencies the user has 'dabs' or 'fabs' affiliations for. 'mixed' results in
+                       no filtering
 
         Returns:
             A dictionary containing a list of all cgacs and frecs the user has access to.
