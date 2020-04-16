@@ -4,8 +4,8 @@ from webargs.flaskparser import use_kwargs
 
 from dataactbroker.handlers.account_handler import (AccountHandler, json_for_user, list_user_emails,
                                                     list_submission_users)
-from dataactbroker.decorators import convert_to_submission_id
-from dataactbroker.permissions import requires_login, requires_submission_perms
+# from dataactbroker.decorators import convert_to_submission_id
+from dataactbroker.permissions import requires_login # requires_submission_perms
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 
