@@ -47,14 +47,15 @@ def add_user_routes(app, system_email, bcrypt):
         account_manager = AccountHandler(request, bcrypt=bcrypt)
         return account_manager.set_skip_guide()
 
-    @app.route("/v1/email_users/", methods=["POST"])
-    @convert_to_submission_id
-    @requires_submission_perms('reader')
-    @use_kwargs({
-        'email_template': webargs_fields.String(required=True),
-        'users': webargs_fields.List(webargs_fields.Int(), required=True)
-    })
-    def email_users(submission, email_template, users):
-        """ Sends email notifications to users that their submission is ready for review & publish viewing """
-        account_manager = AccountHandler(request, bcrypt=bcrypt)
-        return account_manager.email_users(submission, system_email, email_template, users)
+    # Commenting out due to issues with SES
+    # @app.route("/v1/email_users/", methods=["POST"])
+    # @convert_to_submission_id
+    # @requires_submission_perms('reader')
+    # @use_kwargs({
+    #     'email_template': webargs_fields.String(required=True),
+    #     'users': webargs_fields.List(webargs_fields.Int(), required=True)
+    # })
+    # def email_users(submission, email_template, users):
+    #     """ Sends email notifications to users that their submission is ready for review & publish viewing """
+    #     account_manager = AccountHandler(request, bcrypt=bcrypt)
+    #     return account_manager.email_users(submission, system_email, email_template, users)
