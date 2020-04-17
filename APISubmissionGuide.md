@@ -15,7 +15,7 @@ While the Submission API has been designed to be as easy to understand as possib
         curl -L -j -D - -b none 
             --cert max.crt 
             --key max.key 
-           https://piv.max.gov/cas/login?service=https://broker-api.usaspending.gov
+           https://serviceauth.max.gov/cas-cert/login?service=https://broker-api.usaspending.gov
    ```
     
 - **NOTE**: Do **NOT** end the above service parameter url with a "/"
