@@ -1459,7 +1459,14 @@ Gets all CGACs/FRECs that the user has permissions for.
 `/v1/list_agencies/`
 
 ##### Request Params
-N/A
+- `perm_level` - a string indicating the permission level to filter on. Allowable values are:
+    - `reader` - include all agencies with affiliations
+    - `writer` - include all agencies with writer/editfabs affiliation or above
+    - `submitter` - include all agencies with submitter/fabs affiliation
+- `perm_type` - a string indicating the permission type to filter on. Allowable values are:
+    - `dabs` - include all agencies with dabs affiliations
+    - `fabs` - include all agencies with fabs affiliations
+    - `mixed` - include all agencies with dabs or fabs affiliation
 
 ##### Response (JSON)
 ```
@@ -2133,7 +2140,7 @@ This endpoint returns a dictionary containing metadata about a table and a set o
     - `category` - the category of the rule (secondary: significance)
     - `impact` - the impact specified for this rule (secondary: significance)
     - `description` - the description of the rule
-- `order`: (string) the sort order. Defaults to `desc` if not provided. Valid values are:
+- `order`: (string) the sort order. Defaults to `asc` if not provided. Valid values are:
     - `desc`
     - `asc`
 
@@ -2432,6 +2439,7 @@ Possible HTTP Status Codes:
     - Invalid parameter
     - Missing required parameter
 - 401: Login required
+- 403: Permission denied, user does not have permission
 
 ### POST "/v1/save\_rule\_settings"
 This route saves an agency's rule settings. Note that all the rules associated with the file type and error type must be sent together. Additionally, the order of them determines their significance.
@@ -2499,6 +2507,7 @@ Possible HTTP Status Codes:
     - Missing required parameter
     - Invalid rules provided, or missing rules
 - 401: Login required
+- 403: Permission denied, user does not have permission
 
 ## Automated Tests
 
