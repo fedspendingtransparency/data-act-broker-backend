@@ -128,6 +128,7 @@ class ObjectClassProgramActivity(Base):
     tas = Column(Text, nullable=False, default=concat_tas)
     display_tas = Column(Text, default=concat_display_tas)
     tas_id = Column(Integer, nullable=True)
+    disaster_emergency_fund_code = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -213,6 +214,7 @@ class AwardFinancial(Base):
     display_tas = Column(Text, default=concat_display_tas)
     tas_id = Column(Integer, nullable=True, index=True)
     general_ledger_post_date = Column(Date)
+    disaster_emergency_fund_code = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -348,6 +350,7 @@ class CertifiedObjectClassProgramActivity(Base):
     tas = Column(Text, default=concat_tas)
     tas_id = Column(Integer)
     display_tas = Column(Text)
+    disaster_emergency_fund_code = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -419,6 +422,7 @@ class CertifiedAwardFinancial(Base):
     tas_id = Column(Integer)
     general_ledger_post_date = Column(Date)
     display_tas = Column(Text)
+    disaster_emergency_fund_code = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
