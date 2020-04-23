@@ -1219,7 +1219,7 @@ This endpoint lists submissions for all agencies for which the current user is a
 - `fabs`: (boolean) if the submissions listed should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
 - `filters`: (dict) additional filters to narrow the results returned by the endpoint. Possible filters are:
     - `submission_ids`: ([integer]) an array of integers or strings that limits the submission IDs returned to only the values listed in the array.
-    - `last_modified_range`: (dict) a start and end date for the last modified date range. Both must be provided if this filter is used.
+    - `last_modified_range`: (dict) a start and end date for the last modified date range. If either is not provided, the search is unbounded in that direction (e.g. if the end date is not provided, it finds all submissions that have been modified since the start date)
         - `start_date`: (string) the start date for the last modified date range (inclusive) (MM/DD/YYYY)
         - `end_date`: (string) the end date for the last modified date range (inclusive) (MM/DD/YYYY)
     - `agency_codes`: ([string]) CGAC and FREC codes
@@ -1459,7 +1459,14 @@ Gets all CGACs/FRECs that the user has permissions for.
 `/v1/list_agencies/`
 
 ##### Request Params
-N/A
+- `perm_level` - a string indicating the permission level to filter on. Allowable values are:
+    - `reader` - include all agencies with affiliations
+    - `writer` - include all agencies with writer/editfabs affiliation or above
+    - `submitter` - include all agencies with submitter/fabs affiliation
+- `perm_type` - a string indicating the permission type to filter on. Allowable values are:
+    - `dabs` - include all agencies with dabs affiliations
+    - `fabs` - include all agencies with fabs affiliations
+    - `mixed` - include all agencies with dabs or fabs affiliation
 
 ##### Response (JSON)
 ```
@@ -1532,46 +1539,6 @@ Example output:
     ]
 }
 ```
-
-#### POST "/v1/email\_users/"
-This endpoint sends an email of the specified template to the users provided.
-
-##### Body (JSON)
-
-```
-{
-  "submission_id": 1234,
-  "email_template": "review_submission",
-  "users": [1, 2]
-}
-```
-
-##### Body Description
-- `submission_id` - **required** - an integer representing the ID of the submission to email about
-- `email_template` - **required** - a string representing the type of template to use in the email. Currently, only the following templates exist (case-sensitive):
-    - `review_submission`
-- `users` - **required** - a list of integers representing the IDs of the users to send the emails to
-
-##### Response (JSON)
-```
-{
-    "message": "Emails successfully sent"
-}
-```
-
-##### Response Attributes
-- `message`: A message indicating that the emails were sent
-
-##### Errors
-Possible HTTP Status Codes:
-
-- 400:
-    - Missing parameters
-    - Submission does not exist
-    - Submission somehow is not associated with valid CGAC/FREC
-- 401: Login required
-- 403: Permission denied, user does not have permission to view this submission
-
 
 ## Generate Files
 ### POST "/v1/generate\_file/"
@@ -2173,7 +2140,7 @@ This endpoint returns a dictionary containing metadata about a table and a set o
     - `category` - the category of the rule (secondary: significance)
     - `impact` - the impact specified for this rule (secondary: significance)
     - `description` - the description of the rule
-- `order`: (string) the sort order. Defaults to `desc` if not provided. Valid values are:
+- `order`: (string) the sort order. Defaults to `asc` if not provided. Valid values are:
     - `desc`
     - `asc`
 
@@ -2472,6 +2439,7 @@ Possible HTTP Status Codes:
     - Invalid parameter
     - Missing required parameter
 - 401: Login required
+- 403: Permission denied, user does not have permission
 
 ### POST "/v1/save\_rule\_settings"
 This route saves an agency's rule settings. Note that all the rules associated with the file type and error type must be sent together. Additionally, the order of them determines their significance.
@@ -2539,6 +2507,7 @@ Possible HTTP Status Codes:
     - Missing required parameter
     - Invalid rules provided, or missing rules
 - 401: Login required
+- 403: Permission denied, user does not have permission
 
 ## Automated Tests
 

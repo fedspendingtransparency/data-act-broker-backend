@@ -193,7 +193,11 @@ def setup_submissions(sess, admin=False):
     rule_ab2 = RuleSql(rule_sql='', rule_label='B1', rule_error_message='second cross rule', query_name='',
                        file_id=FILE_TYPE_DICT_LETTER_ID['B'], target_file_id=FILE_TYPE_DICT_LETTER_ID['A'],
                        rule_severity_id=RULE_SEVERITY_DICT['warning'], rule_cross_file_flag=True, category='existence')
-    db_objects.extend([rule_a1, rule_a2, rule_ab1, rule_ab2])
+    # Adding a rule with the same rule label as another but different file
+    rule_b = RuleSql(rule_sql='', rule_label='B1', rule_error_message='extra cross rule', query_name='',
+                     file_id=FILE_TYPE_DICT_LETTER_ID['B'], target_file_id=None,
+                     rule_severity_id=RULE_SEVERITY_DICT['warning'], rule_cross_file_flag=False, category='existence')
+    db_objects.extend([rule_a1, rule_a2, rule_ab1, rule_ab2, rule_b])
 
     # Setup error metadata
     sub1_a1 = ErrorMetadata(job=sub1_a, original_rule_label=rule_a1.rule_label, occurrences=20,
@@ -208,6 +212,9 @@ def setup_submissions(sess, admin=False):
     sub1_ab2 = ErrorMetadata(job=sub1_ab, original_rule_label=rule_ab2.rule_label, occurrences=130,
                              file_type_id=rule_ab2.file_id, target_file_type_id=rule_ab2.target_file_id,
                              rule_failed=rule_ab2.rule_error_message, severity_id=rule_ab2.rule_severity_id)
+    sub1_b1 = ErrorMetadata(job=sub1_b, original_rule_label=rule_b.rule_label, occurrences=10,
+                            file_type_id=rule_b.file_id, target_file_type_id=rule_b.target_file_id,
+                            rule_failed=rule_b.rule_error_message, severity_id=rule_b.rule_severity_id)
     sub2_b1 = ErrorMetadata(job=sub2_b, original_rule_label='B2', occurrences=70,
                             file_type_id=FILE_TYPE_DICT_LETTER_ID['B'], target_file_type_id=None,
                             rule_failed='first B rule', severity_id=RULE_SEVERITY_DICT['warning'])
@@ -222,7 +229,7 @@ def setup_submissions(sess, admin=False):
                             file_type_id=FILE_TYPE_DICT_LETTER_ID['C'], target_file_type_id=None,
                             rule_failed='first rule', severity_id=RULE_SEVERITY_DICT['warning'])
 
-    db_objects.extend([sub1_a1, sub1_a2, sub1_ab1, sub1_ab2, sub2_b1, sub2_bc1, sub3_c1, sub3_c2])
+    db_objects.extend([sub1_a1, sub1_a2, sub1_ab1, sub1_ab2, sub1_b1, sub2_b1, sub2_bc1, sub3_c1, sub3_c2])
 
     # Setup certified error metadata
     cert_sub1_a1 = CertifiedErrorMetadata(job=sub1_a, original_rule_label='A1', occurrences=20,
@@ -274,6 +281,9 @@ def setup_submissions(sess, admin=False):
     setting_ab2 = RuleSetting(agency_code=None, rule_label=rule_ab2.rule_label, priority=2,
                               impact_id=RULE_IMPACT_DICT['high'], file_id=rule_ab2.file_id,
                               target_file_id=rule_ab2.target_file_id)
+    setting_b1 = RuleSetting(agency_code=None, rule_label=rule_b.rule_label, priority=2,
+                             impact_id=RULE_IMPACT_DICT['high'], file_id=rule_b.file_id,
+                             target_file_id=rule_b.target_file_id)
     # Flipping the priorities based on a specific agency
     setting_ab1_cgac = RuleSetting(agency_code=sub1.cgac_code, rule_label=rule_ab1.rule_label, priority=2,
                                    impact_id=RULE_IMPACT_DICT['low'], file_id=rule_ab1.file_id,
@@ -281,7 +291,7 @@ def setup_submissions(sess, admin=False):
     setting_ab2_cgac = RuleSetting(agency_code=sub1.cgac_code, rule_label=rule_ab2.rule_label, priority=1,
                                    impact_id=RULE_IMPACT_DICT['high'], file_id=rule_ab2.file_id,
                                    target_file_id=rule_ab2.target_file_id)
-    sess.add_all([setting_a1, setting_a2, setting_ab1, setting_ab2, setting_ab1_cgac, setting_ab2_cgac])
+    sess.add_all([setting_a1, setting_a2, setting_ab1, setting_ab2, setting_ab1_cgac, setting_ab2_cgac, setting_b1])
     sess.commit()
 
     user = agency_user if not admin else admin_user

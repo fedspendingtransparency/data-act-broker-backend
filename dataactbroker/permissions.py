@@ -197,6 +197,39 @@ def requires_agency_perms(perm):
     return inner
 
 
+def requires_agency_code_perms(perm):
+    """ Decorator that checks the current user's permissions and validates them against the agency code. It expects an
+         agency_code parameter on top of the function arguments.
+
+        Args:
+            perm: the type of permission we are checking for
+
+        Returns:
+            The args/kwargs that were initially provided
+
+        Raises:
+            ResponseException: If the user doesn't have permission to access the submission at the level requested
+                or no valid agency code was provided.
+    """
+    def inner(fn):
+        @requires_login
+        @wraps(fn)
+        def wrapped(*args, **kwargs):
+            req_args = webargs_parser.parse({
+                'agency_code': webargs_fields.String(missing=None)
+            })
+            # Ensure there is an agency_code
+            if req_args['agency_code'] is None:
+                raise ResponseException('Missing required parameter: agency_code', StatusCode.CLIENT_ERROR)
+
+            # Check permissions for the agency
+            if not current_user_can(perm, cgac_code=req_args['agency_code'], frec_code=req_args['agency_code']):
+                raise ResponseException("User does not have permissions for that agency", StatusCode.PERMISSION_DENIED)
+            return fn(*args, **kwargs)
+        return wrapped
+    return inner
+
+
 def requires_sub_agency_perms(perm):
     """ Decorator that checks the current user's permissions and validates them against the agency code. It expects an
          agency_code parameter on top of the function arguments.

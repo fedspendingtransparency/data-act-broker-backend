@@ -63,7 +63,8 @@ PUBLISH_STATUS = [
     LookupType(1, 'unpublished', 'Has not yet been moved to data store'),
     LookupType(2, 'published', 'Has been moved to data store'),
     LookupType(3, 'updated', 'Submission was updated after being published'),
-    LookupType(4, 'publishing', 'Submission is being published')
+    LookupType(4, 'publishing', 'Submission is being published'),
+    LookupType(5, 'reverting', 'Submission is being reverted to certified status')
 ]
 PUBLISH_STATUS_DICT = {item.name: item.id for item in PUBLISH_STATUS}
 PUBLISH_STATUS_DICT_ID = {item.id: item.name for item in PUBLISH_STATUS}
@@ -98,6 +99,9 @@ PERMISSION_SHORT_DICT = {item.name[0]: item.id for item in PERMISSION_TYPES}
 # These are split into DABS and FABS permissions but having DABS permissions gives read-access to FABS submissions
 DABS_PERMISSION_ID_LIST = [item.id for item in PERMISSION_TYPES[:3]]
 FABS_PERMISSION_ID_LIST = [item.id for item in PERMISSION_TYPES[3:]]
+# These are split into groups between DABS and FABS (not to be confused with just DABS writer/submitter)
+WRITER_ID_LIST = [item.id for item in PERMISSION_TYPES[1:]]
+SUBMITTER_ID_LIST = [item.id for item in [PERMISSION_TYPES[2], PERMISSION_TYPES[4]]]
 
 FIELD_TYPE = [
     LookupType(1, 'INT', 'integer type'),
