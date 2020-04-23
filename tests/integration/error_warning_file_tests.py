@@ -508,7 +508,7 @@ class ErrorWarningTests(BaseTestValidator):
                                  ' equal the negative sum of the corresponding'
                                  ' ObligationsIncurredByProgramObjectClass_CPE values in the award financial file (B).',
                 'Source Value Provided': 'obligationsincurredtotalbytas_cpe: 12000',
-                'Target Value Provided': 'obligations_incurred_by_pr_cpe_sum: -6000',
+                'Target Value Provided': 'obligations_incurred_by_pr_cpe_sum: 6000',
                 'Difference': '18000',
                 'Source Flex Field': '',
                 'Source Row Number': '5',
