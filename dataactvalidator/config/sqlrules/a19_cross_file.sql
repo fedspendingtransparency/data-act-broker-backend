@@ -18,7 +18,7 @@ WITH appropriation_a19_{0} AS
 SELECT
     approp.row_number AS "source_row_number",
     approp.obligations_incurred_total_cpe AS "source_value_obligations_incurred_total_cpe",
-    SUM(op.obligations_incurred_by_pr_cpe) * -1 AS "target_value_obligations_incurred_by_pr_cpe_sum",
+    SUM(op.obligations_incurred_by_pr_cpe) AS "target_value_obligations_incurred_by_pr_cpe_sum",
     approp.obligations_incurred_total_cpe - (SUM(op.obligations_incurred_by_pr_cpe) * -1) AS "difference",
     approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a19_{0} AS approp
