@@ -18,8 +18,8 @@ def test_success(database):
         transaction of a new award if it contains a unique combination of URI + AwardingSubTierAgencyCode when compared
         to currently published FABS data of the same RecordType. A non-aggregate record transaction is considered the
         initial transaction of a new award if it contains a unique combination of FAIN + AwardingSubTierAgencyCode when
-        compared to currently published FABS data of the same RecordType. This validation rule does not apply to delete
-        records (CorrectionDeleteIndicator = D.)
+        compared to currently published non-aggregate FABS records (RecordType = 2 or 3). This validation rule does not
+        apply to delete records (CorrectionDeleteIndicator = D.)
     """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique1', action_type='A', record_type=1,
                                                           correction_delete_indicatr=None)
@@ -50,8 +50,8 @@ def test_failure(database):
         initial transaction of a new award if it contains a unique combination of URI + AwardingSubTierAgencyCode when
         compared to currently published FABS data of the same RecordType. A non-aggregate record transaction is
         considered the initial transaction of a new award if it contains a unique combination of FAIN +
-        AwardingSubTierAgencyCode when compared to currently published FABS data of the same RecordType. This validation
-        rule does not apply to delete records (CorrectionDeleteIndicator = D.)
+        AwardingSubTierAgencyCode when compared to currently published non-aggregate FABS records (RecordType = 2 or 3).
+        This validation rule does not apply to delete records (CorrectionDeleteIndicator = D.)
     """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique1', action_type='b', record_type=1,

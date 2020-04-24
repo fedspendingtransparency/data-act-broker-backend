@@ -3,7 +3,7 @@
 -- of a new award if it contains a unique combination of URI + AwardingSubTierAgencyCode when compared to currently
 -- published FABS data of the same RecordType. A non-aggregate record transaction is considered the initial transaction
 -- of a new award if it contains a unique combination of FAIN + AwardingSubTierAgencyCode when compared to currently
--- published FABS data of the same RecordType. This validation rule does not apply to delete records
+-- published non-aggregate FABS records (RecordType = 2 or 3). This validation rule does not apply to delete records
 -- (CorrectionDeleteIndicator = D.)
 SELECT
     dafa.row_number,
