@@ -1,7 +1,7 @@
 -- Unique FAIN and/or URI from file D2 should exist in file C, except for:
 -- 1) Loans (AssistanceType = 08 or 09) with OriginalLoanSubsidyCost <= 0 in D2; or
 -- 2) Non-Loans with FederalActionObligation = 0 in D2.
--- FAIN may be null for aggregated records. URI may be null for non-aggregated records.
+-- FAIN should be null for aggregated records. URI may be null for non-aggregated records.
 WITH award_financial_assistance_c9_{0} AS
     (SELECT submission_id,
         row_number,
@@ -9,7 +9,8 @@ WITH award_financial_assistance_c9_{0} AS
         original_loan_subsidy_cost,
         fain,
         uri,
-        assistance_type
+        assistance_type,
+        record_type
     FROM award_financial_assistance
     WHERE submission_id = {0}),
 award_financial_c9_{0} AS
@@ -33,12 +34,21 @@ WHERE ((afa.assistance_type NOT IN ('07', '08')
             AND COALESCE(CAST(afa.original_loan_subsidy_cost AS NUMERIC), 0) > 0
         )
     )
-    AND (afa.fain IS NOT NULL
-        OR afa.uri IS NOT NULL
-    )
-    AND NOT EXISTS (
-        SELECT 1
-        FROM award_financial_c9_{0} AS af
-        WHERE UPPER(COALESCE(afa.fain, '')) = UPPER(COALESCE(af.fain, ''))
-            AND UPPER(COALESCE(afa.uri, '')) = UPPER(COALESCE(af.uri, ''))
+    AND ((afa.fain IS NOT NULL
+            AND afa.record_type IN ('2', '3')
+            AND NOT EXISTS (
+                SELECT 1
+                FROM award_financial_c9_{0} AS af
+                WHERE UPPER(af.fain) = UPPER(afa.fain)
+            )
+        )
+        OR (afa.uri IS NOT NULL
+            AND afa.record_type = '1'
+            AND NOT EXISTS (
+                SELECT 1
+                FROM award_financial_c9_{0} AS af
+                WHERE UPPER(af.uri) = UPPER(afa.uri)
+
+            )
+        )
     );
