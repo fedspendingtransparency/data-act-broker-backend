@@ -512,6 +512,7 @@ class AwardFinancialAssistance(Base):
     place_of_perform_county_co = Column(Text)
     place_of_perform_country_n = Column(Text)
     legal_entity_country_name = Column(Text)
+    place_of_performance_scope = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -898,6 +899,7 @@ class CertifiedAwardFinancialAssistance(Base):
     place_of_perform_county_co = Column(Text)
     place_of_perform_country_n = Column(Text)
     legal_entity_country_name = Column(Text)
+    place_of_performance_scope = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
