@@ -271,7 +271,7 @@ def validator_process_job(job_id, agency_code, is_retry=False):
         }
 
         if job:
-            error_data.update({'submission_id': job.submission_id, 'file_type': job.file_type.name})
+            error_data.update({'submission_id': job.submission_id, 'file_type': job.file_type})
             logger.error(error_data)
 
             sess.refresh(job)
