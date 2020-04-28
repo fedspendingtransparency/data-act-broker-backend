@@ -1582,6 +1582,8 @@ Possible HTTP Status Codes not covered by `check_generation_status` documentatio
 - 400:
     - Start and end date not provided for D1/D2 generation
     - Start and end date not formatted properly
+    - Prerequisite jobs are not finished
+    - Job requested is already running
 
 
 ### POST "/v1/generate\_detached\_file/"
