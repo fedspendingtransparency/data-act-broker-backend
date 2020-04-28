@@ -5,8 +5,8 @@ from unittest.mock import Mock
 
 from dataactbroker.helpers import generation_helper
 from dataactbroker.helpers.generation_helper import (
-    check_file_generation, check_generation_prereqs, copy_file_generation_to_job, start_d_generation,
-    retrieve_cached_file_generation)
+    check_file_generation, check_generation_prereqs, check_generation_running,
+    copy_file_generation_to_job, start_d_generation, retrieve_cached_file_generation)
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
@@ -513,6 +513,29 @@ def test_check_generation_prereqs_ef_not_finished(database):
 
 
 @pytest.mark.usefixtures("job_constants")
+def test_check_generation_ef_in_progress(database):
+    """ Tests a set of conditions that has cross-file still waiting, fail the generation check for E/F files. """
+    sess = database.session
+
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    e_job = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['validation'],
+                       file_type_id=FILE_TYPE_DICT['executive_compensation'],
+                       job_status_id=JOB_STATUS_DICT['ready'], number_of_errors=0, number_of_warnings=0,
+                       error_message=None)
+    f_job = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['file_upload'],
+                       file_type_id=FILE_TYPE_DICT['sub_award'],
+                       job_status_id=JOB_STATUS_DICT['running'], number_of_errors=0, number_of_warnings=0,
+                       error_message=None)
+    sess.add_all([sub, e_job, f_job])
+    sess.commit()
+
+    e_can_generate = check_generation_prereqs(sub.submission_id, 'E')
+    assert e_can_generate is False
+    f_can_generate = check_generation_prereqs(sub.submission_id, 'F')
+    assert f_can_generate is False
+
+
+@pytest.mark.usefixtures("job_constants")
 def test_check_generation_prereqs_ef_has_errors(database):
     """ Tests a set of conditions that has an error in cross-file, fail the generation check for E/F files. """
     sess = database.session
@@ -571,6 +594,27 @@ def test_check_generation_prereqs_d_not_finished(database):
     sess.commit()
 
     can_generate = check_generation_prereqs(sub.submission_id, 'D1')
+    assert can_generate is False
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_check_generation_d_in_progress(database):
+    """ Tests a set of conditions that has one of the D1 files already generating, prevent D1 file generation. """
+    sess = database.session
+
+    sub = SubmissionFactory(submission_id=1, d2_submission=False)
+    job_1 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['file_upload'],
+                       file_type_id=FILE_TYPE_DICT['award_procurement'], job_status_id=JOB_STATUS_DICT['running'],
+                       number_of_errors=0, number_of_warnings=0, error_message=None)
+    job_2 = JobFactory(submission_id=sub.submission_id, job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                       file_type_id=FILE_TYPE_DICT['award'], job_status_id=JOB_STATUS_DICT['running'],
+                       number_of_errors=0, number_of_warnings=0, error_message=None)
+    sess.add_all([sub, job_1, job_2])
+    sess.commit()
+
+    can_generate = check_generation_running(sub.submission_id, 'D1')
+    assert can_generate is False
+    can_generate = check_generation_running(sub.submission_id, 'D2')
     assert can_generate is False
 
 

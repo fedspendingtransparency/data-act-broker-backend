@@ -402,6 +402,26 @@ def check_generation_prereqs(submission_id, file_type):
     return unfinished_prereqs == 0
 
 
+def check_generation_running(submission_id, file_type):
+    """ Make sure the generation jobs for this file type are not already in progress.
+
+        Args:
+            submission_id: the submission id for which we're checking file generation running jobs
+            file_type: the type of file being generated
+
+        Returns:
+            A boolean indicating if the job does not have any generation jobs in progress
+            (True if the job is clear to start)
+    """
+    sess = GlobalDB.db().session
+    generation_jobs = [lookups.JOB_TYPE_DICT['file_upload'], lookups.JOB_TYPE_DICT['csv_record_validation']]
+    progress_jobs = sess.query(Job).filter(Job.submission_id == submission_id,
+                                           Job.file_type_id == lookups.FILE_TYPE_DICT_LETTER_ID[file_type],
+                                           Job.job_type_id.in_(generation_jobs),
+                                           Job.job_status_id == lookups.JOB_STATUS_DICT['running']).count()
+    return progress_jobs == 0
+
+
 def copy_file_generation_to_job(job, file_generation, is_local):
     """ Copy cached FileGeneration data to a Job requesting a file.
 
@@ -429,6 +449,9 @@ def copy_file_generation_to_job(job, file_generation, is_local):
     if not file_generation.file_path:
         sess.commit()
         return
+
+    # Marking as running to prevent users interrupting this step
+    mark_job_status(job.job_id, 'running')
 
     # Generate file path for child Job's filename
     filepath = CONFIG_BROKER['broker_files'] if g.is_local else "{}/".format(str(job.submission_id))

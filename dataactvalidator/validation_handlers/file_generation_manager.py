@@ -63,6 +63,8 @@ class FileGenerationManager:
         log_data = {'message': 'Finished file {} generation'.format(self.file_type), 'message_type': 'ValidatorInfo',
                     'file_type': self.file_type, 'file_path': file_path}
         if self.file_generation:
+            if self.job:
+                mark_job_status(self.job.job_id, 'running')
             self.generate_d_file(file_path)
 
             log_data.update({

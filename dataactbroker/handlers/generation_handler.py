@@ -69,6 +69,10 @@ def generate_file(submission, file_type, start, end, agency_type, file_format):
     if not generation_helper.check_generation_prereqs(submission.submission_id, file_type):
         return JsonResponse.error(ResponseException('Must wait for completion of prerequisite validation job',
                                                     StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
+    # Check to make sure the generation jobs aren't already running
+    if not generation_helper.check_generation_running(submission.submission_id, file_type):
+        return JsonResponse.error(ResponseException('Must wait for completion of current generation job',
+                                                    StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
     try:
         if file_type in ['D1', 'D2']:
             generation_helper.start_d_generation(job, start, end, agency_type, file_format=file_format)
