@@ -19,7 +19,7 @@ def test_equal_fain(database):
     tas = _TAS
     af = AwardFinancialFactory(tas=tas, fain='abc', uri=None, allocation_transfer_agency=None)
     afa = AwardFinancialAssistanceFactory(tas=tas, submisson_id=af.submission_id, fain='aBc', uri=None,
-                                          allocation_transfer_agency=None)
+                                          allocation_transfer_agency=None, record_type='2')
 
     errors = number_of_errors(_FILE, database, models=[af, afa])
     assert errors == 0
@@ -30,7 +30,7 @@ def test_equal_uri(database):
     tas = _TAS
     af = AwardFinancialFactory(tas=tas, fain=None, uri='xyz', allocation_transfer_agency=None)
     afa = AwardFinancialAssistanceFactory(tas=tas, submisson_id=af.submission_id, fain=None, uri='xYz',
-                                          allocation_transfer_agency=None)
+                                          allocation_transfer_agency=None, record_type='1')
 
     errors = number_of_errors(_FILE, database, models=[af, afa])
     assert errors == 0
@@ -49,12 +49,23 @@ def test_null_uri_fain(database):
     assert errors == 0
 
 
-def test_both_fain_and_url_supplied(database):
-    """ Tests File C (award financial) having both uri and fain populated. """
+def test_non_matching_aggregate_uri(database):
+    """ Tests File C (award financial) having uri not matching in aggregate but fain matching. """
     tas = _TAS
-    af = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency=None)
+    af = AwardFinancialFactory(tas=tas, fain='abc', uri=None, allocation_transfer_agency=None)
     afa = AwardFinancialAssistanceFactory(tas=tas, submisson_id=af.submission_id, fain='aBc', uri='xYz',
-                                          allocation_transfer_agency=None)
+                                          allocation_transfer_agency=None, record_type='3')
+
+    errors = number_of_errors(_FILE, database, models=[af, afa])
+    assert errors == 0
+
+
+def test_non_matching_non_aggregate_fain(database):
+    """ Tests File C (award financial) having fain not matching in non-aggregate but uri matching. """
+    tas = _TAS
+    af = AwardFinancialFactory(tas=tas, fain=None, uri='xyz', allocation_transfer_agency=None)
+    afa = AwardFinancialAssistanceFactory(tas=tas, submisson_id=af.submission_id, fain='aBc', uri='xYz',
+                                          allocation_transfer_agency=None, record_type='1')
 
     errors = number_of_errors(_FILE, database, models=[af, afa])
     assert errors == 0
@@ -65,18 +76,18 @@ def test_unequal_fain(database):
     tas = _TAS
     af = AwardFinancialFactory(tas=tas, fain='abc', uri=None, allocation_transfer_agency=None)
     afa = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain='xyz', uri=None,
-                                          allocation_transfer_agency=None)
+                                          allocation_transfer_agency=None, record_type='2')
 
     errors = number_of_errors(_FILE, database, models=[af, afa])
     assert errors == 1
 
 
 def test_unequal_uri(database):
-    """ Tests File C (award financial) uri different than File D2 (award financial assistance) fain. """
+    """ Tests File C (award financial) uri different than File D2 (award financial assistance) uri. """
     tas = _TAS
     af = AwardFinancialFactory(tas=tas, fain=None, uri='abc', allocation_transfer_agency=None)
     afa = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain=None, uri='xyz',
-                                          allocation_transfer_agency=None)
+                                          allocation_transfer_agency=None, record_type='1')
 
     errors = number_of_errors(_FILE, database, models=[af, afa])
     assert errors == 1
@@ -89,33 +100,22 @@ def test_unequal_fain_null(database):
     tas = _TAS
     af = AwardFinancialFactory(tas=tas, fain='abc', uri=None, allocation_transfer_agency=None)
     afa = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain=None, uri=None,
-                                          allocation_transfer_agency=None)
+                                          allocation_transfer_agency=None, record_type='3')
 
     errors = number_of_errors(_FILE, database, models=[af, afa])
     assert errors == 1
 
 
 def test_unequal_uri_null(database):
-    """ Tests NULL File C (award financial) uri compared to a non-NULL uri in File D2 (award financial assistance). """
+    """ Tests NULL File C (award financial) fain/uri compared to filled in File D2 (award financial assistance). """
     tas = _TAS
     af = AwardFinancialFactory(tas=tas, fain=None, uri=None, allocation_transfer_agency=None)
-    afa = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain=None, uri='abc',
-                                          allocation_transfer_agency=None)
+    afa_1 = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain=None, uri='abc',
+                                            allocation_transfer_agency=None, record_type='1')
+    afa_2 = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain='abc', uri=None,
+                                            allocation_transfer_agency=None, record_type='3')
 
-    errors = number_of_errors(_FILE, database, models=[af, afa])
-    assert errors == 0
-
-
-def test_equal_fain_unequal_uri(database):
-    """ Tests equal fain and unequal uri values between File C (award financial) and File D2
-        (award financial assistance).
-    """
-    tas = _TAS
-    af = AwardFinancialFactory(tas=tas, fain='abc', uri=None, allocation_transfer_agency=None)
-    afa = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain='aBc', uri='xyz',
-                                          allocation_transfer_agency=None)
-
-    errors = number_of_errors(_FILE, database, models=[af, afa])
+    errors = number_of_errors(_FILE, database, models=[af, afa_1, afa_2])
     assert errors == 0
 
 
@@ -124,10 +124,10 @@ def test_matching_allocation_transfer_agency(database):
         if it matches AID.
     """
     tas = _TAS
-    af = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency='good',
+    af = AwardFinancialFactory(tas=tas, fain='abc', uri=None, allocation_transfer_agency='good',
                                agency_identifier='good', transaction_obligated_amou='12345')
-    afa = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain='123', uri='456',
-                                          allocation_transfer_agency=None)
+    afa = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain='123', uri=None,
+                                          allocation_transfer_agency=None, record_type='2')
 
     errors = number_of_errors(_FILE, database, models=[af, afa])
     assert errors == 1
@@ -136,10 +136,22 @@ def test_matching_allocation_transfer_agency(database):
 def test_ignore_when_different_ata(database):
     """ Tests that rule is not applied when allocation transfer agency does not match agency id. """
     tas = _TAS
-    af = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency='good',
+    af = AwardFinancialFactory(tas=tas, fain='abc', uri=None, allocation_transfer_agency='good',
                                agency_identifier='bad', transaction_obligated_amou='12345')
-    afa = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain='123', uri='456',
-                                          allocation_transfer_agency=None)
+    afa = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain='123', uri=None,
+                                          allocation_transfer_agency=None, record_type='3')
+
+    errors = number_of_errors(_FILE, database, models=[af, afa])
+    assert errors == 0
+
+
+def test_ignore_when_null_transaction_obligated(database):
+    """ Tests that rule is not applied when allocation transfer agency does not match agency id. """
+    tas = _TAS
+    af = AwardFinancialFactory(tas=tas, fain='abc', uri=None, allocation_transfer_agency='good',
+                               agency_identifier='good', transaction_obligated_amou=None)
+    afa = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain='123', uri=None,
+                                          allocation_transfer_agency=None, record_type='2')
 
     errors = number_of_errors(_FILE, database, models=[af, afa])
     assert errors == 0

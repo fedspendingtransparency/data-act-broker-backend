@@ -10,7 +10,10 @@ SELECT
     uri AS "uniqueid_URI"
 FROM award_financial
 WHERE submission_id = {0}
-    AND piid IS NOT NULL
-    AND (fain IS NOT NULL
-        OR uri IS NOT NULL
+    AND (piid IS NOT NULL
+        AND (fain IS NOT NULL
+            OR uri IS NOT NULL
+        )
+        OR (fain IS NOT NULL
+            AND uri IS NOT NULL)
     );
