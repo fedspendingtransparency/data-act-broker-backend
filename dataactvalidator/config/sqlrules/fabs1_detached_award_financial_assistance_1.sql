@@ -7,7 +7,5 @@ SELECT
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
     AND record_type IN (2, 3)
-    AND (fain = ''
-        OR fain IS NULL
-    )
+    AND COALESCE(fain, '') = ''
     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';

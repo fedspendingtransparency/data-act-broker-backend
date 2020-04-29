@@ -16,9 +16,9 @@ def test_success(database):
     """ ActionType should be B, C, or D for transactions that modify existing awards. For aggregate (RecordType = 1)
         record transactions, we consider a record a modification if its combination of URI + AwardingSubTierAgencyCode
         matches an existing published FABS record of the same RecordType. For non-aggregate (RecordType = 2 or 3) record
-        transactions, we consider a record a modification if its combination of RecordType + FAIN + AwardingSubTierCode
-        matches an existing published FABS record of the same RecordType. This validation rule does not apply to delete
-        records (CorrectionDeleteIndicator = D.)
+        transactions, we consider a record a modification if its combination of FAIN + AwardingSubTierCode matches those
+        of an existing published non-aggregate FABS record (RecordType = 2 or 3). This validation rule does not apply to
+        delete records (CorrectionDeleteIndicator = D.)
     """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique1', action_type='B',
                                                           correction_delete_indicatr=None)
@@ -47,9 +47,9 @@ def test_failure(database):
     """ Fail ActionType should be B, C, or D for transactions that modify existing awards. For aggregate
         (RecordType = 1) record transactions, we consider a record a modification if its combination of URI +
         AwardingSubTierAgencyCode matches an existing published FABS record of the same RecordType. For non-aggregate
-        (RecordType = 2 or 3) record transactions, we consider a record a modification if its combination of
-        RecordType + FAIN + AwardingSubTierCode matches an existing published FABS record of the same RecordType. This
-        validation rule does not apply to delete records (CorrectionDeleteIndicator = D.)
+        (RecordType = 2 or 3) record transactions, we consider a record a modification if its combination of FAIN +
+        AwardingSubTierCode matches those of an existing published non-aggregate FABS record (RecordType = 2 or 3).
+        This validation rule does not apply to delete records (CorrectionDeleteIndicator = D.)
     """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique1', action_type='a',
