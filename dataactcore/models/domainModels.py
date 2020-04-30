@@ -236,12 +236,14 @@ class SF133(Base):
     line = Column(Integer, nullable=False)
     amount = Column(Numeric, nullable=False, default=0, server_default="0")
     tas_id = Column(Integer, nullable=True)
+    disaster_emergency_fund_code = Column(Text, index=True)
 
 Index("ix_sf_133_tas_group",
       SF133.tas,
       SF133.fiscal_year,
       SF133.period,
       SF133.line,
+      SF133.disaster_emergency_fund_code,
       unique=True)
 
 
