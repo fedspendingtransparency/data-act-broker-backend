@@ -352,6 +352,10 @@ class ValidationManager:
 
         # Adding formatting errors to error file
         format_error_df = process_formatting_errors(self.short_rows, self.long_rows, self.report_headers)
+        for index, row in format_error_df.iterrows():
+            self.error_list.record_row_error(self.job.job_id, self.file_name, row['Field Name'],
+                                             row['error_type'], row['Row Number'], row['Rule Label'],
+                                             self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
         format_error_df.to_csv(self.error_file_path, columns=self.report_headers, index=False, quoting=csv.QUOTE_ALL,
                                mode='a', header=False)
 
