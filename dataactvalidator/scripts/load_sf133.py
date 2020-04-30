@@ -73,7 +73,7 @@ def fill_blank_sf133_lines(data):
     pivot_idx = (
         'created_at', 'updated_at', 'agency_identifier', 'allocation_transfer_agency', 'availability_type_code',
         'beginning_period_of_availa', 'ending_period_of_availabil', 'main_account_code', 'sub_account_code', 'tas',
-        'fiscal_year', 'period', 'display_tas')
+        'fiscal_year', 'period', 'display_tas', 'disaster_emergency_fund_code')
 
     data = pd.pivot_table(data, values='amount', index=pivot_idx, columns=['line']).reset_index()
     data = data.fillna(value=0.0)
@@ -192,7 +192,8 @@ def clean_sf133_data(filename, sf133_data):
          "fiscal_year": "fiscal_year",
          "period": "period",
          "line_num": "line",
-         "amount_summed": "amount"},
+         "amount_summed": "amount",
+         "defc": "disaster_emergency_fund_code"},
         {"allocation_transfer_agency": {"pad_to_length": 3},
          "agency_identifier": {"pad_to_length": 3},
          "main_account_code": {"pad_to_length": 4},
