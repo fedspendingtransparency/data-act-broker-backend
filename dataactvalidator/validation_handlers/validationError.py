@@ -30,17 +30,22 @@ class ValidationError:
     fileTypeError = 12
     fieldFormatErrorMsg = 'Date should follow the YYYYMMDD format.'
     fieldFormatError = 13
+    blankFileErrorMsg = 'File does not contain data. For files A and B, this must be addressed prior to certification.'\
+                        ' Blank file C does not prevent certification.'
+    blankFileError = 14
     # Create dict of error types
     errorDict = {typeError: typeErrorMsg, requiredError: requiredErrorMsg, valueError: valueErrorMsg,
                  headerError: headerErrorMsg, readError: readErrorMsg, writeError: writeErrorMsg,
                  unknownError: unknownErrorMsg, singleRow: singleRowMsg, jobError: jobErrorMsg,
                  lengthError: lengthErrorMsg, encodingError: encodingErrorMsg, rowCountError: rowCountErrorMsg,
-                 fileTypeError: fileTypeErrorMsg, fieldFormatError: fieldFormatErrorMsg}
+                 fileTypeError: fileTypeErrorMsg, fieldFormatError: fieldFormatErrorMsg,
+                 blankFileError: blankFileErrorMsg}
     errorTypeDict = {typeError: 'type_error', requiredError: 'required_error', valueError: 'value_error',
                      headerError: 'header_error', readError: 'read_error', writeError: 'write_error',
                      unknownError: 'unknown_error', singleRow: 'single_row_error', jobError: 'job_error',
                      lengthError: 'length_error', encodingError: 'encoding_error', rowCountError: 'row_count_error',
-                     fileTypeError: 'file_type_error', fieldFormatError: 'field_format_error'}
+                     fileTypeError: 'file_type_error', fieldFormatError: 'field_format_error',
+                     blankFileError: 'blank_file_error'}
 
     @staticmethod
     def get_error_message(error_type):
