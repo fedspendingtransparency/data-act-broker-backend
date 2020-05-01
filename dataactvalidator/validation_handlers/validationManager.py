@@ -76,6 +76,7 @@ class ValidationManager:
         self.error_file_path = None
         self.warning_file_name = None
         self.warning_file_path = None
+        self.has_data = False
 
         # Schema info
         self.csv_schema = {}
@@ -376,6 +377,34 @@ class ValidationManager:
         if file_row_count != self.total_rows:
             raise ResponseException('', StatusCode.CLIENT_ERROR, None, ValidationError.rowCountError)
 
+        if self.file_type.file_type_id in (FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
+                                           FILE_TYPE_DICT['award_financial']) \
+                and not self.has_data and len(self.short_rows) == 0 and len(self.long_rows) == 0:
+            if self.file_type.file_type_id == FILE_TYPE_DICT['award_financial']:
+                written_file = self.warning_file_path
+                severity = RULE_SEVERITY_DICT['warning']
+            else:
+                written_file = self.error_file_path
+                severity = RULE_SEVERITY_DICT['fatal']
+            empty_file = {
+                'Unique ID': '',
+                'Field Name': 'Blank File',
+                'Error Message': ValidationError.blankFileErrorMsg,
+                'Value Provided': '',
+                'Expected Value': '',
+                'Difference': '',
+                'Flex Field': '',
+                'Row Number': None,
+                'Rule Label': 'DABSBLANK',
+                'error_type': ValidationError.blankFileError
+            }
+            empty_file_df = pd.DataFrame([empty_file], columns=list(self.report_headers + ['error_type']))
+            self.error_list.record_row_error(self.job.job_id, self.file_name, empty_file['Field Name'],
+                                             empty_file['error_type'], empty_file['Row Number'],
+                                             empty_file['Rule Label'], self.file_type.file_type_id, None, severity)
+            empty_file_df.to_csv(written_file, columns=self.report_headers, index=False, quoting=csv.QUOTE_ALL,
+                                 mode='a', header=False)
+
         loading_duration = (datetime.now() - loading_start).total_seconds()
         logger.info({
             'message': 'Completed data loading {}'.format(self.log_str),
@@ -456,6 +485,7 @@ class ValidationManager:
             empty_file = chunk_df.empty
 
         if not empty_file:
+            self.has_data = True
             if self.is_fabs:
                 # create a list of all required/type labels for FABS
                 labels = sess.query(ValidationLabel).all()
