@@ -47,6 +47,61 @@ def test_list_agencies_limits(domain_app, database):
     assert res['frec_agency_list'][0]['frec_code'] == frec.frec_code
 
 
+@pytest.mark.usefixtures("user_constants")
+def test_list_agencies_perm_params(domain_app, database):
+    """ Users should be able to filter their affiliations based on the arguments provided """
+    user = UserFactory()
+    r_cgac = CGACFactory()
+    w_cgac = CGACFactory()
+    s_frec_cgac = CGACFactory()
+    s_frec = FRECFactory(cgac=s_frec_cgac)
+    e_frec_cgac = CGACFactory()
+    e_frec = FRECFactory(cgac=e_frec_cgac)
+    f_cgac = CGACFactory()
+    user.affiliations = [UserAffiliation(cgac=r_cgac, frec=None, permission_type_id=PERMISSION_SHORT_DICT['r']),
+                         UserAffiliation(cgac=w_cgac, frec=None, permission_type_id=PERMISSION_SHORT_DICT['w']),
+                         UserAffiliation(cgac=None, frec=s_frec, permission_type_id=PERMISSION_SHORT_DICT['s']),
+                         UserAffiliation(cgac=None, frec=e_frec, permission_type_id=PERMISSION_SHORT_DICT['e']),
+                         UserAffiliation(cgac=f_cgac, frec=None, permission_type_id=PERMISSION_SHORT_DICT['f'])]
+    database.session.add_all([r_cgac, w_cgac, s_frec_cgac, s_frec, e_frec_cgac, e_frec, f_cgac])
+    database.session.commit()
+
+    g.user = user
+
+    def call_list_agencies(perm_level='reader', perm_type='mixed'):
+        result = domain_app.get('/v1/list_agencies/?perm_level={}&perm_type={}'.format(perm_level, perm_type))\
+            .data.decode('UTF-8')
+        resp = json.loads(result)
+        cgac_codes = [agency['cgac_code'] for agency in resp['cgac_agency_list']]
+        frec_codes = [agency['frec_code'] for agency in resp['frec_agency_list']]
+        return cgac_codes, frec_codes
+
+    default_cgacs, default_frecs = call_list_agencies()
+    assert {r_cgac.cgac_code, w_cgac.cgac_code, f_cgac.cgac_code} == set(default_cgacs)
+    assert {s_frec.frec_code, e_frec.frec_code} == set(default_frecs)
+
+    writer_cgacs, writer_frecs = call_list_agencies(perm_level='writer')
+    assert {w_cgac.cgac_code, f_cgac.cgac_code} == set(writer_cgacs)
+    assert {s_frec.frec_code, e_frec.frec_code} == set(writer_frecs)
+
+    submitter_cgacs, submitter_frecs = call_list_agencies(perm_level='submitter')
+    assert {f_cgac.cgac_code} == set(submitter_cgacs)
+    assert {s_frec.frec_code} == set(submitter_frecs)
+
+    dabs_cgacs, dabs_frecs = call_list_agencies(perm_type='dabs')
+    assert {r_cgac.cgac_code, w_cgac.cgac_code} == set(dabs_cgacs)
+    assert {s_frec.frec_code} == set(dabs_frecs)
+
+    fabs_cgacs, fabs_frecs = call_list_agencies(perm_type='fabs')
+    assert {f_cgac.cgac_code} == set(fabs_cgacs)
+    assert {e_frec.frec_code} == set(fabs_frecs)
+
+    # mix
+    mix_cgacs, mix_frecs = call_list_agencies(perm_level='submitter', perm_type='fabs')
+    assert {f_cgac.cgac_code} == set(mix_cgacs)
+    assert set() == set(mix_frecs)
+
+
 def test_list_agencies_superuser(domain_app, database):
     """ All agencies should be visible to website admins """
     user = UserFactory(website_admin=True)

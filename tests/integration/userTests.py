@@ -68,44 +68,44 @@ class UserTests(BaseTestAPI):
             user = sess.query(User).filter(User.email == self.test_users['agency_user']).one()
         self.assertTrue(user.skip_guide)
 
-    def test_email_users(self):
-        """ Test email users """
-        self.login_user()
-        contents = {"users": [self.agency_user_id], "submission_id": self.submission_id,
-                    "email_template": "review_submission"}
-        response = self.app.post_json("/v1/email_users/", contents, headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.OK, "Emails successfully sent")
-
-        # User without proper permissions
-        self.login_user(username=self.test_users['editfabs_user'])
-        contents = {"users": [self.agency_user_id], "submission_id": self.submission_id,
-                    "email_template": "review_submission"}
-        response = self.app.post_json("/v1/email_users/", contents, expect_errors=True,
-                                      headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.PERMISSION_DENIED)
-
-        # missing request params
-        self.login_user()
-        bad_input = {"users": [self.agency_user_id]}
-        response = self.app.post_json("/v1/email_users/", bad_input, expect_errors=True,
-                                      headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.CLIENT_ERROR)
-
-        # invalid submission id
-        bad_input = {"users": [self.agency_user_id], "submission_id": -1}
-        response = self.app.post_json("/v1/email_users/", bad_input, expect_errors=True,
-                                      headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.CLIENT_ERROR)
-
-        # invalid user id
-        bad_input = {"users": [-1], "submission_id": self.submission_id, "email_template": "review_submission"}
-        response = self.app.post_json("/v1/email_users/", bad_input, expect_errors=True,
-                                      headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.INTERNAL_ERROR)
-
-        # invalid email template
-        bad_input = {"users": [self.agency_user_id], "submission_id": self.submission_id,
-                     "email_template": "not_a_real_template"}
-        response = self.app.post_json("/v1/email_users/", bad_input, expect_errors=True,
-                                      headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.INTERNAL_ERROR)
+    # def test_email_users(self):
+    #     """ Test email users """
+    #     self.login_user()
+    #     contents = {"users": [self.agency_user_id], "submission_id": self.submission_id,
+    #                 "email_template": "review_submission"}
+    #     response = self.app.post_json("/v1/email_users/", contents, headers={"x-session-id": self.session_id})
+    #     self.check_response(response, StatusCode.OK, "Emails successfully sent")
+    #
+    #     # User without proper permissions
+    #     self.login_user(username=self.test_users['editfabs_user'])
+    #     contents = {"users": [self.agency_user_id], "submission_id": self.submission_id,
+    #                 "email_template": "review_submission"}
+    #     response = self.app.post_json("/v1/email_users/", contents, expect_errors=True,
+    #                                   headers={"x-session-id": self.session_id})
+    #     self.check_response(response, StatusCode.PERMISSION_DENIED)
+    #
+    #     # missing request params
+    #     self.login_user()
+    #     bad_input = {"users": [self.agency_user_id]}
+    #     response = self.app.post_json("/v1/email_users/", bad_input, expect_errors=True,
+    #                                   headers={"x-session-id": self.session_id})
+    #     self.check_response(response, StatusCode.CLIENT_ERROR)
+    #
+    #     # invalid submission id
+    #     bad_input = {"users": [self.agency_user_id], "submission_id": -1}
+    #     response = self.app.post_json("/v1/email_users/", bad_input, expect_errors=True,
+    #                                   headers={"x-session-id": self.session_id})
+    #     self.check_response(response, StatusCode.CLIENT_ERROR)
+    #
+    #     # invalid user id
+    #     bad_input = {"users": [-1], "submission_id": self.submission_id, "email_template": "review_submission"}
+    #     response = self.app.post_json("/v1/email_users/", bad_input, expect_errors=True,
+    #                                   headers={"x-session-id": self.session_id})
+    #     self.check_response(response, StatusCode.INTERNAL_ERROR)
+    #
+    #     # invalid email template
+    #     bad_input = {"users": [self.agency_user_id], "submission_id": self.submission_id,
+    #                  "email_template": "not_a_real_template"}
+    #     response = self.app.post_json("/v1/email_users/", bad_input, expect_errors=True,
+    #                                   headers={"x-session-id": self.session_id})
+    #     self.check_response(response, StatusCode.INTERNAL_ERROR)
