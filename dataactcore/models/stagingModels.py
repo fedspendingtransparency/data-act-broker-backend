@@ -146,6 +146,8 @@ Index("ix_oc_pa_tas_id_submission_id",
       ObjectClassProgramActivity.submission_id,
       unique=False)
 
+Index("ix_oc_pa_pan_upper", func.upper(ObjectClassProgramActivity.program_activity_name))
+
 
 class AwardFinancial(Base):
     """Corresponds to entries in File C"""
@@ -227,6 +229,7 @@ Index("ix_af_piid_upper", func.upper(AwardFinancial.piid))
 Index("ix_af_parent_award_id_upper", func.upper(AwardFinancial.parent_award_id))
 Index("ix_af_fain_upper", func.upper(AwardFinancial.fain))
 Index("ix_af_uri_upper", func.upper(AwardFinancial.uri))
+Index("ix_af_pan_upper", func.upper(AwardFinancial.program_activity_name))
 
 
 class CertifiedFlexField(Base):
@@ -430,6 +433,7 @@ class AwardFinancialAssistance(Base):
 
     award_financial_assistance_id = Column(Integer, primary_key=True)
     afa_generated_unique = Column(Text)
+    unique_award_key = Column(Text)
     submission_id = Column(Integer,
                            ForeignKey("submission.submission_id", ondelete="CASCADE",
                                       name="fk_award_financial_assistance_submission_id"),
@@ -524,6 +528,7 @@ class AwardProcurement(Base):
     __tablename__ = "award_procurement"
     award_procurement_id = Column(Integer, primary_key=True)
     detached_award_proc_unique = Column(Text)
+    unique_award_key = Column(Text)
     submission_id = Column(Integer,
                            ForeignKey("submission.submission_id", ondelete="CASCADE",
                                       name="fk_award_procurement_submission_id"),
@@ -814,6 +819,7 @@ class CertifiedAwardFinancialAssistance(Base):
 
     certified_award_financial_assistance_id = Column(Integer, primary_key=True)
     afa_generated_unique = Column(Text)
+    unique_award_key = Column(Text)
     submission_id = Column(Integer,
                            ForeignKey('submission.submission_id', ondelete='CASCADE',
                                       name='fk_award_financial_assistance_submission_id'),
@@ -906,6 +912,7 @@ class CertifiedAwardProcurement(Base):
 
     certified_award_procurement_id = Column(Integer, primary_key=True)
     detached_award_proc_unique = Column(Text)
+    unique_award_key = Column(Text)
     submission_id = Column(Integer,
                            ForeignKey('submission.submission_id', ondelete='CASCADE',
                                       name='fk_award_procurement_submission_id'),

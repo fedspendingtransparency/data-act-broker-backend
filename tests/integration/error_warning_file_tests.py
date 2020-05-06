@@ -254,24 +254,6 @@ class ErrorWarningTests(BaseTestValidator):
         assert report_headers == self.validator.report_headers
         assert len(report_content) == 0
 
-        # Length Error
-        report_headers, report_content = self.generate_file_report(LENGTH_ERROR, 'appropriations', warning=True)
-        assert report_headers == self.validator.report_headers
-        expected_values = [
-            {
-                'Unique ID': 'TAS: 069-013-X-2050-005',
-                'Field Name': 'grossoutlayamountbytas_cpe',
-                'Error Message': 'Value was longer than maximum length for this field.',
-                'Value Provided': 'grossoutlayamountbytas_cpe: 35000000000000000000000000',
-                'Expected Value': 'Max length: 21',
-                'Difference': '',
-                'Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
-                'Row Number': '6',
-                'Rule Label': ''
-            }
-        ]
-        assert report_content == expected_values
-
         # SQL Validation
         report_headers, report_content = self.generate_file_report(RULE_FAILED_WARNING, 'appropriations', warning=True)
         assert report_headers == self.validator.report_headers
@@ -378,6 +360,24 @@ class ErrorWarningTests(BaseTestValidator):
                                  ' fixed before the rest of the validation logic is applied to that line.',
                 'Value Provided': 'statusofbudgetaryresourcestotal_cpe: A',
                 'Expected Value': 'This field must be a decimal',
+                'Difference': '',
+                'Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
+                'Row Number': '6',
+                'Rule Label': ''
+            }
+        ]
+        assert report_content == expected_values
+
+        # Length Error
+        report_headers, report_content = self.generate_file_report(LENGTH_ERROR, 'appropriations', warning=False)
+        assert report_headers == self.validator.report_headers
+        expected_values = [
+            {
+                'Unique ID': 'TAS: 069-013-X-2050-005',
+                'Field Name': 'grossoutlayamountbytas_cpe',
+                'Error Message': 'Value was longer than maximum length for this field.',
+                'Value Provided': 'grossoutlayamountbytas_cpe: 35000000000000000000000000',
+                'Expected Value': 'Max length: 21',
                 'Difference': '',
                 'Flex Field': 'flex_field_a: FLEX_A, flex_field_b: FLEX_B',
                 'Row Number': '6',

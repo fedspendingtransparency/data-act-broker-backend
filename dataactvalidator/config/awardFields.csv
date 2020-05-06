@@ -1,5 +1,6 @@
 daimsname,fieldname,fieldname_short,required,data_type,field_length,padded_flag
 AssistanceTransactionUniqueKey,assistancetransactionuniquekey,afa_generated_unique,FALSE,str,,
+PrimeAwardUniqueKey,primeawarduniquekey,unique_award_key,FALSE,str,,
 ActionDate,actiondate,action_date,TRUE,str,8,
 ActionType,actiontype,action_type,FALSE,str,1,
 ActionTypeDescriptionTag,actiontypedescriptiontag,action_type_description,FALSE,str,,
