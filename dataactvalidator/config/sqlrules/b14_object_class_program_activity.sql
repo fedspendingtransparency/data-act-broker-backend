@@ -1,10 +1,11 @@
 -- All the Direct Appropriation (D) amounts reported for (4801_CPE - 4801_FYB) + (4802_CPE - 4802_FYB) +
 -- 4881_CPE + 4882_CPE + (4901_CPE - 4901_FYB) + 4902_CPE + (4908_CPE - 4908_FYB) + 4981_CPE + 4982_CPE =
--- the opposite sign of SF-133 line 2004 per TAS, for the same reporting period
+-- the opposite sign of SF-133 line 2004 per TAS, for the same reporting period and TAS/DEFC combination.
 WITH object_class_program_activity_b14_{0} AS
     (SELECT submission_id,
         tas,
         display_tas,
+        disaster_emergency_fund_code,
         ussgl480100_undelivered_or_cpe,
         ussgl480100_undelivered_or_fyb,
         ussgl480200_undelivered_or_cpe,
@@ -48,10 +49,12 @@ SELECT DISTINCT
         SUM(ussgl498100_upward_adjustm_cpe) +
         SUM(ussgl498200_upward_adjustm_cpe)
     ) + sf.amount AS "difference",
-    op.display_tas AS "uniqueid_TAS"
+    op.display_tas AS "uniqueid_TAS",
+    UPPER(op.disaster_emergency_fund_code) AS "uniqueid_DEFC"
 FROM object_class_program_activity_b14_{0} AS op
     INNER JOIN sf_133 AS sf
         ON op.tas = sf.tas
+        AND UPPER(op.disaster_emergency_fund_code) = sf.disaster_emergency_fund_code
     INNER JOIN submission AS sub
         ON op.submission_id = sub.submission_id
         AND sf.period = sub.reporting_fiscal_period
@@ -59,6 +62,7 @@ FROM object_class_program_activity_b14_{0} AS op
 WHERE sf.line = 2004
     AND UPPER(op.by_direct_reimbursable_fun) = 'D'
 GROUP BY op.tas,
+    UPPER(op.disaster_emergency_fund_code),
     sf.amount,
     op.display_tas
 HAVING (
