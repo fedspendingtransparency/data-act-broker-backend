@@ -377,15 +377,10 @@ class ValidationManager:
         if file_row_count != self.total_rows:
             raise ResponseException('', StatusCode.CLIENT_ERROR, None, ValidationError.rowCountError)
 
+        # Add a warning if the file is blank
         if self.file_type.file_type_id in (FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
                                            FILE_TYPE_DICT['award_financial']) \
                 and not self.has_data and len(self.short_rows) == 0 and len(self.long_rows) == 0:
-            if self.file_type.file_type_id == FILE_TYPE_DICT['award_financial']:
-                written_file = self.warning_file_path
-                severity = RULE_SEVERITY_DICT['warning']
-            else:
-                written_file = self.error_file_path
-                severity = RULE_SEVERITY_DICT['fatal']
             empty_file = {
                 'Unique ID': '',
                 'Field Name': 'Blank File',
@@ -401,9 +396,10 @@ class ValidationManager:
             empty_file_df = pd.DataFrame([empty_file], columns=list(self.report_headers + ['error_type']))
             self.error_list.record_row_error(self.job.job_id, self.file_name, empty_file['Field Name'],
                                              empty_file['error_type'], empty_file['Row Number'],
-                                             empty_file['Rule Label'], self.file_type.file_type_id, None, severity)
-            empty_file_df.to_csv(written_file, columns=self.report_headers, index=False, quoting=csv.QUOTE_ALL,
-                                 mode='a', header=False)
+                                             empty_file['Rule Label'], self.file_type.file_type_id, None,
+                                             RULE_SEVERITY_DICT['warning'])
+            empty_file_df.to_csv(self.warning_file_path, columns=self.report_headers, index=False,
+                                 quoting=csv.QUOTE_ALL, mode='a', header=False)
 
         loading_duration = (datetime.now() - loading_start).total_seconds()
         logger.info({
@@ -427,8 +423,7 @@ class ValidationManager:
 
             Args:
                 sess: the database connection
-                bucket_name: the bucket to pull the file
-                region_name: the region to pull the file
+                chunk_df: the chunk of the file to process as a dataframe
         """
         logger.info({
             'message': 'Loading rows starting from {}'.format(self.max_row_number + 1),
