@@ -154,6 +154,7 @@ class ValidationManager:
         self.total_rows = 0
         self.short_rows = []
         self.long_rows = []
+        self.has_data = False
 
         validation_start = datetime.now()
         bucket_name = CONFIG_BROKER['aws_bucket']

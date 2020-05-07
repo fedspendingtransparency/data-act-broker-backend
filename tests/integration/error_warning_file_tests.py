@@ -35,6 +35,7 @@ RULE_FAILED_WARNING = os.path.join(FILES_DIR, 'appropInvalidWarning.csv')
 RULE_FAILED_ERROR = os.path.join(FILES_DIR, 'appropInvalidError.csv')
 INVALID_CROSS_A = os.path.join(FILES_DIR, 'invalid_cross_file_A.csv')
 INVALID_CROSS_B = os.path.join(FILES_DIR, 'invalid_cross_file_B.csv')
+BLANK_C = os.path.join(FILES_DIR, 'awardFinancialBlank.csv')
 
 
 class ErrorWarningTests(BaseTestValidator):
@@ -253,6 +254,25 @@ class ErrorWarningTests(BaseTestValidator):
         report_headers, report_content = self.generate_file_report(APPROP_FILE, 'appropriations', warning=True)
         assert report_headers == self.validator.report_headers
         assert len(report_content) == 0
+
+        # Blank File
+        report_headers, report_content = self.generate_file_report(BLANK_C, 'award_financial', warning=True)
+        assert report_headers == self.validator.report_headers
+        expected_values = [
+            {
+                'Unique ID': '',
+                'Field Name': 'Blank File',
+                'Error Message': 'File does not contain data. For files A and B, this must be addressed prior to'
+                                 ' certification. Blank file C does not prevent certification.',
+                'Value Provided': '',
+                'Expected Value': '',
+                'Difference': '',
+                'Flex Field': '',
+                'Row Number': '',
+                'Rule Label': 'DABSBLANK'
+            }
+        ]
+        assert report_content == expected_values
 
         # SQL Validation
         report_headers, report_content = self.generate_file_report(RULE_FAILED_WARNING, 'appropriations', warning=True)
