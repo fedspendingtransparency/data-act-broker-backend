@@ -726,6 +726,15 @@ def certify_dabs_submission(submission, file_manager):
                                              'certifying.'.format(quarter_reval.window_start.strftime('%m/%d/%Y'))),
                                   StatusCode.CLIENT_ERROR)
 
+    # Make sure neither A nor B is blank before allowing certification
+    blank_files = sess.query(Job).\
+        filter(Job.file_type_id.in_([FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity']]),
+               Job.number_of_rows_valid == 0, Job.job_type_id == JOB_TYPE_DICT['csv_record_validation'],
+               Job.submission_id == submission.submission_id).count()
+
+    if blank_files > 0:
+        return JsonResponse.error(ValueError('Cannot certify while file A or B is blank.'), StatusCode.CLIENT_ERROR)
+
     response = find_existing_submissions_in_period(submission.cgac_code, submission.frec_code,
                                                    submission.reporting_fiscal_year,
                                                    submission.reporting_fiscal_period, submission.submission_id)
