@@ -14,7 +14,7 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Tests that Object Class Program activity gross_outlays_delivered_or_fyb + gross_outlays_undelivered_fyb
-        equals gross_outlay_amount_by_pro_fyb for the same date context and TAS/DEFC combination
+        equals gross_outlay_amount_by_pro_fyb for the same TAS/DEFC combination
     """
 
     op = ObjectClassProgramActivityFactory(gross_outlay_amount_by_pro_fyb=2, gross_outlays_undelivered_fyb=1,
@@ -25,7 +25,7 @@ def test_success(database):
 
 def test_failure(database):
     """ Tests that Object Class Program activity gross_outlays_delivered_or_fyb + gross_outlays_undelivered_fyb
-        doesn't equal gross_outlay_amount_by_pro_fyb for the same date context and TAS/DEFC combination
+        doesn't equal gross_outlay_amount_by_pro_fyb for the same TAS/DEFC combination
     """
 
     op = ObjectClassProgramActivityFactory(gross_outlay_amount_by_pro_fyb=1, gross_outlays_undelivered_fyb=1,

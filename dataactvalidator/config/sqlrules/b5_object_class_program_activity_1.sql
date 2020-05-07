@@ -1,6 +1,6 @@
 -- File B (object class program activity): GrossOutlayAmountByProgramObjectClass_FYB =
 -- GrossOutlaysUndeliveredOrdersPrepaidTotal_FYB + GrossOutlaysDeliveredOrdersPaidTotal_FYB
--- for the same date context and TAS/DEFC combination.
+-- for the same TAS/DEFC combination.
 SELECT
     row_number,
     gross_outlay_amount_by_pro_fyb,

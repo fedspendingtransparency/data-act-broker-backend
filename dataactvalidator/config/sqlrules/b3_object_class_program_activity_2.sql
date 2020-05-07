@@ -1,4 +1,4 @@
--- ObligationsUndeliveredOrdersUnpaidTotal (CPE) = USSGL(4801 + 4831 + 4881) for the same date context and TAS/
+-- ObligationsUndeliveredOrdersUnpaidTotal (CPE) = USSGL(4801 + 4831 + 4881) for the same TAS/
 -- Disaster Emergency Fund Code (DEFC) combination. This applies to the program activity and object class level.
 SELECT
     row_number,

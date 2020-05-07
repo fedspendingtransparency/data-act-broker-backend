@@ -1,4 +1,4 @@
--- ObligationsDeliveredOrdersUnpaidTotal (FYB) = USSGL 4901 for the same date context and TAS/DEFC combination.
+-- ObligationsDeliveredOrdersUnpaidTotal (FYB) = USSGL 4901 for the same TAS/DEFC combination.
 -- This applies to the program activity and object class level.
 SELECT
     row_number,

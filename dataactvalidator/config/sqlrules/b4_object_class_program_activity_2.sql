@@ -1,5 +1,5 @@
--- ObligationsDeliveredOrdersUnpaidTotal (CPE) = USSGL(4901 + 4931 + 4981) for the same date context and TAS/DEFC
--- combination. This applies to the program activity and object class level.
+-- ObligationsDeliveredOrdersUnpaidTotal (CPE) = USSGL(4901 + 4931 + 4981) for the same TAS/DEFC combination.
+-- This applies to the program activity and object class level.
 SELECT
     row_number,
     obligations_delivered_orde_cpe,

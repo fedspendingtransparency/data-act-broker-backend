@@ -1,5 +1,5 @@
--- ObligationsUndeliveredOrdersUnpaidTotal (FYB) = USSGL 4801 for the same date context and TAS/ Disaster Emergency
--- Fund Code (DEFC) combination. This applies to the program activity and object class level.
+-- ObligationsUndeliveredOrdersUnpaidTotal (FYB) = USSGL 4801 for the same TAS/Disaster Emergency Fund Code (DEFC)
+-- combination. This applies to the program activity and object class level.
 SELECT
     row_number,
     obligations_undelivered_or_fyb,
