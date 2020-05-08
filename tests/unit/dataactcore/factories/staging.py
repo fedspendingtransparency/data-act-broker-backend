@@ -94,6 +94,7 @@ class AwardFinancialFactory(factory.Factory):
     ussgl498100_upward_adjustm_cpe = fuzzy.FuzzyDecimal(9999)
     ussgl498200_upward_adjustm_cpe = fuzzy.FuzzyDecimal(9999)
     tas = fuzzy.FuzzyText()
+    disaster_emergncy_fund_code = fuzzy.FuzzyText()
 
 
 class ObjectClassProgramActivityFactory(factory.Factory):
