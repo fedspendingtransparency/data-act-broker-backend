@@ -148,6 +148,7 @@ Index("ix_oc_pa_tas_id_submission_id",
       unique=False)
 
 Index("ix_oc_pa_pan_upper", func.upper(ObjectClassProgramActivity.program_activity_name))
+Index("ix_oc_pa_defc_upper", func.upper(ObjectClassProgramActivity.disaster_emergency_fund_code))
 
 
 class AwardFinancial(Base):
@@ -232,6 +233,7 @@ Index("ix_af_parent_award_id_upper", func.upper(AwardFinancial.parent_award_id))
 Index("ix_af_fain_upper", func.upper(AwardFinancial.fain))
 Index("ix_af_uri_upper", func.upper(AwardFinancial.uri))
 Index("ix_af_pan_upper", func.upper(AwardFinancial.program_activity_name))
+Index("ix_af_defc_upper", func.upper(AwardFinancial.disaster_emergency_fund_code))
 
 
 class CertifiedFlexField(Base):
