@@ -67,7 +67,7 @@ def test_success(database):
                                      ussgl490800_authority_outl_fyb=2, ussgl498100_upward_adjustm_cpe=2,
                                      ussgl498200_upward_adjustm_cpe=2, disaster_emergency_fund_code='D')
 
-    assert number_of_errors(_FILE, database, models=[sf, op, op2, op3]) == 0
+    assert number_of_errors(_FILE, database, models=[sf, op, op2, op3, op4]) == 0
 
 
 def test_failure(database):
