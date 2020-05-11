@@ -33,7 +33,7 @@ def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None,
 
 
 def insert_job(sess, filetype, status, type_id, submission, job_id=None, filename=None, original_filename=None,
-               file_size=None, num_rows=None, num_errors=0, updated_at=None):
+               file_size=None, num_rows=None, num_valid_rows=0, num_errors=0, updated_at=None):
     """Insert one job into job tracker and get ID back."""
     if not updated_at:
         updated_at = datetime.utcnow()
@@ -49,6 +49,7 @@ def insert_job(sess, filetype, status, type_id, submission, job_id=None, filenam
         original_filename=original_filename,
         file_size=file_size,
         number_of_rows=num_rows,
+        number_of_rows_valid=num_valid_rows,
         number_of_errors=num_errors
     )
     if job_id:

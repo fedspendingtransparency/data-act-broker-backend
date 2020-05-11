@@ -1073,7 +1073,15 @@ This route certifies the specified submission, if possible. If a submission has 
 ##### Errors
 Possible HTTP Status Codes:
 
-- 400: Submission does not exist, critical errors prevent the submission from being certified, submission is a monthly submission, submission is already certified, a validation was completed before the revalidation threshold or the start of the submission window for the submission's year/quarter, submission window for this year/quarter doesn't exist, a different submission for this period was already published
+- 400
+  - Submission does not exist
+  - Critical errors prevent the submission from being certified
+  - Submission is a monthly submission
+  - Submission is already certified
+  - A validation was completed before the revalidation threshold or the start of the submission window for the submission's year/quarter
+  - Submission window for this year/quarter doesn't exist
+  - A different submission for this period was already published
+  - File A or B is blank
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
