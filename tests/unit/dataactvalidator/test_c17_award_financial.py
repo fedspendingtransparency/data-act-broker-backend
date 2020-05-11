@@ -45,7 +45,8 @@ def test_success(database):
                                             obligations_delivered_orde_fyb=None,
                                             obligations_incurred_byawa_cpe=None,
                                             obligations_undelivered_or_cpe=None,
-                                            obligations_undelivered_or_fyb=None
+                                            obligations_undelivered_or_fyb=None,
+                                            deobligations_recov_by_awa_cpe=None
                                             )
     award_fin_zeros = AwardFinancialFactory(transaction_obligated_amou=0,
                                             ussgl480100_undelivered_or_cpe=None,
@@ -78,7 +79,8 @@ def test_success(database):
                                             obligations_delivered_orde_fyb=0,
                                             obligations_incurred_byawa_cpe=None,
                                             obligations_undelivered_or_cpe=0,
-                                            obligations_undelivered_or_fyb=None)
+                                            obligations_undelivered_or_fyb=None,
+                                            deobligations_recov_by_awa_cpe=None)
     # Test with only one present
     award_fin_amount = AwardFinancialFactory(transaction_obligated_amou=123,
                                              ussgl480100_undelivered_or_cpe=None,
@@ -111,7 +113,8 @@ def test_success(database):
                                              obligations_delivered_orde_fyb=None,
                                              obligations_incurred_byawa_cpe=None,
                                              obligations_undelivered_or_cpe=None,
-                                             obligations_undelivered_or_fyb=None
+                                             obligations_undelivered_or_fyb=None,
+                                             deobligations_recov_by_awa_cpe=None
                                              )
     award_fin_ussgl = AwardFinancialFactory(transaction_obligated_amou=0,
                                             ussgl480100_undelivered_or_cpe=None,
@@ -144,7 +147,8 @@ def test_success(database):
                                             obligations_delivered_orde_fyb=None,
                                             obligations_incurred_byawa_cpe=None,
                                             obligations_undelivered_or_cpe=None,
-                                            obligations_undelivered_or_fyb=None
+                                            obligations_undelivered_or_fyb=None,
+                                            deobligations_recov_by_awa_cpe=None
                                             )
     award_fin_sub = AwardFinancialFactory(transaction_obligated_amou=None,
                                           ussgl480100_undelivered_or_cpe=None,
@@ -177,7 +181,8 @@ def test_success(database):
                                           obligations_delivered_orde_fyb=None,
                                           obligations_incurred_byawa_cpe=123,
                                           obligations_undelivered_or_cpe=None,
-                                          obligations_undelivered_or_fyb=None
+                                          obligations_undelivered_or_fyb=None,
+                                          deobligations_recov_by_awa_cpe=None
                                           )
     award_fin_both = AwardFinancialFactory(transaction_obligated_amou=0,
                                            ussgl480100_undelivered_or_cpe=None,
@@ -210,7 +215,8 @@ def test_success(database):
                                            obligations_delivered_orde_fyb=None,
                                            obligations_incurred_byawa_cpe=None,
                                            obligations_undelivered_or_cpe=None,
-                                           obligations_undelivered_or_fyb=None
+                                           obligations_undelivered_or_fyb=None,
+                                           deobligations_recov_by_awa_cpe=123
                                            )
     assert number_of_errors(_FILE, database, models=[award_fin_empty, award_fin_zeros, award_fin_amount,
                                                      award_fin_ussgl, award_fin_sub, award_fin_both]) == 0
@@ -249,7 +255,8 @@ def test_failure(database):
                                             obligations_delivered_orde_fyb=None,
                                             obligations_incurred_byawa_cpe=None,
                                             obligations_undelivered_or_cpe=None,
-                                            obligations_undelivered_or_fyb=None
+                                            obligations_undelivered_or_fyb=None,
+                                            deobligations_recov_by_awa_cpe=None
                                             )
     award_fin_sub = AwardFinancialFactory(transaction_obligated_amou=100,
                                           ussgl480100_undelivered_or_cpe=None,
@@ -282,7 +289,8 @@ def test_failure(database):
                                           obligations_delivered_orde_fyb=None,
                                           obligations_incurred_byawa_cpe=None,
                                           obligations_undelivered_or_cpe=None,
-                                          obligations_undelivered_or_fyb=None
+                                          obligations_undelivered_or_fyb=None,
+                                          deobligations_recov_by_awa_cpe=None
                                           )
     award_fin_both = AwardFinancialFactory(transaction_obligated_amou=10,
                                            ussgl480100_undelivered_or_cpe=None,
@@ -315,7 +323,8 @@ def test_failure(database):
                                            obligations_delivered_orde_fyb=None,
                                            obligations_incurred_byawa_cpe=None,
                                            obligations_undelivered_or_cpe=None,
-                                           obligations_undelivered_or_fyb=123
+                                           obligations_undelivered_or_fyb=123,
+                                           deobligations_recov_by_awa_cpe=123
                                            )
     assert number_of_errors(_FILE, database,
                             models=[award_fin_ussgl, award_fin_sub, award_fin_both]) == 3

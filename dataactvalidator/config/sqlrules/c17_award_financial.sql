@@ -41,4 +41,5 @@ WHERE submission_id = {0}
         OR COALESCE(obligations_incurred_byawa_cpe, 0) > 0
         OR COALESCE(obligations_undelivered_or_cpe, 0) > 0
         OR COALESCE(obligations_undelivered_or_fyb, 0) > 0
+        OR COALESCE(deobligations_recov_by_awa_cpe, 0) > 0
     );
