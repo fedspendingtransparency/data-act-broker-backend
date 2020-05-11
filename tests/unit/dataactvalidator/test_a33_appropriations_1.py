@@ -7,7 +7,6 @@ from tests.unit.dataactvalidator.utils import error_rows, number_of_errors, quer
 
 
 _FILE = 'a33_appropriations_1'
-_TAS = 'a33_appropriations_tas'
 
 
 def test_column_headers(database):
