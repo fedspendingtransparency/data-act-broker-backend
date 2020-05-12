@@ -36,7 +36,9 @@ ERROR_TYPE = [
     LookupType(5, 'write_error', 'Could not write this record into the staging table.'),
     LookupType(6, 'rule_failed', 'A rule failed for this value.'),
     LookupType(7, 'length_error', 'Value was longer than allowed length.'),
-    LookupType(8, 'field_format_error', 'Date should follow the YYYYMMDD format.')
+    LookupType(8, 'field_format_error', 'Date should follow the YYYYMMDD format.'),
+    LookupType(9, 'blank_file_error', 'File does not contain data. For files A and B, this must be addressed prior to'
+                                      ' certification. Blank file C does not prevent certification.')
 ]
 ERROR_TYPE_DICT = {item.name: item.id for item in ERROR_TYPE}
 
