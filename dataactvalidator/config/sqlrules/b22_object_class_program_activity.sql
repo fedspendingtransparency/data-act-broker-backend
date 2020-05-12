@@ -20,7 +20,7 @@ SELECT
 FROM object_class_program_activity_b22_{0} AS op
     INNER JOIN sf_133 AS sf
         ON op.tas = sf.tas
-        AND UPPER(op.disaster_emergency_fund_code) = sf.disaster_emergency_fund_code
+        AND UPPER(op.disaster_emergency_fund_code) = COALESCE(sf.disaster_emergency_fund_code, '')
     INNER JOIN submission AS sub
         ON op.submission_id = sub.submission_id
         AND sf.period = sub.reporting_fiscal_period
