@@ -10,7 +10,7 @@ SELECT
                                                    COALESCE(ussgl483100_undelivered_or_cpe, 0) +
                                                    COALESCE(ussgl488100_upward_adjustm_cpe, 0)) AS "difference",
     display_tas AS "uniqueid_TAS",
-    disaster_emergency_fund_code AS "uniqueid_DEFC",
+    disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode",
     piid AS "uniqueid_PIID",
     fain AS "uniqueid_FAIN",
     uri AS "uniqueid_URI"

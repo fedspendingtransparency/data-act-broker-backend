@@ -50,7 +50,7 @@ SELECT DISTINCT
         SUM(ussgl498200_upward_adjustm_cpe)
     ) + sf.amount AS "difference",
     op.display_tas AS "uniqueid_TAS",
-    UPPER(op.disaster_emergency_fund_code) AS "uniqueid_DEFC"
+    UPPER(op.disaster_emergency_fund_code) AS "uniqueid_DisasterEmergencyFundCode"
 FROM object_class_program_activity_b15_{0} AS op
     INNER JOIN sf_133 AS sf
         ON op.tas = sf.tas

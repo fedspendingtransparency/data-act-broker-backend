@@ -6,7 +6,7 @@ SELECT
     ussgl480100_undelivered_or_fyb,
     COALESCE(obligations_undelivered_or_fyb, 0) - COALESCE(ussgl480100_undelivered_or_fyb, 0) AS "difference",
     display_tas AS "uniqueid_TAS",
-    disaster_emergency_fund_code AS "uniqueid_DEFC",
+    disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode",
     piid AS "uniqueid_PIID",
     fain AS "uniqueid_FAIN",
     uri AS "uniqueid_URI"
