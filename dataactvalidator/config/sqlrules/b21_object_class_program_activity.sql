@@ -30,7 +30,7 @@ WHERE sub.submission_id = {0}
         SELECT 1
         FROM object_class_program_activity AS op
         WHERE sf.tas IS NOT DISTINCT FROM op.tas
-            AND sf.disaster_emergency_fund_code = UPPER(op.disaster_emergency_fund_code)
+            AND COALESCE(sf.disaster_emergency_fund_code, '') = UPPER(op.disaster_emergency_fund_code)
             AND op.submission_id = {0}
     )
     AND COALESCE(UPPER(tas_lookup.financial_indicator2), '') <> 'F';
