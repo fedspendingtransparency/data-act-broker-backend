@@ -3,7 +3,7 @@ from random import randint
 from tests.unit.dataactcore.factories.domain import SF133Factory, TASFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.unit.dataactcore.factories.staging import ObjectClassProgramActivityFactory
-from tests.unit.dataactvalidator.utils import error_rows, number_of_errors, query_columns
+from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
 _FILE = 'b21_object_class_program_activity'
@@ -29,7 +29,8 @@ def test_success_populated_ata(database):
                                    reporting_fiscal_year=year, cgac_code=code, is_quarter_format=False)
     op = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='n', submission_id=submission_id)
 
-    assert error_rows(_FILE, database, models=[sf1, op], submission=submission) == []
+    errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
+    assert errors == 0
 
 
 def test_success_null_ata(database):
@@ -43,7 +44,8 @@ def test_success_null_ata(database):
                                    reporting_fiscal_year=year, cgac_code=code, is_quarter_format=False)
     op = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='n', submission_id=submission_id)
 
-    assert error_rows(_FILE, database, models=[sf1, op], submission=submission) == []
+    errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
+    assert errors == 0
 
 
 def test_failure_populated_ata(database):
