@@ -19,6 +19,7 @@ class SF133Factory(factory.Factory):
     main_account_code = fuzzy.FuzzyText()
     sub_account_code = fuzzy.FuzzyText()
     tas = fuzzy.FuzzyText()
+    disaster_emergency_fund_code = fuzzy.FuzzyText()
     fiscal_year = fuzzy.FuzzyInteger(2010, 2040)
     period = fuzzy.FuzzyInteger(1, 12)
     line = fuzzy.FuzzyInteger(1, 9999)
