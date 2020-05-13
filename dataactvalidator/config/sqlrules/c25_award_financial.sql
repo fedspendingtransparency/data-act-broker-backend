@@ -9,7 +9,6 @@ SELECT
     disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode"
 FROM award_financial
 WHERE submission_id = {0}
-    AND UPPER(disaster_emergency_fund_code) IN ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-                                                    'N', 'O', 'P', 'Q', 'R', 'S', 'T', '9')
+    AND UPPER(disaster_emergency_fund_code) IN ('L', 'M', 'N', 'O', 'P')
     AND COALESCE(transaction_obligated_amou, 0) = 0
     AND gross_outlay_amount_by_awa_cpe IS NULL;
