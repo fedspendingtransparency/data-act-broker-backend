@@ -6,7 +6,6 @@ from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
 _FILE = 'c21_award_financial'
-_TAS = 'c21_award_financial_tas'
 
 af_dict = dict(
     submission_id=randint(1000, 10000),
