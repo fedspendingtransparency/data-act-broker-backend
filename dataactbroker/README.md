@@ -504,9 +504,9 @@ This endpoint returns metadata for the requested submission.
     "number_of_warnings": 20,
     "number_of_rows": 3,
     "total_size": 1800,
-    "created_on": "04/16/2018",
+    "created_on": "2018-04-16T12:48:09",
     "last_updated": "2018-04-16T18:48:09",
-    "last_validated": "04/16/2018",
+    "last_validated": "2018-04-16T18:48:09",
     "reporting_period": "Q2/2018",
     "publish_status": "unpublished",
     "quarterly_submission": false,
@@ -529,9 +529,9 @@ This endpoint returns metadata for the requested submission.
 - `number_of_warnings`: int, total warnings in the submission
 - `number_of_rows`: int, total number of rows in the submission including file headers
 - `total_size`: int, total size of all files in the submission in bytes
-- `created_on`: string, date submission was created (MM/DD/YYYY)
+- `created_on`: string, date submission was created (YYYY-MM-DDTHH:mm:ss)
 - `last_updated`: string, date/time any changes (including validations, etc) were made to the submission (YYYY-MM-DDTHH:mm:ss)
-- `last_validated`: string, date the most recent validations were completed (MM/DD/YYYY)
+- `last_validated`: string, date the most recent validations were completed (YYYY-MM-DDTHH:mm:ss)
 - `reporting_period`: string, reporting period of the submission (Q#/YYYY for quarterly submissions, MM/YYYY for monthly)
 - `publish_status`: string, whether the submission is published or not. Can contain only the following values:
     - `unpublished`
@@ -542,7 +542,7 @@ This endpoint returns metadata for the requested submission.
 - `certified_submission`: int, an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
 - `fabs_submission`: boolean, whether the submission is FABS or DABS (True for FABS)
 - `fabs_meta`: object, data specific to FABS submissions (null for DABS submissions)
-    - `publish_date`: string, Date/time submission was published (H:mm(AM/PM) MM/DD/YYYY) (null if unpublished)
+    - `publish_date`: string, Date/time submission was published (YYYY-MM-DDTHH:mm:ss) (null if unpublished)
     - `published_file`: string, signed url of the published file (null if unpublished)
     - `total_rows`: int, total rows in the submission not including header rows
     - `valid_rows`: int, total number of valid, publishable row
