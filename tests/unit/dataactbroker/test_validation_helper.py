@@ -253,7 +253,7 @@ def test_check_required():
     error_msg = ValidationError.requiredErrorMsg
     expected_value = '(not blank)'
     error_type = ValidationError.requiredError
-    # report_headers = ['Unique ID', 'Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Difference',
+    # report_headers = ['Unique ID', 'Field Name', 'Rule Message', 'Value Provided', 'Expected Value', 'Difference',
     #                   'Flex Field', 'Row Number', 'Rule Label'] + ['error_type']
     expected_data = [
         ['ID3', 'req1', error_msg, '', expected_value, '', 'C', '3', '', error_type],
@@ -301,7 +301,7 @@ def test_check_type():
 
     error_msg = ValidationError.typeErrorMsg
     error_type = ValidationError.typeError
-    # report_headers = ['Unique ID', 'Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Difference',
+    # report_headers = ['Unique ID', 'Field Name', 'Rule Message', 'Value Provided', 'Expected Value', 'Difference',
     #                   'Flex Field', 'Row Number', 'Rule Label'] + ['error_type']
     expected_data = [
         ['ID4', 'i', error_msg, 'i: no', 'This field must be a int', '', 'D', '4', '', error_type],
@@ -341,7 +341,7 @@ def test_check_length():
 
     error_msg = ValidationError.lengthErrorMsg
     error_type = ValidationError.lengthError
-    # report_headers = ['Unique ID', 'Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Difference',
+    # report_headers = ['Unique ID', 'Field Name', 'Rule Message', 'Value Provided', 'Expected Value', 'Difference',
     #                   'Flex Field', 'Row Number', 'Rule Label'] + ['error_type']
     expected_data = [
         ['ID4', 'len', error_msg, 'len: 1234', 'Max length: 3', '', 'D', '4', '', error_type]
@@ -364,7 +364,7 @@ def test_check_field_format():
 
     error_msg = ValidationError.fieldFormatErrorMsg
     error_type = ValidationError.fieldFormatError
-    # report_headers = ['Unique ID', 'Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Difference',
+    # report_headers = ['Unique ID', 'Field Name', 'Rule Message', 'Value Provided', 'Expected Value', 'Difference',
     #                   'Flex Field', 'Row Number', 'Rule Label'] + ['error_type']
     expected_data = [
         ['ID3', 'date', error_msg, 'date: 200012', 'A date in the YYYYMMDD format.', '', 'C', '3', 'DABSDATETIME',
