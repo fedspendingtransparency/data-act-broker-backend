@@ -1,5 +1,5 @@
--- The combination of TAS/object class/program activity code/reimbursable flag in File B (object class program activity)
--- should be unique
+-- The combination of TAS/object class/program activity code/reimbursable flag/DEFC in File B (object class program
+-- activity) should be unique
 SELECT
     row_number,
     beginning_period_of_availa,
@@ -12,10 +12,12 @@ SELECT
     object_class,
     program_activity_code,
     by_direct_reimbursable_fun,
+    disaster_emergency_fund_code,
     display_tas AS "uniqueid_TAS",
     program_activity_code AS "uniqueid_ProgramActivityCode",
     object_class AS "uniqueid_ObjectClass",
-    by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource"
+    by_direct_reimbursable_fun AS "uniqueid_ByDirectReimbursableFundingSource",
+    disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode"
 FROM (
     SELECT op.row_number,
         op.beginning_period_of_availa,
@@ -31,6 +33,7 @@ FROM (
         op.submission_id,
         op.tas,
         op.display_tas,
+        UPPER(op.disaster_emergency_fund_code) AS disaster_emergency_fund_code,
         -- numbers all instances of this unique combination incrementally (1, 2, 3, etc)
         ROW_NUMBER() OVER (PARTITION BY
             op.beginning_period_of_availa,
@@ -42,7 +45,8 @@ FROM (
             op.sub_account_code,
             op.object_class,
             op.program_activity_code,
-            op.by_direct_reimbursable_fun
+            op.by_direct_reimbursable_fun,
+            UPPER(op.disaster_emergency_fund_code)
         ) AS row
     FROM object_class_program_activity AS op
     WHERE op.submission_id = {0}
