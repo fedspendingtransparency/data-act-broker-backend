@@ -5,12 +5,12 @@ from tests.unit.dataactcore.factories.staging import ObjectClassProgramActivityF
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
-_FILE = 'c21_award_financial'
+_FILE = 'c26_award_financial'
 
 af_dict = dict(
     submission_id=randint(1000, 10000),
     tas='some-tas',
-    program_activity_code='some-code',
+    disaster_emergency_fund_code='o',
     ussgl480100_undelivered_or_fyb=randint(-10000, -1000),
     ussgl480100_undelivered_or_cpe=randint(-10000, -1000),
     ussgl483100_undelivered_or_cpe=randint(-10000, -1000),
@@ -48,7 +48,7 @@ af_dict = dict(
 
 def test_column_headers(database):
     expected_subset = {
-        'source_row_number', 'source_value_tas', 'source_value_program_activity_code',
+        'source_row_number', 'source_value_tas', 'source_value_disaster_emergency_fund_code',
         'source_value_ussgl480100_undelivered_or_fyb_sum_c', 'source_value_ussgl480100_undelivered_or_cpe_sum_c',
         'source_value_ussgl483100_undelivered_or_cpe_sum_c', 'source_value_ussgl488100_upward_adjustm_cpe_sum_c',
         'source_value_obligations_undelivered_or_fyb_sum_c', 'source_value_obligations_undelivered_or_cpe_sum_c',
@@ -97,15 +97,15 @@ def test_column_headers(database):
         'difference_obligations_incurred_by_pr_cpe_sum', 'difference_ussgl487100_downward_adjus_cpe_sum',
         'difference_ussgl497100_downward_adjus_cpe_sum', 'difference_ussgl487200_downward_adjus_cpe_sum',
         'difference_ussgl497200_downward_adjus_cpe_sum', 'difference_deobligations_recov_by_pro_cpe_sum',
-        'uniqueid_TAS', 'uniqueid_ProgramActivityCode'
+        'uniqueid_TAS', 'uniqueid_DisasterEmergencyFundCode'
     }
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
 
 def test_success(database):
-    """ Tests that the sum of financial elements in File C is less than or equal to the corresponding element in File B
-        for the same TAS and Program Activity Code combination
+    """ Test each USSGL account balance or subtotal, when totaled by combination of TAS/DEFC provided in File C, should
+        be a subset of, or equal to, the same combinations in File B.
     """
     af1 = AwardFinancialFactory(**af_dict)
     af2 = AwardFinancialFactory(**af_dict)
@@ -144,7 +144,7 @@ def test_success(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] * 2,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] * 2,
         tas=af_dict['tas'],
-        program_activity_code=af_dict['program_activity_code'],
+        disaster_emergency_fund_code=af_dict['disaster_emergency_fund_code'].upper(),
         submission_id=af_dict['submission_id']
     )
 
@@ -182,7 +182,7 @@ def test_success(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] * 2,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] * 2,
         tas='some-other-tas',
-        program_activity_code=af_dict['program_activity_code'],
+        disaster_emergency_fund_code=af_dict['disaster_emergency_fund_code'],
         submission_id=af_dict['submission_id']
     )
 
@@ -220,7 +220,7 @@ def test_success(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] * 2,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] * 2,
         tas=af_dict['tas'],
-        program_activity_code='some-other-code',
+        disaster_emergency_fund_code='q',
         submission_id=af_dict['submission_id']
     )
 
@@ -229,8 +229,8 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Tests that the sum of financial elements in File C is not less than or equal to the corresponding element in
-        File B for the same TAS and Program Activity Code combination
+    """ Tests failure each USSGL account balance or subtotal, when totaled by combination of TAS/DEFC provided in
+        File C, should be a subset of, or equal to, the same combinations in File B.
     """
     af1 = AwardFinancialFactory(**af_dict)
 
@@ -268,7 +268,7 @@ def test_failure(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] + 1,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 1,
         tas=af_dict['tas'],
-        program_activity_code=af_dict['program_activity_code'],
+        disaster_emergency_fund_code=af_dict['disaster_emergency_fund_code'].upper(),
         submission_id=af_dict['submission_id']
     )
 
@@ -306,7 +306,7 @@ def test_failure(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] + 1,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 1,
         tas='some-other-tas',
-        program_activity_code=af_dict['program_activity_code'],
+        disaster_emergency_fund_code=af_dict['disaster_emergency_fund_code'],
         submission_id=af_dict['submission_id']
     )
 
@@ -344,7 +344,7 @@ def test_failure(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] + 1,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 1,
         tas=af_dict['tas'],
-        program_activity_code='some-other-code',
+        disaster_emergency_fund_code='Q',
         submission_id=af_dict['submission_id']
     )
 
