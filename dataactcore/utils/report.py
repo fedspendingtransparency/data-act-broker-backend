@@ -9,17 +9,16 @@ def report_file_name(submission_id, warning, file_type, cross_type=None):
     @todo: unify these file names"""
     if cross_type:
         report_type_str = 'warning_' if warning else ''
-        return "submission_{}_crossfile_{}{}{}_{}.csv".format(submission_id, report_type_str,
-                                                              'File_{}_to_{}_'.format(
-                                                                  FILE_TYPE_DICT_NAME_LETTER[file_type],
-                                                                  FILE_TYPE_DICT_NAME_LETTER[cross_type]),
-                                                              file_type,
-                                                              cross_type)
+        return "submission_{}_crossfile_{}File_{}_to_{}_{}_{}.csv".format(submission_id, report_type_str,
+                                                                          FILE_TYPE_DICT_NAME_LETTER[file_type],
+                                                                          FILE_TYPE_DICT_NAME_LETTER[cross_type],
+                                                                          file_type,
+                                                                          cross_type)
     else:
         report_type_str = 'warning_' if warning else 'error_'
-        return "submission_{}_{}{}_{}report.csv".format(submission_id,
-                                                        'File_{}_'.format(FILE_TYPE_DICT_NAME_LETTER[file_type]),
-                                                        file_type, report_type_str)
+        return "submission_{}_File_{}_{}_{}report.csv".format(submission_id,
+                                                              FILE_TYPE_DICT_NAME_LETTER[file_type],
+                                                              file_type, report_type_str)
 
 
 def get_cross_file_pairs():
