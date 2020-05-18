@@ -5,7 +5,8 @@ SELECT
     display_tas AS "uniqueid_TAS",
     piid AS "uniqueid_PIID",
     fain AS "uniqueid_FAIN",
-    uri AS "uniqueid_URI"
+    uri AS "uniqueid_URI",
+    disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode"
 FROM award_financial
 WHERE submission_id = {0}
     AND COALESCE(transaction_obligated_amou, 0) > 0
