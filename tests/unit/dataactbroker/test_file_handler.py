@@ -433,7 +433,7 @@ def test_submission_report_url_local(monkeypatch, tmpdir):
     json_response = fileHandler.submission_report_url(
         SubmissionFactory(submission_id=4), True, 'award_financial', 'award')
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
-    assert url == os.path.join(file_path, 'submission_4_cross_warning_award_financial_award.csv')
+    assert url == os.path.join(file_path, 'submission_4_crossfile_warning_File_C_to_D2_award_financial_award.csv')
 
 
 def test_submission_report_url_s3(monkeypatch):
@@ -441,11 +441,11 @@ def test_submission_report_url_s3(monkeypatch):
     s3_url_handler = Mock()
     s3_url_handler.return_value.get_signed_url.return_value = 'some/url/here.csv'
     monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
-    json_response = fileHandler.submission_report_url(SubmissionFactory(submission_id=2), False, 'some_file', None)
+    json_response = fileHandler.submission_report_url(SubmissionFactory(submission_id=2), False, 'appropriations', None)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == 'some/url/here.csv'
     assert s3_url_handler.return_value.get_signed_url.call_args == (
-        ('errors', 'submission_2_some_file_error_report.csv'),
+        ('errors', 'submission_2_File_A_appropriations_error_report.csv'),
         {'method': 'get_object', 'url_mapping': 'test/path'}
     )
 
@@ -631,8 +631,9 @@ def test_move_certified_files(database, monkeypatch):
     c_cert_hist = sess.query(CertifiedFilesHistory).\
         filter_by(certify_history_id=local_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
     assert c_cert_hist.filename == "/path/to/award/fin/file_c.csv"
-    assert c_cert_hist.warning_filename == "/path/to/error/reports/submission_{}_award_financial_warning_report.csv".\
+    expected_filename = "/path/to/error/reports/submission_{}_File_C_award_financial_warning_report.csv".\
         format(sub.submission_id)
+    assert c_cert_hist.warning_filename == expected_filename
     assert c_cert_hist.comment == "Test comment"
 
     # cross-file warnings
@@ -641,7 +642,7 @@ def test_move_certified_files(database, monkeypatch):
     assert warning_cert_hist[0].comment is None
 
     warning_cert_hist_files = [hist.warning_filename for hist in warning_cert_hist]
-    assert "/path/to/error/reports/submission_{}_cross_warning_appropriations_program_activity.csv".\
+    assert "/path/to/error/reports/submission_{}_crossfile_warning_File_A_to_B_appropriations_program_activity.csv".\
         format(sub.submission_id) in warning_cert_hist_files
 
     # test remote certification
@@ -651,7 +652,7 @@ def test_move_certified_files(database, monkeypatch):
     c_cert_hist = sess.query(CertifiedFilesHistory). \
         filter_by(certify_history_id=remote_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
     assert c_cert_hist.filename == "zyxwv/2017/2/{}/file_c.csv".format(remote_id)
-    assert c_cert_hist.warning_filename == "zyxwv/2017/2/{}/submission_{}_award_financial_warning_report.csv". \
+    assert c_cert_hist.warning_filename == "zyxwv/2017/2/{}/submission_{}_File_C_award_financial_warning_report.csv". \
         format(remote_id, sub.submission_id)
 
 
