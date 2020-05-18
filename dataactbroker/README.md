@@ -1402,7 +1402,7 @@ Successful response will contain the submission_id and a list of certifications.
             "comment": "Comment on the file"
             },
             {"certified_files_history_id": 1,
-            "filename": "submission7_File_C_award_financial_warning_report.csv",
+            "filename": "submission_7_File_C_award_financial_warning_report.csv",
             "is_warning": True,
             "comment": None}
         ]},
@@ -1419,7 +1419,7 @@ Successful response will contain the submission_id and a list of certifications.
             "comment": "This is also a comment"
             },
             {"certified_files_history_id": 6,
-            "filename": "submission280_crossfile_warning_File_A_to_B_appropriations_program_activity.csv",
+            "filename": "submission_280_crossfile_warning_File_A_to_B_appropriations_program_activity.csv",
             "is_warning": True,
             "comment": None}
         ]}

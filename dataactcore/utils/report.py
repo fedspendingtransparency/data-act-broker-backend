@@ -13,14 +13,14 @@ def report_file_name(submission_id, warning, file_type, cross_type=None):
         if file_type in FILE_TYPE_DICT_NAME_LETTER and cross_type in FILE_TYPE_DICT_NAME_LETTER:
             file_letters = 'File_{}_to_{}_'.format(FILE_TYPE_DICT_NAME_LETTER[file_type],
                                                    FILE_TYPE_DICT_NAME_LETTER[cross_type])
-        return "submission{}_crossfile_{}{}{}_{}.csv".format(submission_id, report_type_str, file_letters, file_type,
+        return "submission_{}_crossfile_{}{}{}_{}.csv".format(submission_id, report_type_str, file_letters, file_type,
                                                              cross_type)
     else:
         report_type_str = 'warning_' if warning else 'error_'
         file_letters = ''
         if file_type in FILE_TYPE_DICT_NAME_LETTER:
             file_letters = 'File_{}_'.format(FILE_TYPE_DICT_NAME_LETTER[file_type])
-        return "submission{}_{}{}_{}report.csv".format(submission_id, file_letters, file_type, report_type_str)
+        return "submission_{}_{}{}_{}report.csv".format(submission_id, file_letters, file_type, report_type_str)
 
 
 def get_cross_file_pairs():
