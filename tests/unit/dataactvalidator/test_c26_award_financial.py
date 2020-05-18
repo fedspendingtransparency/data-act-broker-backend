@@ -10,7 +10,7 @@ _FILE = 'c26_award_financial'
 af_dict = dict(
     submission_id=randint(1000, 10000),
     tas='some-tas',
-    disaster_emergency_fund_code='O',
+    disaster_emergency_fund_code='o',
     ussgl480100_undelivered_or_fyb=randint(-10000, -1000),
     ussgl480100_undelivered_or_cpe=randint(-10000, -1000),
     ussgl483100_undelivered_or_cpe=randint(-10000, -1000),
@@ -144,7 +144,7 @@ def test_success(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] * 2,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] * 2,
         tas=af_dict['tas'],
-        disaster_emergency_fund_code=af_dict['disaster_emergency_fund_code'],
+        disaster_emergency_fund_code=af_dict['disaster_emergency_fund_code'].upper(),
         submission_id=af_dict['submission_id']
     )
 
@@ -220,7 +220,7 @@ def test_success(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] * 2,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] * 2,
         tas=af_dict['tas'],
-        disaster_emergency_fund_code='some-other-code',
+        disaster_emergency_fund_code='q',
         submission_id=af_dict['submission_id']
     )
 
@@ -268,7 +268,7 @@ def test_failure(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] + 1,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 1,
         tas=af_dict['tas'],
-        disaster_emergency_fund_code=af_dict['disaster_emergency_fund_code'],
+        disaster_emergency_fund_code=af_dict['disaster_emergency_fund_code'].upper(),
         submission_id=af_dict['submission_id']
     )
 
@@ -344,7 +344,7 @@ def test_failure(database):
         ussgl497200_downward_adjus_cpe=af_dict['ussgl497200_downward_adjus_cpe'] + 1,
         deobligations_recov_by_pro_cpe=af_dict['deobligations_recov_by_awa_cpe'] + 1,
         tas=af_dict['tas'],
-        disaster_emergency_fund_code='some-other-code',
+        disaster_emergency_fund_code='Q',
         submission_id=af_dict['submission_id']
     )
 

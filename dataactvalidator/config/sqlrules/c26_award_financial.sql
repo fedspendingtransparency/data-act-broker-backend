@@ -36,12 +36,12 @@ WITH award_financial_records AS (
         SUM(af.ussgl497200_downward_adjus_cpe) AS ussgl497200_downward_adjus_cpe_sum_c,
         SUM(af.deobligations_recov_by_awa_cpe) AS deobligations_recov_by_awa_cpe_sum_c,
         af.tas,
-        af.disaster_emergency_fund_code,
+        UPPER(af.disaster_emergency_fund_code) AS "disaster_emergency_fund_code",
         af.display_tas
     FROM award_financial AS af
     WHERE af.submission_id = {0}
     GROUP BY af.tas,
-        af.disaster_emergency_fund_code,
+        UPPER(af.disaster_emergency_fund_code),
         af.display_tas,
         af.submission_id),
 -- The second cte selects the sum of the corresponding 32 elements in File B
@@ -81,11 +81,11 @@ object_class_records AS (
         SUM(op.ussgl497200_downward_adjus_cpe) AS ussgl497200_downward_adjus_cpe_sum_b,
         SUM(op.deobligations_recov_by_pro_cpe) AS deobligations_recov_by_pro_cpe_sum_b,
         op.tas,
-        op.disaster_emergency_fund_code
+        UPPER(op.disaster_emergency_fund_code) AS "disaster_emergency_fund_code"
     FROM object_class_program_activity AS op
     WHERE op.submission_id = {0}
     GROUP BY op.tas,
-        op.disaster_emergency_fund_code,
+        UPPER(op.disaster_emergency_fund_code),
         op.submission_id)
 SELECT NULL AS "source_row_number",
     award_financial_records.display_tas AS "source_value_tas",
