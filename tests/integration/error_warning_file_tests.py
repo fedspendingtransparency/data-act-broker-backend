@@ -262,8 +262,8 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': '',
                 'Field Name': 'Blank File',
-                'Error Message': 'File does not contain data. For files A and B, this must be addressed prior to'
-                                 ' certification. Blank file C does not prevent certification.',
+                'Rule Message': 'File does not contain data. For files A and B, this must be addressed prior to'
+                                ' certification. Blank file C does not prevent certification.',
                 'Value Provided': '',
                 'Expected Value': '',
                 'Difference': '',
@@ -281,8 +281,8 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': 'TAS: 028-2010/2011-0406-000',
                 'Field Name': 'budgetauthorityunobligatedbalancebroughtforward_fyb',
-                'Error Message': 'All the elements that have FYB in file A are expected in the first submission'
-                                 ' for a fiscal year',
+                'Rule Message': 'All the elements that have FYB in file A are expected in the first submission'
+                                ' for a fiscal year',
                 'Value Provided': 'budgetauthorityunobligatedbalancebroughtforward_fyb: ',
                 'Expected Value': 'If the reporting period is Quarter 1, a non-null amount should be submitted for the'
                                   ' following elements: BudgetAuthorityUnobligatedBalanceBroughtForward_FYB',
@@ -347,7 +347,7 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': '',
                 'Field Name': 'Formatting Error',
-                'Error Message': 'Could not parse this record correctly.',
+                'Rule Message': 'Could not parse this record correctly.',
                 'Value Provided': '',
                 'Expected Value': '',
                 'Difference': '',
@@ -358,7 +358,7 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': '',
                 'Field Name': 'Formatting Error',
-                'Error Message': 'Could not parse this record correctly.',
+                'Rule Message': 'Could not parse this record correctly.',
                 'Value Provided': '',
                 'Expected Value': '',
                 'Difference': '',
@@ -376,8 +376,8 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': 'TAS: 069-013-X-2050-005',
                 'Field Name': 'statusofbudgetaryresourcestotal_cpe',
-                'Error Message': 'The value provided was of the wrong type. Note that all type errors in a line must be'
-                                 ' fixed before the rest of the validation logic is applied to that line.',
+                'Rule Message': 'The value provided was of the wrong type. Note that all type errors in a line must be'
+                                ' fixed before the rest of the validation logic is applied to that line.',
                 'Value Provided': 'statusofbudgetaryresourcestotal_cpe: A',
                 'Expected Value': 'This field must be a decimal',
                 'Difference': '',
@@ -395,7 +395,7 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': 'TAS: 069-013-X-2050-005',
                 'Field Name': 'grossoutlayamountbytas_cpe',
-                'Error Message': 'Value was longer than maximum length for this field.',
+                'Rule Message': 'Value was longer than maximum length for this field.',
                 'Value Provided': 'grossoutlayamountbytas_cpe: 35000000000000000000000000',
                 'Expected Value': 'Max length: 21',
                 'Difference': '',
@@ -413,7 +413,7 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': 'TAS: 019-2016/2016-0113-000',
                 'Field Name': 'statusofbudgetaryresourcestotal_cpe',
-                'Error Message': 'This field is required for all submissions but was not provided in this row.',
+                'Rule Message': 'This field is required for all submissions but was not provided in this row.',
                 'Value Provided': '',
                 'Expected Value': '(not blank)',
                 'Difference': '',
@@ -425,8 +425,8 @@ class ErrorWarningTests(BaseTestValidator):
                 'Unique ID': 'TAS: 019-2016/2016-0113-000',
                 'Field Name': 'statusofbudgetaryresourcestotal_cpe, obligationsincurredtotalbytas_cpe,'
                               ' unobligatedbalance_cpe',
-                'Error Message': 'StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE'
-                                 ' + UnobligatedBalance_CPE',
+                'Rule Message': 'StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE'
+                                ' + UnobligatedBalance_CPE',
                 'Value Provided': 'statusofbudgetaryresourcestotal_cpe: , obligationsincurredtotalbytas_cpe: 8.08,'
                                   ' unobligatedbalance_cpe: 2.02',
                 'Expected Value': 'StatusOfBudgetaryResourcesTotal_CPE must equal the sum of these elements:'
@@ -442,7 +442,7 @@ class ErrorWarningTests(BaseTestValidator):
             {
                 'Unique ID': 'TAS: 019-2016/2016-0113-000',
                 'Field Name': 'statusofbudgetaryresourcestotal_cpe, totalbudgetaryresources_cpe',
-                'Error Message': 'StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE',
+                'Rule Message': 'StatusOfBudgetaryResourcesTotal_CPE = TotalBudgetaryResources_CPE',
                 'Value Provided': 'statusofbudgetaryresourcestotal_cpe: , totalbudgetaryresources_cpe: 10.1',
                 'Expected Value': 'StatusOfBudgetaryResourcesTotal_CPE must equal TotalBudgetaryResources_CPE. The'
                                   ' Broker cannot distinguish which side of the equation is correct for this rule.'
@@ -465,10 +465,10 @@ class ErrorWarningTests(BaseTestValidator):
                 'Field Name': 'totalbudgetaryresources_cpe, budgetauthorityappropriatedamount_cpe,'
                               ' budgetauthorityunobligatedbalancebroughtforward_fyb,'
                               ' adjustmentstounobligatedbalancebroughtforward_cpe, otherbudgetaryresourcesamount_cpe',
-                'Error Message': 'TotalBudgetaryResources_CPE = BudgetAuthorityAppropriatedAmount_CPE +'
-                                 ' BudgetAuthorityUnobligatedBalanceBroughtForward_FYB +'
-                                 ' AdjustmentsToUnobligatedBalanceBroughtForward_CPE +'
-                                 ' OtherBudgetaryResourcesAmount_CPE',
+                'Rule Message': 'TotalBudgetaryResources_CPE = BudgetAuthorityAppropriatedAmount_CPE +'
+                                ' BudgetAuthorityUnobligatedBalanceBroughtForward_FYB +'
+                                ' AdjustmentsToUnobligatedBalanceBroughtForward_CPE +'
+                                ' OtherBudgetaryResourcesAmount_CPE',
                 'Value Provided': 'totalbudgetaryresources_cpe: 10.1, budgetauthorityappropriatedamount_cpe: 0.01,'
                                   ' budgetauthorityunobligatedbalancebroughtforward_fyb: 3.03,'
                                   ' adjustmentstounobligatedbalancebroughtforward_cpe: 2.02,'
@@ -508,9 +508,9 @@ class ErrorWarningTests(BaseTestValidator):
                 'Source Field Name': 'grossoutlayamountbytas_cpe',
                 'Target File': 'program_activity',
                 'Target Field Name': 'gross_outlay_amount_by_pro_cpe_sum',
-                'Error Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal'
-                                 ' the sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values in'
-                                 ' the award financial file (B).',
+                'Rule Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal'
+                                ' the sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values in'
+                                ' the award financial file (B).',
                 'Source Value Provided': 'grossoutlayamountbytas_cpe: 10000',
                 'Target Value Provided': 'gross_outlay_amount_by_pro_cpe_sum: 6000',
                 'Difference': '4000',
@@ -524,9 +524,9 @@ class ErrorWarningTests(BaseTestValidator):
                 'Source Field Name': 'obligationsincurredtotalbytas_cpe',
                 'Target File': 'program_activity',
                 'Target Field Name': 'obligations_incurred_by_pr_cpe_sum',
-                'Error Message': 'The ObligationsIncurredTotalByTAS_CPE amount in the appropriation file (A) does not'
-                                 ' equal the negative sum of the corresponding'
-                                 ' ObligationsIncurredByProgramObjectClass_CPE values in the award financial file (B).',
+                'Rule Message': 'The ObligationsIncurredTotalByTAS_CPE amount in the appropriation file (A) does not'
+                                ' equal the negative sum of the corresponding'
+                                ' ObligationsIncurredByProgramObjectClass_CPE values in the award financial file (B).',
                 'Source Value Provided': 'obligationsincurredtotalbytas_cpe: 12000',
                 'Target Value Provided': 'obligations_incurred_by_pr_cpe_sum: 6000',
                 'Difference': '18000',
@@ -541,8 +541,8 @@ class ErrorWarningTests(BaseTestValidator):
                 'Target File': 'program_activity',
                 'Target Field Name': 'ussgl487100_downward_adjus_cpe_sum, ussgl497100_downward_adjus_cpe_sum,'
                                      ' ussgl487200_downward_adjus_cpe_sum, ussgl497200_downward_adjus_cpe_sum',
-                'Error Message': 'DeobligationsRecoveriesRefundsByTAS_CPE in File A should equal USSGL'
-                                 ' (4871_CPE+ 4971_CPE+ 4872_CPE+ 4972_CPE) for the TAS in File B.',
+                'Rule Message': 'DeobligationsRecoveriesRefundsByTAS_CPE in File A should equal USSGL'
+                                ' (4871_CPE+ 4971_CPE+ 4872_CPE+ 4972_CPE) for the TAS in File B.',
                 'Source Value Provided': 'deobligationsrecoveriesrefundsbytas_cpe: 16000',
                 'Target Value Provided': 'ussgl487100_downward_adjus_cpe_sum: 2000,'
                                          ' ussgl497100_downward_adjus_cpe_sum: 2000,'
@@ -578,8 +578,8 @@ class ErrorWarningTests(BaseTestValidator):
                                      ' availabilitytypecode, mainaccountcode, subaccountcode',
                 'Target File': 'program_activity',
                 'Target Field Name': '',
-                'Error Message': 'All TAS values in File A (appropriations) should exist in File B'
-                                 ' (object class program activity)',
+                'Rule Message': 'All TAS values in File A (appropriations) should exist in File B'
+                                ' (object class program activity)',
                 'Source Value Provided': 'allocationtransferagencyidentifier: 019, agencyidentifier: 072,'
                                          ' beginningperiodofavailability: , endingperiodofavailability: ,'
                                          ' availabilitytypecode: X, mainaccountcode: 0306, subaccountcode: 000',
