@@ -14,7 +14,7 @@ def report_file_name(submission_id, warning, file_type, cross_type=None):
             file_letters = 'File_{}_to_{}_'.format(FILE_TYPE_DICT_NAME_LETTER[file_type],
                                                    FILE_TYPE_DICT_NAME_LETTER[cross_type])
         return "submission_{}_crossfile_{}{}{}_{}.csv".format(submission_id, report_type_str, file_letters, file_type,
-                                                             cross_type)
+                                                              cross_type)
     else:
         report_type_str = 'warning_' if warning else 'error_'
         file_letters = ''
