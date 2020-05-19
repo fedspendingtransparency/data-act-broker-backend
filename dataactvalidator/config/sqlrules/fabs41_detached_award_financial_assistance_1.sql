@@ -1,4 +1,4 @@
--- For PrimaryPlaceOfPerformanceCode XX##### or XX####R, where PrimaryPlaceOfPerformanceZIP+4 is blank or "city-wide":
+-- For PrimaryPlaceOfPerformanceCode XX##### or XX####R, where PrimaryPlaceOfPerformanceZIP+4 is "city-wide":
 -- city code ##### or ####R must be valid and exist in the provided state.
 WITH detached_award_financial_assistance_fabs41_1_{0} AS
     (SELECT submission_id,

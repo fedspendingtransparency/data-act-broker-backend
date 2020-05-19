@@ -352,13 +352,41 @@ def test_check_length():
     assert_frame_equal(error_df, expected_error_df)
 
 
+def test_check_field_format():
+    data = pd.DataFrame({'row_number': ['1', '2', '3', '4', '5'],
+                         'unique_id': ['ID1', 'ID2', 'ID3', 'ID4', 'ID5'],
+                         'dates': [None, '20200101', '200012', 'abcdefgh', '20201301']})
+    format_fields = ['dates']
+    report_headers = ValidationManager.report_headers
+    short_cols = {'dates': 'date'}
+    flex_data = pd.DataFrame({'row_number': ['1', '2', '3', '4', '5'],
+                              'concatted': ['A', 'B', 'C', 'D', 'E']})
+
+    error_msg = ValidationError.fieldFormatErrorMsg
+    error_type = ValidationError.fieldFormatError
+    # report_headers = ['Unique ID', 'Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Difference',
+    #                   'Flex Field', 'Row Number', 'Rule Label'] + ['error_type']
+    expected_data = [
+        ['ID3', 'date', error_msg, 'date: 200012', 'A date in the YYYYMMDD format.', '', 'C', '3', 'DABSDATETIME',
+         error_type],
+        ['ID4', 'date', error_msg, 'date: abcdefgh', 'A date in the YYYYMMDD format.', '', 'D', '4', 'DABSDATETIME',
+         error_type],
+        ['ID5', 'date', error_msg, 'date: 20201301', 'A date in the YYYYMMDD format.', '', 'E', '5', 'DABSDATETIME',
+         error_type]
+    ]
+    expected_error_df = pd.DataFrame(expected_data, columns=report_headers + ['error_type'])
+    error_df = validation_helper.check_field_format(data, format_fields, report_headers, short_cols, flex_data)
+    assert_frame_equal(error_df, expected_error_df)
+
+
 def test_parse_fields(database):
     sess = database.session
     fields = [
         FileColumn(name_short='string', field_types_id=FIELD_TYPE_DICT['STRING'], length=5),
         FileColumn(name_short='bool', field_types_id=FIELD_TYPE_DICT['BOOLEAN'], required=True),
         FileColumn(name_short='dec', field_types_id=FIELD_TYPE_DICT['DECIMAL']),
-        FileColumn(name_short='int', field_types_id=FIELD_TYPE_DICT['INT'], padded_flag=True, length=4, required=True)
+        FileColumn(name_short='int', field_types_id=FIELD_TYPE_DICT['INT'], padded_flag=True, length=4, required=True),
+        FileColumn(name_short='date', field_types_id=FIELD_TYPE_DICT['DATE'])
     ]
     sess.add_all(fields)
 
@@ -366,10 +394,11 @@ def test_parse_fields(database):
         'required': ['bool', 'int'],
         'number': ['dec', 'int'],
         'boolean': ['bool'],
+        'format': ['date'],
         'length': ['string', 'int'],
         'padded': ['int']
     }
-    expected_expected_headers = ['bool', 'int', 'dec', 'string']
+    expected_expected_headers = ['bool', 'int', 'dec', 'string', 'date']
     expected_headers, parsed_fields = validation_helper.parse_fields(sess, fields)
     assert parsed_fields == expected_parsed_fields
     assert set(expected_headers) == set(expected_expected_headers)

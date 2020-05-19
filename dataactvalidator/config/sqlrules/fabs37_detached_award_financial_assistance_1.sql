@@ -1,6 +1,7 @@
--- For new assistance awards (ActionType = A), the CFDA_Number must be active as of the ActionDate.
--- This does not apply to correction records (those with CorrectionDeleteIndicator = C).
--- If publish_date <= action_date <= archived_date, it passes validation (active).
+-- For new (ActionType = A) or mixed aggregate (ActionType = E) assistance awards specifically,
+-- the CFDA_Number must be active as of the ActionDate. This does not apply to correction records
+-- (those with CorrectionDeleteIndicator = C and delete records).
+
 WITH detached_award_financial_assistance_fabs37_1_{0} AS
     (SELECT submission_id,
         row_number,
@@ -19,7 +20,7 @@ SELECT
     action_date,
     afa_generated_unique AS "uniqueid_AssistanceTransactionUniqueKey"
 FROM detached_award_financial_assistance_fabs37_1_{0} AS dafa
-WHERE UPPER(dafa.action_type) = 'A'
+WHERE UPPER(dafa.action_type) IN ('A', 'E')
     AND UPPER(COALESCE(correction_delete_indicatr, '')) NOT IN ('C', 'D')
     AND dafa.row_number NOT IN (
         SELECT DISTINCT sub_dafa.row_number

@@ -6,6 +6,7 @@ from dataactcore.models.stagingModels import DetachedAwardProcurement
 file_model = DetachedAwardProcurement
 
 mapping = OrderedDict([
+    ('PrimeAwardUniqueKey', 'unique_award_key'),
     ('ContractTransactionUniqueKey', 'detached_award_proc_unique'),
     ('PIID', 'piid'),
     ('AwardModificationAmendmentNumber', 'award_modification_amendme'),
@@ -175,8 +176,8 @@ mapping = OrderedDict([
     ('Contract Financing Description Tag', 'contract_financing_descrip'),
     ('Purchase Card as Payment Method', 'purchase_card_as_payment_m'),
     ('Purchase Card as Payment Method Description Tag', 'purchase_card_as_paym_desc'),
-    ('Contingency Humanitarian or Peacekeeping Operation', 'contingency_humanitarian_o'),
-    ('Contingency Humanitarian or Peacekeeping Operation Description Tag', 'contingency_humanitar_desc'),
+    ('Emergency Acquisition', 'contingency_humanitarian_o'),
+    ('Emergency Acquisition Description Tag', 'contingency_humanitar_desc'),
     ('Alaskan Native Corporation Owned Firm', 'alaskan_native_owned_corpo'),
     ('American Indian Owned Business', 'american_indian_owned_busi'),
     ('Indian Tribe Federally Recognized', 'indian_tribe_federally_rec'),
@@ -299,6 +300,7 @@ def query_data(session, agency_code, agency_type, start, end):
 
 def initial_query(session):
     return session.query(*[
+        file_model.unique_award_key,
         file_model.detached_award_proc_unique,
         file_model.piid,
         file_model.award_modification_amendme,

@@ -1,7 +1,6 @@
--- If PrimaryPlaceOfPerformanceCongressionalDistrict is not provided, a 9 digit PrimaryPlaceOfPerformanceZIP+4 must be
--- provided
--- Only applies to domestic PPoP (PPoPCountry Code = USA) and
--- for aggregate and non-aggregate records (RecordType = 1 or 2)
+-- For aggregate and non-aggregate records (RecordType = 1 or 2), with domestic place of performance
+-- (PrimaryPlaceOfPerformanceCountryCode = USA): if 9-digit PrimaryPlaceOfPerformanceZIP+4 is not provided,
+-- PrimaryPlaceOfPerformanceCongressionalDistrict must be provided.
 SELECT
     row_number,
     place_of_performance_congr,

@@ -11,24 +11,25 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Tests if ActionType is one of the following values: “A”, “B”, “C”, “D”, or blank. """
+    """ Tests if ActionType is one of the following values: “A”, “B”, “C”, “D”, or "E". """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(action_type='a', correction_delete_indicatr='')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(action_type='B', correction_delete_indicatr=None)
     det_award_3 = DetachedAwardFinancialAssistanceFactory(action_type='c', correction_delete_indicatr='c')
     det_award_4 = DetachedAwardFinancialAssistanceFactory(action_type='D', correction_delete_indicatr='C')
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(action_type='', correction_delete_indicatr='')
-    det_award_6 = DetachedAwardFinancialAssistanceFactory(action_type=None, correction_delete_indicatr='C')
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(action_type='e', correction_delete_indicatr='')
     # Ignore correction delete indicator of D
-    det_award_7 = DetachedAwardFinancialAssistanceFactory(action_type='Thing', correction_delete_indicatr='d')
+    det_award_6 = DetachedAwardFinancialAssistanceFactory(action_type='Thing', correction_delete_indicatr='d')
 
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6, det_award_7])
+                                                       det_award_6])
     assert errors == 0
 
 
 def test_failure(database):
-    """ Tests if ActionType is not one of the following values: “A”, “B”, “C”, “D”, or blank. """
+    """ Tests if ActionType is not one of the following values: “A”, “B”, “C”, “D”, or "E". """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(action_type='random', correction_delete_indicatr='c')
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(action_type='', correction_delete_indicatr='')
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(action_type=None, correction_delete_indicatr='C')
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1])
-    assert errors == 1
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
+    assert errors == 3

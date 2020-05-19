@@ -12,8 +12,9 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ If no PrimaryPlaceOfPerformanceZIP+4 is provided, a PrimaryPlaceOfPerformanceCongressionalDistrict must
-        be provided. Only applies to domestic records and aggregate or non-aggregate records (RecordType = 1 or 2).
+    """ For aggregate and non-aggregate records (RecordType = 1 or 2), with domestic place of performance
+        (PrimaryPlaceOfPerformanceCountryCode = USA): if 9-digit PrimaryPlaceOfPerformanceZIP+4 is not provided,
+        PrimaryPlaceOfPerformanceCongressionalDistrict must be provided.
     """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a='',
@@ -65,9 +66,9 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test failure for if no PrimaryPlaceOfPerformanceZIP+4 is provided, a
-        PrimaryPlaceOfPerformanceCongressionalDistrict must be provided. Only applies to domestic records
-        and aggregate or non-aggregate records (RecordType = 1 or 2).
+    """ Test failure for aggregate and non-aggregate records (RecordType = 1 or 2), with domestic place of performance
+        (PrimaryPlaceOfPerformanceCountryCode = USA): if 9-digit PrimaryPlaceOfPerformanceZIP+4 is not provided,
+        PrimaryPlaceOfPerformanceCongressionalDistrict must be provided.
     """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a='',

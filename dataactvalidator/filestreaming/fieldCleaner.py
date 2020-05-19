@@ -91,6 +91,8 @@ class FieldCleaner(StringCleaner):
             return "bool"
         elif clean_type == "long":
             return "long"
+        elif clean_type == "date":
+            return "date"
         else:
             raise ValueError("".join(["Unknown type: ", clean_type]))
 

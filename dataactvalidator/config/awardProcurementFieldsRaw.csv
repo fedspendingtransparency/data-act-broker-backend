@@ -1,5 +1,6 @@
 fieldname,fieldname_short,required,data_type,field_length
 ContractTransactionUniqueKey,detached_award_proc_unique,optional,string,
+PrimeAwardUniqueKey,unique_award_key,optional,string,
 PIID,piid,optional,string,
 AwardingSubTierAgencyCode,awarding_sub_tier_agency_c,optional,string,
 AwardingSubTierAgencyName,awarding_sub_tier_agency_n,optional,string,
@@ -72,8 +73,8 @@ Simplified Procedures for Certain Commercial Items,commercial_item_test_progr,op
 Commercial Item Test Program Description Tag,commercial_item_test_desc,optional,string,
 Consolidated Contract,consolidated_contract,optional,string,
 Consolidated Contract Description Tag,consolidated_contract_desc,optional,string,
-Contingency Humanitarian or Peacekeeping Operation,contingency_humanitarian_o,optional,string,
-Contingency Humanitarian or Peacekeeping Operation Description Tag,contingency_humanitar_desc,optional,string,
+Emergency Acquisition,contingency_humanitarian_o,optional,string,
+Emergency Acquisition Description Tag,contingency_humanitar_desc,optional,string,
 Contract Bundling,contract_bundling,optional,string,
 Contract Bundling Description Tag,contract_bundling_descrip,optional,string,
 Contract Financing,contract_financing,optional,string,

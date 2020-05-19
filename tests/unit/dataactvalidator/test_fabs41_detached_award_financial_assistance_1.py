@@ -12,8 +12,8 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ For PrimaryPlaceOfPerformanceCode XX##### or XX####R, where PrimaryPlaceOfPerformanceZIP+4 is blank or
-        "city-wide": city code ##### or ####R must be valid and exist in the provided state.
+    """ For PrimaryPlaceOfPerformanceCode XX##### or XX####R, where PrimaryPlaceOfPerformanceZIP+4 is "city-wide":
+        city code ##### or ####R must be valid and exist in the provided state.
     """
 
     city_code = CityCode(city_code='10987', state_code='NY')
@@ -61,7 +61,7 @@ def test_success(database):
 
 def test_failure(database):
     """ Test failure for PrimaryPlaceOfPerformanceCode XX##### or XX####R, where PrimaryPlaceOfPerformanceZIP+4 is
-        blank or "city-wide": city code ##### or ####R must be valid and exist in the provided state.
+        "city-wide": city code ##### or ####R must be valid and exist in the provided state.
     """
 
     city_code = CityCode(city_code='10987', state_code='NY')
