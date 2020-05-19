@@ -653,7 +653,7 @@ def get_fabs_meta(submission_id):
     return {
         'valid_rows': valid_rows.count(),
         'total_rows': total_rows.count(),
-        'publish_date': publish_date.strftime('%-I:%M%p %m/%d/%Y') if publish_date else None,
+        'publish_date': publish_date.strftime('%Y-%m-%dT%H:%M:%S') if publish_date else None,
         'published_file': published_file
     }
 
