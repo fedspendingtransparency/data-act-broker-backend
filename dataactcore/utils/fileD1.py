@@ -6,8 +6,8 @@ from dataactcore.models.stagingModels import DetachedAwardProcurement
 file_model = DetachedAwardProcurement
 
 mapping = OrderedDict([
-    ('PrimeAwardUniqueKey', 'unique_award_key'),
     ('ContractTransactionUniqueKey', 'detached_award_proc_unique'),
+    ('PrimeAwardUniqueKey', 'unique_award_key'),
     ('PIID', 'piid'),
     ('AwardModificationAmendmentNumber', 'award_modification_amendme'),
     ('Transaction Number', 'transaction_number'),
@@ -300,8 +300,8 @@ def query_data(session, agency_code, agency_type, start, end):
 
 def initial_query(session):
     return session.query(*[
-        file_model.unique_award_key,
         file_model.detached_award_proc_unique,
+        file_model.unique_award_key,
         file_model.piid,
         file_model.award_modification_amendme,
         file_model.transaction_number,
