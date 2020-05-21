@@ -39,24 +39,27 @@ def test_success(database):
 
     # Fain sums for AFA
     afa_1_row_1 = AwardFinancialAssistanceFactory(fain=fain_1, federal_action_obligation=-1100,
-                                                  original_loan_subsidy_cost=None)
+                                                  original_loan_subsidy_cost=None, record_type='2')
     afa_1_row_2 = AwardFinancialAssistanceFactory(fain=fain_1.lower(), federal_action_obligation=-10,
-                                                  original_loan_subsidy_cost=None)
+                                                  original_loan_subsidy_cost=None, record_type='3')
     # original loan subsidy cost used in this row because assistance type is '08'
     afa_1_row_3 = AwardFinancialAssistanceFactory(fain=fain_1, original_loan_subsidy_cost=-1, assistance_type='08',
-                                                  federal_action_obligation=None)
+                                                  federal_action_obligation=None, record_type='2')
     # federal action obligation used in this row (it's 0), because assistance type is not 07 and 08
     afa_1_row_4 = AwardFinancialAssistanceFactory(fain=fain_1, original_loan_subsidy_cost=-2222, assistance_type='09',
-                                                  federal_action_obligation=None)
+                                                  federal_action_obligation=None, record_type='3')
+    # Ignored because record type 1
+    afa_1_row_5 = AwardFinancialAssistanceFactory(fain=fain_1, federal_action_obligation=-1100,
+                                                  original_loan_subsidy_cost=None, record_type='1')
     # Fain 2 Test for non-ignored ATA
     afa_2 = AwardFinancialAssistanceFactory(fain=fain_2, federal_action_obligation=-9999,
-                                            original_loan_subsidy_cost=None)
+                                            original_loan_subsidy_cost=None, record_type='2')
     # Fain 3 test for ignoring a non-matching ATA/AID
-    afa_3 = AwardFinancialAssistanceFactory(fain=fain_3, federal_action_obligation=-9999)
+    afa_3 = AwardFinancialAssistanceFactory(fain=fain_3, federal_action_obligation=-9999, record_type='3')
 
     errors = number_of_errors(_FILE, database, models=[af_1_row_1, af_1_row_2, af_2_row_1, af_2_row_2, af_3,
-                                                       afa_1_row_1, afa_1_row_2, afa_1_row_3, afa_1_row_4, afa_2,
-                                                       afa_3])
+                                                       afa_1_row_1, afa_1_row_2, afa_1_row_3, afa_1_row_4, afa_1_row_5,
+                                                       afa_2, afa_3])
     assert errors == 0
 
 
@@ -82,16 +85,18 @@ def test_failure(database):
 
     # Sum of this fain doesn't add up to af fain sum
     afa_1_row_1 = AwardFinancialAssistanceFactory(fain=fain_1, federal_action_obligation=-1100,
-                                                  original_loan_subsidy_cost=None)
+                                                  original_loan_subsidy_cost=None, record_type='2')
     afa_1_row_2 = AwardFinancialAssistanceFactory(fain=fain_1.lower(), federal_action_obligation=-10,
-                                                  original_loan_subsidy_cost=None)
+                                                  original_loan_subsidy_cost=None, record_type='3')
     # Both of these rows use the column that isn't filled in for summing so neither results in the correct number
     afa_2_row_1 = AwardFinancialAssistanceFactory(fain=fain_2, federal_action_obligation=-9999,
-                                                  original_loan_subsidy_cost=None)
+                                                  original_loan_subsidy_cost=None, record_type='2')
     afa_2_row_2 = AwardFinancialAssistanceFactory(fain=fain_2, federal_action_obligation=None,
-                                                  original_loan_subsidy_cost=-9999, assistance_type='07')
+                                                  original_loan_subsidy_cost=-9999, assistance_type='07',
+                                                  record_type='3')
     # This shouldn't be ignored
-    afa_3 = AwardFinancialAssistanceFactory(fain=fain_3, federal_action_obligation=0, original_loan_subsidy_cost=None)
+    afa_3 = AwardFinancialAssistanceFactory(fain=fain_3, federal_action_obligation=0, original_loan_subsidy_cost=None,
+                                            record_type='2')
 
     errors = number_of_errors(_FILE, database, models=[af_1_row_1, af_1_row_2, af_2, af_3, afa_1_row_1, afa_1_row_2,
                                                        afa_2_row_1, afa_2_row_2, afa_3])
