@@ -6,8 +6,8 @@ from dataactcore.models.stagingModels import DetachedAwardProcurement
 file_model = DetachedAwardProcurement
 
 mapping = OrderedDict([
-    ('PrimeAwardUniqueKey', 'unique_award_key'),
     ('ContractTransactionUniqueKey', 'detached_award_proc_unique'),
+    ('PrimeAwardUniqueKey', 'unique_award_key'),
     ('PIID', 'piid'),
     ('AwardModificationAmendmentNumber', 'award_modification_amendme'),
     ('Transaction Number', 'transaction_number'),
@@ -148,6 +148,7 @@ mapping = OrderedDict([
     ('Interagency Contracting Authority', 'interagency_contracting_au'),
     ('Interagency Contracting Authority Description Tag', 'interagency_contract_desc'),
     ('Other Statutory Authority', 'other_statutory_authority'),
+    ('Additional Reporting', 'additional_reporting'),
     ('Program Acronym', 'program_acronym'),
     ('Referenced IDV Type', 'referenced_idv_type'),
     ('Referenced IDV Type Description Tag', 'referenced_idv_type_desc'),
@@ -300,8 +301,8 @@ def query_data(session, agency_code, agency_type, start, end):
 
 def initial_query(session):
     return session.query(*[
-        file_model.unique_award_key,
         file_model.detached_award_proc_unique,
+        file_model.unique_award_key,
         file_model.piid,
         file_model.award_modification_amendme,
         file_model.transaction_number,
@@ -442,6 +443,7 @@ def initial_query(session):
         file_model.interagency_contracting_au,
         file_model.interagency_contract_desc,
         file_model.other_statutory_authority,
+        file_model.additional_reporting,
         file_model.program_acronym,
         file_model.referenced_idv_type,
         file_model.referenced_idv_type_desc,

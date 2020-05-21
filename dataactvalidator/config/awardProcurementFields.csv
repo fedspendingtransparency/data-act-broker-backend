@@ -115,6 +115,7 @@ National Interest Action Description Tag,national_interest_action_description_ta
 Number of Actions,number_of_actions,number_of_actions,FALSE,str,,
 Number of Offers Received,number_of_offers_received,number_of_offers_received,FALSE,str,,
 Other Statutory Authority,other_statutory_authority,other_statutory_authority,FALSE,str,,
+Additional Reporting,additional_reporting,additional_reporting,FALSE,str,,
 Performance-Based Service Acquisition,performance_based_service_acquisition,performance_based_service,FALSE,str,,
 Performance-Based Service Acquisition Description Tag,performance_based_service_acquisition_description_tag,performance_based_se_desc,FALSE,str,,
 Place of Manufacture,place_of_manufacture,place_of_manufacture,FALSE,str,,

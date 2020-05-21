@@ -807,6 +807,7 @@ class AwardProcurement(Base):
     annual_revenue = Column(Text)
     total_obligated_amount = Column(Text)
     last_modified = Column(Text)
+    additional_reporting = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -1192,6 +1193,7 @@ class CertifiedAwardProcurement(Base):
     annual_revenue = Column(Text)
     total_obligated_amount = Column(Text)
     last_modified = Column(Text)
+    additional_reporting = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

@@ -155,7 +155,7 @@ def get_submission_metadata(submission):
         'number_of_warnings': submission.number_of_warnings,
         'number_of_rows': number_of_rows,
         'total_size': total_size,
-        'created_on': submission.created_at.strftime('%m/%d/%Y'),
+        'created_on': submission.created_at.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_updated': submission.updated_at.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': last_validated,
         'reporting_period': reporting_date(submission),
