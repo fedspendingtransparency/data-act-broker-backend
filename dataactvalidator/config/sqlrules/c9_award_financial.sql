@@ -1,7 +1,9 @@
--- Unique FAIN and/or URI from file D2 should exist in file C, except for:
--- 1) Loans (AssistanceType = 08 or 09) with OriginalLoanSubsidyCost <= 0 in D2; or
--- 2) Non-Loans with FederalActionObligation = 0 in D2.
--- FAIN should be null for aggregated records. URI may be null for non-aggregated records.
+-- Unique FAIN or URI from file D2 should exist in file C, except for:
+-- 1) Loans (AssistanceType = 07 or 08) with OriginalLoanSubsidyCost <= 0 in D2;
+-- or 2) Non-Loans with FederalActionObligation = 0 in D2.
+-- For non-aggregate and PII-redacted non-aggregate records, only the FAIN in D2 will be compared to C.
+-- For aggregate records, only the URI in D2 will be compared to C.
+-- Note that for File C, FAIN and URI cannot be provided on the same row.
 WITH award_financial_assistance_c9_{0} AS
     (SELECT submission_id,
         row_number,
