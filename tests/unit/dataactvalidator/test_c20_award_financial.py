@@ -104,7 +104,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Tests that Each USSGL account balance or subtotal, when totaled by combination of TAS/object class provided in
+    """ Tests that each USSGL account balance or subtotal, when totaled by combination of TAS/object class provided in
         File C, should be a subset of, or equal to, the same combinations in File B.
     """
     af1 = AwardFinancialFactory(**af_dict)
