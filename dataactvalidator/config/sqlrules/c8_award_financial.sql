@@ -1,6 +1,8 @@
--- Unique FAIN and/or URI from file C should exist in file D2. FAIN should be null for aggregate records. URI may be
--- null for non-aggregate records and PII-redacted non-aggregate records. Do not process if allocation transfer agency
--- is not null and does not match agency ID (per C24, a non-SQL rule negation)
+-- Unique FAIN or URI from file C should exist in file D2. Note that in File C:
+-- 1) FAIN must be null for aggregate records;
+-- and 2) URI must be null for non-aggregate records and PII-redacted non-aggregate records.
+-- Do not process if allocation transfer agency is not null and does not match agency ID
+-- (per C24, a non-SQL rule negation)
 WITH award_financial_c8_{0} AS
     (SELECT submission_id,
         row_number,
