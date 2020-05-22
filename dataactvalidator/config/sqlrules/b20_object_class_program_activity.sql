@@ -1,7 +1,6 @@
--- All combinations of TAS/program activity code+name (when provided in File C)/object class in File C (award financial)
--- should exist in File B (object class program activity). Since not all object classes will have award activity, it is
--- acceptable for combinations of TAS/program activity code+name/object class in File C to be a subset of those provided
--- in File B.
+-- All combinations of TAS/program activity code+name/object class in File C (award financial) should exist in File B
+-- (object class program activity). Since not all object classes will have award activity, it is acceptable for
+-- combinations of TAS/program activity code+name/object class in File C to be a subset of those provided in File B.
 
 WITH award_financial_b20_{0} AS
     (SELECT row_number,
