@@ -263,7 +263,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Unique ID': '',
                 'Field Name': 'Blank File',
                 'Rule Message': 'File does not contain data. For files A and B, this must be addressed prior to'
-                                ' certification. Blank file C does not prevent certification.',
+                                ' publication/certification. Blank file C does not prevent publication/certification.',
                 'Value Provided': '',
                 'Expected Value': '',
                 'Difference': '',
