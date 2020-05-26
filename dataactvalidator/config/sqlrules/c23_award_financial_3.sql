@@ -28,6 +28,7 @@ award_financial_assistance_c23_3_{0} AS
                     END), 0) AS sum_fed_act_ob_amount
     FROM award_financial_assistance
     WHERE submission_id = {0}
+        AND record_type IN ('2', '3')
     GROUP BY UPPER(fain))
 SELECT
     NULL AS "source_row_number",
