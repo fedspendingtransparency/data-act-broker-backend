@@ -3,9 +3,9 @@
 -- balance for this award breakdown was zero. This only applies to File C outlays, not TOA.
 WITH c27_prev_sub_{0} AS
 	(SELECT CASE WHEN sub.is_quarter_format
-		THEN sub_q.submission_id
-		ELSE sub_p.submission_id
-		END AS "submission_id"
+            THEN sub_q.submission_id
+            ELSE sub_p.submission_id
+            END AS "submission_id"
 	FROM submission AS sub
 	LEFT JOIN submission AS sub_p
 		ON sub_p.reporting_fiscal_year = sub.reporting_fiscal_year
@@ -33,15 +33,17 @@ c27_prev_outlays_{0} AS (
 	JOIN c27_prev_sub_{0} AS sub
 		ON sub.submission_id = caf.submission_id
 	WHERE COALESCE(gross_outlay_amount_by_awa_cpe, 0) <> 0)
-SELECT po.tas,
-	po.disaster_emergency_fund_code
+SELECT
+    NULL AS "row_number",
+    po.tas,
+	po.disaster_emergency_fund_code,
 	po.fain,
 	po.uri,
 	po.piid,
 	po.parent_award_id,
 	po.gross_outlay_amount_by_awa_cpe,
 	po.tas AS "uniqueid_TAS",
-	po.disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode"
+	po.disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode",
 	po.fain AS "uniqueid_FAIN",
 	po.uri AS "uniqueid_URI",
 	po.piid AS "uniqueid_PIID",
@@ -50,12 +52,12 @@ FROM c27_prev_outlays_{0} AS po
 WHERE NOT EXISTS (
 	SELECT 1
 	FROM award_financial AS af
-	WHERE COALESCE(po.fain, '') = COALESCE(af.fain, '')
-		AND COALESCE(po.uri, '') = COALESCE(af.uri, '')
-		AND COALESCE(po.piid, '') = COALESCE(af.piid, '')
-		AND COALESCE(po.parent_award_id, '') = COALESCE(af.parent_award_id, '')
-		AND COALESCE(po.tas, '') = COALESCE(af.tas, '')
-		AND COALESCE(disaster_emergency_fund_code, '') = COALESCE(disaster_emergency_fund_code, '')
+	WHERE UPPER(COALESCE(po.fain, '')) = UPPER(COALESCE(af.fain, ''))
+		AND UPPER(COALESCE(po.uri, '')) = UPPER(COALESCE(af.uri, ''))
+		AND UPPER(COALESCE(po.piid, '')) = UPPER(COALESCE(af.piid, ''))
+		AND UPPER(COALESCE(po.parent_award_id, '')) = UPPER(COALESCE(af.parent_award_id, ''))
+		AND UPPER(COALESCE(po.tas, '')) = UPPER(COALESCE(af.tas, ''))
+		AND UPPER(COALESCE(disaster_emergency_fund_code, '')) = UPPER(COALESCE(disaster_emergency_fund_code, ''))
 		AND af.submission_id = {0}
 		AND af.gross_outlay_amount_by_awa_cpe IS NOT NULL
 );
