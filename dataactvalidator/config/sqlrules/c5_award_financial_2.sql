@@ -18,10 +18,10 @@ SELECT
 FROM award_financial
 WHERE submission_id = {0}
     AND gross_outlay_amount_by_awa_cpe IS NOT NULL
-    AND (COALESCE(gross_outlays_undelivered_cpe, 0) > 0
-         OR COALESCE(gross_outlays_undelivered_fyb, 0) > 0
-         OR COALESCE(gross_outlays_delivered_or_cpe, 0) > 0
-         OR COALESCE(gross_outlays_delivered_or_fyb, 0) > 0
+    AND (COALESCE(gross_outlays_undelivered_cpe, 0) <> 0
+         OR COALESCE(gross_outlays_undelivered_fyb, 0) <> 0
+         OR COALESCE(gross_outlays_delivered_or_cpe, 0) <> 0
+         OR COALESCE(gross_outlays_delivered_or_fyb, 0) <> 0
     )
     AND COALESCE(gross_outlay_amount_by_awa_cpe, 0) <>
         (COALESCE(gross_outlays_undelivered_cpe, 0) - COALESCE(gross_outlays_undelivered_fyb, 0)) +
