@@ -1076,7 +1076,7 @@ Possible HTTP Status Codes:
 - 400
   - Submission does not exist
   - Critical errors prevent the submission from being certified
-  - Submission is a monthly submission
+  - Submission is a test submission
   - Submission is already certified
   - A validation was completed before the revalidation threshold or the start of the submission window for the submission's year/quarter
   - Submission window for this year/quarter doesn't exist
