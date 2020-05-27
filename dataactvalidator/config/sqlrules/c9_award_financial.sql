@@ -19,7 +19,8 @@ award_financial_c9_{0} AS
         fain,
         uri
     FROM award_financial
-    WHERE submission_id = {0})
+    WHERE submission_id = {0}
+        AND transaction_obligated_amou IS NOT NULL)
 SELECT
     afa.row_number AS "source_row_number",
     afa.fain AS "source_value_fain",
