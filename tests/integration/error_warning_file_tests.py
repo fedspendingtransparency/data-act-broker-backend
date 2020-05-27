@@ -263,7 +263,7 @@ class ErrorWarningTests(BaseTestValidator):
                 'Unique ID': '',
                 'Field Name': 'Blank File',
                 'Rule Message': 'File does not contain data. For files A and B, this must be addressed prior to'
-                                ' certification. Blank file C does not prevent certification.',
+                                ' publication/certification. Blank file C does not prevent publication/certification.',
                 'Value Provided': '',
                 'Expected Value': '',
                 'Difference': '',
@@ -508,9 +508,10 @@ class ErrorWarningTests(BaseTestValidator):
                 'Source Field Name': 'grossoutlayamountbytas_cpe',
                 'Target File': 'program_activity',
                 'Target Field Name': 'gross_outlay_amount_by_pro_cpe_sum',
-                'Rule Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal'
-                                ' the sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values in'
-                                ' the award financial file (B).',
+                'Rule Message': 'The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal the'
+                                ' sum of the corresponding GrossOutlayAmountByProgramObjectClass_CPE values in the'
+                                ' award financial file (B). {This value is the sum of all Gross Outlay Amounts reported'
+                                ' in file B, to indicate year-to-date activity by TAS/Subaccount.}',
                 'Source Value Provided': 'grossoutlayamountbytas_cpe: 10000',
                 'Target Value Provided': 'gross_outlay_amount_by_pro_cpe_sum: 6000',
                 'Difference': '4000',

@@ -1,5 +1,5 @@
--- The totals by combination of TAS/program activity code provided in File C (award financial) must be a subset of, or
--- equal to, the same combinations in File B (object class program activity). For example, -10 in C and -100 in B
+-- Each USSGL account balance or subtotal, when totaled by combination of TAS/program activity code provided in File C,
+-- should be a subset of, or equal to, the same combinations in File B. For example, -10 in C and -100 in B
 -- would pass.
 -- This rule selects 32 distinct elements in Files B and C based on TAS/PAC combination
 -- The elements from both files are summed before comparing

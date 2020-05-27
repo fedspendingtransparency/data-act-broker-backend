@@ -16,10 +16,10 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Test All combinations of TAS/program activity code+name (when provided in File C)/object class in File C
-        (award financial) should exist in File B (object class program activity). Since not all object classes will
-        have award activity, it is acceptable for combinations of TAS/program activity code+name/object class in File C
-        to be a subset of those provided in File B.
+    """ Test All combinations of TAS/program activity code+name/object class in File C (award financial) should exist
+        in File B (object class program activity). Since not all object classes will have award activity, it is
+        acceptable for combinations of TAS/program activity code+name/object class in File C to be a subset of those
+        provided in File B.
     """
     tas = TASFactory()
     tas2 = TASFactory()
@@ -54,10 +54,10 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ All combinations of TAS/program activity code+name (when provided in File C)/object class in File C
-        (award financial) should exist in File B (object class program activity). Since not all object classes will have
-        award activity, it is acceptable for combinations of TAS/program activity code+name/object class in File C to be
-        a subset of those provided in File B.
+    """ All combinations of TAS/program activity code+name/object class in File C (award financial) should exist in
+        File B (object class program activity). Since not all object classes will have award activity, it is acceptable
+        for combinations of TAS/program activity code+name/object class in File C to be a subset of those provided in
+        File B.
     """
     tas1 = TASFactory()
     tas2 = TASFactory()

@@ -30,8 +30,8 @@ class ValidationError:
     fileTypeError = 12
     fieldFormatErrorMsg = 'Date should follow the YYYYMMDD format.'
     fieldFormatError = 13
-    blankFileErrorMsg = 'File does not contain data. For files A and B, this must be addressed prior to certification.'\
-                        ' Blank file C does not prevent certification.'
+    blankFileErrorMsg = 'File does not contain data. For files A and B, this must be addressed prior to'\
+                        ' publication/certification. Blank file C does not prevent publication/certification.'
     blankFileError = 14
     # Create dict of error types
     errorDict = {typeError: typeErrorMsg, requiredError: requiredErrorMsg, valueError: valueErrorMsg,

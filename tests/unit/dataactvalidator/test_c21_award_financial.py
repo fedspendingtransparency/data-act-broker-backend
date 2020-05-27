@@ -104,8 +104,8 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Tests that the sum of financial elements in File C is less than or equal to the corresponding element in File B
-        for the same TAS and Program Activity Code combination
+    """ Tests that each USSGL account balance or subtotal, when totaled by combination of TAS/program activity code
+        provided in File C, should be a subset of, or equal to, the same combinations in File B.
     """
     af1 = AwardFinancialFactory(**af_dict)
     af2 = AwardFinancialFactory(**af_dict)
@@ -229,8 +229,8 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Tests that the sum of financial elements in File C is not less than or equal to the corresponding element in
-        File B for the same TAS and Program Activity Code combination
+    """ Tests failing that each USSGL account balance or subtotal, when totaled by combination of TAS/program activity
+        code provided in File C, should be a subset of, or equal to, the same combinations in File B.
     """
     af1 = AwardFinancialFactory(**af_dict)
 

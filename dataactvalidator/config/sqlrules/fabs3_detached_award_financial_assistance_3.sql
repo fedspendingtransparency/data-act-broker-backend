@@ -1,9 +1,9 @@
--- ActionType should be B, C, or D for transactions that modify existing awards. For aggregate (RecordType = 1)
--- record transactions, we consider a record a modification if its combination of URI + AwardingSubTierAgencyCode
--- matches an existing published FABS record of the same RecordType. For non-aggregate (RecordType = 2 or 3) record
--- transactions, we consider a record a modification if its combination of FAIN + AwardingSubTierCode matches those of
--- an existing published non-aggregate FABS record (RecordType = 2 or 3). This validation rule does not apply to delete
--- records (CorrectionDeleteIndicator = D.)
+-- ActionType should be B, C, or D for transactions that modify existing awards.
+-- For aggregate (RecordType = 1) record transactions, we consider a record a modification if its combination of
+-- URI + AwardingSubTierAgencyCode matches an existing published FABS record of the same RecordType.
+-- For non-aggregate (RecordType = 2 or 3) transactions, we consider a record a modification if its combination of
+-- FAIN + AwardingSubTierCode matches those of an existing published non-aggregate FABS record (RecordType = 2 or 3)
+-- of the same RecordType.
 SELECT
     dafa.row_number,
     dafa.fain,

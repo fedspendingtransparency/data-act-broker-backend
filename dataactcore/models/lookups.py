@@ -38,7 +38,8 @@ ERROR_TYPE = [
     LookupType(7, 'length_error', 'Value was longer than allowed length.'),
     LookupType(8, 'field_format_error', 'Date should follow the YYYYMMDD format.'),
     LookupType(9, 'blank_file_error', 'File does not contain data. For files A and B, this must be addressed prior to'
-                                      ' certification. Blank file C does not prevent certification.')
+                                      ' publication/certification. Blank file C does not prevent'
+                                      ' publication/certification.')
 ]
 ERROR_TYPE_DICT = {item.name: item.id for item in ERROR_TYPE}
 
