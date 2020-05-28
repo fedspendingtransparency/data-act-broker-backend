@@ -210,14 +210,15 @@ class RevalidationThreshold(Base):
     revalidation_date = Column(DateTime, primary_key=True)
 
 
-class QuarterlyRevalidationThreshold(Base):
-    __tablename__ = "quarterly_revalidation_threshold"
+class SubmissionWindowSchedule(Base):
+    __tablename__ = 'submission_window_schedule'
 
-    quarterly_revalidation_threshold_id = Column(Integer, primary_key=True)
+    submission_window_schedule_id = Column(Integer, primary_key=True)
     year = Column(Integer, nullable=False)
-    quarter = Column(Integer, nullable=False)
-    window_start = Column(DateTime)
-    window_end = Column(DateTime)
+    period = Column(Integer, nullable=False)
+    period_start = Column(DateTime)
+    publish_date = Column(DateTime)
+    certify_date = Column(DateTime)
 
 
 class FPDSUpdate(Base):
