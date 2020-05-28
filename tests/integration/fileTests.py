@@ -105,8 +105,13 @@ class FileTests(BaseTestAPI):
                                                                   is_quarter=True, number_of_errors=0)
 
             cls.test_monthly_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
-                                                               start_date='10/2015', end_date='12/2015',
+                                                               start_date='04/2015', end_date='06/2015',
                                                                is_quarter=False, number_of_errors=0)
+
+            cls.test_test_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
+                                                            start_date='10/2015', end_date='12/2015',
+                                                            is_quarter=False, number_of_errors=0,
+                                                            test_submission=True)
 
             cls.test_fabs_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
                                                             start_date='10/2015', end_date='12/2015', is_quarter=False,
@@ -768,10 +773,10 @@ class FileTests(BaseTestAPI):
                                       expect_errors=True)
         self.assertEqual(response.json['message'], 'Submission cannot be certified due to critical errors')
 
-        post_json = {'submission_id': self.test_monthly_submission_id}
+        post_json = {'submission_id': self.test_test_submission_id}
         response = self.app.post_json('/v1/certify_submission/', post_json, headers={'x-session-id': self.session_id},
                                       expect_errors=True)
-        self.assertEqual(response.json['message'], 'Monthly submissions cannot be certified')
+        self.assertEqual(response.json['message'], 'Test submissions cannot be certified')
 
         post_json = {'submission_id': self.test_certified_submission_id}
         response = self.app.post_json('/v1/certify_submission/', post_json, headers={'x-session-id': self.session_id},
@@ -791,6 +796,16 @@ class FileTests(BaseTestAPI):
                                       expect_errors=True)
         self.assertEqual(response.json['message'], 'Cannot certify while file A or B is blank.')
 
+        # ensuring monthly submissions can be certified
+        insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['finished'],
+                   JOB_TYPE_DICT['csv_record_validation'], self.test_monthly_submission_id, num_valid_rows=1)
+        insert_job(self.session, FILE_TYPE_DICT['program_activity'], JOB_STATUS_DICT['finished'],
+                   JOB_TYPE_DICT['csv_record_validation'], self.test_monthly_submission_id, num_valid_rows=1)
+        post_json = {'submission_id': self.test_monthly_submission_id}
+        response = self.app.post_json('/v1/certify_submission/', post_json, headers={'x-session-id': self.session_id},
+                                      expect_errors=False)
+        self.assertEqual(response.status_code, 200)
+
     def test_list_certifications(self):
         post_json = {'submission_id': self.test_certified_submission_id}
         response = self.app.post_json('/v1/list_certifications/', post_json, headers={'x-session-id': self.session_id})
@@ -803,7 +818,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'FABS submissions do not have a certification history')
 
-        post_json = {'submission_id': self.test_monthly_submission_id}
+        post_json = {'submission_id': self.test_uncertified_submission_id}
         response = self.app.post_json('/v1/list_certifications/', post_json, headers={'x-session-id': self.session_id},
                                       expect_errors=True)
         self.assertEqual(response.status_code, 400)
