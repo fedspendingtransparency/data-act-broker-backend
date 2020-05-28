@@ -9,38 +9,38 @@ SELECT
     disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode"
 FROM award_financial
 WHERE submission_id = {0}
-    AND COALESCE(transaction_obligated_amou, 0) > 0
+    AND transaction_obligated_amou IS NOT NULL
     AND (
-        COALESCE(ussgl480100_undelivered_or_cpe, 0) > 0
-        OR COALESCE(ussgl480100_undelivered_or_fyb, 0) > 0
-        OR COALESCE(ussgl480200_undelivered_or_cpe, 0) > 0
-        OR COALESCE(ussgl480200_undelivered_or_fyb, 0) > 0
-        OR COALESCE(ussgl483100_undelivered_or_cpe, 0) > 0
-        OR COALESCE(ussgl483200_undelivered_or_cpe, 0) > 0
-        OR COALESCE(ussgl487100_downward_adjus_cpe, 0) > 0
-        OR COALESCE(ussgl487200_downward_adjus_cpe, 0) > 0
-        OR COALESCE(ussgl488100_upward_adjustm_cpe, 0) > 0
-        OR COALESCE(ussgl488200_upward_adjustm_cpe, 0) > 0
-        OR COALESCE(ussgl490100_delivered_orde_cpe, 0) > 0
-        OR COALESCE(ussgl490100_delivered_orde_fyb, 0) > 0
-        OR COALESCE(ussgl490200_delivered_orde_cpe, 0) > 0
-        OR COALESCE(ussgl490800_authority_outl_cpe, 0) > 0
-        OR COALESCE(ussgl490800_authority_outl_fyb, 0) > 0
-        OR COALESCE(ussgl493100_delivered_orde_cpe, 0) > 0
-        OR COALESCE(ussgl497100_downward_adjus_cpe, 0) > 0
-        OR COALESCE(ussgl497200_downward_adjus_cpe, 0) > 0
-        OR COALESCE(ussgl498100_upward_adjustm_cpe, 0) > 0
-        OR COALESCE(ussgl498200_upward_adjustm_cpe, 0) > 0
-        OR COALESCE(gross_outlay_amount_by_awa_cpe, 0) > 0
-        OR COALESCE(gross_outlay_amount_by_awa_fyb, 0) > 0
-        OR COALESCE(gross_outlays_delivered_or_cpe, 0) > 0
-        OR COALESCE(gross_outlays_delivered_or_fyb, 0) > 0
-        OR COALESCE(gross_outlays_undelivered_cpe, 0) > 0
-        OR COALESCE(gross_outlays_undelivered_fyb, 0) > 0
-        OR COALESCE(obligations_delivered_orde_cpe, 0) > 0
-        OR COALESCE(obligations_delivered_orde_fyb, 0) > 0
-        OR COALESCE(obligations_incurred_byawa_cpe, 0) > 0
-        OR COALESCE(obligations_undelivered_or_cpe, 0) > 0
-        OR COALESCE(obligations_undelivered_or_fyb, 0) > 0
-        OR COALESCE(deobligations_recov_by_awa_cpe, 0) > 0
+        ussgl480100_undelivered_or_cpe IS NOT NULL
+        OR ussgl480100_undelivered_or_fyb IS NOT NULL
+        OR ussgl480200_undelivered_or_cpe IS NOT NULL
+        OR ussgl480200_undelivered_or_fyb IS NOT NULL
+        OR ussgl483100_undelivered_or_cpe IS NOT NULL
+        OR ussgl483200_undelivered_or_cpe IS NOT NULL
+        OR ussgl487100_downward_adjus_cpe IS NOT NULL
+        OR ussgl487200_downward_adjus_cpe IS NOT NULL
+        OR ussgl488100_upward_adjustm_cpe IS NOT NULL
+        OR ussgl488200_upward_adjustm_cpe IS NOT NULL
+        OR ussgl490100_delivered_orde_cpe IS NOT NULL
+        OR ussgl490100_delivered_orde_fyb IS NOT NULL
+        OR ussgl490200_delivered_orde_cpe IS NOT NULL
+        OR ussgl490800_authority_outl_cpe IS NOT NULL
+        OR ussgl490800_authority_outl_fyb IS NOT NULL
+        OR ussgl493100_delivered_orde_cpe IS NOT NULL
+        OR ussgl497100_downward_adjus_cpe IS NOT NULL
+        OR ussgl497200_downward_adjus_cpe IS NOT NULL
+        OR ussgl498100_upward_adjustm_cpe IS NOT NULL
+        OR ussgl498200_upward_adjustm_cpe IS NOT NULL
+        OR gross_outlay_amount_by_awa_cpe IS NOT NULL
+        OR gross_outlay_amount_by_awa_fyb IS NOT NULL
+        OR gross_outlays_delivered_or_cpe IS NOT NULL
+        OR gross_outlays_delivered_or_fyb IS NOT NULL
+        OR gross_outlays_undelivered_cpe IS NOT NULL
+        OR gross_outlays_undelivered_fyb IS NOT NULL
+        OR obligations_delivered_orde_cpe IS NOT NULL
+        OR obligations_delivered_orde_fyb IS NOT NULL
+        OR obligations_incurred_byawa_cpe IS NOT NULL
+        OR obligations_undelivered_or_cpe IS NOT NULL
+        OR obligations_undelivered_or_fyb IS NOT NULL
+        OR deobligations_recov_by_awa_cpe IS NOT NULL
     );
