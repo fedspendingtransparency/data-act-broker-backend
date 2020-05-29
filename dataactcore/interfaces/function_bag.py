@@ -12,7 +12,7 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import (Job, Submission, JobDependency, CertifyHistory, CertifiedFilesHistory,
-                                          QuarterlyRevalidationThreshold)
+                                          SubmissionWindowSchedule)
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance
 from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
@@ -560,8 +560,8 @@ def get_lastest_certified_date(submission, is_fabs=False):
     return None
 
 
-def get_window_end(submission):
-    """ Return the window end for the given submission
+def get_certification_deadline(submission):
+    """ Return the certification deadline for the given submission
 
         Arguments:
             submission: the submission object to find its end window
@@ -574,9 +574,9 @@ def get_window_end(submission):
     if not submission.d2_submission:
         sub_quarter = math.ceil(submission.reporting_fiscal_period / 3)
         sub_year = submission.reporting_fiscal_year
-        quarter_reval = sess.query(QuarterlyRevalidationThreshold).filter_by(year=sub_year, quarter=sub_quarter).\
+        quarter_reval = sess.query(SubmissionWindowSchedule).filter_by(year=sub_year, quarter=sub_quarter).\
             one_or_none()
-        window_end = quarter_reval.window_end.date() if quarter_reval else None
+        window_end = quarter_reval.certification_deadline.date() if quarter_reval else None
     return window_end
 
 

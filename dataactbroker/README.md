@@ -1255,7 +1255,7 @@ This endpoint lists submissions for all agencies for which the current user is a
       "certifying_user": "Certifier",
       "certified_on": "2016-08-30 12:53:37.053424",
       "quarterly_submission": true,
-      "window_end": "2016-10-05",
+      "certification_deadline": "2016-10-05",
       "time_period": "FY 16 / Q4"
     },
     {
@@ -1274,7 +1274,7 @@ This endpoint lists submissions for all agencies for which the current user is a
       "certifying_user": "",
       "certified_on": "",
       "quarterly_submission": true,
-      "window_end": "2015-10-05",
+      "certification_deadline": "2015-10-05",
       "time_period": "FY 15 / Q4"
     }
   ],
@@ -1315,7 +1315,7 @@ This endpoint lists submissions for all agencies for which the current user is a
     - `certifying_user`: (string) the name of the last user to certify the submission
     - `certified_on`: (string) the last time/date the submission was certified. (`YYYY-MM-DD HH:mm:ss`)
     - `quarterly_submission`: (boolean) whether the submission is quarterly
-    - `window_end`: (string) the last date of the submission window
+    - `certification_deadline `: (string) the last date of the submission window, when the certification is due
     - `time_period`: (string) the time frame for the submission
 
 ##### Errors
