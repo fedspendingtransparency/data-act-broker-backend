@@ -36,8 +36,8 @@ def upgrade_data_broker():
         sa.Column('year', sa.Integer(), nullable=False),
         sa.Column('period', sa.Integer(), nullable=False),
         sa.Column('period_start', sa.DateTime(), nullable=True),
-        sa.Column('publish_date', sa.DateTime(), nullable=True),
-        sa.Column('certify_date', sa.DateTime(), nullable=True),
+        sa.Column('publish_deadline', sa.DateTime(), nullable=True),
+        sa.Column('certification_deadline', sa.DateTime(), nullable=True),
         sa.PrimaryKeyConstraint('submission_window_schedule_id')
     )
     op.drop_table('quarterly_revalidation_threshold')

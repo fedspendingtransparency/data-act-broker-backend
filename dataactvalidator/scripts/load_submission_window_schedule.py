@@ -36,8 +36,8 @@ def load_submission_window_schedule():
                 'year': 'year',
                 'period': 'period',
                 'period_start': 'period_start',
-                'publish_date': 'publish_date',
-                'certify_date': 'certify_date'
+                'publish_deadline': 'publish_deadline',
+                'certification_deadline': 'certification_deadline'
             },
             {}
         )

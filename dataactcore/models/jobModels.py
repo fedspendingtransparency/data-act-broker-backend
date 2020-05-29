@@ -217,8 +217,8 @@ class SubmissionWindowSchedule(Base):
     year = Column(Integer, nullable=False)
     period = Column(Integer, nullable=False)
     period_start = Column(DateTime)
-    publish_date = Column(DateTime)
-    certify_date = Column(DateTime)
+    publish_deadline = Column(DateTime)
+    certification_deadline = Column(DateTime)
 
 
 class FPDSUpdate(Base):
