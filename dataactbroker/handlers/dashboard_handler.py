@@ -11,7 +11,7 @@ from dataactcore.models.domainModels import CGAC, FREC, is_not_distinct_from
 from dataactcore.models.errorModels import CertifiedErrorMetadata, ErrorMetadata
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_LETTER_ID,
                                         FILE_TYPE_DICT_LETTER, RULE_IMPACT_DICT_ID)
-from dataactcore.models.jobModels import Submission, Job, QuarterlyRevalidationThreshold
+from dataactcore.models.jobModels import Submission, Job, SubmissionWindowSchedule
 from dataactcore.models.userModel import User
 from dataactcore.models.validationModels import RuleSql, RuleSetting, RuleImpact
 
@@ -566,12 +566,12 @@ def active_submission_overview(submission, file, error_level):
     response['agency_name'] = agency.agency_name
     response['icon_name'] = agency.icon_name
 
-    # Deadline information, updates the default values of N/A only if it's a quarter format and the deadline exists
-    if submission.is_quarter_format:
-        deadline = sess.query(QuarterlyRevalidationThreshold.window_end).\
-            filter_by(year=submission.reporting_fiscal_year, quarter=submission.reporting_fiscal_period // 3).first()
+    # Deadline information, updates the default values of N/A only if it's not a test and the deadline exists
+    if not submission.test_submission:
+        deadline = sess.query(SubmissionWindowSchedule.certification_deadline).\
+            filter_by(year=submission.reporting_fiscal_year, period=submission.reporting_fiscal_period).first()
         if deadline:
-            deadline = deadline.window_end.date()
+            deadline = deadline.certification_deadline.date()
             today = datetime.now().date()
             if today > deadline:
                 response['certification_deadline'] = 'Past Due'
