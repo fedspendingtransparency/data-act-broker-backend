@@ -17,7 +17,7 @@ from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JO
 from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
-                                          CertifyHistory, RevalidationThreshold, QuarterlyRevalidationThreshold,
+                                          CertifyHistory, RevalidationThreshold, SubmissionWindowSchedule,
                                           Comment, CertifiedComment)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
@@ -217,19 +217,19 @@ def get_revalidation_threshold():
     }
 
 
-def get_latest_certification_period():
-    """ Get the latest quarterly certification period for all submissions
+def get_latest_publication_period():
+    """ Get the latest publication period for all submissions
 
         Returns:
-            A dictionary containing the latest certification period (quarter and year)
+            A dictionary containing the latest certification period (period and year)
     """
     sess = GlobalDB.db().session
-    last_cert_period = sess.query(QuarterlyRevalidationThreshold.quarter, QuarterlyRevalidationThreshold.year).\
-        filter(QuarterlyRevalidationThreshold.window_start <= datetime.today()).\
-        order_by(QuarterlyRevalidationThreshold.window_start.desc()).first()
+    last_pub_period = sess.query(SubmissionWindowSchedule.period, SubmissionWindowSchedule.year).\
+        filter(SubmissionWindowSchedule.period_start <= datetime.today()).\
+        order_by(SubmissionWindowSchedule.period_start.desc()).first()
     return {
-        'quarter': last_cert_period.quarter if last_cert_period else None,
-        'year': last_cert_period.year if last_cert_period else None
+        'period': last_pub_period.period if last_pub_period else None,
+        'year': last_pub_period.year if last_pub_period else None
     }
 
 
@@ -707,23 +707,23 @@ def certify_dabs_submission(submission, file_manager):
                                              format(reval_thresh.replace('T', ' '))),
                                   StatusCode.CLIENT_ERROR)
 
-    # Get the year/quarter of the submission and filter by them
-    sub_quarter = submission.reporting_fiscal_period // 3
+    # Get the year/period of the submission and filter by them
+    sub_period = submission.reporting_fiscal_period
     sub_year = submission.reporting_fiscal_year
-    quarter_reval = sess.query(QuarterlyRevalidationThreshold).filter_by(year=sub_year, quarter=sub_quarter).\
+    sub_schedule = sess.query(SubmissionWindowSchedule).filter_by(year=sub_year, period=sub_period).\
         one_or_none()
 
-    # If we don't have a quarterly revalidation threshold for this year/quarter, they can't submit
-    if not quarter_reval:
-        return JsonResponse.error(ValueError('No submission window for this year and quarter was found. If this is an '
+    # If we don't have a submission window for this year/period, they can't submit
+    if not sub_schedule:
+        return JsonResponse.error(ValueError('No submission window for this year and period was found. If this is an '
                                              'error, please contact the Service Desk.'), StatusCode.CLIENT_ERROR)
 
     # Make sure everything was last validated after the start of the submission window
     last_validated = datetime.strptime(last_validated, '%Y-%m-%dT%H:%M:%S')
-    if last_validated < quarter_reval.window_start:
+    if last_validated < sub_schedule.period_start:
         return JsonResponse.error(ValueError('This submission was last validated or its D files generated before the '
                                              'start of the submission window ({}). Please revalidate before '
-                                             'certifying.'.format(quarter_reval.window_start.strftime('%m/%d/%Y'))),
+                                             'certifying.'.format(sub_schedule.period_start.strftime('%m/%d/%Y'))),
                                   StatusCode.CLIENT_ERROR)
 
     # Make sure neither A nor B is blank before allowing certification

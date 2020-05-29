@@ -410,11 +410,11 @@ Possible HTTP Status Codes:
 
 - 403: Permission denied, user does not have permission to view this submission
 
-#### GET "/v1/latest\_certification\_period/"
-This endpoint returns the latest certification period for the broker application.
+#### GET "/v1/latest\_publication\_period/"
+This endpoint returns the latest publication period that has begun for the broker application.
 
 ##### Sample Request
-`/v1/latest_certification_period/`
+`/v1/latest_publication_period/`
 
 ##### Request Params
 N/A
@@ -422,14 +422,14 @@ N/A
 ##### Response (JSON)
 ```
 {
-    "quarter": 4,
+    "period": 7,
     "year": 2019
 }
 ```
 
 ##### Response Attributes
-- `quarter`: (integer) the quarter of the latest certification period, or none if no period is found
-- `year`: (integer) the fiscal year of the latest certification period, or none if no period is found
+- `period`: (integer) the period of the latest publication period, or none if no period is found
+- `year`: (integer) the fiscal year of the latest publication period, or none if no period is found
 
 ##### Errors
 Possible HTTP Status Codes:
