@@ -18,7 +18,7 @@ def test_success(database):
     """
 
     ap = AwardProcurementFactory(piid='some_pIId', parent_award_id='some_PArent_award_id', federal_action_obligation=1)
-    af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_AWard_id')
+    af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_AWard_id', transaction_obligated_amou=1)
 
     assert number_of_errors(_FILE, database, models=[ap, af]) == 0
 
@@ -30,7 +30,7 @@ def test_success(database):
 
     # Checks null = null
     ap = AwardProcurementFactory(piid='some_piid', parent_award_id=None, federal_action_obligation=1)
-    af = AwardFinancialFactory(piid='some_pIId', parent_award_id=None)
+    af = AwardFinancialFactory(piid='some_pIId', parent_award_id=None, transaction_obligated_amou=0)
 
     assert number_of_errors(_FILE, database, models=[ap, af]) == 0
 
@@ -41,11 +41,20 @@ def test_failure(database):
     """
 
     ap = AwardProcurementFactory(piid='some_pIId', parent_award_id='some_parent_AWArd_id', federal_action_obligation=1)
-    af = AwardFinancialFactory(piid='some_other_piid', parent_award_id='some_pARent_award_id')
+    af = AwardFinancialFactory(piid='some_other_piid', parent_award_id='some_pARent_award_id',
+                               transaction_obligated_amou=1)
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 1
 
     ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_Parent_award_id', federal_action_obligation=1)
-    af = AwardFinancialFactory(piid='some_pIId', parent_award_id='some_other_parenT_award_id')
+    af = AwardFinancialFactory(piid='some_pIId', parent_award_id='some_other_parenT_award_id',
+                               transaction_obligated_amou=1)
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 1
+
+    # Check to see that NULL TOA causes an error
+    ap = AwardProcurementFactory(piid='some_pIId', parent_award_id='some_PArent_award_id', federal_action_obligation=1)
+    af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_AWard_id',
+                               transaction_obligated_amou=None)
+
+    assert number_of_errors(_FILE, database, models=[ap, af]) == 1
