@@ -572,9 +572,9 @@ def get_certification_deadline(submission):
     sess = GlobalDB.db().session
     window_end = None
     if not submission.d2_submission:
-        sub_quarter = math.ceil(submission.reporting_fiscal_period / 3)
+        sub_period = submission.reporting_fiscal_period
         sub_year = submission.reporting_fiscal_year
-        quarter_reval = sess.query(SubmissionWindowSchedule).filter_by(year=sub_year, quarter=sub_quarter).\
+        quarter_reval = sess.query(SubmissionWindowSchedule).filter_by(year=sub_year, period=sub_period).\
             one_or_none()
         window_end = quarter_reval.certification_deadline.date() if quarter_reval else None
     return window_end
