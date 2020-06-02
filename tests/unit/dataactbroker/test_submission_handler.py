@@ -8,7 +8,7 @@ from unittest.mock import Mock
 from dataactbroker.handlers import fileHandler
 from dataactbroker.handlers.submission_handler import (certify_dabs_submission, get_submission_metadata,
                                                        get_revalidation_threshold, get_submission_data,
-                                                       move_certified_data, get_latest_certification_period,
+                                                       move_certified_data, get_latest_publication_period,
                                                        revert_to_certified)
 
 from dataactcore.config import CONFIG_BROKER
@@ -23,7 +23,7 @@ from dataactcore.utils.responseException import ResponseException
 
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.job import (SubmissionFactory, JobFactory, CertifyHistoryFactory,
-                                                  RevalidationThresholdFactory, QuarterlyRevalidationThresholdFactory,
+                                                  RevalidationThresholdFactory, SubmissionWindowScheduleFactory,
                                                   CommentFactory)
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
 from tests.unit.dataactcore.factories.user import UserFactory
@@ -319,26 +319,26 @@ def test_get_revalidation_threshold_no_threshold():
 
 
 def test_get_latest_certification_period(database):
-    """ Tests the get_latest_certification_period function to make sure it returns the correct quarter and year """
+    """ Tests the get_latest_certification_period function to make sure it returns the correct period and year """
     sess = database.session
 
     # Revalidation date
     today = datetime.datetime.today()
-    reval1 = QuarterlyRevalidationThresholdFactory(quarter=1, year=2016, window_start=today - datetime.timedelta(1))
-    reval2 = QuarterlyRevalidationThresholdFactory(quarter=2, year=2016, window_start=today)
-    reval3 = QuarterlyRevalidationThresholdFactory(quarter=3, year=2017, window_start=today + datetime.timedelta(1))
+    reval1 = SubmissionWindowScheduleFactory(period=3, year=2016, period_start=today - datetime.timedelta(1))
+    reval2 = SubmissionWindowScheduleFactory(period=6, year=2016, period_start=today)
+    reval3 = SubmissionWindowScheduleFactory(period=9, year=2017, period_start=today + datetime.timedelta(1))
     sess.add_all([reval1, reval2, reval3])
     sess.commit()
 
-    results = get_latest_certification_period()
-    assert results['quarter'] == 2
+    results = get_latest_publication_period()
+    assert results['period'] == 6
     assert results['year'] == 2016
 
 
 def test_get_latest_certification_period_no_threshold():
     """ Tests the get_latest_certification_period function to make sure it returns Nones if there's no prior period """
-    results = get_latest_certification_period()
-    assert results['quarter'] is None
+    results = get_latest_publication_period()
+    assert results['period'] is None
     assert results['year'] is None
 
 
@@ -470,8 +470,8 @@ def test_certify_dabs_submission(database, monkeypatch):
                                        publishable=True, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
                                        certifying_user_id=None)
-        quarter_reval = QuarterlyRevalidationThresholdFactory(year=2017, quarter=1,
-                                                              window_start=now - datetime.timedelta(days=1))
+        quarter_reval = SubmissionWindowScheduleFactory(year=2017, period=3,
+                                                        period_start=now - datetime.timedelta(days=1))
         sess.add_all([user, cgac, submission, quarter_reval])
         sess.commit()
 
@@ -546,7 +546,7 @@ def test_certify_dabs_submission_revalidation_needed(database):
 
 @pytest.mark.usefixtures('job_constants')
 def test_certify_dabs_submission_quarterly_revalidation_not_in_db(database):
-    """ Tests that a DABS submission that doesnt have its year/quarter in the system won't be able to certify. """
+    """ Tests that a DABS submission that doesnt have its year/period in the system won't be able to certify. """
     with Flask('test-app').app_context():
         now = datetime.datetime.utcnow()
         sess = database.session
@@ -571,7 +571,7 @@ def test_certify_dabs_submission_quarterly_revalidation_not_in_db(database):
         response = certify_dabs_submission(submission, file_handler)
         response_json = json.loads(response.data.decode('UTF-8'))
         assert response.status_code == 400
-        assert response_json['message'] == 'No submission window for this year and quarter was found. If this is an ' \
+        assert response_json['message'] == 'No submission window for this year and period was found. If this is an ' \
                                            'error, please contact the Service Desk.'
 
 
@@ -590,7 +590,7 @@ def test_certify_dabs_submission_quarterly_revalidation_too_early(database):
                                        publishable=True, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
                                        certifying_user_id=None)
-        quarter_reval = QuarterlyRevalidationThresholdFactory(year=2017, quarter=1, window_start=now)
+        quarter_reval = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=now)
         sess.add_all([user, cgac, submission, quarter_reval])
         sess.commit()
 
@@ -607,7 +607,7 @@ def test_certify_dabs_submission_quarterly_revalidation_too_early(database):
         assert response_json['message'] == 'This submission was last validated or its D files generated before the ' \
                                            'start of the submission window ({}). Please revalidate before ' \
                                            'certifying.'.\
-            format(quarter_reval.window_start.strftime('%m/%d/%Y'))
+            format(quarter_reval.period_start.strftime('%m/%d/%Y'))
 
 
 @pytest.mark.usefixtures('job_constants')
@@ -627,9 +627,9 @@ def test_certify_dabs_submission_quarterly_revalidation_multiple_thresholds(data
                                        reporting_start_date='2016-10-01', is_quarter_format=True, publishable=True,
                                        publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
                                        number_of_errors=0, number_of_warnings=200, certifying_user_id=None)
-        quarter_reval = QuarterlyRevalidationThresholdFactory(year=2017, quarter=1, window_start=earlier)
-        quarter_reval_2 = QuarterlyRevalidationThresholdFactory(year=2017, quarter=2,
-                                                                window_start=now + datetime.timedelta(days=10))
+        quarter_reval = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=earlier)
+        quarter_reval_2 = SubmissionWindowScheduleFactory(year=2017, period=6,
+                                                          period_start=now + datetime.timedelta(days=10))
         sess.add_all([user, cgac, submission, quarter_reval, quarter_reval_2])
         sess.commit()
 
