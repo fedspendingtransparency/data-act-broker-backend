@@ -264,7 +264,7 @@ def setup_submissions(sess, admin=False):
     # no warnings for sub3
     db_objects.extend([cert_sub1_a1, cert_sub1_a2, cert_sub1_ab1, cert_sub1_ab2, cert_sub2_b1, cert_sub2_bc1])
 
-    # Setup quarterly revalidation threshold
+    # Setup submission window schedule
     today = datetime.now().date()
     p9_year_2017 = SubmissionWindowScheduleFactory(year=2017, period=9,
                                                    certification_deadline=today - timedelta(days=1))

@@ -101,8 +101,8 @@ def test_check_job_dependencies_ready(mock_sqs_queue, database):
     assert job_2.job_status_id == JOB_STATUS_DICT['ready']
 
 
-def test_get_window_end(database):
-    """ Tests get_window_end with subs """
+def test_get_certification_deadline(database):
+    """ Tests get_certification_deadline with subs """
     sess = database.session
     quart_sub = SubmissionFactory(submission_id=1, reporting_fiscal_year=2020, reporting_fiscal_period=6,
                                   d2_submission=False, is_quarter_format=True)

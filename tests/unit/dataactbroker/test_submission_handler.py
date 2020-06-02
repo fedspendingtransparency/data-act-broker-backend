@@ -318,8 +318,8 @@ def test_get_revalidation_threshold_no_threshold():
     assert results['revalidation_threshold'] == ''
 
 
-def test_get_latest_certification_period(database):
-    """ Tests the get_latest_certification_period function to make sure it returns the correct period and year """
+def test_get_latest_publication_period(database):
+    """ Tests the get_latest_publication_period function to make sure it returns the correct period and year """
     sess = database.session
 
     # Revalidation date
@@ -335,8 +335,8 @@ def test_get_latest_certification_period(database):
     assert results['year'] == 2016
 
 
-def test_get_latest_certification_period_no_threshold():
-    """ Tests the get_latest_certification_period function to make sure it returns Nones if there's no prior period """
+def test_get_latest_publication_period_no_threshold():
+    """ Tests the get_latest_publication_period function to make sure it returns Nones if there's no prior period """
     results = get_latest_publication_period()
     assert results['period'] is None
     assert results['year'] is None
@@ -470,9 +470,8 @@ def test_certify_dabs_submission(database, monkeypatch):
                                        publishable=True, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
                                        certifying_user_id=None)
-        quarter_reval = SubmissionWindowScheduleFactory(year=2017, period=3,
-                                                        period_start=now - datetime.timedelta(days=1))
-        sess.add_all([user, cgac, submission, quarter_reval])
+        sub_window = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=now - datetime.timedelta(days=1))
+        sess.add_all([user, cgac, submission, sub_window])
         sess.commit()
 
         comment = CommentFactory(file_type_id=FILE_TYPE_DICT['appropriations'], comment='Test',
@@ -545,7 +544,7 @@ def test_certify_dabs_submission_revalidation_needed(database):
 
 
 @pytest.mark.usefixtures('job_constants')
-def test_certify_dabs_submission_quarterly_revalidation_not_in_db(database):
+def test_certify_dabs_submission_window_not_in_db(database):
     """ Tests that a DABS submission that doesnt have its year/period in the system won't be able to certify. """
     with Flask('test-app').app_context():
         now = datetime.datetime.utcnow()
@@ -576,7 +575,7 @@ def test_certify_dabs_submission_quarterly_revalidation_not_in_db(database):
 
 
 @pytest.mark.usefixtures('job_constants')
-def test_certify_dabs_submission_quarterly_revalidation_too_early(database):
+def test_certify_dabs_submission_window_too_early(database):
     """ Tests that a DABS submission that was last validated before the window start cannot be certified. """
     with Flask('test-app').app_context():
         now = datetime.datetime.utcnow()
@@ -590,8 +589,8 @@ def test_certify_dabs_submission_quarterly_revalidation_too_early(database):
                                        publishable=True, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
                                        certifying_user_id=None)
-        quarter_reval = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=now)
-        sess.add_all([user, cgac, submission, quarter_reval])
+        sub_window = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=now)
+        sess.add_all([user, cgac, submission, sub_window])
         sess.commit()
 
         job = JobFactory(submission_id=submission.submission_id, last_validated=earlier,
@@ -607,13 +606,13 @@ def test_certify_dabs_submission_quarterly_revalidation_too_early(database):
         assert response_json['message'] == 'This submission was last validated or its D files generated before the ' \
                                            'start of the submission window ({}). Please revalidate before ' \
                                            'certifying.'.\
-            format(quarter_reval.period_start.strftime('%m/%d/%Y'))
+            format(sub_window.period_start.strftime('%m/%d/%Y'))
 
 
 @pytest.mark.usefixtures('job_constants')
-def test_certify_dabs_submission_quarterly_revalidation_multiple_thresholds(database):
-    """ Tests that a DABS submission is not affected by a different quarterly revalidation threshold than the one that
-        matches its reporting_start_date.
+def test_certify_dabs_submission_window_multiple_thresholds(database):
+    """ Tests that a DABS submission is not affected by a different submission window than the one that matches its
+        reporting_start_date.
     """
     with Flask('test-app').app_context():
         now = datetime.datetime.utcnow()
@@ -627,10 +626,10 @@ def test_certify_dabs_submission_quarterly_revalidation_multiple_thresholds(data
                                        reporting_start_date='2016-10-01', is_quarter_format=True, publishable=True,
                                        publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
                                        number_of_errors=0, number_of_warnings=200, certifying_user_id=None)
-        quarter_reval = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=earlier)
-        quarter_reval_2 = SubmissionWindowScheduleFactory(year=2017, period=6,
-                                                          period_start=now + datetime.timedelta(days=10))
-        sess.add_all([user, cgac, submission, quarter_reval, quarter_reval_2])
+        sub_window = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=earlier)
+        sub_window_2 = SubmissionWindowScheduleFactory(year=2017, period=6,
+                                                       period_start=now + datetime.timedelta(days=10))
+        sess.add_all([user, cgac, submission, sub_window, sub_window_2])
         sess.commit()
 
         job = JobFactory(submission_id=submission.submission_id, last_validated=now,
