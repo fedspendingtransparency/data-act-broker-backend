@@ -2,7 +2,6 @@ import logging
 from operator import attrgetter
 import time
 import uuid
-import math
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
