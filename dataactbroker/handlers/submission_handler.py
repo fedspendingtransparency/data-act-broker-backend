@@ -34,18 +34,21 @@ from dataactcore.utils.stringCleaner import StringCleaner
 logger = logging.getLogger(__name__)
 
 
-def create_submission(user_id, submission_values, existing_submission):
+def create_submission(user_id, submission_values, existing_submission, test_submission=False):
     """ Create a new submission if one doesn't exist, otherwise update the existing one
 
         Args:
             user_id:  user to associate with this submission
             submission_values: metadata about the submission
             existing_submission: id of existing submission (blank for new submissions)
+            test_submission: a boolean flag to indicate whether the submission being created is a test or not, only
+                used with new submissions
 
         Returns:
             submission object
     """
     if existing_submission is None:
+        submission_values['test_submission'] = test_submission
         submission = Submission(created_at=datetime.utcnow(), **submission_values)
         submission.user_id = user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['unpublished']

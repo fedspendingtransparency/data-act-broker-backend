@@ -228,7 +228,9 @@ class FileHandler:
             if submission_data.get('is_quarter_format'):
                 submission_data['is_quarter_format'] = (str(submission_data.get('is_quarter_format')).upper() == 'TRUE')
 
-            submission = create_submission(g.user.user_id, submission_data, existing_submission_obj)
+            test_submission = request_params.get('test_submission')
+            test_submission = str(test_submission).upper() == 'TRUE'
+            submission = create_submission(g.user.user_id, submission_data, existing_submission_obj, test_submission)
             sess.add(submission)
             sess.commit()
 
