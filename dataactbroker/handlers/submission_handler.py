@@ -221,7 +221,7 @@ def get_latest_publication_period():
     """ Get the latest publication period for all submissions
 
         Returns:
-            A dictionary containing the latest certification period (period and year)
+            A dictionary containing the latest publication period (period and year)
     """
     sess = GlobalDB.db().session
     last_pub_period = sess.query(SubmissionWindowSchedule.period, SubmissionWindowSchedule.year).\
