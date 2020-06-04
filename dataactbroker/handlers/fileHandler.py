@@ -27,7 +27,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (
     create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, get_last_validated_date,
-    get_lastest_certified_date, get_window_end, get_time_period)
+    get_lastest_certified_date, get_certification_deadline, get_time_period)
 
 from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
                                              Office, DUNS)
@@ -1841,7 +1841,7 @@ def serialize_submission(submission):
     files = get_submission_files(jobs)
     status = get_submission_status(submission, jobs)
     certified_on = get_lastest_certified_date(submission)
-    window_end = get_window_end(submission)
+    certification_deadline = get_certification_deadline(submission)
     time_period = get_time_period(submission)
     agency_name = submission.cgac_agency_name if submission.cgac_agency_name else submission.frec_agency_name
     return {
@@ -1858,7 +1858,7 @@ def serialize_submission(submission):
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
         'certified_on': str(certified_on) if certified_on else '',
         'quarterly_submission': submission.is_quarter_format,
-        'window_end': str(window_end) if window_end else '',
+        'certification_deadline': str(certification_deadline) if certification_deadline else '',
         'time_period': time_period
     }
 

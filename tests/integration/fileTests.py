@@ -8,7 +8,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 
 from dataactcore.models.jobModels import (Submission, Job, JobDependency, CertifyHistory, CertifiedFilesHistory,
-                                          QuarterlyRevalidationThreshold)
+                                          SubmissionWindowSchedule)
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, ERROR_TYPE_DICT, RULE_SEVERITY_DICT,
@@ -786,10 +786,10 @@ class FileTests(BaseTestAPI):
         insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['finished'],
                    JOB_TYPE_DICT['csv_record_validation'], self.test_uncertified_submission_id, num_valid_rows=0)
         test_sub = self.session.query(Submission).filter_by(submission_id=self.test_uncertified_submission_id).one()
-        quarterly_threshold = QuarterlyRevalidationThreshold(year=test_sub.reporting_fiscal_year,
-                                                             quarter=test_sub.reporting_fiscal_period // 3,
-                                                             window_start=datetime.now() - timedelta(days=1))
-        self.session.add(quarterly_threshold)
+        submission_window = SubmissionWindowSchedule(year=test_sub.reporting_fiscal_year,
+                                                     period=test_sub.reporting_fiscal_period,
+                                                     period_start=datetime.now() - timedelta(days=1))
+        self.session.add(submission_window)
         self.session.commit()
         post_json = {'submission_id': self.test_uncertified_submission_id}
         response = self.app.post_json('/v1/certify_submission/', post_json, headers={'x-session-id': self.session_id},

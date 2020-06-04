@@ -153,11 +153,12 @@ class RevalidationThresholdFactory(factory.Factory):
     revalidation_date = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
 
 
-class QuarterlyRevalidationThresholdFactory(factory.Factory):
+class SubmissionWindowScheduleFactory(factory.Factory):
     class Meta:
-        model = jobModels.QuarterlyRevalidationThreshold
+        model = jobModels.SubmissionWindowSchedule
 
     year = fuzzy.FuzzyInteger(2010, 3000)
-    quarter = fuzzy.FuzzyChoice((1, 2, 3, 4))
-    window_start = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
-    window_end = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
+    period = fuzzy.FuzzyChoice((1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12))
+    period_start = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
+    publish_deadline = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
+    certification_deadline = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
