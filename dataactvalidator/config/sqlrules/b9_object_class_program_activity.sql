@@ -38,7 +38,7 @@ WHERE (sub.reporting_fiscal_year, sub.reporting_fiscal_period) NOT IN (('2017', 
             AND op.main_account_code = pa.account_number
             AND UPPER(COALESCE(op.program_activity_name, '')) = UPPER(pa.program_activity_name)
             AND UPPER(COALESCE(op.program_activity_code, '')) = UPPER(pa.program_activity_code)
-            AND pa.fiscal_year_period = 'FY' || RIGHT(CAST(sub.reporting_fiscal_year AS CHAR(4)), 2) || 'Q' || LPAD(sub.reporting_fiscal_period::text, 2, '0')
+            AND pa.fiscal_year_period = 'FY' || RIGHT(CAST(sub.reporting_fiscal_year AS CHAR(4)), 2) || 'P' || LPAD(sub.reporting_fiscal_period::text, 2, '0')
     )
     AND (op.program_activity_code <> '0000'
         OR UPPER(op.program_activity_name) <> 'UNKNOWN/OTHER'
