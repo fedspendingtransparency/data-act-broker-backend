@@ -170,6 +170,7 @@ def load_program_activity_data(base_path):
 
         # Lowercase Program Activity Name
         data['program_activity_name'] = data['program_activity_name'].apply(lambda x: lowercase_or_notify(x))
+        # Convert FYQ to FYP
         data['fiscal_year_period'] = data['fiscal_year_period'].apply(lambda x: convert_fyq_to_fyp(x))
 
         # because we're only loading a subset of program activity info, there will be duplicate records in the
