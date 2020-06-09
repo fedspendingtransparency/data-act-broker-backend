@@ -2,6 +2,7 @@
 from datetime import datetime
 from sqlalchemy import (Boolean, Column, Date, DateTime, ForeignKey, Integer, Text, UniqueConstraint, Enum, BigInteger,
                         ARRAY)
+from sqlalchemy.ext.mutable import Mutable
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 from dataactcore.models.domainModels import SubTierAgency
@@ -56,6 +57,26 @@ class PublishStatus(Base):
     description = Column(Text)
 
 
+class MutableList(Mutable, list):
+    def append(self, value):
+        list.append(self, value)
+        self.changed()
+
+    def pop(self, index=0):
+        value = list.pop(self, index)
+        self.changed()
+        return value
+
+    @classmethod
+    def coerce(cls, key, value):
+        if not isinstance(value, MutableList):
+            if isinstance(value, list):
+                return MutableList(value)
+            return Mutable.coerce(key, value)
+        else:
+            return value
+
+
 class Submission(Base):
     __tablename__ = "submission"
 
@@ -74,7 +95,7 @@ class Submission(Base):
     publishable = Column(Boolean, nullable=False, default=False, server_default="False")
     publish_status_id = Column(Integer, ForeignKey("publish_status.publish_status_id", ondelete="SET NULL",
                                                    name="fk_publish_status_id"))
-    published_submission_ids = Column(ARRAY(Integer), server_defualt="{}")
+    published_submission_ids = Column(MutableList.as_mutable(ARRAY(Integer)), server_defualt="{}")
     publish_status = relationship("PublishStatus", uselist=False)
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
     number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
