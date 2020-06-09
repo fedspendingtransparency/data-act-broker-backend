@@ -509,6 +509,7 @@ def test_certify_dabs_submission(database, monkeypatch):
         certified_flex = sess.query(CertifiedFlexField).filter_by(submission_id=submission.submission_id).one_or_none()
         assert certified_flex is not None
 
+
 @pytest.mark.usefixtures('job_constants')
 def test_published_submission_ids_month_same_periods(database, monkeypatch):
     """ When publishing a monthly submission, other submissions in the same period will update """
