@@ -49,6 +49,7 @@ def upgrade_data_broker():
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('published_files_history_id', sa.Integer(), nullable=False),
     sa.Column('publish_history_id', sa.Integer(), nullable=True),
+    sa.Column('certify_history_id', sa.Integer(), nullable=True),
     sa.Column('submission_id', sa.Integer(), nullable=True),
     sa.Column('filename', sa.Text(), nullable=True),
     sa.Column('file_type_id', sa.Integer(), nullable=True),
@@ -56,12 +57,13 @@ def upgrade_data_broker():
     sa.Column('comment', sa.Text(), nullable=True),
     sa.ForeignKeyConstraint(['file_type_id'], ['file_type.file_type_id'], name='fk_published_files_history_file_type'),
     sa.ForeignKeyConstraint(['publish_history_id'], ['publish_history.publish_history_id'], name='fk_publish_history_published_files_id'),
+    sa.ForeignKeyConstraint(['certify_history_id'], ['certify_history.certify_history_id'], name='fk_certify_history_published_files_id'),
     sa.ForeignKeyConstraint(['submission_id'], ['submission.submission_id'], name='fk_published_files_history_submission_id'),
     sa.PrimaryKeyConstraint('published_files_history_id')
     )
     op.execute("""
-            INSERT INTO published_files_history (created_at, updated_at, published_files_history_id, publish_history_id, submission_id, filename, file_type_id, warning_filename, comment)
-            SELECT created_at, updated_at, certified_files_history_id, certify_history_id, submission_id, filename, file_type_id, warning_filename, comment
+            INSERT INTO published_files_history (created_at, updated_at, published_files_history_id, publish_history_id, certify_history_id, submission_id, filename, file_type_id, warning_filename, comment)
+            SELECT created_at, updated_at, certified_files_history_id, certify_history_id, certify_history_id, submission_id, filename, file_type_id, warning_filename, comment
             FROM certified_files_history
         """)
     op.drop_table('certified_files_history')
@@ -85,6 +87,11 @@ def downgrade_data_broker():
     sa.ForeignKeyConstraint(['submission_id'], ['submission.submission_id'], name='fk_certified_files_history_submission_id'),
     sa.PrimaryKeyConstraint('certified_files_history_id', name='certified_files_history_pkey')
     )
+    op.execute("""
+            INSERT INTO certified_files_history (created_at, updated_at, certified_files_history_id, certify_history_id, submission_id, filename, file_type_id, warning_filename, comment)
+            SELECT created_at, updated_at, published_files_history_id, certify_history_id, submission_id, filename, file_type_id, warning_filename, comment
+            FROM published_files_history
+        """)
     op.drop_table('published_files_history')
     op.drop_table('publish_history')
     # ### end Alembic commands ###
