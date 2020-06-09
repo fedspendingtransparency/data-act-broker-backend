@@ -9,9 +9,13 @@ from dataactcore.models.domainModels import SubTierAgency
 from dataactcore.models.lookups import FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, JOB_TYPE_DICT_ID
 
 
-def generate_fiscal_year(context):
+def generate_fiscal_year_context(context):
+    """ Generate fiscal year based on the submission context """
+    return generate_fiscal_year(context.current_parameters['reporting_end_date'])
+
+
+def generate_fiscal_year(reporting_end_date):
     """ Generate fiscal year based on the date provided """
-    reporting_end_date = context.current_parameters['reporting_end_date']
     year = 0
     if reporting_end_date:
         year = reporting_end_date.year
@@ -20,9 +24,13 @@ def generate_fiscal_year(context):
     return year
 
 
-def generate_fiscal_period(context):
+def generate_fiscal_period_context(context):
+    """ Generate fiscal period based on the submission context """
+    return generate_fiscal_period(context.current_parameters['reporting_end_date'])
+
+
+def generate_fiscal_period(reporting_end_date):
     """ Generate fiscal period based on the date provided """
-    reporting_end_date = context.current_parameters['reporting_end_date']
     period = 0
     if reporting_end_date:
         period = (reporting_end_date.month + 3) % 12
@@ -88,8 +96,9 @@ class Submission(Base):
     frec_code = Column(Text)
     reporting_start_date = Column(Date)
     reporting_end_date = Column(Date)
-    reporting_fiscal_year = Column(Integer, nullable=False, default=generate_fiscal_year, server_default='0')
-    reporting_fiscal_period = Column(Integer, nullable=False, default=generate_fiscal_period, server_default='0')
+    reporting_fiscal_year = Column(Integer, nullable=False, default=generate_fiscal_year_context, server_default='0')
+    reporting_fiscal_period = Column(Integer, nullable=False, default=generate_fiscal_period_context,
+                                     server_default='0')
     is_quarter_format = Column(Boolean, nullable=False, default=False, server_default="False")
     jobs = None
     publishable = Column(Boolean, nullable=False, default=False, server_default="False")
