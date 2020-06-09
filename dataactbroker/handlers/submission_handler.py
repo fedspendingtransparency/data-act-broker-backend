@@ -671,7 +671,7 @@ def certify_dabs_submission(submission, file_manager):
 
         Args:
             submission: the submission to be certified
-            file_manager: a FileHandler object to be used to call move_certified_files
+            file_manager: a FileHandler object to be used to call move_published_files
 
         Returns:
             A JsonResponse containing the message "success" if successful, JsonResponse error containing the details of

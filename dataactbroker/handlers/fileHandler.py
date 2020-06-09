@@ -1752,7 +1752,7 @@ def list_certifications(submission):
             # if there's a filename, add it to the list
             if file.filename is not None:
                 certified_files.append({
-                    'certified_files_history_id': file.certified_files_history_id,
+                    'certified_files_history_id': file.published_files_history_id,
                     'filename': file.filename.split('/')[-1],
                     'is_warning': False,
                     'comment': file.comment
@@ -1761,7 +1761,7 @@ def list_certifications(submission):
             # if there's a warning file, add it to the list
             if file.warning_filename is not None:
                 certified_files.append({
-                    'certified_files_history_id': file.certified_files_history_id,
+                    'certified_files_history_id': file.published_files_history_id,
                     'filename': file.warning_filename.split('/')[-1],
                     'is_warning': True,
                     'comment': None
