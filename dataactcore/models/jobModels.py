@@ -257,6 +257,9 @@ class PublishedFilesHistory(Base):
     publish_history_id = Column(Integer, ForeignKey("publish_history.publish_history_id",
                                                     name="fk_publish_history_published_files_id"))
     publish_history = relationship("PublishHistory", uselist=False)
+    certify_history_id = Column(Integer, ForeignKey("certify_history.certify_history_id",
+                                                    name="fk_certify_history_published_files_id"))
+    certify_history = relationship("CertifyhHistory", uselist=False)
     submission_id = Column(Integer, ForeignKey("submission.submission_id",
                                                name="fk_published_files_history_submission_id"))
     submission = relationship("Submission", uselist=False)
