@@ -10,7 +10,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.errorModels import ErrorMetadata, File
-from dataactcore.models.jobModels import (Job, Submission, JobDependency, CertifyHistory, CertifiedFilesHistory,
+from dataactcore.models.jobModels import (Job, Submission, JobDependency, CertifyHistory, PublishedFilesHistory,
                                           SubmissionWindowSchedule)
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance
 from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
@@ -549,7 +549,7 @@ def get_lastest_certified_date(submission, is_fabs=False):
 
         certified_files = None
         if is_fabs:
-            certified_files = sess.query(CertifiedFilesHistory).\
+            certified_files = sess.query(PublishedFilesHistory).\
                 filter_by(certify_history_id=last_certified.certify_history_id).first()
 
         if last_certified and certified_files:
