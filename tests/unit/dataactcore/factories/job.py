@@ -24,6 +24,7 @@ class SubmissionFactory(factory.Factory):
     number_of_warnings = 0
     d2_submission = False
     test_submission = False
+    published_submission_ids = []
 
 
 class JobStatusFactory(factory.Factory):
