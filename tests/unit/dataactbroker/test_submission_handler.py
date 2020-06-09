@@ -509,6 +509,168 @@ def test_certify_dabs_submission(database, monkeypatch):
         certified_flex = sess.query(CertifiedFlexField).filter_by(submission_id=submission.submission_id).one_or_none()
         assert certified_flex is not None
 
+@pytest.mark.usefixtures('job_constants')
+def test_published_submission_ids_month_same_periods(database, monkeypatch):
+    """ When publishing a monthly submission, other submissions in the same period will update """
+    with Flask('test-app').app_context():
+        now = datetime.datetime.utcnow()
+        sess = database.session
+
+        user = UserFactory()
+        cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
+        pub_mon1_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
+                                               reporting_fiscal_period=1, reporting_fiscal_year=2017,
+                                               is_quarter_format=False, publishable=True,
+                                               publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                               d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                               certifying_user_id=None)
+        pub_mon2_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
+                                               reporting_fiscal_period=2, reporting_fiscal_year=2017,
+                                               is_quarter_format=False, publishable=True,
+                                               publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                               d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                               certifying_user_id=None)
+        non_pub_same_mon_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
+                                                        reporting_fiscal_period=1, reporting_fiscal_year=2017,
+                                                        is_quarter_format=False, publishable=True,
+                                                        publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        certifying_user_id=None)
+        non_pub_diff_mon_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
+                                                        reporting_fiscal_period=3, reporting_fiscal_year=2017,
+                                                        is_quarter_format=False, publishable=True,
+                                                        publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        certifying_user_id=None)
+        non_pub_same_qtr_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
+                                                        reporting_fiscal_period=3, reporting_fiscal_year=2017,
+                                                        is_quarter_format=True, publishable=True,
+                                                        publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        certifying_user_id=None)
+        non_pub_diff_qtr_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
+                                                        reporting_fiscal_period=6, reporting_fiscal_year=2017,
+                                                        is_quarter_format=True, publishable=True,
+                                                        publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        certifying_user_id=None)
+        sub_window1 = SubmissionWindowScheduleFactory(year=2017, period=1,
+                                                      period_start=now - datetime.timedelta(days=1))
+        sub_window2 = SubmissionWindowScheduleFactory(year=2017, period=2,
+                                                      period_start=now - datetime.timedelta(days=1))
+        sess.add_all([user, cgac, pub_mon1_submission, pub_mon2_submission, non_pub_same_mon_submission,
+                      non_pub_diff_mon_submission, non_pub_same_qtr_submission, non_pub_diff_qtr_submission,
+                      sub_window1, sub_window2])
+        sess.commit()
+
+        job_1 = JobFactory(submission_id=pub_mon1_submission.submission_id, last_validated=now,
+                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+        job_2 = JobFactory(submission_id=pub_mon1_submission.submission_id,
+                           last_validated=now + datetime.timedelta(days=1),
+                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+        job_3 = JobFactory(submission_id=pub_mon2_submission.submission_id, last_validated=now,
+                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+        job_4 = JobFactory(submission_id=pub_mon2_submission.submission_id,
+                           last_validated=now + datetime.timedelta(days=1),
+                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+        sess.add_all([job_1, job_2, job_3, job_4])
+        sess.commit()
+
+        g.user = user
+        file_handler = fileHandler.FileHandler({}, is_local=True)
+        monkeypatch.setattr(file_handler, 'move_certified_files', Mock(return_value=True))
+        monkeypatch.setattr(fileHandler.GlobalDB, 'db', Mock(return_value=database))
+
+        certify_dabs_submission(pub_mon1_submission, file_handler)
+        certify_dabs_submission(pub_mon2_submission, file_handler)
+
+        # monthly same period -> published monthly sub
+        sess.refresh(non_pub_same_mon_submission)
+        assert non_pub_same_mon_submission.published_submission_ids == [pub_mon1_submission.submission_id]
+        # monthly different period unaffected
+        sess.refresh(non_pub_diff_mon_submission)
+        assert non_pub_diff_mon_submission.published_submission_ids == []
+        # quarterly same period -> published monthly subs for said quarter
+        sess.refresh(non_pub_same_qtr_submission)
+        assert non_pub_same_qtr_submission.published_submission_ids == [pub_mon1_submission.submission_id,
+                                                                        pub_mon2_submission.submission_id]
+        # quarterly different period unaffected
+        sess.refresh(non_pub_diff_qtr_submission)
+        assert non_pub_diff_qtr_submission.published_submission_ids == []
+
+
+@pytest.mark.usefixtures('job_constants')
+def test_published_submission_ids_quarter_same_periods(database, monkeypatch):
+    """ When publishing a quarterly submission, other submissions in the same period will update """
+    with Flask('test-app').app_context():
+        now = datetime.datetime.utcnow()
+        sess = database.session
+
+        user = UserFactory()
+        cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
+        pub_qtr_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
+                                               reporting_fiscal_period=3, reporting_fiscal_year=2017,
+                                               is_quarter_format=True, publishable=True,
+                                               publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                               d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                               certifying_user_id=None)
+        non_pub_same_mon_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
+                                                        reporting_fiscal_period=1, reporting_fiscal_year=2017,
+                                                        is_quarter_format=False, publishable=True,
+                                                        publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        certifying_user_id=None)
+        non_pub_diff_mon_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
+                                                        reporting_fiscal_period=4, reporting_fiscal_year=2017,
+                                                        is_quarter_format=False, publishable=True,
+                                                        publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        certifying_user_id=None)
+        non_pub_same_qtr_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
+                                                        reporting_fiscal_period=3, reporting_fiscal_year=2017,
+                                                        is_quarter_format=True, publishable=True,
+                                                        publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        certifying_user_id=None)
+        non_pub_diff_qtr_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
+                                                        reporting_fiscal_period=6, reporting_fiscal_year=2017,
+                                                        is_quarter_format=True, publishable=True,
+                                                        publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                                        d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                        certifying_user_id=None)
+        sub_window = SubmissionWindowScheduleFactory(year=2017, period=3, period_start=now - datetime.timedelta(days=1))
+        sess.add_all([user, cgac, pub_qtr_submission, non_pub_same_mon_submission, non_pub_diff_mon_submission,
+                      non_pub_same_qtr_submission, non_pub_diff_qtr_submission, sub_window])
+        sess.commit()
+
+        job_1 = JobFactory(submission_id=pub_qtr_submission.submission_id, last_validated=now,
+                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+        job_2 = JobFactory(submission_id=pub_qtr_submission.submission_id,
+                           last_validated=now + datetime.timedelta(days=1),
+                           job_type_id=JOB_TYPE_DICT['csv_record_validation'])
+        sess.add_all([job_1, job_2])
+        sess.commit()
+
+        g.user = user
+        file_handler = fileHandler.FileHandler({}, is_local=True)
+        monkeypatch.setattr(file_handler, 'move_certified_files', Mock(return_value=True))
+        monkeypatch.setattr(fileHandler.GlobalDB, 'db', Mock(return_value=database))
+
+        certify_dabs_submission(pub_qtr_submission, file_handler)
+
+        # monthly same quarter -> published quarter submission
+        sess.refresh(non_pub_same_mon_submission)
+        assert non_pub_same_mon_submission.published_submission_ids == [pub_qtr_submission.submission_id]
+        # monthly different quarter unaffected
+        sess.refresh(non_pub_diff_mon_submission)
+        assert non_pub_diff_mon_submission.published_submission_ids == []
+        # quarterly same quarter -> published quarter submission
+        sess.refresh(non_pub_same_qtr_submission)
+        assert non_pub_same_qtr_submission.published_submission_ids == [pub_qtr_submission.submission_id]
+        # quarterly different quarter unaffected
+        sess.refresh(non_pub_diff_qtr_submission)
+        assert non_pub_diff_qtr_submission.published_submission_ids == []
+
 
 @pytest.mark.usefixtures('job_constants')
 def test_certify_dabs_submission_revalidation_needed(database):
