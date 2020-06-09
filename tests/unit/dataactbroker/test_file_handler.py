@@ -3,6 +3,8 @@ import io
 import json
 import os.path
 from unittest.mock import Mock
+from flask import Flask
+from collections import namedtuple
 
 import pytest
 
@@ -12,7 +14,7 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactbroker.handlers import fileHandler
 from dataactbroker.helpers import filters_helper
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.jobModels import CertifiedFilesHistory
+from dataactcore.models.jobModels import CertifiedFilesHistory, Submission
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT, PUBLISH_STATUS_DICT
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactbroker.utils import add_models, delete_models
@@ -20,6 +22,11 @@ from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory, CertifyHistoryFactory, CommentFactory,
                                                   CertifiedFilesHistoryFactory)
 from tests.unit.dataactcore.factories.user import UserFactory
+from tests.integration.fileTests import AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T
+
+# Mock class for testing create submissions
+UploadFile = namedtuple('UploadFile', 'filename')
+UploadFile.save = lambda x, y: True
 
 
 def list_submissions_result(is_fabs=False):
@@ -32,6 +39,175 @@ def list_submissions_sort(category, order):
     json_response = fileHandler.list_submissions(1, 10, "mixed", category, order)
     assert json_response.status_code == 200
     return json.loads(json_response.get_data().decode('UTF-8'))
+
+
+def mock_create_submission(sess, monkeypatch, request_params):
+    with Flask('test-app').app_context():
+        mock_request = Mock()
+        mock_request.headers = {'Content-Type': 'multipart/form-data'}
+        monkeypatch.setattr(mock_request, 'get_json', Mock(return_value=request_params))
+        fh = fileHandler.FileHandler(mock_request, is_local=True)
+        monkeypatch.setattr(fh, 'finalize', Mock(return_value=True))
+        resp = fh.validate_upload_dabs_files()
+        new_sub = sess.query(Submission).filter(Submission.submission_id == resp.json['submission_id']).one_or_none()
+    return new_sub
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_create_submission_already_pub_mon(database, monkeypatch):
+    """ Ensure submission is appropriately populated upon creation with monthly submissions already published """
+    sess = database.session
+
+    cgac = CGACFactory(cgac_code='020', agency_name='Age')
+    user1 = UserFactory(user_id=1, name='Oliver Queen', website_admin=True)
+    pub_mon1_sub = SubmissionFactory(user_id=1, number_of_warnings=1, cgac_code=cgac.cgac_code,
+                                     reporting_fiscal_period=4, reporting_fiscal_year=2010,
+                                     publish_status_id=2, is_quarter_format=False)
+    pub_mon2_sub = SubmissionFactory(user_id=1, number_of_warnings=1, cgac_code=cgac.cgac_code,
+                                     reporting_fiscal_period=5, reporting_fiscal_year=2010,
+                                     publish_status_id=3, is_quarter_format=False)
+    sess.add_all([user1, cgac, pub_mon1_sub, pub_mon2_sub])
+    sess.commit()
+
+    monkeypatch.setattr(fileHandler, 'g', Mock(user=user1))
+
+    # Making a new monthly sub in the same period
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': False,
+        'reporting_period_start_date': '01/2010',
+        'reporting_period_end_date': '01/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_mon_same_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # Making a new monthly sub in a different period
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': False,
+        'reporting_period_start_date': '03/2010',
+        'reporting_period_end_date': '03/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_mon_diff_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # Making a new quarterly sub in the same quarter
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': True,
+        'reporting_period_start_date': '01/2010',
+        'reporting_period_end_date': '03/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_qtr_same_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # Making a new quarterly sub in a different quarter
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': True,
+        'reporting_period_start_date': '04/2010',
+        'reporting_period_end_date': '06/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_qtr_diff_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # monthly same period -> published monthly sub
+    assert new_mon_same_sub.published_submission_ids == [pub_mon1_sub.submission_id]
+    # monthly different period unaffected
+    assert new_mon_diff_sub.published_submission_ids == []
+    # quarterly same quarter -> multiple published monthly subs
+    assert new_qtr_same_sub.published_submission_ids == [pub_mon1_sub.submission_id, pub_mon2_sub.submission_id]
+    # quarterly different quarter unaffected
+    assert new_qtr_diff_sub.published_submission_ids == []
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_create_submission_already_pub_qtr(database, monkeypatch):
+    """ Ensure submission is appropriately populated upon creation with monthly submissions already published """
+    sess = database.session
+
+    cgac = CGACFactory(cgac_code='020', agency_name='Age')
+    user1 = UserFactory(user_id=1, name='Oliver Queen', website_admin=True)
+    pub_qtr_sub = SubmissionFactory(user_id=1, number_of_warnings=1, cgac_code=cgac.cgac_code,
+                                    reporting_fiscal_period=6, reporting_fiscal_year=2010,
+                                    publish_status_id=2, is_quarter_format=True)
+    sess.add_all([user1, cgac, pub_qtr_sub])
+    sess.commit()
+
+    monkeypatch.setattr(fileHandler, 'g', Mock(user=user1))
+
+    # Making a new monthly sub in the same period
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': False,
+        'reporting_period_start_date': '01/2010',
+        'reporting_period_end_date': '01/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_mon_same_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # Making a new monthly sub in a different period
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': False,
+        'reporting_period_start_date': '04/2010',
+        'reporting_period_end_date': '04/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_mon_diff_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # Making a new quarterly sub in the same quarter
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': True,
+        'reporting_period_start_date': '01/2010',
+        'reporting_period_end_date': '03/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_qtr_same_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # Making a new quarterly sub in a different quarter
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': True,
+        'reporting_period_start_date': '04/2010',
+        'reporting_period_end_date': '06/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_qtr_diff_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # monthly same period -> published quarter sub
+    assert new_mon_same_sub.published_submission_ids == [pub_qtr_sub.submission_id]
+    # monthly different period unaffected
+    assert new_mon_diff_sub.published_submission_ids == []
+    # quarterly same quarter -> published quarter sub
+    assert new_qtr_same_sub.published_submission_ids == [pub_qtr_sub.submission_id]
+    # quarterly different quarter unaffected
+    assert new_qtr_diff_sub.published_submission_ids == []
 
 
 @pytest.mark.usefixtures("job_constants")
