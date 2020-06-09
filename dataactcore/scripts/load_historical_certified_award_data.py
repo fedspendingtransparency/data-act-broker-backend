@@ -9,7 +9,7 @@ from sqlalchemy import func
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.jobModels import CertifiedFilesHistory, Job
+from dataactcore.models.jobModels import PublishedFilesHistory, Job
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.models.userModel import User # noqa
@@ -135,7 +135,7 @@ DELETED_COLS = {
         'annualrevenue': 'annual_revenue'
     },
     FILE_TYPE_DICT['award']: {
-        # submissiontype was included in D2 but does not get stored in the staging/certified tables
+        # submissiontype was included in D2 but does not get stored in the staging/published tables
         # 'submissiontype',
         'legalentityaddressline3': 'legal_entity_address_line3',
         'fiscalyearandquartercorrection': 'fiscal_year_and_quarter_co'
@@ -143,61 +143,61 @@ DELETED_COLS = {
 }
 
 
-def copy_certified_submission_award_data(staging_table, certified_table, staging_table_id):
-    """ Copy data from the award table to the certified award table for certified DABS submissions.
+def copy_published_submission_award_data(staging_table, published_table, staging_table_id):
+    """ Copy data from the award table to the published award table for published DABS submissions.
 
         Args:
             staging_table: the base table to copy from
-            certified_table: the certified table to copy to
+            published_table: the published table to copy to
             staging_table_id: the primary key of the base table to be ignored when copying over
     """
     staging_table_name = staging_table.__table__.name
-    certified_table_name = certified_table.__table__.name
-    logger.info('Copying over certified {} data'.format(staging_table_name))
+    published_table_name = published_table.__table__.name
+    logger.info('Copying over published {} data'.format(staging_table_name))
     sess = GlobalDB.db().session
 
     column_list = [col.key for col in staging_table.__table__.columns]
     column_list.remove('created_at')
     column_list.remove('updated_at')
     column_list.remove(staging_table_id)
-    certified_col_string = ', '.join(column_list)
+    published_col_string = ', '.join(column_list)
     col_string = ', '.join([col if not col == 'submission_id' else '{}.{}'.format(staging_table_name, col)
                             for col in column_list])
 
     # Delete the old ones so we don't have conflicts
     clean_sql = """
-        DELETE FROM {certified_table}
+        DELETE FROM {published_table}
             USING submission
-            WHERE submission.submission_id = {certified_table}.submission_id
+            WHERE submission.submission_id = {published_table}.submission_id
                 AND publish_status_id = {publish_status}
-    """.format(certified_table=certified_table_name, publish_status=PUBLISH_STATUS_DICT['published'])
+    """.format(published_table=published_table_name, publish_status=PUBLISH_STATUS_DICT['published'])
     sess.execute(clean_sql)
 
-    # Insert all award data from submissions in the certified (not updated) status
+    # Insert all award data from submissions in the published (not updated) status
     insert_sql = """
-        INSERT INTO {certified_table} (created_at, updated_at, {cert_col_string})
+        INSERT INTO {published_table} (created_at, updated_at, {pub_col_string})
         SELECT NOW() AS created_at, NOW() AS updated_at, {col_string}
         FROM {staging_table}
         JOIN submission ON submission.submission_id = {staging_table}.submission_id
         WHERE submission.publish_status_id = {publish_status}
             AND submission.d2_submission IS FALSE
-    """.format(staging_table=staging_table_name, certified_table=certified_table_name,
-               cert_col_string=certified_col_string, col_string=col_string,
+    """.format(staging_table=staging_table_name, published_table=published_table_name,
+               pub_col_string=published_col_string, col_string=col_string,
                publish_status=PUBLISH_STATUS_DICT['published'])
     sess.execute(insert_sql)
     sess.commit()
-    logger.info('Moved certified {} fields'.format(staging_table_name))
+    logger.info('Moved published {} fields'.format(staging_table_name))
 
 
-def process_file_chunk(sess, data, certified_table, job, submission_id, file_type_id, rename_cols, col_mapping,
+def process_file_chunk(sess, data, published_table, job, submission_id, file_type_id, rename_cols, col_mapping,
                        all_cols, row_offset, float_cols):
     """ Load in a chunk of award data from updated submissions
 
         Args:
             sess: the database connection
             data: the chunked dataframe
-            certified_table: the certified table to copy to
-            job: the certified validation job associated with the file type
+            published_table: the published table to copy to
+            job: the published validation job associated with the file type
             submission_id: the submission associated with the file
             file_type_id: the file type id associated with the file
             rename_cols: mapping of columns that have been renamed over time
@@ -251,45 +251,45 @@ def process_file_chunk(sess, data, certified_table, job, submission_id, file_typ
         submission_id, FILE_TYPE_DICT_ID[file_type_id], original_row_offset + 2))
 
     # Process and insert the data
-    insert_dataframe(data, certified_table.__table__.name, sess.connection())
+    insert_dataframe(data, published_table.__table__.name, sess.connection())
     sess.commit()
 
     return row_offset
 
 
-def load_updated_award_data(staging_table, certified_table, file_type_id, internal_cols):
-    """ Load in award data from updated submissions as they were at the latest certification
+def load_updated_award_data(staging_table, published_table, file_type_id, internal_cols):
+    """ Load in award data from updated submissions as they were at the latest publication
 
         Args:
             staging_table: the base table to copy from
-            certified_table: the certified table to copy to
+            published_table: the published table to copy to
             file_type_id: the file type id indicating whether it's procurements or assistance data
-            internal_cols: the internal cols of the certified table
+            internal_cols: the internal cols of the published table
     """
     staging_table_name = staging_table.__table__.name
     logger.info('Moving updated {} data'.format(staging_table_name))
     sess = GlobalDB.db().session
 
-    # Get a list of all submissions with certified flex fields
-    certified_award_subs = sess.query(certified_table.submission_id).distinct().all()
+    # Get a list of all submissions with published flex fields
+    published_award_subs = sess.query(published_table.submission_id).distinct().all()
 
     # We only want to go through updated submissions without award data already loaded
     updated_subs = sess.query(Submission.submission_id).\
-        filter(~Submission.submission_id.in_(certified_award_subs),
+        filter(~Submission.submission_id.in_(published_award_subs),
                Submission.d2_submission.is_(False),
                Submission.publish_status_id == PUBLISH_STATUS_DICT['updated']).all()
 
-    certified_ids = sess. \
-        query(func.max(CertifiedFilesHistory.certify_history_id).label('max_cert_id')). \
-        filter(CertifiedFilesHistory.submission_id.in_(updated_subs)). \
-        group_by(CertifiedFilesHistory.submission_id).cte('certified_ids')
+    published_ids = sess. \
+        query(func.max(PublishedFilesHistory.publish_history_id).label('max_pub_id')). \
+        filter(PublishedFilesHistory.submission_id.in_(updated_subs)). \
+        group_by(PublishedFilesHistory.submission_id).cte('published_ids')
 
-    historical_files = sess.query(CertifiedFilesHistory.filename, CertifiedFilesHistory.file_type_id,
-                                  CertifiedFilesHistory.submission_id). \
-        join(certified_ids, certified_ids.c.max_cert_id == CertifiedFilesHistory.certify_history_id).\
-        filter(CertifiedFilesHistory.file_type_id == file_type_id, CertifiedFilesHistory.filename.isnot(None))
+    historical_files = sess.query(PublishedFilesHistory.filename, PublishedFilesHistory.file_type_id,
+                                  PublishedFilesHistory.submission_id). \
+        join(published_ids, published_ids.c.max_pub_id == PublishedFilesHistory.publish_history_id).\
+        filter(PublishedFilesHistory.file_type_id == file_type_id, PublishedFilesHistory.filename.isnot(None))
 
-    # Load all certified files with file_type_id matching the file_type_id
+    # Load all published files with file_type_id matching the file_type_id
     file_columns = sess.query(FileColumn).filter(FileColumn.file_id == file_type_id).all()
     daims_to_short = {f.daims_name.lower().strip(): f.name_short for f in file_columns}
     long_to_short = {f.name.lower().strip(): f.name_short for f in file_columns}
@@ -297,7 +297,7 @@ def load_updated_award_data(staging_table, certified_table, file_type_id, intern
 
     rename_cols = RENAMED_COLS[file_type_id]
     rename_cols.update(DELETED_COLS[file_type_id])
-    all_cols = [col.key for col in certified_table.__table__.columns if col.key not in internal_cols]
+    all_cols = [col.key for col in published_table.__table__.columns if col.key not in internal_cols]
 
     # Loop through each updated submission
     for historical_file in historical_files:
@@ -325,37 +325,37 @@ def load_updated_award_data(staging_table, certified_table, file_type_id, intern
             row_offset = 0
             reader_obj = pd.read_csv(file, dtype=str, delimiter=delim, chunksize=CHUNK_SIZE)
             for chunk_df in reader_obj:
-                row_offset = process_file_chunk(sess, chunk_df, certified_table, job, submission_id, file_type_id,
+                row_offset = process_file_chunk(sess, chunk_df, published_table, job, submission_id, file_type_id,
                                                 rename_cols, col_mapping, all_cols, row_offset, float_cols)
 
     logger.info('Moved updated {} data'.format(staging_table_name))
 
 
 def main():
-    """ Load award data for certified submissions that haven't been loaded into the certified award tables. """
+    """ Load award data for published submissions that haven't been loaded into the published award tables. """
     shared_internal_cols = ['submission_id', 'row_number', 'updated_at', 'created_at', 'job_id']
     aw_data_map = {
         'award_procurement': {
             'staging_table': AwardProcurement,
-            'certified_table': CertifiedAwardProcurement,
+            'published_table': CertifiedAwardProcurement,
             'staging_id': 'award_procurement_id',
-            'certified_id': 'certified_award_procurement_id',
+            'published_id': 'certified_award_procurement_id',
             'file_type_id': FILE_TYPE_DICT['award_procurement']
         },
         'award_financial_assistance': {
             'staging_table': AwardFinancialAssistance,
-            'certified_table': CertifiedAwardFinancialAssistance,
+            'published_table': CertifiedAwardFinancialAssistance,
             'staging_id': 'award_financial_assistance_id',
-            'certified_id': 'certified_award_financial_assistance_id',
+            'published_id': 'certified_award_financial_assistance_id',
             'file_type_id': FILE_TYPE_DICT['award']
         }
     }
 
     for award_type, award_dict in aw_data_map.items():
-        copy_certified_submission_award_data(award_dict['staging_table'], award_dict['certified_table'],
+        copy_published_submission_award_data(award_dict['staging_table'], award_dict['published_table'],
                                              award_dict['staging_id'])
-        load_updated_award_data(award_dict['staging_table'], award_dict['certified_table'], award_dict['file_type_id'],
-                                shared_internal_cols + [award_dict['certified_id']])
+        load_updated_award_data(award_dict['staging_table'], award_dict['published_table'], award_dict['file_type_id'],
+                                shared_internal_cols + [award_dict['published_id']])
 
 
 if __name__ == '__main__':
