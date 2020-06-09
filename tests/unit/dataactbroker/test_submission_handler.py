@@ -519,17 +519,17 @@ def test_published_submission_ids_month_same_periods(database, monkeypatch):
         user = UserFactory()
         cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
         pub_mon1_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
-                                               reporting_fiscal_period=1, reporting_fiscal_year=2017,
-                                               is_quarter_format=False, publishable=True,
-                                               publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                               d2_submission=False, number_of_errors=0, number_of_warnings=200,
-                                               certifying_user_id=None)
+                                                reporting_fiscal_period=1, reporting_fiscal_year=2017,
+                                                is_quarter_format=False, publishable=True,
+                                                publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                                d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                certifying_user_id=None)
         pub_mon2_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
-                                               reporting_fiscal_period=2, reporting_fiscal_year=2017,
-                                               is_quarter_format=False, publishable=True,
-                                               publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                                               d2_submission=False, number_of_errors=0, number_of_warnings=200,
-                                               certifying_user_id=None)
+                                                reporting_fiscal_period=2, reporting_fiscal_year=2017,
+                                                is_quarter_format=False, publishable=True,
+                                                publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
+                                                d2_submission=False, number_of_errors=0, number_of_warnings=200,
+                                                certifying_user_id=None)
         non_pub_same_mon_submission = SubmissionFactory(created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                                                         reporting_fiscal_period=1, reporting_fiscal_year=2017,
                                                         is_quarter_format=False, publishable=True,
