@@ -86,12 +86,24 @@ class CertifyHistoryFactory(factory.Factory):
     user = factory.SubFactory(UserFactory)
 
 
-class CertifiedFilesHistoryFactory(factory.Factory):
+class PublishHistoryFactory(factory.Factory):
     class Meta:
-        model = jobModels.CertifiedFilesHistory
+        model = jobModels.PublishHistory
 
-    certified_files_history_id = None
+    publish_history_id = None
+    submission_id = fuzzy.FuzzyInteger(9999)
+    submission = factory.SubFactory(SubmissionFactory)
+    user_id = fuzzy.FuzzyInteger(9999)
+    user = factory.SubFactory(UserFactory)
+
+
+class PublishedFilesHistoryFactory(factory.Factory):
+    class Meta:
+        model = jobModels.PublishedFilesHistory
+
+    published_files_history_id = None
     certify_history_id = fuzzy.FuzzyInteger(9999)
+    publish_history_id = fuzzy.FuzzyInteger(9999)
     submission_id = fuzzy.FuzzyInteger(9999)
     filename = fuzzy.FuzzyText()
     file_type_id = fuzzy.FuzzyInteger(9999)

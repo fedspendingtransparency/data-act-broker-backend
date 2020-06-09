@@ -12,13 +12,13 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactbroker.handlers import fileHandler
 from dataactbroker.helpers import filters_helper
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.jobModels import CertifiedFilesHistory
+from dataactcore.models.jobModels import PublishedFilesHistory
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT, PUBLISH_STATUS_DICT
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactbroker.utils import add_models, delete_models
 from tests.unit.dataactcore.factories.domain import CGACFactory
-from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory, CertifyHistoryFactory, CommentFactory,
-                                                  CertifiedFilesHistoryFactory)
+from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory, PublishHistoryFactory, CommentFactory,
+                                                  CertifyHistoryFactory, PublishedFilesHistoryFactory)
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
@@ -569,7 +569,7 @@ def test_get_upload_file_url_s3(database, monkeypatch):
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_move_certified_files(database, monkeypatch):
+def test_move_published_files(database, monkeypatch):
     # set up cgac and submission
     cgac = CGACFactory(cgac_code='zyxwv', agency_name='Test')
     sub = SubmissionFactory(cgac_code='zyxwv', number_of_errors=0, publish_status_id=1,
@@ -577,8 +577,10 @@ def test_move_certified_files(database, monkeypatch):
     database.session.add_all([cgac, sub])
     database.session.commit()
 
-    # set up certify history and jobs based on submission
+    # set up publish/certify history and jobs based on submission
     sess = database.session
+    pub_hist_local = PublishHistoryFactory(submission_id=sub.submission_id)
+    pub_hist_remote = PublishHistoryFactory(submission_id=sub.submission_id)
     cert_hist_local = CertifyHistoryFactory(submission_id=sub.submission_id)
     cert_hist_remote = CertifyHistoryFactory(submission_id=sub.submission_id)
 
@@ -608,8 +610,9 @@ def test_move_certified_files(database, monkeypatch):
 
     award_fin_narr = CommentFactory(submission=sub, comment="Test comment",
                                     file_type_id=FILE_TYPE_DICT['award_financial'])
-    database.session.add_all([cert_hist_local, cert_hist_remote, appropriations_job, prog_act_job, award_fin_job,
-                              award_proc_job, award_job, exec_comp_job, sub_award_job, award_fin_narr])
+    database.session.add_all([pub_hist_local, pub_hist_remote, cert_hist_local, cert_hist_remote, appropriations_job,
+                              prog_act_job, award_fin_job, award_proc_job, award_job, exec_comp_job, sub_award_job,
+                              award_fin_narr])
     database.session.commit()
 
     s3_url_handler = Mock()
@@ -620,16 +623,16 @@ def test_move_certified_files(database, monkeypatch):
 
     fh = fileHandler.FileHandler(Mock())
 
-    # test local certification
-    fh.move_certified_files(sub, cert_hist_local, True)
-    local_id = cert_hist_local.certify_history_id
+    # test local publication
+    fh.move_published_files(sub, pub_hist_local, cert_hist_local, True)
+    local_id = pub_hist_local.publish_history_id
 
     # make sure we have the right number of history entries
-    all_local_certs = sess.query(CertifiedFilesHistory).filter_by(certify_history_id=local_id).all()
+    all_local_certs = sess.query(PublishedFilesHistory).filter_by(publish_history_id=local_id).all()
     assert len(all_local_certs) == 11
 
-    c_cert_hist = sess.query(CertifiedFilesHistory).\
-        filter_by(certify_history_id=local_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
+    c_cert_hist = sess.query(PublishedFilesHistory).\
+        filter_by(publish_history_id=local_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
     assert c_cert_hist.filename == "/path/to/award/fin/file_c.csv"
     expected_filename = "/path/to/error/reports/submission_{}_File_C_award_financial_warning_report.csv".\
         format(sub.submission_id)
@@ -637,7 +640,7 @@ def test_move_certified_files(database, monkeypatch):
     assert c_cert_hist.comment == "Test comment"
 
     # cross-file warnings
-    warning_cert_hist = sess.query(CertifiedFilesHistory).filter_by(certify_history_id=local_id, file_type=None).all()
+    warning_cert_hist = sess.query(PublishedFilesHistory).filter_by(publish_history_id=local_id, file_type=None).all()
     assert len(warning_cert_hist) == 4
     assert warning_cert_hist[0].comment is None
 
@@ -645,12 +648,12 @@ def test_move_certified_files(database, monkeypatch):
     assert "/path/to/error/reports/submission_{}_crossfile_warning_File_A_to_B_appropriations_program_activity.csv".\
         format(sub.submission_id) in warning_cert_hist_files
 
-    # test remote certification
-    fh.move_certified_files(sub, cert_hist_remote, False)
-    remote_id = cert_hist_remote.certify_history_id
+    # test remote publication
+    fh.move_published_files(sub, pub_hist_remote, cert_hist_remote, False)
+    remote_id = pub_hist_remote.publish_history_id
 
-    c_cert_hist = sess.query(CertifiedFilesHistory). \
-        filter_by(certify_history_id=remote_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
+    c_cert_hist = sess.query(PublishedFilesHistory). \
+        filter_by(publish_history_id=remote_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
     assert c_cert_hist.filename == "zyxwv/2017/2/{}/file_c.csv".format(remote_id)
     assert c_cert_hist.warning_filename == "zyxwv/2017/2/{}/submission_{}_File_C_award_financial_warning_report.csv". \
         format(remote_id, sub.submission_id)
@@ -663,25 +666,30 @@ def test_list_certifications(database):
     database.session.add(sub)
     database.session.commit()
 
-    # set up certify history, make sure the empty one comes last in the list
+    # set up publish history, make sure the empty one comes last in the list
     cert_hist_empty = CertifyHistoryFactory(submission=sub, created_at=datetime.utcnow() - timedelta(days=1))
     cert_hist = CertifyHistoryFactory(submission=sub)
-    database.session.add_all([cert_hist_empty, cert_hist])
+    pub_hist = PublishHistoryFactory(submission=sub)
+    database.session.add_all([cert_hist_empty, cert_hist, pub_hist])
     database.session.commit()
 
-    # add some data to certified_files_history for the cert_history ID
-    history_id = cert_hist.certify_history_id
+    # add some data to published_files_history for the cert_history ID
+    cert_history_id = cert_hist.certify_history_id
+    pub_history_id = pub_hist.publish_history_id
     sub_id = sub.submission_id
-    file_hist_1 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
+    file_hist_1 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                               publish_history_id=pub_hist.publish_history_id, submission_id=sub_id,
                                                filename="/path/to/file_a.csv",
                                                warning_filename="/path/to/warning_file_a.csv",
                                                comment="A has a comment",
                                                file_type_id=FILE_TYPE_DICT['appropriations'])
-    file_hist_2 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
+    file_hist_2 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                               publish_history_id=pub_history_id, submission_id=sub_id,
                                                filename="/path/to/file_d2.csv",
                                                warning_filename=None,
                                                file_type_id=FILE_TYPE_DICT['award'])
-    file_hist_3 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
+    file_hist_3 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                               publish_history_id=pub_history_id, submission_id=sub_id,
                                                filename=None,
                                                warning_filename="/path/to/warning_file_cross_test.csv",
                                                file_type_id=None)
@@ -715,10 +723,12 @@ def test_file_history_url(database, monkeypatch):
 
     # set up certify history so it works
     cert_hist = CertifyHistoryFactory(submission=sub)
-    database.session.add(cert_hist)
+    pub_hist = PublishHistoryFactory(submission=sub)
+    database.session.add_all([cert_hist, pub_hist])
     database.session.commit()
 
-    file_hist = CertifiedFilesHistoryFactory(certify_history_id=cert_hist.certify_history_id,
+    file_hist = PublishedFilesHistoryFactory(certify_history_id=cert_hist.certify_history_id,
+                                             publish_history_id=pub_hist.publish_history_id,
                                              submission_id=sub.submission_id, filename="/path/to/file_d2.csv",
                                              warning_filename="/path/to/warning_file_cross.csv",
                                              comment=None, file_type_id=None)
@@ -730,17 +740,17 @@ def test_file_history_url(database, monkeypatch):
     monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
 
     # checking for local response to non-warning file
-    json_response = fileHandler.file_history_url(sub, file_hist.certified_files_history_id, False, True)
+    json_response = fileHandler.file_history_url(sub, file_hist.published_files_history_id, False, True)
     url = json.loads(json_response.get_data().decode('utf-8'))["url"]
     assert url == "/path/to/file_d2.csv"
 
     # local response to warning file
-    json_response = fileHandler.file_history_url(sub, file_hist.certified_files_history_id, True, True)
+    json_response = fileHandler.file_history_url(sub, file_hist.published_files_history_id, True, True)
     url = json.loads(json_response.get_data().decode('utf-8'))["url"]
     assert url == "/path/to/warning_file_cross.csv"
 
     # generic test to make sure it's reaching the s3 handler properly
-    json_response = fileHandler.file_history_url(sub, file_hist.certified_files_history_id, False, False)
+    json_response = fileHandler.file_history_url(sub, file_hist.published_files_history_id, False, False)
     url = json.loads(json_response.get_data().decode('utf-8'))["url"]
     assert url == 'some/url/here.csv'
 

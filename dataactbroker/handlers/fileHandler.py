@@ -836,7 +836,7 @@ class FileHandler:
 
         # generate the published rows file and move all files
         # (locally we don't move but we still need to populate the published_files_history table)
-        FileHandler.move_published_files(FileHandler, submission, publish_history, g.is_local)
+        FileHandler.move_published_files(FileHandler, submission, publish_history, certify_history, g.is_local)
 
         response_dict = {'submission_id': submission_id}
         return JsonResponse.create(StatusCode.OK, response_dict)
@@ -954,13 +954,14 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
 
-    def move_published_files(self, submission, publish_history, is_local):
+    def move_published_files(self, submission, publish_history, certify_history, is_local):
         """ Copy all files within the published submission to the correct published files bucket/directory. FABS
             submissions also create a file containing all the published rows
 
             Args:
                 submission: submission for which to move the files
                 publish_history: a PublishHistory object to use for timestamps and to update once the files are moved
+                certify_history: a CertifyHistory object to update once the files are moved
                 is_local: a boolean indicating whether the application is running locally or not
         """
         try:
@@ -1042,9 +1043,11 @@ class FileHandler:
                     self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
                                              original_path=job.filename, new_path=new_path)
 
+            # TODO: set certify_history_id to NULL here and update this entry with the ID when we certify once those are
+            #  separate
             # create the published_files_history for this file
             file_history = PublishedFilesHistory(publish_history_id=publish_history.publish_history_id,
-                                                 certify_history_id=publish_history.publish_history_id,
+                                                 certify_history_id=certify_history.certify_history_id,
                                                  submission_id=submission_id, file_type_id=job.file_type_id,
                                                  filename=new_path, comment=comment,
                                                  warning_filename=warning_file)
@@ -1070,9 +1073,11 @@ class FileHandler:
                     warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission_id, True,
                                                                                            first_file, second_file)
 
+                # TODO: set certify_history_id to NULL here and update this entry with the ID when we certify once those
+                #  are separate
                 # add published history
                 file_history = PublishedFilesHistory(publish_history_id=publish_history.publish_history_id,
-                                                     certify_history_id=publish_history.publish_history_id,
+                                                     certify_history_id=certify_history.certify_history_id,
                                                      submission_id=submission_id, filename=None, file_type_id=None,
                                                      comment=None, warning_filename=warning_file)
                 sess.add(file_history)
@@ -1089,8 +1094,10 @@ class FileHandler:
                                              original_path=old_path, new_path=new_path)
                 else:
                     new_path = ''.join([CONFIG_BROKER['broker_files'], filename])
+                # TODO: set certify_history_id to NULL here and update this entry with the ID when we certify once those
+                #  are separate
                 file_history = PublishedFilesHistory(publish_history_id=publish_history.publish_history_id,
-                                                     certify_history_id=publish_history.publish_history_id,
+                                                     certify_history_id=certify_history.certify_history_id,
                                                      submission_id=submission_id, filename=new_path, file_type_id=None,
                                                      comment=None, warning_filename=None)
                 sess.add(file_history)

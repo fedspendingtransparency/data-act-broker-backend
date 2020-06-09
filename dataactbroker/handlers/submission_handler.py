@@ -677,6 +677,7 @@ def certify_dabs_submission(submission, file_manager):
             A JsonResponse containing the message "success" if successful, JsonResponse error containing the details of
             the error if something went wrong
     """
+    # TODO: split most of this logic into publish vs certify and add whatever other checks are needed
     current_user_id = g.user.user_id
 
     if not submission.publishable:
@@ -756,7 +757,7 @@ def certify_dabs_submission(submission, file_manager):
         move_published_data(sess, submission.submission_id)
 
         # move files (locally we don't move but we still need to populate the published_files_history table)
-        file_manager.move_published_files(submission, publish_history, file_manager.is_local)
+        file_manager.move_published_files(submission, publish_history, certify_history, file_manager.is_local)
 
         # set submission contents
         submission.certifying_user_id = current_user_id
