@@ -528,10 +528,10 @@ This endpoint returns metadata for the requested submission.
 - `cgac_code`: (string) CGAC of agency (null if FREC agency)
 - `frec_code`: (string) FREC of agency (null if CGAC agency)
 - `agency_name`: (string) name of the submitting agency
-- `number_of_errors`: (int) total errors in the submission
-- `number_of_warnings`: (int) total warnings in the submission
-- `number_of_rows`: (int) total number of rows in the submission including file headers
-- `total_size`: (int) total size of all files in the submission in bytes
+- `number_of_errors`: (integer) total errors in the submission
+- `number_of_warnings`: (integer) total warnings in the submission
+- `number_of_rows`: (integer) total number of rows in the submission including file headers
+- `total_size`: (integer) total size of all files in the submission in bytes
 - `created_on`: (string) date submission was created (YYYY-MM-DDTHH:mm:ss)
 - `last_updated`: (string) date/time any changes (including validations, etc) were made to the submission (YYYY-MM-DDTHH:mm:ss)
 - `last_validated`: (string) date the most recent validations were completed (YYYY-MM-DDTHH:mm:ss)
@@ -544,14 +544,14 @@ This endpoint returns metadata for the requested submission.
 - `quarterly_submission`: (boolean) whether the submission is quarterly or monthly
 - `test_submission`: (boolean) whether the submission is a test submission
 - `published_submission_ids`: ([integer]) submission ids published in the same period or quarter by the same agency 
-- `certified_submission`: (int) an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
+- `certified_submission`: (integer) an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
 - `certified`: (boolean) whether the submission has been certified or not
 - `fabs_submission`: (boolean) whether the submission is FABS or DABS (True for FABS)
 - `fabs_meta`: (object) data specific to FABS submissions (null for DABS submissions)
     - `publish_date`: (string) Date/time submission was published (YYYY-MM-DDTHH:mm:ss) (null if unpublished)
     - `published_file`: (string) signed url of the published file (null if unpublished)
-    - `total_rows`: (int) total rows in the submission not including header rows
-    - `valid_rows`: (int) total number of valid, publishable row
+    - `total_rows`: (integer) total rows in the submission not including header rows
+    - `valid_rows`: (integer) total number of valid, publishable row
 
 ##### Errors
 Possible HTTP Status Codes:
@@ -1371,7 +1371,7 @@ This endpoint lists all users with submissions that the requesting user can view
 ##### Response Attributes
 
 - `users`: ([dict]) contain the user's ID, name, and email:
-    - `user_id`: (int) ID of the user
+    - `user_id`: (integer) ID of the user
     - `name`: (string) name of the user
     - `email`: (string) email of the user
 
@@ -2052,9 +2052,9 @@ The response is a dictionary containing a list with the details of each warning 
     - `instance_count`: (integer) the number of times the warning occurred within the submission/file
     - `rule_description`: (string) the text of the warning
 - `page_metadata`: (dict) metadata associated with the table
-    - `total`: (int) total number of warning metadata rows these filters found
-    - `page`: (int) the current page requested by the user
-    - `limit`: (int) the total number of results to display per page as requested by the user
+    - `total`: (integer) total number of warning metadata rows these filters found
+    - `page`: (integer) the current page requested by the user
+    - `limit`: (integer) the total number of results to display per page as requested by the user
 
 
 #### Errors
@@ -2216,9 +2216,9 @@ The response is a dictionary containing a list with the details of each warning 
         - `High`
     - `rule_description`: (string) the text of the rule
 - `page_metadata`: (dict) metadata associated with the table
-    - `total`: (int) total number of metadata rows these filters found
-    - `page`: (int) the current page requested by the user
-    - `limit`: (int) the total number of results to display per page as requested by the user
+    - `total`: (integer) total number of metadata rows these filters found
+    - `page`: (integer) the current page requested by the user
+    - `limit`: (integer) the total number of results to display per page as requested by the user
     - `submission_id`: (integer) the submission ID selected
     - `files`: ([string]) The file type(s) requested (one for single file, two for cross file)
 
