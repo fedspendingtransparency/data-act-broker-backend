@@ -1799,6 +1799,7 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
             A JsonResponse containing a dictionary with the url to the file or a JsonResponse error containing details
             of what went wrong.
     """
+    # TODO: Reassess if we really need to include the submission ID for this, is there a better way to check perms?
     sess = GlobalDB.db().session
 
     file_history = sess.query(PublishedFilesHistory).filter_by(published_files_history_id=file_history_id).one_or_none()
