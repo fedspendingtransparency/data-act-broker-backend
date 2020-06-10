@@ -114,6 +114,7 @@ class Submission(Base):
                                 nullable=True)
     certifying_user = relationship("User", foreign_keys=[certifying_user_id])
     test_submission = Column(Boolean, nullable=False, default=False, server_default="False")
+    certified = Column(Boolean, nullable=False, default=False, server_default="False")
 
 
 class Job(Base):
