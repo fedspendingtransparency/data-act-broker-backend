@@ -159,6 +159,25 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.headers.get('Content-Type'), 'application/json')
         self.assertIn('submission_id', response.json)
 
+    def test_test_submission(self):
+        """ Test creating an explicit test submission. """
+        test_submission_json = {
+            'cgac_code': 'NOT',
+            'frec_code': None,
+            'is_quarter': True,
+            'test_submission': True,
+            'reporting_period_start_date': '10/2015',
+            'reporting_period_end_date': '12/2015'}
+        response = self.app.post('/v1/upload_dabs_files/', test_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 200)
+
+        sess = GlobalDB.db().session
+        submission_id = response.json['submission_id']
+        submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
+        self.assertEqual(submission.test_submission, True)
+
     def test_update_submission(self):
         """ Test upload_dabs_files with an existing submission ID """
         self.call_file_submission()
@@ -191,6 +210,7 @@ class FileTests(BaseTestAPI):
             self.assertEqual(submission.reporting_start_date.strftime('%m/%Y'), '04/2016')
             self.assertEqual(submission.reporting_end_date.strftime('%m/%Y'), '06/2016')
             self.assertEqual(submission.publish_status_id, PUBLISH_STATUS_DICT['updated'])
+            self.assertEqual(submission.test_submission, False)
 
     def test_bad_file_type(self):
         """ Test file submissions for bad file formats (not CSV or TXT) """
