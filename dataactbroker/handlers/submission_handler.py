@@ -592,33 +592,31 @@ def get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year, re
     """
     sess = GlobalDB.db().session
 
-    filters = [
+    submission_query = sess.query(Submission).filter(
         (Submission.cgac_code == cgac_code) if cgac_code else (Submission.frec_code == frec_code),
         Submission.reporting_fiscal_year == reporting_fiscal_year,
-        Submission.d2_submission.is_(False)
-    ]
+        Submission.d2_submission.is_(False))
 
     if filter_published not in ('published', 'unpublished', 'mixed'):
         raise ValueError('Published param must be one of the following: "published", "unpublished", or "mixed"')
     if filter_published == 'published':
-        filters.append(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
+        submission_query = submission_query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
     elif filter_published == 'unpublished':
-        filters.append(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
+        submission_query = submission_query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
 
     if not filter_quarter:
-        filters.append(Submission.reporting_fiscal_period == reporting_fiscal_period)
+        submission_query = submission_query.filter(Submission.reporting_fiscal_period == reporting_fiscal_period)
     else:
         reporting_fiscal_quarter = math.ceil(reporting_fiscal_period / 3)
-        filters.append((func.ceil(cast(Submission.reporting_fiscal_period, Numeric) / 3) == reporting_fiscal_quarter))
+        submission_query = submission_query.filter((func.ceil(cast(Submission.reporting_fiscal_period, Numeric) / 3) ==
+                                                    reporting_fiscal_quarter))
 
     if filter_sub_type not in ('monthly', 'quarterly', 'mixed'):
         raise ValueError('Published param must be one of the following: "monthly", "quarterly", or "mixed"')
     if filter_sub_type == 'monthly':
-        filters.append(Submission.is_quarter_format.is_(False))
+        submission_query = submission_query.filter(Submission.is_quarter_format.is_(False))
     elif filter_sub_type == 'quarterly':
-        filters.append(Submission.is_quarter_format.is_(True))
-
-    submission_query = sess.query(Submission).filter(*filters)
+        submission_query = submission_query.filter(Submission.is_quarter_format.is_(True))
 
     # Filter out the submission we are potentially re-certifying if one is provided
     if submission_id:
