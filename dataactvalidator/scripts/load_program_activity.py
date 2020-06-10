@@ -229,7 +229,7 @@ def convert_fyq_to_fyp(fyq):
             fyq: String to convert or leave alone fiscal year quarters
 
         Returns:
-            FYQ converted to FYP or
+            FYQ converted to FYP or left the same
     """
     # If it's in quarter format, convert to period
     if re.match('^FY\d{2}Q\d$', str(fyq).upper().strip()):
