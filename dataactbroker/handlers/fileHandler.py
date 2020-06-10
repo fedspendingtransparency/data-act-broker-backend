@@ -1735,6 +1735,7 @@ def list_certifications(submission):
             A JsonResponse containing a dictionary with the submission ID and a list of certifications or a JsonResponse
             error containing details of what went wrong.
     """
+    # TODO: Split this into published and certified lists, probably can leave it as one endpoint
     if submission.d2_submission:
         return JsonResponse.error(ValueError('FABS submissions do not have a certification history'),
                                   StatusCode.CLIENT_ERROR)
