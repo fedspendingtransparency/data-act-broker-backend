@@ -510,7 +510,10 @@ This endpoint returns metadata for the requested submission.
     "reporting_period": "Q2/2018",
     "publish_status": "unpublished",
     "quarterly_submission": false,
+    "test_submission": false,
+    "published_submission_ids": [],
     "certified_submission": 2,
+    "certified": false,
     "fabs_submission": true,
     "fabs_meta": {
         "valid_rows": 1,
@@ -522,30 +525,33 @@ This endpoint returns metadata for the requested submission.
 ```
 
 ##### Response Attributes
-- `cgac_code`: string, CGAC of agency (null if FREC agency)
-- `frec_code`: string, FREC of agency (null if CGAC agency)
-- `agency_name`: string, name of the submitting agency
-- `number_of_errors`: int, total errors in the submission
-- `number_of_warnings`: int, total warnings in the submission
-- `number_of_rows`: int, total number of rows in the submission including file headers
-- `total_size`: int, total size of all files in the submission in bytes
-- `created_on`: string, date submission was created (YYYY-MM-DDTHH:mm:ss)
-- `last_updated`: string, date/time any changes (including validations, etc) were made to the submission (YYYY-MM-DDTHH:mm:ss)
-- `last_validated`: string, date the most recent validations were completed (YYYY-MM-DDTHH:mm:ss)
-- `reporting_period`: string, reporting period of the submission (Q#/YYYY for quarterly submissions, MM/YYYY for monthly)
-- `publish_status`: string, whether the submission is published or not. Can contain only the following values:
+- `cgac_code`: (string) CGAC of agency (null if FREC agency)
+- `frec_code`: (string) FREC of agency (null if CGAC agency)
+- `agency_name`: (string) name of the submitting agency
+- `number_of_errors`: (int) total errors in the submission
+- `number_of_warnings`: (int) total warnings in the submission
+- `number_of_rows`: (int) total number of rows in the submission including file headers
+- `total_size`: (int) total size of all files in the submission in bytes
+- `created_on`: (string) date submission was created (YYYY-MM-DDTHH:mm:ss)
+- `last_updated`: (string) date/time any changes (including validations, etc) were made to the submission (YYYY-MM-DDTHH:mm:ss)
+- `last_validated`: (string) date the most recent validations were completed (YYYY-MM-DDTHH:mm:ss)
+- `reporting_period`: (string) reporting period of the submission (Q#/YYYY for quarterly submissions, MM/YYYY for monthly)
+- `publish_status`: (string) whether the submission is published or not. Can contain only the following values:
     - `unpublished`
     - `published`
     - `updated`
     - `publishing`
-- `quarterly_submission`: boolean, whether the submission is quarterly or monthly
-- `certified_submission`: int, an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
-- `fabs_submission`: boolean, whether the submission is FABS or DABS (True for FABS)
-- `fabs_meta`: object, data specific to FABS submissions (null for DABS submissions)
-    - `publish_date`: string, Date/time submission was published (YYYY-MM-DDTHH:mm:ss) (null if unpublished)
-    - `published_file`: string, signed url of the published file (null if unpublished)
-    - `total_rows`: int, total rows in the submission not including header rows
-    - `valid_rows`: int, total number of valid, publishable row
+- `quarterly_submission`: (boolean) whether the submission is quarterly or monthly
+- `test_submission`: (boolean) whether the submission is a test submission
+- `published_submission_ids`: ([integer]) submission ids published in the same period or quarter by the same agency 
+- `certified_submission`: (int) an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
+- `certified`: (boolean) whether the submission has been certified or not
+- `fabs_submission`: (boolean) whether the submission is FABS or DABS (True for FABS)
+- `fabs_meta`: (object) data specific to FABS submissions (null for DABS submissions)
+    - `publish_date`: (string) Date/time submission was published (YYYY-MM-DDTHH:mm:ss) (null if unpublished)
+    - `published_file`: (string) signed url of the published file (null if unpublished)
+    - `total_rows`: (int) total rows in the submission not including header rows
+    - `valid_rows`: (int) total number of valid, publishable row
 
 ##### Errors
 Possible HTTP Status Codes:

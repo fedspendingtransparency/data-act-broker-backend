@@ -70,7 +70,10 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
         'reporting_period': 'Q1/2017',
         'publish_status': 'updated',
         'quarterly_submission': True,
+        'test_submission': False,
+        'published_submission_ids': [],
         'certified_submission': None,
+        'certified': False,
         'fabs_submission': False,
         'fabs_meta': None
     }
@@ -91,7 +94,7 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
     sub = SubmissionFactory(submission_id=2, created_at=now, updated_at=now, cgac_code=None, frec_code=frec.frec_code,
                             reporting_fiscal_period=6, reporting_fiscal_year=2010, is_quarter_format=True,
                             publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False, number_of_errors=0,
-                            number_of_warnings=0)
+                            number_of_warnings=0, certified=True)
 
     sess.add_all([frec_cgac, frec, sub])
     sess.commit()
@@ -110,7 +113,10 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
         'reporting_period': 'Q2/2010',
         'publish_status': 'published',
         'quarterly_submission': True,
+        'test_submission': False,
+        'published_submission_ids': [],
         'certified_submission': None,
+        'certified': True,
         'fabs_submission': False,
         'fabs_meta': None
     }
@@ -151,7 +157,10 @@ def test_get_submission_metadata_monthly_dabs(database):
         'reporting_period': start_date.strftime('%m/%Y'),
         'publish_status': 'unpublished',
         'quarterly_submission': False,
+        'test_submission': False,
+        'published_submission_ids': [],
         'certified_submission': None,
+        'certified': False,
         'fabs_submission': False,
         'fabs_meta': None
     }
@@ -193,7 +202,10 @@ def test_get_submission_metadata_unpublished_fabs(database):
         'reporting_period': start_date.strftime('%m/%Y'),
         'publish_status': 'unpublished',
         'quarterly_submission': False,
+        'test_submission': False,
+        'published_submission_ids': [],
         'certified_submission': None,
+        'certified': False,
         'fabs_submission': True,
         'fabs_meta': {'publish_date': None, 'published_file': None, 'total_rows': 0, 'valid_rows': 0}
     }
@@ -240,7 +252,10 @@ def test_get_submission_metadata_published_fabs(database):
         'reporting_period': start_date.strftime('%m/%Y'),
         'publish_status': 'published',
         'quarterly_submission': False,
+        'test_submission': False,
+        'published_submission_ids': [],
         'certified_submission': None,
+        'certified': False,
         'fabs_submission': True,
         'fabs_meta': {
             'publish_date': now_plus_10.strftime('%Y-%m-%dT%H:%M:%S'),
@@ -269,7 +284,8 @@ def test_get_submission_metadata_test_submission(database):
     sub2 = SubmissionFactory(submission_id=2, created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
                              reporting_fiscal_period=3, reporting_fiscal_year=2017, is_quarter_format=True,
                              publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
-                             number_of_errors=40, number_of_warnings=200)
+                             number_of_errors=40, number_of_warnings=200, test_submission=True,
+                             published_submission_ids=[sub1.submission_id])
 
     sess.add_all([cgac, sub1, sub2])
     sess.commit()
@@ -289,7 +305,10 @@ def test_get_submission_metadata_test_submission(database):
         'reporting_period': 'Q1/2017',
         'publish_status': 'unpublished',
         'quarterly_submission': True,
+        'test_submission': True,
+        'published_submission_ids': [1],
         'certified_submission': 1,
+        'certified': False,
         'fabs_submission': False,
         'fabs_meta': None
     }

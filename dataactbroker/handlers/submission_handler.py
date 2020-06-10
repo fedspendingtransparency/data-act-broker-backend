@@ -162,7 +162,10 @@ def get_submission_metadata(submission):
         'reporting_period': reporting_date(submission),
         'publish_status': submission.publish_status.name,
         'quarterly_submission': submission.is_quarter_format,
+        'test_submission': submission.test_submission,
+        'published_submission_ids': submission.published_submission_ids,
         'certified_submission': certified_submission,
+        'certified': submission.certified,
         'fabs_submission': submission.d2_submission,
         'fabs_meta': fabs_meta
     }
