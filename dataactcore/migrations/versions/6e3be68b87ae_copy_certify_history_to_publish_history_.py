@@ -1,14 +1,14 @@
 """Copy certify_history to publish_history and rename certified_files_history
 
 Revision ID: 6e3be68b87ae
-Revises: 471273c020c5
+Revises: 78a36e024274
 Create Date: 2020-06-08 12:04:57.747397
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '6e3be68b87ae'
-down_revision = '471273c020c5'
+down_revision = '78a36e024274'
 branch_labels = None
 depends_on = None
 

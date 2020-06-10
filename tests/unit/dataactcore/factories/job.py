@@ -24,6 +24,8 @@ class SubmissionFactory(factory.Factory):
     number_of_warnings = 0
     d2_submission = False
     test_submission = False
+    published_submission_ids = []
+    certified = False
 
 
 class JobStatusFactory(factory.Factory):

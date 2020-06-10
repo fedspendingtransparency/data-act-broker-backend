@@ -16,7 +16,7 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import case
 
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
-                                                       reporting_date, job_to_dict)
+                                                       reporting_date, job_to_dict, get_existing_submission_list)
 from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
 from dataactbroker.permissions import current_user_can_on_submission
@@ -33,7 +33,8 @@ from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, 
                                              Office, DUNS)
 from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation,
                                           RevalidationThreshold, CertifyHistory, PublishHistory, PublishedFilesHistory,
-                                          FileGeneration, FileType, CertifiedComment)
+                                          FileGeneration, FileType, CertifiedComment, generate_fiscal_year,
+                                          generate_fiscal_period)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
@@ -228,7 +229,34 @@ class FileHandler:
             if submission_data.get('is_quarter_format'):
                 submission_data['is_quarter_format'] = (str(submission_data.get('is_quarter_format')).upper() == 'TRUE')
 
-            submission = create_submission(g.user.user_id, submission_data, existing_submission_obj)
+            reporting_fiscal_period = generate_fiscal_period(submission_data['reporting_end_date'])
+            reporting_fiscal_year = generate_fiscal_year(submission_data['reporting_end_date'])
+
+            # set published_submission_ids for new submissions
+            if not existing_submission:
+                published_qtr_subs = get_existing_submission_list(submission_data['cgac_code'],
+                                                                  submission_data['frec_code'],
+                                                                  reporting_fiscal_year,
+                                                                  reporting_fiscal_period,
+                                                                  None,
+                                                                  filter_quarter=True,
+                                                                  filter_published='published',
+                                                                  filter_sub_type='quarterly')
+                published_mon_subs = get_existing_submission_list(submission_data['cgac_code'],
+                                                                  submission_data['frec_code'],
+                                                                  reporting_fiscal_year,
+                                                                  reporting_fiscal_period,
+                                                                  None,
+                                                                  filter_quarter=submission_data['is_quarter_format'],
+                                                                  filter_published='published',
+                                                                  filter_sub_type='monthly')
+                published_submissions_ids = published_qtr_subs.union(published_mon_subs)
+                submission_data['published_submission_ids'] = [pub_sub.submission_id for pub_sub
+                                                               in published_submissions_ids]
+
+            test_submission = request_params.get('test_submission')
+            test_submission = str(test_submission).upper() == 'TRUE'
+            submission = create_submission(g.user.user_id, submission_data, existing_submission_obj, test_submission)
             sess.add(submission)
             sess.commit()
 
@@ -1637,7 +1665,8 @@ def list_submissions(page, limit, published, sort='modified', order='desc', is_f
                           Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
                           Submission.reporting_end_date, Submission.certifying_user_id,
                           Submission.reporting_fiscal_year, Submission.reporting_fiscal_period,
-                          Submission.is_quarter_format]
+                          Submission.is_quarter_format, Submission.published_submission_ids, Submission.certified,
+                          Submission.test_submission]
     cgac_columns = [CGAC.cgac_code, CGAC.agency_name.label('cgac_agency_name')]
     frec_columns = [FREC.frec_code, FREC.agency_name.label('frec_agency_name')]
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
@@ -1870,9 +1899,12 @@ def serialize_submission(submission):
         'user': {'user_id': submission.user_id, 'name': submission.name if submission.name else 'No User'},
         'certifying_user': submission.certifying_user_name if submission.certifying_user_name else '',
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
+        'published_submission_ids': submission.published_submission_ids,
+        'test_submission': submission.test_submission,
         'certified_on': str(certified_on) if certified_on else '',
         'quarterly_submission': submission.is_quarter_format,
         'certification_deadline': str(certification_deadline) if certification_deadline else '',
+        'certified': submission.certified,
         'time_period': time_period
     }
 
