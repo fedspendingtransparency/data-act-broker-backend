@@ -798,6 +798,7 @@ def certify_dabs_submission(submission, file_manager):
         # set submission contents
         submission.certifying_user_id = current_user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['published']
+        submission.certified = True
 
         # update any other submissions by the same agency in the same quarter/period to point to this submission
         related_unpub_qtr_subs = get_existing_submission_list(submission.cgac_code, submission.frec_code,

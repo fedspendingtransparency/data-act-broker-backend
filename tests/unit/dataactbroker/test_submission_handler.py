@@ -500,6 +500,7 @@ def test_certify_dabs_submission(database, monkeypatch):
         assert certify_history is not None
         assert submission.certifying_user_id == user.user_id
         assert submission.publish_status_id == PUBLISH_STATUS_DICT['published']
+        assert submission.certified is True
 
         # Make sure certified comments are created
         certified_comment = sess.query(CertifiedComment).filter_by(submission_id=submission.submission_id).one_or_none()
