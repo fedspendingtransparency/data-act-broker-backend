@@ -222,25 +222,25 @@ def lowercase_or_notify(x):
             return '(not provided)'
 
 
-def convert_fyq_to_fyp(x):
+def convert_fyq_to_fyp(fyq):
     """ Converts the fyq provided to fyp if it is in fyq format. Do nothing if it is already in fyp format
 
         Args:
-            String to convert or leave alone fiscal year quarters
+            fyq: String to convert or leave alone fiscal year quarters
 
         Returns:
             FYQ converted to FYP or
     """
     # If it's in quarter format, convert to period
-    if re.match('^FY\d{2}Q\d$', str(x).upper().strip()):
+    if re.match('^FY\d{2}Q\d$', str(fyq).upper().strip()):
         # Make sure it's all uppercase and replace the Q with a P
-        x = x.upper().strip().replace('Q', 'P')
+        fyq = fyq.upper().strip().replace('Q', 'P')
         # take the last character in the string (the quarter), multiply by 3, replace
-        quarter = x[-1]
+        quarter = fyq[-1]
         period = str(int(quarter) * 3).zfill(2)
-        x = x[:-1] + period
-        return x
-    return x
+        fyq = fyq[:-1] + period
+        return fyq
+    return fyq
 
 
 def log_blank_file():
