@@ -1651,7 +1651,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
                           Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
                           Submission.reporting_end_date, Submission.certifying_user_id,
                           Submission.reporting_fiscal_year, Submission.reporting_fiscal_period,
-                          Submission.is_quarter_format]
+                          Submission.is_quarter_format, Submission.published_submission_ids, Submission.certified,
+                          Submission.test_submission]
     cgac_columns = [CGAC.cgac_code, CGAC.agency_name.label('cgac_agency_name')]
     frec_columns = [FREC.frec_code, FREC.agency_name.label('frec_agency_name')]
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
@@ -1882,9 +1883,12 @@ def serialize_submission(submission):
         'user': {'user_id': submission.user_id, 'name': submission.name if submission.name else 'No User'},
         'certifying_user': submission.certifying_user_name if submission.certifying_user_name else '',
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
+        'published_submission_ids': submission.published_submission_ids,
+        'test_submission': submission.test_submission,
         'certified_on': str(certified_on) if certified_on else '',
         'quarterly_submission': submission.is_quarter_format,
         'certification_deadline': str(certification_deadline) if certification_deadline else '',
+        'certified': submission.certified,
         'time_period': time_period
     }
 

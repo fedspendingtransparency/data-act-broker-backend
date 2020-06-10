@@ -1258,10 +1258,13 @@ This endpoint lists submissions for all agencies for which the current user is a
       "status": "validation_successful",
       "last_modified": "2016-08-30 12:59:37.053424",
       "publish_status": "published",
+      "test_submission": false,
+      "published_submission_ids": [],
       "certifying_user": "Certifier",
       "certified_on": "2016-08-30 12:53:37.053424",
       "quarterly_submission": true,
       "certification_deadline": "2016-10-05",
+      "certified": true,
       "time_period": "FY 16 / Q4"
     },
     {
@@ -1277,10 +1280,13 @@ This endpoint lists submissions for all agencies for which the current user is a
       "status": "file_errors",
       "last_modified": "2016-08-31 15:59:37.053424",
       "publish_status": "unpublished",
+      "test_submission": false,
+      "published_submission_ids": [],
       "certifying_user": "",
       "certified_on": "",
       "quarterly_submission": true,
       "certification_deadline": "2015-10-05",
+      "certified": true,
       "time_period": "FY 15 / Q4"
     }
   ],
@@ -1318,7 +1324,10 @@ This endpoint lists submissions for all agencies for which the current user is a
         - `published`
         - `updated`
         - `publishing`
+    - `test_submission`: (boolean) whether the submission is a test submission
+    - `published_submission_ids`: ([integer]) submission ids published in the same period or quarter by the same agency 
     - `certifying_user`: (string) the name of the last user to certify the submission
+    - `certified`: (boolean) whether the submission has been certified or not
     - `certified_on`: (string) the last time/date the submission was certified. (`YYYY-MM-DD HH:mm:ss`)
     - `quarterly_submission`: (boolean) whether the submission is quarterly
     - `certification_deadline `: (string) the last date of the submission window, when the certification is due
