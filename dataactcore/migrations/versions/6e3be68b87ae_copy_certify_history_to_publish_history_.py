@@ -67,6 +67,10 @@ def upgrade_data_broker():
             FROM certified_files_history
         """)
     op.drop_table('certified_files_history')
+    # Set sequences because apparently INSERT INTO doesn't update the sequence
+    op.execute("SELECT setval('published_files_history_published_files_history_id_seq', (SELECT MAX(published_files_history_id) FROM published_files_history))")
+    op.execute(
+        "SELECT setval('publish_history_publish_history_id_seq', (SELECT MAX(publish_history_id) FROM publish_history));")
     # ### end Alembic commands ###
 
 
@@ -94,5 +98,7 @@ def downgrade_data_broker():
         """)
     op.drop_table('published_files_history')
     op.drop_table('publish_history')
+    # Set sequences because apparently INSERT INTO doesn't update the sequence
+    op.execute("SELECT setval('certified_files_history_certified_files_history_id_seq', (SELECT MAX(certified_files_history_id) FROM certified_files_history))")
     # ### end Alembic commands ###
 
