@@ -1427,13 +1427,13 @@ List certifications for a single submission
 
 ##### Response Attributes
 - `submission_id `: (integer) the ID of the submission
-- `certifications`: (array) An array of objects, each containing the following values and representing one certification:
+- `certifications`: ([object]) Each object contains the following values and represents one certification:
     - `certify_date`: (string) the date of the certification
     - `certify_history_id`: (integer) the ID of the certify history
     - `certifying_user`: (object) contains the following details about the user that certified the submission:
         - `name`: (string) the user's name
         - `user_id`: (integer) the ID of the user in the database
-    - `certified_files`: (array) an array of objects holding each of the certified files in the submission with the following information:
+    - `certified_files`: ([object]) Each object holds each of the certified files in the submission with the following information:
         - `published_files_history_id`: (integer) the ID of the file in the `published_files_history` table, used to download the file
         - `filename`: (string) the name of the file
         - `is_warning`: (boolean) whether the file is the warning file associated with that file or the file itself
