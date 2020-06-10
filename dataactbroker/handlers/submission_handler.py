@@ -1,9 +1,10 @@
 import logging
 import os
+import math
 
 from datetime import datetime
 from flask import g
-from sqlalchemy import func, or_, desc
+from sqlalchemy import func, or_, desc, cast, Numeric
 from sqlalchemy.sql.expression import case
 
 from dataactcore.aws.s3Handler import S3Handler
@@ -164,7 +165,10 @@ def get_submission_metadata(submission):
         'reporting_period': reporting_date(submission),
         'publish_status': submission.publish_status.name,
         'quarterly_submission': submission.is_quarter_format,
+        'test_submission': submission.test_submission,
+        'published_submission_ids': submission.published_submission_ids,
         'certified_submission': certified_submission,
+        'certified': submission.certified,
         'fabs_submission': submission.d2_submission,
         'fabs_meta': fabs_meta
     }
@@ -529,7 +533,8 @@ def check_current_submission_page(submission):
 
 
 def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
-                                        submission_id=None):
+                                        submission_id=None, filter_published='published', filter_quarter=False,
+                                        filter_sub_type='mixed'):
     """ Find all the submissions in the given period for the given CGAC or FREC code
 
         Args:
@@ -539,6 +544,11 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
             reporting_fiscal_period: the period in the year to check for
             submission_id: the submission ID to check against (used when checking if this submission is being
                 re-certified)
+            filter_published: whether to filter published/unpublished submissions
+                       (options are: "mixed", "published" (default), and "unpublished")
+            filter_quarter: whether to include submissions in the same quarter (True) or period (False, default)
+            filter_sub_type: whether to include submissions in the same period or quarter
+                             (options are: "monthly", "quarterly", and "mixed" (default))
 
         Returns:
             A JsonResponse containing a success message to indicate there are no existing submissions in the given
@@ -549,7 +559,9 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
         return JsonResponse.error(ValueError('CGAC or FR Entity Code required'), StatusCode.CLIENT_ERROR)
 
     submission_query = get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year,
-                                                    reporting_fiscal_period, submission_id)
+                                                    reporting_fiscal_period, submission_id,
+                                                    filter_quarter=filter_quarter, filter_published=filter_published,
+                                                    filter_sub_type=filter_sub_type)
 
     if submission_query.count() > 0:
         data = {
@@ -561,7 +573,8 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
 
 
 def get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
-                                 submission_id=None):
+                                 submission_id=None, filter_published='published', filter_quarter=False,
+                                 filter_sub_type='mixed'):
     """ Get the list of the submissions in the given period for the given CGAC or FREC code
 
         Args:
@@ -571,6 +584,11 @@ def get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year, re
             reporting_fiscal_period: the period in the year to check for
             submission_id: the submission ID to check against (used when checking if this submission is being
                 re-certified)
+            filter_published: whether to filter published/unpublished submissions
+                       (options are: "mixed", "published" (default), and "unpublished")
+            filter_quarter: whether to include submissions in the same quarter (True) or period (False, default)
+            filter_sub_type: whether to include monthly and/or quarterly submissions
+                             (options are: "monthly", "quarterly", and "mixed" (default))
 
         Returns:
             A query to get the certified submissions in the given period
@@ -580,9 +598,28 @@ def get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year, re
     submission_query = sess.query(Submission).filter(
         (Submission.cgac_code == cgac_code) if cgac_code else (Submission.frec_code == frec_code),
         Submission.reporting_fiscal_year == reporting_fiscal_year,
-        Submission.reporting_fiscal_period == reporting_fiscal_period,
-        Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'],
         Submission.d2_submission.is_(False))
+
+    if filter_published not in ('published', 'unpublished', 'mixed'):
+        raise ValueError('Published param must be one of the following: "published", "unpublished", or "mixed"')
+    if filter_published == 'published':
+        submission_query = submission_query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
+    elif filter_published == 'unpublished':
+        submission_query = submission_query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
+
+    if not filter_quarter:
+        submission_query = submission_query.filter(Submission.reporting_fiscal_period == reporting_fiscal_period)
+    else:
+        reporting_fiscal_quarter = math.ceil(reporting_fiscal_period / 3)
+        submission_query = submission_query.filter((func.ceil(cast(Submission.reporting_fiscal_period, Numeric) / 3) ==
+                                                    reporting_fiscal_quarter))
+
+    if filter_sub_type not in ('monthly', 'quarterly', 'mixed'):
+        raise ValueError('Published param must be one of the following: "monthly", "quarterly", or "mixed"')
+    if filter_sub_type == 'monthly':
+        submission_query = submission_query.filter(Submission.is_quarter_format.is_(False))
+    elif filter_sub_type == 'quarterly':
+        submission_query = submission_query.filter(Submission.is_quarter_format.is_(True))
 
     # Filter out the submission we are potentially re-certifying if one is provided
     if submission_id:
@@ -762,6 +799,26 @@ def certify_dabs_submission(submission, file_manager):
         # set submission contents
         submission.certifying_user_id = current_user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['published']
+        submission.certified = True
+
+        # update any other submissions by the same agency in the same quarter/period to point to this submission
+        related_unpub_qtr_subs = get_existing_submission_list(submission.cgac_code, submission.frec_code,
+                                                              submission.reporting_fiscal_year,
+                                                              submission.reporting_fiscal_period,
+                                                              submission.submission_id,
+                                                              filter_quarter=True,
+                                                              filter_published='unpublished',
+                                                              filter_sub_type='quarterly')
+        related_unpub_mon_subs = get_existing_submission_list(submission.cgac_code, submission.frec_code,
+                                                              submission.reporting_fiscal_year,
+                                                              submission.reporting_fiscal_period,
+                                                              submission.submission_id,
+                                                              filter_quarter=submission.is_quarter_format,
+                                                              filter_published='unpublished',
+                                                              filter_sub_type='monthly')
+        related_unpub_subs = related_unpub_mon_subs.union(related_unpub_qtr_subs)
+        for related_unpub_sub in related_unpub_subs.all():
+            related_unpub_sub.published_submission_ids.append(submission.submission_id)
         sess.commit()
 
     return response
