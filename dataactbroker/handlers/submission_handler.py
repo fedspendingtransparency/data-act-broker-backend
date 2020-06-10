@@ -530,7 +530,7 @@ def check_current_submission_page(submission):
 
 
 def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
-                                        submission_id=None, filter_published='published', filter_period='period',
+                                        submission_id=None, filter_published='published', filter_period=True,
                                         filter_sub_type='mixed'):
     """ Find all the submissions in the given period for the given CGAC or FREC code
 
@@ -543,8 +543,7 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
                 re-certified)
             filter_published: whether to filter published/unpublished submissions
                        (options are: "mixed", "published" (default), and "unpublished")
-            filter_period: whether to include submissions in the same period or quarter
-                       (options are: "quarter" and "period" (default))
+            filter_period: whether to include submissions in the same period (as True, default) or quarter
             filter_sub_type: whether to include submissions in the same period or quarter
                              (options are: "monthly", "quarterly", and "mixed" (default))
 
@@ -570,7 +569,7 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
 
 
 def get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
-                                 submission_id=None, filter_published='published', filter_period='period',
+                                 submission_id=None, filter_published='published', filter_period=True,
                                  filter_sub_type='mixed'):
     """ Get the list of the submissions in the given period for the given CGAC or FREC code
 
@@ -583,8 +582,7 @@ def get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year, re
                 re-certified)
             filter_published: whether to filter published/unpublished submissions
                        (options are: "mixed", "published" (default), and "unpublished")
-            filter_period: whether to include submissions in the same period or quarter
-                       (options are: "quarter" and "period" (default))
+            filter_period: whether to include submissions in the same period (as True, default) or quarter
             filter_sub_type: whether to include monthly and/or quarterly submissions
                              (options are: "monthly", "quarterly", and "mixed" (default))
 
@@ -606,9 +604,7 @@ def get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year, re
     elif filter_published == 'unpublished':
         filters.append(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
 
-    if filter_period not in ('period', 'quarter'):
-        raise ValueError('Published param must be one of the following: "period" or "quarter"')
-    if filter_period == 'period':
+    if filter_period:
         filters.append(Submission.reporting_fiscal_period == reporting_fiscal_period)
     else:
         reporting_fiscal_quarter = math.ceil(reporting_fiscal_period / 3)
