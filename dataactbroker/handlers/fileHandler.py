@@ -253,7 +253,9 @@ class FileHandler:
                 submission_data['published_submission_ids'] = [pub_sub.submission_id for pub_sub
                                                                in published_submissions_ids]
 
-            submission = create_submission(g.user.user_id, submission_data, existing_submission_obj)
+            test_submission = request_params.get('test_submission')
+            test_submission = str(test_submission).upper() == 'TRUE'
+            submission = create_submission(g.user.user_id, submission_data, existing_submission_obj, test_submission)
             sess.add(submission)
             sess.commit()
 

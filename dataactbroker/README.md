@@ -278,6 +278,7 @@ curl -i -X POST
       -F 'cgac_code=020' 
       -F 'frec_code=null' 
       -F 'is_quarter=true' 
+      -F 'test_submission=true'
       -F 'reporting_period_start_date=04/2018' 
       -F 'reporting_period_end_date=06/2018' 
       -F "appropriations=@/local/path/to/a.csv" 
@@ -303,6 +304,7 @@ curl -i -X POST
 - `program_activity`: (string) local path to file using @ notation
 - `award_financial`: (string) local path to file using @ notation
 - `is_quarter`: (boolean) True for quarterly submissions
+- `test_submission`: (boolean) True when you want to create a test submission. Defaults to false (will not update existing submissions)
 - `reporting_period_start_date`: (string) starting date of submission (MM/YYYY)
 - `reporting_period_end_date`: (string) ending date of submission (MM/YYYY)
 - `existing_submission_id`: (integer) ID of previous submission, use only if submitting an update.

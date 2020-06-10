@@ -7,6 +7,7 @@ import boto3
 import datetime
 import sys
 import json
+import re
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 PA_BUCKET = 'da-data-sources'
 PA_SUB_KEY = 'OMB_Data/'
-PA_FILE_NAME = "DATA Act Program Activity List for Treas.csv"
+PA_FILE_NAME = 'DATA Act Program Activity List for Treas.csv'
 VALID_HEADERS = {'AGENCY_CODE', 'ALLOCATION_ID', 'ACCOUNT_CODE', 'PA_CODE', 'PA_TITLE', 'FYQ'}
 
 
@@ -33,7 +34,7 @@ def get_program_activity_file(base_path):
         Returns:
             the file path for the pa file either on S3 or locally
     """
-    if CONFIG_BROKER["use_aws"]:
+    if CONFIG_BROKER['use_aws']:
         s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
         s3_object = s3.Object(PA_BUCKET, PA_SUB_KEY + PA_FILE_NAME)
         response = s3_object.get(PA_SUB_KEY+PA_FILE_NAME)
@@ -53,7 +54,7 @@ def get_date_of_current_pa_upload(base_path):
         Returns:
             DateTime object
     """
-    if CONFIG_BROKER["use_aws"]:
+    if CONFIG_BROKER['use_aws']:
         last_uploaded = boto3.client('s3', region_name=CONFIG_BROKER['aws_region']). \
             head_object(Bucket=PA_BUCKET, Key=PA_SUB_KEY+PA_FILE_NAME)['LastModified']
         # LastModified is coming back to us in UTC already; just drop the TZ.
@@ -136,7 +137,7 @@ def load_program_activity_data(base_path):
         headers = set([header.upper() for header in list(data)])
 
         if not VALID_HEADERS.issubset(headers):
-            logger.error("Missing required headers. Required headers include: %s" % str(VALID_HEADERS))
+            logger.error('Missing required headers. Required headers include: %s' % str(VALID_HEADERS))
             exit_if_nonlocal(4)
             return
 
@@ -144,13 +145,13 @@ def load_program_activity_data(base_path):
             dropped_count, data = clean_data(
                 data,
                 ProgramActivity,
-                {"fyq": "fiscal_year_quarter", "agency_code": "agency_id", "allocation_id": "allocation_transfer_id",
-                 "account_code": "account_number", "pa_code": "program_activity_code",
-                 "pa_title": "program_activity_name"},
-                {"program_activity_code": {"pad_to_length": 4}, "agency_id": {"pad_to_length": 3},
-                 "allocation_transfer_id": {"pad_to_length": 3, "keep_null": True},
-                 "account_number": {"pad_to_length": 4}},
-                ["agency_id", "program_activity_code", "account_number", "program_activity_name"],
+                {'fyq': 'fiscal_year_period', 'agency_code': 'agency_id', 'allocation_id': 'allocation_transfer_id',
+                 'account_code': 'account_number', 'pa_code': 'program_activity_code',
+                 'pa_title': 'program_activity_name'},
+                {'program_activity_code': {'pad_to_length': 4}, 'agency_id': {'pad_to_length': 3},
+                 'allocation_transfer_id': {'pad_to_length': 3, 'keep_null': True},
+                 'account_number': {'pad_to_length': 4}},
+                ['agency_id', 'program_activity_code', 'account_number', 'program_activity_name'],
                 True
             )
         except FailureThresholdExceededException as e:
@@ -159,8 +160,8 @@ def load_program_activity_data(base_path):
                 exit_if_nonlocal(4)
                 return
             else:
-                count_str = "Application tried to drop {} rows".format(e.count)
-                logger.error("Loading of program activity file failed due to exceeded failure threshold. " + count_str)
+                count_str = 'Application tried to drop {} rows'.format(e.count)
+                logger.error('Loading of program activity file failed due to exceeded failure threshold. ' + count_str)
                 exit_if_nonlocal(5)
                 return
 
@@ -169,6 +170,8 @@ def load_program_activity_data(base_path):
 
         # Lowercase Program Activity Name
         data['program_activity_name'] = data['program_activity_name'].apply(lambda x: lowercase_or_notify(x))
+        # Convert FYQ to FYP
+        data['fiscal_year_period'] = data['fiscal_year_period'].apply(lambda x: convert_fyq_to_fyp(x))
 
         # because we're only loading a subset of program activity info, there will be duplicate records in the
         # dataframe. this is ok, but need to de-duped before the db load. We also need to log them.
@@ -177,7 +180,7 @@ def load_program_activity_data(base_path):
         data.drop_duplicates(inplace=True)
 
         dupe_count = base_count - len(data.index)
-        logger.info("Dropped {} duplicate rows.".format(dupe_count))
+        logger.info('Dropped {} duplicate rows.'.format(dupe_count))
         metrics_json['duplicates_dropped'] = dupe_count
 
         # insert to db
@@ -212,16 +215,37 @@ def lowercase_or_notify(x):
         return x.lower()
     except Exception as e:
         if x and not np.isnan(x):
-            logger.info("Program activity of {} was unable to be lowercased. Entered as-is.".format(x))
+            logger.info('Program activity of {} was unable to be lowercased. Entered as-is.'.format(x))
             return x
         else:
-            logger.info("Null value found for program activity name. Entered default value.")  # should not happen
-            return "(not provided)"
+            logger.info('Null value found for program activity name. Entered default value.')  # should not happen
+            return '(not provided)'
+
+
+def convert_fyq_to_fyp(fyq):
+    """ Converts the fyq provided to fyp if it is in fyq format. Do nothing if it is already in fyp format
+
+        Args:
+            fyq: String to convert or leave alone fiscal year quarters
+
+        Returns:
+            FYQ converted to FYP or left the same
+    """
+    # If it's in quarter format, convert to period
+    if re.match('^FY\d{2}Q\d$', str(fyq).upper().strip()):
+        # Make sure it's all uppercase and replace the Q with a P
+        fyq = fyq.upper().strip().replace('Q', 'P')
+        # take the last character in the string (the quarter), multiply by 3, replace
+        quarter = fyq[-1]
+        period = str(int(quarter) * 3).zfill(2)
+        fyq = fyq[:-1] + period
+        return fyq
+    return fyq
 
 
 def log_blank_file():
     """ Helper function for specific reused log message """
-    logger.error("File was blank! Not loaded, routine aborted.")
+    logger.error('File was blank! Not loaded, routine aborted.')
 
 
 def exit_if_nonlocal(exit_code):
