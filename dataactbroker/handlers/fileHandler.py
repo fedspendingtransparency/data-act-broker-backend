@@ -238,16 +238,15 @@ class FileHandler:
                                                                   reporting_fiscal_year,
                                                                   reporting_fiscal_period,
                                                                   None,
-                                                                  filter_period='quarter',
+                                                                  filter_quarter=True,
                                                                   filter_published='published',
                                                                   filter_sub_type='quarterly')
-                filter_period = 'quarter' if submission_data['is_quarter_format'] else 'period'
                 published_mon_subs = get_existing_submission_list(submission_data['cgac_code'],
                                                                   submission_data['frec_code'],
                                                                   reporting_fiscal_year,
                                                                   reporting_fiscal_period,
                                                                   None,
-                                                                  filter_period=filter_period,
+                                                                  filter_quarter=submission_data['is_quarter_format'],
                                                                   filter_published='published',
                                                                   filter_sub_type='monthly')
                 published_submissions_ids = published_qtr_subs.union(published_mon_subs)
