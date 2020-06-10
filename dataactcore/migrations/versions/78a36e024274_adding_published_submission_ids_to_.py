@@ -1,7 +1,7 @@
 """Adding published_submission_ids and certified flag to submission table
 
 Revision ID: 78a36e024274
-Revises: 471273c020c5
+Revises: 24331fcfcd00
 Create Date: 2020-06-04 20:01:06.814406
 
 """
