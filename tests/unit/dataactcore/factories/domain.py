@@ -69,7 +69,7 @@ class ProgramActivityFactory(factory.Factory):
         model = domainModels.ProgramActivity
 
     program_activity_id = None
-    fiscal_year_quarter = fuzzy.FuzzyText()
+    fiscal_year_period = fuzzy.FuzzyText()
     agency_id = fuzzy.FuzzyText()
     allocation_transfer_id = fuzzy.FuzzyText()
     account_number = fuzzy.FuzzyText()

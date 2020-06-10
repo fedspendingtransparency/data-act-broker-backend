@@ -83,7 +83,8 @@ def test_load_program_activity_data(mocked_get_pa_file, mocked_get_current_date,
     monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False})
 
     mocked_get_pa_file.return_value = StringIO(
-        """AGENCY_CODE,ALLOCATION_ID,ACCOUNT_CODE,PA_CODE,PA_TITLE,FYQ\n2000,000,111,0000,1111,Test Name,FY2015Q1"""
+        """AGENCY_CODE,ALLOCATION_ID,ACCOUNT_CODE,PA_CODE,PA_TITLE,FYQ\n2000,000,111,0000,1111,Test Name,FY15P03\n
+        2000,000,111,0000,1111,Test Name 2,FY15Q2"""
     )
 
     mocked_get_current_date.return_value = datetime.datetime(2017, 12, 31, 0, 0, 0)
@@ -94,14 +95,18 @@ def test_load_program_activity_data(mocked_get_pa_file, mocked_get_current_date,
 
     load_program_activity.load_program_activity_data('some_path')
 
-    pa = sess.query(ProgramActivity).one_or_none()
+    pa = sess.query(ProgramActivity).filter(ProgramActivity.program_activity_name == 'test name').one_or_none()
 
-    assert pa.fiscal_year_quarter == 'FY2015Q1'
+    assert pa.fiscal_year_period == 'FY15P03'
     assert pa.agency_id == '000'
     assert pa.allocation_transfer_id == '111'
     assert pa.account_number == '0000'
     assert pa.program_activity_code == '1111'
     assert pa.program_activity_name == 'test name'
+
+    pa = sess.query(ProgramActivity).filter(ProgramActivity.program_activity_name == 'test name 2').one_or_none()
+
+    assert pa.fiscal_year_period == 'FY15P06'
 
     remove_metrics_file()
 
@@ -141,7 +146,7 @@ def test_load_program_activity_data_no_header(mocked_get_pa_file, mocked_get_cur
     monkeypatch.setattr(load_program_activity, 'CONFIG_BROKER', {'use_aws': False, 'local': False})
 
     mocked_get_pa_file.return_value = StringIO(
-        """2000,000,111,0000,1111,Test Name,FY2015Q1"""
+        """2000,000,111,0000,1111,Test Name,FY15Q1"""
     )
 
     mocked_get_current_date.return_value = datetime.datetime(2017, 12, 31, 0, 0, 0)
