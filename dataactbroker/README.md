@@ -1396,12 +1396,12 @@ Successful response will contain the submission_id and a list of certifications.
             "user_id": 1
         },
         "certified_files": [{
-            "certified_files_history_id": 1,
+            "published_files_history_id": 1,
             "filename": "1492041855_file_c.csv",
             "is_warning": False,
             "comment": "Comment on the file"
             },
-            {"certified_files_history_id": 1,
+            {"published_files_history_id": 1,
             "filename": "submission_7_File_C_award_financial_warning_report.csv",
             "is_warning": True,
             "comment": None}
@@ -1413,12 +1413,12 @@ Successful response will contain the submission_id and a list of certifications.
             "user_id": 2
         },
         "certified_files": [{
-            "certified_files_history_id": 3,
+            "published_files_history_id": 3,
             "filename": "1492041855_file_a.csv",
             "is_warning": False,
             "comment": "This is also a comment"
             },
-            {"certified_files_history_id": 6,
+            {"published_files_history_id": 6,
             "filename": "submission_280_crossfile_warning_File_A_to_B_appropriations_program_activity.csv",
             "is_warning": True,
             "comment": None}
@@ -1437,7 +1437,7 @@ Get a signed url for a specified history item
 ```
 {
     "submission_id": 1,
-    "certified_files_history_id": 7,
+    "published_files_history_id": 7,
     "is_warning": True
 }
 ```
@@ -1445,7 +1445,7 @@ Get a signed url for a specified history item
 ### Body Description
 
 * `submission_id` - **required** - an integer corresponding the submission_id
-* `certified_files_history_id` - **required** - an integer corresponding the certified_files_history_id
+* `published_files_history_id` - **required** - an integer corresponding the published_files_history_id
 * `is_warning` - a boolean to denote whether the file being grabbed is a warning file or uploaded file
 
 ### Response (JSON)
@@ -1458,7 +1458,7 @@ Successful response will contain the signed S3 URL for the file we're trying to 
 }
 ```
 
-Invalid certified_files_history_id, requests for a file not related to the submission_id given, or requests for a file that isn't stored in the table will return a 400 error.
+Invalid published_files_history_id, requests for a file not related to the submission_id given, or requests for a file that isn't stored in the table will return a 400 error.
 
 #### GET "/v1/list\_agencies/"
 Gets all CGACs/FRECs that the user has permissions for.

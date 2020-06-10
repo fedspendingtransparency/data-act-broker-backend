@@ -1752,14 +1752,14 @@ def list_certifications(submission):
     for history in certify_history:
         certifying_user = sess.query(User).filter_by(user_id=history.user_id).one()
 
-        # get all certified_files_history for this certification
+        # get all published_files_history for this certification
         file_history = sess.query(PublishedFilesHistory).filter_by(certify_history_id=history.certify_history_id).all()
         certified_files = []
         for file in file_history:
             # if there's a filename, add it to the list
             if file.filename is not None:
                 certified_files.append({
-                    'certified_files_history_id': file.published_files_history_id,
+                    'published_files_history_id': file.published_files_history_id,
                     'filename': file.filename.split('/')[-1],
                     'is_warning': False,
                     'comment': file.comment
@@ -1768,7 +1768,7 @@ def list_certifications(submission):
             # if there's a warning file, add it to the list
             if file.warning_filename is not None:
                 certified_files.append({
-                    'certified_files_history_id': file.published_files_history_id,
+                    'published_files_history_id': file.published_files_history_id,
                     'filename': file.warning_filename.split('/')[-1],
                     'is_warning': True,
                     'comment': None
