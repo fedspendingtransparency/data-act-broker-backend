@@ -603,7 +603,7 @@ def test_published_submission_ids_month_same_periods(database, monkeypatch):
 
         g.user = user
         file_handler = fileHandler.FileHandler({}, is_local=True)
-        monkeypatch.setattr(file_handler, 'move_certified_files', Mock(return_value=True))
+        monkeypatch.setattr(file_handler, 'move_published_files', Mock(return_value=True))
         monkeypatch.setattr(fileHandler.GlobalDB, 'db', Mock(return_value=database))
 
         certify_dabs_submission(pub_mon1_submission, file_handler)
@@ -678,7 +678,7 @@ def test_published_submission_ids_quarter_same_periods(database, monkeypatch):
 
         g.user = user
         file_handler = fileHandler.FileHandler({}, is_local=True)
-        monkeypatch.setattr(file_handler, 'move_certified_files', Mock(return_value=True))
+        monkeypatch.setattr(file_handler, 'move_published_files', Mock(return_value=True))
         monkeypatch.setattr(fileHandler.GlobalDB, 'db', Mock(return_value=database))
 
         certify_dabs_submission(pub_qtr_submission, file_handler)
