@@ -104,7 +104,7 @@ class Submission(Base):
     publishable = Column(Boolean, nullable=False, default=False, server_default="False")
     publish_status_id = Column(Integer, ForeignKey("publish_status.publish_status_id", ondelete="SET NULL",
                                                    name="fk_publish_status_id"))
-    published_submission_ids = Column(MutableList.as_mutable(ARRAY(Integer)), server_defualt="{}")
+    published_submission_ids = Column(MutableList.as_mutable(ARRAY(Integer)), server_default="{}")
     publish_status = relationship("PublishStatus", uselist=False)
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
     number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
@@ -272,18 +272,32 @@ class CertifyHistory(Base):
     user = relationship("User")
 
 
-class CertifiedFilesHistory(Base):
-    __tablename__ = "certified_files_history"
+class PublishHistory(Base):
+    __tablename__ = "publish_history"
 
-    certified_files_history_id = Column(Integer, primary_key=True)
+    publish_history_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_publish_history_submission_id"))
+    submission = relationship("Submission", uselist=False)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_publish_history_user"),
+                     nullable=True)
+    user = relationship("User")
+
+
+class PublishedFilesHistory(Base):
+    __tablename__ = "published_files_history"
+
+    published_files_history_id = Column(Integer, primary_key=True)
+    publish_history_id = Column(Integer, ForeignKey("publish_history.publish_history_id",
+                                                    name="fk_publish_history_published_files_id"))
+    publish_history = relationship("PublishHistory", uselist=False)
     certify_history_id = Column(Integer, ForeignKey("certify_history.certify_history_id",
-                                                    name="fk_certify_history_certified_files_id"))
+                                                    name="fk_certify_history_published_files_id"))
     certify_history = relationship("CertifyHistory", uselist=False)
     submission_id = Column(Integer, ForeignKey("submission.submission_id",
-                                               name="fk_certified_files_history_submission_id"))
+                                               name="fk_published_files_history_submission_id"))
     submission = relationship("Submission", uselist=False)
     filename = Column(Text)
-    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_certified_files_history_file_type"),
+    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_published_files_history_file_type"),
                           nullable=True,)
     file_type = relationship("FileType", uselist=False, lazy='joined')
     warning_filename = Column(Text)
