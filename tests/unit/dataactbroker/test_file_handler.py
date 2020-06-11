@@ -125,12 +125,16 @@ def test_create_submission_already_pub_mon(database, monkeypatch):
 
     # monthly same period -> published monthly sub
     assert new_mon_same_sub.published_submission_ids == [pub_mon1_sub.submission_id]
+    assert new_mon_same_sub.test_submission is True
     # monthly different period unaffected
     assert new_mon_diff_sub.published_submission_ids == []
+    assert new_mon_diff_sub.test_submission is False
     # quarterly same quarter -> multiple published monthly subs
     assert new_qtr_same_sub.published_submission_ids == [pub_mon1_sub.submission_id, pub_mon2_sub.submission_id]
+    assert new_qtr_same_sub.test_submission is True
     # quarterly different quarter unaffected
     assert new_qtr_diff_sub.published_submission_ids == []
+    assert new_qtr_diff_sub.test_submission is False
 
 
 @pytest.mark.usefixtures("job_constants")
@@ -202,12 +206,16 @@ def test_create_submission_already_pub_qtr(database, monkeypatch):
 
     # monthly same period -> published quarter sub
     assert new_mon_same_sub.published_submission_ids == [pub_qtr_sub.submission_id]
+    assert new_mon_same_sub.test_submission is True
     # monthly different period unaffected
     assert new_mon_diff_sub.published_submission_ids == []
+    assert new_mon_diff_sub.test_submission is False
     # quarterly same quarter -> published quarter sub
     assert new_qtr_same_sub.published_submission_ids == [pub_qtr_sub.submission_id]
+    assert new_qtr_same_sub.test_submission is True
     # quarterly different quarter unaffected
     assert new_qtr_diff_sub.published_submission_ids == []
+    assert new_qtr_diff_sub.test_submission is False
 
 
 @pytest.mark.usefixtures("job_constants")

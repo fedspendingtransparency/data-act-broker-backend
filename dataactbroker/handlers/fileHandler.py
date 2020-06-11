@@ -255,7 +255,7 @@ class FileHandler:
                 published_submission_ids = published_qtr_subs.union(published_mon_subs)
                 submission_data['published_submission_ids'] = [pub_sub.submission_id for pub_sub
                                                                in published_submission_ids]
-                if len(published_submission_ids) > 0:
+                if len(submission_data['published_submission_ids']) > 0:
                     test_submission = True
 
             submission = create_submission(g.user.user_id, submission_data, existing_submission_obj, test_submission)
