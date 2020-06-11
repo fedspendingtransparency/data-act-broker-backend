@@ -872,18 +872,16 @@ def test_revert_submission(database, monkeypatch):
               number_of_warnings=0, number_of_errors=10, filename='new/test/file.csv', number_of_rows=5,
               number_of_rows_valid=0)
     pub_history = PublishHistory(submission_id=sub.submission_id)
-    sess.add_all([job, pub_history])
+    cert_history = CertifyHistory(submission_id=sub.submission_id)
+    sess.add_all([job, pub_history, cert_history])
     sess.commit()
-
-    # cert_history = CertifyHistory(certify_history_id=pub_history.publish_history_id, submission_id=sub.submission_id)
-    # sess.add(cert_history)
-    # sess.commit()
 
     cert_approp = CertifiedAppropriation(submission_id=sub.submission_id, job_id=job.job_id, row_number=1,
                                          spending_authority_from_of_cpe=2, tas='test')
     approp = Appropriation(submission_id=sub.submission_id, job_id=job.job_id, row_number=1,
                            spending_authority_from_of_cpe=15, tas='test')
     pub_files = PublishedFilesHistory(publish_history_id=pub_history.publish_history_id,
+                                      certify_history_id=cert_history.certify_history_id,
                                       submission_id=sub.submission_id, filename='old/test/file2.csv',
                                       file_type_id=FILE_TYPE_DICT['appropriations'], warning_filename='a/warning.csv')
     cert_meta1 = CertifiedErrorMetadata(job_id=job.job_id, file_type_id=FILE_TYPE_DICT['appropriations'],
