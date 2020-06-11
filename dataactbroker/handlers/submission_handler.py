@@ -819,6 +819,7 @@ def certify_dabs_submission(submission, file_manager):
         related_unpub_subs = related_unpub_mon_subs.union(related_unpub_qtr_subs)
         for related_unpub_sub in related_unpub_subs.all():
             related_unpub_sub.published_submission_ids.append(submission.submission_id)
+            related_unpub_sub.test_submission = True
         sess.commit()
 
     return response
