@@ -143,9 +143,8 @@ def get_submission_metadata(submission):
         filter_by(submission_id=submission.submission_id).\
         scalar() or 0
 
-    test_sub = get_existing_submission_list(submission.cgac_code, submission.frec_code,
-                                            submission.reporting_fiscal_year, submission.reporting_fiscal_period,
-                                            submission.submission_id)
+    test_sub = filter_submissions(submission.cgac_code, submission.frec_code, submission.reporting_fiscal_year,
+                                  submission.reporting_fiscal_period, submission.submission_id)
     certified_submission = None
 
     if test_sub.count() > 0:
@@ -532,23 +531,18 @@ def check_current_submission_page(submission):
         return JsonResponse.error(ValueError('The submission ID returns no response'), StatusCode.CLIENT_ERROR)
 
 
-def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
-                                        submission_id=None, filter_published='published', filter_quarter=False,
-                                        filter_sub_type='mixed'):
-    """ Find all the submissions in the given period for the given CGAC or FREC code
+def check_year_and_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period, is_quarter_format,
+                          submission_id=None):
+    """ Check to see if there are any published submissions by the same agency in the same period
 
         Args:
             cgac_code: the CGAC code to check against or None if checking a FREC agency
             frec_code: the FREC code to check against or None if checking a CGAC agency
             reporting_fiscal_year: the year to check for
             reporting_fiscal_period: the period in the year to check for
+            is_quarter_format: whether the submission being checked is a quarterly or monthly submission
             submission_id: the submission ID to check against (used when checking if this submission is being
                 re-certified)
-            filter_published: whether to filter published/unpublished submissions
-                       (options are: "mixed", "published" (default), and "unpublished")
-            filter_quarter: whether to include submissions in the same quarter (True) or period (False, default)
-            filter_sub_type: whether to include submissions in the same period or quarter
-                             (options are: "monthly", "quarterly", and "mixed" (default))
 
         Returns:
             A JsonResponse containing a success message to indicate there are no existing submissions in the given
@@ -558,24 +552,51 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
     if not cgac_code and not frec_code:
         return JsonResponse.error(ValueError('CGAC or FR Entity Code required'), StatusCode.CLIENT_ERROR)
 
-    submission_query = get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year,
-                                                    reporting_fiscal_period, submission_id,
-                                                    filter_quarter=filter_quarter, filter_published=filter_published,
-                                                    filter_sub_type=filter_sub_type)
+    pub_subs = get_submissions_in_period(cgac_code, frec_code, int(reporting_fiscal_year), int(reporting_fiscal_period),
+                                         is_quarter_format, submission_id=submission_id, filter_published='published')
 
-    if submission_query.count() > 0:
+    if pub_subs.count() > 0:
         data = {
-            'message': 'A submission with the same period already exists.',
-            'submissionId': submission_query[0].submission_id
+            'message': 'This period already has published submission(s) by this agency.',
+            'submissionIds': [pub_sub.submission_id for pub_sub in pub_subs]
         }
         return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
     return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
 
 
-def get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
-                                 submission_id=None, filter_published='published', filter_quarter=False,
-                                 filter_sub_type='mixed'):
-    """ Get the list of the submissions in the given period for the given CGAC or FREC code
+def get_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period, is_quarter_format,
+                              submission_id=None, filter_published='published'):
+    """ Find all the submissions in the given period for the given CGAC or FREC code and submission type
+
+        Args:
+            cgac_code: the CGAC code to check against or None if checking a FREC agency
+            frec_code: the FREC code to check against or None if checking a CGAC agency
+            reporting_fiscal_year: the year to check for
+            reporting_fiscal_period: the period in the year to check for
+            is_quarter_format: whether the submission being checked is a quarterly or monthly submission
+            submission_id: the submission ID to check against (used when checking if this submission is being
+                re-certified)
+            filter_published: whether to filter published/unpublished submissions
+                       (options are: "mixed", "published" (default), and "unpublished")
+
+        Returns:
+            query including all the submissions for a given period
+    """
+    qtr_subs = filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
+                                  submission_id, filter_quarter=True, filter_published=filter_published,
+                                  filter_sub_type='quarterly')
+    mon_subs = filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
+                                  submission_id, filter_quarter=is_quarter_format,
+                                  filter_published=filter_published,
+                                  filter_sub_type='monthly')
+    subs_in_period = mon_subs.union(qtr_subs)
+    return subs_in_period
+
+
+def filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
+                       submission_id=None, filter_published='published', filter_quarter=False,
+                       filter_sub_type='mixed'):
+    """ Get the list of the submissions based on the filters provided
 
         Args:
             cgac_code: the CGAC code to check against or None if checking a FREC agency
@@ -591,7 +612,7 @@ def get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year, re
                              (options are: "monthly", "quarterly", and "mixed" (default))
 
         Returns:
-            A query to get the certified submissions in the given period
+            A query to get submissions based on the filters provided
     """
     sess = GlobalDB.db().session
 
@@ -776,11 +797,13 @@ def certify_dabs_submission(submission, file_manager):
     if blank_files > 0:
         return JsonResponse.error(ValueError('Cannot certify while file A or B is blank.'), StatusCode.CLIENT_ERROR)
 
-    response = find_existing_submissions_in_period(submission.cgac_code, submission.frec_code,
-                                                   submission.reporting_fiscal_year,
-                                                   submission.reporting_fiscal_period, submission.submission_id)
+    response = check_year_and_period(submission.cgac_code, submission.frec_code, submission.reporting_fiscal_year,
+                                     submission.reporting_fiscal_period, is_quarter_format=submission.is_quarter_format,
+                                     submission_id=submission.submission_id)
 
     if response.status_code == StatusCode.OK:
+        first_publish = (submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
+
         # create the publish_history and certify_history entry
         publish_history = PublishHistory(created_at=datetime.utcnow(), user_id=current_user_id,
                                          submission_id=submission.submission_id)
@@ -804,26 +827,16 @@ def certify_dabs_submission(submission, file_manager):
         submission.publish_status_id = PUBLISH_STATUS_DICT['published']
         submission.certified = True
 
-        # update any other submissions by the same agency in the same quarter/period to point to this submission
-        related_unpub_qtr_subs = get_existing_submission_list(submission.cgac_code, submission.frec_code,
-                                                              submission.reporting_fiscal_year,
-                                                              submission.reporting_fiscal_period,
-                                                              submission.submission_id,
-                                                              filter_quarter=True,
-                                                              filter_published='unpublished',
-                                                              filter_sub_type='quarterly')
-        related_unpub_mon_subs = get_existing_submission_list(submission.cgac_code, submission.frec_code,
-                                                              submission.reporting_fiscal_year,
-                                                              submission.reporting_fiscal_period,
-                                                              submission.submission_id,
-                                                              filter_quarter=submission.is_quarter_format,
-                                                              filter_published='unpublished',
-                                                              filter_sub_type='monthly')
-        related_unpub_subs = related_unpub_mon_subs.union(related_unpub_qtr_subs)
-        for related_unpub_sub in related_unpub_subs.all():
-            related_unpub_sub.published_submission_ids.append(submission.submission_id)
-            related_unpub_sub.test_submission = True
-        sess.commit()
+        if first_publish:
+            # update any other submissions by the same agency in the same quarter/period to point to this submission
+            unpub_subs = get_submissions_in_period(submission.cgac_code, submission.frec_code,
+                                                   submission.reporting_fiscal_year, submission.reporting_fiscal_period,
+                                                   submission.is_quarter_format, submission.submission_id,
+                                                   filter_published='unpublished')
+            for unpub_sub in unpub_subs.all():
+                unpub_sub.published_submission_ids.append(submission.submission_id)
+                unpub_sub.test_submission = True
+            sess.commit()
 
     return response
 

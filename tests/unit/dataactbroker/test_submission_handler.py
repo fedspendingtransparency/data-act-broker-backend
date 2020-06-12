@@ -608,6 +608,11 @@ def test_published_submission_ids_month_same_periods(database, monkeypatch):
 
         certify_dabs_submission(pub_mon1_submission, file_handler)
         certify_dabs_submission(pub_mon2_submission, file_handler)
+        # repeating one to ensure the values don't duplicate
+        pub_mon2 = sess.query(Submission).filter(Submission.submission_id == pub_mon2_submission.submission_id).one()
+        pub_mon2.publish_status_id = PUBLISH_STATUS_DICT['updated']
+        sess.commit()
+        certify_dabs_submission(pub_mon2_submission, file_handler)
 
         # monthly same period -> published monthly sub
         sess.refresh(non_pub_same_mon_submission)
