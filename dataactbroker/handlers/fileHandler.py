@@ -16,7 +16,7 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import case
 
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
-                                                       reporting_date, job_to_dict, get_existing_submission_list)
+                                                       reporting_date, job_to_dict, get_submissions_in_period)
 from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
 from dataactbroker.permissions import current_user_can_on_submission
@@ -234,25 +234,10 @@ class FileHandler:
 
             # set published_submission_ids for new submissions
             if not existing_submission:
-                published_qtr_subs = get_existing_submission_list(submission_data['cgac_code'],
-                                                                  submission_data['frec_code'],
-                                                                  reporting_fiscal_year,
-                                                                  reporting_fiscal_period,
-                                                                  None,
-                                                                  filter_quarter=True,
-                                                                  filter_published='published',
-                                                                  filter_sub_type='quarterly')
-                published_mon_subs = get_existing_submission_list(submission_data['cgac_code'],
-                                                                  submission_data['frec_code'],
-                                                                  reporting_fiscal_year,
-                                                                  reporting_fiscal_period,
-                                                                  None,
-                                                                  filter_quarter=submission_data['is_quarter_format'],
-                                                                  filter_published='published',
-                                                                  filter_sub_type='monthly')
-                published_submissions_ids = published_qtr_subs.union(published_mon_subs)
-                submission_data['published_submission_ids'] = [pub_sub.submission_id for pub_sub
-                                                               in published_submissions_ids]
+                pub_subs = get_submissions_in_period(submission_data['cgac_code'], submission_data['frec_code'],
+                                                     reporting_fiscal_year, reporting_fiscal_period,
+                                                     submission_data['is_quarter_format'], filter_published='published')
+                submission_data['published_submission_ids'] = [pub_sub.submission_id for pub_sub in pub_subs]
 
             test_submission = request_params.get('test_submission')
             test_submission = str(test_submission).upper() == 'TRUE'

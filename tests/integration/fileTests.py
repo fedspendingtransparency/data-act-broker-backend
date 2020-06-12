@@ -757,36 +757,36 @@ class FileTests(BaseTestAPI):
                                       expect_errors=True)
         self.assertEqual(response.json['message'], 'Submissions that have been published cannot be deleted')
 
-    def test_check_year_quarter_success(self):
+    def test_check_year_period_success(self):
         params = {'cgac_code': 'SYS',
                   'submission_id': '1',
                   'reporting_fiscal_year': '2015',
                   'reporting_fiscal_period': '3'}
-        response = self.app.get('/v1/check_year_quarter/', params, headers={'x-session-id': self.session_id},
+        response = self.app.get('/v1/check_year_period/', params, headers={'x-session-id': self.session_id},
                                 expect_errors=False)
         self.assertEqual(response.json['message'], 'Success')
 
-    def test_check_year_quarter_already_published(self):
+    def test_check_year_period_already_published(self):
         params = {'cgac_code': 'SYS',
                   'submission_id': '1',
                   'reporting_fiscal_year': '2015',
                   'reporting_fiscal_period': '12'}
 
-        response = self.app.get('/v1/check_year_quarter/', params, headers={'x-session-id': self.session_id},
+        response = self.app.get('/v1/check_year_period/', params, headers={'x-session-id': self.session_id},
                                 expect_errors=True)
-        self.assertEqual(response.json['message'], 'A submission with the same period already exists.')
-        self.assertEqual(response.json['submissionId'], self.test_published_submission_id)
+        self.assertEqual(response.json['message'], 'This period already has published submission(s) by this agency.')
+        self.assertEqual(response.json['submissionIds'], [self.test_published_submission_id])
 
-    def test_check_year_quarter_updated(self):
+    def test_check_year_period_updated(self):
         params = {'cgac_code': 'SYS',
                   'submission_id': '1',
                   'reporting_fiscal_year': '2016',
                   'reporting_fiscal_period': '12'}
 
-        response = self.app.get('/v1/check_year_quarter/', params, headers={'x-session-id': self.session_id},
+        response = self.app.get('/v1/check_year_period/', params, headers={'x-session-id': self.session_id},
                                 expect_errors=True)
-        self.assertEqual(response.json['message'], 'A submission with the same period already exists.')
-        self.assertEqual(response.json['submissionId'], self.test_updated_submission_id)
+        self.assertEqual(response.json['message'], 'This period already has published submission(s) by this agency.')
+        self.assertEqual(response.json['submissionIds'], [self.test_updated_submission_id])
 
     def test_certify_submission(self):
         post_json = {'submission_id': self.row_error_submission_id}
