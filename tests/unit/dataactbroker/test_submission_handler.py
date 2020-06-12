@@ -612,16 +612,20 @@ def test_published_submission_ids_month_same_periods(database, monkeypatch):
         # monthly same period -> published monthly sub
         sess.refresh(non_pub_same_mon_submission)
         assert non_pub_same_mon_submission.published_submission_ids == [pub_mon1_submission.submission_id]
+        assert non_pub_same_mon_submission.test_submission is True
         # monthly different period unaffected
         sess.refresh(non_pub_diff_mon_submission)
         assert non_pub_diff_mon_submission.published_submission_ids == []
+        assert non_pub_diff_mon_submission.test_submission is False
         # quarterly same period -> published monthly subs for said quarter
         sess.refresh(non_pub_same_qtr_submission)
         assert non_pub_same_qtr_submission.published_submission_ids == [pub_mon1_submission.submission_id,
                                                                         pub_mon2_submission.submission_id]
+        assert non_pub_same_qtr_submission.test_submission is True
         # quarterly different period unaffected
         sess.refresh(non_pub_diff_qtr_submission)
         assert non_pub_diff_qtr_submission.published_submission_ids == []
+        assert non_pub_diff_qtr_submission.test_submission is False
 
 
 @pytest.mark.usefixtures('job_constants')
@@ -686,15 +690,19 @@ def test_published_submission_ids_quarter_same_periods(database, monkeypatch):
         # monthly same quarter -> published quarter submission
         sess.refresh(non_pub_same_mon_submission)
         assert non_pub_same_mon_submission.published_submission_ids == [pub_qtr_submission.submission_id]
+        assert non_pub_same_mon_submission.test_submission is True
         # monthly different quarter unaffected
         sess.refresh(non_pub_diff_mon_submission)
         assert non_pub_diff_mon_submission.published_submission_ids == []
+        assert non_pub_diff_mon_submission.test_submission is False
         # quarterly same quarter -> published quarter submission
         sess.refresh(non_pub_same_qtr_submission)
         assert non_pub_same_qtr_submission.published_submission_ids == [pub_qtr_submission.submission_id]
+        assert non_pub_same_qtr_submission.test_submission is True
         # quarterly different quarter unaffected
         sess.refresh(non_pub_diff_qtr_submission)
         assert non_pub_diff_qtr_submission.published_submission_ids == []
+        assert non_pub_diff_qtr_submission.test_submission is False
 
 
 @pytest.mark.usefixtures('job_constants')
