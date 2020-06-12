@@ -123,8 +123,8 @@ class FileHandler:
             # Single period checks
             if not is_quarter:
                 data = {
-                    'message': 'A monthly submission must be exactly one month with the exception of period 2, which'
-                               ' must span both periods 1 and 2.'
+                    'message': 'A monthly submission must be exactly one month with the exception of periods 1 and 2,'
+                               ' which must be selected together.'
                 }
                 period1 = 10
                 period2 = 11
@@ -139,8 +139,8 @@ class FileHandler:
                     return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
 
                 # attempting to make just period 1 or period 2 submission without spanning both
-                if (formatted_start_date.month == period1 and formatted_end_date != period2) or \
-                        (formatted_start_date.month != period1 and formatted_end_date == period2):
+                if (formatted_start_date.month == period1 and formatted_end_date.month != period2) or \
+                        (formatted_start_date.month != period1 and formatted_end_date.month == period2):
                     return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
         return self.submit(sess)
 
