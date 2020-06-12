@@ -423,6 +423,7 @@ or
 Possible HTTP Status Codes:
 
 - 400: There are already published submissions in this period
+- 400: CGAC or FREC code not provided
 
 
 #### GET "/v1/revalidation\_threshold/"
