@@ -835,6 +835,7 @@ def certify_dabs_submission(submission, file_manager):
                                                    filter_published='unpublished')
             for unpub_sub in unpub_subs.all():
                 unpub_sub.published_submission_ids.append(submission.submission_id)
+                related_unpub_sub.test_submission = True
             sess.commit()
 
     return response

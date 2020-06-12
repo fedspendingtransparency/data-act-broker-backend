@@ -232,15 +232,18 @@ class FileHandler:
             reporting_fiscal_period = generate_fiscal_period(submission_data['reporting_end_date'])
             reporting_fiscal_year = generate_fiscal_year(submission_data['reporting_end_date'])
 
+            test_submission = request_params.get('test_submission')
+            test_submission = str(test_submission).upper() == 'TRUE'
+
             # set published_submission_ids for new submissions
             if not existing_submission:
                 pub_subs = get_submissions_in_period(submission_data['cgac_code'], submission_data['frec_code'],
                                                      reporting_fiscal_year, reporting_fiscal_period,
                                                      submission_data['is_quarter_format'], filter_published='published')
                 submission_data['published_submission_ids'] = [pub_sub.submission_id for pub_sub in pub_subs]
+                if len(submission_data['published_submission_ids']) > 0:
+                    test_submission = True
 
-            test_submission = request_params.get('test_submission')
-            test_submission = str(test_submission).upper() == 'TRUE'
             submission = create_submission(g.user.user_id, submission_data, existing_submission_obj, test_submission)
             sess.add(submission)
             sess.commit()
