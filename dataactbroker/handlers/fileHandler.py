@@ -120,13 +120,28 @@ class FileHandler:
             formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(start_date,
                                                                                           end_date, is_quarter)
 
-            if not is_quarter and not (formatted_start_date.month == formatted_end_date.month and
-                                       formatted_start_date.year == formatted_end_date.year):
+            # Single period checks
+            if not is_quarter:
                 data = {
-                    'message': 'A monthly submission must be exactly one month.'
+                    'message': 'A monthly submission must be exactly one month with the exception of period 2, which'
+                               ' must span both periods 1 and 2.'
                 }
-                return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+                period1 = 10
+                period2 = 11
 
+                # multiple years
+                if not formatted_start_date.year == formatted_end_date.year:
+                    return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+
+                # Not the same month, not period 2
+                if formatted_start_date.month != formatted_end_date.month and formatted_start_date.month != period1 \
+                        and formatted_end_date.month != period2:
+                    return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+
+                # attempting to make just period 1 or period 2 submission without spanning both
+                if (formatted_start_date.month == period1 and formatted_end_date != period2) or \
+                        (formatted_start_date.month != period1 and formatted_end_date == period2):
+                    return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
         return self.submit(sess)
 
     @staticmethod
