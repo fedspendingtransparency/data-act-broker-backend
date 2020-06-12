@@ -388,6 +388,43 @@ Possible HTTP Status Codes:
 - 403: Permission denied, user does not have permission to view this submission
 
 
+#### GET "/v1/check\_year\_period/"
+This endpoint checks to see if there are any published submissions for a given agency and fiscal period or quarter.
+
+##### Sample Request
+`/v1/check_year_period/`
+
+##### Request Params
+- `cgac_code`: (required if not FREC, string) CGAC of agency (null if FREC agency)
+- `frec_code`: (required if not CGAC, string) FREC of agency (null if CGAC agency)
+- `is_quarter`: (boolean) True for quarterly submissions
+- `reporting_fiscal_year`: (string) starting date of submission (MM/YYYY)
+- `reporting_fiscal_period`: (string) ending date of submission (MM/YYYY)
+
+##### Response (JSON)
+```
+{
+    "message": "Success"
+}
+```
+or
+```
+{
+    "message": "This period already has published submission(s) by this agency."
+    "submissionIds": [143, 145]
+}
+```
+
+##### Response Attributes
+- `message`: (string) indicates whether or not the agency is cleared to make a certifiable submission in this period or quarter.
+- `submissionIds`: ([integer]) ids of published submissions by said agency in the period requested. 
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400: There are already published submissions in this period
+
+
 #### GET "/v1/revalidation\_threshold/"
 This endpoint returns the revalidation threshold for the broker application. This is the date that denotes the earliest validation date a submission must have in order to be certifiable.
 
