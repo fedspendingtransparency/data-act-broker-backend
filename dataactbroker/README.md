@@ -309,7 +309,7 @@ curl -i -X POST
 - `reporting_period_end_date`: (string) ending date of submission (MM/YYYY)
 - `existing_submission_id`: (integer) ID of previous submission, use only if submitting an update.
 
-**NOTE**: for monthly submissions, start/end date are the same
+**NOTE**: for monthly submissions, start/end date are the same except in the case of period 1/2, which must be done together (start: 10/YYYY, end: 11/YYYY)
 
 ##### Response (JSON):
 ```
@@ -329,6 +329,7 @@ Possible HTTP Status Codes:
 - 400:
     - Missing parameter
     - Submission does not exist
+    - Invalid start/end date combination
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
