@@ -24,7 +24,7 @@ def test_success_populated_ata(database):
     tas, period, year, code = 'some-tas', 2, 2002, 'some-code'
 
     sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=code,
-                       agency_identifier='some-other-code', disaster_emergency_fund_code='N')
+                       agency_identifier='some-other-code', disaster_emergency_fund_code='N', line=3020, amount=4)
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
                                    reporting_fiscal_year=year, cgac_code=code, is_quarter_format=False)
     op = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='n', submission_id=submission_id)
@@ -39,12 +39,33 @@ def test_success_null_ata(database):
     tas, period, year, code = 'some-tas', 2, 2002, 'some-code'
 
     sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=None,
-                       agency_identifier=code, disaster_emergency_fund_code='N')
+                       agency_identifier=code, disaster_emergency_fund_code='N', line=2190, amount=4)
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
                                    reporting_fiscal_year=year, cgac_code=code, is_quarter_format=False)
     op = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='n', submission_id=submission_id)
 
     errors = number_of_errors(_FILE, database, models=[sf1, op], submission=submission)
+    assert errors == 0
+
+
+def test_success_ignore_lines(database):
+    """ Tests lines that should be ignored in SF133 are """
+    submission_id = randint(1000, 10000)
+    tas, period, year, code = 'some-tas', 2, 2002, 'some-code'
+
+    sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=code,
+                       agency_identifier='some-other-code', disaster_emergency_fund_code='N', line=3020, amount=4)
+    # Invalid line number
+    sf2 = SF133Factory(tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=code,
+                       agency_identifier='some-other-code', disaster_emergency_fund_code='M', line=1000, amount=4)
+    # amount of 0
+    sf3 = SF133Factory(tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=code,
+                       agency_identifier='some-other-code', disaster_emergency_fund_code='L', line=3020, amount=0)
+    submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
+                                   reporting_fiscal_year=year, cgac_code=code, is_quarter_format=False)
+    op = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='n', submission_id=submission_id)
+
+    errors = number_of_errors(_FILE, database, models=[sf1, sf2, sf3, op], submission=submission)
     assert errors == 0
 
 
@@ -54,7 +75,7 @@ def test_failure_populated_ata(database):
     tas, period, year, code = 'some-tas', 2, 2002, 'some-code'
 
     sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=code,
-                       agency_identifier=code, disaster_emergency_fund_code='N')
+                       agency_identifier=code, disaster_emergency_fund_code='N', line=3020, amount=4)
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
                                    reporting_fiscal_year=year, cgac_code=code, is_quarter_format=False)
     op = ObjectClassProgramActivityFactory(tas='a-different-tas', submission_id=submission_id,
@@ -70,7 +91,7 @@ def test_failure_null_ata(database):
     tas, period, year, code = 'some-tas', 2, 2002, 'some-code'
 
     sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=None,
-                       agency_identifier=code, disaster_emergency_fund_code='N')
+                       agency_identifier=code, disaster_emergency_fund_code='N', line=3020, amount=4)
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
                                    reporting_fiscal_year=year, cgac_code=code, is_quarter_format=False)
     op = ObjectClassProgramActivityFactory(tas='a-different-tas', submission_id=submission_id,
@@ -85,10 +106,11 @@ def test_financing_tas(database):
     cars_1 = TASFactory(financial_indicator2='other indicator')
     cars_2 = TASFactory(financial_indicator2=None)
 
-    gtas_1 = SF133Factory(tas_id=cars_1.account_num, allocation_transfer_agency=None, disaster_emergency_fund_code='N')
+    gtas_1 = SF133Factory(tas_id=cars_1.account_num, allocation_transfer_agency=None, disaster_emergency_fund_code='N',
+                          line=3020, amount=4)
     gtas_2 = SF133Factory(tas_id=cars_2.account_num, period=gtas_1.period, fiscal_year=gtas_1.fiscal_year,
                           agency_identifier=gtas_1.agency_identifier, allocation_transfer_agency=None,
-                          disaster_emergency_fund_code='N')
+                          disaster_emergency_fund_code='N', line=3020, amount=4)
 
     submission = SubmissionFactory(reporting_fiscal_period=gtas_1.period, reporting_fiscal_year=gtas_1.fiscal_year,
                                    cgac_code=gtas_1.agency_identifier, is_quarter_format=False)
@@ -117,7 +139,7 @@ def test_ignore_quarterly_submissions(database):
     tas, period, year, code = 'some-tas', 2, 2002, 'some-code'
 
     sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=code,
-                       agency_identifier=code, disaster_emergency_fund_code='N')
+                       agency_identifier=code, disaster_emergency_fund_code='N', line=3020, amount=4)
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
                                    reporting_fiscal_year=year, cgac_code=code, is_quarter_format=True)
     op = ObjectClassProgramActivityFactory(tas='a-different-tas', submission_id=submission_id,
@@ -133,7 +155,7 @@ def test_non_matching_defc(database):
     tas, period, year, code = 'some-tas', 2, 2002, 'some-code'
 
     sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year, allocation_transfer_agency=code,
-                       agency_identifier='some-other-code', disaster_emergency_fund_code='N')
+                       agency_identifier='some-other-code', disaster_emergency_fund_code='N', line=3020, amount=4)
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
                                    reporting_fiscal_year=year, cgac_code=code, is_quarter_format=False)
     op = ObjectClassProgramActivityFactory(tas=tas, disaster_emergency_fund_code='m', submission_id=submission_id)
