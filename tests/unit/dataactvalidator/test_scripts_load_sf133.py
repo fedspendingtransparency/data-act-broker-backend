@@ -11,14 +11,14 @@ from tests.unit.dataactcore.factories.domain import SF133Factory, TASFactory
 FINGERPRINT_COLS = [
     'availability_type_code', 'sub_account_code', 'allocation_transfer_agency', 'fiscal_year',
     'beginning_period_of_availa', 'ending_period_of_availabil', 'main_account_code', 'agency_identifier',
-    'period', 'created_at', 'updated_at', 'tas', 'display_tas']
+    'period', 'created_at', 'updated_at', 'tas', 'display_tas', 'disaster_emergency_fund_code']
 
 
 def test_fill_blank_sf133_lines_types():
     """ Validate that floats aren't downgraded to ints in the pivot_table function (that'd be a regression)."""
     data = pd.DataFrame(
         # We'll only pay attention to two of these fields
-        [[1440, 3041046.31] + list('ABCDEFGHIJKLL')], columns=['line', 'amount'] + FINGERPRINT_COLS
+        [[1440, 3041046.31] + list('ABCDEFGHIJKLLQ')], columns=['line', 'amount'] + FINGERPRINT_COLS
     )
     result = load_sf133.fill_blank_sf133_lines(data)
     assert result['amount'][0] == 3041046.31
@@ -30,10 +30,10 @@ def test_fill_blank_sf133_lines():
         # Using the letters of 'FINGERPRINTXX' to indicate how to group SF133 rows.
         # FINGERPRINT1 has rows for line numbers 1 and 2, while FINGERPRINT2 has rows for line numbers 2 and 3.
         # We want both to have line numbers 1 through 3
-        [[1, 1] + list('FINGERPRINT11'),
-         [2, 2] + list('FINGERPRINT11'),
-         [2, 2] + list('FINGERPRINT22'),
-         [3, 3] + list('FINGERPRINT22')],
+        [[1, 1] + list('FINGERPRINT11Q'),
+         [2, 2] + list('FINGERPRINT11Q'),
+         [2, 2] + list('FINGERPRINT22Q'),
+         [3, 3] + list('FINGERPRINT22Q')],
         columns=['line', 'amount'] + FINGERPRINT_COLS
     )
     result = load_sf133.fill_blank_sf133_lines(data)

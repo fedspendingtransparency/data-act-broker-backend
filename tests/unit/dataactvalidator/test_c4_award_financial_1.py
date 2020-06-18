@@ -6,41 +6,34 @@ _FILE = 'c4_award_financial_1'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'obligations_delivered_orde_cpe', 'ussgl490100_delivered_orde_cpe',
-                       'ussgl498100_upward_adjustm_cpe', 'difference', 'uniqueid_TAS', 'uniqueid_PIID', 'uniqueid_FAIN',
+    expected_subset = {'row_number', 'obligations_delivered_orde_fyb', 'ussgl490100_delivered_orde_fyb', 'difference',
+                       'uniqueid_TAS', 'uniqueid_DisasterEmergencyFundCode', 'uniqueid_PIID', 'uniqueid_FAIN',
                        'uniqueid_URI'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
 
 def test_success(database):
-    """ ObligationsDeliveredOrdersUnpaidTotal in File C = USSGL 4901 + 4981 in File C for the same date context
-        (CPE)
+    """ ObligationsDeliveredOrdersUnpaidTotal in File C = USSGL 4901 in File C for the same date context and TAS/DEFC
+        combination (FYB)
     """
 
-    af = AwardFinancialFactory(obligations_delivered_orde_cpe=None, ussgl490100_delivered_orde_cpe=None,
-                               ussgl493100_delivered_orde_cpe=None, ussgl497100_downward_adjus_cpe=None,
-                               ussgl498100_upward_adjustm_cpe=None)
+    af = AwardFinancialFactory(obligations_delivered_orde_fyb=None, ussgl490100_delivered_orde_fyb=None)
 
     assert number_of_errors(_FILE, database, models=[af]) == 0
 
-    af = AwardFinancialFactory(obligations_delivered_orde_cpe=2, ussgl490100_delivered_orde_cpe=1,
-                               ussgl498100_upward_adjustm_cpe=1)
+    af = AwardFinancialFactory(obligations_delivered_orde_fyb=1, ussgl490100_delivered_orde_fyb=1)
 
     assert number_of_errors(_FILE, database, models=[af]) == 0
 
 
 def test_failure(database):
-    """ ObligationsDeliveredOrdersUnpaidTotal in File C != USSGL 4901 + 4981 in File C for the same date context
-        (CPE)
-    """
+    """ ObligationsDeliveredOrdersUnpaidTotal in File C = USSGL 4901 in File C for the same date context (FYB) """
 
-    af = AwardFinancialFactory(obligations_delivered_orde_cpe=1, ussgl490100_delivered_orde_cpe=None,
-                               ussgl498100_upward_adjustm_cpe=None)
+    af = AwardFinancialFactory(obligations_delivered_orde_fyb=1, ussgl490100_delivered_orde_fyb=None)
 
     assert number_of_errors(_FILE, database, models=[af]) == 1
 
-    af = AwardFinancialFactory(obligations_delivered_orde_cpe=1, ussgl490100_delivered_orde_cpe=1,
-                               ussgl498100_upward_adjustm_cpe=1)
+    af = AwardFinancialFactory(obligations_delivered_orde_fyb=1, ussgl490100_delivered_orde_fyb=2)
 
     assert number_of_errors(_FILE, database, models=[af]) == 1

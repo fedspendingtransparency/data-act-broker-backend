@@ -3,6 +3,8 @@ import io
 import json
 import os.path
 from unittest.mock import Mock
+from flask import Flask
+from collections import namedtuple
 
 import pytest
 
@@ -12,14 +14,19 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactbroker.handlers import fileHandler
 from dataactbroker.helpers import filters_helper
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.jobModels import CertifiedFilesHistory
+from dataactcore.models.jobModels import PublishedFilesHistory, Submission
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT, PUBLISH_STATUS_DICT
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactbroker.utils import add_models, delete_models
 from tests.unit.dataactcore.factories.domain import CGACFactory
-from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory, CertifyHistoryFactory, CommentFactory,
-                                                  CertifiedFilesHistoryFactory)
+from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory, PublishHistoryFactory, CommentFactory,
+                                                  CertifyHistoryFactory, PublishedFilesHistoryFactory)
 from tests.unit.dataactcore.factories.user import UserFactory
+from tests.integration.fileTests import AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T
+
+# Mock class for testing create submissions
+UploadFile = namedtuple('UploadFile', 'filename')
+UploadFile.save = lambda x, y: True
 
 
 def list_submissions_result(is_fabs=False):
@@ -32,6 +39,183 @@ def list_submissions_sort(category, order):
     json_response = fileHandler.list_submissions(1, 10, "mixed", category, order)
     assert json_response.status_code == 200
     return json.loads(json_response.get_data().decode('UTF-8'))
+
+
+def mock_create_submission(sess, monkeypatch, request_params):
+    with Flask('test-app').app_context():
+        mock_request = Mock()
+        mock_request.headers = {'Content-Type': 'multipart/form-data'}
+        monkeypatch.setattr(mock_request, 'get_json', Mock(return_value=request_params))
+        fh = fileHandler.FileHandler(mock_request, is_local=True)
+        monkeypatch.setattr(fh, 'finalize', Mock(return_value=True))
+        resp = fh.validate_upload_dabs_files()
+        new_sub = sess.query(Submission).filter(Submission.submission_id == resp.json['submission_id']).one_or_none()
+    return new_sub
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_create_submission_already_pub_mon(database, monkeypatch):
+    """ Ensure submission is appropriately populated upon creation with monthly submissions already published """
+    sess = database.session
+
+    cgac = CGACFactory(cgac_code='020', agency_name='Age')
+    user1 = UserFactory(user_id=1, name='Oliver Queen', website_admin=True)
+    pub_mon1_sub = SubmissionFactory(user_id=1, number_of_warnings=1, cgac_code=cgac.cgac_code,
+                                     reporting_fiscal_period=4, reporting_fiscal_year=2010,
+                                     publish_status_id=2, is_quarter_format=False)
+    pub_mon2_sub = SubmissionFactory(user_id=1, number_of_warnings=1, cgac_code=cgac.cgac_code,
+                                     reporting_fiscal_period=5, reporting_fiscal_year=2010,
+                                     publish_status_id=3, is_quarter_format=False)
+    sess.add_all([user1, cgac, pub_mon1_sub, pub_mon2_sub])
+    sess.commit()
+
+    monkeypatch.setattr(fileHandler, 'g', Mock(user=user1))
+
+    # Making a new monthly sub in the same period
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': False,
+        'reporting_period_start_date': '01/2010',
+        'reporting_period_end_date': '01/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_mon_same_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # Making a new monthly sub in a different period
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': False,
+        'reporting_period_start_date': '03/2010',
+        'reporting_period_end_date': '03/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_mon_diff_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # Making a new quarterly sub in the same quarter
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': True,
+        'reporting_period_start_date': '01/2010',
+        'reporting_period_end_date': '03/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_qtr_same_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # Making a new quarterly sub in a different quarter
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': True,
+        'reporting_period_start_date': '04/2010',
+        'reporting_period_end_date': '06/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_qtr_diff_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # monthly same period -> published monthly sub
+    assert new_mon_same_sub.published_submission_ids == [pub_mon1_sub.submission_id]
+    assert new_mon_same_sub.test_submission is True
+    # monthly different period unaffected
+    assert new_mon_diff_sub.published_submission_ids == []
+    assert new_mon_diff_sub.test_submission is False
+    # quarterly same quarter -> multiple published monthly subs
+    assert new_qtr_same_sub.published_submission_ids == [pub_mon1_sub.submission_id, pub_mon2_sub.submission_id]
+    assert new_qtr_same_sub.test_submission is True
+    # quarterly different quarter unaffected
+    assert new_qtr_diff_sub.published_submission_ids == []
+    assert new_qtr_diff_sub.test_submission is False
+
+
+@pytest.mark.usefixtures("job_constants")
+def test_create_submission_already_pub_qtr(database, monkeypatch):
+    """ Ensure submission is appropriately populated upon creation with monthly submissions already published """
+    sess = database.session
+
+    cgac = CGACFactory(cgac_code='020', agency_name='Age')
+    user1 = UserFactory(user_id=1, name='Oliver Queen', website_admin=True)
+    pub_qtr_sub = SubmissionFactory(user_id=1, number_of_warnings=1, cgac_code=cgac.cgac_code,
+                                    reporting_fiscal_period=6, reporting_fiscal_year=2010,
+                                    publish_status_id=2, is_quarter_format=True)
+    sess.add_all([user1, cgac, pub_qtr_sub])
+    sess.commit()
+
+    monkeypatch.setattr(fileHandler, 'g', Mock(user=user1))
+
+    # Making a new monthly sub in the same period
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': False,
+        'reporting_period_start_date': '01/2010',
+        'reporting_period_end_date': '01/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_mon_same_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # Making a new monthly sub in a different period
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': False,
+        'reporting_period_start_date': '04/2010',
+        'reporting_period_end_date': '04/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_mon_diff_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # Making a new quarterly sub in the same quarter
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': True,
+        'reporting_period_start_date': '01/2010',
+        'reporting_period_end_date': '03/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_qtr_same_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # Making a new quarterly sub in a different quarter
+    request_params = {
+        'cgac_code': cgac.cgac_code,
+        'frec_code': None,
+        'is_quarter': True,
+        'reporting_period_start_date': '04/2010',
+        'reporting_period_end_date': '06/2010',
+        '_files': {'award_financial': UploadFile(AWARD_FILE_T[1]),
+                   'appropriations': UploadFile(APPROP_FILE_T[1]),
+                   'program_activity': UploadFile(PA_FILE_T[1])}
+    }
+    new_qtr_diff_sub = mock_create_submission(sess, monkeypatch, request_params)
+
+    # monthly same period -> published quarter sub
+    assert new_mon_same_sub.published_submission_ids == [pub_qtr_sub.submission_id]
+    assert new_mon_same_sub.test_submission is True
+    # monthly different period unaffected
+    assert new_mon_diff_sub.published_submission_ids == []
+    assert new_mon_diff_sub.test_submission is False
+    # quarterly same quarter -> published quarter sub
+    assert new_qtr_same_sub.published_submission_ids == [pub_qtr_sub.submission_id]
+    assert new_qtr_same_sub.test_submission is True
+    # quarterly different quarter unaffected
+    assert new_qtr_diff_sub.published_submission_ids == []
+    assert new_qtr_diff_sub.test_submission is False
 
 
 @pytest.mark.usefixtures("job_constants")
@@ -433,7 +617,7 @@ def test_submission_report_url_local(monkeypatch, tmpdir):
     json_response = fileHandler.submission_report_url(
         SubmissionFactory(submission_id=4), True, 'award_financial', 'award')
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
-    assert url == os.path.join(file_path, 'submission_4_cross_warning_award_financial_award.csv')
+    assert url == os.path.join(file_path, 'submission_4_crossfile_warning_File_C_to_D2_award_financial_award.csv')
 
 
 def test_submission_report_url_s3(monkeypatch):
@@ -441,11 +625,11 @@ def test_submission_report_url_s3(monkeypatch):
     s3_url_handler = Mock()
     s3_url_handler.return_value.get_signed_url.return_value = 'some/url/here.csv'
     monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
-    json_response = fileHandler.submission_report_url(SubmissionFactory(submission_id=2), False, 'some_file', None)
+    json_response = fileHandler.submission_report_url(SubmissionFactory(submission_id=2), False, 'appropriations', None)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == 'some/url/here.csv'
     assert s3_url_handler.return_value.get_signed_url.call_args == (
-        ('errors', 'submission_2_some_file_error_report.csv'),
+        ('errors', 'submission_2_File_A_appropriations_error_report.csv'),
         {'method': 'get_object', 'url_mapping': 'test/path'}
     )
 
@@ -569,7 +753,7 @@ def test_get_upload_file_url_s3(database, monkeypatch):
 
 
 @pytest.mark.usefixtures("job_constants")
-def test_move_certified_files(database, monkeypatch):
+def test_move_published_files(database, monkeypatch):
     # set up cgac and submission
     cgac = CGACFactory(cgac_code='zyxwv', agency_name='Test')
     sub = SubmissionFactory(cgac_code='zyxwv', number_of_errors=0, publish_status_id=1,
@@ -577,8 +761,10 @@ def test_move_certified_files(database, monkeypatch):
     database.session.add_all([cgac, sub])
     database.session.commit()
 
-    # set up certify history and jobs based on submission
+    # set up publish/certify history and jobs based on submission
     sess = database.session
+    pub_hist_local = PublishHistoryFactory(submission_id=sub.submission_id)
+    pub_hist_remote = PublishHistoryFactory(submission_id=sub.submission_id)
     cert_hist_local = CertifyHistoryFactory(submission_id=sub.submission_id)
     cert_hist_remote = CertifyHistoryFactory(submission_id=sub.submission_id)
 
@@ -608,8 +794,9 @@ def test_move_certified_files(database, monkeypatch):
 
     award_fin_narr = CommentFactory(submission=sub, comment="Test comment",
                                     file_type_id=FILE_TYPE_DICT['award_financial'])
-    database.session.add_all([cert_hist_local, cert_hist_remote, appropriations_job, prog_act_job, award_fin_job,
-                              award_proc_job, award_job, exec_comp_job, sub_award_job, award_fin_narr])
+    database.session.add_all([pub_hist_local, pub_hist_remote, cert_hist_local, cert_hist_remote, appropriations_job,
+                              prog_act_job, award_fin_job, award_proc_job, award_job, exec_comp_job, sub_award_job,
+                              award_fin_narr])
     database.session.commit()
 
     s3_url_handler = Mock()
@@ -620,38 +807,39 @@ def test_move_certified_files(database, monkeypatch):
 
     fh = fileHandler.FileHandler(Mock())
 
-    # test local certification
-    fh.move_certified_files(sub, cert_hist_local, True)
-    local_id = cert_hist_local.certify_history_id
+    # test local publication
+    fh.move_published_files(sub, pub_hist_local, cert_hist_local, True)
+    local_id = pub_hist_local.publish_history_id
 
     # make sure we have the right number of history entries
-    all_local_certs = sess.query(CertifiedFilesHistory).filter_by(certify_history_id=local_id).all()
+    all_local_certs = sess.query(PublishedFilesHistory).filter_by(publish_history_id=local_id).all()
     assert len(all_local_certs) == 11
 
-    c_cert_hist = sess.query(CertifiedFilesHistory).\
-        filter_by(certify_history_id=local_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
+    c_cert_hist = sess.query(PublishedFilesHistory).\
+        filter_by(publish_history_id=local_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
     assert c_cert_hist.filename == "/path/to/award/fin/file_c.csv"
-    assert c_cert_hist.warning_filename == "/path/to/error/reports/submission_{}_award_financial_warning_report.csv".\
+    expected_filename = "/path/to/error/reports/submission_{}_File_C_award_financial_warning_report.csv".\
         format(sub.submission_id)
+    assert c_cert_hist.warning_filename == expected_filename
     assert c_cert_hist.comment == "Test comment"
 
     # cross-file warnings
-    warning_cert_hist = sess.query(CertifiedFilesHistory).filter_by(certify_history_id=local_id, file_type=None).all()
+    warning_cert_hist = sess.query(PublishedFilesHistory).filter_by(publish_history_id=local_id, file_type=None).all()
     assert len(warning_cert_hist) == 4
     assert warning_cert_hist[0].comment is None
 
     warning_cert_hist_files = [hist.warning_filename for hist in warning_cert_hist]
-    assert "/path/to/error/reports/submission_{}_cross_warning_appropriations_program_activity.csv".\
+    assert "/path/to/error/reports/submission_{}_crossfile_warning_File_A_to_B_appropriations_program_activity.csv".\
         format(sub.submission_id) in warning_cert_hist_files
 
-    # test remote certification
-    fh.move_certified_files(sub, cert_hist_remote, False)
-    remote_id = cert_hist_remote.certify_history_id
+    # test remote publication
+    fh.move_published_files(sub, pub_hist_remote, cert_hist_remote, False)
+    remote_id = pub_hist_remote.publish_history_id
 
-    c_cert_hist = sess.query(CertifiedFilesHistory). \
-        filter_by(certify_history_id=remote_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
+    c_cert_hist = sess.query(PublishedFilesHistory). \
+        filter_by(publish_history_id=remote_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
     assert c_cert_hist.filename == "zyxwv/2017/2/{}/file_c.csv".format(remote_id)
-    assert c_cert_hist.warning_filename == "zyxwv/2017/2/{}/submission_{}_award_financial_warning_report.csv". \
+    assert c_cert_hist.warning_filename == "zyxwv/2017/2/{}/submission_{}_File_C_award_financial_warning_report.csv". \
         format(remote_id, sub.submission_id)
 
 
@@ -662,25 +850,30 @@ def test_list_certifications(database):
     database.session.add(sub)
     database.session.commit()
 
-    # set up certify history, make sure the empty one comes last in the list
+    # set up publish history, make sure the empty one comes last in the list
     cert_hist_empty = CertifyHistoryFactory(submission=sub, created_at=datetime.utcnow() - timedelta(days=1))
     cert_hist = CertifyHistoryFactory(submission=sub)
-    database.session.add_all([cert_hist_empty, cert_hist])
+    pub_hist = PublishHistoryFactory(submission=sub)
+    database.session.add_all([cert_hist_empty, cert_hist, pub_hist])
     database.session.commit()
 
-    # add some data to certified_files_history for the cert_history ID
-    history_id = cert_hist.certify_history_id
+    # add some data to published_files_history for the cert_history ID
+    cert_history_id = cert_hist.certify_history_id
+    pub_history_id = pub_hist.publish_history_id
     sub_id = sub.submission_id
-    file_hist_1 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
+    file_hist_1 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                               publish_history_id=pub_hist.publish_history_id, submission_id=sub_id,
                                                filename="/path/to/file_a.csv",
                                                warning_filename="/path/to/warning_file_a.csv",
                                                comment="A has a comment",
                                                file_type_id=FILE_TYPE_DICT['appropriations'])
-    file_hist_2 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
+    file_hist_2 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                               publish_history_id=pub_history_id, submission_id=sub_id,
                                                filename="/path/to/file_d2.csv",
                                                warning_filename=None,
                                                file_type_id=FILE_TYPE_DICT['award'])
-    file_hist_3 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
+    file_hist_3 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
+                                               publish_history_id=pub_history_id, submission_id=sub_id,
                                                filename=None,
                                                warning_filename="/path/to/warning_file_cross_test.csv",
                                                file_type_id=None)
@@ -714,10 +907,12 @@ def test_file_history_url(database, monkeypatch):
 
     # set up certify history so it works
     cert_hist = CertifyHistoryFactory(submission=sub)
-    database.session.add(cert_hist)
+    pub_hist = PublishHistoryFactory(submission=sub)
+    database.session.add_all([cert_hist, pub_hist])
     database.session.commit()
 
-    file_hist = CertifiedFilesHistoryFactory(certify_history_id=cert_hist.certify_history_id,
+    file_hist = PublishedFilesHistoryFactory(certify_history_id=cert_hist.certify_history_id,
+                                             publish_history_id=pub_hist.publish_history_id,
                                              submission_id=sub.submission_id, filename="/path/to/file_d2.csv",
                                              warning_filename="/path/to/warning_file_cross.csv",
                                              comment=None, file_type_id=None)
@@ -729,17 +924,17 @@ def test_file_history_url(database, monkeypatch):
     monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
 
     # checking for local response to non-warning file
-    json_response = fileHandler.file_history_url(sub, file_hist.certified_files_history_id, False, True)
+    json_response = fileHandler.file_history_url(sub, file_hist.published_files_history_id, False, True)
     url = json.loads(json_response.get_data().decode('utf-8'))["url"]
     assert url == "/path/to/file_d2.csv"
 
     # local response to warning file
-    json_response = fileHandler.file_history_url(sub, file_hist.certified_files_history_id, True, True)
+    json_response = fileHandler.file_history_url(sub, file_hist.published_files_history_id, True, True)
     url = json.loads(json_response.get_data().decode('utf-8'))["url"]
     assert url == "/path/to/warning_file_cross.csv"
 
     # generic test to make sure it's reaching the s3 handler properly
-    json_response = fileHandler.file_history_url(sub, file_hist.certified_files_history_id, False, False)
+    json_response = fileHandler.file_history_url(sub, file_hist.published_files_history_id, False, False)
     url = json.loads(json_response.get_data().decode('utf-8'))["url"]
     assert url == 'some/url/here.csv'
 

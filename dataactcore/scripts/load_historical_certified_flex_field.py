@@ -11,7 +11,7 @@ from sqlalchemy import func
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.jobModels import CertifiedFilesHistory, Job
+from dataactcore.models.jobModels import PublishedFilesHistory, Job
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.userModel import User # noqa
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT, FILE_TYPE_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT_ID
@@ -25,16 +25,16 @@ logger = logging.getLogger(__name__)
 FILE_LIST = [FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'], FILE_TYPE_DICT['award_financial']]
 
 
-def copy_certified_submission_flex_fields():
-    """ Copy flex fields from the flex_field table to the certified_flex_field table for certified DABS submissions. """
-    logger.info('Moving certified flex fields')
+def copy_published_submission_flex_fields():
+    """ Copy flex fields from the flex_field table to the published_flex_field table for published DABS submissions. """
+    logger.info('Moving published flex fields')
     sess = GlobalDB.db().session
 
     column_list = [col.key for col in FlexField.__table__.columns]
     column_list.remove('created_at')
     column_list.remove('updated_at')
     column_list.remove('flex_field_id')
-    certified_col_string = ', '.join(column_list)
+    published_col_string = ', '.join(column_list)
     col_string = ', '.join([col if not col == 'submission_id' else 'flex_field.' + col for col in column_list])
 
     # Delete the old ones so we don't have conflicts
@@ -53,7 +53,7 @@ def copy_certified_submission_flex_fields():
             JOIN submission ON submission.submission_id = flex_field.submission_id
             WHERE submission.publish_status_id = {}
                 AND submission.d2_submission IS FALSE
-        """.format(certified_col_string, col_string, PUBLISH_STATUS_DICT['published']))
+        """.format(published_col_string, col_string, PUBLISH_STATUS_DICT['published']))
     sess.commit()
     logger.info('Moved certified flex fields')
 
@@ -67,7 +67,7 @@ def clean_col(datum):
 
 
 def process_flex_data(data, flex_headers, submission_id, job_id, file_type_id):
-    """ Process the file that contains flex fields and insert all flex cells into the certified table
+    """ Process the file that contains flex fields and insert all flex cells into the published table
 
         Args:
             data: The pandas dataframe containing the file
@@ -104,28 +104,28 @@ def process_flex_data(data, flex_headers, submission_id, job_id, file_type_id):
 
 
 def load_updated_flex_fields():
-    """ Load in flex fields from updated submissions as they were at the latest certification """
+    """ Load in flex fields from updated submissions as they were at the latest publication """
     logger.info('Moving updated flex fields')
     sess = GlobalDB.db().session
 
-    # Get a list of all submissions with certified flex fields
-    certified_flex_subs = sess.query(CertifiedFlexField.submission_id).distinct().all()
+    # Get a list of all submissions with published flex fields
+    published_flex_subs = sess.query(CertifiedFlexField.submission_id).distinct().all()
 
     # We only want to go through updated submissions without flex fields already loaded
     updated_subs = sess.query(Submission.submission_id).\
-        filter(~Submission.submission_id.in_(certified_flex_subs),
+        filter(~Submission.submission_id.in_(published_flex_subs),
                Submission.d2_submission.is_(False),
                Submission.publish_status_id == PUBLISH_STATUS_DICT['updated']).all()
 
-    certified_ids = sess. \
-        query(func.max(CertifiedFilesHistory.certify_history_id).label('max_cert_id')). \
-        filter(CertifiedFilesHistory.submission_id.in_(updated_subs)). \
-        group_by(CertifiedFilesHistory.submission_id).cte('certified_ids')
+    published_ids = sess. \
+        query(func.max(PublishedFilesHistory.publish_history_id).label('max_pub_id')). \
+        filter(PublishedFilesHistory.submission_id.in_(updated_subs)). \
+        group_by(PublishedFilesHistory.submission_id).cte('published_ids')
 
-    historical_files = sess.query(CertifiedFilesHistory.filename, CertifiedFilesHistory.file_type_id,
-                                  CertifiedFilesHistory.submission_id). \
-        join(certified_ids, certified_ids.c.max_cert_id == CertifiedFilesHistory.certify_history_id).\
-        filter(CertifiedFilesHistory.file_type_id.in_(FILE_LIST))
+    historical_files = sess.query(PublishedFilesHistory.filename, PublishedFilesHistory.file_type_id,
+                                  PublishedFilesHistory.submission_id). \
+        join(published_ids, published_ids.c.max_pub_id == PublishedFilesHistory.publish_history_id).\
+        filter(PublishedFilesHistory.file_type_id.in_(FILE_LIST))
 
     # Loop through each updated submission
     for historical_file in historical_files:
@@ -172,9 +172,9 @@ def load_updated_flex_fields():
 
 
 def main():
-    """ Load flex fields for certified submissions that haven't been loaded into the certified flex fields table. """
+    """ Load flex fields for published submissions that haven't been loaded into the published flex fields table. """
 
-    copy_certified_submission_flex_fields()
+    copy_published_submission_flex_fields()
     load_updated_flex_fields()
 
 

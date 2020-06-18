@@ -11,7 +11,8 @@ award_financial_c12_{0} AS
     (SELECT piid,
         parent_award_id
     FROM award_financial
-    WHERE submission_id = {0})
+    WHERE submission_id = {0}
+        AND transaction_obligated_amou IS NOT NULL)
 SELECT
     ap.row_number AS "source_row_number",
     ap.piid AS "source_value_piid",

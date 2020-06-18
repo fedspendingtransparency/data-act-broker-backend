@@ -8,8 +8,8 @@ from dataactbroker.handlers.fileHandler import (
     list_certifications, file_history_url, get_comments_file)
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
-    certify_dabs_submission, find_existing_submissions_in_period, get_submission_metadata, get_submission_data,
-    get_revalidation_threshold, get_latest_certification_period, revert_to_certified)
+    certify_dabs_submission, check_year_and_period, get_submission_metadata, get_submission_data,
+    get_revalidation_threshold, get_latest_publication_period, revert_to_certified)
 from dataactbroker.decorators import convert_to_submission_id
 from dataactbroker.permissions import (requires_login, requires_submission_perms, requires_agency_perms,
                                        requires_sub_agency_perms)
@@ -61,10 +61,10 @@ def add_file_routes(app, is_local, server_path):
     def revalidation_threshold():
         return JsonResponse.create(StatusCode.OK, get_revalidation_threshold())
 
-    @app.route("/v1/latest_certification_period/", methods=["GET"])
+    @app.route("/v1/latest_publication_period/", methods=["GET"])
     @requires_login
-    def latest_certification_period():
-        return JsonResponse.create(StatusCode.OK, get_latest_certification_period())
+    def latest_publication_period():
+        return JsonResponse.create(StatusCode.OK, get_latest_publication_period())
 
     @app.route("/v1/window/", methods=["GET"])
     def window():
@@ -109,14 +109,14 @@ def add_file_routes(app, is_local, server_path):
     @app.route("/v1/get_certified_file/", methods=["POST"])
     @use_kwargs({
         'submission_id': webargs_fields.Int(required=True),
-        'certified_files_history_id': webargs_fields.Int(required=True),
+        'published_files_history_id': webargs_fields.Int(required=True),
         'is_warning': webargs_fields.Bool(missing=False)
     })
     @requires_submission_perms('reader')
-    def get_certified_file(submission, certified_files_history_id, **kwargs):
+    def get_certified_file(submission, published_files_history_id, **kwargs):
         """ Get the signed URL for the specified file history """
         is_warning = kwargs.get('is_warning')
-        return file_history_url(submission, certified_files_history_id, is_warning, is_local)
+        return file_history_url(submission, published_files_history_id, is_warning, is_local)
 
     @app.route("/v1/check_current_page/", methods=["GET"])
     @convert_to_submission_id
@@ -217,17 +217,19 @@ def add_file_routes(app, is_local, server_path):
         """
         return delete_all_submission_data(submission)
 
-    @app.route("/v1/check_year_quarter/", methods=["GET"])
+    @app.route("/v1/check_year_period/", methods=["GET"])
     @requires_login
     @use_kwargs({'reporting_fiscal_year': webargs_fields.String(required=True),
                  'reporting_fiscal_period': webargs_fields.String(required=True),
                  'cgac_code': webargs_fields.String(),
-                 'frec_code': webargs_fields.String()})
-    def check_year_and_quarter(reporting_fiscal_year, reporting_fiscal_period, **kwargs):
+                 'frec_code': webargs_fields.String(),
+                 'is_quarter': webargs_fields.Bool()})
+    def check_year_period(reporting_fiscal_year, reporting_fiscal_period, **kwargs):
         """ Check if cgac (or frec) code, year, and quarter already has a published submission """
         cgac_code = kwargs.get('cgac_code')
         frec_code = kwargs.get('frec_code')
-        return find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period)
+        is_quarter = kwargs.get('is_quarter')
+        return check_year_and_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period, is_quarter)
 
     @app.route("/v1/certify_submission/", methods=['POST'])
     @convert_to_submission_id

@@ -18,19 +18,19 @@ def test_success(database):
     award_fin_fain = AwardFinancialFactory(uri=None, piid=None)
     award_fin_uri = AwardFinancialFactory(fain=None, piid=None)
     award_fin_piid = AwardFinancialFactory(fain=None, uri=None)
-    # Test fain + uri
-    award_fin_no_piid = AwardFinancialFactory(piid=None)
 
     assert number_of_errors(_FILE, database,
-                            models=[award_fin_fain, award_fin_uri, award_fin_piid, award_fin_no_piid]) == 0
+                            models=[award_fin_fain, award_fin_uri, award_fin_piid]) == 0
 
 
 def test_failure(database):
-    """ Test with fain, uri, and piid all absent """
+    """ Test with fain, uri, and piid all present """
     # Test with all three
     award_fin = AwardFinancialFactory()
-    # Test with one missing
-    award_fin_no_fain = AwardFinancialFactory(fain=None)
-    award_fin_no_uri = AwardFinancialFactory(uri=None)
+    # Test with any 2 present
+    award_fin_piid_uri = AwardFinancialFactory(fain=None)
+    award_fin_piid_fain = AwardFinancialFactory(uri=None)
+    award_fin_fain_uri = AwardFinancialFactory(piid=None)
 
-    assert number_of_errors(_FILE, database, models=[award_fin, award_fin_no_fain, award_fin_no_uri]) == 3
+    assert number_of_errors(_FILE, database, models=[award_fin, award_fin_piid_uri, award_fin_piid_fain,
+                                                     award_fin_fain_uri]) == 4

@@ -4,7 +4,7 @@ from sqlalchemy import func
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.jobModels import Submission, CertifyHistory, Comment, CertifiedComment
+from dataactcore.models.jobModels import Submission, PublishHistory, Comment, CertifiedComment
 
 from dataactvalidator.health_check import create_app
 
@@ -18,25 +18,25 @@ if __name__ == '__main__':
     configure_logging()
 
     with create_app().app_context():
-        logger.info('Moving certified comments')
+        logger.info('Moving published comments')
 
-        # Create a CTE of the max certify history date for DABS submissions
-        max_certify_history = sess.query(func.max(CertifyHistory.updated_at).label('max_updated_at'),
-                                         CertifyHistory.submission_id.label('submission_id')). \
-            join(Submission, CertifyHistory.submission_id == Submission.submission_id). \
+        # Create a CTE of the max publish history date for DABS submissions
+        max_publish_history = sess.query(func.max(PublishHistory.updated_at).label('max_updated_at'),
+                                         PublishHistory.submission_id.label('submission_id')). \
+            join(Submission, PublishHistory.submission_id == Submission.submission_id). \
             filter(Submission.d2_submission.is_(False)). \
-            group_by(CertifyHistory.submission_id).cte('max_certify_history')
+            group_by(PublishHistory.submission_id).cte('max_publish_history')
 
-        # Get all comments that were written before the latest certification for all certified/updated submissions
-        certify_history_list = sess.query(Comment). \
-            join(max_certify_history, max_certify_history.c.submission_id == Comment.submission_id). \
-            filter(Comment.updated_at < max_certify_history.c.max_updated_at).\
+        # Get all comments that were written before the latest publication for all published/updated submissions
+        publish_history_list = sess.query(Comment). \
+            join(max_publish_history, max_publish_history.c.submission_id == Comment.submission_id). \
+            filter(Comment.updated_at < max_publish_history.c.max_updated_at).\
             order_by(Comment.submission_id, Comment.file_type_id).all()
 
         # Create a list of comments and a list of all submissions involved
         comments_list = []
         submissions_list = []
-        for obj in certify_history_list:
+        for obj in publish_history_list:
             tmp_obj = obj.__dict__
             tmp_obj.pop('_sa_instance_state')
             tmp_obj.pop('created_at')
@@ -55,4 +55,4 @@ if __name__ == '__main__':
         sess.bulk_save_objects([CertifiedComment(**comment) for comment in comments_list])
         sess.commit()
 
-        logger.info('Certified comments moved')
+        logger.info('Published comments moved')

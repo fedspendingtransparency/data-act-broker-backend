@@ -29,6 +29,8 @@ While the Submission API has been designed to be as easy to understand as possib
 ### Upload A, B, C Files
 - Step 1: call `/v1/upload_dabs_files/` (POST) to create the submission.
 - For details on its use, click [here](./dataactbroker/README.md#post-v1upload_dabs_files)
+- **NOTE**: If you would like to certify this submission, call `/v1/check_year_period/` (GET) to ensure there are no other submissions already published by the same agency in the same period.
+    - For details on its use, click [here](./dataactbroker/README.md#get-v1check_year_period)
 
 ### Validate A, B, C Files
 - File-level validation begins automatically on upload completion.

@@ -23,6 +23,9 @@ class SubmissionFactory(factory.Factory):
     number_of_errors = 0
     number_of_warnings = 0
     d2_submission = False
+    test_submission = False
+    published_submission_ids = []
+    certified = False
 
 
 class JobStatusFactory(factory.Factory):
@@ -85,12 +88,24 @@ class CertifyHistoryFactory(factory.Factory):
     user = factory.SubFactory(UserFactory)
 
 
-class CertifiedFilesHistoryFactory(factory.Factory):
+class PublishHistoryFactory(factory.Factory):
     class Meta:
-        model = jobModels.CertifiedFilesHistory
+        model = jobModels.PublishHistory
 
-    certified_files_history_id = None
+    publish_history_id = None
+    submission_id = fuzzy.FuzzyInteger(9999)
+    submission = factory.SubFactory(SubmissionFactory)
+    user_id = fuzzy.FuzzyInteger(9999)
+    user = factory.SubFactory(UserFactory)
+
+
+class PublishedFilesHistoryFactory(factory.Factory):
+    class Meta:
+        model = jobModels.PublishedFilesHistory
+
+    published_files_history_id = None
     certify_history_id = fuzzy.FuzzyInteger(9999)
+    publish_history_id = fuzzy.FuzzyInteger(9999)
     submission_id = fuzzy.FuzzyInteger(9999)
     filename = fuzzy.FuzzyText()
     file_type_id = fuzzy.FuzzyInteger(9999)
@@ -152,11 +167,12 @@ class RevalidationThresholdFactory(factory.Factory):
     revalidation_date = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
 
 
-class QuarterlyRevalidationThresholdFactory(factory.Factory):
+class SubmissionWindowScheduleFactory(factory.Factory):
     class Meta:
-        model = jobModels.QuarterlyRevalidationThreshold
+        model = jobModels.SubmissionWindowSchedule
 
     year = fuzzy.FuzzyInteger(2010, 3000)
-    quarter = fuzzy.FuzzyChoice((1, 2, 3, 4))
-    window_start = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
-    window_end = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
+    period = fuzzy.FuzzyChoice((1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12))
+    period_start = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
+    publish_deadline = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
+    certification_deadline = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))

@@ -50,11 +50,13 @@ def replicate_file_f_results(subaward):
         ('PrimaryPlaceOfPerformanceCountryCode', subaward.place_of_perform_country_co),
         ('PrimaryPlaceOfPerformanceCountryName', subaward.place_of_perform_country_na),
         ('AwardDescription', subaward.award_description),
+        ('PrimeAwardProjectTitle', subaward.program_title),
         ('NAICS', subaward.naics),
         ('NAICS_Description', subaward.naics_description),
         ('CFDA_Numbers', subaward.cfda_numbers),
         ('CFDA_Titles', subaward.cfda_titles),
         ('SubAwardType', subaward.subaward_type),
+        ('SubAwardReportID', subaward.internal_id),
         ('SubAwardReportYear', subaward.subaward_report_year),
         ('SubAwardReportMonth', subaward.subaward_report_month),
         ('SubAwardNumber', subaward.subaward_number),
@@ -93,6 +95,7 @@ def replicate_file_f_results(subaward):
         ('SubAwardeeHighCompOfficer4Amount', subaward.sub_high_comp_officer4_amount),
         ('SubAwardeeHighCompOfficer5FullName', subaward.sub_high_comp_officer5_full_na),
         ('SubAwardeeHighCompOfficer5Amount', subaward.sub_high_comp_officer5_amount),
+        ('SubAwardReportLastModifiedDate', subaward.date_submitted),
     ])
 
 

@@ -2,7 +2,6 @@ import logging
 from operator import attrgetter
 import time
 import uuid
-import math
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
@@ -11,8 +10,8 @@ from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.errorModels import ErrorMetadata, File
-from dataactcore.models.jobModels import (Job, Submission, JobDependency, CertifyHistory, CertifiedFilesHistory,
-                                          QuarterlyRevalidationThreshold)
+from dataactcore.models.jobModels import (Job, Submission, JobDependency, CertifyHistory, PublishedFilesHistory,
+                                          SubmissionWindowSchedule)
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance
 from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
@@ -550,7 +549,7 @@ def get_lastest_certified_date(submission, is_fabs=False):
 
         certified_files = None
         if is_fabs:
-            certified_files = sess.query(CertifiedFilesHistory).\
+            certified_files = sess.query(PublishedFilesHistory).\
                 filter_by(certify_history_id=last_certified.certify_history_id).first()
 
         if last_certified and certified_files:
@@ -560,8 +559,8 @@ def get_lastest_certified_date(submission, is_fabs=False):
     return None
 
 
-def get_window_end(submission):
-    """ Return the window end for the given submission
+def get_certification_deadline(submission):
+    """ Return the certification deadline for the given submission
 
         Arguments:
             submission: the submission object to find its end window
@@ -570,14 +569,14 @@ def get_window_end(submission):
             the datetime of the submission's window end
     """
     sess = GlobalDB.db().session
-    window_end = None
+    cert_deadline = None
     if not submission.d2_submission:
-        sub_quarter = math.ceil(submission.reporting_fiscal_period / 3)
+        sub_period = submission.reporting_fiscal_period
         sub_year = submission.reporting_fiscal_year
-        quarter_reval = sess.query(QuarterlyRevalidationThreshold).filter_by(year=sub_year, quarter=sub_quarter).\
+        sub_window = sess.query(SubmissionWindowSchedule).filter_by(year=sub_year, period=sub_period).\
             one_or_none()
-        window_end = quarter_reval.window_end.date() if quarter_reval else None
-    return window_end
+        cert_deadline = sub_window.certification_deadline.date() if sub_window else None
+    return cert_deadline
 
 
 def get_time_period(submission):

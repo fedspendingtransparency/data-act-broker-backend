@@ -3,7 +3,7 @@ import logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 
-from dataactcore.models.jobModels import CertifiedFilesHistory, CertifyHistory, Submission
+from dataactcore.models.jobModels import PublishedFilesHistory, CertifyHistory, PublishHistory, Submission
 from dataactcore.models.userModel import User  # noqa
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
 
@@ -78,12 +78,13 @@ if __name__ == '__main__':
         logger.info("The following submissions have been completely invalidated by the deletes, unpublishing them: " +
                     ", ".join(str(sub) for sub in cleared_submissions))
 
-        # Unpublish each submission that has been cleared out, including deleting any record of it in the certified
-        # tables
+        # Unpublish each submission that has been cleared out, including deleting any record of it in the
+        # certified/published tables
         for sub in cleared_submissions:
-            sess.query(CertifiedFilesHistory).filter_by(submission_id=sub).delete()
+            sess.query(PublishedFilesHistory).filter_by(submission_id=sub).delete()
             sess.query(CertifyHistory).filter_by(submission_id=sub).delete()
+            sess.query(PublishHistory).filter_by(submission_id=sub).delete()
             sess.query(Submission).filter_by(submission_id=sub).\
                 update({"publish_status_id": PUBLISH_STATUS_DICT["unpublished"]})
         sess.commit()
-        logger.info("Submissions successfully uncertified, script completed.")
+        logger.info("Submissions successfully unpublished, script completed.")

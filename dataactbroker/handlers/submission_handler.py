@@ -1,9 +1,10 @@
 import logging
 import os
+import math
 
 from datetime import datetime
 from flask import g
-from sqlalchemy import func, or_, desc
+from sqlalchemy import func, or_, desc, cast, Numeric
 from sqlalchemy.sql.expression import case
 
 from dataactcore.aws.s3Handler import S3Handler
@@ -17,8 +18,8 @@ from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JO
 from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
-                                          CertifyHistory, RevalidationThreshold, QuarterlyRevalidationThreshold,
-                                          Comment, CertifiedComment)
+                                          CertifyHistory, PublishHistory, RevalidationThreshold,
+                                          SubmissionWindowSchedule, Comment, CertifiedComment)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
                                               CertifiedAwardFinancial, FlexField, CertifiedFlexField, AwardProcurement,
@@ -34,18 +35,21 @@ from dataactcore.utils.stringCleaner import StringCleaner
 logger = logging.getLogger(__name__)
 
 
-def create_submission(user_id, submission_values, existing_submission):
+def create_submission(user_id, submission_values, existing_submission, test_submission=False):
     """ Create a new submission if one doesn't exist, otherwise update the existing one
 
         Args:
             user_id:  user to associate with this submission
             submission_values: metadata about the submission
             existing_submission: id of existing submission (blank for new submissions)
+            test_submission: a boolean flag to indicate whether the submission being created is a test or not, only
+                used with new submissions
 
         Returns:
             submission object
     """
     if existing_submission is None:
+        submission_values['test_submission'] = test_submission
         submission = Submission(created_at=datetime.utcnow(), **submission_values)
         submission.user_id = user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['unpublished']
@@ -139,9 +143,8 @@ def get_submission_metadata(submission):
         filter_by(submission_id=submission.submission_id).\
         scalar() or 0
 
-    test_sub = get_existing_submission_list(submission.cgac_code, submission.frec_code,
-                                            submission.reporting_fiscal_year, submission.reporting_fiscal_period,
-                                            submission.submission_id)
+    test_sub = filter_submissions(submission.cgac_code, submission.frec_code, submission.reporting_fiscal_year,
+                                  submission.reporting_fiscal_period, submission.submission_id)
     certified_submission = None
 
     if test_sub.count() > 0:
@@ -161,7 +164,10 @@ def get_submission_metadata(submission):
         'reporting_period': reporting_date(submission),
         'publish_status': submission.publish_status.name,
         'quarterly_submission': submission.is_quarter_format,
+        'test_submission': submission.test_submission,
+        'published_submission_ids': submission.published_submission_ids,
         'certified_submission': certified_submission,
+        'certified': submission.certified,
         'fabs_submission': submission.d2_submission,
         'fabs_meta': fabs_meta
     }
@@ -217,19 +223,19 @@ def get_revalidation_threshold():
     }
 
 
-def get_latest_certification_period():
-    """ Get the latest quarterly certification period for all submissions
+def get_latest_publication_period():
+    """ Get the latest publication period for all submissions
 
         Returns:
-            A dictionary containing the latest certification period (quarter and year)
+            A dictionary containing the latest publication period (period and year)
     """
     sess = GlobalDB.db().session
-    last_cert_period = sess.query(QuarterlyRevalidationThreshold.quarter, QuarterlyRevalidationThreshold.year).\
-        filter(QuarterlyRevalidationThreshold.window_start <= datetime.today()).\
-        order_by(QuarterlyRevalidationThreshold.window_start.desc()).first()
+    last_pub_period = sess.query(SubmissionWindowSchedule.period, SubmissionWindowSchedule.year).\
+        filter(SubmissionWindowSchedule.period_start <= datetime.today()).\
+        order_by(SubmissionWindowSchedule.period_start.desc()).first()
     return {
-        'quarter': last_cert_period.quarter if last_cert_period else None,
-        'year': last_cert_period.year if last_cert_period else None
+        'period': last_pub_period.period if last_pub_period else None,
+        'year': last_pub_period.year if last_pub_period else None
     }
 
 
@@ -367,7 +373,7 @@ def delete_all_submission_data(submission):
     """
     # check if the submission has been published, if so, do not allow deletion
     if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
-        return JsonResponse.error(ValueError('Submissions that have been certified cannot be deleted'),
+        return JsonResponse.error(ValueError('Submissions that have been published cannot be deleted'),
                                   StatusCode.CLIENT_ERROR)
 
     sess = GlobalDB.db().session
@@ -525,15 +531,16 @@ def check_current_submission_page(submission):
         return JsonResponse.error(ValueError('The submission ID returns no response'), StatusCode.CLIENT_ERROR)
 
 
-def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
-                                        submission_id=None):
-    """ Find all the submissions in the given period for the given CGAC or FREC code
+def check_year_and_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period, is_quarter_format,
+                          submission_id=None):
+    """ Check to see if there are any published submissions by the same agency in the same period
 
         Args:
             cgac_code: the CGAC code to check against or None if checking a FREC agency
             frec_code: the FREC code to check against or None if checking a CGAC agency
             reporting_fiscal_year: the year to check for
             reporting_fiscal_period: the period in the year to check for
+            is_quarter_format: whether the submission being checked is a quarterly or monthly submission
             submission_id: the submission ID to check against (used when checking if this submission is being
                 re-certified)
 
@@ -545,21 +552,51 @@ def find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_y
     if not cgac_code and not frec_code:
         return JsonResponse.error(ValueError('CGAC or FR Entity Code required'), StatusCode.CLIENT_ERROR)
 
-    submission_query = get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year,
-                                                    reporting_fiscal_period, submission_id)
+    pub_subs = get_submissions_in_period(cgac_code, frec_code, int(reporting_fiscal_year), int(reporting_fiscal_period),
+                                         is_quarter_format, submission_id=submission_id, filter_published='published')
 
-    if submission_query.count() > 0:
+    if pub_subs.count() > 0:
         data = {
-            'message': 'A submission with the same period already exists.',
-            'submissionId': submission_query[0].submission_id
+            'message': 'This period already has published submission(s) by this agency.',
+            'submissionIds': [pub_sub.submission_id for pub_sub in pub_subs]
         }
         return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
     return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
 
 
-def get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
-                                 submission_id=None):
-    """ Get the list of the submissions in the given period for the given CGAC or FREC code
+def get_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period, is_quarter_format,
+                              submission_id=None, filter_published='published'):
+    """ Find all the submissions in the given period for the given CGAC or FREC code and submission type
+
+        Args:
+            cgac_code: the CGAC code to check against or None if checking a FREC agency
+            frec_code: the FREC code to check against or None if checking a CGAC agency
+            reporting_fiscal_year: the year to check for
+            reporting_fiscal_period: the period in the year to check for
+            is_quarter_format: whether the submission being checked is a quarterly or monthly submission
+            submission_id: the submission ID to check against (used when checking if this submission is being
+                re-certified)
+            filter_published: whether to filter published/unpublished submissions
+                       (options are: "mixed", "published" (default), and "unpublished")
+
+        Returns:
+            query including all the submissions for a given period
+    """
+    qtr_subs = filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
+                                  submission_id, filter_quarter=True, filter_published=filter_published,
+                                  filter_sub_type='quarterly')
+    mon_subs = filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
+                                  submission_id, filter_quarter=is_quarter_format,
+                                  filter_published=filter_published,
+                                  filter_sub_type='monthly')
+    subs_in_period = mon_subs.union(qtr_subs)
+    return subs_in_period
+
+
+def filter_submissions(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
+                       submission_id=None, filter_published='published', filter_quarter=False,
+                       filter_sub_type='mixed'):
+    """ Get the list of the submissions based on the filters provided
 
         Args:
             cgac_code: the CGAC code to check against or None if checking a FREC agency
@@ -568,18 +605,42 @@ def get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year, re
             reporting_fiscal_period: the period in the year to check for
             submission_id: the submission ID to check against (used when checking if this submission is being
                 re-certified)
+            filter_published: whether to filter published/unpublished submissions
+                       (options are: "mixed", "published" (default), and "unpublished")
+            filter_quarter: whether to include submissions in the same quarter (True) or period (False, default)
+            filter_sub_type: whether to include monthly and/or quarterly submissions
+                             (options are: "monthly", "quarterly", and "mixed" (default))
 
         Returns:
-            A query to get the certified submissions in the given period
+            A query to get submissions based on the filters provided
     """
     sess = GlobalDB.db().session
 
     submission_query = sess.query(Submission).filter(
         (Submission.cgac_code == cgac_code) if cgac_code else (Submission.frec_code == frec_code),
         Submission.reporting_fiscal_year == reporting_fiscal_year,
-        Submission.reporting_fiscal_period == reporting_fiscal_period,
-        Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'],
         Submission.d2_submission.is_(False))
+
+    if filter_published not in ('published', 'unpublished', 'mixed'):
+        raise ValueError('Published param must be one of the following: "published", "unpublished", or "mixed"')
+    if filter_published == 'published':
+        submission_query = submission_query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
+    elif filter_published == 'unpublished':
+        submission_query = submission_query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
+
+    if not filter_quarter:
+        submission_query = submission_query.filter(Submission.reporting_fiscal_period == reporting_fiscal_period)
+    else:
+        reporting_fiscal_quarter = math.ceil(reporting_fiscal_period / 3)
+        submission_query = submission_query.filter((func.ceil(cast(Submission.reporting_fiscal_period, Numeric) / 3) ==
+                                                    reporting_fiscal_quarter))
+
+    if filter_sub_type not in ('monthly', 'quarterly', 'mixed'):
+        raise ValueError('Published param must be one of the following: "monthly", "quarterly", or "mixed"')
+    if filter_sub_type == 'monthly':
+        submission_query = submission_query.filter(Submission.is_quarter_format.is_(False))
+    elif filter_sub_type == 'quarterly':
+        submission_query = submission_query.filter(Submission.is_quarter_format.is_(True))
 
     # Filter out the submission we are potentially re-certifying if one is provided
     if submission_id:
@@ -588,16 +649,16 @@ def get_existing_submission_list(cgac_code, frec_code, reporting_fiscal_year, re
     return submission_query.order_by(desc(Submission.created_at))
 
 
-def move_certified_data(sess, submission_id, direction='certify'):
+def move_published_data(sess, submission_id, direction='publish'):
     """ Move data from the staging tables to the certified tables for a submission or do the reverse for a revert.
 
         Args:
             sess: the database connection
             submission_id: The ID of the submission to move data for
-            direction: The direction to move the certified data (certify or revert)
+            direction: The direction to move the published data (publish or revert)
 
         Raises:
-            ResponseException if a value other than "certify" or "revert" is specified for the direction.
+            ResponseException if a value other than "publish" or "revert" is specified for the direction.
     """
     table_types = {'appropriation': [Appropriation, CertifiedAppropriation, 'submission'],
                    'object_class_program_activity': [ObjectClassProgramActivity, CertifiedObjectClassProgramActivity,
@@ -615,14 +676,14 @@ def move_certified_data(sess, submission_id, direction='certify'):
     job_list = [item[0] for item in job_list]
 
     for table_type, table_object in table_types.items():
-        if direction == 'certify':
+        if direction == 'publish':
             source_table = table_object[0]
             target_table = table_object[1]
         elif direction == 'revert':
             source_table = table_object[1]
             target_table = table_object[0]
         else:
-            raise ResponseException('Direction to move data must be certify or revert.', status=StatusCode.CLIENT_ERROR)
+            raise ResponseException('Direction to move data must be publish or revert.', status=StatusCode.CLIENT_ERROR)
 
         logger.info({
             'message': 'Deleting old data from {} table'.format(target_table.__table__.name),
@@ -637,7 +698,7 @@ def move_certified_data(sess, submission_id, direction='certify'):
             sess.query(target_table).filter(target_table.job_id.in_(job_list)).delete(synchronize_session=False)
 
         logger.info({
-            'message': 'Moving certified data from {} table'.format(source_table.__table__.name),
+            'message': 'Moving published data from {} table'.format(source_table.__table__.name),
             'message_type': 'BrokerInfo',
             'submission_id': submission_id
         })
@@ -662,7 +723,7 @@ def move_certified_data(sess, submission_id, direction='certify'):
         else:
             insert_string += ' job_id IN ({})'.format(','.join(str(job) for job in job_list))
 
-        # Move the certified data
+        # Move the published data
         sess.execute(insert_string)
 
 
@@ -671,20 +732,21 @@ def certify_dabs_submission(submission, file_manager):
 
         Args:
             submission: the submission to be certified
-            file_manager: a FileHandler object to be used to call move_certified_files
+            file_manager: a FileHandler object to be used to call move_published_files
 
         Returns:
             A JsonResponse containing the message "success" if successful, JsonResponse error containing the details of
             the error if something went wrong
     """
+    # TODO: split most of this logic into publish vs certify and add whatever other checks are needed
     current_user_id = g.user.user_id
 
     if not submission.publishable:
         return JsonResponse.error(ValueError('Submission cannot be certified due to critical errors'),
                                   StatusCode.CLIENT_ERROR)
 
-    if not submission.is_quarter_format:
-        return JsonResponse.error(ValueError('Monthly submissions cannot be certified'), StatusCode.CLIENT_ERROR)
+    if submission.test_submission:
+        return JsonResponse.error(ValueError('Test submissions cannot be certified'), StatusCode.CLIENT_ERROR)
 
     if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
         return JsonResponse.error(ValueError('Submission has already been certified'), StatusCode.CLIENT_ERROR)
@@ -707,60 +769,84 @@ def certify_dabs_submission(submission, file_manager):
                                              format(reval_thresh.replace('T', ' '))),
                                   StatusCode.CLIENT_ERROR)
 
-    # Get the year/quarter of the submission and filter by them
-    sub_quarter = submission.reporting_fiscal_period // 3
+    # Get the year/period of the submission and filter by them
+    sub_period = submission.reporting_fiscal_period
     sub_year = submission.reporting_fiscal_year
-    quarter_reval = sess.query(QuarterlyRevalidationThreshold).filter_by(year=sub_year, quarter=sub_quarter).\
+    sub_schedule = sess.query(SubmissionWindowSchedule).filter_by(year=sub_year, period=sub_period).\
         one_or_none()
 
-    # If we don't have a quarterly revalidation threshold for this year/quarter, they can't submit
-    if not quarter_reval:
-        return JsonResponse.error(ValueError('No submission window for this year and quarter was found. If this is an '
+    # If we don't have a submission window for this year/period, they can't submit
+    if not sub_schedule:
+        return JsonResponse.error(ValueError('No submission window for this year and period was found. If this is an '
                                              'error, please contact the Service Desk.'), StatusCode.CLIENT_ERROR)
 
     # Make sure everything was last validated after the start of the submission window
     last_validated = datetime.strptime(last_validated, '%Y-%m-%dT%H:%M:%S')
-    if last_validated < quarter_reval.window_start:
+    if last_validated < sub_schedule.period_start:
         return JsonResponse.error(ValueError('This submission was last validated or its D files generated before the '
                                              'start of the submission window ({}). Please revalidate before '
-                                             'certifying.'.format(quarter_reval.window_start.strftime('%m/%d/%Y'))),
+                                             'certifying.'.format(sub_schedule.period_start.strftime('%m/%d/%Y'))),
                                   StatusCode.CLIENT_ERROR)
 
-    response = find_existing_submissions_in_period(submission.cgac_code, submission.frec_code,
-                                                   submission.reporting_fiscal_year,
-                                                   submission.reporting_fiscal_period, submission.submission_id)
+    # Make sure neither A nor B is blank before allowing certification
+    blank_files = sess.query(Job).\
+        filter(Job.file_type_id.in_([FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity']]),
+               Job.number_of_rows_valid == 0, Job.job_type_id == JOB_TYPE_DICT['csv_record_validation'],
+               Job.submission_id == submission.submission_id).count()
+
+    if blank_files > 0:
+        return JsonResponse.error(ValueError('Cannot certify while file A or B is blank.'), StatusCode.CLIENT_ERROR)
+
+    response = check_year_and_period(submission.cgac_code, submission.frec_code, submission.reporting_fiscal_year,
+                                     submission.reporting_fiscal_period, is_quarter_format=submission.is_quarter_format,
+                                     submission_id=submission.submission_id)
 
     if response.status_code == StatusCode.OK:
-        # create the certify_history entry
+        first_publish = (submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
+
+        # create the publish_history and certify_history entry
+        publish_history = PublishHistory(created_at=datetime.utcnow(), user_id=current_user_id,
+                                         submission_id=submission.submission_id)
         certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=current_user_id,
                                          submission_id=submission.submission_id)
-        sess.add(certify_history)
+        sess.add_all([publish_history, certify_history])
         sess.commit()
 
-        # get the certify_history entry including the PK
-        certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
-            order_by(CertifyHistory.created_at.desc()).first()
+        # get the publish_history entry including the PK
+        publish_history = sess.query(PublishHistory).filter_by(submission_id=submission.submission_id).\
+            order_by(PublishHistory.created_at.desc()).first()
 
-        # Move the data to the certified table, deleting any old certified data in the process
-        move_certified_data(sess, submission.submission_id)
+        # Move the data to the certified table, deleting any old published data in the process
+        move_published_data(sess, submission.submission_id)
 
-        # move files (locally we don't move but we still need to populate the certified_files_history table)
-        file_manager.move_certified_files(submission, certify_history, file_manager.is_local)
+        # move files (locally we don't move but we still need to populate the published_files_history table)
+        file_manager.move_published_files(submission, publish_history, certify_history, file_manager.is_local)
 
         # set submission contents
         submission.certifying_user_id = current_user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['published']
-        sess.commit()
+        submission.certified = True
+
+        if first_publish:
+            # update any other submissions by the same agency in the same quarter/period to point to this submission
+            unpub_subs = get_submissions_in_period(submission.cgac_code, submission.frec_code,
+                                                   submission.reporting_fiscal_year, submission.reporting_fiscal_period,
+                                                   submission.is_quarter_format, submission.submission_id,
+                                                   filter_published='unpublished')
+            for unpub_sub in unpub_subs.all():
+                unpub_sub.published_submission_ids.append(submission.submission_id)
+                unpub_sub.test_submission = True
+            sess.commit()
 
     return response
 
 
 def revert_to_certified(submission, file_manager):
-    """ Revert an updated DABS submission to its last certified state
+    """ Revert an updated DABS submission to its last published state
 
         Args:
             submission: the submission to be reverted
-            file_manager: a FileHandler object to be used to call revert_certified_error_files and determine is_local
+            file_manager: a FileHandler object to be used to call revert_published_error_files and determine is_local
 
         Returns:
             A JsonResponse containing a success message
@@ -773,17 +859,17 @@ def revert_to_certified(submission, file_manager):
         raise ResponseException('Submission must be a DABS submission.', status=StatusCode.CLIENT_ERROR)
 
     if submission.publish_status_id != PUBLISH_STATUS_DICT['updated']:
-        raise ResponseException('Submission has not been certified or has not been updated since certification.',
+        raise ResponseException('Submission has not been published or has not been updated since publication.',
                                 status=StatusCode.CLIENT_ERROR)
 
     sess = GlobalDB.db().session
     submission.publish_status_id = PUBLISH_STATUS_DICT['reverting']
     sess.commit()
-    move_certified_data(sess, submission.submission_id, direction='revert')
+    move_published_data(sess, submission.submission_id, direction='revert')
 
-    # Copy file paths from certified_files_history
-    max_cert_history = sess.query(func.max(CertifyHistory.certify_history_id), func.max(CertifyHistory.updated_at)).\
-        filter(CertifyHistory.submission_id == submission.submission_id).one()
+    # Copy file paths from published_files_history
+    max_pub_history = sess.query(func.max(PublishHistory.publish_history_id), func.max(PublishHistory.updated_at)).\
+        filter(PublishHistory.submission_id == submission.submission_id).one()
     remove_timestamp = [str(FILE_TYPE_DICT['appropriations']), str(FILE_TYPE_DICT['program_activity']),
                         str(FILE_TYPE_DICT['award_financial'])]
     if file_manager.is_local:
@@ -794,30 +880,30 @@ def revert_to_certified(submission, file_manager):
         ef_path = filepath
         remove_timestamp.extend([str(FILE_TYPE_DICT['executive_compensation']), str(FILE_TYPE_DICT['sub_award'])])
 
-    # Certified filename -> Job filename, original filename
+    # Published filename -> Job filename, original filename
     # Local:
     #   A/B/C:
-    #     filename -> '[broker_files dir][certified file base name]'
-    #     original_filename -> '[certified file base name without the timestamp]'
+    #     filename -> '[broker_files dir][published file base name]'
+    #     original_filename -> '[published file base name without the timestamp]'
     #   D1/D2:
-    #     filename -> '[broker_files dir][certified file base name]'
-    #     original_filename -> '[certified file base name]'
+    #     filename -> '[broker_files dir][published file base name]'
+    #     original_filename -> '[published file base name]'
     #   E/F:
-    #     filename -> '[certified file base name]'
-    #     original_filename -> '[certified file base name]'
+    #     filename -> '[published file base name]'
+    #     original_filename -> '[published file base name]'
     # Remote:
     #   A/B/C/E/F:
-    #     filename -> '[submission_id]/[certified file base name]'
-    #     original_filename -> '[certified file base name without the timestamp]'
+    #     filename -> '[submission_id]/[published file base name]'
+    #     original_filename -> '[published file base name without the timestamp]'
     #   D1/D2:
-    #     filename -> '[submission_id dir][certified file base name]'
-    #     original_filename -> '[certified file base name]'
+    #     filename -> '[submission_id dir][published file base name]'
+    #     original_filename -> '[published file base name]'
     update_string = """
         WITH filenames AS (
             SELECT REVERSE(SPLIT_PART(REVERSE(filename), '/', 1)) AS simple_name,
                 file_type_id
-            FROM certified_files_history
-            WHERE certify_history_id = {history_id}
+            FROM published_files_history
+            WHERE publish_history_id = {history_id}
         )
         UPDATE job
         SET filename = CASE WHEN job.file_type_id NOT IN (6, 7)
@@ -831,7 +917,7 @@ def revert_to_certified(submission, file_manager):
         FROM filenames
         WHERE job.file_type_id = filenames.file_type_id
             AND job.submission_id = {submission_id};
-    """.format(history_id=max_cert_history[0], filepath=filepath, ef_path=ef_path,
+    """.format(history_id=max_pub_history[0], filepath=filepath, ef_path=ef_path,
                remove_timestamp=', '.join(remove_timestamp), submission_id=submission.submission_id)
     sess.execute(update_string)
 
@@ -846,7 +932,7 @@ def revert_to_certified(submission, file_manager):
     # Set default numbers/status/last validation date for jobs then update warnings
     sess.query(Job).filter_by(submission_id=submission.submission_id).\
         update({'number_of_errors': 0, 'number_of_warnings': 0, 'job_status_id': JOB_STATUS_DICT['finished'],
-                'last_validated': max_cert_history[1], 'error_message': None, 'file_generation_id': None})
+                'last_validated': max_pub_history[1], 'error_message': None, 'file_generation_id': None})
 
     # Get list of jobs so we can update them
     job_list = sess.query(Job).\
@@ -896,12 +982,12 @@ def revert_to_certified(submission, file_manager):
             else:
                 # boto file size
                 job.file_size = S3Handler.get_file_size(job.filename)
-    # Set submission to certified status
+    # Set submission to published status
     submission.publish_status_id = PUBLISH_STATUS_DICT['published']
     sess.commit()
 
     # Move warning files back non-locally and clear out error files for all environments
-    file_manager.revert_certified_error_files(sess, max_cert_history[0])
+    file_manager.revert_published_error_files(sess, max_pub_history[0])
 
-    return JsonResponse.create(StatusCode.OK, {'message': 'Submission {} successfully reverted to certified status.'.
+    return JsonResponse.create(StatusCode.OK, {'message': 'Submission {} successfully reverted to published status.'.
                                format(submission.submission_id)})
