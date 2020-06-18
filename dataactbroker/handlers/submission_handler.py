@@ -1,6 +1,7 @@
 import logging
 import os
 import math
+import json
 
 from datetime import datetime
 from flask import g
@@ -725,6 +726,151 @@ def move_published_data(sess, submission_id, direction='publish'):
 
         # Move the published data
         sess.execute(insert_string)
+
+
+def publish_checks(submission):
+    """ Checks to make sure the submission can be published
+
+        Args:
+            submission: the submission to be published
+
+        Raises:
+            ValueError if there is any reason a submission cannot be published
+    """
+
+    if not submission.publishable:
+        raise ValueError('Submission cannot be published due to critical errors')
+
+    if submission.test_submission:
+        raise ValueError('Test submissions cannot be published')
+
+    if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+        raise ValueError('Submission has already been published')
+
+    if submission.publish_status_id in (PUBLISH_STATUS_DICT['publishing'], PUBLISH_STATUS_DICT['reverting']):
+        raise ValueError('Submission is publishing or reverting')
+
+    windows = get_windows()
+    for window in windows:
+        if window.block_certification:
+            raise ValueError(window.message)
+
+    sess = GlobalDB.db().session
+    # Check revalidation threshold
+    last_validated = get_last_validated_date(submission.submission_id)
+    reval_thresh = get_revalidation_threshold()['revalidation_threshold']
+    if reval_thresh and reval_thresh >= last_validated:
+        raise ValueError('This submission has not been validated since before the revalidation threshold ({}), it must'
+                         ' be revalidated before publishing.'.format(reval_thresh.replace('T', ' ')))
+
+    # Get the year/period of the submission and filter by them
+    sub_period = submission.reporting_fiscal_period
+    sub_year = submission.reporting_fiscal_year
+    sub_schedule = sess.query(SubmissionWindowSchedule).filter_by(year=sub_year, period=sub_period). \
+        one_or_none()
+    # If we don't have a submission window for this year/period, they can't submit
+    if not sub_schedule:
+        raise ValueError('No submission window for this year and period was found. If this is an error, please contact'
+                         ' the Service Desk.')
+
+    # Make sure everything was last validated after the start of the submission window
+    last_validated = datetime.strptime(last_validated, '%Y-%m-%dT%H:%M:%S')
+    if last_validated < sub_schedule.period_start:
+        raise ValueError('This submission was last validated or its D files generated before the start of the'
+                         ' submission window ({}). Please revalidate before publishing.'.
+                         format(sub_schedule.period_start.strftime('%m/%d/%Y')))
+
+    # Make sure neither A nor B is blank before allowing certification
+    blank_files = sess.query(Job). \
+        filter(Job.file_type_id.in_([FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity']]),
+               Job.number_of_rows_valid == 0, Job.job_type_id == JOB_TYPE_DICT['csv_record_validation'],
+               Job.submission_id == submission.submission_id).count()
+
+    if blank_files > 0:
+        raise ValueError('Cannot publish while file A or B is blank.')
+
+    response = check_year_and_period(submission.cgac_code, submission.frec_code, submission.reporting_fiscal_year,
+                                     submission.reporting_fiscal_period, is_quarter_format=submission.is_quarter_format,
+                                     submission_id=submission.submission_id)
+
+    if response.status_code != StatusCode.OK:
+        response_json = json.loads(response.data.decode('UTF-8'))
+        raise ValueError(response_json['message'])
+
+
+def process_dabs_publish(submission, file_manager):
+    """ Processes the actual publishing of a DABS submission.
+
+        Args:
+            submission: the submission to be published
+            file_manager: a FileHandler object to be used to call move_published_files
+    """
+    current_user_id = g.user.user_id
+    sess = GlobalDB.db().session
+
+    # Determine if this is the first time this submission is being published
+    first_publish = (submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
+
+    # create the publish_history entry
+    publish_history = PublishHistory(created_at=datetime.utcnow(), user_id=current_user_id,
+                                     submission_id=submission.submission_id)
+    sess.add(publish_history)
+    sess.commit()
+
+    # get the publish_history entry including the PK
+    publish_history = sess.query(PublishHistory).filter_by(submission_id=submission.submission_id). \
+        order_by(PublishHistory.created_at.desc()).first()
+
+    # Move the data to the certified table, deleting any old published data in the process
+    move_published_data(sess, submission.submission_id)
+
+    # move files (locally we don't move but we still need to populate the published_files_history table)
+    file_manager.move_published_files(submission, publish_history, None, file_manager.is_local)
+
+    # set submission contents
+    submission.certifying_user_id = current_user_id
+    submission.publish_status_id = PUBLISH_STATUS_DICT['published']
+
+    if first_publish:
+        # update any other submissions by the same agency in the same quarter/period to point to this submission
+        unpub_subs = get_submissions_in_period(submission.cgac_code, submission.frec_code,
+                                               submission.reporting_fiscal_year, submission.reporting_fiscal_period,
+                                               submission.is_quarter_format, submission.submission_id,
+                                               filter_published='unpublished')
+        for unpub_sub in unpub_subs.all():
+            unpub_sub.published_submission_ids.append(submission.submission_id)
+            unpub_sub.test_submission = True
+        sess.commit()
+
+
+def publish_dabs_submission(submission, file_manager):
+    """ Publish a DABS submission (monthly only)
+
+        Args:
+            submission: the submission to be published
+            file_manager: a FileHandler object to be used to call move_published_files
+
+        Returns:
+            A JsonResponse containing the message "success" if successful, JsonResponse error containing the details of
+            the error if something went wrong
+    """
+    if submission.is_quarter_format:
+        return JsonResponse.error(ValueError('Quarterly submissions cannot be published separate from certification.'
+                                             ' Use the publish_and_certify_dabs_submission endpoint to publish and'
+                                             ' certify.'),
+                                  StatusCode.CLIENT_ERROR)
+    if submission.certified:
+        return JsonResponse.error(ValueError('Submissions that have been certified cannot be republished separately.'
+                                             ' Use the publish_and_certify_dabs_submission endpoint to republish.'),
+                                  StatusCode.CLIENT_ERROR)
+
+    try:
+        publish_checks(submission)
+    except ValueError as e:
+        return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
+
+    process_dabs_publish(submission, file_manager)
+    return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
 
 
 def certify_dabs_submission(submission, file_manager):
