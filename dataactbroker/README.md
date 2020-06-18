@@ -389,11 +389,11 @@ Possible HTTP Status Codes:
 - 403: Permission denied, user does not have permission to view this submission
 
 
-#### GET "/v1/check\_year\_period/"
-This endpoint checks to see if there are any published submissions for a given agency and fiscal period or quarter.
+#### GET "/v1/published\_submissions/"
+This endpoint returns a list of published submissions for a given agency and fiscal period or quarter.
 
 ##### Sample Request
-`/v1/check_year_period/`
+`/v1/published\_submissions/`
 
 ##### Request Params
 - `cgac_code`: (required if not FREC, string) CGAC of agency (null if FREC agency)
@@ -405,20 +405,23 @@ This endpoint checks to see if there are any published submissions for a given a
 ##### Response (JSON)
 ```
 {
-    "message": "Success"
-}
-```
-or
-```
-{
-    "message": "This period already has published submission(s) by this agency."
-    "submissionIds": [143, 145]
+    "published_submissions": [
+        {
+            "submission_id": 123,
+            "is_quarter": false
+        },
+        {
+            "submission_id": 234,
+            "is_quarter": false
+        },
+    ]
 }
 ```
 
 ##### Response Attributes
-- `message`: (string) indicates whether or not the agency is cleared to make a certifiable submission in this period or quarter.
-- `submissionIds`: ([integer]) ids of published submissions by said agency in the period requested. 
+- `published_submissions`: ([object]) each object represents a published submission by said agency in the period requested. 
+    - `submission_id`: (integer) an integer representing the ID of the submission
+    - `is_quarter`: (boolean) whether or not it is a quarter submission
 
 ##### Errors
 Possible HTTP Status Codes:

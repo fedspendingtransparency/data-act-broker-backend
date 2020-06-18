@@ -108,6 +108,10 @@ class FileTests(BaseTestAPI):
                                                                start_date='04/2015', end_date='06/2015',
                                                                is_quarter=False, number_of_errors=0)
 
+            cls.dup_test_monthly_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
+                                                                   start_date='04/2015', end_date='06/2015',
+                                                                   is_quarter=False, number_of_errors=0)
+
             cls.test_test_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
                                                             start_date='10/2015', end_date='12/2015',
                                                             is_quarter=False, number_of_errors=0,
@@ -800,36 +804,34 @@ class FileTests(BaseTestAPI):
                                       expect_errors=True)
         self.assertEqual(response.json['message'], 'Submissions that have been published cannot be deleted')
 
-    def test_check_year_period_success(self):
+    def test_published_submission_ids_empty(self):
         params = {'cgac_code': 'SYS',
                   'submission_id': '1',
                   'reporting_fiscal_year': '2015',
                   'reporting_fiscal_period': '3'}
-        response = self.app.get('/v1/check_year_period/', params, headers={'x-session-id': self.session_id},
+        response = self.app.get('/v1/published_submissions/', params, headers={'x-session-id': self.session_id},
                                 expect_errors=False)
-        self.assertEqual(response.json['message'], 'Success')
+        self.assertEqual(response.json['published_submissions'], [])
 
-    def test_check_year_period_already_published(self):
+    def test_published_submission_ids_populated(self):
         params = {'cgac_code': 'SYS',
                   'submission_id': '1',
                   'reporting_fiscal_year': '2015',
                   'reporting_fiscal_period': '12'}
 
-        response = self.app.get('/v1/check_year_period/', params, headers={'x-session-id': self.session_id},
-                                expect_errors=True)
-        self.assertEqual(response.json['message'], 'This period already has published submission(s) by this agency.')
-        self.assertEqual(response.json['submissionIds'], [self.test_published_submission_id])
+        response = self.app.get('/v1/published_submissions/', params, headers={'x-session-id': self.session_id},
+                                expect_errors=False)
+        self.assertEqual(response.json['published_submissions'][0]['submission_id'], self.test_published_submission_id)
 
-    def test_check_year_period_updated(self):
+    def test_published_submission_ids_updated(self):
         params = {'cgac_code': 'SYS',
                   'submission_id': '1',
                   'reporting_fiscal_year': '2016',
                   'reporting_fiscal_period': '12'}
 
-        response = self.app.get('/v1/check_year_period/', params, headers={'x-session-id': self.session_id},
-                                expect_errors=True)
-        self.assertEqual(response.json['message'], 'This period already has published submission(s) by this agency.')
-        self.assertEqual(response.json['submissionIds'], [self.test_updated_submission_id])
+        response = self.app.get('/v1/published_submissions/', params, headers={'x-session-id': self.session_id},
+                                expect_errors=False)
+        self.assertEqual(response.json['published_submissions'][0]['submission_id'], self.test_updated_submission_id)
 
     def test_certify_submission(self):
         post_json = {'submission_id': self.row_error_submission_id}
@@ -869,6 +871,25 @@ class FileTests(BaseTestAPI):
         response = self.app.post_json('/v1/certify_submission/', post_json, headers={'x-session-id': self.session_id},
                                       expect_errors=False)
         self.assertEqual(response.status_code, 200)
+
+        # prevent submission from certifying if there are already certified submissions in the period
+        insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['finished'],
+                   JOB_TYPE_DICT['csv_record_validation'], self.dup_test_monthly_submission_id, num_valid_rows=1)
+        insert_job(self.session, FILE_TYPE_DICT['program_activity'], JOB_STATUS_DICT['finished'],
+                   JOB_TYPE_DICT['csv_record_validation'], self.dup_test_monthly_submission_id, num_valid_rows=1)
+        post_json = {'submission_id': self.dup_test_monthly_submission_id}
+        response = self.app.post_json('/v1/certify_submission/', post_json, headers={'x-session-id': self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.json['message'], 'Test submissions cannot be certified')
+
+        # Testing the double check
+        dup_test_sub = self.session.query(Submission).filter_by(submission_id=self.dup_test_monthly_submission_id).one()
+        dup_test_sub.test_submission = False
+        self.session.commit()
+        post_json = {'submission_id': self.dup_test_monthly_submission_id}
+        response = self.app.post_json('/v1/certify_submission/', post_json, headers={'x-session-id': self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.json['message'], 'This period already has published submission(s) by this agency.')
 
     def test_list_certifications(self):
         post_json = {'submission_id': self.test_published_submission_id}
