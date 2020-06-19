@@ -8,7 +8,7 @@ from dataactbroker.handlers.fileHandler import (
     list_certifications, file_history_url, get_comments_file)
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
-    certify_dabs_submission, get_published_submissions_ids, get_submission_metadata, get_submission_data,
+    certify_dabs_submission, get_published_submission_ids, get_submission_metadata, get_submission_data,
     get_revalidation_threshold, get_latest_publication_period, revert_to_certified)
 from dataactbroker.decorators import convert_to_submission_id
 from dataactbroker.permissions import (requires_login, requires_submission_perms, requires_agency_perms,
@@ -229,7 +229,7 @@ def add_file_routes(app, is_local, server_path):
         cgac_code = kwargs.get('cgac_code')
         frec_code = kwargs.get('frec_code')
         is_quarter = kwargs.get('is_quarter')
-        return get_published_submissions_ids(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
+        return get_published_submission_ids(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
                                              is_quarter)
 
     @app.route("/v1/certify_submission/", methods=['POST'])
