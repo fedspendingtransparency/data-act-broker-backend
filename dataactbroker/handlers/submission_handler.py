@@ -930,6 +930,10 @@ def certify_dabs_submission(submission):
         return JsonResponse.error(ValueError('Submissions must be published before certification. Use the'
                                              ' publish_dabs_submission endpoint to publish first.'),
                                   StatusCode.CLIENT_ERROR)
+    if submission.certified:
+        return JsonResponse.error(ValueError('Submissions that have been certified cannot be recertified separately.'
+                                             ' Use the publish_and_certify_dabs_submission endpoint to recertify.'),
+                                  StatusCode.CLIENT_ERROR)
 
     try:
         process_dabs_certify(submission)
