@@ -532,7 +532,7 @@ def check_current_submission_page(submission):
 
 
 def get_published_submission_ids(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
-                                  is_quarter_format, submission_id=None):
+                                 is_quarter_format, submission_id=None):
     """ List any published submissions by the same agency in the same period
 
         Args:

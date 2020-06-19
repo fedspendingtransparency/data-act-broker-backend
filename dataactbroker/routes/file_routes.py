@@ -230,7 +230,7 @@ def add_file_routes(app, is_local, server_path):
         frec_code = kwargs.get('frec_code')
         is_quarter = kwargs.get('is_quarter')
         return get_published_submission_ids(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
-                                             is_quarter)
+                                            is_quarter)
 
     @app.route("/v1/certify_submission/", methods=['POST'])
     @convert_to_submission_id
