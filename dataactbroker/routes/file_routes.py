@@ -8,7 +8,7 @@ from dataactbroker.handlers.fileHandler import (
     list_certifications, file_history_url, get_comments_file)
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
-    publish_dabs_submission, certify_dabs_submission, publish_and_certify_dabs_submission, check_year_and_period,
+    publish_dabs_submission, certify_dabs_submission, publish_and_certify_dabs_submission, get_published_submission_ids,
     get_submission_metadata, get_submission_data, get_revalidation_threshold, get_latest_publication_period,
     revert_to_certified)
 from dataactbroker.decorators import convert_to_submission_id
@@ -218,19 +218,20 @@ def add_file_routes(app, is_local, server_path):
         """
         return delete_all_submission_data(submission)
 
-    @app.route("/v1/check_year_period/", methods=["GET"])
+    @app.route("/v1/published_submissions/", methods=["GET"])
     @requires_login
     @use_kwargs({'reporting_fiscal_year': webargs_fields.String(required=True),
                  'reporting_fiscal_period': webargs_fields.String(required=True),
                  'cgac_code': webargs_fields.String(),
                  'frec_code': webargs_fields.String(),
                  'is_quarter': webargs_fields.Bool()})
-    def check_year_period(reporting_fiscal_year, reporting_fiscal_period, **kwargs):
+    def get_published_submissions(reporting_fiscal_year, reporting_fiscal_period, **kwargs):
         """ Check if cgac (or frec) code, year, and quarter already has a published submission """
         cgac_code = kwargs.get('cgac_code')
         frec_code = kwargs.get('frec_code')
         is_quarter = kwargs.get('is_quarter')
-        return check_year_and_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period, is_quarter)
+        return get_published_submission_ids(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
+                                            is_quarter)
 
     @app.route('/v1/publish_dabs_submission/', methods=['POST'])
     @convert_to_submission_id

@@ -532,9 +532,9 @@ def check_current_submission_page(submission):
         return JsonResponse.error(ValueError('The submission ID returns no response'), StatusCode.CLIENT_ERROR)
 
 
-def check_year_and_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period, is_quarter_format,
-                          submission_id=None):
-    """ Check to see if there are any published submissions by the same agency in the same period
+def get_published_submission_ids(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
+                                 is_quarter_format, submission_id=None):
+    """ List any published submissions by the same agency in the same period
 
         Args:
             cgac_code: the CGAC code to check against or None if checking a FREC agency
@@ -546,8 +546,7 @@ def check_year_and_period(cgac_code, frec_code, reporting_fiscal_year, reporting
                 re-certified)
 
         Returns:
-            A JsonResponse containing a success message to indicate there are no existing submissions in the given
-            period or the error if there was one
+            A JsonResponse containing a list of the published submissions for that period
     """
     # We need either a cgac or a frec code for this function
     if not cgac_code and not frec_code:
@@ -555,14 +554,14 @@ def check_year_and_period(cgac_code, frec_code, reporting_fiscal_year, reporting
 
     pub_subs = get_submissions_in_period(cgac_code, frec_code, int(reporting_fiscal_year), int(reporting_fiscal_period),
                                          is_quarter_format, submission_id=submission_id, filter_published='published')
-
-    if pub_subs.count() > 0:
-        data = {
-            'message': 'This period already has published submission(s) by this agency.',
-            'submissionIds': [pub_sub.submission_id for pub_sub in pub_subs]
+    published_submissions = [
+        {
+            'submission_id': pub_sub.submission_id,
+            'is_quarter': pub_sub.is_quarter_format
         }
-        return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
-    return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
+        for pub_sub in pub_subs
+    ]
+    return JsonResponse.create(StatusCode.OK, {'published_submissions': published_submissions})
 
 
 def get_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period, is_quarter_format,
