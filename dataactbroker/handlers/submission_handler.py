@@ -531,9 +531,9 @@ def check_current_submission_page(submission):
         return JsonResponse.error(ValueError('The submission ID returns no response'), StatusCode.CLIENT_ERROR)
 
 
-def check_year_and_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period, is_quarter_format,
-                          submission_id=None):
-    """ Check to see if there are any published submissions by the same agency in the same period
+def get_published_submission_ids(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
+                                 is_quarter_format, submission_id=None):
+    """ List any published submissions by the same agency in the same period
 
         Args:
             cgac_code: the CGAC code to check against or None if checking a FREC agency
@@ -545,8 +545,7 @@ def check_year_and_period(cgac_code, frec_code, reporting_fiscal_year, reporting
                 re-certified)
 
         Returns:
-            A JsonResponse containing a success message to indicate there are no existing submissions in the given
-            period or the error if there was one
+            A JsonResponse containing a list of the published submissions for that period
     """
     # We need either a cgac or a frec code for this function
     if not cgac_code and not frec_code:
@@ -554,14 +553,14 @@ def check_year_and_period(cgac_code, frec_code, reporting_fiscal_year, reporting
 
     pub_subs = get_submissions_in_period(cgac_code, frec_code, int(reporting_fiscal_year), int(reporting_fiscal_period),
                                          is_quarter_format, submission_id=submission_id, filter_published='published')
-
-    if pub_subs.count() > 0:
-        data = {
-            'message': 'This period already has published submission(s) by this agency.',
-            'submissionIds': [pub_sub.submission_id for pub_sub in pub_subs]
+    published_submissions = [
+        {
+            'submission_id': pub_sub.submission_id,
+            'is_quarter': pub_sub.is_quarter_format
         }
-        return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
-    return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
+        for pub_sub in pub_subs
+    ]
+    return JsonResponse.create(StatusCode.OK, {'published_submissions': published_submissions})
 
 
 def get_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period, is_quarter_format,
@@ -797,11 +796,12 @@ def certify_dabs_submission(submission, file_manager):
     if blank_files > 0:
         return JsonResponse.error(ValueError('Cannot certify while file A or B is blank.'), StatusCode.CLIENT_ERROR)
 
-    response = check_year_and_period(submission.cgac_code, submission.frec_code, submission.reporting_fiscal_year,
-                                     submission.reporting_fiscal_period, is_quarter_format=submission.is_quarter_format,
-                                     submission_id=submission.submission_id)
+    pub_subs = get_submissions_in_period(submission.cgac_code, submission.frec_code, submission.reporting_fiscal_year,
+                                         submission.reporting_fiscal_period,
+                                         is_quarter_format=submission.is_quarter_format,
+                                         submission_id=submission.submission_id, filter_published='published')
 
-    if response.status_code == StatusCode.OK:
+    if pub_subs.count() == 0:
         first_publish = (submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
 
         # create the publish_history and certify_history entry
@@ -837,6 +837,13 @@ def certify_dabs_submission(submission, file_manager):
                 unpub_sub.published_submission_ids.append(submission.submission_id)
                 unpub_sub.test_submission = True
             sess.commit()
+
+        response = JsonResponse.create(StatusCode.OK, {'message': 'Success'})
+    else:
+        # This theoretically shouldn't happen as this submission should already be marked as a test submission
+        # upon creation or when the other submission publishes. However, double check couldn't hurt.
+        response = JsonResponse.create(StatusCode.CLIENT_ERROR, {'message': 'This period already has published'
+                                                                            ' submission(s) by this agency.'})
 
     return response
 
