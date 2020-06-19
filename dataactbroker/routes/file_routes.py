@@ -8,8 +8,9 @@ from dataactbroker.handlers.fileHandler import (
     list_certifications, file_history_url, get_comments_file)
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
-    publish_dabs_submission, certify_dabs_submission, check_year_and_period, get_submission_metadata,
-    get_submission_data, get_revalidation_threshold, get_latest_publication_period, revert_to_certified)
+    publish_dabs_submission, certify_dabs_submission, publish_and_certify_dabs_submission, check_year_and_period,
+    get_submission_metadata, get_submission_data, get_revalidation_threshold, get_latest_publication_period,
+    revert_to_certified)
 from dataactbroker.decorators import convert_to_submission_id
 from dataactbroker.permissions import (requires_login, requires_submission_perms, requires_agency_perms,
                                        requires_sub_agency_perms)
@@ -231,18 +232,25 @@ def add_file_routes(app, is_local, server_path):
         is_quarter = kwargs.get('is_quarter')
         return check_year_and_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period, is_quarter)
 
-    @app.route("/v1/certify_dabs_submission/", methods=['POST'])
-    @convert_to_submission_id
-    @requires_submission_perms('submitter', check_owner=False)
-    def certify_dabs_sub(submission):
-        return certify_dabs_submission(submission)
-
     @app.route('/v1/publish_dabs_submission/', methods=['POST'])
     @convert_to_submission_id
     @requires_submission_perms('submitter', check_owner=False)
     def publish_dabs_sub(submission):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return publish_dabs_submission(submission, file_manager)
+
+    @app.route("/v1/certify_dabs_submission/", methods=['POST'])
+    @convert_to_submission_id
+    @requires_submission_perms('submitter', check_owner=False)
+    def certify_dabs_sub(submission):
+        return certify_dabs_submission(submission)
+
+    @app.route('/v1/publish_and_certify_dabs_submission/', methods=['POST'])
+    @convert_to_submission_id
+    @requires_submission_perms('submitter', check_owner=False)
+    def publish_and_certify_dabs_sub(submission):
+        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+        return publish_and_certify_dabs_submission(submission, file_manager)
 
     @app.route("/v1/restart_validation/", methods=['POST'])
     @convert_to_submission_id

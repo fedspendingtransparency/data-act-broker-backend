@@ -747,6 +747,7 @@ def publish_checks(submission):
     if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
         raise ValueError('Submission has already been published')
 
+    # TODO actually set it to publishing one day
     if submission.publish_status_id in (PUBLISH_STATUS_DICT['publishing'], PUBLISH_STATUS_DICT['reverting']):
         raise ValueError('Submission is publishing or reverting')
 
@@ -938,118 +939,30 @@ def certify_dabs_submission(submission):
     return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
 
 
-def certify_and_publish_dabs_submission(submission, file_manager):
-    """ Certify a DABS submission
+def publish_and_certify_dabs_submission(submission, file_manager):
+    """ Publish and certify a DABS submission
 
         Args:
-            submission: the submission to be certified
+            submission: the submission to be published and certified
             file_manager: a FileHandler object to be used to call move_published_files
 
         Returns:
             A JsonResponse containing the message "success" if successful, JsonResponse error containing the details of
             the error if something went wrong
     """
-    # TODO: split most of this logic into publish vs certify and add whatever other checks are needed
-    current_user_id = g.user.user_id
+    try:
+        publish_checks(submission)
+    except ValueError as e:
+        return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
 
-    if not submission.publishable:
-        return JsonResponse.error(ValueError('Submission cannot be certified due to critical errors'),
-                                  StatusCode.CLIENT_ERROR)
+    process_dabs_publish(submission, file_manager)
 
-    if submission.test_submission:
-        return JsonResponse.error(ValueError('Test submissions cannot be certified'), StatusCode.CLIENT_ERROR)
+    try:
+        process_dabs_certify(submission)
+    except ValueError as e:
+        return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
 
-    if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
-        return JsonResponse.error(ValueError('Submission has already been certified'), StatusCode.CLIENT_ERROR)
-
-    if submission.publish_status_id in (PUBLISH_STATUS_DICT['publishing'], PUBLISH_STATUS_DICT['reverting']):
-        return JsonResponse.error(ValueError('Submission is certifying or reverting'), StatusCode.CLIENT_ERROR)
-
-    windows = get_windows()
-    for window in windows:
-        if window.block_certification:
-            return JsonResponse.error(ValueError(window.message), StatusCode.CLIENT_ERROR)
-
-    sess = GlobalDB.db().session
-    # Check revalidation threshold
-    last_validated = get_last_validated_date(submission.submission_id)
-    reval_thresh = get_revalidation_threshold()['revalidation_threshold']
-    if reval_thresh and reval_thresh >= last_validated:
-        return JsonResponse.error(ValueError('This submission has not been validated since before the revalidation '
-                                             'threshold ({}), it must be revalidated before certifying.'.
-                                             format(reval_thresh.replace('T', ' '))),
-                                  StatusCode.CLIENT_ERROR)
-
-    # Get the year/period of the submission and filter by them
-    sub_period = submission.reporting_fiscal_period
-    sub_year = submission.reporting_fiscal_year
-    sub_schedule = sess.query(SubmissionWindowSchedule).filter_by(year=sub_year, period=sub_period).\
-        one_or_none()
-
-    # If we don't have a submission window for this year/period, they can't submit
-    if not sub_schedule:
-        return JsonResponse.error(ValueError('No submission window for this year and period was found. If this is an '
-                                             'error, please contact the Service Desk.'), StatusCode.CLIENT_ERROR)
-
-    # Make sure everything was last validated after the start of the submission window
-    last_validated = datetime.strptime(last_validated, '%Y-%m-%dT%H:%M:%S')
-    if last_validated < sub_schedule.period_start:
-        return JsonResponse.error(ValueError('This submission was last validated or its D files generated before the '
-                                             'start of the submission window ({}). Please revalidate before '
-                                             'certifying.'.format(sub_schedule.period_start.strftime('%m/%d/%Y'))),
-                                  StatusCode.CLIENT_ERROR)
-
-    # Make sure neither A nor B is blank before allowing certification
-    blank_files = sess.query(Job).\
-        filter(Job.file_type_id.in_([FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity']]),
-               Job.number_of_rows_valid == 0, Job.job_type_id == JOB_TYPE_DICT['csv_record_validation'],
-               Job.submission_id == submission.submission_id).count()
-
-    if blank_files > 0:
-        return JsonResponse.error(ValueError('Cannot certify while file A or B is blank.'), StatusCode.CLIENT_ERROR)
-
-    response = check_year_and_period(submission.cgac_code, submission.frec_code, submission.reporting_fiscal_year,
-                                     submission.reporting_fiscal_period, is_quarter_format=submission.is_quarter_format,
-                                     submission_id=submission.submission_id)
-
-    if response.status_code == StatusCode.OK:
-        first_publish = (submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
-
-        # create the publish_history and certify_history entry
-        publish_history = PublishHistory(created_at=datetime.utcnow(), user_id=current_user_id,
-                                         submission_id=submission.submission_id)
-        certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=current_user_id,
-                                         submission_id=submission.submission_id)
-        sess.add_all([publish_history, certify_history])
-        sess.commit()
-
-        # get the publish_history entry including the PK
-        publish_history = sess.query(PublishHistory).filter_by(submission_id=submission.submission_id).\
-            order_by(PublishHistory.created_at.desc()).first()
-
-        # Move the data to the certified table, deleting any old published data in the process
-        move_published_data(sess, submission.submission_id)
-
-        # move files (locally we don't move but we still need to populate the published_files_history table)
-        file_manager.move_published_files(submission, publish_history, certify_history, file_manager.is_local)
-
-        # set submission contents
-        submission.certifying_user_id = current_user_id
-        submission.publish_status_id = PUBLISH_STATUS_DICT['published']
-        submission.certified = True
-
-        if first_publish:
-            # update any other submissions by the same agency in the same quarter/period to point to this submission
-            unpub_subs = get_submissions_in_period(submission.cgac_code, submission.frec_code,
-                                                   submission.reporting_fiscal_year, submission.reporting_fiscal_period,
-                                                   submission.is_quarter_format, submission.submission_id,
-                                                   filter_published='unpublished')
-            for unpub_sub in unpub_subs.all():
-                unpub_sub.published_submission_ids.append(submission.submission_id)
-                unpub_sub.test_submission = True
-            sess.commit()
-
-    return response
+    return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
 
 
 def revert_to_certified(submission, file_manager):
