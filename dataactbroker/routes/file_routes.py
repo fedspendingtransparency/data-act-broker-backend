@@ -231,12 +231,11 @@ def add_file_routes(app, is_local, server_path):
         is_quarter = kwargs.get('is_quarter')
         return check_year_and_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period, is_quarter)
 
-    @app.route("/v1/certify_submission/", methods=['POST'])
+    @app.route("/v1/certify_dabs_submission/", methods=['POST'])
     @convert_to_submission_id
     @requires_submission_perms('submitter', check_owner=False)
-    def certify_submission(submission):
-        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return certify_dabs_submission(submission, file_manager)
+    def certify_dabs_sub(submission):
+        return certify_dabs_submission(submission)
 
     @app.route('/v1/publish_dabs_submission/', methods=['POST'])
     @convert_to_submission_id

@@ -20,7 +20,7 @@ from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
 from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import (Job, Submission, SubmissionSubTierAffiliation, SubmissionWindow,
                                           CertifyHistory, PublishHistory, RevalidationThreshold,
-                                          SubmissionWindowSchedule, Comment, CertifiedComment)
+                                          SubmissionWindowSchedule, Comment, CertifiedComment, PublishedFilesHistory)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
                                               CertifiedAwardFinancial, FlexField, CertifiedFlexField, AwardProcurement,
@@ -789,13 +789,12 @@ def publish_checks(submission):
     if blank_files > 0:
         raise ValueError('Cannot publish while file A or B is blank.')
 
-    response = check_year_and_period(submission.cgac_code, submission.frec_code, submission.reporting_fiscal_year,
-                                     submission.reporting_fiscal_period, is_quarter_format=submission.is_quarter_format,
-                                     submission_id=submission.submission_id)
+    pub_subs = get_submissions_in_period(submission.cgac_code, submission.frec_code, submission.reporting_fiscal_year,
+                                         submission.reporting_fiscal_period, submission.is_quarter_format,
+                                         submission_id=submission.submission_id, filter_published='published')
 
-    if response.status_code != StatusCode.OK:
-        response_json = json.loads(response.data.decode('UTF-8'))
-        raise ValueError(response_json['message'])
+    if pub_subs.count() > 0:
+        raise ValueError('This period already has published submission(s) by this agency.')
 
 
 def process_dabs_publish(submission, file_manager):
@@ -843,6 +842,44 @@ def process_dabs_publish(submission, file_manager):
         sess.commit()
 
 
+def process_dabs_certify(submission):
+    """ Processes the actual certification of a DABS submission.
+
+        Args:
+            submission: the submission to be certified
+
+        Raises:
+            ValueError if this is somehow called without a PublishHistory associated with the submission ID or if there
+            is already a certification associated with the most recent publication
+    """
+    current_user_id = g.user.user_id
+    sess = GlobalDB.db().session
+
+    max_pub_history = sess.query(func.max(PublishHistory.publish_history_id).label('max_id')). \
+        filter(PublishHistory.submission_id == submission.submission_id).one()
+
+    if max_pub_history.max_id is None:
+        raise ValueError('There is no publish history associated with this submission. Submission must be published'
+                         ' before certification.')
+
+    pub_files_history = sess.query(PublishedFilesHistory).filter_by(publish_history_id=max_pub_history.max_id).all()
+
+    for pub_file in pub_files_history:
+        if pub_file.certify_history_id is not None:
+            raise ValueError('This submission already has a certification associated with the most recent publication.')
+
+    certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=current_user_id,
+                                     submission_id=submission.submission_id)
+    sess.add(certify_history)
+    sess.commit()
+
+    for pub_file in pub_files_history:
+        pub_file.certify_history_id = certify_history.certify_history_id
+
+    submission.certified = True
+    sess.commit()
+
+
 def publish_dabs_submission(submission, file_manager):
     """ Publish a DABS submission (monthly only)
 
@@ -873,7 +910,35 @@ def publish_dabs_submission(submission, file_manager):
     return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
 
 
-def certify_dabs_submission(submission, file_manager):
+def certify_dabs_submission(submission):
+    """ Certify a DABS submission (monthly only)
+
+        Args:
+            submission: the submission to be certified
+
+        Returns:
+            A JsonResponse containing the message "success" if successful, JsonResponse error containing the details of
+            the error if something went wrong
+    """
+    if submission.is_quarter_format:
+        return JsonResponse.error(ValueError('Quarterly submissions cannot be certified separate from publication.'
+                                             ' Use the publish_and_certify_dabs_submission endpoint to publish and'
+                                             ' certify.'),
+                                  StatusCode.CLIENT_ERROR)
+    if submission.publish_status_id != PUBLISH_STATUS_DICT['published']:
+        return JsonResponse.error(ValueError('Submissions must be published before certification. Use the'
+                                             ' publish_dabs_submission endpoint to publish first.'),
+                                  StatusCode.CLIENT_ERROR)
+
+    try:
+        process_dabs_certify(submission)
+    except ValueError as e:
+        return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
+
+    return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
+
+
+def certify_and_publish_dabs_submission(submission, file_manager):
     """ Certify a DABS submission
 
         Args:
