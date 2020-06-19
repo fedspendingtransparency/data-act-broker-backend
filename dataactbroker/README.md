@@ -426,7 +426,6 @@ This endpoint returns a list of published submissions for a given agency and fis
 ##### Errors
 Possible HTTP Status Codes:
 
-- 400: There are already published submissions in this period
 - 400: CGAC or FREC code not provided
 
 
