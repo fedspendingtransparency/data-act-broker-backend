@@ -6,7 +6,7 @@ from flask import Flask, g
 from unittest.mock import Mock
 
 from dataactbroker.handlers import fileHandler
-from dataactbroker.handlers.submission_handler import (certify_dabs_submission, get_submission_metadata,
+from dataactbroker.handlers.submission_handler import (publish_and_certify_dabs_submission, get_submission_metadata,
                                                        get_revalidation_threshold, get_submission_data,
                                                        move_published_data, get_latest_publication_period,
                                                        revert_to_certified)
@@ -478,8 +478,8 @@ def test_get_submission_data_dabs(database):
 
 
 @pytest.mark.usefixtures('job_constants')
-def test_certify_dabs_submission(database, monkeypatch):
-    """ Tests the certify_dabs_submission function """
+def test_publish_and_certify_dabs_submission(database, monkeypatch):
+    """ Tests the publish_and_certify_dabs_submission function """
     with Flask('test-app').app_context():
         now = datetime.datetime.utcnow()
         sess = database.session
@@ -514,7 +514,7 @@ def test_certify_dabs_submission(database, monkeypatch):
         monkeypatch.setattr(file_handler, 'move_published_files', Mock(return_value=True))
         monkeypatch.setattr(fileHandler.GlobalDB, 'db', Mock(return_value=database))
 
-        certify_dabs_submission(submission, file_handler)
+        publish_and_certify_dabs_submission(submission, file_handler)
 
         sess.refresh(submission)
         certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).one_or_none()
@@ -606,13 +606,13 @@ def test_published_submission_ids_month_same_periods(database, monkeypatch):
         monkeypatch.setattr(file_handler, 'move_published_files', Mock(return_value=True))
         monkeypatch.setattr(fileHandler.GlobalDB, 'db', Mock(return_value=database))
 
-        certify_dabs_submission(pub_mon1_submission, file_handler)
-        certify_dabs_submission(pub_mon2_submission, file_handler)
+        publish_and_certify_dabs_submission(pub_mon1_submission, file_handler)
+        publish_and_certify_dabs_submission(pub_mon2_submission, file_handler)
         # repeating one to ensure the values don't duplicate
         pub_mon2 = sess.query(Submission).filter(Submission.submission_id == pub_mon2_submission.submission_id).one()
         pub_mon2.publish_status_id = PUBLISH_STATUS_DICT['updated']
         sess.commit()
-        certify_dabs_submission(pub_mon2_submission, file_handler)
+        publish_and_certify_dabs_submission(pub_mon2_submission, file_handler)
 
         # monthly same period -> published monthly sub
         sess.refresh(non_pub_same_mon_submission)
@@ -690,7 +690,7 @@ def test_published_submission_ids_quarter_same_periods(database, monkeypatch):
         monkeypatch.setattr(file_handler, 'move_published_files', Mock(return_value=True))
         monkeypatch.setattr(fileHandler.GlobalDB, 'db', Mock(return_value=database))
 
-        certify_dabs_submission(pub_qtr_submission, file_handler)
+        publish_and_certify_dabs_submission(pub_qtr_submission, file_handler)
 
         # monthly same quarter -> published quarter submission
         sess.refresh(non_pub_same_mon_submission)
@@ -711,8 +711,10 @@ def test_published_submission_ids_quarter_same_periods(database, monkeypatch):
 
 
 @pytest.mark.usefixtures('job_constants')
-def test_certify_dabs_submission_revalidation_needed(database):
-    """ Tests the certify_dabs_submission function preventing certification when revalidation threshold isn't met """
+def test_publish_and_certify_dabs_submission_revalidation_needed(database):
+    """ Tests the publish_and_certify_dabs_submission function preventing certification when revalidation threshold
+        isn't met
+    """
     with Flask('test-app').app_context():
         now = datetime.datetime.utcnow()
         earlier = now - datetime.timedelta(days=1)
@@ -735,16 +737,16 @@ def test_certify_dabs_submission_revalidation_needed(database):
 
         g.user = user
         file_handler = fileHandler.FileHandler({}, is_local=True)
-        response = certify_dabs_submission(submission, file_handler)
+        response = publish_and_certify_dabs_submission(submission, file_handler)
         response_json = json.loads(response.data.decode('UTF-8'))
         assert response.status_code == 400
         assert response_json['message'] == 'This submission has not been validated since before the revalidation ' \
-                                           'threshold ({}), it must be revalidated before certifying.'. \
+                                           'threshold ({}), it must be revalidated before publishing.'. \
             format(now.strftime('%Y-%m-%d %H:%M:%S'))
 
 
 @pytest.mark.usefixtures('job_constants')
-def test_certify_dabs_submission_window_not_in_db(database):
+def test_publish_and_certify_dabs_submission_window_not_in_db(database):
     """ Tests that a DABS submission that doesnt have its year/period in the system won't be able to certify. """
     with Flask('test-app').app_context():
         now = datetime.datetime.utcnow()
@@ -767,7 +769,7 @@ def test_certify_dabs_submission_window_not_in_db(database):
 
         g.user = user
         file_handler = fileHandler.FileHandler({}, is_local=True)
-        response = certify_dabs_submission(submission, file_handler)
+        response = publish_and_certify_dabs_submission(submission, file_handler)
         response_json = json.loads(response.data.decode('UTF-8'))
         assert response.status_code == 400
         assert response_json['message'] == 'No submission window for this year and period was found. If this is an ' \
@@ -775,7 +777,7 @@ def test_certify_dabs_submission_window_not_in_db(database):
 
 
 @pytest.mark.usefixtures('job_constants')
-def test_certify_dabs_submission_window_too_early(database):
+def test_publish_and_certify_dabs_submission_window_too_early(database):
     """ Tests that a DABS submission that was last validated before the window start cannot be certified. """
     with Flask('test-app').app_context():
         now = datetime.datetime.utcnow()
@@ -800,17 +802,17 @@ def test_certify_dabs_submission_window_too_early(database):
 
         g.user = user
         file_handler = fileHandler.FileHandler({}, is_local=True)
-        response = certify_dabs_submission(submission, file_handler)
+        response = publish_and_certify_dabs_submission(submission, file_handler)
         response_json = json.loads(response.data.decode('UTF-8'))
         assert response.status_code == 400
         assert response_json['message'] == 'This submission was last validated or its D files generated before the ' \
                                            'start of the submission window ({}). Please revalidate before ' \
-                                           'certifying.'.\
+                                           'publishing.'.\
             format(sub_window.period_start.strftime('%m/%d/%Y'))
 
 
 @pytest.mark.usefixtures('job_constants')
-def test_certify_dabs_submission_window_multiple_thresholds(database):
+def test_publish_and_certify_dabs_submission_window_multiple_thresholds(database):
     """ Tests that a DABS submission is not affected by a different submission window than the one that matches its
         reporting_start_date.
     """
@@ -839,12 +841,12 @@ def test_certify_dabs_submission_window_multiple_thresholds(database):
 
         g.user = user
         file_handler = fileHandler.FileHandler({}, is_local=True)
-        response = certify_dabs_submission(submission, file_handler)
+        response = publish_and_certify_dabs_submission(submission, file_handler)
         assert response.status_code == 200
 
 
 @pytest.mark.usefixtures('job_constants')
-def test_certify_dabs_submission_reverting(database):
+def test_publish_and_certify_dabs_submission_reverting(database):
     """ Tests that a DABS submission cannot be certified while reverting. """
     with Flask('test-app').app_context():
         now = datetime.datetime.utcnow()
@@ -863,10 +865,10 @@ def test_certify_dabs_submission_reverting(database):
 
         g.user = user
         file_handler = fileHandler.FileHandler({}, is_local=True)
-        response = certify_dabs_submission(submission, file_handler)
+        response = publish_and_certify_dabs_submission(submission, file_handler)
         response_json = json.loads(response.data.decode('UTF-8'))
         assert response.status_code == 400
-        assert response_json['message'] == 'Submission is certifying or reverting'
+        assert response_json['message'] == 'Submission is publishing or reverting'
 
 
 @pytest.mark.usefixtures('error_constants')

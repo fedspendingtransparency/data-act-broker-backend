@@ -1,7 +1,6 @@
 import logging
 import os
 import math
-import json
 
 from datetime import datetime
 from flask import g

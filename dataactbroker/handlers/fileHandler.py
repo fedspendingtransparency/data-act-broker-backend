@@ -867,7 +867,8 @@ class FileHandler:
 
         # generate the published rows file and move all files
         # (locally we don't move but we still need to populate the published_files_history table)
-        FileHandler.move_published_files(FileHandler, submission, publish_history, certify_history, g.is_local)
+        FileHandler.move_published_files(FileHandler, submission, publish_history, certify_history.certify_history_id,
+                                         g.is_local)
 
         response_dict = {'submission_id': submission_id}
         return JsonResponse.create(StatusCode.OK, response_dict)
