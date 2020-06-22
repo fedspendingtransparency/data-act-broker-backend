@@ -900,6 +900,18 @@ def publish_dabs_submission(submission, file_manager):
                                              ' Use the publish_and_certify_dabs_submission endpoint to republish.'),
                                   StatusCode.CLIENT_ERROR)
 
+    # Get the year/period of the submission and filter by them
+    sess = GlobalDB.db().session
+    sub_period = submission.reporting_fiscal_period
+    sub_year = submission.reporting_fiscal_year
+    sub_schedule = sess.query(SubmissionWindowSchedule).filter_by(year=sub_year, period=sub_period).one_or_none()
+
+    # If this is a monthly submission and the certification deadline has passed they have to publish/certify together
+    if sub_schedule and sub_schedule.certification_deadline < datetime.utcnow():
+        return JsonResponse.error(ValueError('Monthly submissions past their certification deadline must be published'
+                                             ' and certified at the same time. Use the'
+                                             ' publish_and_certify_dabs_submission endpoint.'), StatusCode.CLIENT_ERROR)
+
     try:
         publish_checks(submission)
     except ValueError as e:
@@ -932,6 +944,18 @@ def certify_dabs_submission(submission):
         return JsonResponse.error(ValueError('Submissions that have been certified cannot be recertified separately.'
                                              ' Use the publish_and_certify_dabs_submission endpoint to recertify.'),
                                   StatusCode.CLIENT_ERROR)
+
+    # Get the year/period of the submission and filter by them
+    sess = GlobalDB.db().session
+    sub_period = submission.reporting_fiscal_period
+    sub_year = submission.reporting_fiscal_year
+    sub_schedule = sess.query(SubmissionWindowSchedule).filter_by(year=sub_year, period=sub_period).one_or_none()
+
+    # If this is a monthly submission and the certification deadline has passed they have to publish/certify together
+    if sub_schedule and sub_schedule.certification_deadline < datetime.utcnow():
+        return JsonResponse.error(ValueError('Monthly submissions past their certification deadline must be published'
+                                             ' and certified at the same time. Use the'
+                                             ' publish_and_certify_dabs_submission endpoint.'), StatusCode.CLIENT_ERROR)
 
     try:
         process_dabs_certify(submission)
