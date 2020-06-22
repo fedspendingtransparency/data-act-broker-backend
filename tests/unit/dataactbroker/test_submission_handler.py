@@ -7,16 +7,16 @@ from unittest.mock import Mock
 
 from dataactbroker.handlers import fileHandler
 from dataactbroker.handlers.submission_handler import (
-    publish_checks, process_dabs_publish, publish_and_certify_dabs_submission, get_submission_metadata,
-    get_revalidation_threshold, get_submission_data, move_published_data, get_latest_publication_period,
-    revert_to_certified)
+    publish_checks, process_dabs_publish, process_dabs_certify, publish_and_certify_dabs_submission,
+    get_submission_metadata, get_revalidation_threshold, get_submission_data, move_published_data,
+    get_latest_publication_period, revert_to_certified)
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT,
                                         FILE_STATUS_DICT)
 from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata, File
 from dataactcore.models.jobModels import (CertifyHistory, PublishHistory, CertifiedComment, Job, Submission,
-                                          PublishedFilesHistory, RevalidationThreshold)
+                                          PublishedFilesHistory)
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
                                               CertifiedAppropriation, CertifiedObjectClassProgramActivity,
                                               CertifiedAwardFinancial, FlexField, CertifiedFlexField)
@@ -882,6 +882,110 @@ def test_publish_checks_reverting(database):
         publish_checks(submission)
 
     assert str(val_error.value) == 'Submission is publishing or reverting'
+
+
+@pytest.mark.usefixtures('job_constants')
+def test_process_dabs_certify_success(database):
+    """ Tests that a DABS submission can be successfully certified and the certify info added to the published files
+        history.
+    """
+    with Flask('test-app').app_context():
+        now = datetime.datetime.utcnow()
+        earlier = now - datetime.timedelta(days=1)
+        sess = database.session
+
+        user = UserFactory()
+        cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
+        submission = SubmissionFactory(created_at=earlier, updated_at=earlier, cgac_code=cgac.cgac_code,
+                                       reporting_fiscal_period=3, reporting_fiscal_year=2017,
+                                       reporting_start_date='2016-10-01', is_quarter_format=False, publishable=True,
+                                       publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False,
+                                       number_of_errors=0, number_of_warnings=200, certifying_user_id=None)
+        sess.add_all([user, cgac, submission])
+        sess.commit()
+
+        pub_history = PublishHistory(submission_id=submission.submission_id)
+        sess.add(pub_history)
+        sess.commit()
+
+        pub_files = PublishedFilesHistory(publish_history_id=pub_history.publish_history_id,
+                                          certify_history_id=None,
+                                          submission_id=submission.submission_id, filename='old/test/file2.csv',
+                                          file_type_id=FILE_TYPE_DICT['appropriations'],
+                                          warning_filename='a/warning.csv')
+        sess.add(pub_files)
+        sess.commit()
+
+        g.user = user
+        process_dabs_certify(submission)
+        cert_hist = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).one_or_none()
+        assert cert_hist is not None
+        assert pub_files.certify_history_id == cert_hist.certify_history_id
+
+
+@pytest.mark.usefixtures('job_constants')
+def test_process_dabs_certify_no_publish_data(database):
+    """ Tests that trying to certify only when there is no published files history data throws an error """
+    with Flask('test-app').app_context():
+        now = datetime.datetime.utcnow()
+        earlier = now - datetime.timedelta(days=1)
+        sess = database.session
+
+        user = UserFactory()
+        cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
+        submission = SubmissionFactory(created_at=earlier, updated_at=earlier, cgac_code=cgac.cgac_code,
+                                       reporting_fiscal_period=3, reporting_fiscal_year=2017,
+                                       reporting_start_date='2016-10-01', is_quarter_format=False, publishable=True,
+                                       publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False,
+                                       number_of_errors=0, number_of_warnings=200, certifying_user_id=None)
+        sess.add_all([user, cgac, submission])
+        sess.commit()
+
+        g.user = user
+        with pytest.raises(ValueError) as val_error:
+            process_dabs_certify(submission)
+
+        assert str(val_error.value) == 'There is no publish history associated with this submission. Submission must' \
+                                       ' be published before certification.'
+
+
+@pytest.mark.usefixtures('job_constants')
+def test_process_dabs_certify_already_certified(database):
+    """ Tests that if this function is somehow reached without a new publication, it throws an error """
+    with Flask('test-app').app_context():
+        now = datetime.datetime.utcnow()
+        earlier = now - datetime.timedelta(days=1)
+        sess = database.session
+
+        user = UserFactory()
+        cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
+        submission = SubmissionFactory(created_at=earlier, updated_at=earlier, cgac_code=cgac.cgac_code,
+                                       reporting_fiscal_period=3, reporting_fiscal_year=2017,
+                                       reporting_start_date='2016-10-01', is_quarter_format=False, publishable=True,
+                                       publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False,
+                                       number_of_errors=0, number_of_warnings=200, certifying_user_id=None)
+        sess.add_all([user, cgac, submission])
+        sess.commit()
+
+        pub_history = PublishHistory(submission_id=submission.submission_id)
+        cert_history = CertifyHistory(submission_id=submission.submission_id)
+        sess.add_all([pub_history, cert_history])
+        sess.commit()
+
+        pub_files = PublishedFilesHistory(publish_history_id=pub_history.publish_history_id,
+                                          certify_history_id=cert_history.certify_history_id,
+                                          submission_id=submission.submission_id, filename='old/test/file2.csv',
+                                          file_type_id=FILE_TYPE_DICT['appropriations'],
+                                          warning_filename='a/warning.csv')
+        sess.add(pub_files)
+        sess.commit()
+
+        g.user = user
+        with pytest.raises(ValueError) as val_error:
+            process_dabs_certify(submission)
+
+        assert str(val_error.value) == 'This submission already has a certification associated with the most recent' \
+                                       ' publication.'
 
 
 @pytest.mark.usefixtures('error_constants')
