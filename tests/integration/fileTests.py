@@ -112,6 +112,16 @@ class FileTests(BaseTestAPI):
                                                                    start_date='04/2015', end_date='06/2015',
                                                                    is_quarter=False, number_of_errors=0)
 
+            cls.test_monthly_pub_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
+                                                                   start_date='09/2014', end_date='10/2014',
+                                                                   is_quarter=False, number_of_errors=0,
+                                                                   publish_status_id=PUBLISH_STATUS_DICT['published'])
+            cls.test_monthly_cert_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
+                                                                    start_date='10/2014', end_date='11/2014',
+                                                                    is_quarter=False, number_of_errors=0,
+                                                                    publish_status_id=PUBLISH_STATUS_DICT['published'],
+                                                                    certified=True)
+
             cls.test_test_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
                                                             start_date='10/2015', end_date='12/2015',
                                                             is_quarter=False, number_of_errors=0,
@@ -890,6 +900,49 @@ class FileTests(BaseTestAPI):
         response = self.app.post_json('/v1/publish_and_certify_dabs_submission/', post_json,
                                       headers={'x-session-id': self.session_id}, expect_errors=True)
         self.assertEqual(response.json['message'], 'This period already has published submission(s) by this agency.')
+
+    def test_publish_dabs_submission(self):
+        """ Tests the publish_dabs_submission endpoint"""
+        # Quarterly submissions cannot be published/certified separately
+        post_json = {'submission_id': self.test_published_submission_id}
+        response = self.app.post_json('/v1/publish_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Quarterly submissions cannot be published separate from'
+                                                   ' certification. Use the publish_and_certify_dabs_submission'
+                                                   ' endpoint to publish and certify.')
+
+        # Submissions that have been certified cannot be published individually again
+        post_json = {'submission_id': self.test_monthly_cert_submission_id}
+        response = self.app.post_json('/v1/publish_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Submissions that have been certified cannot be republished'
+                                                   ' separately. Use the publish_and_certify_dabs_submission endpoint'
+                                                   ' to republish.')
+
+    def test_certify_dabs_submission(self):
+        """ Tests the certify_dabs_submission endpoint"""
+        # Quarterly submissions cannot be published/certified separately
+        post_json = {'submission_id': self.test_published_submission_id}
+        response = self.app.post_json('/v1/certify_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Quarterly submissions cannot be certified separate from'
+                                                   ' publication. Use the publish_and_certify_dabs_submission'
+                                                   ' endpoint to publish and certify.')
+
+        # Submissions that have been certified cannot be certified individually again
+        post_json = {'submission_id': self.test_monthly_cert_submission_id}
+        response = self.app.post_json('/v1/certify_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Submissions that have been certified cannot be recertified'
+                                                   ' separately. Use the publish_and_certify_dabs_submission endpoint'
+                                                   ' to recertify.')
+
+        # Submissions that have not been published cannot be certified
+        post_json = {'submission_id': self.dup_test_monthly_submission_id}
+        response = self.app.post_json('/v1/certify_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Submissions must be published before certification. Use the'
+                                                   ' publish_dabs_submission endpoint to publish first.')
 
     def test_list_certifications(self):
         post_json = {'submission_id': self.test_published_submission_id}
