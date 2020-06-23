@@ -803,6 +803,8 @@ def process_dabs_publish(submission, file_manager):
             submission: the submission to be published
             file_manager: a FileHandler object to be used to call move_published_files
     """
+    publish_checks(submission)
+
     current_user_id = g.user.user_id
     sess = GlobalDB.db().session
 
@@ -913,11 +915,10 @@ def publish_dabs_submission(submission, file_manager):
                                              ' publish_and_certify_dabs_submission endpoint.'), StatusCode.CLIENT_ERROR)
 
     try:
-        publish_checks(submission)
+        process_dabs_publish(submission, file_manager)
     except ValueError as e:
         return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
 
-    process_dabs_publish(submission, file_manager)
     return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
 
 
@@ -977,11 +978,9 @@ def publish_and_certify_dabs_submission(submission, file_manager):
             the error if something went wrong
     """
     try:
-        publish_checks(submission)
+        process_dabs_publish(submission, file_manager)
     except ValueError as e:
         return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
-
-    process_dabs_publish(submission, file_manager)
 
     try:
         process_dabs_certify(submission)
