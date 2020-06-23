@@ -808,7 +808,7 @@ def test_move_published_files(database, monkeypatch):
     fh = fileHandler.FileHandler(Mock())
 
     # test local publication
-    fh.move_published_files(sub, pub_hist_local, cert_hist_local, True)
+    fh.move_published_files(sub, pub_hist_local, cert_hist_local.certify_history_id, True)
     local_id = pub_hist_local.publish_history_id
 
     # make sure we have the right number of history entries
@@ -833,7 +833,7 @@ def test_move_published_files(database, monkeypatch):
         format(sub.submission_id) in warning_cert_hist_files
 
     # test remote publication
-    fh.move_published_files(sub, pub_hist_remote, cert_hist_remote, False)
+    fh.move_published_files(sub, pub_hist_remote, cert_hist_remote.certify_history_id, False)
     remote_id = pub_hist_remote.publish_history_id
 
     c_cert_hist = sess.query(PublishedFilesHistory). \
