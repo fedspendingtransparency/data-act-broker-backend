@@ -914,7 +914,6 @@ def test_publish_dabs_submission_past_due(database):
 def test_certify_dabs_submission_past_due(database):
     """ Tests that a DABS submission cannot be certified without republishing if it is past its certification date. """
     now = datetime.datetime.utcnow()
-    earlier = now - datetime.timedelta(days=1)
     sess = database.session
 
     user = UserFactory()
