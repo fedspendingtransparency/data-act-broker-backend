@@ -557,6 +557,7 @@ This endpoint returns metadata for the requested submission.
     "published_submission_ids": [],
     "certified_submission": 2,
     "certified": false,
+    "certification_deadline": "2020-05-24",
     "fabs_submission": true,
     "fabs_meta": {
         "valid_rows": 1,
@@ -589,6 +590,7 @@ This endpoint returns metadata for the requested submission.
 - `published_submission_ids`: ([integer]) submission ids published in the same period or quarter by the same agency 
 - `certified_submission`: (integer) an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
 - `certified`: (boolean) whether the submission has been certified or not
+- `certification_deadline`: (string) represents the deadline for certification after which a submission is officially "late" to certify.
 - `fabs_submission`: (boolean) whether the submission is FABS or DABS (True for FABS)
 - `fabs_meta`: (object) data specific to FABS submissions (null for DABS submissions)
     - `publish_date`: (string) Date/time submission was published (YYYY-MM-DDTHH:mm:ss) (null if unpublished)
