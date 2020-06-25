@@ -11,7 +11,8 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (sum_number_of_errors_for_job_list, get_last_validated_date,
-                                                 get_fabs_meta, get_error_type, get_error_metrics_by_job_id)
+                                                 get_fabs_meta, get_error_type, get_error_metrics_by_job_id,
+                                                 get_certification_deadline)
 
 from dataactcore.models.lookups import (JOB_STATUS_DICT, PUBLISH_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT,
                                         FILE_TYPE_DICT)
@@ -150,6 +151,8 @@ def get_submission_metadata(submission):
     if test_sub.count() > 0:
         certified_submission = test_sub[0].submission_id
 
+    certification_deadline = get_certification_deadline(submission)
+
     return {
         'cgac_code': submission.cgac_code,
         'frec_code': submission.frec_code,
@@ -168,6 +171,7 @@ def get_submission_metadata(submission):
         'published_submission_ids': submission.published_submission_ids,
         'certified_submission': certified_submission,
         'certified': submission.certified,
+        'certification_deadline': str(certification_deadline) if certification_deadline else '',
         'fabs_submission': submission.d2_submission,
         'fabs_meta': fabs_meta
     }
