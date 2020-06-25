@@ -944,23 +944,23 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.json['message'], 'Submissions must be published before certification. Use the'
                                                    ' publish_dabs_submission endpoint to publish first.')
 
-    def test_list_certifications(self):
-        post_json = {'submission_id': self.test_published_submission_id}
-        response = self.app.post_json('/v1/list_certifications/', post_json, headers={'x-session-id': self.session_id})
+    def test_list_history(self):
+        params = {'submission_id': self.test_published_submission_id}
+        response = self.app.get('/v1/list_history/', params, headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(len(response.json['certifications']), 0)
 
-        post_json = {'submission_id': self.test_fabs_submission_id}
-        response = self.app.post_json('/v1/list_certifications/', post_json, headers={'x-session-id': self.session_id},
-                                      expect_errors=True)
+        params = {'submission_id': self.test_fabs_submission_id}
+        response = self.app.get('/v1/list_history/', params, headers={'x-session-id': self.session_id},
+                                expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'FABS submissions do not have a certification history')
+        self.assertEqual(response.json['message'], 'FABS submissions do not have a publication history')
 
-        post_json = {'submission_id': self.test_unpublished_submission_id}
-        response = self.app.post_json('/v1/list_certifications/', post_json, headers={'x-session-id': self.session_id},
-                                      expect_errors=True)
+        params = {'submission_id': self.test_unpublished_submission_id}
+        response = self.app.get('/v1/list_history/', params, headers={'x-session-id': self.session_id},
+                                expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'This submission has no certification history')
+        self.assertEqual(response.json['message'], 'This submission has no publication history')
 
     def test_get_certified_file(self):
         sess = GlobalDB.db().session

@@ -1752,6 +1752,58 @@ def list_submissions(page, limit, published, sort='modified', order='desc', is_f
     })
 
 
+def process_history_list(history_list, list_type):
+    """ Processes gathering a file history list for either publish or certify history.
+
+        Args:
+            history_list: the PublishHistory or CertifyHistory list to run through
+            list_type: whether the list being processed is publish or certify
+
+        Returns:
+            The list with details of the file history
+    """
+    sess = GlobalDB.db().session
+    processed_list = []
+
+    for history in history_list:
+        user = sess.query(User).filter_by(user_id=history.user_id).one()
+
+        file_history_query = sess.query(PublishedFilesHistory)
+        if list_type == 'certify':
+            file_history_query = file_history_query.filter_by(certify_history_id=history.certify_history_id)
+        else:
+            file_history_query = file_history_query.filter_by(publish_history_id=history.publish_history_id)
+        file_history = file_history_query.all()
+        history_files = []
+
+        for file in file_history:
+            # if there's a filename, add it to the list
+            if file.filename is not None:
+                history_files.append({
+                    'published_files_history_id': file.published_files_history_id,
+                    'filename': file.filename.split('/')[-1],
+                    'is_warning': False,
+                    'comment': file.comment
+                })
+
+            # if there's a warning file, add it to the list
+            if file.warning_filename is not None:
+                history_files.append({
+                    'published_files_history_id': file.published_files_history_id,
+                    'filename': file.warning_filename.split('/')[-1],
+                    'is_warning': True,
+                    'comment': None
+                })
+
+        processed_list.append({
+            '{}_date'.format(list_type): history.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            '{}ing_user'.format(list_type): {'name': user.name, 'user_id': history.user_id},
+            '{}ed_files'.format(list_type if list_type == 'publish' else 'certifi'): history_files
+        })
+
+    return processed_list
+
+
 def list_history(submission):
     """ List all publications and certifications for a single submission including the file history that goes with them.
 
@@ -1778,64 +1830,9 @@ def list_history(submission):
     if len(publish_history) == 0:
         return JsonResponse.error(ValueError('This submission has no publication history'), StatusCode.CLIENT_ERROR)
 
-    # get the details for each of the publications (and any associated certifications
-    publications = []
-    certifications = []
-    for history in publish_history:
-        publishing_user = sess.query(User).filter_by(user_id=history.user_id).one()
-
-        # get all published_files_history for this certification
-        file_history = sess.query(PublishedFilesHistory).filter_by(publish_history_id=history.publish_history_id).all()
-        is_certified = file_history[0].certify_history_id is not None
-        published_files = []
-        certified_files = []
-        for file in file_history:
-            # if there's a filename, add it to the list
-            if file.filename is not None:
-                history_file_content = {
-                    'published_files_history_id': file.published_files_history_id,
-                    'filename': file.filename.split('/')[-1],
-                    'is_warning': False,
-                    'comment': file.comment
-                }
-                published_files.append(history_file_content)
-
-                # If there's a certify history associated with this publish history, add it too
-                if is_certified:
-                    certified_files.append(history_file_content)
-
-            # if there's a warning file, add it to the list
-            if file.warning_filename is not None:
-                history_warning_file_content = {
-                    'published_files_history_id': file.published_files_history_id,
-                    'filename': file.warning_filename.split('/')[-1],
-                    'is_warning': True,
-                    'comment': None
-                }
-                published_files.append(history_warning_file_content)
-
-                # If there's a certify history associated with this publish history, add it too
-                if is_certified:
-                    certified_files.append(history_warning_file_content)
-
-        # after adding all certified files to the history, add the entire history entry to the certifications list
-        publications.append({
-            'publish_date': history.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-            'publishing_user': {'name': publishing_user.name, 'user_id': history.user_id},
-            'published_files': published_files
-        })
-
-        # Also update based on certify history if that's the case
-        if is_certified:
-            certify_history = sess.query(CertifyHistory).\
-                filter_by(certify_history_id=file_history[0].certify_history_id).one()
-            certifying_user = sess.query(User).filter_by(user_id=certify_history.user_id).one()
-
-            certifications.append({
-                'certify_date': certify_history.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                'certifying_user': {'name': certifying_user.name, 'user_id': certify_history.user_id},
-                'certified_files': certified_files
-            })
+    # get the details for each of the publications/certifications
+    publications = process_history_list(publish_history, 'publish')
+    certifications = process_history_list(certify_history, 'certify')
 
     return JsonResponse.create(StatusCode.OK, {'submission_id': submission.submission_id,
                                                'publications': publications,
