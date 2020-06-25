@@ -5,7 +5,7 @@ from webargs.flaskparser import use_kwargs
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler, get_upload_file_url,
     get_detached_upload_file_url, get_submission_comments, submission_report_url, update_submission_comments,
-    list_certifications, file_history_url, get_comments_file)
+    list_history, file_history_url, get_comments_file)
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
     publish_dabs_submission, certify_dabs_submission, publish_and_certify_dabs_submission, get_published_submission_ids,
@@ -100,12 +100,12 @@ def add_file_routes(app, is_local, server_path):
         filters = kwargs.get('filters')
         return list_submissions_handler(page, limit, certified, sort, order, fabs, filters)
 
-    @app.route("/v1/list_certifications/", methods=["POST"])
+    @app.route("/v1/list_history/", methods=['GET'])
     @convert_to_submission_id
     @requires_submission_perms('reader')
-    def submission_list_certifications(submission):
-        """ List all certifications for a specific submission """
-        return list_certifications(submission)
+    def submission_list_history(submission):
+        """ List all publish and certify history for a specific submission """
+        return list_history(submission)
 
     @app.route("/v1/get_certified_file/", methods=["POST"])
     @use_kwargs({
