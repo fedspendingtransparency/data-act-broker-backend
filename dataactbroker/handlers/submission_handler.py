@@ -340,7 +340,7 @@ def get_submission_status(submission, jobs):
         elif submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
             status = 'certified' if submission.certified else 'published'
         elif submission.publish_status_id == PUBLISH_STATUS_DICT['updated']:
-            status = 'updated_recertify' if submission.certified else 'updated_republish'
+            status = 'updated'
 
     # Check if submission has errors
     if submission.number_of_errors is not None and submission.number_of_errors > 0:
