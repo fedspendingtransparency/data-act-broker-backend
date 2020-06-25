@@ -1349,7 +1349,7 @@ This endpoint lists submissions for all agencies for which the current user is a
     - `reporting_end`: reporting end date
     - `agency`: agency name
     - `submitted_by`: name of user that created the submission
-    - `certified_date`: latest certified date
+    - `published_date`: latest published date
     - `quarterly_submission`: quarterly submission or not
 - `order`: (string) the sort order. Defaults to `desc` if not provided. Valid values are:
     - `desc`
@@ -1384,8 +1384,8 @@ This endpoint lists submissions for all agencies for which the current user is a
       "publish_status": "published",
       "test_submission": false,
       "published_submission_ids": [],
-      "certifying_user": "Certifier",
-      "certified_on": "2016-08-30 12:53:37.053424",
+      "publishing_user": "Certifier",
+      "published_on": "2016-08-30 12:53:37.053424",
       "quarterly_submission": true,
       "certification_deadline": "2016-10-05",
       "certified": true,
@@ -1406,8 +1406,8 @@ This endpoint lists submissions for all agencies for which the current user is a
       "publish_status": "unpublished",
       "test_submission": false,
       "published_submission_ids": [],
-      "certifying_user": "",
-      "certified_on": "",
+      "publishing_user": "",
+      "published_on": "",
       "quarterly_submission": true,
       "certification_deadline": "2015-10-05",
       "certified": true,
@@ -1442,6 +1442,8 @@ This endpoint lists submissions for all agencies for which the current user is a
         - `validation_successful_warnings`
         - `certified`
         - `validation_errors`
+        - `updated`
+        - `published`
     - `last_modified`: (string) the last time/date the submission was modified in any way (`YYYY-MM-DD HH:mm:ss`)
     - `publish_status`: (stringr) the publish status of the submission. Possible values are:
         - `unpublished`
@@ -1450,9 +1452,9 @@ This endpoint lists submissions for all agencies for which the current user is a
         - `publishing`
     - `test_submission`: (boolean) whether the submission is a test submission
     - `published_submission_ids`: ([integer]) submission ids published in the same period or quarter by the same agency 
-    - `certifying_user`: (string) the name of the last user to certify the submission
+    - `publishing_user`: (string) the name of the last user to publish the submission
     - `certified`: (boolean) whether the submission has been certified or not
-    - `certified_on`: (string) the last time/date the submission was certified. (`YYYY-MM-DD HH:mm:ss`)
+    - `published_on`: (string) the last time/date the submission was published. (`YYYY-MM-DD HH:mm:ss`)
     - `quarterly_submission`: (boolean) whether the submission is quarterly
     - `certification_deadline `: (string) the last date of the submission window, when the certification is due
     - `time_period`: (string) the time frame for the submission
