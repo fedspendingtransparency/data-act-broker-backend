@@ -75,6 +75,7 @@ def test_get_submission_metadata_quarterly_dabs_cgac(database):
         'published_submission_ids': [],
         'certified_submission': None,
         'certified': False,
+        'certification_deadline': '',
         'fabs_submission': False,
         'fabs_meta': None
     }
@@ -118,6 +119,7 @@ def test_get_submission_metadata_quarterly_dabs_frec(database):
         'published_submission_ids': [],
         'certified_submission': None,
         'certified': True,
+        'certification_deadline': '',
         'fabs_submission': False,
         'fabs_meta': None
     }
@@ -162,6 +164,7 @@ def test_get_submission_metadata_monthly_dabs(database):
         'published_submission_ids': [],
         'certified_submission': None,
         'certified': False,
+        'certification_deadline': '',
         'fabs_submission': False,
         'fabs_meta': None
     }
@@ -207,6 +210,7 @@ def test_get_submission_metadata_unpublished_fabs(database):
         'published_submission_ids': [],
         'certified_submission': None,
         'certified': False,
+        'certification_deadline': '',
         'fabs_submission': True,
         'fabs_meta': {'publish_date': None, 'published_file': None, 'total_rows': 0, 'valid_rows': 0}
     }
@@ -258,6 +262,7 @@ def test_get_submission_metadata_published_fabs(database):
         'published_submission_ids': [],
         'certified_submission': None,
         'certified': False,
+        'certification_deadline': '',
         'fabs_submission': True,
         'fabs_meta': {
             'publish_date': now_plus_10.strftime('%Y-%m-%dT%H:%M:%S'),
@@ -311,6 +316,7 @@ def test_get_submission_metadata_test_submission(database):
         'published_submission_ids': [1],
         'certified_submission': 1,
         'certified': False,
+        'certification_deadline': '',
         'fabs_submission': False,
         'fabs_meta': None
     }
