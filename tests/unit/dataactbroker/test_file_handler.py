@@ -927,6 +927,7 @@ def test_list_history(database):
 
     has_file_list = response_dict['certifications'][0]
     empty_file_list = response_dict['certifications'][1]
+    pub_list = response_dict['publications'][0]
 
     # asserts for certification with files associated
     assert len(has_file_list['certified_files']) == 4
@@ -939,6 +940,12 @@ def test_list_history(database):
 
     # asserts for certification without files associated
     assert len(empty_file_list['certified_files']) == 0
+
+    # asserts for publications
+    assert len(pub_list['published_files']) == 4
+    assert pub_list['published_files'][0]['is_warning'] is False
+    assert pub_list['published_files'][0]['filename'] == 'file_a.csv'
+    assert pub_list['published_files'][0]['comment'] == 'A has a comment'
 
 
 def test_file_history_url(database, monkeypatch):
