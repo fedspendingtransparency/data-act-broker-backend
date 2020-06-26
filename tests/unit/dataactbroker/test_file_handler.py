@@ -30,13 +30,13 @@ UploadFile.save = lambda x, y: True
 
 
 def list_submissions_result(is_fabs=False):
-    json_response = fileHandler.list_submissions(1, 10, "mixed", is_fabs=is_fabs)
+    json_response = fileHandler.list_submissions(1, 10, 'mixed', is_fabs=is_fabs)
     assert json_response.status_code == 200
     return json.loads(json_response.get_data().decode('UTF-8'))
 
 
 def list_submissions_sort(category, order):
-    json_response = fileHandler.list_submissions(1, 10, "mixed", category, order)
+    json_response = fileHandler.list_submissions(1, 10, 'mixed', category, order)
     assert json_response.status_code == 200
     return json.loads(json_response.get_data().decode('UTF-8'))
 
@@ -53,7 +53,7 @@ def mock_create_submission(sess, monkeypatch, request_params):
     return new_sub
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_create_submission_already_pub_mon(database, monkeypatch):
     """ Ensure submission is appropriately populated upon creation with monthly submissions already published """
     sess = database.session
@@ -137,7 +137,7 @@ def test_create_submission_already_pub_mon(database, monkeypatch):
     assert new_qtr_diff_sub.test_submission is False
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_create_submission_already_pub_qtr(database, monkeypatch):
     """ Ensure submission is appropriately populated upon creation with monthly submissions already published """
     sess = database.session
@@ -218,7 +218,7 @@ def test_create_submission_already_pub_qtr(database, monkeypatch):
     assert new_qtr_diff_sub.test_submission is False
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_list_submissions_sort_success(database, monkeypatch):
     user1 = UserFactory(user_id=1, name='Oliver Queen', website_admin=True)
     user2 = UserFactory(user_id=2, name='Barry Allen')
@@ -298,7 +298,7 @@ def test_list_submissions_sort_success(database, monkeypatch):
     delete_models(database, [user1, user2, sub1, sub2, sub3, sub4, sub5])
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_list_submissions_success(database, monkeypatch):
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, number_of_warnings=1, publish_status_id=1)
@@ -307,7 +307,7 @@ def test_list_submissions_success(database, monkeypatch):
     monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
     result = list_submissions_result()
     assert result['total'] == 1
-    assert result['submissions'][0]['status'] == "validation_successful_warnings"
+    assert result['submissions'][0]['status'] == 'validation_successful_warnings'
     delete_models(database, [user, sub])
 
     user = UserFactory(user_id=1)
@@ -318,7 +318,7 @@ def test_list_submissions_success(database, monkeypatch):
 
     result = list_submissions_result()
     assert result['total'] == 1
-    assert result['submissions'][0]['status'] == "validation_successful"
+    assert result['submissions'][0]['status'] == 'validation_successful'
     delete_models(database, [user, sub, job])
 
     user = UserFactory(user_id=1)
@@ -329,7 +329,7 @@ def test_list_submissions_success(database, monkeypatch):
 
     result = list_submissions_result()
     assert result['total'] == 1
-    assert result['submissions'][0]['status'] == "running"
+    assert result['submissions'][0]['status'] == 'running'
     delete_models(database, [user, sub, job])
 
     user = UserFactory(user_id=1)
@@ -340,7 +340,7 @@ def test_list_submissions_success(database, monkeypatch):
 
     result = list_submissions_result()
     assert result['total'] == 1
-    assert result['submissions'][0]['status'] == "waiting"
+    assert result['submissions'][0]['status'] == 'waiting'
     delete_models(database, [user, sub, job])
 
     user = UserFactory(user_id=1)
@@ -351,7 +351,7 @@ def test_list_submissions_success(database, monkeypatch):
 
     result = list_submissions_result()
     assert result['total'] == 1
-    assert result['submissions'][0]['status'] == "ready"
+    assert result['submissions'][0]['status'] == 'ready'
     delete_models(database, [user, sub, job])
 
     user = UserFactory(user_id=1)
@@ -363,8 +363,8 @@ def test_list_submissions_success(database, monkeypatch):
 
     result = list_submissions_result(is_fabs=True)
     assert result['total'] == 1
-    assert result['submissions'][0]['status'] == "ready"
-    assert result['submissions'][0]['time_period'] == ""
+    assert result['submissions'][0]['status'] == 'ready'
+    assert result['submissions'][0]['time_period'] == ''
     delete_models(database, [user, sub, job])
 
     user = UserFactory(user_id=1)
@@ -407,7 +407,7 @@ def test_list_submissions_success(database, monkeypatch):
     delete_models(database, [user, sub, job])
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_list_submissions_failure(database, monkeypatch):
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, number_of_errors=1, publish_status_id=1)
@@ -416,7 +416,7 @@ def test_list_submissions_failure(database, monkeypatch):
     monkeypatch.setattr(filters_helper, 'g', Mock(user=user))
     result = list_submissions_result()
     assert result['total'] == 1
-    assert result['submissions'][0]['status'] == "validation_errors"
+    assert result['submissions'][0]['status'] == 'validation_errors'
     delete_models(database, [user, sub])
 
     user = UserFactory(user_id=1)
@@ -427,7 +427,7 @@ def test_list_submissions_failure(database, monkeypatch):
 
     result = list_submissions_result()
     assert result['total'] == 1
-    assert result['submissions'][0]['status'] == "failed"
+    assert result['submissions'][0]['status'] == 'failed'
     delete_models(database, [user, sub, job])
 
     user = UserFactory(user_id=1)
@@ -438,11 +438,11 @@ def test_list_submissions_failure(database, monkeypatch):
 
     result = list_submissions_result()
     assert result['total'] == 1
-    assert result['submissions'][0]['status'] == "file_errors"
+    assert result['submissions'][0]['status'] == 'file_errors'
     delete_models(database, [user, sub, job])
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_list_submissions_detached(database, monkeypatch):
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
@@ -461,10 +461,11 @@ def test_list_submissions_detached(database, monkeypatch):
 
 
 @pytest.mark.usefixtures('user_constants')
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_list_submissions_permissions(database, monkeypatch):
-    """Verify that the user must be in the same CGAC group, the submission's
-    owner, or website admin to see the submission"""
+    """ Verify that the user must be in the same CGAC group, the submission's owner, or website admin to see the
+        submission
+    """
     cgac1, cgac2 = CGACFactory(), CGACFactory()
     user1, user2 = UserFactory.with_cgacs(cgac1), UserFactory()
     database.session.add_all([cgac1, cgac2, user1, user2])
@@ -495,7 +496,7 @@ def test_list_submissions_permissions(database, monkeypatch):
     assert list_submissions_result()['total'] == 1
 
 
-@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
+@pytest.mark.usefixtures('job_constants', 'broker_files_tmp_dir')
 def test_comments(database):
     """ Verify that we can add, retrieve, and update submission comments. Not quite a unit test as it covers a few
         functions in sequence.
@@ -545,7 +546,7 @@ def test_comments(database):
     }
 
 
-@pytest.mark.usefixtures("job_constants", "broker_files_tmp_dir")
+@pytest.mark.usefixtures('job_constants', 'broker_files_tmp_dir')
 def test_get_comments_file(database):
     """ Test getting a URL for the comments file """
 
@@ -589,7 +590,7 @@ good_dates = [
 ]
 
 
-@pytest.mark.parametrize("start_date, end_date, quarter_flag, submission", good_dates)
+@pytest.mark.parametrize('start_date, end_date, quarter_flag, submission', good_dates)
 def test_submission_good_dates(start_date, end_date, quarter_flag, submission):
     fh = fileHandler.FileHandler(Mock())
     date_format = '%m/%Y'
@@ -625,7 +626,7 @@ bad_dates = [
 ]
 
 
-@pytest.mark.parametrize("start_date, end_date, quarter_flag, submission", bad_dates)
+@pytest.mark.parametrize('start_date, end_date, quarter_flag, submission', bad_dates)
 def test_submission_bad_dates(start_date, end_date, quarter_flag, submission):
     """Verify that submission date checks fail on bad input"""
     # all dates must be in mm/yyyy format
@@ -637,7 +638,7 @@ def test_submission_bad_dates(start_date, end_date, quarter_flag, submission):
         fh.check_submission_dates(start_date, end_date, quarter_flag, submission)
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_submission_to_dict_for_status(database):
     cgac = CGACFactory(cgac_code='abcdef', agency_name='Age')
     sub = SubmissionFactory(cgac_code='abcdef', number_of_errors=1234, publish_status_id=1)
@@ -676,42 +677,42 @@ def test_submission_report_url_s3(monkeypatch):
 def test_build_file_map_string(monkeypatch):
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
     upload_files = []
-    file_type_list = ["fabs", "appropriations", "award_financial", "program_activity"]
-    file_dict = {"fabs": "fabs_file.csv",
-                 "appropriations": "appropriations.csv",
-                 "award_financial": "award_financial.csv",
-                 "program_activity": "program_activity.csv"}
-    monkeypatch.setattr(S3Handler, 'get_timestamped_filename', Mock(side_effect=lambda x: "123_" + x))
+    file_type_list = ['fabs', 'appropriations', 'award_financial', 'program_activity']
+    file_dict = {'fabs': 'fabs_file.csv',
+                 'appropriations': 'appropriations.csv',
+                 'award_financial': 'award_financial.csv',
+                 'program_activity': 'program_activity.csv'}
+    monkeypatch.setattr(S3Handler, 'get_timestamped_filename', Mock(side_effect=lambda x: '123_' + x))
     submission = SubmissionFactory(submission_id=3)
     fh = fileHandler.FileHandler({})
     fh.build_file_map(file_dict, file_type_list, upload_files, submission)
     for file in upload_files:
-        assert file.upload_name == "3/123_"+file.file_name
+        assert file.upload_name == '3/123_'+file.file_name
 
 
 def test_build_file_map_file(monkeypatch):
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
     upload_files = []
-    file_type_list = ["fabs", "appropriations", "award_financial", "program_activity"]
-    fabs_file = io.BytesIO(b"something")
+    file_type_list = ['fabs', 'appropriations', 'award_financial', 'program_activity']
+    fabs_file = io.BytesIO(b'something')
     fabs_file.filename = 'fabs.csv'
-    approp_file = io.BytesIO(b"something")
+    approp_file = io.BytesIO(b'something')
     approp_file.filename = 'approp.csv'
-    pa_file = io.BytesIO(b"something")
+    pa_file = io.BytesIO(b'something')
     pa_file.filename = 'pa.csv'
-    award_file = io.BytesIO(b"something")
+    award_file = io.BytesIO(b'something')
     award_file.filename = 'award.csv'
-    file_dict = {"fabs": fabs_file, "award_financial": award_file, "program_activity": pa_file,
-                 "appropriations": approp_file}
-    monkeypatch.setattr(S3Handler, 'get_timestamped_filename', Mock(side_effect=lambda x: "123_" + x))
+    file_dict = {'fabs': fabs_file, 'award_financial': award_file, 'program_activity': pa_file,
+                 'appropriations': approp_file}
+    monkeypatch.setattr(S3Handler, 'get_timestamped_filename', Mock(side_effect=lambda x: '123_' + x))
     submission = SubmissionFactory(submission_id=3)
     fh = fileHandler.FileHandler({})
     fh.build_file_map(file_dict, file_type_list, upload_files, submission)
     for file in upload_files:
-        assert file.upload_name == "3/123_"+file.file_name
+        assert file.upload_name == '3/123_'+file.file_name
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_get_upload_file_url_local(database, monkeypatch, tmpdir):
     """ Test getting the url of the uploaded file locally. """
     file_path = str(tmpdir) + os.path.sep
@@ -750,7 +751,7 @@ def test_get_upload_file_url_invalid_for_type(database):
     assert response['message'] == 'Invalid file type for this submission'
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_get_upload_file_url_no_file(database):
     """ Test that a proper error is thrown when an upload job doesn't have a file associated with it
         get_upload_file_url.
@@ -767,7 +768,7 @@ def test_get_upload_file_url_no_file(database):
     assert response['message'] == 'No file uploaded or generated for this type'
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_get_upload_file_url_s3(database, monkeypatch):
     """ Test getting the url of the uploaded file non-locally. """
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False, 'submission_bucket_mapping': 'test/path'})
@@ -791,7 +792,7 @@ def test_get_upload_file_url_s3(database, monkeypatch):
     )
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_move_published_files(database, monkeypatch):
     # set up cgac and submission
     cgac = CGACFactory(cgac_code='zyxwv', agency_name='Test')
@@ -809,29 +810,29 @@ def test_move_published_files(database, monkeypatch):
 
     finished_job = JOB_STATUS_DICT['finished']
     upload_job = JOB_TYPE_DICT['file_upload']
-    appropriations_job = JobFactory(submission=sub, filename="/path/to/appropriations/file_a.csv",
+    appropriations_job = JobFactory(submission=sub, filename='/path/to/appropriations/file_a.csv',
                                     file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=upload_job,
                                     job_status_id=finished_job)
-    prog_act_job = JobFactory(submission=sub, filename="/path/to/prog/act/file_b.csv",
+    prog_act_job = JobFactory(submission=sub, filename='/path/to/prog/act/file_b.csv',
                               file_type_id=FILE_TYPE_DICT['program_activity'], job_type_id=upload_job,
                               job_status_id=finished_job)
-    award_fin_job = JobFactory(submission=sub, filename="/path/to/award/fin/file_c.csv",
+    award_fin_job = JobFactory(submission=sub, filename='/path/to/award/fin/file_c.csv',
                                file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=upload_job,
                                job_status_id=finished_job)
-    award_proc_job = JobFactory(submission=sub, filename="/path/to/award/proc/file_d1.csv",
+    award_proc_job = JobFactory(submission=sub, filename='/path/to/award/proc/file_d1.csv',
                                 file_type_id=FILE_TYPE_DICT['award_procurement'], job_type_id=upload_job,
                                 job_status_id=finished_job)
-    award_job = JobFactory(submission=sub, filename="/path/to/award/file_d2.csv",
+    award_job = JobFactory(submission=sub, filename='/path/to/award/file_d2.csv',
                            file_type_id=FILE_TYPE_DICT['award'], job_type_id=upload_job,
                            job_status_id=finished_job)
-    exec_comp_job = JobFactory(submission=sub, filename="/path/to/exec/comp/file_e.csv",
+    exec_comp_job = JobFactory(submission=sub, filename='/path/to/exec/comp/file_e.csv',
                                file_type_id=FILE_TYPE_DICT['executive_compensation'], job_type_id=upload_job,
                                job_status_id=finished_job)
-    sub_award_job = JobFactory(submission=sub, filename="/path/to/sub/award/file_f.csv",
+    sub_award_job = JobFactory(submission=sub, filename='/path/to/sub/award/file_f.csv',
                                file_type_id=FILE_TYPE_DICT['sub_award'], job_type_id=upload_job,
                                job_status_id=finished_job)
 
-    award_fin_narr = CommentFactory(submission=sub, comment="Test comment",
+    award_fin_narr = CommentFactory(submission=sub, comment='Test comment',
                                     file_type_id=FILE_TYPE_DICT['award_financial'])
     database.session.add_all([pub_hist_local, pub_hist_remote, cert_hist_local, cert_hist_remote, appropriations_job,
                               prog_act_job, award_fin_job, award_proc_job, award_job, exec_comp_job, sub_award_job,
@@ -856,11 +857,11 @@ def test_move_published_files(database, monkeypatch):
 
     c_cert_hist = sess.query(PublishedFilesHistory).\
         filter_by(publish_history_id=local_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
-    assert c_cert_hist.filename == "/path/to/award/fin/file_c.csv"
-    expected_filename = "/path/to/error/reports/submission_{}_File_C_award_financial_warning_report.csv".\
+    assert c_cert_hist.filename == '/path/to/award/fin/file_c.csv'
+    expected_filename = '/path/to/error/reports/submission_{}_File_C_award_financial_warning_report.csv'.\
         format(sub.submission_id)
     assert c_cert_hist.warning_filename == expected_filename
-    assert c_cert_hist.comment == "Test comment"
+    assert c_cert_hist.comment == 'Test comment'
 
     # cross-file warnings
     warning_cert_hist = sess.query(PublishedFilesHistory).filter_by(publish_history_id=local_id, file_type=None).all()
@@ -868,7 +869,7 @@ def test_move_published_files(database, monkeypatch):
     assert warning_cert_hist[0].comment is None
 
     warning_cert_hist_files = [hist.warning_filename for hist in warning_cert_hist]
-    assert "/path/to/error/reports/submission_{}_crossfile_warning_File_A_to_B_appropriations_program_activity.csv".\
+    assert '/path/to/error/reports/submission_{}_crossfile_warning_File_A_to_B_appropriations_program_activity.csv'.\
         format(sub.submission_id) in warning_cert_hist_files
 
     # test remote publication
@@ -877,13 +878,13 @@ def test_move_published_files(database, monkeypatch):
 
     c_cert_hist = sess.query(PublishedFilesHistory). \
         filter_by(publish_history_id=remote_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
-    assert c_cert_hist.filename == "zyxwv/2017/2/{}/file_c.csv".format(remote_id)
-    assert c_cert_hist.warning_filename == "zyxwv/2017/2/{}/submission_{}_File_C_award_financial_warning_report.csv". \
+    assert c_cert_hist.filename == 'zyxwv/2017/2/{}/file_c.csv'.format(remote_id)
+    assert c_cert_hist.warning_filename == 'zyxwv/2017/2/{}/submission_{}_File_C_award_financial_warning_report.csv'. \
         format(remote_id, sub.submission_id)
 
 
-@pytest.mark.usefixtures("job_constants")
-def test_list_certifications(database):
+@pytest.mark.usefixtures('job_constants')
+def test_list_history(database):
     # set up submission
     sub = SubmissionFactory()
     database.session.add(sub)
@@ -902,41 +903,49 @@ def test_list_certifications(database):
     sub_id = sub.submission_id
     file_hist_1 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
                                                publish_history_id=pub_hist.publish_history_id, submission_id=sub_id,
-                                               filename="/path/to/file_a.csv",
-                                               warning_filename="/path/to/warning_file_a.csv",
-                                               comment="A has a comment",
+                                               filename='/path/to/file_a.csv',
+                                               warning_filename='/path/to/warning_file_a.csv',
+                                               comment='A has a comment',
                                                file_type_id=FILE_TYPE_DICT['appropriations'])
     file_hist_2 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
                                                publish_history_id=pub_history_id, submission_id=sub_id,
-                                               filename="/path/to/file_d2.csv",
+                                               filename='/path/to/file_d2.csv',
                                                warning_filename=None,
                                                file_type_id=FILE_TYPE_DICT['award'])
     file_hist_3 = PublishedFilesHistoryFactory(certify_history_id=cert_history_id,
                                                publish_history_id=pub_history_id, submission_id=sub_id,
                                                filename=None,
-                                               warning_filename="/path/to/warning_file_cross_test.csv",
+                                               warning_filename='/path/to/warning_file_cross_test.csv',
                                                file_type_id=None)
     database.session.add_all([file_hist_1, file_hist_2, file_hist_3])
     database.session.commit()
 
-    json_response = fileHandler.list_certifications(sub)
+    json_response = fileHandler.list_history(sub)
     response_dict = json.loads(json_response.get_data().decode('utf-8'))
-    assert len(response_dict["certifications"]) == 2
+    assert len(response_dict['certifications']) == 2
+    assert len(response_dict['publications']) == 1
 
-    has_file_list = response_dict["certifications"][0]
-    empty_file_list = response_dict["certifications"][1]
+    has_file_list = response_dict['certifications'][0]
+    empty_file_list = response_dict['certifications'][1]
+    pub_list = response_dict['publications'][0]
 
     # asserts for certification with files associated
-    assert len(has_file_list["certified_files"]) == 4
-    assert has_file_list["certified_files"][0]["is_warning"] is False
-    assert has_file_list["certified_files"][0]["filename"] == "file_a.csv"
-    assert has_file_list["certified_files"][0]["comment"] == "A has a comment"
+    assert len(has_file_list['certified_files']) == 4
+    assert has_file_list['certified_files'][0]['is_warning'] is False
+    assert has_file_list['certified_files'][0]['filename'] == 'file_a.csv'
+    assert has_file_list['certified_files'][0]['comment'] == 'A has a comment'
 
-    assert has_file_list["certified_files"][1]["is_warning"]
-    assert has_file_list["certified_files"][1]["comment"] is None
+    assert has_file_list['certified_files'][1]['is_warning']
+    assert has_file_list['certified_files'][1]['comment'] is None
 
     # asserts for certification without files associated
-    assert len(empty_file_list["certified_files"]) == 0
+    assert len(empty_file_list['certified_files']) == 0
+
+    # asserts for publications
+    assert len(pub_list['published_files']) == 4
+    assert pub_list['published_files'][0]['is_warning'] is False
+    assert pub_list['published_files'][0]['filename'] == 'file_a.csv'
+    assert pub_list['published_files'][0]['comment'] == 'A has a comment'
 
 
 def test_file_history_url(database, monkeypatch):
@@ -952,8 +961,8 @@ def test_file_history_url(database, monkeypatch):
 
     file_hist = PublishedFilesHistoryFactory(certify_history_id=cert_hist.certify_history_id,
                                              publish_history_id=pub_hist.publish_history_id,
-                                             submission_id=sub.submission_id, filename="/path/to/file_d2.csv",
-                                             warning_filename="/path/to/warning_file_cross.csv",
+                                             submission_id=sub.submission_id, filename='/path/to/file_d2.csv',
+                                             warning_filename='/path/to/warning_file_cross.csv',
                                              comment=None, file_type_id=None)
     database.session.add(file_hist)
     database.session.commit()
@@ -964,17 +973,17 @@ def test_file_history_url(database, monkeypatch):
 
     # checking for local response to non-warning file
     json_response = fileHandler.file_history_url(sub, file_hist.published_files_history_id, False, True)
-    url = json.loads(json_response.get_data().decode('utf-8'))["url"]
-    assert url == "/path/to/file_d2.csv"
+    url = json.loads(json_response.get_data().decode('utf-8'))['url']
+    assert url == '/path/to/file_d2.csv'
 
     # local response to warning file
     json_response = fileHandler.file_history_url(sub, file_hist.published_files_history_id, True, True)
-    url = json.loads(json_response.get_data().decode('utf-8'))["url"]
-    assert url == "/path/to/warning_file_cross.csv"
+    url = json.loads(json_response.get_data().decode('utf-8'))['url']
+    assert url == '/path/to/warning_file_cross.csv'
 
     # generic test to make sure it's reaching the s3 handler properly
     json_response = fileHandler.file_history_url(sub, file_hist.published_files_history_id, False, False)
-    url = json.loads(json_response.get_data().decode('utf-8'))["url"]
+    url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == 'some/url/here.csv'
 
 
@@ -1005,7 +1014,7 @@ def test_get_status_invalid_type(database):
     assert json_content['message'] == 'approp is not a valid file type'
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_get_status_fabs(database):
     """ Test get status function for a fabs submission """
     sess = database.session
@@ -1027,7 +1036,7 @@ def test_get_status_fabs(database):
     assert json_content['fabs'] == {'status': 'finished', 'has_errors': False, 'has_warnings': True, 'message': ''}
 
 
-@pytest.mark.usefixtures("job_constants")
+@pytest.mark.usefixtures('job_constants')
 def test_get_status_dabs(database):
     """ Test get status function for a dabs submission, including all possible statuses and case insensitivity """
     sess = database.session

@@ -1509,70 +1509,97 @@ Possible HTTP Status Codes:
 - 401: Login required
 
 
-#### POST "/v1/list_certifications/"
-List certifications for a single submission
+#### GET "/v1/list\_history/"
+Lists all the publication and certification history for a submission along with the files associated with them.
 
-##### Body (JSON)
+##### Sample Request
+`/v1/list_history/?submission_id=12345`
 
-```
-{
-    "submission_id": 123
-}
-```
-
-##### Body Description
-
-- `submission_id`: (required, integer) the ID of the submission
+##### Request Params
+- `submission_id`: (required, integer) The ID of the submission to get publication/certification history for
 
 ##### Response (JSON)
-
 ```
 {
     "submission_id": 7,
+    "publications": [{
+        "publish_date": "2017-05-11 18:10:18",
+        "publishing_user": {
+            "name": "User Name",
+            "user_id": 1
+        },
+        "published_files": [{
+                "published_files_history_id": 1,
+                "filename": "1492041855_file_c.csv",
+                "is_warning": False,
+                "comment": "Comment on the file"
+            },
+            {
+                "published_files_history_id": 1,
+                "filename": "submission_7_File_C_award_financial_warning_report.csv",
+                "is_warning": True,
+                "comment": None
+            }
+        ]},
+        {
+            "publish_date": "2017-05-08 12:07:18",
+            "publishing_user": {
+                "name": "Admin User Name",
+                "user_id": 2
+            },
+            "published_files": [
+                {
+                    "published_files_history_id": 3,
+                    "filename": "1492041855_file_a.csv",
+                    "is_warning": False,
+                    "comment": "This is also a comment"
+                },
+                {
+                    "published_files_history_id": 6,
+                    "filename": "submission_280_crossfile_warning_File_A_to_B_appropriations_program_activity.csv",
+                    "is_warning": True,
+                    "comment": None
+                }
+            ]
+        }],
     "certifications": [{
         "certify_date": "2017-05-11 18:10:18",
-        "certify_history_id": 4,
         "certifying_user": {
             "name": "User Name",
             "user_id": 1
         },
-        "certified_files": [{
-            "published_files_history_id": 1,
-            "filename": "1492041855_file_c.csv",
-            "is_warning": False,
-            "comment": "Comment on the file"
+        "certified_files": [
+            {
+                "published_files_history_id": 1,
+                "filename": "1492041855_file_c.csv",
+                "is_warning": False,
+                "comment": "Comment on the file"
             },
-            {"published_files_history_id": 1,
-            "filename": "submission_7_File_C_award_financial_warning_report.csv",
-            "is_warning": True,
-            "comment": None}
-        ]},
-        {"certify_date": "2017-05-08 12:07:18",
-        "certify_history_id": 3,
-        "certifying_user": {
-            "name": "Admin User Name",
-            "user_id": 2
-        },
-        "certified_files": [{
-            "published_files_history_id": 3,
-            "filename": "1492041855_file_a.csv",
-            "is_warning": False,
-            "comment": "This is also a comment"
-            },
-            {"published_files_history_id": 6,
-            "filename": "submission_280_crossfile_warning_File_A_to_B_appropriations_program_activity.csv",
-            "is_warning": True,
-            "comment": None}
-        ]}
-    ]
+            {
+                "published_files_history_id": 1,
+                "filename": "submission_7_File_C_award_financial_warning_report.csv",
+                "is_warning": True,
+                "comment": None
+            }
+        ]
+    }]
 }
 ```
 
 ##### Response Attributes
 - `submission_id `: (integer) the ID of the submission
+- `publications`: ([object]) Each object contains the following values and represents one publication:
+    - `publish_date`: (string) the date of the publication
+    - `publishing_user`: (object) contains the following details about the user that published the submission:
+        - `name`: (string) the user's name
+        - `user_id`: (integer) the ID of the user in the database
+    - `published_files`: ([object]) Each object holds each of the published files in the submission with the following information:
+        - `published_files_history_id`: (integer) the ID of the file in the `published_files_history` table, used to download the file
+        - `filename`: (string) the name of the file
+        - `is_warning`: (boolean) whether the file is the warning file associated with that file or the file itself
+        - `comment`: (string) the comment associated with the file
 - `certifications`: ([object]) Each object contains the following values and represents one certification:
     - `certify_date`: (string) the date of the certification
-    - `certify_history_id`: (integer) the ID of the certify history
     - `certifying_user`: (object) contains the following details about the user that certified the submission:
         - `name`: (string) the user's name
         - `user_id`: (integer) the ID of the user in the database
@@ -1589,7 +1616,7 @@ Possible HTTP Status Codes:
     - `submission_id` missing or invalid
     - `submission_id` provided is for a FABS submission
     - User doesn't have permissions for this agency
-    - Submission has no certification history (has never been certified)
+    - Submission has no publication history (has never been published)
 
 #### POST "/v1/get_certified_file/"
 Get a signed url for a specified history item
@@ -1607,7 +1634,7 @@ Get a signed url for a specified history item
 ##### Body Description
 
 - `submission_id`: (required, integer) the submission ID
-- `published_files_history_id`: (required, integer) the `published_files_history_id` of the file (obtained through `list_certifications`)
+- `published_files_history_id`: (required, integer) the `published_files_history_id` of the file (obtained through `list_history`)
 - `is_warning`: (boolean) whether the file being obtained is a warning file or the file that was certified. True = warning file. Default is False
 
 ##### Response (JSON)

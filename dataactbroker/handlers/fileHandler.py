@@ -1752,41 +1752,34 @@ def list_submissions(page, limit, published, sort='modified', order='desc', is_f
     })
 
 
-def list_certifications(submission):
-    """ List all certifications for a single submission including the file history that goes with them.
+def process_history_list(history_list, list_type):
+    """ Processes gathering a file history list for either publish or certify history.
 
         Args:
-            submission: submission to get certifications for
+            history_list: the PublishHistory or CertifyHistory list to run through
+            list_type: whether the list being processed is publish or certify
 
         Returns:
-            A JsonResponse containing a dictionary with the submission ID and a list of certifications or a JsonResponse
-            error containing details of what went wrong.
+            The list with details of the file history
     """
-    # TODO: Split this into published and certified lists, probably can leave it as one endpoint
-    if submission.d2_submission:
-        return JsonResponse.error(ValueError('FABS submissions do not have a certification history'),
-                                  StatusCode.CLIENT_ERROR)
-
     sess = GlobalDB.db().session
+    processed_list = []
 
-    certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
-        order_by(CertifyHistory.created_at.desc()).all()
+    for history in history_list:
+        user = sess.query(User).filter_by(user_id=history.user_id).one()
 
-    if len(certify_history) == 0:
-        return JsonResponse.error(ValueError('This submission has no certification history'), StatusCode.CLIENT_ERROR)
+        file_history_query = sess.query(PublishedFilesHistory)
+        if list_type == 'certify':
+            file_history_query = file_history_query.filter_by(certify_history_id=history.certify_history_id)
+        else:
+            file_history_query = file_history_query.filter_by(publish_history_id=history.publish_history_id)
+        file_history = file_history_query.all()
+        history_files = []
 
-    # get the details for each of the certifications
-    certifications = []
-    for history in certify_history:
-        certifying_user = sess.query(User).filter_by(user_id=history.user_id).one()
-
-        # get all published_files_history for this certification
-        file_history = sess.query(PublishedFilesHistory).filter_by(certify_history_id=history.certify_history_id).all()
-        certified_files = []
         for file in file_history:
             # if there's a filename, add it to the list
             if file.filename is not None:
-                certified_files.append({
+                history_files.append({
                     'published_files_history_id': file.published_files_history_id,
                     'filename': file.filename.split('/')[-1],
                     'is_warning': False,
@@ -1795,21 +1788,54 @@ def list_certifications(submission):
 
             # if there's a warning file, add it to the list
             if file.warning_filename is not None:
-                certified_files.append({
+                history_files.append({
                     'published_files_history_id': file.published_files_history_id,
                     'filename': file.warning_filename.split('/')[-1],
                     'is_warning': True,
                     'comment': None
                 })
 
-        # after adding all certified files to the history, add the entire history entry to the certifications list
-        certifications.append({
-            'certify_date': history.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-            'certifying_user': {'name': certifying_user.name, 'user_id': history.user_id},
-            'certified_files': certified_files
+        processed_list.append({
+            '{}_date'.format(list_type): history.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            '{}ing_user'.format(list_type): {'name': user.name, 'user_id': history.user_id},
+            '{}ed_files'.format(list_type if list_type == 'publish' else 'certifi'): history_files
         })
 
+    return processed_list
+
+
+def list_history(submission):
+    """ List all publications and certifications for a single submission including the file history that goes with them.
+
+        Args:
+            submission: submission to get publictions and certifications for
+
+        Returns:
+            A JsonResponse containing a dictionary with the submission ID and a list of publications and certifications
+            or a JsonResponse error containing details of what went wrong.
+    """
+    # TODO: Split this into published and certified lists, probably can leave it as one endpoint
+    if submission.d2_submission:
+        return JsonResponse.error(ValueError('FABS submissions do not have a publication history'),
+                                  StatusCode.CLIENT_ERROR)
+
+    sess = GlobalDB.db().session
+
+    publish_history = sess.query(PublishHistory).filter_by(submission_id=submission.submission_id).\
+        order_by(PublishHistory.created_at.desc()).all()
+    certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
+        order_by(CertifyHistory.created_at.desc()).all()
+
+    # We only have to check publish history because there can be no certify history without publish history
+    if len(publish_history) == 0:
+        return JsonResponse.error(ValueError('This submission has no publication history'), StatusCode.CLIENT_ERROR)
+
+    # get the details for each of the publications/certifications
+    publications = process_history_list(publish_history, 'publish')
+    certifications = process_history_list(certify_history, 'certify')
+
     return JsonResponse.create(StatusCode.OK, {'submission_id': submission.submission_id,
+                                               'publications': publications,
                                                'certifications': certifications})
 
 
