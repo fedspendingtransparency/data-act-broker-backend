@@ -540,7 +540,7 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
     return validation_job_id, upload_job.job_id
 
 
-def get_lastest_published_date(submission, is_fabs=False):
+def get_latest_published_date(submission, is_fabs=False):
     if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'] and\
        submission.publish_status_id != PUBLISH_STATUS_DICT['publishing']:
         sess = GlobalDB.db().session
@@ -632,7 +632,7 @@ def get_fabs_meta(submission_id):
     # retrieve the published data and file
     submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
     publish_date, published_file = None, None
-    publish_data = get_lastest_published_date(submission, is_fabs=True)
+    publish_data = get_latest_published_date(submission, is_fabs=True)
 
     try:
         iter(publish_data)
