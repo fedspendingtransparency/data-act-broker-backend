@@ -27,7 +27,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (
     create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, get_last_validated_date,
-    get_lastest_certified_date, get_certification_deadline, get_time_period)
+    get_latest_published_date, get_certification_deadline, get_time_period)
 
 from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
                                              Office, DUNS)
@@ -1655,7 +1655,7 @@ def list_submissions(page, limit, published, sort='modified', order='desc', is_f
     sess = GlobalDB.db().session
     submission_updated_view = SubmissionUpdatedView()
     offset = limit * (page - 1)
-    certifying_user = aliased(User)
+    publishing_user = aliased(User)
 
     # List of all the columns to gather
     submission_columns = [Submission.submission_id, Submission.cgac_code, Submission.frec_code, Submission.user_id,
@@ -1667,8 +1667,8 @@ def list_submissions(page, limit, published, sort='modified', order='desc', is_f
                           Submission.test_submission]
     cgac_columns = [CGAC.cgac_code, CGAC.agency_name.label('cgac_agency_name')]
     frec_columns = [FREC.frec_code, FREC.agency_name.label('frec_agency_name')]
-    user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
-                    certifying_user.name.label('certifying_user_name')]
+    user_columns = [User.user_id, User.name, publishing_user.user_id.label('publishing_user_id'),
+                    publishing_user.name.label('publishing_user_name')]
     view_columns = [submission_updated_view.submission_id, submission_updated_view.updated_at.label('updated_at')]
     sub_query = sess.query(PublishHistory.submission_id, func.max(PublishHistory.created_at).label('published_date')).\
         group_by(PublishHistory.submission_id).\
@@ -1680,7 +1680,7 @@ def list_submissions(page, limit, published, sort='modified', order='desc', is_f
     # Base query that is shared among all submission lists
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id).\
-        outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id).\
+        outerjoin(publishing_user, Submission.certifying_user_id == publishing_user.user_id).\
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
@@ -1718,7 +1718,7 @@ def list_submissions(page, limit, published, sort='modified', order='desc', is_f
         'reporting_end': {'model': Submission, 'col': 'reporting_end_date'},
         'agency': {'model': CGAC, 'col': 'agency_name'},
         'submitted_by': {'model': User, 'col': 'name'},
-        'certified_date': {'model': sub_query.c, 'col': 'published_date'},
+        'published_date': {'model': sub_query.c, 'col': 'published_date'},
         'quarterly_submission': {'model': Submission, 'col': 'is_quarter_format'}
     }
 
@@ -1907,7 +1907,7 @@ def serialize_submission(submission):
     jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
     files = get_submission_files(jobs)
     status = get_submission_status(submission, jobs)
-    certified_on = get_lastest_certified_date(submission)
+    published_on = get_latest_published_date(submission)
     certification_deadline = get_certification_deadline(submission)
     time_period = get_time_period(submission)
     agency_name = submission.cgac_agency_name if submission.cgac_agency_name else submission.frec_agency_name
@@ -1921,11 +1921,11 @@ def serialize_submission(submission):
         'reporting_start_date': str(submission.reporting_start_date) if submission.reporting_start_date else None,
         'reporting_end_date': str(submission.reporting_end_date) if submission.reporting_end_date else None,
         'user': {'user_id': submission.user_id, 'name': submission.name if submission.name else 'No User'},
-        'certifying_user': submission.certifying_user_name if submission.certifying_user_name else '',
+        'publishing_user': submission.publishing_user_name if submission.publishing_user_name else '',
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
         'published_submission_ids': submission.published_submission_ids,
         'test_submission': submission.test_submission,
-        'certified_on': str(certified_on) if certified_on else '',
+        'published_on': str(published_on) if published_on else '',
         'quarterly_submission': submission.is_quarter_format,
         'certification_deadline': str(certification_deadline) if certification_deadline else '',
         'certified': submission.certified,

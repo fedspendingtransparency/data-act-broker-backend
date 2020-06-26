@@ -82,7 +82,7 @@ def add_file_routes(app, is_local, server_path):
     @use_kwargs({
         'page': webargs_fields.Int(missing=1),
         'limit': webargs_fields.Int(missing=5),
-        'certified': webargs_fields.String(
+        'published': webargs_fields.String(
             required=True,
             validate=webargs_validate.OneOf(('mixed', 'true', 'false'))),
         'sort': webargs_fields.String(missing='modified'),
@@ -90,7 +90,7 @@ def add_file_routes(app, is_local, server_path):
         'fabs': webargs_fields.Bool(missing=False),
         'filters': webargs_fields.Dict(keys=webargs_fields.String(), missing={})
     })
-    def list_submissions(certified, **kwargs):
+    def list_submissions(published, **kwargs):
         """ List submission IDs associated with the current user """
         page = kwargs.get('page')
         limit = kwargs.get('limit')
@@ -98,7 +98,7 @@ def add_file_routes(app, is_local, server_path):
         order = kwargs.get('order')
         fabs = kwargs.get('fabs')
         filters = kwargs.get('filters')
-        return list_submissions_handler(page, limit, certified, sort, order, fabs, filters)
+        return list_submissions_handler(page, limit, published, sort, order, fabs, filters)
 
     @app.route("/v1/list_history/", methods=['GET'])
     @convert_to_submission_id

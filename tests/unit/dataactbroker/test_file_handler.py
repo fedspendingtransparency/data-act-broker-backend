@@ -367,6 +367,45 @@ def test_list_submissions_success(database, monkeypatch):
     assert result['submissions'][0]['time_period'] == ''
     delete_models(database, [user, sub, job])
 
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=2, d2_submission=True,
+                            reporting_start_date=None, certified=False)
+    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
+    add_models(database, [user, sub, job])
+
+    result = list_submissions_result(is_fabs=True)
+    assert result['total'] == 1
+    assert result['submissions'][0]['status'] == "published"
+    assert result['submissions'][0]['time_period'] == ""
+    delete_models(database, [user, sub, job])
+
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=2, d2_submission=True,
+                            reporting_start_date=None, certified=True)
+    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
+    add_models(database, [user, sub, job])
+
+    result = list_submissions_result(is_fabs=True)
+    assert result['total'] == 1
+    assert result['submissions'][0]['status'] == "certified"
+    assert result['submissions'][0]['time_period'] == ""
+    delete_models(database, [user, sub, job])
+
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=3, d2_submission=True,
+                            reporting_start_date=None, certified=True)
+    job = JobFactory(submission_id=1, job_status_id=JOB_STATUS_DICT['finished'],
+                     job_type_id=JOB_TYPE_DICT['csv_record_validation'], file_type_id=FILE_TYPE_DICT['award'])
+    add_models(database, [user, sub, job])
+
+    result = list_submissions_result(is_fabs=True)
+    assert result['total'] == 1
+    assert result['submissions'][0]['status'] == "updated"
+    assert result['submissions'][0]['time_period'] == ""
+    delete_models(database, [user, sub, job])
+
 
 @pytest.mark.usefixtures('job_constants')
 def test_list_submissions_failure(database, monkeypatch):

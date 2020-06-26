@@ -337,11 +337,14 @@ def get_submission_status(submission, jobs):
     elif statuses['ready'] != 0:
         status = 'ready'
     elif statuses['finished'] == jobs.count():
-        status = 'validation_successful'
-        if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
-            status = 'validation_successful_warnings'
-        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
-            status = 'certified'
+        if submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished']:
+            status = 'validation_successful'
+            if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
+                status = 'validation_successful_warnings'
+        elif submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+            status = 'certified' if submission.certified else 'published'
+        elif submission.publish_status_id == PUBLISH_STATUS_DICT['updated']:
+            status = 'updated'
 
     # Check if submission has errors
     if submission.number_of_errors is not None and submission.number_of_errors > 0:
