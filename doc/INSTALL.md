@@ -163,7 +163,7 @@ load_sf133()
 load_validator_schema()
 load_location_codes(args.force)
 load_zip_codes()
-load_quarterly_revalidation_threshold()
+load_submission_schedule()
 ```
 
 **You are now done installing the Broker and may begin development. The next section covers more comprehensive data loading for testing purposes**

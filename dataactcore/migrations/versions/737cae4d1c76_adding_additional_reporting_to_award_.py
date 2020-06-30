@@ -1,4 +1,4 @@
-"""Adding additional_reporting to award_procurement table
+"""Adding additional_reporting to (certified_)award_procurement table
 
 Revision ID: 737cae4d1c76
 Revises: 3fd9a578c9c5

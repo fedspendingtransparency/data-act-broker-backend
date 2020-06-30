@@ -5,9 +5,9 @@ from unittest.mock import patch
 from dataactcore.aws.sqsHandler import SQSMockQueue
 from dataactcore.models.jobModels import JobDependency
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
-from dataactcore.interfaces.function_bag import check_job_dependencies, get_window_end, get_time_period
+from dataactcore.interfaces.function_bag import check_job_dependencies, get_certification_deadline, get_time_period
 
-from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory, QuarterlyRevalidationThresholdFactory
+from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory, SubmissionWindowScheduleFactory
 
 
 @pytest.mark.usefixtures("job_constants")
@@ -101,8 +101,8 @@ def test_check_job_dependencies_ready(mock_sqs_queue, database):
     assert job_2.job_status_id == JOB_STATUS_DICT['ready']
 
 
-def test_get_window_end(database):
-    """ Tests get_window_end with subs """
+def test_get_certification_deadline(database):
+    """ Tests get_certification_deadline with subs """
     sess = database.session
     quart_sub = SubmissionFactory(submission_id=1, reporting_fiscal_year=2020, reporting_fiscal_period=6,
                                   d2_submission=False, is_quarter_format=True)
@@ -112,16 +112,16 @@ def test_get_window_end(database):
                                  d2_submission=False, is_quarter_format=False)
     d2_sub = SubmissionFactory(submission_id=4, reporting_fiscal_year=2020, reporting_fiscal_period=6,
                                d2_submission=True, is_quarter_format=False)
-    q2 = QuarterlyRevalidationThresholdFactory(quarter=2, year=2020)
-    q4 = QuarterlyRevalidationThresholdFactory(quarter=4, year=2020)
-    sess.add_all([quart_sub, month_sub, fail_sub, d2_sub, q2, q4])
+    q2 = SubmissionWindowScheduleFactory(period=6, year=2020)
+    p10 = SubmissionWindowScheduleFactory(period=10, year=2020)
+    sess.add_all([quart_sub, month_sub, fail_sub, d2_sub, q2, p10])
 
     # Pass cases
-    assert get_window_end(quart_sub) == q2.window_end.date()
-    assert get_window_end(month_sub) == q4.window_end.date()
+    assert get_certification_deadline(quart_sub) == q2.certification_deadline.date()
+    assert get_certification_deadline(month_sub) == p10.certification_deadline.date()
     # Fail cases
-    assert get_window_end(fail_sub) is None
-    assert get_window_end(d2_sub) is None
+    assert get_certification_deadline(fail_sub) is None
+    assert get_certification_deadline(d2_sub) is None
 
 
 def test_get_time_period(database):

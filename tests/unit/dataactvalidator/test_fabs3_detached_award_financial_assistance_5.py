@@ -13,13 +13,13 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ ActionType should be "A" for the initial transaction of a new, non-aggregate award (RecordType = 2 or 3) and "A"
-        or "E" for a new aggregate award (RecordType = 1). An aggregate record transaction is considered the initial
-        transaction of a new award if it contains a unique combination of URI + AwardingSubTierAgencyCode when compared
-        to currently published FABS data of the same RecordType. A non-aggregate record transaction is considered the
-        initial transaction of a new award if it contains a unique combination of FAIN + AwardingSubTierAgencyCode when
-        compared to currently published FABS data of the same RecordType. This validation rule does not apply to delete
-        records (CorrectionDeleteIndicator = D.)
+    """ ActionType should be "A" for the initial transaction of a new, non-aggregate award (RecordType = 2 or 3) and
+        “A” or “E” for a new aggregate award (RecordType = 1). An aggregate record transaction is considered the
+        initial transaction of a new award if it contains a unique combination of URI + AwardingSubTierAgencyCode when
+        compared to currently published FABS records of the same RecordType. A non-aggregate (RecordType = 2 or 3)
+        transaction is considered the initial transaction of a new award if it contains a unique combination of FAIN +
+        AwardingSubTierAgencyCode when compared to currently published non-aggregate FABS records (RecordType = 2 or 3)
+        of the same RecordType.
     """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique1', action_type='A', record_type=1,
                                                           correction_delete_indicatr=None)
@@ -46,12 +46,12 @@ def test_success(database):
 
 def test_failure(database):
     """ Fail ActionType should be "A" for the initial transaction of a new, non-aggregate award (RecordType = 2 or 3)
-        and "A" or "E" for a new aggregate award (RecordType = 1). An aggregate record transaction is considered the
-        initial transaction of a new award if it contains a unique combination of URI + AwardingSubTierAgencyCode when
-        compared to currently published FABS data of the same RecordType. A non-aggregate record transaction is
-        considered the initial transaction of a new award if it contains a unique combination of FAIN +
-        AwardingSubTierAgencyCode when compared to currently published FABS data of the same RecordType. This validation
-        rule does not apply to delete records (CorrectionDeleteIndicator = D.)
+    and “A” or “E” for a new aggregate award (RecordType = 1). An aggregate record transaction is considered the initial
+    transaction of a new award if it contains a unique combination of URI + AwardingSubTierAgencyCode when compared to
+    currently published FABS records of the same RecordType. A non-aggregate (RecordType = 2 or 3) transaction is
+    considered the initial transaction of a new award if it contains a unique combination of FAIN +
+    AwardingSubTierAgencyCode when compared to currently published non-aggregate FABS records (RecordType = 2 or 3) of
+    the same RecordType.
     """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(unique_award_key='unique1', action_type='b', record_type=1,

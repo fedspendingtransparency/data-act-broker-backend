@@ -1,15 +1,21 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 from datetime import datetime
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Text, UniqueConstraint, Enum, BigInteger
+from sqlalchemy import (Boolean, Column, Date, DateTime, ForeignKey, Integer, Text, UniqueConstraint, Enum, BigInteger,
+                        ARRAY)
+from sqlalchemy.ext.mutable import Mutable
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 from dataactcore.models.domainModels import SubTierAgency
 from dataactcore.models.lookups import FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, JOB_TYPE_DICT_ID
 
 
-def generate_fiscal_year(context):
+def generate_fiscal_year_context(context):
+    """ Generate fiscal year based on the submission context """
+    return generate_fiscal_year(context.current_parameters['reporting_end_date'])
+
+
+def generate_fiscal_year(reporting_end_date):
     """ Generate fiscal year based on the date provided """
-    reporting_end_date = context.current_parameters['reporting_end_date']
     year = 0
     if reporting_end_date:
         year = reporting_end_date.year
@@ -18,9 +24,13 @@ def generate_fiscal_year(context):
     return year
 
 
-def generate_fiscal_period(context):
+def generate_fiscal_period_context(context):
+    """ Generate fiscal period based on the submission context """
+    return generate_fiscal_period(context.current_parameters['reporting_end_date'])
+
+
+def generate_fiscal_period(reporting_end_date):
     """ Generate fiscal period based on the date provided """
-    reporting_end_date = context.current_parameters['reporting_end_date']
     period = 0
     if reporting_end_date:
         period = (reporting_end_date.month + 3) % 12
@@ -55,6 +65,26 @@ class PublishStatus(Base):
     description = Column(Text)
 
 
+class MutableList(Mutable, list):
+    def append(self, value):
+        list.append(self, value)
+        self.changed()
+
+    def pop(self, index=0):
+        value = list.pop(self, index)
+        self.changed()
+        return value
+
+    @classmethod
+    def coerce(cls, key, value):
+        if not isinstance(value, MutableList):
+            if isinstance(value, list):
+                return MutableList(value)
+            return Mutable.coerce(key, value)
+        else:
+            return value
+
+
 class Submission(Base):
     __tablename__ = "submission"
 
@@ -66,13 +96,15 @@ class Submission(Base):
     frec_code = Column(Text)
     reporting_start_date = Column(Date)
     reporting_end_date = Column(Date)
-    reporting_fiscal_year = Column(Integer, nullable=False, default=generate_fiscal_year, server_default='0')
-    reporting_fiscal_period = Column(Integer, nullable=False, default=generate_fiscal_period, server_default='0')
+    reporting_fiscal_year = Column(Integer, nullable=False, default=generate_fiscal_year_context, server_default='0')
+    reporting_fiscal_period = Column(Integer, nullable=False, default=generate_fiscal_period_context,
+                                     server_default='0')
     is_quarter_format = Column(Boolean, nullable=False, default=False, server_default="False")
     jobs = None
     publishable = Column(Boolean, nullable=False, default=False, server_default="False")
     publish_status_id = Column(Integer, ForeignKey("publish_status.publish_status_id", ondelete="SET NULL",
                                                    name="fk_publish_status_id"))
+    published_submission_ids = Column(MutableList.as_mutable(ARRAY(Integer)), server_default="{}")
     publish_status = relationship("PublishStatus", uselist=False)
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
     number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
@@ -81,6 +113,8 @@ class Submission(Base):
                                                     name="fk_submission_certifying_user"),
                                 nullable=True)
     certifying_user = relationship("User", foreign_keys=[certifying_user_id])
+    test_submission = Column(Boolean, nullable=False, default=False, server_default="False")
+    certified = Column(Boolean, nullable=False, default=False, server_default="False")
 
 
 class Job(Base):
@@ -209,14 +243,15 @@ class RevalidationThreshold(Base):
     revalidation_date = Column(DateTime, primary_key=True)
 
 
-class QuarterlyRevalidationThreshold(Base):
-    __tablename__ = "quarterly_revalidation_threshold"
+class SubmissionWindowSchedule(Base):
+    __tablename__ = 'submission_window_schedule'
 
-    quarterly_revalidation_threshold_id = Column(Integer, primary_key=True)
+    submission_window_schedule_id = Column(Integer, primary_key=True)
     year = Column(Integer, nullable=False)
-    quarter = Column(Integer, nullable=False)
-    window_start = Column(DateTime)
-    window_end = Column(DateTime)
+    period = Column(Integer, nullable=False)
+    period_start = Column(DateTime)
+    publish_deadline = Column(DateTime)
+    certification_deadline = Column(DateTime)
 
 
 class FPDSUpdate(Base):
@@ -237,18 +272,32 @@ class CertifyHistory(Base):
     user = relationship("User")
 
 
-class CertifiedFilesHistory(Base):
-    __tablename__ = "certified_files_history"
+class PublishHistory(Base):
+    __tablename__ = "publish_history"
 
-    certified_files_history_id = Column(Integer, primary_key=True)
+    publish_history_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_publish_history_submission_id"))
+    submission = relationship("Submission", uselist=False)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_publish_history_user"),
+                     nullable=True)
+    user = relationship("User")
+
+
+class PublishedFilesHistory(Base):
+    __tablename__ = "published_files_history"
+
+    published_files_history_id = Column(Integer, primary_key=True)
+    publish_history_id = Column(Integer, ForeignKey("publish_history.publish_history_id",
+                                                    name="fk_publish_history_published_files_id"))
+    publish_history = relationship("PublishHistory", uselist=False)
     certify_history_id = Column(Integer, ForeignKey("certify_history.certify_history_id",
-                                                    name="fk_certify_history_certified_files_id"))
+                                                    name="fk_certify_history_published_files_id"))
     certify_history = relationship("CertifyHistory", uselist=False)
     submission_id = Column(Integer, ForeignKey("submission.submission_id",
-                                               name="fk_certified_files_history_submission_id"))
+                                               name="fk_published_files_history_submission_id"))
     submission = relationship("Submission", uselist=False)
     filename = Column(Text)
-    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_certified_files_history_file_type"),
+    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_published_files_history_file_type"),
                           nullable=True,)
     file_type = relationship("FileType", uselist=False, lazy='joined')
     warning_filename = Column(Text)

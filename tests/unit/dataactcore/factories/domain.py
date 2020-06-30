@@ -19,6 +19,7 @@ class SF133Factory(factory.Factory):
     main_account_code = fuzzy.FuzzyText()
     sub_account_code = fuzzy.FuzzyText()
     tas = fuzzy.FuzzyText()
+    disaster_emergency_fund_code = fuzzy.FuzzyText()
     fiscal_year = fuzzy.FuzzyInteger(2010, 2040)
     period = fuzzy.FuzzyInteger(1, 12)
     line = fuzzy.FuzzyInteger(1, 9999)
@@ -68,7 +69,7 @@ class ProgramActivityFactory(factory.Factory):
         model = domainModels.ProgramActivity
 
     program_activity_id = None
-    fiscal_year_quarter = fuzzy.FuzzyText()
+    fiscal_year_period = fuzzy.FuzzyText()
     agency_id = fuzzy.FuzzyText()
     allocation_transfer_id = fuzzy.FuzzyText()
     account_number = fuzzy.FuzzyText()

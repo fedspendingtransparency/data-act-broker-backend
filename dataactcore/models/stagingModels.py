@@ -128,6 +128,7 @@ class ObjectClassProgramActivity(Base):
     tas = Column(Text, nullable=False, default=concat_tas)
     display_tas = Column(Text, default=concat_display_tas)
     tas_id = Column(Integer, nullable=True)
+    disaster_emergency_fund_code = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -147,6 +148,7 @@ Index("ix_oc_pa_tas_id_submission_id",
       unique=False)
 
 Index("ix_oc_pa_pan_upper", func.upper(ObjectClassProgramActivity.program_activity_name))
+Index("ix_oc_pa_defc_upper", func.upper(ObjectClassProgramActivity.disaster_emergency_fund_code))
 
 
 class AwardFinancial(Base):
@@ -213,6 +215,7 @@ class AwardFinancial(Base):
     display_tas = Column(Text, default=concat_display_tas)
     tas_id = Column(Integer, nullable=True, index=True)
     general_ledger_post_date = Column(Date)
+    disaster_emergency_fund_code = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -230,6 +233,7 @@ Index("ix_af_parent_award_id_upper", func.upper(AwardFinancial.parent_award_id))
 Index("ix_af_fain_upper", func.upper(AwardFinancial.fain))
 Index("ix_af_uri_upper", func.upper(AwardFinancial.uri))
 Index("ix_af_pan_upper", func.upper(AwardFinancial.program_activity_name))
+Index("ix_af_defc_upper", func.upper(AwardFinancial.disaster_emergency_fund_code))
 
 
 class CertifiedFlexField(Base):
@@ -348,6 +352,7 @@ class CertifiedObjectClassProgramActivity(Base):
     tas = Column(Text, default=concat_tas)
     tas_id = Column(Integer)
     display_tas = Column(Text)
+    disaster_emergency_fund_code = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -419,6 +424,7 @@ class CertifiedAwardFinancial(Base):
     tas_id = Column(Integer)
     general_ledger_post_date = Column(Date)
     display_tas = Column(Text)
+    disaster_emergency_fund_code = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -512,6 +518,7 @@ class AwardFinancialAssistance(Base):
     place_of_perform_county_co = Column(Text)
     place_of_perform_country_n = Column(Text)
     legal_entity_country_name = Column(Text)
+    place_of_performance_scope = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -899,6 +906,7 @@ class CertifiedAwardFinancialAssistance(Base):
     place_of_perform_county_co = Column(Text)
     place_of_perform_country_n = Column(Text)
     legal_entity_country_name = Column(Text)
+    place_of_performance_scope = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

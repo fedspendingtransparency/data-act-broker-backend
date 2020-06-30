@@ -1,5 +1,7 @@
--- GrossOutlayAmountByTAS_CPE (file A (appropriation)) = sum of all GrossOutlayAmountByProgramObjectClass (file B
--- (object class program activity)).
+-- The GrossOutlayAmountByTAS_CPE amount in the appropriation file (A) does not equal the sum of the corresponding
+-- GrossOutlayAmountByProgramObjectClass_CPE values in the award financial file (B).
+-- (This value is the sum of all Gross Outlay Amounts reported in file B, to indicate year-to-date activity by
+-- TAS/Subaccount.)
 WITH appropriation_a18_{0} AS
     (SELECT row_number,
         allocation_transfer_agency,
