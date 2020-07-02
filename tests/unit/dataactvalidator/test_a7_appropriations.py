@@ -18,8 +18,8 @@ def test_success(database):
     """ Tests that SF 133 amount for line 1000 matches Appropriation budget_authority_unobligat_fyb for the specified
         fiscal year and period
     """
-    tas_1 = "".join([_TAS, "_success"])
-    tas_2 = "".join([_TAS, "_success_2"])
+    tas_1 = 'tas_one_line_1'
+    tas_2 = 'tas_one_line_2'
 
     sf_1 = SF133(line=1000, tas=tas_1, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
                  main_account_code="000", sub_account_code="000")
@@ -30,12 +30,23 @@ def test_success(database):
 
     assert number_of_errors(_FILE, database, models=[sf_1, sf_2, ap_1, ap_2]) == 0
 
+    # Test with split SF133 lines
+    tas = 'tas_two_lines'
+
+    sf_1 = SF133(line=1000, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier='sys',
+                 main_account_code='000', sub_account_code='000', disaster_emergency_fund_code='n')
+    sf_2 = SF133(line=1000, tas=tas, period=1, fiscal_year=2016, amount=4, agency_identifier='sys',
+                 main_account_code='000', sub_account_code='000', disaster_emergency_fund_code='o')
+    ap = Appropriation(job_id=1, row_number=1, tas=tas, budget_authority_unobligat_fyb=5)
+
+    assert number_of_errors(_FILE, database, models=[sf_1, sf_2, ap]) == 0
+
 
 def test_failure(database):
     """ Tests that SF 133 amount for line 1000 does not match Appropriation budget_authority_unobligat_fyb for the
         specified fiscal year and period
     """
-    tas = "".join([_TAS, "_failure"])
+    tas = 'fail_tas'
 
     sf = SF133(line=1000, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
                main_account_code="000", sub_account_code="000")
