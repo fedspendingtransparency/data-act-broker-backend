@@ -7,7 +7,7 @@ from unittest.mock import Mock
 
 from dataactbroker.handlers import fileHandler
 from dataactbroker.handlers.submission_handler import (
-    publish_checks, process_dabs_publish, process_dabs_certify, publish_dabs_submission, certify_dabs_submission,
+    publish_checks, process_dabs_publish, process_dabs_certify, publish_dabs_submission,
     publish_and_certify_dabs_submission, get_submission_metadata, get_revalidation_threshold, get_submission_data,
     move_published_data, get_latest_publication_period, revert_to_certified)
 
