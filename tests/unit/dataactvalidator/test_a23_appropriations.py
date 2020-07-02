@@ -28,9 +28,9 @@ def test_success(database):
     # Test with split SF133 lines
     tas = 'tas_two_lines'
 
-    sf_1 = SF133(line=3020, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier='sys',
+    sf_1 = SF133(line=2500, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier='sys',
                  main_account_code='000', sub_account_code='000', disaster_emergency_fund_code='n')
-    sf_2 = SF133(line=3020, tas=tas, period=1, fiscal_year=2016, amount=4, agency_identifier='sys',
+    sf_2 = SF133(line=2500, tas=tas, period=1, fiscal_year=2016, amount=4, agency_identifier='sys',
                  main_account_code='000', sub_account_code='000', disaster_emergency_fund_code='o')
     ap = Appropriation(job_id=1, row_number=1, tas=tas, status_of_budgetary_resour_cpe=5)
 
