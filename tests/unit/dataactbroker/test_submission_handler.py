@@ -917,31 +917,6 @@ def test_publish_dabs_submission_past_due(database):
 
 
 @pytest.mark.usefixtures('job_constants')
-def test_certify_dabs_submission_past_due(database):
-    """ Tests that a DABS submission cannot be certified without republishing if it is past its certification date. """
-    now = datetime.datetime.utcnow()
-    sess = database.session
-
-    user = UserFactory()
-    cgac = CGACFactory(cgac_code='001', agency_name='CGAC Agency')
-    submission = SubmissionFactory(cgac_code=cgac.cgac_code, reporting_fiscal_period=3, reporting_fiscal_year=2017,
-                                   reporting_start_date='2016-10-01', is_quarter_format=False, publishable=True,
-                                   publish_status_id=PUBLISH_STATUS_DICT['published'], d2_submission=False,
-                                   number_of_errors=0, number_of_warnings=200, certifying_user_id=None)
-    sched = SubmissionWindowScheduleFactory(period=3, year=2017, period_start=now - datetime.timedelta(5),
-                                            certification_deadline=now - datetime.timedelta(1))
-    sess.add_all([user, cgac, submission, sched])
-    sess.commit()
-
-    results = certify_dabs_submission(submission)
-
-    assert results.status_code == 400
-    assert results.json['message'] == 'Monthly submissions past their certification deadline must be published and' \
-                                      ' certified at the same time. Use the publish_and_certify_dabs_submission' \
-                                      ' endpoint.'
-
-
-@pytest.mark.usefixtures('job_constants')
 def test_process_dabs_certify_success(database):
     """ Tests that a DABS submission can be successfully certified and the certify info added to the published files
         history.
