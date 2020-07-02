@@ -21,10 +21,10 @@ def test_success(database):
     tas_1 = 'tas_one_line_1'
     tas_2 = 'tas_one_line_2'
 
-    sf_1 = SF133(line=1000, tas=tas_1, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
-                 main_account_code="000", sub_account_code="000")
-    sf_2 = SF133(line=1000, tas=tas_2, period=1, fiscal_year=2016, amount=0, agency_identifier="sys",
-                 main_account_code="000", sub_account_code="000")
+    sf_1 = SF133(line=1000, tas=tas_1, period=1, fiscal_year=2016, amount=1, agency_identifier='sys',
+                 main_account_code='000', sub_account_code='000')
+    sf_2 = SF133(line=1000, tas=tas_2, period=1, fiscal_year=2016, amount=0, agency_identifier='sys',
+                 main_account_code='000', sub_account_code='000')
     ap_1 = Appropriation(job_id=1, row_number=1, tas=tas_1, budget_authority_unobligat_fyb=1)
     ap_2 = Appropriation(job_id=2, row_number=1, tas=tas_2, budget_authority_unobligat_fyb=None)
 
@@ -48,8 +48,8 @@ def test_failure(database):
     """
     tas = 'fail_tas'
 
-    sf = SF133(line=1000, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
-               main_account_code="000", sub_account_code="000")
+    sf = SF133(line=1000, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier='sys',
+               main_account_code='000', sub_account_code='000')
     ap_1 = Appropriation(job_id=1, row_number=1, tas=tas, budget_authority_unobligat_fyb=0)
     ap_2 = Appropriation(job_id=2, row_number=1, tas=tas, budget_authority_unobligat_fyb=None)
 
