@@ -10,8 +10,8 @@ WITH appropriation_a6_{0} AS
 SELECT
     approp.row_number,
     approp.total_budgetary_resources_cpe,
-    sf.amount AS "expected_value_GTAS SF133 Line 1910",
-    approp.total_budgetary_resources_cpe - sf.amount AS "difference",
+    SUM(sf.amount) AS "expected_value_GTAS SF133 Line 1910",
+    approp.total_budgetary_resources_cpe - SUM(sf.amount) AS "difference",
     approp.display_tas AS "uniqueid_TAS"
 FROM appropriation_a6_{0} AS approp
     INNER JOIN sf_133 AS sf
@@ -21,4 +21,7 @@ FROM appropriation_a6_{0} AS approp
         AND sf.period = sub.reporting_fiscal_period
         AND sf.fiscal_year = sub.reporting_fiscal_year
 WHERE sf.line = 1910
-    AND approp.total_budgetary_resources_cpe <> sf.amount;
+GROUP BY approp.row_number,
+    approp.total_budgetary_resources_cpe,
+    approp.display_tas
+HAVING approp.total_budgetary_resources_cpe <> SUM(sf.amount);
