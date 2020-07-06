@@ -256,8 +256,9 @@ def reporting_date(submission):
         return None
     if submission.is_quarter_format:
         return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3, submission.reporting_fiscal_year)
-    else:
-        return submission.reporting_start_date.strftime('%m/%Y')
+    if submission.reporting_fiscal_period == 2:
+        return 'P01-P02/{}'.format(str(submission.reporting_fiscal_year))
+    return 'P{:02d}/{}'.format(submission.reporting_fiscal_period, submission.reporting_fiscal_year)
 
 
 def job_to_dict(job):
