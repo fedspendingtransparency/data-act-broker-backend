@@ -157,7 +157,7 @@ def test_get_submission_metadata_monthly_dabs(database):
         'created_on': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_updated': now_plus_10.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': '',
-        'reporting_period': start_date.strftime('%m/%Y'),
+        'reporting_period': 'P04/2016',
         'publish_status': 'unpublished',
         'quarterly_submission': False,
         'test_submission': False,
@@ -185,7 +185,7 @@ def test_get_submission_metadata_unpublished_fabs(database):
     frec = FRECFactory(frec_code='0001', agency_name='FREC Agency', cgac=frec_cgac)
 
     sub = SubmissionFactory(submission_id=4, created_at=now, updated_at=now, cgac_code=cgac.cgac_code,
-                            reporting_fiscal_period=1, reporting_fiscal_year=2015, is_quarter_format=False,
+                            reporting_fiscal_period=2, reporting_fiscal_year=2015, is_quarter_format=False,
                             publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=True,
                             reporting_start_date=start_date, number_of_errors=4, number_of_warnings=1)
 
@@ -203,7 +203,7 @@ def test_get_submission_metadata_unpublished_fabs(database):
         'created_on': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_updated': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': '',
-        'reporting_period': start_date.strftime('%m/%Y'),
+        'reporting_period': 'P01-P02/2015',
         'publish_status': 'unpublished',
         'quarterly_submission': False,
         'test_submission': False,
@@ -255,7 +255,7 @@ def test_get_submission_metadata_published_fabs(database):
         'created_on': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_updated': now.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': '',
-        'reporting_period': start_date.strftime('%m/%Y'),
+        'reporting_period': 'P05/2010',
         'publish_status': 'published',
         'quarterly_submission': False,
         'test_submission': False,
