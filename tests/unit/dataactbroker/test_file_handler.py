@@ -815,29 +815,29 @@ def test_move_published_files(database, monkeypatch):
     finished_job = JOB_STATUS_DICT['finished']
     upload_job = JOB_TYPE_DICT['file_upload']
     appropriations_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/appropriations/file_a.csv',
-                                    file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=upload_job,
-                                    job_status_id=finished_job)
+                                        file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=upload_job,
+                                        job_status_id=finished_job)
     prog_act_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/prog/act/file_b.csv',
-                              file_type_id=FILE_TYPE_DICT['program_activity'], job_type_id=upload_job,
-                              job_status_id=finished_job)
+                                  file_type_id=FILE_TYPE_DICT['program_activity'], job_type_id=upload_job,
+                                  job_status_id=finished_job)
     award_fin_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/award/fin/file_c.csv',
-                               file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=upload_job,
-                               job_status_id=finished_job)
+                                   file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=upload_job,
+                                   job_status_id=finished_job)
     award_proc_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/award/proc/file_d1.csv',
-                                file_type_id=FILE_TYPE_DICT['award_procurement'], job_type_id=upload_job,
-                                job_status_id=finished_job)
+                                    file_type_id=FILE_TYPE_DICT['award_procurement'], job_type_id=upload_job,
+                                    job_status_id=finished_job)
     award_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/award/file_d2.csv',
-                           file_type_id=FILE_TYPE_DICT['award'], job_type_id=upload_job,
-                           job_status_id=finished_job)
+                               file_type_id=FILE_TYPE_DICT['award'], job_type_id=upload_job,
+                               job_status_id=finished_job)
     exec_comp_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/exec/comp/file_e.csv',
-                               file_type_id=FILE_TYPE_DICT['executive_compensation'], job_type_id=upload_job,
-                               job_status_id=finished_job)
+                                   file_type_id=FILE_TYPE_DICT['executive_compensation'], job_type_id=upload_job,
+                                   job_status_id=finished_job)
     sub_award_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/sub/award/file_f.csv',
-                               file_type_id=FILE_TYPE_DICT['sub_award'], job_type_id=upload_job,
-                               job_status_id=finished_job)
+                                   file_type_id=FILE_TYPE_DICT['sub_award'], job_type_id=upload_job,
+                                   job_status_id=finished_job)
 
     award_fin_narr_qtr = CommentFactory(submission=qtr_sub, comment='Test comment',
-                                    file_type_id=FILE_TYPE_DICT['award_financial'])
+                                        file_type_id=FILE_TYPE_DICT['award_financial'])
 
     appropriations_job_mon = JobFactory(submission=mon_sub, filename='/path/to/appropriations/file_a.csv',
                                         file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=upload_job,
