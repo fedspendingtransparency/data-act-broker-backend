@@ -557,7 +557,6 @@ This endpoint returns metadata for the requested submission.
     "quarterly_submission": false,
     "test_submission": false,
     "published_submission_ids": [],
-    "certified_submission": 2,
     "certified": false,
     "certification_deadline": "2020-05-24",
     "fabs_submission": true,
@@ -592,7 +591,6 @@ This endpoint returns metadata for the requested submission.
 - `quarterly_submission`: (boolean) whether the submission is quarterly or monthly
 - `test_submission`: (boolean) whether the submission is a test submission
 - `published_submission_ids`: ([integer]) submission ids published in the same period or quarter by the same agency 
-- `certified_submission`: (integer) an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
 - `certified`: (boolean) whether the submission has been certified or not
 - `certification_deadline`: (string) represents the deadline for certification after which a submission is officially "late" to certify.
 - `fabs_submission`: (boolean) whether the submission is FABS or DABS (True for FABS)
