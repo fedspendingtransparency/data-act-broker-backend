@@ -1172,7 +1172,6 @@ Possible HTTP Status Codes:
   - Submission is not published
   - Submission is already certified
   - Submission is a quarterly submission
-  - It is past the certification window for the submission
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
