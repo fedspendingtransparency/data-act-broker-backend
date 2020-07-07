@@ -25,9 +25,8 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import (
-    create_jobs, get_error_metrics_by_job_id, mark_job_status, get_latest_published_date, get_certification_deadline,
-    get_time_period)
+from dataactcore.interfaces.function_bag import (create_jobs, get_error_metrics_by_job_id, mark_job_status,
+                                                 get_latest_published_date, get_time_period)
 
 from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
                                              Office, DUNS)
@@ -1850,7 +1849,6 @@ def serialize_submission(submission):
     files = get_submission_files(jobs)
     status = get_submission_status(submission, jobs)
     published_on = get_latest_published_date(submission)
-    certification_deadline = get_certification_deadline(submission)
     time_period = get_time_period(submission)
     agency_name = submission.cgac_agency_name if submission.cgac_agency_name else submission.frec_agency_name
     return {
@@ -1865,11 +1863,9 @@ def serialize_submission(submission):
         'user': {'user_id': submission.user_id, 'name': submission.name if submission.name else 'No User'},
         'publishing_user': submission.publishing_user_name if submission.publishing_user_name else '',
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
-        'published_submission_ids': submission.published_submission_ids,
         'test_submission': submission.test_submission,
         'published_on': str(published_on) if published_on else '',
         'quarterly_submission': submission.is_quarter_format,
-        'certification_deadline': str(certification_deadline) if certification_deadline else '',
         'certified': submission.certified,
         'time_period': time_period
     }
