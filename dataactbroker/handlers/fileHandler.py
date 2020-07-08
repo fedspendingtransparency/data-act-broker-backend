@@ -16,7 +16,7 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import case
 
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
-                                                       reporting_date, job_to_dict, get_submissions_in_period)
+                                                       get_submissions_in_period)
 from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
 from dataactbroker.permissions import current_user_can_on_submission
@@ -26,15 +26,14 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (
-    create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, get_last_validated_date,
-    get_latest_published_date, get_certification_deadline, get_time_period)
+    create_jobs, get_error_metrics_by_job_id, mark_job_status, get_latest_published_date, get_certification_deadline,
+    get_time_period)
 
 from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
                                              Office, DUNS)
-from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation,
-                                          RevalidationThreshold, CertifyHistory, PublishHistory, PublishedFilesHistory,
-                                          FileGeneration, FileType, CertifiedComment, generate_fiscal_year,
-                                          generate_fiscal_period)
+from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation, CertifyHistory,
+                                          PublishHistory, PublishedFilesHistory, FileGeneration, FileType,
+                                          CertifiedComment, generate_fiscal_year, generate_fiscal_period)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
@@ -1315,63 +1314,6 @@ def published_fabs_query(data_utils):
             A list of published FABS rows.
     """
     return fileD2.query_published_fabs_data(data_utils['sess'], data_utils['submission_id'])
-
-
-def submission_to_dict_for_status(submission):
-    """ Convert a Submission model into a dictionary, ready to be serialized as JSON for the get_status function
-
-        Args:
-            submission: submission to be converted to a dictionary
-
-        Returns:
-            A dictionary of submission information.
-    """
-    sess = GlobalDB.db().session
-
-    number_of_rows = sess.query(func.sum(Job.number_of_rows)).\
-        filter_by(submission_id=submission.submission_id).\
-        scalar() or 0
-
-    # @todo replace with a relationship
-    # Determine the agency name
-    cgac = sess.query(CGAC).filter_by(cgac_code=submission.cgac_code).one_or_none()
-    frec = sess.query(FREC).filter_by(frec_code=submission.frec_code).one_or_none()
-    if cgac:
-        agency_name = cgac.agency_name
-    elif frec:
-        agency_name = frec.agency_name
-    else:
-        agency_name = ''
-
-    relevant_job_types = (JOB_TYPE_DICT['csv_record_validation'], JOB_TYPE_DICT['validation'])
-    relevant_jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
-                                           Job.job_type_id.in_(relevant_job_types))
-
-    revalidation_threshold = sess.query(RevalidationThreshold).one_or_none()
-    last_validated = get_last_validated_date(submission.submission_id)
-
-    fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
-
-    return {
-        'cgac_code': submission.cgac_code,
-        'frec_code': submission.frec_code,
-        'agency_name': agency_name,
-        'created_on': submission.created_at.strftime('%m/%d/%Y'),
-        'number_of_errors': submission.number_of_errors,
-        'number_of_rows': number_of_rows,
-        'last_updated': submission.updated_at.strftime('%Y-%m-%dT%H:%M:%S'),
-        'last_validated': last_validated,
-        'revalidation_threshold':
-            revalidation_threshold.revalidation_date.strftime('%Y-%m-%dT%H:%M:%S') if revalidation_threshold else '',
-        # Broker allows submission for a single quarter or a single month, so reporting_period start and end dates
-        # reported by check_status are always equal
-        'reporting_period_start_date': reporting_date(submission),
-        'reporting_period_end_date': reporting_date(submission),
-        'jobs': [job_to_dict(job) for job in relevant_jobs],
-        'publish_status': submission.publish_status.name,
-        'quarterly_submission': submission.is_quarter_format,
-        'fabs_meta': fabs_meta
-    }
 
 
 def get_status(submission, file_type=''):

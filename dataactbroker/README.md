@@ -551,6 +551,8 @@ This endpoint returns metadata for the requested submission.
     "last_updated": "2018-04-16T18:48:09",
     "last_validated": "2018-04-16T18:48:09",
     "reporting_period": "Q2/2018",
+    "reporting_start_date": "01/01/2018",
+    "reporting_end_date": "03/31/2018",
     "publish_status": "unpublished",
     "quarterly_submission": false,
     "test_submission": false,
@@ -579,7 +581,9 @@ This endpoint returns metadata for the requested submission.
 - `created_on`: (string) date submission was created (YYYY-MM-DDTHH:mm:ss)
 - `last_updated`: (string) date/time any changes (including validations, etc) were made to the submission (YYYY-MM-DDTHH:mm:ss)
 - `last_validated`: (string) date the most recent validations were completed (YYYY-MM-DDTHH:mm:ss)
-- `reporting_period`: (string) reporting period of the submission (Q#/YYYY for quarterly submissions, MM/YYYY for monthly)
+- `reporting_period`: (string) reporting period of the submission (Q#/YYYY for quarterly submissions, P##/YYYY for monthly, P01-P02/YYYY for period 2)
+- `reporting_start_date`: (string) the start date of the reporting period the submission is made for (MM/DD/YYYY format)
+- `reporting_end_date`: (string) the end date of the reporting period the submission is made for (MM/DD/YYYY format)
 - `publish_status`: (string) whether the submission is published or not. Can contain only the following values:
     - `unpublished`
     - `published`

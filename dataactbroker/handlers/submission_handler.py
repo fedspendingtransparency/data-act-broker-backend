@@ -165,6 +165,8 @@ def get_submission_metadata(submission):
         'last_updated': submission.updated_at.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': last_validated,
         'reporting_period': reporting_date(submission),
+        'reporting_start_date': submission.reporting_start_date.strftime('%m/%d/%Y'),
+        'reporting_end_date': submission.reporting_end_date.strftime('%m/%d/%Y'),
         'publish_status': submission.publish_status.name,
         'quarterly_submission': submission.is_quarter_format,
         'test_submission': submission.test_submission,
@@ -256,8 +258,9 @@ def reporting_date(submission):
         return None
     if submission.is_quarter_format:
         return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3, submission.reporting_fiscal_year)
-    else:
-        return submission.reporting_start_date.strftime('%m/%Y')
+    if submission.reporting_fiscal_period == 2:
+        return 'P01-P02/{}'.format(str(submission.reporting_fiscal_year))
+    return 'P{:02d}/{}'.format(submission.reporting_fiscal_period, submission.reporting_fiscal_year)
 
 
 def job_to_dict(job):
