@@ -557,7 +557,6 @@ This endpoint returns metadata for the requested submission.
     "quarterly_submission": false,
     "test_submission": false,
     "published_submission_ids": [],
-    "certified_submission": 2,
     "certified": false,
     "certification_deadline": "2020-05-24",
     "fabs_submission": true,
@@ -592,7 +591,6 @@ This endpoint returns metadata for the requested submission.
 - `quarterly_submission`: (boolean) whether the submission is quarterly or monthly
 - `test_submission`: (boolean) whether the submission is a test submission
 - `published_submission_ids`: ([integer]) submission ids published in the same period or quarter by the same agency 
-- `certified_submission`: (integer) an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
 - `certified`: (boolean) whether the submission has been certified or not
 - `certification_deadline`: (string) represents the deadline for certification after which a submission is officially "late" to certify.
 - `fabs_submission`: (boolean) whether the submission is FABS or DABS (True for FABS)
@@ -1388,11 +1386,9 @@ This endpoint lists submissions for all agencies for which the current user is a
       "last_modified": "2016-08-30 12:59:37.053424",
       "publish_status": "published",
       "test_submission": false,
-      "published_submission_ids": [],
       "publishing_user": "Certifier",
       "published_on": "2016-08-30 12:53:37.053424",
       "quarterly_submission": true,
-      "certification_deadline": "2016-10-05",
       "certified": true,
       "time_period": "FY 16 / Q4"
     },
@@ -1410,11 +1406,9 @@ This endpoint lists submissions for all agencies for which the current user is a
       "last_modified": "2016-08-31 15:59:37.053424",
       "publish_status": "unpublished",
       "test_submission": false,
-      "published_submission_ids": [],
       "publishing_user": "",
       "published_on": "",
       "quarterly_submission": true,
-      "certification_deadline": "2015-10-05",
       "certified": true,
       "time_period": "FY 15 / Q4"
     }
@@ -1456,12 +1450,10 @@ This endpoint lists submissions for all agencies for which the current user is a
         - `updated`
         - `publishing`
     - `test_submission`: (boolean) whether the submission is a test submission
-    - `published_submission_ids`: ([integer]) submission ids published in the same period or quarter by the same agency 
     - `publishing_user`: (string) the name of the last user to publish the submission
     - `certified`: (boolean) whether the submission has been certified or not
     - `published_on`: (string) the last time/date the submission was published. (`YYYY-MM-DD HH:mm:ss`)
     - `quarterly_submission`: (boolean) whether the submission is quarterly
-    - `certification_deadline `: (string) the last date of the submission window, when the certification is due
     - `time_period`: (string) the time frame for the submission
 
 ##### Errors

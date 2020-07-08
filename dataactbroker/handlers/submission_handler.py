@@ -144,13 +144,6 @@ def get_submission_metadata(submission):
         filter_by(submission_id=submission.submission_id).\
         scalar() or 0
 
-    test_sub = filter_submissions(submission.cgac_code, submission.frec_code, submission.reporting_fiscal_year,
-                                  submission.reporting_fiscal_period, submission.submission_id)
-    certified_submission = None
-
-    if test_sub.count() > 0:
-        certified_submission = test_sub[0].submission_id
-
     certification_deadline = get_certification_deadline(submission)
 
     return {
@@ -171,7 +164,6 @@ def get_submission_metadata(submission):
         'quarterly_submission': submission.is_quarter_format,
         'test_submission': submission.test_submission,
         'published_submission_ids': submission.published_submission_ids,
-        'certified_submission': certified_submission,
         'certified': submission.certified,
         'certification_deadline': str(certification_deadline) if certification_deadline else '',
         'fabs_submission': submission.d2_submission,
