@@ -6,6 +6,7 @@
 broker:
 
     use_aws: false
+    validator_batch_size: 10000
     full_url: http://127.0.0.1:3000
     reply_to_email: valid.developer.email@domain.com
     broker_files: ./tmp/data_act_broker
