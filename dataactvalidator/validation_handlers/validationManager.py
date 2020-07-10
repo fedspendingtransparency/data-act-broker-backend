@@ -48,7 +48,7 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = 10000
+CHUNK_SIZE = CONFIG_BROKER['validator_batch_size']
 
 
 class ValidationManager:
