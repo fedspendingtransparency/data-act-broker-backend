@@ -1026,7 +1026,9 @@ class FileHandler:
             created_at_date = publish_history.created_at
             route_vars = ['FABS', agency_code, created_at_date.year, '{:02d}'.format(created_at_date.month)]
         else:
-            route_vars = [agency_code, submission.reporting_fiscal_year, submission.reporting_fiscal_period // 3,
+            time_period = 'P{}'.format(str(submission.reporting_fiscal_period).zfill(2)) \
+                if not submission.is_quarter_format else 'Q{}'.format(submission.reporting_fiscal_period // 3)
+            route_vars = [agency_code, submission.reporting_fiscal_year, time_period,
                           publish_history.publish_history_id]
         new_route = '/'.join([str(var) for var in route_vars]) + '/'
 

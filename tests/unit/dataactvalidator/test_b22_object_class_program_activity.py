@@ -9,7 +9,7 @@ _FILE = 'b22_object_class_program_activity'
 
 def test_column_headers(database):
     expected_subset = {'uniqueid_TAS', 'uniqueid_DisasterEmergencyFundCode', 'row_number',
-                       'gross_outlay_amount_by_pro_cpe', 'expected_value_GTAS SF133 Line 3020', 'difference'}
+                       'gross_outlay_amount_by_pro_cpe_sum', 'expected_value_GTAS SF133 Line 3020', 'difference'}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
@@ -28,6 +28,24 @@ def test_success(database):
                                            gross_outlay_amount_by_pro_cpe=1, disaster_emergency_fund_code='n')
 
     assert number_of_errors(_FILE, database, models=[sf, op], submission=submission) == 0
+
+
+def test_success_multiple_rows(database):
+    """ GrossOutlayAmountByProgramObjectClass_CPE = value for GTAS SF 133 line #3020 for the same reporting period for
+        the TAS and DEFC combination (except for when '9' is provided as DEFC). Multiple OP rows for the same combo
+    """
+    submission_id = 1
+    tas, period, year = 'some-tas', 2, 2002
+
+    submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
+                                   reporting_fiscal_year=year)
+    sf = SF133Factory(line=3020, tas=tas, period=period, fiscal_year=year, amount=5, disaster_emergency_fund_code='N')
+    op_1 = ObjectClassProgramActivityFactory(submission_id=submission_id, row_number=1, tas=tas, display_tas=tas,
+                                             gross_outlay_amount_by_pro_cpe=1, disaster_emergency_fund_code='n')
+    op_2 = ObjectClassProgramActivityFactory(submission_id=submission_id, row_number=2, tas=tas, display_tas=tas,
+                                             gross_outlay_amount_by_pro_cpe=4, disaster_emergency_fund_code='n')
+
+    assert number_of_errors(_FILE, database, models=[sf, op_1, op_2], submission=submission) == 0
 
 
 def test_non_matching_defc(database):

@@ -783,47 +783,77 @@ def test_get_upload_file_url_s3(database, monkeypatch):
 def test_move_published_files(database, monkeypatch):
     # set up cgac and submission
     cgac = CGACFactory(cgac_code='zyxwv', agency_name='Test')
-    sub = SubmissionFactory(cgac_code='zyxwv', number_of_errors=0, publish_status_id=1,
-                            reporting_fiscal_year=2017, reporting_fiscal_period=6)
-    database.session.add_all([cgac, sub])
+    qtr_sub = SubmissionFactory(cgac_code='zyxwv', number_of_errors=0, publish_status_id=1,
+                                reporting_fiscal_year=2017, reporting_fiscal_period=6, is_quarter_format=True)
+    mon_sub = SubmissionFactory(cgac_code='zyxwv', number_of_errors=0, publish_status_id=1,
+                                reporting_fiscal_year=2017, reporting_fiscal_period=2, is_quarter_format=False)
+    database.session.add_all([cgac, qtr_sub])
     database.session.commit()
 
     # set up publish/certify history and jobs based on submission
     sess = database.session
-    pub_hist_local = PublishHistoryFactory(submission_id=sub.submission_id)
-    pub_hist_remote = PublishHistoryFactory(submission_id=sub.submission_id)
-    cert_hist_local = CertifyHistoryFactory(submission_id=sub.submission_id)
-    cert_hist_remote = CertifyHistoryFactory(submission_id=sub.submission_id)
+    pub_hist_local = PublishHistoryFactory(submission_id=qtr_sub.submission_id)
+    pub_hist_remote_qtr = PublishHistoryFactory(submission_id=qtr_sub.submission_id)
+    pub_hist_remote_mon = PublishHistoryFactory(submission_id=qtr_sub.submission_id)
+    cert_hist_local = CertifyHistoryFactory(submission_id=qtr_sub.submission_id)
+    cert_hist_remote_qtr = CertifyHistoryFactory(submission_id=qtr_sub.submission_id)
+    cert_hist_remote_mon = CertifyHistoryFactory(submission_id=qtr_sub.submission_id)
 
     finished_job = JOB_STATUS_DICT['finished']
     upload_job = JOB_TYPE_DICT['file_upload']
-    appropriations_job = JobFactory(submission=sub, filename='/path/to/appropriations/file_a.csv',
-                                    file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=upload_job,
+    appropriations_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/appropriations/file_a.csv',
+                                        file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=upload_job,
+                                        job_status_id=finished_job)
+    prog_act_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/prog/act/file_b.csv',
+                                  file_type_id=FILE_TYPE_DICT['program_activity'], job_type_id=upload_job,
+                                  job_status_id=finished_job)
+    award_fin_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/award/fin/file_c.csv',
+                                   file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=upload_job,
+                                   job_status_id=finished_job)
+    award_proc_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/award/proc/file_d1.csv',
+                                    file_type_id=FILE_TYPE_DICT['award_procurement'], job_type_id=upload_job,
                                     job_status_id=finished_job)
-    prog_act_job = JobFactory(submission=sub, filename='/path/to/prog/act/file_b.csv',
-                              file_type_id=FILE_TYPE_DICT['program_activity'], job_type_id=upload_job,
-                              job_status_id=finished_job)
-    award_fin_job = JobFactory(submission=sub, filename='/path/to/award/fin/file_c.csv',
-                               file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=upload_job,
+    award_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/award/file_d2.csv',
+                               file_type_id=FILE_TYPE_DICT['award'], job_type_id=upload_job,
                                job_status_id=finished_job)
-    award_proc_job = JobFactory(submission=sub, filename='/path/to/award/proc/file_d1.csv',
-                                file_type_id=FILE_TYPE_DICT['award_procurement'], job_type_id=upload_job,
-                                job_status_id=finished_job)
-    award_job = JobFactory(submission=sub, filename='/path/to/award/file_d2.csv',
-                           file_type_id=FILE_TYPE_DICT['award'], job_type_id=upload_job,
-                           job_status_id=finished_job)
-    exec_comp_job = JobFactory(submission=sub, filename='/path/to/exec/comp/file_e.csv',
-                               file_type_id=FILE_TYPE_DICT['executive_compensation'], job_type_id=upload_job,
-                               job_status_id=finished_job)
-    sub_award_job = JobFactory(submission=sub, filename='/path/to/sub/award/file_f.csv',
-                               file_type_id=FILE_TYPE_DICT['sub_award'], job_type_id=upload_job,
-                               job_status_id=finished_job)
+    exec_comp_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/exec/comp/file_e.csv',
+                                   file_type_id=FILE_TYPE_DICT['executive_compensation'], job_type_id=upload_job,
+                                   job_status_id=finished_job)
+    sub_award_job_qtr = JobFactory(submission=qtr_sub, filename='/path/to/sub/award/file_f.csv',
+                                   file_type_id=FILE_TYPE_DICT['sub_award'], job_type_id=upload_job,
+                                   job_status_id=finished_job)
 
-    award_fin_narr = CommentFactory(submission=sub, comment='Test comment',
-                                    file_type_id=FILE_TYPE_DICT['award_financial'])
-    database.session.add_all([pub_hist_local, pub_hist_remote, cert_hist_local, cert_hist_remote, appropriations_job,
-                              prog_act_job, award_fin_job, award_proc_job, award_job, exec_comp_job, sub_award_job,
-                              award_fin_narr])
+    award_fin_narr_qtr = CommentFactory(submission=qtr_sub, comment='Test comment',
+                                        file_type_id=FILE_TYPE_DICT['award_financial'])
+
+    appropriations_job_mon = JobFactory(submission=mon_sub, filename='/path/to/appropriations/file_a.csv',
+                                        file_type_id=FILE_TYPE_DICT['appropriations'], job_type_id=upload_job,
+                                        job_status_id=finished_job)
+    prog_act_job_mon = JobFactory(submission=mon_sub, filename='/path/to/prog/act/file_b.csv',
+                                  file_type_id=FILE_TYPE_DICT['program_activity'], job_type_id=upload_job,
+                                  job_status_id=finished_job)
+    award_fin_job_mon = JobFactory(submission=mon_sub, filename='/path/to/award/fin/file_c.csv',
+                                   file_type_id=FILE_TYPE_DICT['award_financial'], job_type_id=upload_job,
+                                   job_status_id=finished_job)
+    award_proc_job_mon = JobFactory(submission=mon_sub, filename='/path/to/award/proc/file_d1.csv',
+                                    file_type_id=FILE_TYPE_DICT['award_procurement'], job_type_id=upload_job,
+                                    job_status_id=finished_job)
+    award_job_mon = JobFactory(submission=mon_sub, filename='/path/to/award/file_d2.csv',
+                               file_type_id=FILE_TYPE_DICT['award'], job_type_id=upload_job,
+                               job_status_id=finished_job)
+    exec_comp_job_mon = JobFactory(submission=mon_sub, filename='/path/to/exec/comp/file_e.csv',
+                                   file_type_id=FILE_TYPE_DICT['executive_compensation'], job_type_id=upload_job,
+                                   job_status_id=finished_job)
+    sub_award_job_mon = JobFactory(submission=mon_sub, filename='/path/to/sub/award/file_f.csv',
+                                   file_type_id=FILE_TYPE_DICT['sub_award'], job_type_id=upload_job,
+                                   job_status_id=finished_job)
+
+    database.session.add_all([pub_hist_local, pub_hist_remote_qtr, cert_hist_local, cert_hist_remote_qtr,
+                              appropriations_job_qtr, prog_act_job_qtr, award_fin_job_qtr, award_proc_job_qtr,
+                              award_job_qtr, exec_comp_job_qtr, sub_award_job_qtr, award_fin_narr_qtr,
+                              pub_hist_remote_mon, cert_hist_remote_mon, appropriations_job_mon, prog_act_job_mon,
+                              award_fin_job_mon, award_proc_job_mon, award_job_mon, exec_comp_job_mon,
+                              sub_award_job_mon])
     database.session.commit()
 
     s3_url_handler = Mock()
@@ -835,7 +865,7 @@ def test_move_published_files(database, monkeypatch):
     fh = fileHandler.FileHandler(Mock())
 
     # test local publication
-    fh.move_published_files(sub, pub_hist_local, cert_hist_local.certify_history_id, True)
+    fh.move_published_files(qtr_sub, pub_hist_local, cert_hist_local.certify_history_id, True)
     local_id = pub_hist_local.publish_history_id
 
     # make sure we have the right number of history entries
@@ -846,7 +876,7 @@ def test_move_published_files(database, monkeypatch):
         filter_by(publish_history_id=local_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
     assert c_cert_hist.filename == '/path/to/award/fin/file_c.csv'
     expected_filename = '/path/to/error/reports/submission_{}_File_C_award_financial_warning_report.csv'.\
-        format(sub.submission_id)
+        format(qtr_sub.submission_id)
     assert c_cert_hist.warning_filename == expected_filename
     assert c_cert_hist.comment == 'Test comment'
 
@@ -857,17 +887,27 @@ def test_move_published_files(database, monkeypatch):
 
     warning_cert_hist_files = [hist.warning_filename for hist in warning_cert_hist]
     assert '/path/to/error/reports/submission_{}_crossfile_warning_File_A_to_B_appropriations_program_activity.csv'.\
-        format(sub.submission_id) in warning_cert_hist_files
+        format(qtr_sub.submission_id) in warning_cert_hist_files
 
-    # test remote publication
-    fh.move_published_files(sub, pub_hist_remote, cert_hist_remote.certify_history_id, False)
-    remote_id = pub_hist_remote.publish_history_id
+    # test remote publication - quarter
+    fh.move_published_files(qtr_sub, pub_hist_remote_qtr, cert_hist_remote_qtr.certify_history_id, False)
+    remote_id = pub_hist_remote_qtr.publish_history_id
 
     c_cert_hist = sess.query(PublishedFilesHistory). \
         filter_by(publish_history_id=remote_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
-    assert c_cert_hist.filename == 'zyxwv/2017/2/{}/file_c.csv'.format(remote_id)
-    assert c_cert_hist.warning_filename == 'zyxwv/2017/2/{}/submission_{}_File_C_award_financial_warning_report.csv'. \
-        format(remote_id, sub.submission_id)
+    assert c_cert_hist.filename == 'zyxwv/2017/Q2/{}/file_c.csv'.format(remote_id)
+    assert c_cert_hist.warning_filename == 'zyxwv/2017/Q2/{}/submission_{}_File_C_award_financial_warning_report.csv'. \
+        format(remote_id, qtr_sub.submission_id)
+
+    # test remote publication - month
+    fh.move_published_files(mon_sub, pub_hist_remote_mon, cert_hist_remote_mon.certify_history_id, False)
+    remote_id = pub_hist_remote_mon.publish_history_id
+
+    c_cert_hist = sess.query(PublishedFilesHistory). \
+        filter_by(publish_history_id=remote_id, file_type_id=FILE_TYPE_DICT['award_financial']).one()
+    assert c_cert_hist.filename == 'zyxwv/2017/P02/{}/file_c.csv'.format(remote_id)
+    assert c_cert_hist.warning_filename == 'zyxwv/2017/P02/{}/submission_{}_File_C_award_financial_warning_report.csv'.\
+        format(remote_id, mon_sub.submission_id)
 
 
 @pytest.mark.usefixtures('job_constants')
