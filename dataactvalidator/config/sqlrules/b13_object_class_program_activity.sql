@@ -1,4 +1,5 @@
 -- DeobligationsRecoveriesRefundsdOfPriorYearByProgramObjectClass_CPE = USSGL(4871+ 4872 + 4971 + 4972)
+-- for the same TAS/DEFC combination
 SELECT
     row_number,
     deobligations_recov_by_pro_cpe,
@@ -11,6 +12,7 @@ SELECT
                                                    COALESCE(ussgl497100_downward_adjus_cpe, 0) +
                                                    COALESCE(ussgl497200_downward_adjus_cpe, 0)) AS "difference",
     display_tas AS "uniqueid_TAS",
+    disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode",
     program_activity_code AS "uniqueid_ProgramActivityCode",
     object_class AS "uniqueid_ObjectClass"
 FROM object_class_program_activity

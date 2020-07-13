@@ -1,11 +1,14 @@
 import os
 
+from datetime import datetime, timedelta
+
 from dataactbroker.handlers.submission_handler import populate_submission_error_info
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 
-from dataactcore.models.jobModels import Submission, Job, JobDependency, CertifyHistory, CertifiedFilesHistory
+from dataactcore.models.jobModels import (Submission, Job, JobDependency, CertifyHistory, PublishHistory,
+                                          PublishedFilesHistory, SubmissionWindowSchedule)
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, ERROR_TYPE_DICT, RULE_SEVERITY_DICT,
@@ -78,7 +81,7 @@ class FileTests(BaseTestAPI):
                                                               start_date='07/2015', end_date='09/2015', is_quarter=True)
             cls.setup_file_generation_submission(sess, cls.test_delete_submission_id)
 
-            cls.test_certified_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
+            cls.test_published_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
                                                                  start_date='07/2015', end_date='09/2015',
                                                                  is_quarter=True, number_of_errors=0,
                                                                  publish_status_id=2)
@@ -93,7 +96,7 @@ class FileTests(BaseTestAPI):
                                                                  is_quarter=True, number_of_errors=0,
                                                                  publish_status_id=PUBLISH_STATUS_DICT['reverting'])
 
-            cls.test_uncertified_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
+            cls.test_unpublished_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
                                                                    start_date='04/2015', end_date='06/2015',
                                                                    is_quarter=True, number_of_errors=0)
 
@@ -102,8 +105,27 @@ class FileTests(BaseTestAPI):
                                                                   is_quarter=True, number_of_errors=0)
 
             cls.test_monthly_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
-                                                               start_date='10/2015', end_date='12/2015',
+                                                               start_date='04/2015', end_date='06/2015',
                                                                is_quarter=False, number_of_errors=0)
+
+            cls.dup_test_monthly_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
+                                                                   start_date='04/2015', end_date='06/2015',
+                                                                   is_quarter=False, number_of_errors=0)
+
+            cls.test_monthly_pub_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
+                                                                   start_date='09/2014', end_date='10/2014',
+                                                                   is_quarter=False, number_of_errors=0,
+                                                                   publish_status_id=PUBLISH_STATUS_DICT['published'])
+            cls.test_monthly_cert_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
+                                                                    start_date='10/2014', end_date='11/2014',
+                                                                    is_quarter=False, number_of_errors=0,
+                                                                    publish_status_id=PUBLISH_STATUS_DICT['published'],
+                                                                    certified=True)
+
+            cls.test_test_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
+                                                            start_date='10/2015', end_date='12/2015',
+                                                            is_quarter=False, number_of_errors=0,
+                                                            test_submission=True)
 
             cls.test_fabs_submission_id = insert_submission(sess, cls.submission_user_id, cgac_code='SYS',
                                                             start_date='10/2015', end_date='12/2015', is_quarter=False,
@@ -119,7 +141,7 @@ class FileTests(BaseTestAPI):
             insert_job(sess, None, FILE_STATUS_DICT['complete'], JOB_TYPE_DICT['validation'],
                        cls.test_other_user_submission_id)
 
-            cls.test_certify_history_id = cls.setup_certification_history(sess)
+            cls.test_certify_history_id, cls.test_publish_history_id = cls.setup_publication_history(sess)
 
     def setUp(self):
         """Test set-up."""
@@ -150,6 +172,25 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get('Content-Type'), 'application/json')
         self.assertIn('submission_id', response.json)
+
+    def test_test_submission(self):
+        """ Test creating an explicit test submission. """
+        test_submission_json = {
+            'cgac_code': 'NOT',
+            'frec_code': None,
+            'is_quarter': True,
+            'test_submission': True,
+            'reporting_period_start_date': '10/2015',
+            'reporting_period_end_date': '12/2015'}
+        response = self.app.post('/v1/upload_dabs_files/', test_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={'x-session-id': self.session_id})
+        self.assertEqual(response.status_code, 200)
+
+        sess = GlobalDB.db().session
+        submission_id = response.json['submission_id']
+        submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
+        self.assertEqual(submission.test_submission, True)
 
     def test_update_submission(self):
         """ Test upload_dabs_files with an existing submission ID """
@@ -183,6 +224,7 @@ class FileTests(BaseTestAPI):
             self.assertEqual(submission.reporting_start_date.strftime('%m/%Y'), '04/2016')
             self.assertEqual(submission.reporting_end_date.strftime('%m/%Y'), '06/2016')
             self.assertEqual(submission.publish_status_id, PUBLISH_STATUS_DICT['updated'])
+            self.assertEqual(submission.test_submission, False)
 
     def test_bad_file_type(self):
         """ Test file submissions for bad file formats (not CSV or TXT) """
@@ -200,7 +242,8 @@ class FileTests(BaseTestAPI):
                                         upload_files=[AWARD_FILE_T],
                                         headers={'x-session-id': self.session_id}, expect_errors=True)
         self.assertEqual(update_response.status_code, 400)
-        self.assertEqual(update_response.json['message'], 'Existing submission must not be certifying or reverting')
+        self.assertEqual(update_response.json['message'], 'Existing submission must not be publishing, certifying, or'
+                                                          ' reverting')
 
     def test_bad_quarter(self):
         """ Test file submissions for Q5 """
@@ -242,8 +285,8 @@ class FileTests(BaseTestAPI):
         self.assertEqual(update_response.status_code, 400)
         self.assertIn('Date must be provided as', update_response.json['message'])
 
-    def test_submit_file_certified_period(self):
-        """ Test file submissions for Q4, 2015, submission with same period already been certified """
+    def test_submit_file_published_period(self):
+        """ Test file submissions for Q4, 2015, submission with same period already been published """
         update_json = {
             'cgac_code': 'SYS',
             'frec_code': None,
@@ -363,12 +406,25 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.json['message'], 'existing_submission_id must be a valid submission_id')
 
     def test_submit_file_monthly_submission(self):
+        # Single month
+        monthly_submission_json = {
+            'cgac_code': 'NOT',
+            'frec_code': None,
+            'is_quarter': False,
+            'reporting_period_start_date': '05/2015',
+            'reporting_period_end_date': '05/2015'}
+        response = self.app.post('/v1/upload_dabs_files/', monthly_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={'x-session-id': self.session_id}, expect_errors=False)
+        self.assertEqual(response.status_code, 200)
+
+        # Period 2 (with period 1)
         monthly_submission_json = {
             'cgac_code': 'NOT',
             'frec_code': None,
             'is_quarter': False,
             'reporting_period_start_date': '10/2015',
-            'reporting_period_end_date': '10/2015'}
+            'reporting_period_end_date': '11/2015'}
         response = self.app.post('/v1/upload_dabs_files/', monthly_submission_json,
                                  upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
                                  headers={'x-session-id': self.session_id}, expect_errors=False)
@@ -380,15 +436,30 @@ class FileTests(BaseTestAPI):
             'cgac_code': 'NOT',
             'frec_code': None,
             'is_quarter': False,
-            'reporting_period_start_date': '10/2015',
-            'reporting_period_end_date': '12/2015'}
+            'reporting_period_start_date': '03/2015',
+            'reporting_period_end_date': '04/2015'}
         response = self.app.post('/v1/upload_dabs_files/', monthly_submission_json,
                                  upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
                                  headers={'x-session-id': self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'A monthly submission must be exactly one month.')
+        self.assertEqual(response.json['message'], 'A monthly submission must be exactly one month with the exception'
+                                                   ' of periods 1 and 2, which must be selected together.')
 
         # wrong year
+        monthly_submission_json = {
+            'cgac_code': 'NOT',
+            'frec_code': None,
+            'is_quarter': False,
+            'reporting_period_start_date': '05/2015',
+            'reporting_period_end_date': '05/2016'}
+        response = self.app.post('/v1/upload_dabs_files/', monthly_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'A monthly submission must be exactly one month with the exception'
+                                                   ' of periods 1 and 2, which must be selected together.')
+
+        # Period 1
         monthly_submission_json = {
             'cgac_code': 'NOT',
             'frec_code': None,
@@ -399,7 +470,22 @@ class FileTests(BaseTestAPI):
                                  upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
                                  headers={'x-session-id': self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'A monthly submission must be exactly one month.')
+        self.assertEqual(response.json['message'], 'A monthly submission must be exactly one month with the exception'
+                                                   ' of periods 1 and 2, which must be selected together.')
+
+        # Period 2 (without period 1)
+        monthly_submission_json = {
+            'cgac_code': 'NOT',
+            'frec_code': None,
+            'is_quarter': False,
+            'reporting_period_start_date': '11/2015',
+            'reporting_period_end_date': '11/2016'}
+        response = self.app.post('/v1/upload_dabs_files/', monthly_submission_json,
+                                 upload_files=[AWARD_FILE_T, APPROP_FILE_T, PA_FILE_T],
+                                 headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], 'A monthly submission must be exactly one month with the exception'
+                                                   ' of periods 1 and 2, which must be selected together.')
 
     def test_revalidation_threshold_no_login(self):
         """ Test response with no login """
@@ -716,139 +802,222 @@ class FileTests(BaseTestAPI):
                                                         JobDependency.prerequisite_id.in_(job_ids))).all()
         self.assertEqual(job_deps, [])
 
-        # test trying to delete a certified submission (failure expected)
-        post_json = {'submission_id': self.test_certified_submission_id}
+        # test trying to delete a published submission (failure expected)
+        post_json = {'submission_id': self.test_published_submission_id}
         response = self.app.post_json('/v1/delete_submission/', post_json, headers={'x-session-id': self.session_id},
                                       expect_errors=True)
-        self.assertEqual(response.json['message'], 'Submissions that have been certified cannot be deleted')
+        self.assertEqual(response.json['message'], 'Submissions that have been published cannot be deleted')
 
         # test trying to delete an updated submission (failure expected)
         post_json = {'submission_id': self.test_updated_submission_id}
         response = self.app.post_json('/v1/delete_submission/', post_json, headers={'x-session-id': self.session_id},
                                       expect_errors=True)
-        self.assertEqual(response.json['message'], 'Submissions that have been certified cannot be deleted')
+        self.assertEqual(response.json['message'], 'Submissions that have been published cannot be deleted')
 
-    def test_check_year_quarter_success(self):
+    def test_published_submission_ids_empty(self):
         params = {'cgac_code': 'SYS',
                   'submission_id': '1',
                   'reporting_fiscal_year': '2015',
                   'reporting_fiscal_period': '3'}
-        response = self.app.get('/v1/check_year_quarter/', params, headers={'x-session-id': self.session_id},
+        response = self.app.get('/v1/published_submissions/', params, headers={'x-session-id': self.session_id},
                                 expect_errors=False)
-        self.assertEqual(response.json['message'], 'Success')
+        self.assertEqual(response.json['published_submissions'], [])
 
-    def test_check_year_quarter_already_certified(self):
+    def test_published_submission_ids_populated(self):
         params = {'cgac_code': 'SYS',
                   'submission_id': '1',
                   'reporting_fiscal_year': '2015',
                   'reporting_fiscal_period': '12'}
 
-        response = self.app.get('/v1/check_year_quarter/', params, headers={'x-session-id': self.session_id},
-                                expect_errors=True)
-        self.assertEqual(response.json['message'], 'A submission with the same period already exists.')
-        self.assertEqual(response.json['submissionId'], self.test_certified_submission_id)
+        response = self.app.get('/v1/published_submissions/', params, headers={'x-session-id': self.session_id},
+                                expect_errors=False)
+        self.assertEqual(response.json['published_submissions'][0]['submission_id'], self.test_published_submission_id)
 
-    def test_check_year_quarter_updated(self):
+    def test_published_submission_ids_updated(self):
         params = {'cgac_code': 'SYS',
                   'submission_id': '1',
                   'reporting_fiscal_year': '2016',
                   'reporting_fiscal_period': '12'}
 
-        response = self.app.get('/v1/check_year_quarter/', params, headers={'x-session-id': self.session_id},
-                                expect_errors=True)
-        self.assertEqual(response.json['message'], 'A submission with the same period already exists.')
-        self.assertEqual(response.json['submissionId'], self.test_updated_submission_id)
+        response = self.app.get('/v1/published_submissions/', params, headers={'x-session-id': self.session_id},
+                                expect_errors=False)
+        self.assertEqual(response.json['published_submissions'][0]['submission_id'], self.test_updated_submission_id)
 
-    def test_certify_submission(self):
+    def test_publish_and_certify_dabs_submission(self):
         post_json = {'submission_id': self.row_error_submission_id}
-        response = self.app.post_json('/v1/certify_submission/', post_json, headers={'x-session-id': self.session_id},
-                                      expect_errors=True)
-        self.assertEqual(response.json['message'], 'Submission cannot be certified due to critical errors')
+        response = self.app.post_json('/v1/publish_and_certify_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Submission cannot be published due to critical errors')
 
+        post_json = {'submission_id': self.test_test_submission_id}
+        response = self.app.post_json('/v1/publish_and_certify_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Test submissions cannot be published')
+
+        post_json = {'submission_id': self.test_published_submission_id}
+        response = self.app.post_json('/v1/publish_and_certify_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Submission has already been published')
+
+        insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['finished'],
+                   JOB_TYPE_DICT['csv_record_validation'], self.test_unpublished_submission_id, num_valid_rows=0)
+        test_sub = self.session.query(Submission).filter_by(submission_id=self.test_unpublished_submission_id).one()
+        submission_window = SubmissionWindowSchedule(year=test_sub.reporting_fiscal_year,
+                                                     period=test_sub.reporting_fiscal_period,
+                                                     period_start=datetime.now() - timedelta(days=1))
+        self.session.add(submission_window)
+        self.session.commit()
+        post_json = {'submission_id': self.test_unpublished_submission_id}
+        response = self.app.post_json('/v1/publish_and_certify_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Cannot publish while file A or B is blank.')
+
+        # ensuring monthly submissions can be certified
+        insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['finished'],
+                   JOB_TYPE_DICT['csv_record_validation'], self.test_monthly_submission_id, num_valid_rows=1)
+        insert_job(self.session, FILE_TYPE_DICT['program_activity'], JOB_STATUS_DICT['finished'],
+                   JOB_TYPE_DICT['csv_record_validation'], self.test_monthly_submission_id, num_valid_rows=1)
         post_json = {'submission_id': self.test_monthly_submission_id}
-        response = self.app.post_json('/v1/certify_submission/', post_json, headers={'x-session-id': self.session_id},
-                                      expect_errors=True)
-        self.assertEqual(response.json['message'], 'Monthly submissions cannot be certified')
+        response = self.app.post_json('/v1/publish_and_certify_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=False)
+        self.assertEqual(response.status_code, 200)
 
-        post_json = {'submission_id': self.test_certified_submission_id}
-        response = self.app.post_json('/v1/certify_submission/', post_json, headers={'x-session-id': self.session_id},
-                                      expect_errors=True)
-        self.assertEqual(response.json['message'], 'Submission has already been certified')
+        # prevent submission from certifying if there are already certified submissions in the period
+        insert_job(self.session, FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['finished'],
+                   JOB_TYPE_DICT['csv_record_validation'], self.dup_test_monthly_submission_id, num_valid_rows=1)
+        insert_job(self.session, FILE_TYPE_DICT['program_activity'], JOB_STATUS_DICT['finished'],
+                   JOB_TYPE_DICT['csv_record_validation'], self.dup_test_monthly_submission_id, num_valid_rows=1)
+        post_json = {'submission_id': self.dup_test_monthly_submission_id}
+        response = self.app.post_json('/v1/publish_and_certify_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Test submissions cannot be published')
 
-    def test_list_certifications(self):
-        post_json = {'submission_id': self.test_certified_submission_id}
-        response = self.app.post_json('/v1/list_certifications/', post_json, headers={'x-session-id': self.session_id})
+        # Testing the double check
+        dup_test_sub = self.session.query(Submission).filter_by(submission_id=self.dup_test_monthly_submission_id).one()
+        dup_test_sub.test_submission = False
+        self.session.commit()
+        post_json = {'submission_id': self.dup_test_monthly_submission_id}
+        response = self.app.post_json('/v1/publish_and_certify_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'This period already has published submission(s) by this agency.')
+
+    def test_publish_dabs_submission(self):
+        """ Tests the publish_dabs_submission endpoint"""
+        # Quarterly submissions cannot be published/certified separately
+        post_json = {'submission_id': self.test_published_submission_id}
+        response = self.app.post_json('/v1/publish_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Quarterly submissions cannot be published separate from'
+                                                   ' certification. Use the publish_and_certify_dabs_submission'
+                                                   ' endpoint to publish and certify.')
+
+        # Submissions that have been certified cannot be published individually again
+        post_json = {'submission_id': self.test_monthly_cert_submission_id}
+        response = self.app.post_json('/v1/publish_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Submissions that have been certified cannot be republished'
+                                                   ' separately. Use the publish_and_certify_dabs_submission endpoint'
+                                                   ' to republish.')
+
+    def test_certify_dabs_submission(self):
+        """ Tests the certify_dabs_submission endpoint"""
+        # Quarterly submissions cannot be published/certified separately
+        post_json = {'submission_id': self.test_published_submission_id}
+        response = self.app.post_json('/v1/certify_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Quarterly submissions cannot be certified separate from'
+                                                   ' publication. Use the publish_and_certify_dabs_submission'
+                                                   ' endpoint to publish and certify.')
+
+        # Submissions that have been certified cannot be certified individually again
+        post_json = {'submission_id': self.test_monthly_cert_submission_id}
+        response = self.app.post_json('/v1/certify_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Submissions that have been certified cannot be recertified'
+                                                   ' separately. Use the publish_and_certify_dabs_submission endpoint'
+                                                   ' to recertify.')
+
+        # Submissions that have not been published cannot be certified
+        post_json = {'submission_id': self.dup_test_monthly_submission_id}
+        response = self.app.post_json('/v1/certify_dabs_submission/', post_json,
+                                      headers={'x-session-id': self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], 'Submissions must be published before certification. Use the'
+                                                   ' publish_dabs_submission endpoint to publish first.')
+
+    def test_list_history(self):
+        params = {'submission_id': self.test_published_submission_id}
+        response = self.app.get('/v1/list_history/', params, headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(len(response.json['certifications']), 0)
 
-        post_json = {'submission_id': self.test_fabs_submission_id}
-        response = self.app.post_json('/v1/list_certifications/', post_json, headers={'x-session-id': self.session_id},
-                                      expect_errors=True)
+        params = {'submission_id': self.test_fabs_submission_id}
+        response = self.app.get('/v1/list_history/', params, headers={'x-session-id': self.session_id},
+                                expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'FABS submissions do not have a certification history')
+        self.assertEqual(response.json['message'], 'FABS submissions do not have a publication history')
 
-        post_json = {'submission_id': self.test_monthly_submission_id}
-        response = self.app.post_json('/v1/list_certifications/', post_json, headers={'x-session-id': self.session_id},
-                                      expect_errors=True)
+        params = {'submission_id': self.test_unpublished_submission_id}
+        response = self.app.get('/v1/list_history/', params, headers={'x-session-id': self.session_id},
+                                expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'This submission has no certification history')
+        self.assertEqual(response.json['message'], 'This submission has no publication history')
 
     def test_get_certified_file(self):
         sess = GlobalDB.db().session
-        certified_files_history = sess.query(CertifiedFilesHistory).\
+        published_files_history = sess.query(PublishedFilesHistory).\
             filter_by(certify_history_id=self.test_certify_history_id, file_type_id=FILE_TYPE_DICT['appropriations']).\
             one()
-        certified_files_history_d = sess.query(CertifiedFilesHistory). \
+        published_files_history_d = sess.query(PublishedFilesHistory). \
             filter_by(certify_history_id=self.test_certify_history_id,
                       file_type_id=FILE_TYPE_DICT['award_procurement']). \
             one()
-        certified_files_history_cross = sess.query(CertifiedFilesHistory). \
+        published_files_history_cross = sess.query(PublishedFilesHistory). \
             filter_by(certify_history_id=self.test_certify_history_id,
                       file_type_id=None). \
             one()
 
         # valid warning file
-        post_json = {'submission_id': self.test_certified_submission_id, 'is_warning': True,
-                     'certified_files_history_id': certified_files_history.certified_files_history_id}
+        post_json = {'submission_id': self.test_published_submission_id, 'is_warning': True,
+                     'published_files_history_id': published_files_history.published_files_history_id}
         response = self.app.post_json('/v1/get_certified_file/', post_json, headers={'x-session-id': self.session_id})
         self.assertIn('path/to/warning_file_a.csv', response.json['url'])
         self.assertEqual(response.status_code, 200)
 
         # valid uploaded file
-        post_json = {'submission_id': self.test_certified_submission_id, 'is_warning': False,
-                     'certified_files_history_id': certified_files_history.certified_files_history_id}
+        post_json = {'submission_id': self.test_published_submission_id, 'is_warning': False,
+                     'published_files_history_id': published_files_history.published_files_history_id}
         response = self.app.post_json('/v1/get_certified_file/', post_json, headers={'x-session-id': self.session_id})
         self.assertIn('path/to/file_a.csv', response.json['url'])
         self.assertEqual(response.status_code, 200)
 
-        # nonexistent certified_files_history_id
-        post_json = {'submission_id': self.test_certified_submission_id, 'is_warning': False,
-                     'certified_files_history_id': -1}
+        # nonexistent published_files_history_id
+        post_json = {'submission_id': self.test_published_submission_id, 'is_warning': False,
+                     'published_files_history_id': -1}
         response = self.app.post_json('/v1/get_certified_file/', post_json, headers={'x-session-id': self.session_id},
                                       expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'Invalid certified_files_history_id')
+        self.assertEqual(response.json['message'], 'Invalid published_files_history_id')
 
-        # non-matching submission_id and certified_files_history_id
+        # non-matching submission_id and published_files_history_id
         post_json = {'submission_id': self.test_monthly_submission_id, 'is_warning': False,
-                     'certified_files_history_id': certified_files_history.certified_files_history_id}
+                     'published_files_history_id': published_files_history.published_files_history_id}
         response = self.app.post_json('/v1/get_certified_file/', post_json, headers={'x-session-id': self.session_id},
                                       expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'],
-                         'Requested certified_files_history_id does not match submission_id provided')
+                         'Requested published_files_history_id does not match submission_id provided')
 
         # no warning file associated with entry when requesting warning file
-        post_json = {'submission_id': self.test_certified_submission_id, 'is_warning': True,
-                     'certified_files_history_id': certified_files_history_d.certified_files_history_id}
+        post_json = {'submission_id': self.test_published_submission_id, 'is_warning': True,
+                     'published_files_history_id': published_files_history_d.published_files_history_id}
         response = self.app.post_json('/v1/get_certified_file/', post_json, headers={'x-session-id': self.session_id},
                                       expect_errors=True)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'History entry has no warning file')
 
         # no uploaded file associated with entry when requesting uploaded file
-        post_json = {'submission_id': self.test_certified_submission_id, 'is_warning': False,
-                     'certified_files_history_id': certified_files_history_cross.certified_files_history_id}
+        post_json = {'submission_id': self.test_published_submission_id, 'is_warning': False,
+                     'published_files_history_id': published_files_history_cross.published_files_history_id}
         response = self.app.post_json('/v1/get_certified_file/', post_json, headers={'x-session-id': self.session_id},
                                       expect_errors=True)
         self.assertEqual(response.status_code, 400)
@@ -1036,11 +1205,12 @@ class FileTests(BaseTestAPI):
         return ed.error_metadata_id
 
     @classmethod
-    def insert_certified_files_history(cls, sess, ch_id, submission_id, file_type=None, filename=None,
+    def insert_published_files_history(cls, sess, ch_id, ph_id, submission_id, file_type=None, filename=None,
                                        warning_filename=None, comment=None):
-        """ Insert one history entry into certified files history database. """
-        cfh = CertifiedFilesHistory(
+        """ Insert one history entry into published files history database. """
+        cfh = PublishedFilesHistory(
             certify_history_id=ch_id,
+            publish_history_id=ph_id,
             submission_id=submission_id,
             filename=filename,
             file_type_id=file_type,
@@ -1049,23 +1219,28 @@ class FileTests(BaseTestAPI):
         )
         sess.add(cfh)
         sess.commit()
-        return cfh.certified_files_history_id
+        return cfh.published_files_history_id
 
     @classmethod
-    def setup_certification_history(cls, sess):
-        submission_id = cls.test_certified_submission_id
+    def setup_publication_history(cls, sess):
+        submission_id = cls.test_published_submission_id
 
         ch = CertifyHistory(
             user_id=cls.submission_user_id,
             submission_id=submission_id
         )
-        sess.add(ch)
+        ph = PublishHistory(
+            user_id=cls.submission_user_id,
+            submission_id=submission_id
+        )
+        sess.add_all([ch, ph])
         sess.commit()
 
         # Create an A file entry
-        cls.insert_certified_files_history(
+        cls.insert_published_files_history(
             sess,
             ch.certify_history_id,
+            ph.publish_history_id,
             submission_id,
             FILE_TYPE_DICT['appropriations'],
             'path/to/file_a.csv',
@@ -1074,23 +1249,25 @@ class FileTests(BaseTestAPI):
         )
 
         # Create a D1 file entry
-        cls.insert_certified_files_history(
+        cls.insert_published_files_history(
             sess,
             ch.certify_history_id,
+            ph.publish_history_id,
             submission_id,
             FILE_TYPE_DICT['award_procurement'],
             'path/to/file_d1.csv'
         )
 
         # Create a cross-file entry
-        cls.insert_certified_files_history(
+        cls.insert_published_files_history(
             sess,
             ch.certify_history_id,
+            ph.publish_history_id,
             submission_id,
             warning_filename='path/to/cross_file.csv'
         )
 
-        return ch.certify_history_id
+        return ch.certify_history_id, ph.publish_history_id
 
     @classmethod
     def setup_file_generation_submission(cls, sess, submission_id):

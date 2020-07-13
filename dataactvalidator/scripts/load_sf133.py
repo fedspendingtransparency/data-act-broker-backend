@@ -58,12 +58,12 @@ def load_all_sf133(sf133_path=None, force_sf133_load=False):
 def fill_blank_sf133_lines(data):
     """ Incoming .csv does not always include rows for zero-value SF-133 lines so we add those here because they're
         needed for the SF-133 validations.
-        1. "pivot" the sf-133 dataset to explode it horizontally, creating one row for each tas/fiscal year/period,
+        1. "pivot" the sf-133 dataset to explode it horizontally, creating one row for each tas/fiscal year/period/defc,
             with columns for each SF-133 line.
-        2. Fill any SF-133 line number cells with a missing value for a specific tas/fiscal year/period with a 0.0. We
-            don't do this in the "pivot" step because that'll downcast floats to ints
+        2. Fill any SF-133 line number cells with a missing value for a specific tas/fiscal year/period/defc with a 0.0.
+           We don't do this in the "pivot" step because that'll downcast floats to ints
         3. Once the zeroes are filled in, "melt" the pivoted data back to its normal format of one row per tas/fiscal
-            year/period.
+           year/period/defc.
         NOTE: fields used for the pivot in step #1 (i.e., items in pivot_idx) cannot have NULL values, else they will
         be silently dropped by pandas :(
 
@@ -73,11 +73,22 @@ def fill_blank_sf133_lines(data):
     pivot_idx = (
         'created_at', 'updated_at', 'agency_identifier', 'allocation_transfer_agency', 'availability_type_code',
         'beginning_period_of_availa', 'ending_period_of_availabil', 'main_account_code', 'sub_account_code', 'tas',
-        'fiscal_year', 'period', 'display_tas')
+        'fiscal_year', 'period', 'display_tas', 'disaster_emergency_fund_code')
+
+    # The following columns are allowed to be null but still make each row unique
+    # For pandas sake, this needs to not be nan and so we're temporarily setting it to something and then fix it later
+    nullable_cols = ('disaster_emergency_fund_code')
+    temp_value = 'TEMP_NOT_NULL_VALUE'
+    data[nullable_cols] = data[nullable_cols].fillna(temp_value)
 
     data = pd.pivot_table(data, values='amount', index=pivot_idx, columns=['line']).reset_index()
     data = data.fillna(value=0.0)
     data = pd.melt(data, id_vars=pivot_idx, value_name='amount')
+
+    # Reverting the nullable cols back to their original state
+    # Setting to empty strings that will be converted to nulls
+    data[nullable_cols] = data[nullable_cols].replace(temp_value, '')
+
     return data
 
 
@@ -151,6 +162,10 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False, met
         ]
         data = data[(data.line.isin(sf_133_validation_lines)) | (data.amount != 0)]
 
+        # Uppercasing DEFC to save on indexing
+        # Empty values are still empty strings ('') at this point
+        data['disaster_emergency_fund_code'] = data['disaster_emergency_fund_code'].str.upper()
+
         # we didn't use the the 'keep_null' option when padding allocation transfer agency, because nulls in that column
         # break the pivot (see above comments). so, replace the ata '000' with an empty value before inserting to db
         data['allocation_transfer_agency'] = data['allocation_transfer_agency'].str.replace('000', '')
@@ -192,7 +207,8 @@ def clean_sf133_data(filename, sf133_data):
          "fiscal_year": "fiscal_year",
          "period": "period",
          "line_num": "line",
-         "amount_summed": "amount"},
+         "amount_summed": "amount",
+         "defc": "disaster_emergency_fund_code"},
         {"allocation_transfer_agency": {"pad_to_length": 3},
          "agency_identifier": {"pad_to_length": 3},
          "main_account_code": {"pad_to_length": 4},

@@ -32,6 +32,6 @@ WHERE (af.program_activity_code <> '0000'
             AND af.main_account_code = pa.account_number
             AND UPPER(COALESCE(af.program_activity_name, '')) = UPPER(pa.program_activity_name)
             AND UPPER(COALESCE(af.program_activity_code, '')) = UPPER(pa.program_activity_code)
-            AND pa.fiscal_year_quarter = 'FY' || RIGHT(CAST(sub.reporting_fiscal_year AS CHAR(4)), 2) || 'Q' || sub.reporting_fiscal_period / 3
+            AND pa.fiscal_year_period = 'FY' || RIGHT(CAST(sub.reporting_fiscal_year AS CHAR(4)), 2) || 'P' || LPAD(sub.reporting_fiscal_period::text, 2, '0')
 
     );

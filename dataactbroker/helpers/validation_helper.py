@@ -340,7 +340,7 @@ def check_required(data, required, required_labels, report_headers, short_cols, 
     errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
     errors = errors.reset_index()
     errors['Value Provided'] = ''
-    errors['Error Message'] = ValidationError.requiredErrorMsg
+    errors['Rule Message'] = ValidationError.requiredErrorMsg
     errors['Expected Value'] = '(not blank)'
     errors['Difference'] = ''
     if not errors.empty:
@@ -386,7 +386,7 @@ def check_type(data, type_fields, type_labels, report_headers, csv_schema, short
         errors.drop(['matches_type'], axis=1, inplace=True)
     errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
     errors = errors.reset_index()
-    errors['Error Message'] = ValidationError.typeErrorMsg
+    errors['Rule Message'] = ValidationError.typeErrorMsg
     errors['Difference'] = ''
     if not errors.empty:
         errors['Expected Value'] = errors.apply(lambda x: expected_type(x, csv_schema), axis=1)
@@ -433,7 +433,7 @@ def check_length(data, length_fields, report_headers, csv_schema, short_cols, fl
         errors.drop(['valid_length'], axis=1, inplace=True)
     errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
     errors = errors.reset_index()
-    errors['Error Message'] = ValidationError.lengthErrorMsg
+    errors['Rule Message'] = ValidationError.lengthErrorMsg
     errors['Difference'] = ''
     errors['Rule Label'] = ''
     if not errors.empty:
@@ -477,7 +477,7 @@ def check_field_format(data, format_fields, report_headers, short_cols, flex_dat
         errors.drop(['matches_format'], axis=1, inplace=True)
     errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
     errors = errors.reset_index()
-    errors['Error Message'] = ValidationError.fieldFormatErrorMsg
+    errors['Rule Message'] = ValidationError.fieldFormatErrorMsg
     errors['Difference'] = ''
     errors['Rule Label'] = 'DABSDATETIME'
     errors['Expected Value'] = 'A date in the YYYYMMDD format.'
@@ -553,7 +553,7 @@ def process_formatting_errors(short_rows, long_rows, report_headers):
         format_error = {
             'Unique ID': '',
             'Field Name': 'Formatting Error',
-            'Error Message': ValidationError.readErrorMsg,
+            'Rule Message': ValidationError.readErrorMsg,
             'Value Provided': '',
             'Expected Value': '',
             'Difference': '',

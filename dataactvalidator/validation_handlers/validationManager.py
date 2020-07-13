@@ -48,15 +48,15 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = 10000
+CHUNK_SIZE = CONFIG_BROKER['validator_batch_size']
 
 
 class ValidationManager:
     """ Outer level class, called by flask route """
-    report_headers = ['Unique ID', 'Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Difference',
+    report_headers = ['Unique ID', 'Field Name', 'Rule Message', 'Value Provided', 'Expected Value', 'Difference',
                       'Flex Field', 'Row Number', 'Rule Label']
     cross_file_report_headers = ['Unique ID', 'Source File', 'Source Field Name', 'Target File', 'Target Field Name',
-                                 'Error Message', 'Source Value Provided', 'Target Value Provided', 'Difference',
+                                 'Rule Message', 'Source Value Provided', 'Target Value Provided', 'Difference',
                                  'Source Flex Field', 'Source Row Number', 'Rule Label']
 
     def __init__(self, is_local=True, directory=''):
@@ -76,6 +76,7 @@ class ValidationManager:
         self.error_file_path = None
         self.warning_file_name = None
         self.warning_file_path = None
+        self.has_data = False
 
         # Schema info
         self.csv_schema = {}
@@ -153,6 +154,7 @@ class ValidationManager:
         self.total_rows = 0
         self.short_rows = []
         self.long_rows = []
+        self.has_data = False
 
         validation_start = datetime.now()
         bucket_name = CONFIG_BROKER['aws_bucket']
@@ -376,6 +378,30 @@ class ValidationManager:
         if file_row_count != self.total_rows:
             raise ResponseException('', StatusCode.CLIENT_ERROR, None, ValidationError.rowCountError)
 
+        # Add a warning if the file is blank
+        if self.file_type.file_type_id in (FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
+                                           FILE_TYPE_DICT['award_financial']) \
+                and not self.has_data and len(self.short_rows) == 0 and len(self.long_rows) == 0:
+            empty_file = {
+                'Unique ID': '',
+                'Field Name': 'Blank File',
+                'Rule Message': ValidationError.blankFileErrorMsg,
+                'Value Provided': '',
+                'Expected Value': '',
+                'Difference': '',
+                'Flex Field': '',
+                'Row Number': None,
+                'Rule Label': 'DABSBLANK',
+                'error_type': ValidationError.blankFileError
+            }
+            empty_file_df = pd.DataFrame([empty_file], columns=list(self.report_headers + ['error_type']))
+            self.error_list.record_row_error(self.job.job_id, self.file_name, empty_file['Field Name'],
+                                             empty_file['error_type'], empty_file['Row Number'],
+                                             empty_file['Rule Label'], self.file_type.file_type_id, None,
+                                             RULE_SEVERITY_DICT['warning'])
+            empty_file_df.to_csv(self.warning_file_path, columns=self.report_headers, index=False,
+                                 quoting=csv.QUOTE_ALL, mode='a', header=False)
+
         loading_duration = (datetime.now() - loading_start).total_seconds()
         logger.info({
             'message': 'Completed data loading {}'.format(self.log_str),
@@ -398,8 +424,7 @@ class ValidationManager:
 
             Args:
                 sess: the database connection
-                bucket_name: the bucket to pull the file
-                region_name: the region to pull the file
+                chunk_df: the chunk of the file to process as a dataframe
         """
         logger.info({
             'message': 'Loading rows starting from {}'.format(self.max_row_number + 1),
@@ -456,6 +481,7 @@ class ValidationManager:
             empty_file = chunk_df.empty
 
         if not empty_file:
+            self.has_data = True
             if self.is_fabs:
                 # create a list of all required/type labels for FABS
                 labels = sess.query(ValidationLabel).all()

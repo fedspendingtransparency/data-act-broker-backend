@@ -1,7 +1,7 @@
 import itertools
 from operator import attrgetter
 
-from dataactcore.models.lookups import FILE_TYPE
+from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT_NAME_LETTER
 
 
 def report_file_name(submission_id, warning, file_type, cross_type=None):
@@ -9,10 +9,16 @@ def report_file_name(submission_id, warning, file_type, cross_type=None):
     @todo: unify these file names"""
     if cross_type:
         report_type_str = 'warning_' if warning else ''
-        return "submission_{}_cross_{}{}_{}.csv".format(submission_id, report_type_str, file_type, cross_type)
+        return "submission_{}_crossfile_{}File_{}_to_{}_{}_{}.csv".format(submission_id, report_type_str,
+                                                                          FILE_TYPE_DICT_NAME_LETTER[file_type],
+                                                                          FILE_TYPE_DICT_NAME_LETTER[cross_type],
+                                                                          file_type,
+                                                                          cross_type)
     else:
-        report_type_str = 'warning' if warning else 'error'
-        return "submission_{}_{}_{}_report.csv".format(submission_id, file_type, report_type_str)
+        report_type_str = 'warning_' if warning else 'error_'
+        return "submission_{}_File_{}_{}_{}report.csv".format(submission_id,
+                                                              FILE_TYPE_DICT_NAME_LETTER[file_type],
+                                                              file_type, report_type_str)
 
 
 def get_cross_file_pairs():

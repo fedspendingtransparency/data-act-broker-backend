@@ -100,20 +100,20 @@ class ListSubmissionTests(BaseTestAPI):
 
     def test_list_submissions_dabs_admin(self):
         """ Test with DABS submissions for an admin user. """
-        response = self.app.post_json('/v1/list_submissions/', {'certified': 'mixed'},
+        response = self.app.post_json('/v1/list_submissions/', {'published': 'mixed'},
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id,
                                                   self.certified_dabs_sub_id})
         self.assertEqual(response.json['min_last_modified'],
                          str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at))
 
-        response = self.app.post_json('/v1/list_submissions/', {'certified': 'false'},
+        response = self.app.post_json('/v1/list_submissions/', {'published': 'false'},
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id})
         self.assertEqual(response.json['min_last_modified'],
                          str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at))
 
-        response = self.app.post_json('/v1/list_submissions/', {'certified': 'true'},
+        response = self.app.post_json('/v1/list_submissions/', {'published': 'true'},
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(self.sub_ids(response), {self.certified_dabs_sub_id})
         self.assertEqual(response.json['min_last_modified'], str(datetime.strptime(self.MAX_UPDATED_AT, '%m/%d/%Y')))
@@ -121,39 +121,39 @@ class ListSubmissionTests(BaseTestAPI):
     def test_list_submissions_dabs_non_admin(self):
         """ Test with DABS submissions for a non admin user. """
         self.login_user()
-        response = self.app.post_json('/v1/list_submissions/', {'certified': 'mixed'},
+        response = self.app.post_json('/v1/list_submissions/', {'published': 'mixed'},
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id})
         self.assertEqual(response.json['min_last_modified'],
                          str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at))
 
-        response = self.app.post_json('/v1/list_submissions/', {'certified': 'false'},
+        response = self.app.post_json('/v1/list_submissions/', {'published': 'false'},
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_dabs_sub_id, self.admin_dabs_sub_id})
         self.assertEqual(response.json['min_last_modified'],
                          str(get_submission(self.session, self.non_admin_dabs_sub_id).updated_at))
 
-        response = self.app.post_json('/v1/list_submissions/', {'certified': 'true'},
+        response = self.app.post_json('/v1/list_submissions/', {'published': 'true'},
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(self.sub_ids(response), set())
         self.assertEqual(response.json['min_last_modified'], None)
 
     def test_list_submissions_fabs_admin(self):
         """ Test with FABS submissions for an admin user. """
-        response = self.app.post_json('/v1/list_submissions/', {'certified': 'mixed', 'fabs': True},
+        response = self.app.post_json('/v1/list_submissions/', {'published': 'mixed', 'fabs': True},
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_fabs_sub_id, self.admin_fabs_sub_id,
                                                   self.published_fabs_sub_id})
         self.assertEqual(response.json['min_last_modified'],
                          str(get_submission(self.session, self.published_fabs_sub_id).updated_at))
 
-        response = self.app.post_json('/v1/list_submissions/', {'certified': 'false', 'fabs': True},
+        response = self.app.post_json('/v1/list_submissions/', {'published': 'false', 'fabs': True},
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(self.sub_ids(response), {self.non_admin_fabs_sub_id, self.admin_fabs_sub_id})
         self.assertEqual(response.json['min_last_modified'],
                          str(get_submission(self.session, self.non_admin_fabs_sub_id).updated_at))
 
-        response = self.app.post_json('/v1/list_submissions/', {'certified': 'true', 'fabs': True},
+        response = self.app.post_json('/v1/list_submissions/', {'published': 'true', 'fabs': True},
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(self.sub_ids(response), {self.published_fabs_sub_id})
         self.assertEqual(response.json['min_last_modified'],
@@ -162,18 +162,18 @@ class ListSubmissionTests(BaseTestAPI):
     def test_list_submissions_fabs_non_admin(self):
         """ Test with FABS submissions for a non admin user. """
         self.login_user()
-        response = self.app.post_json('/v1/list_submissions/', {'certified': 'mixed', 'fabs': True},
+        response = self.app.post_json('/v1/list_submissions/', {'published': 'mixed', 'fabs': True},
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(self.sub_ids(response), {self.admin_fabs_sub_id, self.published_fabs_sub_id})
         self.assertEqual(response.json['min_last_modified'],
                          str(get_submission(self.session, self.published_fabs_sub_id).updated_at))
 
-        response = self.app.post_json('/v1/list_submissions/', {'certified': 'false', 'fabs': True},
+        response = self.app.post_json('/v1/list_submissions/', {'published': 'false', 'fabs': True},
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(self.sub_ids(response), {self.admin_fabs_sub_id})
         self.assertEqual(response.json['min_last_modified'], str(datetime.strptime(self.MAX_UPDATED_AT, '%m/%d/%Y')))
 
-        response = self.app.post_json('/v1/list_submissions/', {'certified': 'true', 'fabs': True},
+        response = self.app.post_json('/v1/list_submissions/', {'published': 'true', 'fabs': True},
                                       headers={'x-session-id': self.session_id})
         self.assertEqual(self.sub_ids(response), {self.published_fabs_sub_id})
         self.assertEqual(response.json['min_last_modified'],
@@ -183,7 +183,7 @@ class ListSubmissionTests(BaseTestAPI):
         """ Test listing submissions with a submission_id filter applied. """
         # Listing only the relevant submissions, even when an ID is provided that can't be reached
         post_json = {
-            'certified': 'mixed',
+            'published': 'mixed',
             'filters': {
                 'submission_ids': [self.non_admin_dabs_sub_id, self.admin_fabs_sub_id]
             }
@@ -206,7 +206,7 @@ class ListSubmissionTests(BaseTestAPI):
         """ Test listing submissions with a start and end date filter applied. """
         # Listing only submissions that have been updated in the time frame
         post_json = {
-            'certified': 'mixed',
+            'published': 'mixed',
             'filters': {
                 'last_modified_range': {
                     'start_date': '12/31/2009',
@@ -239,7 +239,7 @@ class ListSubmissionTests(BaseTestAPI):
 
         # Listing submissions based on last modified in job (if it's higher) (also still using only one day)
         post_json = {
-            'certified': 'mixed',
+            'published': 'mixed',
             'filters': {
                 'last_modified_range': {
                     'start_date': self.MAX_UPDATED_AT,
@@ -322,7 +322,7 @@ class ListSubmissionTests(BaseTestAPI):
         """ Test listing submissions with an agency_code filter applied. """
         # Listing only the relevant submissions
         post_json = {
-            'certified': 'mixed',
+            'published': 'mixed',
             'filters': {
                 'agency_codes': ['000']
             }
@@ -333,7 +333,7 @@ class ListSubmissionTests(BaseTestAPI):
         self.login_user()
         # Not returning a result if the user doesn't have access to the submission
         post_json = {
-            'certified': 'mixed',
+            'published': 'mixed',
             'fabs': True,
             'filters': {
                 'agency_codes': ['SYS']
@@ -345,7 +345,7 @@ class ListSubmissionTests(BaseTestAPI):
         self.login_admin_user()
         # Invalid agency code, valid length
         post_json = {
-            'certified': 'mixed',
+            'published': 'mixed',
             'filters': {
                 'agency_codes': ['111']
             }
@@ -386,7 +386,7 @@ class ListSubmissionTests(BaseTestAPI):
         """ Test listing submissions with an file_names filter applied. """
         # List only submissions with job files
         post_json = {
-            'certified': 'mixed',
+            'published': 'mixed',
             'filters': {
                 'file_names': ['file']
             }
@@ -419,7 +419,7 @@ class ListSubmissionTests(BaseTestAPI):
 
         # non-local style submission
         post_json = {
-            'certified': 'mixed',
+            'published': 'mixed',
             'fabs': True,
             'filters': {
                 'file_names': ['test']
@@ -439,7 +439,7 @@ class ListSubmissionTests(BaseTestAPI):
         """ Test listing submissions with a user_id filter applied. """
         # Listing only the relevant submissions, even when an ID is provided that can't be reached
         post_json = {
-            'certified': 'mixed',
+            'published': 'mixed',
             'filters': {
                 'user_ids': [self.other_user_id, -1]
             }

@@ -1,5 +1,5 @@
--- GrossOutlaysDeliveredOrdersPaidTotal (CPE)= USSGL(4902 + 4908 + 4982). This applies to the program activity
--- and object class level.
+-- GrossOutlaysDeliveredOrdersPaidTotal (CPE)= USSGL(4902 + 4908 + 4982) for the same TAS/DEFC combination.
+-- This applies to the program activity and object class level.
 SELECT
     row_number,
     gross_outlays_delivered_or_cpe,
@@ -10,6 +10,7 @@ SELECT
                                                    COALESCE(ussgl490800_authority_outl_cpe, 0) +
                                                    COALESCE(ussgl498200_upward_adjustm_cpe, 0)) AS "difference",
     display_tas AS "uniqueid_TAS",
+    disaster_emergency_fund_code AS "uniqueid_DisasterEmergencyFundCode",
     program_activity_code AS "uniqueid_ProgramActivityCode",
     object_class AS "uniqueid_ObjectClass"
 FROM object_class_program_activity

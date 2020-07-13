@@ -32,7 +32,7 @@ def test_success(database):
                                              program_activity_code='test'
                                              )
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY16Q4', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_period='FY16P12', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2016', reporting_fiscal_period=12,
@@ -41,8 +41,8 @@ def test_success(database):
     assert number_of_errors(_FILE, database, models=[op_1, op_2, pa], submission=submission) == 0
 
 
-def test_success_fiscal_year_quarter(database):
-    """ Testing valid name for FY that matches with fiscal_year_quarter """
+def test_success_fiscal_year_period(database):
+    """ Testing valid name for FY that matches with fiscal_year_period """
 
     populate_publish_status(database)
 
@@ -50,7 +50,7 @@ def test_success_fiscal_year_quarter(database):
                                            main_account_code='test', program_activity_name='test',
                                            program_activity_code='test')
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY17Q1', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_period='FY17P03', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=3,
@@ -59,8 +59,8 @@ def test_success_fiscal_year_quarter(database):
     assert number_of_errors(_FILE, database, models=[op, pa], submission=submission) == 0
 
 
-def test_failure_fiscal_year_quarter(database):
-    """ Testing invalid program activity, does not match with fiscal_year_quarter """
+def test_failure_fiscal_year_period(database):
+    """ Testing invalid program activity, does not match with fiscal_year_period """
 
     populate_publish_status(database)
 
@@ -68,7 +68,7 @@ def test_failure_fiscal_year_quarter(database):
                                            main_account_code='test2', program_activity_name='test2',
                                            program_activity_code='test2')
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY15Q1', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_period='FY15P03', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2018', reporting_fiscal_period=9,
@@ -88,7 +88,7 @@ def test_failure_success_ignore_recertification(database):
                                            main_account_code='test2', program_activity_name='test2',
                                            program_activity_code='test2')
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY14Q1', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_period='FY14P03', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     # Test with published submission
@@ -111,7 +111,7 @@ def test_fail_unknown_value_0000_code_has_outlays(database):
                                            program_activity_name='Unknown/Other', program_activity_code='0000',
                                            deobligations_recov_by_pro_cpe=10)
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FYQ', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_period='FYP', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     assert number_of_errors(_FILE, database, models=[op, pa]) == 1
@@ -139,7 +139,7 @@ def test_fail_ignore_blank_program_activity_name(database):
                                            ussgl497100_downward_adjus_cpe=0, ussgl497200_downward_adjus_cpe=0,
                                            ussgl498100_upward_adjustm_cpe=0, ussgl498200_upward_adjustm_cpe=0)
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FYQ', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_period='FYP', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     assert number_of_errors(_FILE, database, models=[op, pa]) == 1
@@ -154,7 +154,7 @@ def test_success_ignore_case(database):
                                            agency_identifier='test', main_account_code='test',
                                            program_activity_name='TEST', program_activity_code='test')
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY17Q4', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_period='FY17P12', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=12,
@@ -175,7 +175,7 @@ def test_failure_program_activity_name(database):
     op_2 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
                                              program_activity_name='test_wrong', program_activity_code='0000')
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY17Q1', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_period='FY17P03', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2017', reporting_fiscal_period=3,
@@ -197,7 +197,7 @@ def test_failure_program_activity_code(database):
     op_2 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
                                              program_activity_name='Unknown/Other', program_activity_code='123456')
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FY16Q1', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_period='FY16P03', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     submission = SubmissionFactory(submission_id=1, reporting_fiscal_year='2016', reporting_fiscal_period=3,
@@ -208,7 +208,7 @@ def test_failure_program_activity_code(database):
 
 def test_failure_empty_activity_name(database):
     """ Testing program activity name validation to not ignore blanks if monetary sum is not 0 """
-    pa = ProgramActivityFactory(fiscal_year_quarter='FYQ', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_period='FYP', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     # one monetary amount not 0
@@ -323,7 +323,7 @@ def test_success_unknown_value(database):
                                              ussgl497100_downward_adjus_cpe=0, ussgl497200_downward_adjus_cpe=0,
                                              ussgl498100_upward_adjustm_cpe=0, ussgl498200_upward_adjustm_cpe=0)
 
-    pa = ProgramActivityFactory(fiscal_year_quarter='FYQ', agency_id='test', allocation_transfer_id='test',
+    pa = ProgramActivityFactory(fiscal_year_period='FYP', agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
     assert number_of_errors(_FILE, database, models=[op_1, op_2, pa]) == 0

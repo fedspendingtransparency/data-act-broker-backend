@@ -236,19 +236,21 @@ class SF133(Base):
     line = Column(Integer, nullable=False)
     amount = Column(Numeric, nullable=False, default=0, server_default="0")
     tas_id = Column(Integer, nullable=True)
+    disaster_emergency_fund_code = Column(Text, index=True)
 
 Index("ix_sf_133_tas_group",
       SF133.tas,
       SF133.fiscal_year,
       SF133.period,
       SF133.line,
+      SF133.disaster_emergency_fund_code,
       unique=True)
 
 
 class ProgramActivity(Base):
     __tablename__ = "program_activity"
     program_activity_id = Column(Integer, primary_key=True)
-    fiscal_year_quarter = Column(Text, nullable=False, index=True)
+    fiscal_year_period = Column(Text, nullable=False, index=True)
     agency_id = Column(Text, nullable=False, index=True)
     allocation_transfer_id = Column(Text)
     account_number = Column(Text, nullable=False, index=True)
@@ -256,7 +258,7 @@ class ProgramActivity(Base):
     program_activity_name = Column(Text, nullable=False, index=True)
 
 Index("ix_pa_tas_pa",
-      ProgramActivity.fiscal_year_quarter,
+      ProgramActivity.fiscal_year_period,
       ProgramActivity.agency_id,
       ProgramActivity.allocation_transfer_id,
       ProgramActivity.account_number,

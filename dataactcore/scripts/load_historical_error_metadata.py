@@ -12,7 +12,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.errorModels import ErrorMetadata, CertifiedErrorMetadata
-from dataactcore.models.jobModels import Job, Submission, CertifyHistory, CertifiedFilesHistory
+from dataactcore.models.jobModels import Job, Submission, PublishHistory, PublishedFilesHistory
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, RULE_SEVERITY_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT,
                                         ERROR_TYPE_DICT)
 
@@ -25,24 +25,24 @@ from dataactcore.models.userModel import User  # noqa
 logger = logging.getLogger(__name__)
 
 
-def move_certified_error_metadata(sess):
-    """ Simply move the error metadata for certified submissions since that one is valid.
+def move_published_error_metadata(sess):
+    """ Simply move the error metadata for published submissions since that one is valid.
 
         Args:
             sess: connection to database
     """
-    logger.info('Moving certified error metadata')
-    # Get a list of all jobs for certified submissions that aren't FABS
-    certified_job_list = sess.query(Job.job_id).join(Submission, Job.submission_id == Submission.submission_id).\
+    logger.info('Moving published error metadata')
+    # Get a list of all jobs for published submissions that aren't FABS
+    published_job_list = sess.query(Job.job_id).join(Submission, Job.submission_id == Submission.submission_id).\
         filter(Submission.d2_submission.is_(False), Submission.publish_status_id == PUBLISH_STATUS_DICT['published']).\
         all()
 
-    # Delete all current certified entries to prevent duplicates
-    sess.query(CertifiedErrorMetadata).filter(CertifiedErrorMetadata.job_id.in_(certified_job_list)).\
+    # Delete all current published entries to prevent duplicates
+    sess.query(CertifiedErrorMetadata).filter(CertifiedErrorMetadata.job_id.in_(published_job_list)).\
         delete(synchronize_session=False)
 
     # Create dict of error metadata
-    error_metadata_objects = sess.query(ErrorMetadata).filter(ErrorMetadata.job_id.in_(certified_job_list)).all()
+    error_metadata_objects = sess.query(ErrorMetadata).filter(ErrorMetadata.job_id.in_(published_job_list)).all()
     error_metadata_list = []
     for obj in error_metadata_objects:
         tmp_obj = obj.__dict__
@@ -55,7 +55,7 @@ def move_certified_error_metadata(sess):
     # Save all the objects in the certified error metadata table
     sess.bulk_save_objects([CertifiedErrorMetadata(**error_metadata) for error_metadata in error_metadata_list])
     sess.commit()
-    logger.info('Certified error metadata moved')
+    logger.info('Published error metadata moved')
 
 
 def convert_file_type_to_int(row, col_type):
@@ -91,7 +91,7 @@ def derive_error_type_id(row):
 
 
 def move_updated_error_metadata(sess):
-    """ Moving the last certified error metadata for updated submissions.
+    """ Moving the last published error metadata for updated submissions.
 
         Args:
             sess: connection to database
@@ -106,18 +106,18 @@ def move_updated_error_metadata(sess):
     sess.query(CertifiedErrorMetadata).filter(CertifiedErrorMetadata.job_id.in_(updated_job_list)). \
         delete(synchronize_session=False)
 
-    # Create a CTE of the max certify history IDs for updated submissions (DABS only)
-    max_certify_history = sess.query(func.max(CertifyHistory.certify_history_id).label('max_certify_id'),
-                                     CertifyHistory.submission_id.label('submission_id')).\
-        join(Submission, CertifyHistory.submission_id == Submission.submission_id).\
+    # Create a CTE of the max publish history IDs for updated submissions (DABS only)
+    max_publish_history = sess.query(func.max(PublishHistory.publish_history_id).label('max_publish_id'),
+                                     PublishHistory.submission_id.label('submission_id')).\
+        join(Submission, PublishHistory.submission_id == Submission.submission_id).\
         filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['updated'], Submission.d2_submission.is_(False)).\
-        group_by(CertifyHistory.submission_id).cte('max_certify_history')
+        group_by(PublishHistory.submission_id).cte('max_publish_history')
 
-    # Get the certify history associated with all of the warning files
-    certify_history_list = sess.query(CertifiedFilesHistory.certify_history_id, CertifiedFilesHistory.submission_id,
-                                      CertifiedFilesHistory.warning_filename).\
-        join(max_certify_history, max_certify_history.c.max_certify_id == CertifiedFilesHistory.certify_history_id).\
-        filter(CertifiedFilesHistory.warning_filename.isnot(None)).order_by(CertifiedFilesHistory.submission_id).\
+    # Get the publish history associated with all of the warning files
+    publish_history_list = sess.query(PublishedFilesHistory.publish_history_id, PublishedFilesHistory.submission_id,
+                                      PublishedFilesHistory.warning_filename).\
+        join(max_publish_history, max_publish_history.c.max_publish_id == PublishedFilesHistory.publish_history_id).\
+        filter(PublishedFilesHistory.warning_filename.isnot(None)).order_by(PublishedFilesHistory.submission_id).\
         distinct()
 
     # Creating temporary error table and truncating in case something went wrong in this script before
@@ -140,10 +140,10 @@ def move_updated_error_metadata(sess):
     sess.execute('TRUNCATE TABLE temp_error_file')
     sess.commit()
 
-    # Loop through each unique certify history to get relevant details
-    for certify_history in certify_history_list:
-        logger.info('Moving error metadata from file: {}'.format(certify_history.warning_filename))
-        warning_file_path = certify_history.warning_filename
+    # Loop through each unique publish history to get relevant details
+    for publish_history in publish_history_list:
+        logger.info('Moving error metadata from file: {}'.format(publish_history.warning_filename))
+        warning_file_path = publish_history.warning_filename
         file_name = os.path.basename(warning_file_path)
 
         # If it's not local, we need to add the bucket to the stored path
@@ -164,7 +164,7 @@ def move_updated_error_metadata(sess):
                              'Rule label': 'rule_label',
                              'Source File': 'source_file',
                              'Target File': 'target_file'}
-                relevant_job = sess.query(Job).filter_by(submission_id=certify_history.submission_id,
+                relevant_job = sess.query(Job).filter_by(submission_id=publish_history.submission_id,
                                                          job_type_id=JOB_TYPE_DICT['validation']).one()
                 warning_df['filename'] = 'cross_file'
             else:
@@ -175,11 +175,11 @@ def move_updated_error_metadata(sess):
                              'Rule label': 'rule_label'}
 
                 file_type_match = re.match('submission_{}_(.+)_warning_report.csv'.
-                                           format(certify_history.submission_id), file_name)
+                                           format(publish_history.submission_id), file_name)
                 file_type = file_type_match.groups()[0]
                 warning_df['source_file'] = file_type
                 warning_df['target_file'] = None
-                relevant_job = sess.query(Job).filter_by(submission_id=certify_history.submission_id,
+                relevant_job = sess.query(Job).filter_by(submission_id=publish_history.submission_id,
                                                          job_type_id=JOB_TYPE_DICT['csv_record_validation'],
                                                          file_type_id=FILE_TYPE_DICT[file_type]).one()
                 warning_df['filename'] = relevant_job.filename
@@ -255,5 +255,5 @@ if __name__ == '__main__':
     configure_logging()
 
     with create_app().app_context():
-        move_certified_error_metadata(db_sess)
+        move_published_error_metadata(db_sess)
         move_updated_error_metadata(db_sess)

@@ -1,7 +1,7 @@
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
-_FILE = 'fabs1_detached_award_financial_assistance'
+_FILE = 'fabs1_detached_award_financial_assistance_1'
 
 
 def test_column_headers(database):
@@ -27,7 +27,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test that a null fain with record type 2 or 3 returns an error. """
+    """ Test that a null FAIN with record type 2 or 3 returns an error. """
 
     det_award = DetachedAwardFinancialAssistanceFactory(record_type=2, fain=None, correction_delete_indicatr=None)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(record_type=3, fain='', correction_delete_indicatr='C')
