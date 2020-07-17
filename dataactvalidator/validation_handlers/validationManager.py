@@ -426,6 +426,19 @@ class ValidationManager:
                 sess: the database connection
                 chunk_df: the chunk of the file to process as a dataframe
         """
+        # Short-circuit if provided an empty dataframe
+        if chunk_df.empty:
+            logger.warning({
+                'message': 'Empty chunk provided after row {}.'.format(self.max_row_number),
+                'message_type': 'ValidatorWarning',
+                'submission_id': self.submission_id,
+                'job_id': self.job.job_id,
+                'file_type': self.file_type.name,
+                'action': 'data_loading',
+                'status': 'end'
+            })
+            return
+
         logger.info({
             'message': 'Loading rows starting from {}'.format(self.max_row_number + 1),
             'message_type': 'ValidatorInfo',
@@ -447,125 +460,134 @@ class ValidationManager:
         # Replace whatever the user included so we're using the database headers
         chunk_df.rename(columns=self.reader.header_dict, inplace=True)
 
-        empty_file = chunk_df.empty
+        # Do a cleanup of any empty/vacuous rows/cells
+        chunk_df = chunk_df.applymap(clean_col)
 
-        if not empty_file:
-            chunk_df = chunk_df.applymap(clean_col)
+        # Adding row number
+        chunk_df = chunk_df.reset_index()
+        # index gets reset for each chunk, adding the header, and adding previous rows
+        chunk_df['row_number'] = chunk_df.index + 1 + self.max_row_number
+        self.total_rows += len(chunk_df.index)
 
-            # Adding row number
-            chunk_df = chunk_df.reset_index()
-            # index gets reset for each chunk, adding the header, and adding previous rows
-            chunk_df['row_number'] = chunk_df.index + 1 + self.max_row_number
-            self.total_rows += len(chunk_df.index)
+        # Increment row numbers if any were ignored being too long
+        # This syncs the row numbers back to their original values
+        for row in sorted(self.long_rows):
+            chunk_df.loc[chunk_df['row_number'] >= row, 'row_number'] = chunk_df['row_number'] + 1
 
-            # Increment row numbers if any were ignored being too long
-            # This syncs the row numbers back to their original values
-            for row in sorted(self.long_rows):
-                chunk_df.loc[chunk_df['row_number'] >= row, 'row_number'] = chunk_df['row_number'] + 1
+        # Setting max row number for chunking purposes
+        self.max_row_number = chunk_df['row_number'].max()
 
-            # Setting max row number for chunking purposes
-            self.max_row_number = chunk_df['row_number'].max()
+        # Filtering out already processed long rows
+        self.long_rows = [row for row in self.long_rows if row > self.max_row_number]
 
-            # Filtering out already processed long rows
-            self.long_rows = [row for row in self.long_rows if row > self.max_row_number]
+        # Drop rows that were too short and pandas filled in with Nones
+        chunk_df = chunk_df[~chunk_df['row_number'].isin(self.short_rows)]
 
-            # Drop rows that were too short and pandas filled in with Nones
-            chunk_df = chunk_df[~chunk_df['row_number'].isin(self.short_rows)]
+        # Drop the index column
+        chunk_df = chunk_df.drop(['index'], axis=1)
 
-            # Drop the index column
-            chunk_df = chunk_df.drop(['index'], axis=1)
+        # Drop all rows that have 1 or less filled in values (row_number is always filled in so this is how
+        # we have to drop all rows that are just empty)
+        chunk_df.dropna(thresh=2, inplace=True)
 
-            # Drop all rows that have 1 or less filled in values (row_number is always filled in so this is how
-            # we have to drop all rows that are just empty)
-            chunk_df.dropna(thresh=2, inplace=True)
-            empty_file = chunk_df.empty
+        # Recheck for empty dataframe after cleanup of vacuous rows, and short-circuit if no data left to process
+        if chunk_df.empty:
+            logger.warning({
+                'message': 'Only empty rows found up to {}. No data loaded in this chunk'.format(self.max_row_number),
+                'message_type': 'ValidatorWarning',
+                'submission_id': self.submission_id,
+                'job_id': self.job.job_id,
+                'file_type': self.file_type.name,
+                'action': 'data_loading',
+                'status': 'end'
+            })
+            return
 
-        if not empty_file:
-            self.has_data = True
-            if self.is_fabs:
-                # create a list of all required/type labels for FABS
-                labels = sess.query(ValidationLabel).all()
-                for label in labels:
-                    if label.label_type == 'requirement':
-                        required_list[label.column_name] = label.label
-                    else:
-                        type_list[label.column_name] = label.label
-
-                # Create a list of all offices
-                offices = sess.query(Office.office_code, Office.sub_tier_code).all()
-                for office in offices:
-                    office_list[office.office_code] = office.sub_tier_code
-                # Clear out office list to save space
-                del offices
-
-            # Gathering flex data (must be done before chunk limiting)
-            if self.reader.flex_fields:
-                flex_data = chunk_df.loc[:, list(self.reader.flex_fields + ['row_number'])]
-            if flex_data is not None and not flex_data.empty:
-                flex_data['concatted'] = flex_data.apply(lambda x: concat_flex(x), axis=1)
-
-            # Dropping any extraneous fields included + flex data (must be done before file type checking)
-            chunk_df = chunk_df[list(self.expected_headers + ['row_number'])]
-
-            # Only do validations if it's not a D file
-            if self.file_type.name not in ['award', 'award_procurement']:
-
-                # Padding specific fields
-                for field in self.parsed_fields['padded']:
-                    chunk_df[field] = chunk_df.apply(
-                        lambda x: FieldCleaner.pad_field(self.csv_schema[field], x[field]), axis=1)
-                # Cleaning up numbers so they can be inserted properly
-                for field in self.parsed_fields['number']:
-                    chunk_df[field] = chunk_df.apply(lambda x: clean_numbers(x[field]), axis=1)
-
-                if self.is_fabs:
-                    chunk_df['is_valid'] = True
-                    chunk_df['awarding_sub_tier_agency_c'] = chunk_df.apply(
-                        lambda x: derive_fabs_awarding_sub_tier(x, office_list), axis=1)
-                    chunk_df['afa_generated_unique'] = chunk_df.apply(
-                        lambda x: derive_fabs_afa_generated_unique(x), axis=1)
-                    chunk_df['unique_award_key'] = chunk_df.apply(
-                        lambda x: derive_fabs_unique_award_key(x), axis=1)
+        self.has_data = True
+        if self.is_fabs:
+            # create a list of all required/type labels for FABS
+            labels = sess.query(ValidationLabel).all()
+            for label in labels:
+                if label.label_type == 'requirement':
+                    required_list[label.column_name] = label.label
                 else:
-                    chunk_df['tas'] = chunk_df.apply(lambda x: concat_tas_dict(x), axis=1)
-                    chunk_df['display_tas'] = chunk_df.apply(lambda x: concat_display_tas_dict(x), axis=1)
-                chunk_df['unique_id'] = chunk_df.apply(lambda x: derive_unique_id(x, self.is_fabs), axis=1)
+                    type_list[label.column_name] = label.label
 
-                # Separate each of the checks to their own dataframes, then concat them together
-                req_errors = check_required(chunk_df, self.parsed_fields['required'], required_list,
-                                            self.report_headers, self.short_to_long_dict[self.file_type.file_type_id],
-                                            flex_data, is_fabs=self.is_fabs)
-                type_errors = check_type(chunk_df, self.parsed_fields['number'] + self.parsed_fields['boolean'],
-                                         type_list, self.report_headers, self.csv_schema,
-                                         self.short_to_long_dict[self.file_type.file_type_id], flex_data,
-                                         is_fabs=self.is_fabs)
-                type_error_rows = type_errors['Row Number'].tolist()
-                length_errors = check_length(chunk_df, self.parsed_fields['length'], self.report_headers,
-                                             self.csv_schema, self.short_to_long_dict[self.file_type.file_type_id],
-                                             flex_data, type_error_rows)
-                field_format_errors = check_field_format(chunk_df, self.parsed_fields['format'], self.report_headers,
-                                                         self.short_to_long_dict[self.file_type.file_type_id],
-                                                         flex_data)
-                field_format_error_rows = field_format_errors['Row Number'].tolist()
+            # Create a list of all offices
+            offices = sess.query(Office.office_code, Office.sub_tier_code).all()
+            for office in offices:
+                office_list[office.office_code] = office.sub_tier_code
+            # Clear out office list to save space
+            del offices
 
-                total_errors = pd.concat([req_errors, type_errors, length_errors, field_format_errors],
-                                         ignore_index=True)
+        # Gathering flex data (must be done before chunk limiting)
+        if self.reader.flex_fields:
+            flex_data = chunk_df.loc[:, list(self.reader.flex_fields + ['row_number'])]
+        if flex_data is not None and not flex_data.empty:
+            flex_data['concatted'] = flex_data.apply(lambda x: concat_flex(x), axis=1)
 
-                # Converting these to ints because pandas likes to change them to floats randomly
-                total_errors[['Row Number', 'error_type']] = total_errors[['Row Number', 'error_type']].astype(int)
+        # Dropping any extraneous fields included + flex data (must be done before file type checking)
+        chunk_df = chunk_df[list(self.expected_headers + ['row_number'])]
 
-                self.error_rows.extend([int(x) for x in total_errors['Row Number'].tolist()])
+        # Only do validations if it's not a D file
+        if self.file_type.name not in ['award', 'award_procurement']:
 
-                for index, row in total_errors.iterrows():
-                    self.error_list.record_row_error(self.job.job_id, self.file_name, row['Field Name'],
-                                                     row['error_type'], row['Row Number'], row['Rule Label'],
-                                                     self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
+            # Padding specific fields
+            for field in self.parsed_fields['padded']:
+                chunk_df[field] = chunk_df.apply(
+                    lambda x: FieldCleaner.pad_field(self.csv_schema[field], x[field]), axis=1)
+            # Cleaning up numbers so they can be inserted properly
+            for field in self.parsed_fields['number']:
+                chunk_df[field] = chunk_df.apply(lambda x: clean_numbers(x[field]), axis=1)
 
-                total_errors.drop(['error_type'], axis=1, inplace=True, errors='ignore')
+            if self.is_fabs:
+                chunk_df['is_valid'] = True
+                chunk_df['awarding_sub_tier_agency_c'] = chunk_df.apply(
+                    lambda x: derive_fabs_awarding_sub_tier(x, office_list), axis=1)
+                chunk_df['afa_generated_unique'] = chunk_df.apply(
+                    lambda x: derive_fabs_afa_generated_unique(x), axis=1)
+                chunk_df['unique_award_key'] = chunk_df.apply(
+                    lambda x: derive_fabs_unique_award_key(x), axis=1)
+            else:
+                chunk_df['tas'] = chunk_df.apply(lambda x: concat_tas_dict(x), axis=1)
+                chunk_df['display_tas'] = chunk_df.apply(lambda x: concat_display_tas_dict(x), axis=1)
+            chunk_df['unique_id'] = chunk_df.apply(lambda x: derive_unique_id(x, self.is_fabs), axis=1)
 
-                # Remove type error rows from original dataframe
-                chunk_df = chunk_df[~chunk_df['row_number'].isin(type_error_rows + field_format_error_rows)]
-                chunk_df.drop(['unique_id'], axis=1, inplace=True)
+            # Separate each of the checks to their own dataframes, then concat them together
+            req_errors = check_required(chunk_df, self.parsed_fields['required'], required_list,
+                                        self.report_headers, self.short_to_long_dict[self.file_type.file_type_id],
+                                        flex_data, is_fabs=self.is_fabs)
+            type_errors = check_type(chunk_df, self.parsed_fields['number'] + self.parsed_fields['boolean'],
+                                     type_list, self.report_headers, self.csv_schema,
+                                     self.short_to_long_dict[self.file_type.file_type_id], flex_data,
+                                     is_fabs=self.is_fabs)
+            type_error_rows = type_errors['Row Number'].tolist()
+            length_errors = check_length(chunk_df, self.parsed_fields['length'], self.report_headers,
+                                         self.csv_schema, self.short_to_long_dict[self.file_type.file_type_id],
+                                         flex_data, type_error_rows)
+            field_format_errors = check_field_format(chunk_df, self.parsed_fields['format'], self.report_headers,
+                                                     self.short_to_long_dict[self.file_type.file_type_id],
+                                                     flex_data)
+            field_format_error_rows = field_format_errors['Row Number'].tolist()
+
+            total_errors = pd.concat([req_errors, type_errors, length_errors, field_format_errors],
+                                     ignore_index=True)
+
+            # Converting these to ints because pandas likes to change them to floats randomly
+            total_errors[['Row Number', 'error_type']] = total_errors[['Row Number', 'error_type']].astype(int)
+
+            self.error_rows.extend([int(x) for x in total_errors['Row Number'].tolist()])
+
+            for index, row in total_errors.iterrows():
+                self.error_list.record_row_error(self.job.job_id, self.file_name, row['Field Name'],
+                                                 row['error_type'], row['Row Number'], row['Rule Label'],
+                                                 self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
+
+            total_errors.drop(['error_type'], axis=1, inplace=True, errors='ignore')
+
+            # Remove type error rows from original dataframe
+            chunk_df = chunk_df[~chunk_df['row_number'].isin(type_error_rows + field_format_error_rows)]
+            chunk_df.drop(['unique_id'], axis=1, inplace=True)
 
         # Write all the errors/warnings to their files
         total_errors.to_csv(self.error_file_path, columns=self.report_headers, index=False, quoting=csv.QUOTE_ALL,
@@ -574,33 +596,32 @@ class ValidationManager:
                               quoting=csv.QUOTE_ALL, mode='a', header=False)
 
         # Finally load the data into the database
-        if not empty_file:
-            # The model data
+        # The model data
+        now = datetime.now()
+        chunk_df['created_at'] = now
+        chunk_df['updated_at'] = now
+        chunk_df['job_id'] = self.job.job_id
+        chunk_df['submission_id'] = self.submission_id
+        insert_dataframe(chunk_df, self.model.__table__.name, sess.connection())
+
+        # Flex Fields
+        if flex_data is not None:
+            flex_data.drop(['concatted'], axis=1, inplace=True)
+            flex_data = flex_data[flex_data['row_number'].isin(chunk_df['row_number'])]
+
+            flex_rows = pd.melt(flex_data, id_vars=['row_number'], value_vars=self.reader.flex_fields,
+                                var_name='header', value_name='cell')
+
+            # Filling in all the shared data for these flex fields
             now = datetime.now()
-            chunk_df['created_at'] = now
-            chunk_df['updated_at'] = now
-            chunk_df['job_id'] = self.job.job_id
-            chunk_df['submission_id'] = self.submission_id
-            insert_dataframe(chunk_df, self.model.__table__.name, sess.connection())
+            flex_rows['created_at'] = now
+            flex_rows['updated_at'] = now
+            flex_rows['job_id'] = self.job.job_id
+            flex_rows['submission_id'] = self.submission_id
+            flex_rows['file_type_id'] = self.file_type.file_type_id
 
-            # Flex Fields
-            if flex_data is not None:
-                flex_data.drop(['concatted'], axis=1, inplace=True)
-                flex_data = flex_data[flex_data['row_number'].isin(chunk_df['row_number'])]
-
-                flex_rows = pd.melt(flex_data, id_vars=['row_number'], value_vars=self.reader.flex_fields,
-                                    var_name='header', value_name='cell')
-
-                # Filling in all the shared data for these flex fields
-                now = datetime.now()
-                flex_rows['created_at'] = now
-                flex_rows['updated_at'] = now
-                flex_rows['job_id'] = self.job.job_id
-                flex_rows['submission_id'] = self.submission_id
-                flex_rows['file_type_id'] = self.file_type.file_type_id
-
-                # Adding the entire set of flex fields
-                insert_dataframe(flex_rows, FlexField.__table__.name, sess.connection())
+            # Adding the entire set of flex fields
+            insert_dataframe(flex_rows, FlexField.__table__.name, sess.connection())
         sess.commit()
 
         logger.info({

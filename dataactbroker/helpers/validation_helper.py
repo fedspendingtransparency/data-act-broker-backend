@@ -373,17 +373,21 @@ def check_type(data, type_fields, type_labels, report_headers, csv_schema, short
             A dataframe containing error text that can be turned into an error report for non-string fields
     """
     # Get just the non-string columns along with the row number and unique ID
-    type_data = data[type_fields + ['row_number', 'unique_id']]
+    invalid_datatype = data[type_fields + ['row_number', 'unique_id']]
+
+    for type_field in type_fields:
+        # For each col-Series, null-out (set to NaN) any cells that meet datatype requirements
+        required_type = FIELD_TYPE_DICT_ID[csv_schema[type_field].field_types_id]
+        invalid_datatype[type_field].where(
+            invalid_datatype[type_field].map(lambda x: is_valid_type(x, required_type)), inplace=True
+        )
+
     # Flip the data so each header + cell combination is its own row, keeping the relevant row numbers and unique IDs
-    errors = pd.melt(type_data, id_vars=['row_number', 'unique_id'], value_vars=type_fields,
+    errors = pd.melt(invalid_datatype, id_vars=['row_number', 'unique_id'], value_vars=type_fields,
                      var_name='Field Name', value_name='Value Provided')
-    # Throw out all rows that don't have data, they don't have a type
-    errors = errors[~errors['Value Provided'].isnull()]
-    # If there is data that needs checking, keep only the data that doesn't have the right type
-    if not errors.empty:
-        errors['matches_type'] = errors.apply(lambda x: valid_type(x, csv_schema), axis=1)
-        errors = errors[~errors['matches_type']]
-        errors.drop(['matches_type'], axis=1, inplace=True)
+
+    # Throw out rows for all cell values that were compliant or originally null
+    errors = errors[~(errors['Value Provided'].isnull())]
     errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
     errors = errors.reset_index()
     errors['Rule Message'] = ValidationError.typeErrorMsg
@@ -419,18 +423,22 @@ def check_length(data, length_fields, report_headers, csv_schema, short_cols, fl
         Returns:
             A dataframe containing error text that can be turned into an error report for fields that are too long
     """
+    # Drop all rows that have a type error
+    exceeds_length = data[~(data['row_number'].isin(type_error_rows))]
+
     # Get just the columns with a maximum length along with the row number and unique ID
-    length_data = data[length_fields + ['row_number', 'unique_id']]
-    # Flip the data so each header + cell combination is its own row, keeping the relevant row numbers and unique IDs
-    errors = pd.melt(length_data, id_vars=['row_number', 'unique_id'], value_vars=length_fields,
+    exceeds_length = exceeds_length[length_fields + ['row_number', 'unique_id']]
+
+    for length_field in length_fields:
+        # For each col-Series, null-out (set to NaN) any cells that meet max length requirements
+        exceeds_length[length_field].where(exceeds_length[length_field].str.len() > csv_schema[length_field].length,
+                                           inplace=True)
+
+    # Flip the data so each header + cell combination is its own row, keeping the dfrelevant row numbers and unique IDs
+    errors = pd.melt(exceeds_length, id_vars=['row_number', 'unique_id'], value_vars=length_fields,
                      var_name='Field Name', value_name='Value Provided')
-    # Throw out all rows that don't have data or have a type error
-    errors = errors[~errors['Value Provided'].isnull() & ~errors['row_number'].isin(type_error_rows)]
-    # If there is data that needs checking, keep only the data that is too long
-    if not errors.empty:
-        errors['valid_length'] = errors.apply(lambda x: valid_length(x, csv_schema), axis=1)
-        errors = errors[~errors['valid_length']]
-        errors.drop(['valid_length'], axis=1, inplace=True)
+    # Throw out rows for all cell values that were compliant or originally null
+    errors = errors[~(errors['Value Provided'].isnull())]
     errors.rename(columns={'row_number': 'Row Number', 'unique_id': 'Unique ID'}, inplace=True)
     errors = errors.reset_index()
     errors['Rule Message'] = ValidationError.lengthErrorMsg
