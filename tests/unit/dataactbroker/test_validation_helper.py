@@ -14,6 +14,13 @@ READ_ERROR = os.path.join(FILES_DIR, 'appropReadError.csv')
 
 
 def test_is_valid_type():
+    assert validation_helper.is_valid_type(None, 'STRING') is True
+    assert validation_helper.is_valid_type(None, 'STRING') is True
+    assert validation_helper.is_valid_type(None, 'INT') is True
+    assert validation_helper.is_valid_type(None, 'DECIMAL') is True
+    assert validation_helper.is_valid_type(None, 'BOOLEAN') is True
+    assert validation_helper.is_valid_type(None, 'LONG') is True
+
     assert validation_helper.is_valid_type('1234Test', 'STRING') is True
     assert validation_helper.is_valid_type('1234Test', 'INT') is False
     assert validation_helper.is_valid_type('1234Test', 'DECIMAL') is False
