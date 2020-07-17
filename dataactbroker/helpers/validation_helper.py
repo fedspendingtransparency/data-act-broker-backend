@@ -25,8 +25,8 @@ def is_valid_type(data, data_type):
     if data_type is None:
         # If no type specified, don't need to check anything
         return True
-    if data.strip() == '':
-        # An empty string matches all types
+    if data is None or data.strip() == '':
+        # All types can be None, and an empty string matches all types
         return True
     if data_type == 'STRING':
         return len(data) > 0
