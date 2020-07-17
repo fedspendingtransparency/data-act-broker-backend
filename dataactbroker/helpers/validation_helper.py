@@ -379,7 +379,7 @@ def check_type(data, type_fields, type_labels, report_headers, csv_schema, short
         # For each col-Series, null-out (set to NaN) any cells that meet datatype requirements
         required_type = FIELD_TYPE_DICT_ID[csv_schema[type_field].field_types_id]
         invalid_datatype[type_field].where(
-            invalid_datatype[type_field].map(lambda x: is_valid_type(x, required_type)), inplace=True
+            invalid_datatype[type_field].map(lambda x: not is_valid_type(x, required_type)), inplace=True
         )
 
     # Flip the data so each header + cell combination is its own row, keeping the relevant row numbers and unique IDs
