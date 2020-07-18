@@ -12,8 +12,8 @@ from sqlalchemy import and_, or_
 from dataactbroker.handlers.submission_handler import populate_submission_error_info
 from dataactbroker.helpers.validation_helper import (
     derive_fabs_awarding_sub_tier, derive_fabs_afa_generated_unique, derive_fabs_unique_award_key, derive_unique_id,
-    check_required, check_type, check_length, clean_col, clean_numbers, concat_flex, process_formatting_errors,
-    parse_fields, simple_file_scan, check_field_format)
+    check_required, check_type, check_length, clean_col, concat_flex, process_formatting_errors,
+    parse_fields, simple_file_scan, check_field_format, clean_numbers_vectorized)
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
@@ -534,11 +534,10 @@ class ValidationManager:
 
             # Padding specific fields
             for field in self.parsed_fields['padded']:
-                chunk_df[field] = chunk_df.apply(
-                    lambda x: FieldCleaner.pad_field(self.csv_schema[field], x[field]), axis=1)
+                chunk_df[field] = FieldCleaner.pad_field_vectorized(chunk_df[field], self.csv_schema[field])
             # Cleaning up numbers so they can be inserted properly
             for field in self.parsed_fields['number']:
-                chunk_df[field] = chunk_df.apply(lambda x: clean_numbers(x[field]), axis=1)
+                clean_numbers_vectorized(chunk_df[field])
 
             if self.is_fabs:
                 chunk_df['is_valid'] = True
