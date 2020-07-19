@@ -80,6 +80,31 @@ def clean_col(value, clean_quotes=True):
     return value
 
 
+def clean_frame_vectorized(frame: pd.DataFrame, clean_quotes=True):
+    """ In-place strip of surrounding whitespace, make None if empty, and remove surrounding quotes.
+        Note a side-effect of stripping quotes/whitespace is that any non-null, non-string types provided (like int
+        or float) will be converted to their string format in the final result.
+
+        Args:
+            frame: pd.DataFrame to clean
+            clean_quotes: whether to clean extra quotes or not
+
+        Returns:
+            The cleaned DataFrame, with a side-effect of an
+    """
+    if clean_quotes:
+        # NOTE: Need to find symmetry in the surrounding quotes in order to remove them. Unbalanced quotes will not be
+        # removed
+        frame = frame.replace(r'^\s*"(.*)"\s*$', r'\1', regex=True)
+    # apply on default axis=0 (vectorized, column by column)
+    frame = frame.apply(lambda series: series[series.notnull()].astype(str).str.strip())
+    # Null-out all empty strings remaining
+    # NOTE: Must use python None here rathern than numpy.NaN, because other python code that is not NaN-aware will use
+    # rows of this frame
+    frame = frame.mask(frame == "", other=None)
+    return frame
+
+
 def clean_numbers(value):
     """ Removes commas from strings representing numbers
 
@@ -100,23 +125,23 @@ def clean_numbers_vectorized(series: pd.Series):
     """ In-place removal of commas from strings representing numbers, or leaves them as-is if it cannot make a number
 
         Caveats (by Example):
-                        A        B           C
-            0  10,003,234  bad,and  2242424242
-            1           0        8     9.424.2
-            2     9.24242   ,209,4         ,01
-            3        1,45     0055        None
+                        A        B           C        D
+            0  10,003,234  bad,and  2242424242  -10,000
+            1           0        8     9.424.2      -10
+            2     9.24242   ,209,4         ,01    ,-0,0
+            3        1,45     0055        None      NaN
         Yields this evaluation of whether it can be cleaned:
-                        A        B           C
-            0        True    False        True
-            1        True     True       False
-            2        True     True        True
-            3        True     True       False
+                        A        B           C     D
+            0        True    False        True  True
+            1        True     True       False  True
+            2        True     True        True  True
+            3        True     True       False  True
         And these results when commas are replaced from those that can be cleaned
-                        A        B           C
-            0    10003234  bad,and  2242424242
-            1           0        8     9.424.2
-            2     9.24242     2094          01
-            3         145     0055        None
+                        A        B           C       D
+            0    10003234  bad,and  2242424242  -10000
+            1           0        8     9.424.2     -10
+            2     9.24242     2094          01     -00
+            3         145     0055        None     NaN
 
         Args:
             series: the series that will be cleaned (updated in-place)
@@ -126,9 +151,9 @@ def clean_numbers_vectorized(series: pd.Series):
     """
     # NOTE: It is expected that the series.dtype is `object`.
     # If it is str, `series.replace` does not work (as it requires or is expecting the series.str.replace
-    # function to be used (which is the same as the python str.replace function)
+    # function to be used (which is the same as the python str.replace function))
     replacement = series.replace(",", "", regex=True)
-    cleanable = replacement.astype(str).str.replace(".", "", 1).str.isdigit()
+    cleanable = replacement.astype(str).str.replace(".", "", 1).str.replace("-", "", 1).str.isdigit()
     series.update(replacement[cleanable])
 
 
@@ -160,6 +185,23 @@ def derive_unique_id(row, is_fabs):
     else:
         unique_id = 'AssistanceTransactionUniqueKey: {}'.format(row['afa_generated_unique'])
     return unique_id
+
+
+def derive_unique_id_vectorized(frame: pd.DataFrame, is_fabs):
+    """ Derives the unique ID of a row and puts it in the proper format for the error/warning report.
+
+        Args:
+            frame: the pd.DataFrame whose 'unique_id' column's values will be updated
+            is_fabs: a boolean indicating if the submission is a FABS submission or not
+
+        Returns:
+            A Series with properly formatted unique ID all rows depending on if it's a FABS or DABS submission
+    """
+    if not is_fabs:
+        return 'TAS: ' + frame['display_tas'][frame['display_tas'].notnull()].astype(str)
+    else:
+        return 'AssistanceTransactionUniqueKey: ' + \
+               frame['afa_generated_unique'][frame['afa_generated_unique'].notnull()].astype(str)
 
 
 def derive_fabs_awarding_sub_tier(row, office_list):
@@ -506,7 +548,7 @@ def check_type(data, type_fields, type_labels, report_headers, csv_schema, short
     """
     # Get just the non-string columns along with the row number and unique ID
     # We will be modifying, by nulling the valid types, so get a copy so as to not modify the original data
-    invalid_datatype = data.copy()[type_fields + ['row_number', 'unique_id']]
+    invalid_datatype = data[type_fields + ['row_number', 'unique_id']].copy()
 
     for type_field in type_fields:
         # For each col-Series, null-out (set to NaN) any cells that meet datatype requirements
@@ -557,7 +599,7 @@ def check_length(data, length_fields, report_headers, csv_schema, short_cols, fl
 
     # Get just the columns with a maximum length along with the row number and unique ID
     # We will be modifying, by nulling the valid types, so get a copy so as to not modify the original data
-    exceeds_length = exceeds_length.copy()[length_fields + ['row_number', 'unique_id']]
+    exceeds_length = exceeds_length[length_fields + ['row_number', 'unique_id']].copy()
 
     for length_field in length_fields:
         # For each col-Series, null-out (set to NaN) any cells that meet max length requirements

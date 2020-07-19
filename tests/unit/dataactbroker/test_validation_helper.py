@@ -64,6 +64,48 @@ def test_clean_col():
     assert validation_helper.clean_col({}) == '{}'
 
 
+def test_clean_frame_vectorized():
+    df_under_test = pd.DataFrame([
+        ['""', "", " lspace", '"lquote'],
+        ["''", " ", "rspace ", 'rquote"'],
+        ["'hello'", "  ", " surround space ", '"surround quote"'],
+        ['"hello"', "\n\t", None, '" surround quote and space "'],
+        ['"hello you"', "5", np.NaN, ' " surround quote and space "\t'],
+    ], columns=list("ABCD"))
+
+    df_under_test = validation_helper.clean_frame_vectorized(df_under_test)
+
+    expected_df = pd.DataFrame([
+        [np.NaN, np.NaN, "lspace", '"lquote'],
+        ["''", np.NaN, "rspace", 'rquote"'],
+        ["'hello'", np.NaN, "surround space", "surround quote"],
+        ["hello", np.NaN, None, "surround quote and space"],
+        ["hello you", "5", np.NaN, "surround quote and space"],
+    ], columns=list("ABCD"))
+    assert_frame_equal(df_under_test, expected_df)
+
+
+def test_clean_frame_vectorized_mixed_types():
+    df_under_test = pd.DataFrame([
+        ['""',      "",     np.NaN,         '"25'],
+        ["''",      " ",    "NaN",          '-10"'],
+        ["'10'",    "  ",   np.int64(12),      '"0"'],
+        [77,        "\n\t", None,           0.0],
+        ['"11 8"',  "5",    np.float64(8.2),   '99\t'],
+    ], columns=list("ABCD"))
+
+    df_under_test = validation_helper.clean_frame_vectorized(df_under_test)
+
+    expected_df = pd.DataFrame([
+        [np.NaN,    np.NaN, np.NaN,      '"25'],
+        ["''",      np.NaN,  "NaN",     '-10"'],
+        ["'10'",    np.NaN, "12",       "0"],
+        ["77",      np.NaN, None,     "0.0"],
+        ["11 8",    "5",    "8.2",      "99"],
+    ], columns=list("ABCD"))
+    assert_frame_equal(df_under_test, expected_df)
+
+
 def test_clean_numbers():
     # Normal cases
     assert validation_helper.clean_numbers('10') == '10'
@@ -78,6 +120,46 @@ def test_clean_numbers():
     assert validation_helper.clean_numbers(0) == '0'
     assert validation_helper.clean_numbers(None) is None
     assert validation_helper.clean_numbers(['A']) == ['A']
+
+
+def test_clean_numbers_vectorized_all_strings():
+    df_under_test = pd.DataFrame([
+        ["10,003,234", "bad,and", "2242424242", "-10"],
+        ["0", "8", "9.424.2", "-10,000"],
+        ["9.24242", ",2,094", ",01", ",-0,0"],
+        ["1,45", "0055", None, np.NaN]
+    ], columns=list("ABCD"))
+
+    for col in df_under_test.columns:
+        validation_helper.clean_numbers_vectorized(df_under_test[col])
+
+    expected_df = pd.DataFrame([
+        ["10003234", "bad,and", "2242424242", "-10"],
+        ["0", "8", "9.424.2", "-10000"],
+        ["9.24242", "2094","01", "-00"],
+        ["145", "0055", None, np.NaN]
+    ], columns=list("ABCD"))
+    assert_frame_equal(df_under_test, expected_df)
+
+
+def test_clean_numbers_vectorized_mixed_types():
+    df_under_test = pd.DataFrame([
+        ["10,003,234", "bad,and", 2242424242, -10],
+        [0, 8, "9.424.2", -4.35],
+        [9.24242, ",2,094", ",01", -0],
+        ["1,45", "0055", None, np.NaN]
+    ], columns=list("ABCD"))
+
+    for col in df_under_test.columns:
+        validation_helper.clean_numbers_vectorized(df_under_test[col])
+
+    expected_df = pd.DataFrame([
+        ["10003234", "bad,and", 2242424242, -10],
+        [0, 8, "9.424.2", -4.35],
+        [9.24242, "2094","01", -0],
+        ["145", "0055", None, np.NaN]
+    ], columns=list("ABCD"))
+    assert_frame_equal(df_under_test, expected_df)
 
 
 def test_concat_flex():

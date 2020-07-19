@@ -13,7 +13,8 @@ from dataactbroker.handlers.submission_handler import populate_submission_error_
 from dataactbroker.helpers.validation_helper import (
     derive_fabs_awarding_sub_tier, derive_fabs_afa_generated_unique, derive_fabs_unique_award_key, derive_unique_id,
     check_required, check_type, check_length, clean_col, concat_flex, process_formatting_errors,
-    parse_fields, simple_file_scan, check_field_format, clean_numbers_vectorized)
+    parse_fields, simple_file_scan, check_field_format, clean_numbers_vectorized, clean_frame_vectorized,
+    derive_unique_id_vectorized)
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
@@ -24,7 +25,8 @@ from dataactcore.interfaces.function_bag import (
     populate_job_error_info, get_action_dates
 )
 
-from dataactcore.models.domainModels import matching_cars_subquery, Office, concat_tas_dict, concat_display_tas_dict
+from dataactcore.models.domainModels import matching_cars_subquery, Office, concat_tas_dict, concat_display_tas_dict, \
+    concat_tas_dict_vectorized
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
@@ -461,7 +463,7 @@ class ValidationManager:
         chunk_df.rename(columns=self.reader.header_dict, inplace=True)
 
         # Do a cleanup of any empty/vacuous rows/cells
-        chunk_df = chunk_df.applymap(clean_col)
+        chunk_df = clean_frame_vectorized(chunk_df)
 
         # Adding row number
         chunk_df = chunk_df.reset_index()
@@ -548,9 +550,12 @@ class ValidationManager:
                 chunk_df['unique_award_key'] = chunk_df.apply(
                     lambda x: derive_fabs_unique_award_key(x), axis=1)
             else:
-                chunk_df['tas'] = chunk_df.apply(lambda x: concat_tas_dict(x), axis=1)
+                chunk_df['tas'] = concat_tas_dict_vectorized(chunk_df)
+                # display_tas is done with axis=1 (row-wise, where each dict-like row is passed into the given lambda)
+                # because the rendering label is not generated consistently, but will have a different rendered-label
+                # depending on which TAS components were present and which were not present (NULL, NaN, None)
                 chunk_df['display_tas'] = chunk_df.apply(lambda x: concat_display_tas_dict(x), axis=1)
-            chunk_df['unique_id'] = chunk_df.apply(lambda x: derive_unique_id(x, self.is_fabs), axis=1)
+            chunk_df['unique_id'] = derive_unique_id_vectorized(chunk_df, self.is_fabs)
 
             # Separate each of the checks to their own dataframes, then concat them together
             req_errors = check_required(chunk_df, self.parsed_fields['required'], required_list,
