@@ -467,8 +467,153 @@ def derive_le_location_data(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    # TODO: Figure out this SQL
-    pass
+    logger.info({
+        'message': 'Beginning legal entity location derivation',
+        'message_type': 'BrokerDebug',
+        'submission_id': submission_id
+    })
+
+    # Deriving congressional, county, and state info for records with a 9 digit zip
+    query = """
+        UPDATE published_award_financial_assistance
+        SET legal_entity_congressional = CASE WHEN legal_entity_congressional IS NULL
+                                              THEN congressional_district_no
+                                              ELSE legal_entity_congressional
+                                         END,
+            legal_entity_county_code = county_number,
+            legal_entity_state_code = state_abbreviation
+        FROM zips
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND legal_entity_zip_last4 IS NOT NULL
+            AND legal_entity_zip_last4 = zip_last4
+            AND legal_entity_zip5 = zip5;
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    # Deriving congressional info for multi-district zips
+    query = """
+        WITH all_sub_zips AS
+            (SELECT DISTINCT legal_entity_zip5
+            FROM published_award_financial_assistance
+            WHERE submission_id = {0}
+                AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+                AND legal_entity_congressional IS NULL),
+        congr_dist AS
+            (SELECT COUNT(DISTINCT congressional_district_no) AS cd_count, zip5
+            FROM zips
+            WHERE EXISTS (
+                SELECT 1
+                FROM all_sub_zips AS asz
+                WHERE zips.zip5 = asz.legal_entity_zip5)
+            GROUP BY zip5)
+        UPDATE published_award_financial_assistance
+        SET legal_entity_congressional = CASE WHEN cd_count > 1
+                                              THEN '90'
+                                         END
+        FROM congr_dist
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND legal_entity_congressional IS NULL
+            AND zip5 = legal_entity_zip5;
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    # Deriving congressional info for remaining blanks (with zip code)
+    query = """
+        UPDATE published_award_financial_assistance
+        SET legal_entity_congressional = congressional_district_no
+        FROM zips
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND legal_entity_zip5 = zip5
+            AND legal_entity_congressional IS NULL;
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    # Deriving county and state code info for remaining blanks (with zip code)
+    query = """
+        UPDATE published_award_financial_assistance
+        SET legal_entity_county_code = county_number,
+            legal_entity_state_code = state_abbreviation 
+        FROM zips
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND legal_entity_zip5 = zip5
+            AND legal_entity_county_code IS NULL;
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    # Deriving county names for records with zips (type 2 and 3)
+    query = """
+        UPDATE published_award_financial_assistance
+        SET legal_entity_county_name = county_name
+        FROM county_code AS cc
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND legal_entity_zip5 IS NOT NULL
+            AND cc.county_number = legal_entity_county_code
+            AND cc.state_code = legal_entity_state_code;
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    # Deriving state names for records with zips (type 2 and 3)
+    query = """
+        UPDATE published_award_financial_assistance
+        SET legal_entity_state_name = state_name
+        FROM states
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND legal_entity_zip5 IS NOT NULL
+            AND states.state_code = legal_entity_state_code;
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    # Deriving city info for records with zips (type 2 and 3)
+    query = """
+        UPDATE published_award_financial_assistance
+        SET legal_entity_city_name = city_name
+        FROM zip_city
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND legal_entity_zip5 IS NOT NULL
+            AND zip_city.zip_code = legal_entity_zip5;
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    # Deriving county, state, and congressional info for county format ppop codes in record type 1
+    query = """
+        UPDATE published_award_financial_assistance
+        SET legal_entity_county_code = place_of_perform_county_co,
+            legal_entity_county_name = place_of_perform_county_na,
+            legal_entity_state_code = place_of_perfor_state_code,
+            legal_entity_state_name = place_of_perform_state_nam,
+            legal_entity_congressional = place_of_performance_congr
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND record_type = 1
+            AND UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\d\d\d$';
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    # Deriving county, state, and congressional info for state format ppop codes in record type 1
+    query = """
+        UPDATE published_award_financial_assistance
+            legal_entity_state_code = place_of_perfor_state_code,
+            legal_entity_state_name = place_of_perform_state_nam,
+            legal_entity_congressional = place_of_performance_congr
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND record_type = 1
+            AND UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\*\*\*$';
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    logger.info({
+        'message': 'Completed legal entity location derivation',
+        'message_type': 'BrokerDebug',
+        'submission_id': submission_id
+    })
 
 
 def derive_office_data(sess, submission_id):
@@ -1003,16 +1148,59 @@ def derive_labels(sess, submission_id):
     })
 
 
-def set_active(obj):
+def set_active(sess, submission_id):
     """ Setting active
 
         Args:
-            obj: a dictionary containing the details we need to derive from and to
+            sess: the current DB session
+            submission_id: The ID of the submission derivations are being run for
     """
-    if obj['correction_delete_indicatr'] and obj['correction_delete_indicatr'].upper() == 'D':
-        obj['is_active'] = False
-    else:
-        obj['is_active'] = True
+    logger.info({
+        'message': 'Beginning active setting',
+        'message_type': 'BrokerDebug',
+        'submission_id': submission_id
+    })
+
+    query = """
+        UPDATE published_award_financial_assistance AS pafa
+        SET is_active = True
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    logger.info({
+        'message': 'Completed active derivation',
+        'message_type': 'BrokerDebug',
+        'submission_id': submission_id
+    })
+
+
+def set_modified_at(sess, submission_id):
+    """ Setting modified_at date
+
+        Args:
+            sess: the current DB session
+            submission_id: The ID of the submission derivations are being run for
+    """
+    logger.info({
+        'message': 'Beginning active setting',
+        'message_type': 'BrokerDebug',
+        'submission_id': submission_id
+    })
+
+    query = """
+        UPDATE published_award_financial_assistance AS pafa
+        SET modified_at = NOW()
+        WHERE submission_id = {submission_id};
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    logger.info({
+        'message': 'Completed active derivation',
+        'message_type': 'BrokerDebug',
+        'submission_id': submission_id
+    })
 
 
 def fabs_derivations(sess, submission_id):
@@ -1069,8 +1257,6 @@ def fabs_derivations(sess, submission_id):
 
     derive_fabs_business_categories(sess, submission_id)
 
-    set_active(obj)
+    set_active(sess, submission_id)
 
-    obj['modified_at'] = datetime.utcnow()
-
-    return obj
+    set_modified_at(sess, submission_id)
