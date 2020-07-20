@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import csv
 
@@ -102,6 +103,9 @@ def clean_frame_vectorized(frame: pd.DataFrame, clean_quotes=True):
     # NOTE: Must use python None here rathern than numpy.NaN, because other python code that is not NaN-aware will use
     # rows of this frame
     frame = frame.mask(frame == "", other=None)
+    # Favor None over np.NaN for downstream Python code that is not NaN-aware.
+    # Must use dict here since method signature does not allow None for param value
+    frame = frame.replace({np.NaN: None})
     return frame
 
 

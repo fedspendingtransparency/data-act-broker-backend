@@ -136,7 +136,7 @@ def test_clean_numbers_vectorized_all_strings():
     expected_df = pd.DataFrame([
         ["10003234", "bad,and", "2242424242", "-10"],
         ["0", "8", "9.424.2", "-10000"],
-        ["9.24242", "2094","01", "-00"],
+        ["9.24242", "2094", "01", "-00"],
         ["145", "0055", None, np.NaN]
     ], columns=list("ABCD"))
     assert_frame_equal(df_under_test, expected_df)
@@ -156,7 +156,7 @@ def test_clean_numbers_vectorized_mixed_types():
     expected_df = pd.DataFrame([
         ["10003234", "bad,and", 2242424242, -10],
         [0, 8, "9.424.2", -4.35],
-        [9.24242, "2094","01", -0],
+        [9.24242, "2094", "01", -0],
         ["145", "0055", None, np.NaN]
     ], columns=list("ABCD"))
     assert_frame_equal(df_under_test, expected_df)

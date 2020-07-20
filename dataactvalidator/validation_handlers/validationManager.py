@@ -11,8 +11,8 @@ from sqlalchemy import and_, or_
 
 from dataactbroker.handlers.submission_handler import populate_submission_error_info
 from dataactbroker.helpers.validation_helper import (
-    derive_fabs_awarding_sub_tier, derive_fabs_afa_generated_unique, derive_fabs_unique_award_key, derive_unique_id,
-    check_required, check_type, check_length, clean_col, concat_flex, process_formatting_errors,
+    derive_fabs_awarding_sub_tier, derive_fabs_afa_generated_unique, derive_fabs_unique_award_key,
+    check_required, check_type, check_length, concat_flex, process_formatting_errors,
     parse_fields, simple_file_scan, check_field_format, clean_numbers_vectorized, clean_frame_vectorized,
     derive_unique_id_vectorized)
 
@@ -25,7 +25,7 @@ from dataactcore.interfaces.function_bag import (
     populate_job_error_info, get_action_dates
 )
 
-from dataactcore.models.domainModels import matching_cars_subquery, Office, concat_tas_dict, concat_display_tas_dict, \
+from dataactcore.models.domainModels import matching_cars_subquery, Office, concat_display_tas_dict, \
     concat_tas_dict_vectorized
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
