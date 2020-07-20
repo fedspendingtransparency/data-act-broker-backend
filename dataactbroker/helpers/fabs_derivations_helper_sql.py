@@ -269,8 +269,139 @@ def derive_ppop_location_data(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    # TODO: figure out this SQL
-    pass
+    logger.info({
+        'message': 'Beginning place of performance location derivation',
+        'message_type': 'BrokerDebug',
+        'submission_id': submission_id
+    })
+
+    # Deriving congressional and county info for records with a 9 digit zip
+    query = """
+        UPDATE published_award_financial_assistance
+        SET place_of_performance_congr = CASE WHEN place_of_performance_congr IS NULL
+                                              THEN congressional_district_no
+                                              ELSE place_of_performance_congr
+                                         END,
+            place_of_perform_county_co = county_number
+        FROM zips
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND place_of_perform_zip_last4 IS NOT NULL
+            AND place_of_perform_zip_last4 = zip_last4
+            AND place_of_performance_zip5 = zip5;
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    # Deriving congressional info for multi-district zips
+    query = """
+        WITH all_sub_zips AS
+            (SELECT DISTINCT place_of_performance_zip5
+            FROM published_award_financial_assistance
+            WHERE submission_id = {submission_id}
+                AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+                AND place_of_performance_congr IS NULL),
+        congr_dist AS
+            (SELECT COUNT(DISTINCT congressional_district_no) AS cd_count, zip5
+            FROM zips
+            WHERE EXISTS (
+                SELECT 1
+                FROM all_sub_zips AS asz
+                WHERE zips.zip5 = asz.place_of_performance_zip5)
+            GROUP BY zip5)
+        UPDATE published_award_financial_assistance
+        SET place_of_performance_congr = CASE WHEN cd_count > 1
+                                              THEN '90'
+                                         END
+        FROM congr_dist
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND place_of_performance_congr IS NULL
+            AND zip5 = place_of_performance_zip5;
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    # Deriving congressional info for remaining blanks (with zip code)
+    query = """
+        UPDATE published_award_financial_assistance
+        SET place_of_performance_congr = congressional_district_no
+        FROM zips
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND place_of_performance_zip5 = zip5
+            AND place_of_performance_congr IS NULL;
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    # Deriving county code info for remaining blanks (with zip code)
+    query = """
+        UPDATE published_award_financial_assistance
+        SET place_of_perform_county_co = county_number
+        FROM zips
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND place_of_performance_zip5 = zip5
+            AND place_of_perform_county_co IS NULL;
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    # Deriving city info for transactions with zips
+    query = """
+        UPDATE published_award_financial_assistance
+        SET place_of_performance_city = city_name
+        FROM zip_city
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND place_of_performance_zip5 IS NOT NULL
+            AND zip_city.zip_code = place_of_performance_zip5;
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    # Deriving county code info for transactions with ppop code XX**###
+    query = """
+        UPDATE published_award_financial_assistance
+        SET place_of_perform_county_co = RIGHT(place_of_performance_code, 3)
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND place_of_performance_zip5 IS NULL
+            AND UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\d\d\d$';
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    # Deriving county/city info for transactions with ppop code XX#####
+    query = """
+        UPDATE published_award_financial_assistance
+        SET place_of_perform_county_co = county_number,
+            place_of_perform_county_na = county_name,
+            place_of_performance_city = feature_name
+        FROM city_code AS cc
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND place_of_performance_zip5 IS NULL
+            AND UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d\d$'
+            AND cc.city_code = RIGHT(place_of_performance_code, 5)
+            AND cc.state_code = place_of_perfor_state_code;
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    # Deriving remaining county names
+    query = """
+        UPDATE published_award_financial_assistance
+        SET place_of_perform_county_na = county_name
+        FROM county_code AS cc
+        WHERE submission_id = {submission_id}
+            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
+            AND place_of_perform_county_na IS NULL
+            AND UPPER(place_of_perform_county_co) IS NOT NULL
+            AND cc.county_number = place_of_perform_county_co
+            AND cc.state_code = place_of_perfor_state_code;
+    """
+    sess.execute(query.format(submission_id=submission_id))
+
+    logger.info({
+        'message': 'Completed place of performance location derivation',
+        'message_type': 'BrokerDebug',
+        'submission_id': submission_id
+    })
 
 
 def derive_ppop_scope(sess, submission_id):
@@ -894,7 +1025,14 @@ def fabs_derivations(sess, submission_id):
     # TODO: Decide if we want to include the job in the logs
     # TODO: Decide if we want to log each SQL query (including start/end or just the end) or just each function
     # TODO: Decide if we want to include duration in our logs
-    # TODO: ADD INDEXES (known required ones: multicolumn(UPPER(fain), UPPER(awarding_sub_tier_agency_c)))
+    # TODO: ADD INDEXES,
+    #   known required ones:
+    #       multicolumn(UPPER(fain), UPPER(awarding_sub_tier_agency_c)))
+    #       place_of_performance_zip5
+    #       place_of_perform_zip_last4
+    #       place_of_performance_congr
+    #       place_of_perform_county_co
+    #       MAYBE: place_of_perfor_state_code
     derive_total_funding_amount(sess, submission_id)
 
     derive_cfda(sess, submission_id)
