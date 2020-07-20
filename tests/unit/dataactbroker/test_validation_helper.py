@@ -76,11 +76,11 @@ def test_clean_frame_vectorized():
     df_under_test = validation_helper.clean_frame_vectorized(df_under_test)
 
     expected_df = pd.DataFrame([
-        [np.NaN, np.NaN, "lspace", '"lquote'],
-        ["''", np.NaN, "rspace", 'rquote"'],
-        ["'hello'", np.NaN, "surround space", "surround quote"],
-        ["hello", np.NaN, None, "surround quote and space"],
-        ["hello you", "5", np.NaN, "surround quote and space"],
+        [None, None, "lspace", '"lquote'],
+        ["''", None, "rspace", 'rquote"'],
+        ["'hello'", None, "surround space", "surround quote"],
+        ["hello", None, None, "surround quote and space"],
+        ["hello you", "5", None, "surround quote and space"],
     ], columns=list("ABCD"))
     assert_frame_equal(df_under_test, expected_df)
 
@@ -97,10 +97,10 @@ def test_clean_frame_vectorized_mixed_types():
     df_under_test = validation_helper.clean_frame_vectorized(df_under_test)
 
     expected_df = pd.DataFrame([
-        [np.NaN,    np.NaN, np.NaN,      '"25'],
-        ["''",      np.NaN,  "NaN",     '-10"'],
-        ["'10'",    np.NaN, "12",       "0"],
-        ["77",      np.NaN, None,     "0.0"],
+        [np.NaN,    None,   None,       '"25'],
+        ["''",      None,   "NaN",      '-10"'],
+        ["'10'",    None,   "12",       "0"],
+        ["77",      None,   None,       "0.0"],
         ["11 8",    "5",    "8.2",      "99"],
     ], columns=list("ABCD"))
     assert_frame_equal(df_under_test, expected_df)
