@@ -17,7 +17,7 @@ from sqlalchemy.sql.expression import case
 
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
                                                        get_submissions_in_period)
-from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations
+from dataactbroker.helpers.fabs_derivations_helper_sql import fabs_derivations
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
 from dataactbroker.permissions import current_user_can_on_submission
 
@@ -686,143 +686,88 @@ class FileHandler:
                                         'publish.',
                                         StatusCode.CLIENT_ERROR)
 
-            # Create lookup dictionaries so we don't have to query the API every time. We do biggest to smallest
-            # to save the most possible space, although none of these should take that much.
-            state_dict = {}
-            country_dict = {}
-            sub_tier_dict = {}
-            cfda_dict = {}
-            county_dict = {}
-            office_dict = {}
-            exec_comp_dict = {}
-
-            # This table is big enough that we want to only grab 2 columns
-            offices = sess.query(Office.office_code, Office.office_name, Office.sub_tier_code, Office.agency_code,
-                                 Office.financial_assistance_awards_office, Office.contract_funding_office,
-                                 Office.financial_assistance_funding_office).all()
-            for office in offices:
-                code = office.office_code.upper()
-                office_dict[code] = {'office_name': office.office_name,
-                                     'sub_tier_code': office.sub_tier_code,
-                                     'agency_code': office.agency_code,
-                                     'financial_assistance_awards_office': office.financial_assistance_awards_office,
-                                     'funding_office': (office.contract_funding_office or
-                                                        office.financial_assistance_funding_office)}
-            del offices
-
-            counties = sess.query(CountyCode).all()
-            for county in counties:
-                # We ony ever get county name by state + code so we can make the keys a combination
-                county_dict[county.state_code.upper() + county.county_number] = county.county_name
-            del counties
-
-            # Only grabbing the 2 columns we need because, unlike the other lookups, this has a ton of columns and
-            # they can be pretty big
-            cfdas = sess.query(CFDAProgram.program_number, CFDAProgram.program_title).all()
-            for cfda in cfdas:
-                # This is so the key is always "##.###", which is what's required based on the SQL
-                # Could also be "###.###" which this will still pad correctly
-                cfda_dict['%06.3f' % cfda.program_number] = cfda.program_title
-            del cfdas
-
-            sub_tiers = sess.query(SubTierAgency).all()
-            for sub_tier in sub_tiers:
-                sub_tier_dict[sub_tier.sub_tier_agency_code.upper()] = {
-                    'is_frec': sub_tier.is_frec,
-                    'cgac_code': sub_tier.cgac.cgac_code,
-                    'frec_code': sub_tier.frec.frec_code,
-                    'sub_tier_agency_name': sub_tier.sub_tier_agency_name,
-                    'agency_name': sub_tier.frec.agency_name if sub_tier.is_frec else sub_tier.cgac.agency_name
-                }
-            del sub_tiers
-
-            countries = sess.query(CountryCode).all()
-            for country in countries:
-                country_dict[country.country_code.upper()] = country.country_name
-            del countries
-
-            states = sess.query(States).all()
-            for state in states:
-                state_dict[state.state_code.upper()] = state.state_name
-            del states
-
-            duns_list = sess.query(DUNS).filter(DUNS.high_comp_officer1_full_na.isnot(None)).all()
-            for duns in duns_list:
-                exec_comp_dict[duns.awardee_or_recipient_uniqu] =\
-                    {'officer1_name': duns.high_comp_officer1_full_na, 'officer1_amt': duns.high_comp_officer1_amount,
-                     'officer2_name': duns.high_comp_officer2_full_na, 'officer2_amt': duns.high_comp_officer2_amount,
-                     'officer3_name': duns.high_comp_officer3_full_na, 'officer3_amt': duns.high_comp_officer3_amount,
-                     'officer4_name': duns.high_comp_officer4_full_na, 'officer4_amt': duns.high_comp_officer4_amount,
-                     'officer5_name': duns.high_comp_officer5_full_na, 'officer5_amt': duns.high_comp_officer5_amount}
-            del duns_list
-
             agency_codes_list = []
-            row_count = 1
+            # TODO: Keep? Don't keep? Discuss
             total_count = sess.query(DetachedAwardFinancialAssistance). \
                 filter_by(is_valid=True, submission_id=submission_id).count()
-            batch_percent = math.floor(total_count/LOG_BATCH_PERCENT)
-            loop_num = 0
-            query = []
             log_data['message'] = 'Starting derivations for FABS submission (total count: {})'.format(total_count)
             logger.info(log_data)
 
-            while len(query) == ROWS_PER_LOOP or loop_num == 0:
-                # get next set of valid lines for this submission
-                query = sess.query(DetachedAwardFinancialAssistance). \
-                    filter_by(is_valid=True, submission_id=submission_id). \
-                    order_by(DetachedAwardFinancialAssistance.detached_award_financial_assistance_id).\
-                    slice(ROWS_PER_LOOP * loop_num, ROWS_PER_LOOP * (loop_num + 1)).all()
+            # Insert all non-error rows into published table
+            column_list = [col.key for col in DetachedAwardFinancialAssistance.__table__.columns]
+            column_list.remove('created_at')
+            column_list.remove('updated_at')
+            column_list.remove('detached_award_financial_assistance_id')
+            col_string = ", ".join(column_list)
 
-                for row in query:
-                    # remove all keys in the row that are not in the intermediate table
-                    temp_obj = row.__dict__
+            insert_query = """
+                INSERT INTO published_award_financial_assistance (created_at, updated_at, {cols})
+                SELECT NOW() AS created_at, NOW() AS updated_at, {cols}
+                FROM detached_award_financial_assistance AS dafa
+                WHERE dafa.submission_id = {submission_id}
+                    AND dafa.is_valid IS TRUE;
+            """
+            sess.execute(insert_query.format(cols=col_string, submission_id=submission_id))
 
-                    temp_obj.pop('row_number', None)
-                    temp_obj.pop('is_valid', None)
-                    temp_obj.pop('created_at', None)
-                    temp_obj.pop('updated_at', None)
-                    temp_obj.pop('_sa_instance_state', None)
+            fabs_derivations(sess, submission_id)
 
-                    temp_obj = fabs_derivations(temp_obj, sess, state_dict, country_dict, sub_tier_dict, cfda_dict,
-                                                county_dict, office_dict, exec_comp_dict)
+            logger.info({
+                'message': 'Beginning uncaching old files and deactivating old records',
+                'message_type': 'BrokerDebug',
+                'submission_id': submission_id
+            })
+            # Deactivate all old records that have been updated with this submission
+            deactivate_query = """
+                WITH new_record_keys AS
+                    (SELECT UPPER(afa_generated_unique) AS afa_generated_unique, modified_at
+                    FROM published_award_financial_assistance
+                    WHERE submission_id={submission_id})
+                UPDATE published_award_financial_assistance AS pafa
+                SET is_active = False,
+                    updated_at = nrk.modified_at
+                FROM new_record_keys AS nrk
+                WHERE pafa.submission_id <> {submission_id}
+                    AND UPPER(pafa.afa_generated_unique) = nrk.afa_generated_unique
+                    AND is_active IS TRUE;
+            """
+            sess.execute(deactivate_query.format(submission_id=submission_id))
 
-                    # if it's a correction or deletion row and an old row is active, update the old row to be inactive
-                    if row.correction_delete_indicatr is not None:
-                        check_row = sess.query(pafa).\
-                            filter(func.upper(pafa.afa_generated_unique) == row.afa_generated_unique.upper(),
-                                   pafa.is_active.is_(True)).one_or_none()
-                        if check_row:
-                            # just creating this as a variable because flake thinks the row is too long
-                            row_id = check_row.published_award_financial_assistance_id
-                            sess.query(pafa).\
-                                filter_by(published_award_financial_assistance_id=row_id).\
-                                update({'is_active': False, 'updated_at': row.modified_at}, synchronize_session=False)
+            # Uncache related files
+            # Awarding agencies
+            uncache_query = """
+                WITH affected_agencies AS
+                    (SELECT DISTINCT awarding_agency_code
+                    FROM published_award_financial_assistance
+                    WHERE submission_id={submission_id})
+                UPDATE file_generation
+                SET is_cached_file = False
+                FROM affected_agencies AS aa
+                WHERE awarding_agency_code = agency_code
+                    AND is_cached_file IS TRUE
+                    AND file_type = 'D2';
+            """
+            sess.execute(uncache_query.format(submission_id=submission_id))
 
-                    # for all rows, insert the new row (active/inactive should be handled by fabs_derivations)
-                    new_row = PublishedAwardFinancialAssistance(**temp_obj)
-                    sess.add(new_row)
+            # Funding agencies
+            uncache_query = """
+                WITH affected_agencies AS
+                    (SELECT DISTINCT funding_agency_code
+                    FROM published_award_financial_assistance
+                    WHERE submission_id={submission_id})
+                UPDATE file_generation
+                SET is_cached_file = False
+                FROM affected_agencies AS aa
+                WHERE funding_agency_code = agency_code
+                    AND is_cached_file IS TRUE
+                    AND file_type = 'D2';
+            """
+            sess.execute(uncache_query.format(submission_id=submission_id))
+            logger.info({
+                'message': 'Completed uncaching old files and deactivating old records',
+                'message_type': 'BrokerDebug',
+                'submission_id': submission_id
+            })
 
-                    # update the list of affected awarding_agency_codes
-                    if temp_obj['awarding_agency_code'] not in agency_codes_list:
-                        agency_codes_list.append(temp_obj['awarding_agency_code'])
-
-                    # update the list of affected funding_agency_codes
-                    if temp_obj['funding_agency_code'] not in agency_codes_list:
-                        agency_codes_list.append(temp_obj['funding_agency_code'])
-
-                    if total_count > MIN_ROWS_LOG_BATCH and (row_count % batch_percent) == 0:
-                        percent = math.floor((row_count/total_count)*100)
-                        log_data['message'] = 'Completed derivations for {} rows ({}%)'.format(row_count, percent)
-                        logger.info(log_data)
-                    row_count += 1
-                loop_num += 1
-
-            # update all cached D2 FileGeneration objects that could have been affected by the publish
-            sess.query(FileGeneration).\
-                filter(FileGeneration.agency_code.in_(agency_codes_list),
-                       FileGeneration.is_cached_file.is_(True),
-                       FileGeneration.file_type == 'D2').\
-                update({'is_cached_file': False}, synchronize_session=False)
             sess.commit()
         except Exception as e:
             log_data['message'] = 'An error occurred while publishing a FABS submission'
