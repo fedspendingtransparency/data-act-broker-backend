@@ -141,7 +141,7 @@ def is_not_distinct_from(left, right):
     return sa.or_(left == right, sa.and_(left.is_(None), right.is_(None)))
 
 
-def matching_cars_subquery(sess, model_class, start_date, end_date):
+def matching_cars_subquery(sess, model_class, start_date, end_date, submission_id=None):
     """ We frequently need to mass-update records to look up their CARS history entry. This function creates a subquery
         to be used in that update call. We pass in the database session to avoid circular dependencies
     """
@@ -156,12 +156,15 @@ def matching_cars_subquery(sess, model_class, start_date, end_date):
     for field_name in TAS_COMPONENTS:
         tas_col = getattr(TASLookup, field_name)
         model_col = getattr(model_class, field_name)
-        subquery = subquery.filter(is_not_distinct_from(tas_col, model_col))
+        subquery = subquery.filter(sa.func.coalesce(tas_col, '') == sa.func.coalesce(model_col, ''))
 
     day_after_end = end_date + timedelta(days=1)
     model_dates = sa.tuple_(start_date, end_date)
     tas_dates = sa.tuple_(TASLookup.internal_start_date, sa.func.coalesce(TASLookup.internal_end_date, day_after_end))
     subquery = subquery.filter(model_dates.op('OVERLAPS')(tas_dates))
+    if submission_id:
+        model_sub_id = getattr(model_class, 'submission_id')
+        subquery = subquery.filter(submission_id == model_sub_id)
     return subquery.as_scalar()
 
 
