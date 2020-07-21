@@ -4,7 +4,6 @@ import logging
 import os
 import requests
 import threading
-import math
 import csv
 
 from collections import namedtuple
@@ -28,8 +27,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import (create_jobs, get_error_metrics_by_job_id, mark_job_status,
                                                  get_latest_published_date, get_time_period)
 
-from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
-                                             Office, DUNS)
+from dataactcore.models.domainModels import CGAC, FREC, SubTierAgency
 from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation, CertifyHistory,
                                           PublishHistory, PublishedFilesHistory, FileGeneration, FileType,
                                           CertifiedComment, generate_fiscal_year, generate_fiscal_period)
@@ -686,8 +684,6 @@ class FileHandler:
                                         'publish.',
                                         StatusCode.CLIENT_ERROR)
 
-            agency_codes_list = []
-            # TODO: Keep? Don't keep? Discuss
             total_count = sess.query(DetachedAwardFinancialAssistance). \
                 filter_by(is_valid=True, submission_id=submission_id).count()
             log_data['message'] = 'Starting derivations for FABS submission (total count: {})'.format(total_count)
@@ -722,9 +718,11 @@ class FileHandler:
             # Deactivate all old records that have been updated with this submission
             deactivate_query = """
                 WITH new_record_keys AS
-                    (SELECT UPPER(afa_generated_unique) AS afa_generated_unique, modified_at
+                    (SELECT UPPER(afa_generated_unique) AS afa_generated_unique,
+                        modified_at
                     FROM published_award_financial_assistance
-                    WHERE submission_id={submission_id})
+                    WHERE submission_id={submission_id}
+                        AND UPPER(correction_delete_indicatr) IN ('C', 'D'))
                 UPDATE published_award_financial_assistance AS pafa
                 SET is_active = False,
                     updated_at = nrk.modified_at
@@ -744,7 +742,7 @@ class FileHandler:
                     WHERE submission_id={submission_id})
                 UPDATE file_generation
                 SET is_cached_file = False
-                FROM affected_agencies AS aa
+                FROM affected_agencies
                 WHERE awarding_agency_code = agency_code
                     AND is_cached_file IS TRUE
                     AND file_type = 'D2';
@@ -759,7 +757,7 @@ class FileHandler:
                     WHERE submission_id={submission_id})
                 UPDATE file_generation
                 SET is_cached_file = False
-                FROM affected_agencies AS aa
+                FROM affected_agencies
                 WHERE funding_agency_code = agency_code
                     AND is_cached_file IS TRUE
                     AND file_type = 'D2';

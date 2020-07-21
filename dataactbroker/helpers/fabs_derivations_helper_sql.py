@@ -9,6 +9,25 @@ from dataactcore.utils.business_categories import derive_fabs_business_categorie
 logger = logging.getLogger(__name__)
 
 
+def log_derivation(message, submission_id, start_time=None):
+    """ Just logging the time taken to run whatever derivation is being run.
+
+        Args:
+            message: the message to log
+            submission_id: the ID of the submission
+            start_time: If provided, use it to calculate the duration.
+    """
+    log_message = {
+        'message': message,
+        'message_type': 'BrokerDebug',
+        'submission_id': submission_id
+    }
+    
+    if start_time:
+        log_message['duration'] = datetime.now() - start_time
+    logger.info(log_message)
+
+
 def derive_total_funding_amount(sess, submission_id):
     """ Deriving the total funding amounts
 
@@ -16,11 +35,8 @@ def derive_total_funding_amount(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning total_funding_amount derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning total_funding_amount derivation', submission_id)
 
     query = """
         UPDATE published_award_financial_assistance
@@ -30,11 +46,7 @@ def derive_total_funding_amount(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed total_funding_amount derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed total_funding_amount derivation', submission_id, start_time)
 
 
 def derive_cfda(sess, submission_id):
@@ -45,11 +57,8 @@ def derive_cfda(sess, submission_id):
             submission_id: The ID of the submission derivations are being run for
     """
     # TODO: Put the warning back in somehow, maybe do a distinct select of all empty cfda titles
-    logger.info({
-        'message': 'Beginning cfda_title derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning cfda_title derivation', submission_id)
 
     query = """
         UPDATE published_award_financial_assistance AS pafa
@@ -61,11 +70,7 @@ def derive_cfda(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed cfda_title derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed cfda_title derivation', submission_id, start_time)
 
 
 def derive_awarding_agency_data(sess, submission_id):
@@ -75,11 +80,8 @@ def derive_awarding_agency_data(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning awarding_agency data derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning awarding_agency data derivation', submission_id)
 
     # Deriving awarding sub tier agency code
     query = """
@@ -122,11 +124,7 @@ def derive_awarding_agency_data(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed awarding_agency data derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed awarding_agency data derivation', submission_id, start_time)
 
 
 def derive_funding_agency_data(sess, submission_id):
@@ -136,11 +134,8 @@ def derive_funding_agency_data(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning funding_agency data derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning funding_agency data derivation', submission_id)
 
     # Deriving funding sub tier agency code
     query = """
@@ -183,11 +178,7 @@ def derive_funding_agency_data(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed funding_agency data derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed funding_agency data derivation', submission_id, start_time)
 
 
 def derive_ppop_state(sess, submission_id):
@@ -197,11 +188,8 @@ def derive_ppop_state(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning place of performance state derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning place of performance state derivation', submission_id)
 
     # Deriving office codes for record type not 1
     query = """
@@ -222,11 +210,7 @@ def derive_ppop_state(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed place of performance state derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed place of performance state derivation', submission_id, start_time)
 
 
 def split_ppop_zip(sess, submission_id):
@@ -236,11 +220,8 @@ def split_ppop_zip(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning place of performance zip5 and zip last4 derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning place of performance zip5 and zip last4 derivation', submission_id)
 
     query = """
         UPDATE published_award_financial_assistance AS pafa
@@ -255,12 +236,7 @@ def split_ppop_zip(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed place of performance zip5 and zip last4 derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
-
+    log_derivation('Completed place of performance zip5 and zip last4 derivation', submission_id, start_time)
 
 def derive_ppop_location_data(sess, submission_id):
     """ Deriving place of performance location values from zip4
@@ -269,11 +245,8 @@ def derive_ppop_location_data(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning place of performance location derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning place of performance location derivation', submission_id)
 
     # Deriving congressional and county info for records with a 9 digit zip
     query = """
@@ -397,11 +370,7 @@ def derive_ppop_location_data(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed place of performance location derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed place of performance location derivation', submission_id, start_time)
 
 
 def derive_ppop_scope(sess, submission_id):
@@ -411,11 +380,8 @@ def derive_ppop_scope(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning place of performance scope derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning place of performance scope derivation', submission_id)
 
     # When zip is not null
     query = """
@@ -453,11 +419,7 @@ def derive_ppop_scope(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed place of performance scope derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed place of performance scope derivation', submission_id, start_time)
 
 
 def derive_le_location_data(sess, submission_id):
@@ -467,11 +429,8 @@ def derive_le_location_data(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning legal entity location derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning legal entity location derivation', submission_id)
 
     # Deriving congressional, county, and state info for records with a 9 digit zip
     query = """
@@ -609,11 +568,7 @@ def derive_le_location_data(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed legal entity location derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed legal entity location derivation', submission_id, start_time)
 
 
 def derive_office_data(sess, submission_id):
@@ -623,11 +578,8 @@ def derive_office_data(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning office data derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning office data derivation', submission_id)
 
     # Deriving office codes for record type not 1
     query = """
@@ -796,11 +748,7 @@ def derive_office_data(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed office data derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed office data derivation', submission_id, start_time)
 
 
 def derive_le_city_code(sess, submission_id):
@@ -810,11 +758,8 @@ def derive_le_city_code(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning legal entity city code derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning legal entity city code derivation', submission_id)
 
     query = """
         UPDATE published_award_financial_assistance AS pafa
@@ -827,11 +772,7 @@ def derive_le_city_code(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed legal entity city code derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed legal entity city code derivation', submission_id, start_time)
 
 
 def derive_ppop_country_name(sess, submission_id):
@@ -841,11 +782,8 @@ def derive_ppop_country_name(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning place of performance country name derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning place of performance country name derivation', submission_id)
 
     query = """
         UPDATE published_award_financial_assistance AS pafa
@@ -857,11 +795,7 @@ def derive_ppop_country_name(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed place of performance country name derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed place of performance country name derivation', submission_id, start_time)
 
 
 def derive_le_country_name(sess, submission_id):
@@ -871,11 +805,8 @@ def derive_le_country_name(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning legal entity country name derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning legal entity country name derivation', submission_id)
 
     query = """
         UPDATE published_award_financial_assistance AS pafa
@@ -887,11 +818,7 @@ def derive_le_country_name(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed legal entity country name derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed legal entity country name derivation', submission_id, start_time)
 
 
 def derive_pii_redacted_ppop_data(sess, submission_id):
@@ -901,11 +828,8 @@ def derive_pii_redacted_ppop_data(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning PII redacted information derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning PII redacted information derivation', submission_id)
 
     # Deriving information for USA records
     query = """
@@ -949,11 +873,7 @@ def derive_pii_redacted_ppop_data(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed PII redacted information derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed PII redacted information derivation', submission_id, start_time)
 
 
 def derive_parent_duns(sess, submission_id):
@@ -963,11 +883,8 @@ def derive_parent_duns(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning parent DUNS derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning parent DUNS derivation', submission_id)
 
     query = """
         UPDATE published_award_financial_assistance AS pafa
@@ -982,11 +899,7 @@ def derive_parent_duns(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed parent DUNS derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed parent DUNS derivation', submission_id, start_time)
 
 
 def derive_executive_compensation(sess, submission_id):
@@ -996,11 +909,8 @@ def derive_executive_compensation(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning executive compensation derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning executive compensation derivation', submission_id)
 
     query = """
         UPDATE published_award_financial_assistance AS pafa
@@ -1022,11 +932,7 @@ def derive_executive_compensation(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed executive compensation derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed executive compensation derivation', submission_id, start_time)
 
 
 def derive_labels(sess, submission_id):
@@ -1036,11 +942,8 @@ def derive_labels(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning label derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning label derivation', submission_id)
 
     # Action type description derivation
     action_type_values = '), ('.join('\'{}\', \'{}\''.format(name, desc) for name, desc in ACTION_TYPE_DICT.items())
@@ -1141,11 +1044,7 @@ def derive_labels(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id, business_types=business_types_values))
 
-    logger.info({
-        'message': 'Completed label derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed label derivation', submission_id, start_time)
 
 
 def set_active(sess, submission_id):
@@ -1155,11 +1054,8 @@ def set_active(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning active setting',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning active derivation', submission_id)
 
     query = """
         UPDATE published_award_financial_assistance AS pafa
@@ -1169,11 +1065,7 @@ def set_active(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed active derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed active derivation', submission_id, start_time)
 
 
 def set_modified_at(sess, submission_id):
@@ -1183,11 +1075,8 @@ def set_modified_at(sess, submission_id):
             sess: the current DB session
             submission_id: The ID of the submission derivations are being run for
     """
-    logger.info({
-        'message': 'Beginning active setting',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    start_time = datetime.now()
+    log_derivation('Beginning modified_at derivation', submission_id)
 
     query = """
         UPDATE published_award_financial_assistance AS pafa
@@ -1196,11 +1085,7 @@ def set_modified_at(sess, submission_id):
     """
     sess.execute(query.format(submission_id=submission_id))
 
-    logger.info({
-        'message': 'Completed active derivation',
-        'message_type': 'BrokerDebug',
-        'submission_id': submission_id
-    })
+    log_derivation('Completed modified_at derivation', submission_id, start_time)
 
 
 def fabs_derivations(sess, submission_id):
@@ -1216,6 +1101,7 @@ def fabs_derivations(sess, submission_id):
     # TODO: ADD INDEXES,
     #   known required ones:
     #       multicolumn(UPPER(fain), UPPER(awarding_sub_tier_agency_c)))
+    #       multicolumn(UPPER(uri), UPPER(awarding_sub_tier_agency_c)))
     #       place_of_performance_zip5
     #       place_of_perform_zip_last4
     #       place_of_performance_congr
