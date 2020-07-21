@@ -372,7 +372,7 @@ class ValidationManager:
         # Going back to reprocess the header row
         self.reader.file.seek(0)
         reader_obj = pd.read_csv(self.reader.file, dtype=str, delimiter=self.reader.delimiter, error_bad_lines=False,
-                                 keep_default_na=False, chunksize=CHUNK_SIZE, warn_bad_lines=False)
+                                 na_filter=False, chunksize=CHUNK_SIZE, warn_bad_lines=False)
         for chunk_df in reader_obj:
             self.process_data_chunk(sess, chunk_df)
 
@@ -625,7 +625,16 @@ class ValidationManager:
             flex_rows['file_type_id'] = self.file_type.file_type_id
 
             # Adding the entire set of flex fields
-            insert_dataframe(flex_rows, FlexField.__table__.name, sess.connection())
+            rows_inserted = insert_dataframe(flex_rows, FlexField.__table__.name, sess.connection())
+            logger.info({
+                'message': 'Loaded {} flex field rows for batch'.format(rows_inserted),
+                'message_type': 'ValidatorInfo',
+                'submission_id': self.submission_id,
+                'job_id': self.job.job_id,
+                'file_type': self.file_type.name,
+                'action': 'data_loading',
+                'status': 'end'
+            })
         sess.commit()
 
         logger.info({

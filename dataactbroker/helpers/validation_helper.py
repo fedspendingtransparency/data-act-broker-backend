@@ -81,27 +81,34 @@ def clean_col(value, clean_quotes=True):
     return value
 
 
-def clean_frame_vectorized(frame: pd.DataFrame, clean_quotes=True):
+def clean_frame_vectorized(frame: pd.DataFrame, convert_to_str=False, clean_quotes=True):
     """ In-place strip of surrounding whitespace, make None if empty, and remove surrounding quotes.
         Note a side-effect of stripping quotes/whitespace is that any non-null, non-string types provided (like int
         or float) will be converted to their string format in the final result.
 
         Args:
             frame: pd.DataFrame to clean
+            convert_to_str: whether to apply .astype(str) on all Series in the DataFrame
+                - If the DataFrame was created or read in from CSV with dtype=str already, this may be unnecessary
+                  and will save on performance if avoided
+                - If left as False and there are mixed types, such as int or float, they will be set to None rather
+                  than converted to their str form
             clean_quotes: whether to clean extra quotes or not
 
         Returns:
             The cleaned DataFrame, with a side-effect of an
     """
+    if convert_to_str:
+        frame = frame.apply(lambda series: series[series.notnull()].astype(str))
+    # Do initial strip of surrounding whitespace
+    frame = frame.apply(lambda series: series.str.strip())
     if clean_quotes:
-        # NOTE: Need to find symmetry in the surrounding quotes in order to remove them. Unbalanced quotes will not be
-        # removed
-        frame = frame.replace(r'^\s*"(.*)"\s*$', r'\1', regex=True)
-    # apply on default axis=0 (vectorized, column by column)
-    frame = frame.apply(lambda series: series[series.notnull()].astype(str).str.strip())
+        # NOTE: Need to find symmetry in the surrounding quotes in order to remove them.
+        # Unbalanced quotes will not be removed
+        for col, s in frame.items():
+            s.update(s[(s.str.startswith('"')) & (s.str.endswith('"'))].str.strip('"').str.strip())
     # Null-out all empty strings remaining
-    # NOTE: Must use python None here rathern than numpy.NaN, because other python code that is not NaN-aware will use
-    # rows of this frame
+    # NOTE: Must use python None here rather than numpy.NaN, because of downstream python code that is not NaN-aware
     frame = frame.mask(frame == "", other=None)
     # Favor None over np.NaN for downstream Python code that is not NaN-aware.
     # Must use dict here since method signature does not allow None for param value
@@ -125,7 +132,7 @@ def clean_numbers(value):
     return value
 
 
-def clean_numbers_vectorized(series: pd.Series):
+def clean_numbers_vectorized(series: pd.Series, convert_to_str=False):
     """ In-place removal of commas from strings representing numbers, or leaves them as-is if it cannot make a number
 
         Caveats (by Example):
@@ -149,16 +156,25 @@ def clean_numbers_vectorized(series: pd.Series):
 
         Args:
             series: the series that will be cleaned (updated in-place)
+            convert_to_str: whether to apply .astype(str) on all Series in the DataFrame
+                - If the DataFrame was created or read in from CSV with dtype=str already, this may be unnecessary
+                  and will save on performance if avoided
+                - If left as False and there are mixed types, such as int or float, they will be set to None rather
+                  than converted to their str form
 
         Returns:
             None
     """
-    # NOTE: It is expected that the series.dtype is `object`.
-    # If it is str, `series.replace` does not work (as it requires or is expecting the series.str.replace
-    # function to be used (which is the same as the python str.replace function))
-    replacement = series.replace(",", "", regex=True)
-    cleanable = replacement.astype(str).str.replace(".", "", 1).str.replace("-", "", 1).str.isdigit()
-    series.update(replacement[cleanable])
+    if convert_to_str:
+        s = series[series.notnull()].astype(str)
+    else:
+        s = series
+    # Get subset of values in series that had ',' replaced
+    replacements = s[s.str.contains(",", na=False)].str.replace(",", "")
+    # Check if their result is numeric
+    cleanable = replacements.str.replace(".", "", 1).str.replace("-", "", 1).str.isdigit()
+    # For those that are numeric, update the original series with their non-comma value
+    series.update(replacements[cleanable])
 
 
 def concat_flex(row):

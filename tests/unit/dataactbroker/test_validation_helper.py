@@ -66,38 +66,38 @@ def test_clean_col():
 
 def test_clean_frame_vectorized():
     df_under_test = pd.DataFrame([
-        ['""', "", " lspace", '"lquote'],
-        ["''", " ", "rspace ", 'rquote"'],
-        ["'hello'", "  ", " surround space ", '"surround quote"'],
-        ['"hello"', "\n\t", None, '" surround quote and space "'],
-        ['"hello you"', "5", np.NaN, ' " surround quote and space "\t'],
+        ['""',          "",     " lspace",          '"lquote'],
+        ["''",          " ",    "rspace ",          'rquote"'],
+        ["'hello'",     "  ",   " surround space ", '"surround quote"'],
+        ['"hello"',     "\n\t", None,               '" surround quote and space "'],
+        ['"hello you"', "5",    np.NaN,             ' " surround quote and space "\t'],
     ], columns=list("ABCD"))
 
     df_under_test = validation_helper.clean_frame_vectorized(df_under_test)
 
     expected_df = pd.DataFrame([
-        [None, None, "lspace", '"lquote'],
-        ["''", None, "rspace", 'rquote"'],
-        ["'hello'", None, "surround space", "surround quote"],
-        ["hello", None, None, "surround quote and space"],
-        ["hello you", "5", None, "surround quote and space"],
+        [None,          None,   "lspace",           '"lquote'],
+        ["''",          None,   "rspace",           'rquote"'],
+        ["'hello'",     None,   "surround space",   "surround quote"],
+        ["hello",       None,   None,               "surround quote and space"],
+        ["hello you",   "5",    None,               "surround quote and space"],
     ], columns=list("ABCD"))
     assert_frame_equal(df_under_test, expected_df)
 
 
 def test_clean_frame_vectorized_mixed_types():
     df_under_test = pd.DataFrame([
-        ['""',      "",     np.NaN,         '"25'],
-        ["''",      " ",    "NaN",          '-10"'],
-        ["'10'",    "  ",   np.int64(12),      '"0"'],
-        [77,        "\n\t", None,           0.0],
-        ['"11 8"',  "5",    np.float64(8.2),   '99\t'],
+        ['""',      "",     np.NaN,             '"25'],
+        ["''",      " ",    "NaN",              '-10"'],
+        ["'10'",    "  ",   np.int64(12),       '"0"'],
+        [77,        "\n\t", None,               0.0],
+        ['"11 8"',  "5",    np.float64(8.2),    '99\t'],
     ], columns=list("ABCD"))
 
-    df_under_test = validation_helper.clean_frame_vectorized(df_under_test)
+    df_under_test = validation_helper.clean_frame_vectorized(df_under_test, convert_to_str=True)
 
     expected_df = pd.DataFrame([
-        [np.NaN,    None,   None,       '"25'],
+        [None,      None,   None,       '"25'],
         ["''",      None,   "NaN",      '-10"'],
         ["'10'",    None,   "12",       "0"],
         ["77",      None,   None,       "0.0"],
@@ -151,7 +151,7 @@ def test_clean_numbers_vectorized_mixed_types():
     ], columns=list("ABCD"))
 
     for col in df_under_test.columns:
-        validation_helper.clean_numbers_vectorized(df_under_test[col])
+        validation_helper.clean_numbers_vectorized(df_under_test[col], convert_to_str=True)
 
     expected_df = pd.DataFrame([
         ["10003234", "bad,and", 2242424242, -10],
