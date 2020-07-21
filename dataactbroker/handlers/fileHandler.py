@@ -698,6 +698,9 @@ class FileHandler:
             column_list.remove('created_at')
             column_list.remove('updated_at')
             column_list.remove('detached_award_financial_assistance_id')
+            column_list.remove('job_id')
+            column_list.remove('row_number')
+            column_list.remove('is_valid')
             col_string = ", ".join(column_list)
 
             insert_query = """

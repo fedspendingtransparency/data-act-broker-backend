@@ -54,7 +54,7 @@ def derive_cfda(sess, submission_id):
     query = """
         UPDATE published_award_financial_assistance AS pafa
         SET cfda_title = cfda.program_title
-        FROM cfda_program
+        FROM cfda_program AS cfda
         WHERE submission_id = {submission_id}
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
             AND pafa.cfda_number = to_char(cfda.program_number, 'FM00.000');
@@ -435,13 +435,13 @@ def derive_ppop_scope(sess, submission_id):
     # When zip is null
     query = """
         UPDATE published_award_financial_assistance AS pafa
-        SET place_of_performance_scope = CASE WHEN UPPER(place_of_performance_code) ~ '^[A-Z]{2}\d{4}[\dR]$'
+        SET place_of_performance_scope = CASE WHEN UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d[\dR]$'
                                               THEN 'City-wide'
-                                              WHEN UPPER(place_of_performance_code) ~ '^[A-Z]{2}\*\*\d{3}$'
+                                              WHEN UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\d\d\d$'
                                               THEN 'County-wide'
-                                              WHEN UPPER(place_of_performance_code) ~ '^[A-Z]{2}\*{5}$'
+                                              WHEN UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\*\*\*\*\*$'
                                               THEN 'State-wide'
-                                              WHEN UPPER(place_of_performance_code) ~ '^00\*{5}$'
+                                              WHEN UPPER(place_of_performance_code) ~ '^00\*\*\*\*\*$'
                                               THEN 'Multi-state'
                                               WHEN UPPER(place_of_performance_code) ~ '^00FORGN$'
                                               THEN 'Foreign'
@@ -496,7 +496,7 @@ def derive_le_location_data(sess, submission_id):
         WITH all_sub_zips AS
             (SELECT DISTINCT legal_entity_zip5
             FROM published_award_financial_assistance
-            WHERE submission_id = {0}
+            WHERE submission_id = {submission_id}
                 AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
                 AND legal_entity_congressional IS NULL),
         congr_dist AS
@@ -599,7 +599,7 @@ def derive_le_location_data(sess, submission_id):
     # Deriving county, state, and congressional info for state format ppop codes in record type 1
     query = """
         UPDATE published_award_financial_assistance
-            legal_entity_state_code = place_of_perfor_state_code,
+        SET legal_entity_state_code = place_of_perfor_state_code,
             legal_entity_state_name = place_of_perform_state_nam,
             legal_entity_congressional = place_of_performance_congr
         WHERE submission_id = {submission_id}
@@ -1018,7 +1018,7 @@ def derive_executive_compensation(sess, submission_id):
         WHERE submission_id = {submission_id}
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
             AND pafa.awardee_or_recipient_uniqu = duns.awardee_or_recipient_uniqu
-            AND high_comp_officer1_full_na IS NOT NULL;
+            AND duns.high_comp_officer1_full_na IS NOT NULL;
     """
     sess.execute(query.format(submission_id=submission_id))
 
@@ -1043,7 +1043,7 @@ def derive_labels(sess, submission_id):
     })
 
     # Action type description derivation
-    action_type_values = '), ('.join('{}, {}'.format(name, desc) for name, desc in ACTION_TYPE_DICT.items())
+    action_type_values = '), ('.join('\'{}\', \'{}\''.format(name, desc) for name, desc in ACTION_TYPE_DICT.items())
     query = """
         WITH action_type_desc AS
             (SELECT *
@@ -1058,7 +1058,7 @@ def derive_labels(sess, submission_id):
     sess.execute(query.format(submission_id=submission_id, action_types=action_type_values))
 
     # Assistance type description derivation
-    assistance_type_values = '), ('.join('{}, {}'.format(name, desc) for name, desc in ASSISTANCE_TYPE_DICT.items())
+    assistance_type_values = '), ('.join('\'{}\', \'{}\''.format(name, desc) for name, desc in ASSISTANCE_TYPE_DICT.items())
     query = """
         WITH assistance_type_description AS
             (SELECT *
@@ -1073,7 +1073,7 @@ def derive_labels(sess, submission_id):
     sess.execute(query.format(submission_id=submission_id, assistance_types=assistance_type_values))
 
     # CorrectionDeleteIndicator description derivation
-    cdi_values = '), ('.join('{}, {}'.format(name, desc) for name, desc in CORRECTION_DELETE_IND_DICT.items())
+    cdi_values = '), ('.join('\'{}\', \'{}\''.format(name, desc) for name, desc in CORRECTION_DELETE_IND_DICT.items())
     query = """
         WITH cdi_desc AS
             (SELECT *
@@ -1088,7 +1088,7 @@ def derive_labels(sess, submission_id):
     sess.execute(query.format(submission_id=submission_id, cdi_types=cdi_values))
 
     # Record Type description derivation
-    record_type_values = '), ('.join('{}, {}'.format(name, desc) for name, desc in RECORD_TYPE_DICT.items())
+    record_type_values = '), ('.join('{}, \'{}\''.format(name, desc) for name, desc in RECORD_TYPE_DICT.items())
     query = """
         WITH record_type_desc AS
             (SELECT *
@@ -1103,7 +1103,7 @@ def derive_labels(sess, submission_id):
     sess.execute(query.format(submission_id=submission_id, record_types=record_type_values))
 
     # Business Funds Indicator description derivation
-    business_funds_values = '), ('.join('{}, {}'.format(name, desc) for name, desc in BUSINESS_FUNDS_IND_DICT.items())
+    business_funds_values = '), ('.join('\'{}\', \'{}\''.format(name, desc) for name, desc in BUSINESS_FUNDS_IND_DICT.items())
     query = """
         WITH business_funds_ind_description AS
             (SELECT *
@@ -1118,7 +1118,7 @@ def derive_labels(sess, submission_id):
     sess.execute(query.format(submission_id=submission_id, business_funds_ind=business_funds_values))
 
     # Business types description derivation
-    business_types_values = '), ('.join('{}, {}'.format(name, desc) for name, desc in BUSINESS_TYPE_DICT.items())
+    business_types_values = '), ('.join('\'{}\', \'{}\''.format(name, desc) for name, desc in BUSINESS_TYPE_DICT.items())
     query = """
         WITH business_type_desc AS
             (SELECT *
