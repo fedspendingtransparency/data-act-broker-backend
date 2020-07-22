@@ -863,7 +863,9 @@ def update_tas_ids(model_class, submission_id):
     sess = GlobalDB.db().session
     submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
 
-    subquery = matching_cars_subquery(sess, model_class, submission.reporting_start_date, submission.reporting_end_date)
+    subquery = matching_cars_subquery(sess, model_class, submission.reporting_start_date, submission.reporting_end_date,
+                                      submission_id)
+
     sess.query(model_class).filter_by(submission_id=submission_id).\
         update({getattr(model_class, 'tas_id'): subquery}, synchronize_session=False)
     sess.commit()
