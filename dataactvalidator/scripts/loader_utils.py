@@ -58,7 +58,7 @@ def insert_dataframe(df, table, engine, method=None):
 
 
 def _insert_dataframe_using_copy(
-        table: pd.io.sql.SQLTable, conn: Connection, fields: List[str], data: Iterable[Iterable]
+        table: SQLTable, conn: Connection, fields: List[str], data: Iterable[Iterable]
 ):
     """ Callable concrete impl of the pandas.DataFrame.to_sql method parameter, which allows the given
         DataFrame's data to be buffered in-memory as a string in CSV format, and then loaded into the
