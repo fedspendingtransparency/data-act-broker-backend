@@ -4,6 +4,7 @@ import logging
 import os
 import traceback
 import pandas as pd
+from multiprocessing import Pool, Manager
 
 from datetime import datetime
 
@@ -51,6 +52,7 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = CONFIG_BROKER['validator_batch_size']
+MULTIPROCESSING_POOLS = 4
 
 
 class ValidationManager:
@@ -373,8 +375,35 @@ class ValidationManager:
         self.reader.file.seek(0)
         reader_obj = pd.read_csv(self.reader.file, dtype=str, delimiter=self.reader.delimiter, error_bad_lines=False,
                                  na_filter=False, chunksize=CHUNK_SIZE, warn_bad_lines=False)
-        for chunk_df in reader_obj:
-            self.process_data_chunk(sess, chunk_df)
+
+        with Manager() as server_manager:
+            shared_data = server_manager.dict()
+            shared_data['total_rows'] = self.total_rows
+            shared_data['has_data'] = self.has_data
+            shared_data['max_row_number'] = self.max_row_number # TODO: Properly resolve this
+            shared_data['long_rows'] = self.long_rows
+            shared_data['error_rows'] = self.error_rows
+            shared_data['error_list_rows'] = []
+
+            pool = Pool(MULTIPROCESSING_POOLS)
+            for chunk_df in reader_obj:
+                pool.apply_async(func=self.process_data_chunk, args=(sess, chunk_df, shared_data))
+            pool.close()
+            pool.join()
+
+            # Resetting these out here as they are used later in the process
+            self.total_rows = shared_data['total_rows']
+            self.has_data = shared_data['has_data']
+            self.max_row_number = shared_data['max_row_number']
+            self.long_rows = shared_data['long_rows']
+            self.error_rows = shared_data['error_rows']
+
+            # In case we need to updating error_list outside cause that cannot happen split inside the processes
+            for row in shared_data['error_list_rows'].iterrows():
+                self.error_list.record_row_error(self.job.job_id, self.file_name, row['Field Name'],
+                                                 row['error_type'], row['Row Number'], row['Rule Label'],
+                                                 self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
+
 
         # Ensure validated rows match initial row count
         if file_row_count != self.total_rows:
@@ -421,17 +450,18 @@ class ValidationManager:
 
         return file_row_count
 
-    def process_data_chunk(self, sess, chunk_df):
+    def process_data_chunk(self, sess, chunk_df, shared_data):
         """ Loads in a chunk of the file and performs initial validations
 
             Args:
                 sess: the database connection
                 chunk_df: the chunk of the file to process as a dataframe
+                shared_data: dictionary of shared data among the chunks
         """
         # Short-circuit if provided an empty dataframe
         if chunk_df.empty:
             logger.warning({
-                'message': 'Empty chunk provided after row {}.'.format(self.max_row_number),
+                'message': 'Empty chunk provided after row {}.'.format(shared_data['max_row_number']),
                 'message_type': 'ValidatorWarning',
                 'submission_id': self.submission_id,
                 'job_id': self.job.job_id,
@@ -442,7 +472,7 @@ class ValidationManager:
             return
 
         logger.info({
-            'message': 'Loading rows starting from {}'.format(self.max_row_number + 1),
+            'message': 'Loading rows starting from {}'.format(shared_data['max_row_number'] + 1),
             'message_type': 'ValidatorInfo',
             'submission_id': self.submission_id,
             'job_id': self.job.job_id,
@@ -468,8 +498,8 @@ class ValidationManager:
         # Adding row number
         chunk_df = chunk_df.reset_index()
         # index gets reset for each chunk, adding the header, and adding previous rows
-        chunk_df['row_number'] = chunk_df.index + 1 + self.max_row_number
-        self.total_rows += len(chunk_df.index)
+        chunk_df['row_number'] = chunk_df.index + 1 + shared_data['max_row_number']
+        shared_data['total_rows'] += len(chunk_df.index)
 
         # Increment row numbers if any were ignored being too long
         # This syncs the row numbers back to their original values
@@ -477,10 +507,11 @@ class ValidationManager:
             chunk_df.loc[chunk_df['row_number'] >= row, 'row_number'] = chunk_df['row_number'] + 1
 
         # Setting max row number for chunking purposes
-        self.max_row_number = chunk_df['row_number'].max()
+        shared_data['max_row_number'] = chunk_df['row_number'].max()
 
+        # TODO: May need to take this out and take the hit as a slight cost of total parallelization
         # Filtering out already processed long rows
-        self.long_rows = [row for row in self.long_rows if row > self.max_row_number]
+        shared_data['long_rows'] = [row for row in shared_data['long_rows'] if row > shared_data['max_row_number']]
 
         # Drop rows that were too short and pandas filled in with Nones
         chunk_df = chunk_df[~chunk_df['row_number'].isin(self.short_rows)]
@@ -495,7 +526,7 @@ class ValidationManager:
         # Recheck for empty dataframe after cleanup of vacuous rows, and short-circuit if no data left to process
         if chunk_df.empty:
             logger.warning({
-                'message': 'Only empty rows found up to {}. No data loaded in this chunk'.format(self.max_row_number),
+                'message': 'Only empty rows found up to {}. No data loaded in this chunk'.format(shared_data['max_row_number']),
                 'message_type': 'ValidatorWarning',
                 'submission_id': self.submission_id,
                 'job_id': self.job.job_id,
@@ -505,7 +536,7 @@ class ValidationManager:
             })
             return
 
-        self.has_data = True
+        shared_data['has_rows'] = True
         if self.is_fabs:
             # create a list of all required/type labels for FABS
             labels = sess.query(ValidationLabel).all()
@@ -580,12 +611,10 @@ class ValidationManager:
             # Converting these to ints because pandas likes to change them to floats randomly
             total_errors[['Row Number', 'error_type']] = total_errors[['Row Number', 'error_type']].astype(int)
 
-            self.error_rows.extend([int(x) for x in total_errors['Row Number'].tolist()])
+            shared_data['error_rows'].extend([int(x) for x in total_errors['Row Number'].tolist()])
 
             for index, row in total_errors.iterrows():
-                self.error_list.record_row_error(self.job.job_id, self.file_name, row['Field Name'],
-                                                 row['error_type'], row['Row Number'], row['Rule Label'],
-                                                 self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
+                shared_data['error_list_rows'].append(row)
 
             total_errors.drop(['error_type'], axis=1, inplace=True, errors='ignore')
 
@@ -638,7 +667,7 @@ class ValidationManager:
         sess.commit()
 
         logger.info({
-            'message': 'Loaded rows up to {}'.format(self.max_row_number),
+            'message': 'Loaded rows up to {}'.format(shared_data['max_row_number']),
             'message_type': 'ValidatorInfo',
             'submission_id': self.submission_id,
             'job_id': self.job.job_id,
