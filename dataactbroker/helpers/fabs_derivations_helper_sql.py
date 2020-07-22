@@ -91,7 +91,7 @@ def derive_awarding_agency_data(sess, submission_id):
         WHERE submission_id = {submission_id}
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
             AND COALESCE(awarding_sub_tier_agency_c, '') = ''
-            AND pafa.awarding_office_code = office.office_code;
+            AND UPPER(pafa.awarding_office_code) = office.office_code;
     """
     sess.execute(query.format(submission_id=submission_id))
 
@@ -120,7 +120,7 @@ def derive_awarding_agency_data(sess, submission_id):
         FROM agency_list
         WHERE submission_id = {submission_id}
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
-            AND awarding_sub_tier_agency_c = sub_tier_code;
+            AND UPPER(awarding_sub_tier_agency_c) = sub_tier_code;
     """
     sess.execute(query.format(submission_id=submission_id))
 
@@ -145,7 +145,7 @@ def derive_funding_agency_data(sess, submission_id):
         WHERE submission_id = {submission_id}
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
             AND COALESCE(funding_sub_tier_agency_co, '') = ''
-            AND pafa.awarding_office_code = office.office_code;
+            AND UPPER(pafa.funding_office_code) = office.office_code;
     """
     sess.execute(query.format(submission_id=submission_id))
 
@@ -174,7 +174,7 @@ def derive_funding_agency_data(sess, submission_id):
         FROM agency_list
         WHERE submission_id = {submission_id}
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
-            AND funding_sub_tier_agency_co = sub_tier_code;
+            AND UPPER(funding_sub_tier_agency_co) = sub_tier_code;
     """
     sess.execute(query.format(submission_id=submission_id))
 
@@ -238,6 +238,7 @@ def split_ppop_zip(sess, submission_id):
 
     log_derivation('Completed place of performance zip5 and zip last4 derivation', submission_id, start_time)
 
+
 def derive_ppop_location_data(sess, submission_id):
     """ Deriving place of performance location values from zip4
 
@@ -282,7 +283,7 @@ def derive_ppop_location_data(sess, submission_id):
                 WHERE zips.zip5 = asz.place_of_performance_zip5)
             GROUP BY zip5)
         UPDATE published_award_financial_assistance
-        SET place_of_performance_congr = CASE WHEN cd_count > 1
+        SET place_of_performance_congr = CASE WHEN cd_count <> 1
                                               THEN '90'
                                          END
         FROM congr_dist
@@ -364,7 +365,7 @@ def derive_ppop_location_data(sess, submission_id):
         WHERE submission_id = {submission_id}
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
             AND place_of_perform_county_na IS NULL
-            AND UPPER(place_of_perform_county_co) IS NOT NULL
+            AND place_of_perform_county_co IS NOT NULL
             AND cc.county_number = place_of_perform_county_co
             AND cc.state_code = place_of_perfor_state_code;
     """
@@ -467,7 +468,7 @@ def derive_le_location_data(sess, submission_id):
                 WHERE zips.zip5 = asz.legal_entity_zip5)
             GROUP BY zip5)
         UPDATE published_award_financial_assistance
-        SET legal_entity_congressional = CASE WHEN cd_count > 1
+        SET legal_entity_congressional = CASE WHEN cd_count <> 1
                                               THEN '90'
                                          END
         FROM congr_dist
@@ -649,7 +650,7 @@ def derive_office_data(sess, submission_id):
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
             AND pafa.award_modification_amendme <> fo.award_modification_amendme
             AND upper_fain = fain
-            AND upper_sub_tier = awarding_sub_tier_agency_c
+            AND upper_sub_tier = UPPER(awarding_sub_tier_agency_c)
             AND record_type <> '1';
     """
     sess.execute(query.format(submission_id=submission_id))
@@ -721,7 +722,7 @@ def derive_office_data(sess, submission_id):
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
             AND pafa.award_modification_amendme <> fo.award_modification_amendme
             AND upper_uri = uri
-            AND upper_sub_tier = awarding_sub_tier_agency_c
+            AND upper_sub_tier = UPPER(awarding_sub_tier_agency_c)
             AND record_type = '1';
     """
     sess.execute(query.format(submission_id=submission_id))
@@ -791,7 +792,7 @@ def derive_ppop_country_name(sess, submission_id):
         FROM country_code
         WHERE submission_id = {submission_id}
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
-            AND country_code.country_code = place_of_perform_country_c;
+            AND country_code.country_code = UPPER(place_of_perform_country_c);
     """
     sess.execute(query.format(submission_id=submission_id))
 
@@ -810,11 +811,11 @@ def derive_le_country_name(sess, submission_id):
 
     query = """
         UPDATE published_award_financial_assistance AS pafa
-        SET place_of_perform_country_n = country_name
+        SET legal_entity_country_name = country_name
         FROM country_code
         WHERE submission_id = {submission_id}
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
-            AND country_code.country_code = place_of_perform_country_c;
+            AND country_code.country_code = UPPER(legal_entity_country_code);
     """
     sess.execute(query.format(submission_id=submission_id))
 
@@ -961,7 +962,8 @@ def derive_labels(sess, submission_id):
     sess.execute(query.format(submission_id=submission_id, action_types=action_type_values))
 
     # Assistance type description derivation
-    assistance_type_values = '), ('.join('\'{}\', \'{}\''.format(name, desc) for name, desc in ASSISTANCE_TYPE_DICT.items())
+    assistance_type_values = '), ('.join('\'{}\', \'{}\''.format(name, desc)
+                                         for name, desc in ASSISTANCE_TYPE_DICT.items())
     query = """
         WITH assistance_type_description AS
             (SELECT *
@@ -1006,7 +1008,8 @@ def derive_labels(sess, submission_id):
     sess.execute(query.format(submission_id=submission_id, record_types=record_type_values))
 
     # Business Funds Indicator description derivation
-    business_funds_values = '), ('.join('\'{}\', \'{}\''.format(name, desc) for name, desc in BUSINESS_FUNDS_IND_DICT.items())
+    business_funds_values = '), ('.join('\'{}\', \'{}\''.format(name, desc)
+                                        for name, desc in BUSINESS_FUNDS_IND_DICT.items())
     query = """
         WITH business_funds_ind_description AS
             (SELECT *
@@ -1021,7 +1024,8 @@ def derive_labels(sess, submission_id):
     sess.execute(query.format(submission_id=submission_id, business_funds_ind=business_funds_values))
 
     # Business types description derivation
-    business_types_values = '), ('.join('\'{}\', \'{}\''.format(name, desc) for name, desc in BUSINESS_TYPE_DICT.items())
+    business_types_values = '), ('.join('\'{}\', \'{}\''.format(name, desc)
+                                        for name, desc in BUSINESS_TYPE_DICT.items())
     query = """
         WITH business_type_desc AS
             (SELECT *
