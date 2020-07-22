@@ -187,7 +187,7 @@ class SQSWorkDispatcher:
             name=self.worker_process_name,
             target=signal_reset_wrapper,
             args=(job, job_args, job_kwargs),
-            daemon=True  # daemon=True ensures that if the parent dispatcher dies, it will kill this child worker
+            daemon=False  # daemon=True ensures that if the parent dispatcher dies, it will kill this child worker
         )
         self._worker_process.start()
         log_job_message(
