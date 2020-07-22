@@ -487,7 +487,6 @@ class ValidationManager:
                 shared_data: dictionary of shared data among the chunks
         """
         sess = GlobalDB.db().session
-        print(sess.query(Submission.submission_id).all())
 
         # Short-circuit if provided an empty dataframe
         if chunk_df.empty:
