@@ -373,8 +373,16 @@ class ValidationManager:
         self.reader.file.seek(0)
         reader_obj = pd.read_csv(self.reader.file, dtype=str, delimiter=self.reader.delimiter, error_bad_lines=False,
                                  na_filter=False, chunksize=CHUNK_SIZE, warn_bad_lines=False)
+        from pyinstrument import Profiler
+        profiler = Profiler()
+        profiler.start()
         for chunk_df in reader_obj:
             self.process_data_chunk(sess, chunk_df)
+        profiler.stop()
+        prof_filename = "prof_{}_{}.html".format(self.file_type.name, datetime.now().strftime("%Y%m%d%H%M"))
+        with open(prof_filename, 'w') as prof_html:
+            prof_html.write(profiler.output_html())
+        print(profiler.output_text(unicode=True, color=True))
 
         # Ensure validated rows match initial row count
         if file_row_count != self.total_rows:
@@ -606,7 +614,7 @@ class ValidationManager:
         chunk_df['updated_at'] = now
         chunk_df['job_id'] = self.job.job_id
         chunk_df['submission_id'] = self.submission_id
-        insert_dataframe(chunk_df, self.model.__table__.name, sess.connection())
+        insert_dataframe(chunk_df, self.model.__table__.name, sess.connection(), method='multi')
 
         # Flex Fields
         if flex_data is not None:
