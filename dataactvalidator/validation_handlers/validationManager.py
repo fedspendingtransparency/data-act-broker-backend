@@ -377,9 +377,9 @@ class ValidationManager:
                                  na_filter=False, chunksize=CHUNK_SIZE, warn_bad_lines=False)
 
         if PARALLEL:
-            self.parallel_data_loading(sess, reader_obj)
+            self.parallel_data_loading(reader_obj)
         else:
-            self.iterative_data_loading(sess, reader_obj)
+            self.iterative_data_loading(reader_obj)
 
         # Ensure validated rows match initial row count
         if file_row_count != self.total_rows:
@@ -426,17 +426,21 @@ class ValidationManager:
 
         return file_row_count
 
-    def parallel_data_loading(self, sess, reader_obj):
+    def parallel_data_loading(self, reader_obj):
         with Manager() as server_manager:
             shared_data = server_manager.dict()
             shared_data['total_rows'] = self.total_rows
             shared_data['has_data'] = self.has_data
             shared_data['error_rows'] = self.error_rows
             shared_data['error_list_rows'] = []
+            shared_data['header_dict'] = self.reader.header_dict
+            shared_data['flex_fields'] = self.reader.flex_fields
+            temp_reader = self.reader
+            self.reader = None
 
             pool = Pool(MULTIPROCESSING_POOLS)
             for chunk_df in reader_obj:
-                pool.apply_async(func=self.process_data_chunk, args=(sess, chunk_df, shared_data))
+                pool.apply_async(func=self.process_data_chunk, args=(chunk_df, shared_data))
             pool.close()
             pool.join()
 
@@ -444,6 +448,7 @@ class ValidationManager:
             self.total_rows = shared_data['total_rows']
             self.has_data = shared_data['has_data']
             self.error_rows = shared_data['error_rows']
+            self.reader = temp_reader
 
             # In case we need to updating error_list outside cause that cannot happen split inside the processes
             for row in shared_data['error_list_rows']:
@@ -451,15 +456,17 @@ class ValidationManager:
                                                  row['error_type'], row['Row Number'], row['Rule Label'],
                                                  self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
 
-    def iterative_data_loading(self, sess, reader_obj):
+    def iterative_data_loading(self, reader_obj):
         shared_data = {
             'total_rows': self.total_rows,
             'has_data': self.has_data,
             'error_rows': self.error_rows,
-            'error_list_rows': []
+            'error_list_rows': [],
+            'header_dict': self.reader.header_dict,
+            'flex_fields': self.reader.flex_fields
         }
         for chunk_df in reader_obj:
-            self.process_data_chunk(sess, chunk_df, shared_data)
+            self.process_data_chunk(chunk_df, shared_data)
 
         # Resetting these out here as they are used later in the process
         self.total_rows = shared_data['total_rows']
@@ -472,14 +479,16 @@ class ValidationManager:
                                              row['error_type'], row['Row Number'], row['Rule Label'],
                                              self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
 
-    def process_data_chunk(self, sess, chunk_df, shared_data):
+    def process_data_chunk(self, chunk_df, shared_data):
         """ Loads in a chunk of the file and performs initial validations
 
             Args:
-                sess: the database connection
                 chunk_df: the chunk of the file to process as a dataframe
                 shared_data: dictionary of shared data among the chunks
         """
+        sess = GlobalDB.db().session
+        print(sess.query(Submission.submission_id).all())
+
         # Short-circuit if provided an empty dataframe
         if chunk_df.empty:
             logger.warning({
@@ -502,7 +511,7 @@ class ValidationManager:
         office_list = {}
 
         # Replace whatever the user included so we're using the database headers
-        chunk_df.rename(columns=self.reader.header_dict, inplace=True)
+        chunk_df.rename(columns=shared_data['header_dict'], inplace=True)
 
         # Do a cleanup of any empty/vacuous rows/cells
         chunk_df = clean_frame_vectorized(chunk_df)
@@ -569,8 +578,8 @@ class ValidationManager:
             del offices
 
         # Gathering flex data (must be done before chunk limiting)
-        if self.reader.flex_fields:
-            flex_data = chunk_df.loc[:, list(self.reader.flex_fields + ['row_number'])]
+        if shared_data['flex_fields']:
+            flex_data = chunk_df.loc[:, list(shared_data['flex_fields'] + ['row_number'])]
         if flex_data is not None and not flex_data.empty:
             flex_data['concatted'] = flex_data.apply(lambda x: concat_flex(x), axis=1)
 
@@ -657,7 +666,7 @@ class ValidationManager:
             flex_data.drop(['concatted'], axis=1, inplace=True)
             flex_data = flex_data[flex_data['row_number'].isin(chunk_df['row_number'])]
 
-            flex_rows = pd.melt(flex_data, id_vars=['row_number'], value_vars=self.reader.flex_fields,
+            flex_rows = pd.melt(flex_data, id_vars=['row_number'], value_vars=shared_data['flex_fields'],
                                 var_name='header', value_name='cell')
 
             # Filling in all the shared data for these flex fields
