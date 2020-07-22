@@ -53,6 +53,7 @@ logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = CONFIG_BROKER['validator_batch_size']
 MULTIPROCESSING_POOLS = 4
+PARALLEL = True
 
 
 class ValidationManager:
@@ -375,29 +376,10 @@ class ValidationManager:
         reader_obj = pd.read_csv(self.reader.file, dtype=str, delimiter=self.reader.delimiter, error_bad_lines=False,
                                  na_filter=False, chunksize=CHUNK_SIZE, warn_bad_lines=False)
 
-        with Manager() as server_manager:
-            shared_data = server_manager.dict()
-            shared_data['total_rows'] = self.total_rows
-            shared_data['has_data'] = self.has_data
-            shared_data['error_rows'] = self.error_rows
-            shared_data['error_list_rows'] = []
-
-            pool = Pool(MULTIPROCESSING_POOLS)
-            for chunk_df in reader_obj:
-                pool.apply_async(func=self.process_data_chunk, args=(sess, chunk_df, shared_data))
-            pool.close()
-            pool.join()
-
-            # Resetting these out here as they are used later in the process
-            self.total_rows = shared_data['total_rows']
-            self.has_data = shared_data['has_data']
-            self.error_rows = shared_data['error_rows']
-
-            # In case we need to updating error_list outside cause that cannot happen split inside the processes
-            for row in shared_data['error_list_rows']:
-                self.error_list.record_row_error(self.job.job_id, self.file_name, row['Field Name'],
-                                                 row['error_type'], row['Row Number'], row['Rule Label'],
-                                                 self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
+        if PARALLEL:
+            self.parallel_data_loading(sess, reader_obj)
+        else:
+            self.iterative_data_loading(sess, reader_obj)
 
         # Ensure validated rows match initial row count
         if file_row_count != self.total_rows:
@@ -444,6 +426,52 @@ class ValidationManager:
 
         return file_row_count
 
+    def parallel_data_loading(self, sess, reader_obj):
+        with Manager() as server_manager:
+            shared_data = server_manager.dict()
+            shared_data['total_rows'] = self.total_rows
+            shared_data['has_data'] = self.has_data
+            shared_data['error_rows'] = self.error_rows
+            shared_data['error_list_rows'] = []
+
+            pool = Pool(MULTIPROCESSING_POOLS)
+            for chunk_df in reader_obj:
+                pool.apply_async(func=self.process_data_chunk, args=(sess, chunk_df, shared_data))
+            pool.close()
+            pool.join()
+
+            # Resetting these out here as they are used later in the process
+            self.total_rows = shared_data['total_rows']
+            self.has_data = shared_data['has_data']
+            self.error_rows = shared_data['error_rows']
+
+            # In case we need to updating error_list outside cause that cannot happen split inside the processes
+            for row in shared_data['error_list_rows']:
+                self.error_list.record_row_error(self.job.job_id, self.file_name, row['Field Name'],
+                                                 row['error_type'], row['Row Number'], row['Rule Label'],
+                                                 self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
+
+    def iterative_data_loading(self, sess, reader_obj):
+        shared_data = {
+            'total_rows': self.total_rows,
+            'has_data': self.has_data,
+            'error_rows': self.error_rows,
+            'error_list_rows': []
+        }
+        for chunk_df in reader_obj:
+            self.process_data_chunk(sess, chunk_df, shared_data)
+
+        # Resetting these out here as they are used later in the process
+        self.total_rows = shared_data['total_rows']
+        self.has_data = shared_data['has_data']
+        self.error_rows = shared_data['error_rows']
+
+        # In case we need to updating error_list outside cause that cannot happen split inside the processes
+        for row in shared_data['error_list_rows']:
+            self.error_list.record_row_error(self.job.job_id, self.file_name, row['Field Name'],
+                                             row['error_type'], row['Row Number'], row['Rule Label'],
+                                             self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
+
     def process_data_chunk(self, sess, chunk_df, shared_data):
         """ Loads in a chunk of the file and performs initial validations
 
@@ -483,6 +511,7 @@ class ValidationManager:
         chunk_df = chunk_df.reset_index()
         # index gets reset for each chunk, adding the header, and adding previous rows
         chunk_df['row_number'] = chunk_df.index + 2
+        shared_data['total_rows'] += len(chunk_df.index)
 
         # Increment row numbers if any were ignored being too long
         # This syncs the row numbers back to their original values
@@ -490,7 +519,7 @@ class ValidationManager:
             chunk_df.loc[chunk_df['row_number'] >= row, 'row_number'] = chunk_df['row_number'] + 1
 
         logger.info({
-            'message': 'Loading rows starting from {}'.format(chunk_df.iloc[0]['row_number']),
+            'message': 'Loading rows starting from {}'.format(chunk_df.iloc[[0]]['row_number']),
             'message_type': 'ValidatorInfo',
             'submission_id': self.submission_id,
             'job_id': self.job.job_id,
@@ -522,7 +551,7 @@ class ValidationManager:
             })
             return
 
-        shared_data['has_rows'] = True
+        shared_data['has_data'] = True
         if self.is_fabs:
             # create a list of all required/type labels for FABS
             labels = sess.query(ValidationLabel).all()
@@ -653,7 +682,7 @@ class ValidationManager:
         sess.commit()
 
         logger.info({
-            'message': 'Loaded rows up to {}'.format(chunk_df.iloc[chunk_df.index-1]['row_number']),
+            'message': 'Loaded rows up to {}'.format(chunk_df.iloc[[-1]]['row_number']),
             'message_type': 'ValidatorInfo',
             'submission_id': self.submission_id,
             'job_id': self.job.job_id,
