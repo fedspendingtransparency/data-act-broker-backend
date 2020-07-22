@@ -2,7 +2,6 @@ import logging
 from operator import attrgetter
 import time
 import uuid
-import math
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
@@ -11,8 +10,8 @@ from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.errorModels import ErrorMetadata, File
-from dataactcore.models.jobModels import (Job, Submission, JobDependency, CertifyHistory, CertifiedFilesHistory,
-                                          QuarterlyRevalidationThreshold)
+from dataactcore.models.jobModels import (Job, Submission, JobDependency, PublishHistory, PublishedFilesHistory,
+                                          SubmissionWindowSchedule)
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance
 from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
@@ -541,27 +540,27 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
     return validation_job_id, upload_job.job_id
 
 
-def get_lastest_certified_date(submission, is_fabs=False):
+def get_latest_published_date(submission, is_fabs=False):
     if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'] and\
        submission.publish_status_id != PUBLISH_STATUS_DICT['publishing']:
         sess = GlobalDB.db().session
-        last_certified = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
-            order_by(CertifyHistory.created_at.desc()).first()
+        last_published = sess.query(PublishHistory).filter_by(submission_id=submission.submission_id).\
+            order_by(PublishHistory.created_at.desc()).first()
 
         certified_files = None
         if is_fabs:
-            certified_files = sess.query(CertifiedFilesHistory).\
-                filter_by(certify_history_id=last_certified.certify_history_id).first()
+            certified_files = sess.query(PublishedFilesHistory).\
+                filter_by(publish_history_id=last_published.publish_history_id).first()
 
-        if last_certified and certified_files:
-            return last_certified.created_at, certified_files.filename
-        elif last_certified:
-            return last_certified.created_at
+        if last_published and certified_files:
+            return last_published.created_at, certified_files.filename
+        elif last_published:
+            return last_published.created_at
     return None
 
 
-def get_window_end(submission):
-    """ Return the window end for the given submission
+def get_certification_deadline(submission):
+    """ Return the certification deadline for the given submission
 
         Arguments:
             submission: the submission object to find its end window
@@ -570,14 +569,14 @@ def get_window_end(submission):
             the datetime of the submission's window end
     """
     sess = GlobalDB.db().session
-    window_end = None
+    cert_deadline = None
     if not submission.d2_submission:
-        sub_quarter = math.ceil(submission.reporting_fiscal_period / 3)
+        sub_period = submission.reporting_fiscal_period
         sub_year = submission.reporting_fiscal_year
-        quarter_reval = sess.query(QuarterlyRevalidationThreshold).filter_by(year=sub_year, quarter=sub_quarter).\
+        sub_window = sess.query(SubmissionWindowSchedule).filter_by(year=sub_year, period=sub_period).\
             one_or_none()
-        window_end = quarter_reval.window_end.date() if quarter_reval else None
-    return window_end
+        cert_deadline = sub_window.certification_deadline.date() if sub_window else None
+    return cert_deadline
 
 
 def get_time_period(submission):
@@ -633,14 +632,14 @@ def get_fabs_meta(submission_id):
     # retrieve the published data and file
     submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
     publish_date, published_file = None, None
-    certify_data = get_lastest_certified_date(submission, is_fabs=True)
+    publish_data = get_latest_published_date(submission, is_fabs=True)
 
     try:
-        iter(certify_data)
+        iter(publish_data)
     except TypeError:
-        publish_date = certify_data
+        publish_date = publish_data
     else:
-        publish_date, file_path = certify_data
+        publish_date, file_path = publish_data
         if CONFIG_BROKER["use_aws"] and file_path:
             path, file_name = file_path.rsplit('/', 1)  # split by last instance of /
             published_file = S3Handler().get_signed_url(path=path, file_name=file_name,
@@ -653,7 +652,7 @@ def get_fabs_meta(submission_id):
     return {
         'valid_rows': valid_rows.count(),
         'total_rows': total_rows.count(),
-        'publish_date': publish_date.strftime('%-I:%M%p %m/%d/%Y') if publish_date else None,
+        'publish_date': publish_date.strftime('%Y-%m-%dT%H:%M:%S') if publish_date else None,
         'published_file': published_file
     }
 

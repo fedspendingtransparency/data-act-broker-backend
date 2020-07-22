@@ -35,7 +35,11 @@ ERROR_TYPE = [
     LookupType(4, 'read_error', 'Could not parse this record correctly.'),
     LookupType(5, 'write_error', 'Could not write this record into the staging table.'),
     LookupType(6, 'rule_failed', 'A rule failed for this value.'),
-    LookupType(7, 'length_error', 'Value was longer than allowed length.')
+    LookupType(7, 'length_error', 'Value was longer than allowed length.'),
+    LookupType(8, 'field_format_error', 'Date should follow the YYYYMMDD format.'),
+    LookupType(9, 'blank_file_error', 'File does not contain data. For files A and B, this must be addressed prior to'
+                                      ' publication/certification. Blank file C does not prevent'
+                                      ' publication/certification.')
 ]
 ERROR_TYPE_DICT = {item.name: item.id for item in ERROR_TYPE}
 
@@ -62,7 +66,8 @@ PUBLISH_STATUS = [
     LookupType(1, 'unpublished', 'Has not yet been moved to data store'),
     LookupType(2, 'published', 'Has been moved to data store'),
     LookupType(3, 'updated', 'Submission was updated after being published'),
-    LookupType(4, 'publishing', 'Submission is being published')
+    LookupType(4, 'publishing', 'Submission is being published'),
+    LookupType(5, 'reverting', 'Submission is being reverted to certified status')
 ]
 PUBLISH_STATUS_DICT = {item.name: item.id for item in PUBLISH_STATUS}
 PUBLISH_STATUS_DICT_ID = {item.id: item.name for item in PUBLISH_STATUS}
@@ -82,6 +87,7 @@ FILE_TYPE_DICT_ID = {item.id: item.name for item in FILE_TYPE}
 FILE_TYPE_DICT_LETTER = {item.id: item.letter for item in FILE_TYPE}
 FILE_TYPE_DICT_LETTER_ID = {item.letter: item.id for item in FILE_TYPE}
 FILE_TYPE_DICT_LETTER_NAME = {item.letter: item.name for item in FILE_TYPE}
+FILE_TYPE_DICT_NAME_LETTER = {item.name: item.letter for item in FILE_TYPE}
 
 PERMISSION_TYPES = [
     LookupType(1, 'reader', 'This user is allowed to view any submission for their agency'),
@@ -97,13 +103,17 @@ PERMISSION_SHORT_DICT = {item.name[0]: item.id for item in PERMISSION_TYPES}
 # These are split into DABS and FABS permissions but having DABS permissions gives read-access to FABS submissions
 DABS_PERMISSION_ID_LIST = [item.id for item in PERMISSION_TYPES[:3]]
 FABS_PERMISSION_ID_LIST = [item.id for item in PERMISSION_TYPES[3:]]
+# These are split into groups between DABS and FABS (not to be confused with just DABS writer/submitter)
+WRITER_ID_LIST = [item.id for item in PERMISSION_TYPES[1:]]
+SUBMITTER_ID_LIST = [item.id for item in [PERMISSION_TYPES[2], PERMISSION_TYPES[4]]]
 
 FIELD_TYPE = [
     LookupType(1, 'INT', 'integer type'),
     LookupType(2, 'DECIMAL', 'decimal type '),
     LookupType(3, 'BOOLEAN', 'yes/no'),
     LookupType(4, 'STRING', 'string type'),
-    LookupType(5, 'LONG', 'long integer')
+    LookupType(5, 'LONG', 'long integer'),
+    LookupType(6, 'DATE', 'date type')
 ]
 FIELD_TYPE_DICT = {item.name: item.id for item in FIELD_TYPE}
 FIELD_TYPE_DICT_ID = {item.id: item.name for item in FIELD_TYPE}

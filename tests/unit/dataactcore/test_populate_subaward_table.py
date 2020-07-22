@@ -208,6 +208,13 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
         piid='AWD-PIID-WITH-DASHES',
         parent_award_id='AWD-PARENT-AWARD-ID-WITH-DASHES'
     )
+    d1_awd_2 = DetachedAwardProcurementFactory(
+        submission_id=sub.submission_id,
+        idv_type=None,
+        unique_award_key='AWD',
+        piid='AWD-PIID-WITH-DASHES',
+        parent_award_id='AWD-PARENT-AWARD-ID-WITH-DASHES'
+    )
     contract_awd = FSRSProcurementFactory(
         contract_number=d1_awd.piid.replace('-', ''),
         idv_reference_number=d1_awd.parent_award_id.replace('-', ''),
@@ -229,7 +236,16 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
         idv_type='C',
         unique_award_key='IDV',
         piid='IDV-PIID-WITH-DASHES',
-        parent_award_id='IDV-PARENT-AWARD-ID-WITH-DASHES'
+        parent_award_id='IDV-PARENT-AWARD-ID-WITH-DASHES',
+        action_date='2020-01-01'
+    )
+    d1_idv_2 = DetachedAwardProcurementFactory(
+        submission_id=sub.submission_id,
+        idv_type='C',
+        unique_award_key='IDV',
+        piid='IDV-PIID-WITH-DASHES',
+        parent_award_id='IDV-PARENT-AWARD-ID-WITH-DASHES',
+        action_date='2020-01-02'
     )
     contract_idv = FSRSProcurementFactory(
         contract_number=d1_idv.piid.replace('-', ''),
@@ -248,7 +264,8 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
         subcontract_date=datetime.now()
     )
 
-    sess.add_all([sub, d1_awd, contract_awd, sub_contract_awd, d1_idv, contract_idv, sub_contract_idv])
+    sess.add_all([sub, d1_awd, d1_awd_2, contract_awd, sub_contract_awd, d1_idv, d1_idv_2, contract_idv,
+                  sub_contract_idv])
     sess.commit()
 
     # Gather the sql
@@ -256,6 +273,7 @@ def test_generate_f_file_queries_contracts(database, monkeypatch):
 
     # Get the records
     contracts_results = sess.query(Subaward).order_by(Subaward.unique_award_key).all()
+    assert len(contracts_results) == 2
 
     created_at = updated_at = contracts_results[0].created_at
 
@@ -442,6 +460,16 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         fain='NON-FAIN-WITH-DASHES-POP-SUB',
         awarding_sub_tier_agency_c='1234',
         is_active=True,
+        action_date='2020-01-01'
+    )
+    d2_non_pop_subtier_2 = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub.submission_id,
+        record_type=2,
+        unique_award_key='NON-POP-SUB',
+        fain='NON-FAIN-WITH-DASHES-POP-SUB',
+        awarding_sub_tier_agency_c='1234',
+        is_active=True,
+        action_date='2020-01-02'
     )
     grant_non_pop_subtier = FSRSGrantFactory(
         fain=d2_non_pop_subtier.fain.replace('-', ''),
@@ -468,7 +496,17 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         unique_award_key='NON-NULL-SUB',
         fain='NON-FAIN-WITH-DASHES-NULL-SUB',
         awarding_sub_tier_agency_c='5678',
-        is_active=True
+        is_active=True,
+        action_date='2020-01-01'
+    )
+    d2_non_null_sub_2 = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub.submission_id,
+        record_type=2,
+        unique_award_key='NON-NULL-SUB',
+        fain='NON-FAIN-WITH-DASHES-NULL-SUB',
+        awarding_sub_tier_agency_c='5678',
+        is_active=True,
+        action_date='2020-01-02'
     )
     grant_non_null_sub = FSRSGrantFactory(
         fain=d2_non_null_sub.fain.replace('-', ''),
@@ -495,7 +533,17 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         unique_award_key='AGG',
         fain='AGG-FAIN-WITH-DASHES',
         awarding_sub_tier_agency_c='1234',
-        is_active=True
+        is_active=True,
+        action_date='2020-01-01'
+    )
+    d2_agg_2 = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub.submission_id,
+        record_type=1,
+        unique_award_key='AGG',
+        fain='AGG-FAIN-WITH-DASHES',
+        awarding_sub_tier_agency_c='1234',
+        is_active=True,
+        action_date='2020-01-02'
     )
     grant_agg = FSRSGrantFactory(
         fain=d2_agg.fain.replace('-', ''),
@@ -515,8 +563,9 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
         duns=duns.awardee_or_recipient_uniqu,
         subaward_date=datetime.now()
     )
-    sess.add_all([sub, d2_non_pop_subtier, grant_non_pop_subtier, sub_grant_non_pop_subtier, d2_non_null_sub,
-                  grant_non_null_sub, sub_grant_non_null_sub, d2_agg, grant_agg, sub_grant_agg])
+    sess.add_all([sub, d2_non_pop_subtier, d2_non_pop_subtier_2, grant_non_pop_subtier, sub_grant_non_pop_subtier,
+                  d2_non_null_sub, d2_non_null_sub_2, grant_non_null_sub, sub_grant_non_null_sub, d2_agg, d2_agg_2,
+                  grant_agg, sub_grant_agg])
     sess.commit()
 
     # Gather the sql
@@ -524,7 +573,7 @@ def test_generate_f_file_queries_grants(database, monkeypatch):
 
     # Get the records
     grants_results = sess.query(Subaward).order_by(Subaward.award_id).all()
-    print([grant.award_id for grant in grants_results])
+    assert len(grants_results) == 3
 
     created_at = updated_at = grants_results[0].created_at
 
@@ -563,7 +612,18 @@ def test_fix_broken_links(database, monkeypatch):
         unique_award_key='NON-POP-SUB',
         fain='NON-FAIN-WITH-DASHES-POP-SUB',
         is_active=True,
-        updated_at=award_updated_at
+        updated_at=award_updated_at,
+        action_date='2020-01-01'
+    )
+    d2_non_pop_subtier_2 = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub.submission_id,
+        awarding_sub_tier_agency_c='1234',
+        record_type=2,
+        unique_award_key='NON-POP-SUB',
+        fain='NON-FAIN-WITH-DASHES-POP-SUB',
+        is_active=True,
+        updated_at=award_updated_at,
+        action_date='2020-01-02'
     )
     grant_non_pop_subtier = FSRSGrantFactory(
         fain=d2_non_pop_subtier.fain.replace('-', ''),
@@ -590,7 +650,19 @@ def test_fix_broken_links(database, monkeypatch):
         unique_award_key='NON-NULL-SUB',
         fain='NON-FAIN-WITH-DASHES-NULL-SUB',
         is_active=True,
-        updated_at=award_updated_at
+        updated_at=award_updated_at,
+        action_date='2020-01-01'
+    )
+
+    d2_non_null_subtier_2 = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub.submission_id,
+        awarding_sub_tier_agency_c='5678',
+        record_type=2,
+        unique_award_key='NON-NULL-SUB',
+        fain='NON-FAIN-WITH-DASHES-NULL-SUB',
+        is_active=True,
+        updated_at=award_updated_at,
+        action_date='2020-01-02'
     )
     grant_non_null_subtier = FSRSGrantFactory(
         fain=d2_non_null_subtier.fain.replace('-', ''),
@@ -617,7 +689,19 @@ def test_fix_broken_links(database, monkeypatch):
         unique_award_key='NON-OTHER',
         fain='NON-FAIN-WITH-DASHES-OTHER',
         is_active=True,
-        updated_at=award_updated_at
+        updated_at=award_updated_at,
+        action_date='2020-01-01'
+    )
+
+    d2_non_other_2 = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub2.submission_id,
+        awarding_sub_tier_agency_c='1357',
+        record_type=2,
+        unique_award_key='NON-OTHER',
+        fain='NON-FAIN-WITH-DASHES-OTHER',
+        is_active=True,
+        updated_at=award_updated_at,
+        action_date='2020-01-02'
     )
     d2_non_other_dup = PublishedAwardFinancialAssistanceFactory(
         submission_id=sub3.submission_id,
@@ -626,7 +710,18 @@ def test_fix_broken_links(database, monkeypatch):
         unique_award_key='NON-OTHER',
         fain='NON-FAIN-WITH-DASHES-OTHER',
         is_active=True,
-        updated_at=award_updated_at
+        updated_at=award_updated_at,
+        action_date='2020-01-01'
+    )
+    d2_non_other_dup_2 = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub3.submission_id,
+        awarding_sub_tier_agency_c='2468',
+        record_type=2,
+        unique_award_key='NON-OTHER',
+        fain='NON-FAIN-WITH-DASHES-OTHER',
+        is_active=True,
+        updated_at=award_updated_at,
+        action_date='2020-01-02'
     )
     grant_non_other = FSRSGrantFactory(
         fain=d2_non_other.fain.replace('-', ''),
@@ -653,7 +748,18 @@ def test_fix_broken_links(database, monkeypatch):
         unique_award_key='AGG',
         fain='AGG-FAIN-WITH-DASHES',
         is_active=True,
-        updated_at=award_updated_at
+        updated_at=award_updated_at,
+        action_date='2020-01-01'
+    )
+    d2_agg_2 = PublishedAwardFinancialAssistanceFactory(
+        submission_id=sub.submission_id,
+        awarding_sub_tier_agency_c='1234',
+        record_type=1,
+        unique_award_key='AGG',
+        fain='AGG-FAIN-WITH-DASHES',
+        is_active=True,
+        updated_at=award_updated_at,
+        action_date='2020-01-02'
     )
     grant_agg = FSRSGrantFactory(
         fain=d2_agg.fain.replace('-', ''),
@@ -681,7 +787,17 @@ def test_fix_broken_links(database, monkeypatch):
         unique_award_key='AWD',
         piid='AWD-PIID-WITH-DASHES',
         parent_award_id='AWD-PARENT-AWARD-ID-WITH-DASHES',
-        updated_at=award_updated_at
+        updated_at=award_updated_at,
+        action_date='2020-01-01'
+    )
+    d1_awd_2 = DetachedAwardProcurementFactory(
+        submission_id=sub.submission_id,
+        idv_type=None,
+        unique_award_key='AWD',
+        piid='AWD-PIID-WITH-DASHES',
+        parent_award_id='AWD-PARENT-AWARD-ID-WITH-DASHES',
+        updated_at=award_updated_at,
+        action_date='2020-01-02'
     )
     contract_awd = FSRSProcurementFactory(
         contract_number=d1_awd.piid.replace('-', ''),
@@ -705,7 +821,17 @@ def test_fix_broken_links(database, monkeypatch):
         unique_award_key='IDV',
         piid='IDV-PIID-WITH-DASHES',
         parent_award_id='IDV-PARENT-AWARD-IDV-WITH-DASHES',
-        updated_at=award_updated_at
+        updated_at=award_updated_at,
+        action_date='2020-01-01'
+    )
+    d1_idv_2 = DetachedAwardProcurementFactory(
+        submission_id=sub.submission_id,
+        idv_type='C',
+        unique_award_key='IDV',
+        piid='IDV-PIID-WITH-DASHES',
+        parent_award_id='IDV-PARENT-AWARD-IDV-WITH-DASHES',
+        updated_at=award_updated_at,
+        action_date='2020-01-02'
     )
     contract_idv = FSRSProcurementFactory(
         contract_number=d1_idv.piid.replace('-', ''),
@@ -761,7 +887,9 @@ def test_fix_broken_links(database, monkeypatch):
                                  int_country, grant_created_at, grant_updated_at) is False
 
     # now add the awards and fix the broken links
-    sess.add_all([d1_awd, d1_idv, d2_non_null_subtier, d2_non_pop_subtier, d2_non_other, d2_non_other_dup, d2_agg])
+    sess.add_all([d1_awd, d1_awd_2, d1_idv, d1_idv_2, d2_non_null_subtier, d2_non_null_subtier_2, d2_non_pop_subtier,
+                  d2_non_pop_subtier_2, d2_non_other, d2_non_other_2, d2_non_other_dup, d2_non_other_dup_2, d2_agg,
+                  d2_agg_2])
     sess.commit()
 
     updated_proc_count = fix_broken_links(sess, 'procurement_service', min_date=min_date)

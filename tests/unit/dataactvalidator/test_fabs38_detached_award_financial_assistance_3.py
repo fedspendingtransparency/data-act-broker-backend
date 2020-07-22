@@ -12,18 +12,19 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Test AwardingOfficeCode must be submitted for new awards (ActionType = A or blank) whose ActionDate is on or
-        after October 1, 2018, and whose CorrectionDeleteIndicator is either Blank or C.
+    """ Test AwardingOfficeCode must be submitted for new awards (ActionType = A) or mixed aggregate records
+        (ActionType = E) whose ActionDate is on or after October 1, 2018, and whose CorrectionDeleteIndicator is either
+        Blank or C.
     """
 
     # All factors as stated
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='AAAAAA', action_type='A',
                                                           action_date='10/01/2018', correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='111111', action_type=None,
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='111111', action_type='e',
                                                           action_date='10/01/2018', correction_delete_indicatr='C')
 
     # Rule ignored for earlier dates
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='', action_type=None,
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='', action_type='E',
                                                           action_date='10/01/2017', correction_delete_indicatr='C')
 
     # Rule ignored for other action types
@@ -33,18 +34,27 @@ def test_success(database):
     # Rule ignored for CorrectionDeleteIndicator of D
     det_award_5 = DetachedAwardFinancialAssistanceFactory(awarding_office_code=None, action_type='A',
                                                           action_date='10/01/2018', correction_delete_indicatr='D')
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5])
+
+    # Rule ignored for action type is None
+    det_award_6 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='', action_type=None,
+                                                          action_date='10/01/2018', correction_delete_indicatr='')
+    det_award_7 = DetachedAwardFinancialAssistanceFactory(awarding_office_code=None, action_type=None,
+                                                          action_date='10/02/2018', correction_delete_indicatr='C')
+
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
+                                                       det_award_6, det_award_7])
     assert errors == 0
 
 
 def test_failure(database):
-    """ Test failure AwardingOfficeCode must be submitted for new awards (ActionType = A or blank) whose ActionDate is
-        on or after October 1, 2018, and whose CorrectionDeleteIndicator is either Blank or C.
+    """ Test failure AwardingOfficeCode must be submitted for new awards (ActionType = A) or mixed aggregate records
+        (ActionType = E) whose ActionDate is on or after October 1, 2018, and whose CorrectionDeleteIndicator is either
+        Blank or C.
     """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awarding_office_code='', action_type='A',
                                                           action_date='10/01/2018', correction_delete_indicatr='')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_office_code=None, action_type=None,
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_office_code=None, action_type='e',
                                                           action_date='10/02/2018', correction_delete_indicatr='C')
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2])
     assert errors == 2

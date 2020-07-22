@@ -6,7 +6,8 @@ from dataactcore.models.jobModels import Submission, Job
 
 def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
                       is_quarter=False, number_of_errors=0, publish_status_id=1, is_fabs=False,
-                      updated_at=datetime.utcnow()):
+                      updated_at=datetime.utcnow(), test_submission=False, published_submission_ids=[],
+                      certified=False):
     """Insert one submission into job tracker and get submission ID back."""
     publishable = True if number_of_errors == 0 else False
     end_date = datetime.strptime(end_date, '%m/%Y')
@@ -26,14 +27,17 @@ def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None,
                      number_of_errors=number_of_errors,
                      publish_status_id=publish_status_id,
                      publishable=publishable,
-                     d2_submission=is_fabs)
+                     d2_submission=is_fabs,
+                     test_submission=test_submission,
+                     published_submission_ids=published_submission_ids,
+                     certified=certified)
     sess.add(sub)
     sess.commit()
     return sub.submission_id
 
 
 def insert_job(sess, filetype, status, type_id, submission, job_id=None, filename=None, original_filename=None,
-               file_size=None, num_rows=None, num_errors=0, updated_at=None):
+               file_size=None, num_rows=None, num_valid_rows=0, num_errors=0, updated_at=None):
     """Insert one job into job tracker and get ID back."""
     if not updated_at:
         updated_at = datetime.utcnow()
@@ -49,6 +53,7 @@ def insert_job(sess, filetype, status, type_id, submission, job_id=None, filenam
         original_filename=original_filename,
         file_size=file_size,
         number_of_rows=num_rows,
+        number_of_rows_valid=num_valid_rows,
         number_of_errors=num_errors
     )
     if job_id:

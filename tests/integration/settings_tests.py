@@ -52,8 +52,7 @@ class SettingsTests(BaseTestAPI):
         response = self.app.get('/v1/rule_settings/', rule_settings_params, expect_errors=True,
                                 headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'agency_code: Missing data for required field.'
-                                                   ' file: Missing data for required field.')
+        self.assertEqual(response.json['message'], 'Missing required parameter: agency_code')
 
         # Not including some required filters
         rule_settings_params = {'agency_code': ''}
@@ -90,6 +89,17 @@ class SettingsTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'file: Must be A, B, C, cross-AB, cross-BC, cross-CD1, or cross-CD2')
 
+    def test_get_rule_settings_permissions_error(self):
+        """ Test permission error for generate submission """
+        self.login_user()
+        rule_settings_params = {'agency_code': '097', 'file': 'B'}
+        response = self.app.get("/v1/rule_settings/", rule_settings_params, headers={"x-session-id": self.session_id},
+                                expect_errors=True)
+
+        self.assertEqual(response.status_code, 403)
+        json = response.json
+        self.assertEqual(json["message"], "User does not have permissions for that agency")
+
     def test_save_rule_settings(self):
         """ Test successfully saving the agency rule settings """
         # Basic passing test
@@ -107,8 +117,7 @@ class SettingsTests(BaseTestAPI):
         response = self.app.post('/v1/save_rule_settings/', rule_settings_params, expect_errors=True,
                                  headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json['message'], 'agency_code: Missing data for required field.'
-                                                   ' file: Missing data for required field.')
+        self.assertEqual(response.json['message'], 'Missing required parameter: agency_code')
 
         # Not including some required filters
         rule_settings_params = {'agency_code': ''}
@@ -144,3 +153,14 @@ class SettingsTests(BaseTestAPI):
                                  headers={'x-session-id': self.session_id})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], 'file: Must be A, B, C, cross-AB, cross-BC, cross-CD1, or cross-CD2')
+
+    def test_save_rule_settings_permission_error(self):
+        """ Test permission error for generate submission """
+        self.login_user()
+        rule_settings_params = {'agency_code': '097', 'file': 'C', 'errors': [], 'warnings': []}
+        response = self.app.post("/v1/save_rule_settings/", rule_settings_params,
+                                 headers={"x-session-id": self.session_id}, expect_errors=True)
+
+        self.assertEqual(response.status_code, 403)
+        json = response.json
+        self.assertEqual(json["message"], "User does not have permissions for that agency")

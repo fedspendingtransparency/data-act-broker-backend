@@ -7,6 +7,7 @@ file_model = DetachedAwardProcurement
 
 mapping = OrderedDict([
     ('ContractTransactionUniqueKey', 'detached_award_proc_unique'),
+    ('PrimeAwardUniqueKey', 'unique_award_key'),
     ('PIID', 'piid'),
     ('AwardModificationAmendmentNumber', 'award_modification_amendme'),
     ('Transaction Number', 'transaction_number'),
@@ -147,6 +148,7 @@ mapping = OrderedDict([
     ('Interagency Contracting Authority', 'interagency_contracting_au'),
     ('Interagency Contracting Authority Description Tag', 'interagency_contract_desc'),
     ('Other Statutory Authority', 'other_statutory_authority'),
+    ('Additional Reporting', 'additional_reporting'),
     ('Program Acronym', 'program_acronym'),
     ('Referenced IDV Type', 'referenced_idv_type'),
     ('Referenced IDV Type Description Tag', 'referenced_idv_type_desc'),
@@ -175,8 +177,8 @@ mapping = OrderedDict([
     ('Contract Financing Description Tag', 'contract_financing_descrip'),
     ('Purchase Card as Payment Method', 'purchase_card_as_payment_m'),
     ('Purchase Card as Payment Method Description Tag', 'purchase_card_as_paym_desc'),
-    ('Contingency Humanitarian or Peacekeeping Operation', 'contingency_humanitarian_o'),
-    ('Contingency Humanitarian or Peacekeeping Operation Description Tag', 'contingency_humanitar_desc'),
+    ('Emergency Acquisition', 'contingency_humanitarian_o'),
+    ('Emergency Acquisition Description Tag', 'contingency_humanitar_desc'),
     ('Alaskan Native Corporation Owned Firm', 'alaskan_native_owned_corpo'),
     ('American Indian Owned Business', 'american_indian_owned_busi'),
     ('Indian Tribe Federally Recognized', 'indian_tribe_federally_rec'),
@@ -300,6 +302,7 @@ def query_data(session, agency_code, agency_type, start, end):
 def initial_query(session):
     return session.query(*[
         file_model.detached_award_proc_unique,
+        file_model.unique_award_key,
         file_model.piid,
         file_model.award_modification_amendme,
         file_model.transaction_number,
@@ -440,6 +443,7 @@ def initial_query(session):
         file_model.interagency_contracting_au,
         file_model.interagency_contract_desc,
         file_model.other_statutory_authority,
+        file_model.additional_reporting,
         file_model.program_acronym,
         file_model.referenced_idv_type,
         file_model.referenced_idv_type_desc,

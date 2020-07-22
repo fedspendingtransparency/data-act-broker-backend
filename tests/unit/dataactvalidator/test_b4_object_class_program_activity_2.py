@@ -8,8 +8,8 @@ _FILE = 'b4_object_class_program_activity_2'
 
 def test_column_headers(database):
     expected_subset = {'row_number', 'obligations_delivered_orde_cpe', 'ussgl490100_delivered_orde_cpe',
-                       'ussgl498100_upward_adjustm_cpe', 'difference', 'uniqueid_TAS', 'uniqueid_ProgramActivityCode',
-                       'uniqueid_ObjectClass'}
+                       'ussgl493100_delivered_orde_cpe', 'ussgl498100_upward_adjustm_cpe', 'difference', 'uniqueid_TAS',
+                       'uniqueid_DisasterEmergencyFundCode', 'uniqueid_ProgramActivityCode', 'uniqueid_ObjectClass'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
@@ -19,11 +19,14 @@ def test_success(database):
 
     value_one = Decimal('100.00')
     value_two = Decimal('200.00')
-    ocpa = ObjectClassProgramActivityFactory(obligations_delivered_orde_cpe=value_one + value_two,
+    value_three = Decimal('300.00')
+    ocpa = ObjectClassProgramActivityFactory(obligations_delivered_orde_cpe=value_one + value_two + value_three,
                                              ussgl490100_delivered_orde_cpe=value_one,
-                                             ussgl498100_upward_adjustm_cpe=value_two)
+                                             ussgl493100_delivered_orde_cpe=value_two,
+                                             ussgl498100_upward_adjustm_cpe=value_three)
     ocpa_null = ObjectClassProgramActivityFactory(obligations_delivered_orde_cpe=value_one,
                                                   ussgl490100_delivered_orde_cpe=None,
+                                                  ussgl493100_delivered_orde_cpe=None,
                                                   ussgl498100_upward_adjustm_cpe=value_one)
 
     assert number_of_errors(_FILE, database, models=[ocpa, ocpa_null]) == 0
@@ -35,6 +38,7 @@ def test_failure(database):
     value2 = Decimal('100.00')
     ocpa = ObjectClassProgramActivityFactory(obligations_delivered_orde_cpe=value,
                                              ussgl490100_delivered_orde_cpe=value2,
+                                             ussgl493100_delivered_orde_cpe=value2,
                                              ussgl498100_upward_adjustm_cpe=value2)
 
     assert number_of_errors(_FILE, database, models=[ocpa]) == 1

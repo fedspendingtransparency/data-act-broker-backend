@@ -12,7 +12,7 @@ from dataactbroker.helpers.generic_helper import format_internal_tas
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.jobModels import CertifiedFilesHistory, Job
+from dataactcore.models.jobModels import PublishedFilesHistory, Job
 from dataactcore.models.jobModels import Submission # noqa
 from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FILE_TYPE_DICT, JOB_TYPE_DICT, PUBLISH_STATUS_DICT
 from dataactcore.models.stagingModels import (Appropriation, ObjectClassProgramActivity, AwardFinancial,
@@ -45,7 +45,7 @@ FTI_BASETABLE_DICT = {
 
 
 def filenames_by_file_type(file_type_id):
-    """ Retrieve the filenames from the CertifiedFilesHistory records that are most up-to-date.
+    """ Retrieve the filenames from the PublishedFilesHistory records that are most up-to-date.
 
         Params:
             file_type_id: DB file type ID for files A, B, or C
@@ -54,14 +54,14 @@ def filenames_by_file_type(file_type_id):
             SQLalchemy query
     """
     sess = GlobalDB.db().session
-    certified_ids = sess.\
-        query(func.max(CertifiedFilesHistory.certified_files_history_id).label('most_recent_id')).\
+    published_ids = sess.\
+        query(func.max(PublishedFilesHistory.published_files_history_id).label('most_recent_id')).\
         filter_by(file_type_id=file_type_id).\
-        group_by(CertifiedFilesHistory.submission_id).\
-        cte('certified_ids')
+        group_by(PublishedFilesHistory.submission_id).\
+        cte('published_ids')
 
-    return sess.query(CertifiedFilesHistory.filename, CertifiedFilesHistory.submission_id).\
-        join(certified_ids, certified_ids.c.most_recent_id == CertifiedFilesHistory.certified_files_history_id)
+    return sess.query(PublishedFilesHistory.filename, PublishedFilesHistory.submission_id).\
+        join(published_ids, published_ids.c.most_recent_id == PublishedFilesHistory.published_files_history_id)
 
 
 def clean_col(row, col, file_type_id, csv_schema):
@@ -187,7 +187,7 @@ def main():
         file_type_id = FILE_TYPE_DICT[file_type_name]
         logger.info('Starting to update the {} table'.format(FTI_TABLENAME_DICT[file_type_id]))
 
-        # Load all certified files with file_type_id matching the file_type_id
+        # Load all published files with file_type_id matching the file_type_id
         file_columns = sess.query(FileColumn).filter(FileColumn.file_id == file_type_id).all()
         csv_schema = {f.name_short: f for f in file_columns}
         query = filenames_by_file_type(file_type_id)

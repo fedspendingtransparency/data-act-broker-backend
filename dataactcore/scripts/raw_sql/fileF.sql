@@ -68,12 +68,14 @@ SELECT
     place_of_perform_country_co AS "PrimaryPlaceOfPerformanceCountryCode",
     place_of_perform_country_na AS "PrimaryPlaceOfPerformanceCountryName",
     award_description AS "AwardDescription",
+    program_title AS "PrimeAwardProjectTitle",
     naics AS "NAICS",
     naics_description AS "NAICS_Description",
     cfda_numbers AS "CFDA_Numbers",
     cfda_titles AS "CFDA_Titles",
 
     subaward_type AS "SubAwardType",
+    internal_id AS "SubAwardReportID",
     subaward_report_year AS "SubAwardReportYear",
     subaward_report_month AS "SubAwardReportMonth",
     subaward_number AS "SubAwardNumber",
@@ -111,5 +113,6 @@ SELECT
     sub_high_comp_officer4_full_na AS "SubAwardeeHighCompOfficer4FullName",
     sub_high_comp_officer4_amount AS "SubAwardeeHighCompOfficer4Amount",
     sub_high_comp_officer5_full_na AS "SubAwardeeHighCompOfficer5FullName",
-    sub_high_comp_officer5_amount AS "SubAwardeeHighCompOfficer5Amount"
+    sub_high_comp_officer5_amount AS "SubAwardeeHighCompOfficer5Amount",
+    date_submitted AS "SubAwardReportLastModifiedDate"
 FROM submission_awards_{0}

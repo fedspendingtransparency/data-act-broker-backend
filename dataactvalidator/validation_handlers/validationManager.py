@@ -13,7 +13,7 @@ from dataactbroker.handlers.submission_handler import populate_submission_error_
 from dataactbroker.helpers.validation_helper import (
     derive_fabs_awarding_sub_tier, derive_fabs_afa_generated_unique, derive_fabs_unique_award_key, derive_unique_id,
     check_required, check_type, check_length, clean_col, clean_numbers, concat_flex, process_formatting_errors,
-    parse_fields, simple_file_scan)
+    parse_fields, simple_file_scan, check_field_format)
 
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
@@ -48,15 +48,15 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = 10000
+CHUNK_SIZE = CONFIG_BROKER['validator_batch_size']
 
 
 class ValidationManager:
     """ Outer level class, called by flask route """
-    report_headers = ['Unique ID', 'Field Name', 'Error Message', 'Value Provided', 'Expected Value', 'Difference',
+    report_headers = ['Unique ID', 'Field Name', 'Rule Message', 'Value Provided', 'Expected Value', 'Difference',
                       'Flex Field', 'Row Number', 'Rule Label']
     cross_file_report_headers = ['Unique ID', 'Source File', 'Source Field Name', 'Target File', 'Target Field Name',
-                                 'Error Message', 'Source Value Provided', 'Target Value Provided', 'Difference',
+                                 'Rule Message', 'Source Value Provided', 'Target Value Provided', 'Difference',
                                  'Source Flex Field', 'Source Row Number', 'Rule Label']
 
     def __init__(self, is_local=True, directory=''):
@@ -76,6 +76,7 @@ class ValidationManager:
         self.error_file_path = None
         self.warning_file_name = None
         self.warning_file_path = None
+        self.has_data = False
 
         # Schema info
         self.csv_schema = {}
@@ -153,6 +154,7 @@ class ValidationManager:
         self.total_rows = 0
         self.short_rows = []
         self.long_rows = []
+        self.has_data = False
 
         validation_start = datetime.now()
         bucket_name = CONFIG_BROKER['aws_bucket']
@@ -352,6 +354,10 @@ class ValidationManager:
 
         # Adding formatting errors to error file
         format_error_df = process_formatting_errors(self.short_rows, self.long_rows, self.report_headers)
+        for index, row in format_error_df.iterrows():
+            self.error_list.record_row_error(self.job.job_id, self.file_name, row['Field Name'],
+                                             row['error_type'], row['Row Number'], row['Rule Label'],
+                                             self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
         format_error_df.to_csv(self.error_file_path, columns=self.report_headers, index=False, quoting=csv.QUOTE_ALL,
                                mode='a', header=False)
 
@@ -371,6 +377,30 @@ class ValidationManager:
         # Ensure validated rows match initial row count
         if file_row_count != self.total_rows:
             raise ResponseException('', StatusCode.CLIENT_ERROR, None, ValidationError.rowCountError)
+
+        # Add a warning if the file is blank
+        if self.file_type.file_type_id in (FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
+                                           FILE_TYPE_DICT['award_financial']) \
+                and not self.has_data and len(self.short_rows) == 0 and len(self.long_rows) == 0:
+            empty_file = {
+                'Unique ID': '',
+                'Field Name': 'Blank File',
+                'Rule Message': ValidationError.blankFileErrorMsg,
+                'Value Provided': '',
+                'Expected Value': '',
+                'Difference': '',
+                'Flex Field': '',
+                'Row Number': None,
+                'Rule Label': 'DABSBLANK',
+                'error_type': ValidationError.blankFileError
+            }
+            empty_file_df = pd.DataFrame([empty_file], columns=list(self.report_headers + ['error_type']))
+            self.error_list.record_row_error(self.job.job_id, self.file_name, empty_file['Field Name'],
+                                             empty_file['error_type'], empty_file['Row Number'],
+                                             empty_file['Rule Label'], self.file_type.file_type_id, None,
+                                             RULE_SEVERITY_DICT['warning'])
+            empty_file_df.to_csv(self.warning_file_path, columns=self.report_headers, index=False,
+                                 quoting=csv.QUOTE_ALL, mode='a', header=False)
 
         loading_duration = (datetime.now() - loading_start).total_seconds()
         logger.info({
@@ -394,8 +424,7 @@ class ValidationManager:
 
             Args:
                 sess: the database connection
-                bucket_name: the bucket to pull the file
-                region_name: the region to pull the file
+                chunk_df: the chunk of the file to process as a dataframe
         """
         logger.info({
             'message': 'Loading rows starting from {}'.format(self.max_row_number + 1),
@@ -452,6 +481,7 @@ class ValidationManager:
             empty_file = chunk_df.empty
 
         if not empty_file:
+            self.has_data = True
             if self.is_fabs:
                 # create a list of all required/type labels for FABS
                 labels = sess.query(ValidationLabel).all()
@@ -513,21 +543,16 @@ class ValidationManager:
                 length_errors = check_length(chunk_df, self.parsed_fields['length'], self.report_headers,
                                              self.csv_schema, self.short_to_long_dict[self.file_type.file_type_id],
                                              flex_data, type_error_rows)
+                field_format_errors = check_field_format(chunk_df, self.parsed_fields['format'], self.report_headers,
+                                                         self.short_to_long_dict[self.file_type.file_type_id],
+                                                         flex_data)
+                field_format_error_rows = field_format_errors['Row Number'].tolist()
 
-                if self.is_fabs:
-                    error_dfs = [req_errors, type_errors, length_errors]
-                    warning_dfs = [pd.DataFrame(columns=list(self.report_headers + ['error_type']))]
-                else:
-                    error_dfs = [req_errors, type_errors]
-                    warning_dfs = [length_errors]
-
-                total_errors = pd.concat(error_dfs, ignore_index=True)
-                total_warnings = pd.concat(warning_dfs, ignore_index=True)
+                total_errors = pd.concat([req_errors, type_errors, length_errors, field_format_errors],
+                                         ignore_index=True)
 
                 # Converting these to ints because pandas likes to change them to floats randomly
                 total_errors[['Row Number', 'error_type']] = total_errors[['Row Number', 'error_type']].astype(int)
-                total_warnings[['Row Number', 'error_type']] = total_warnings[['Row Number', 'error_type']]. \
-                    astype(int)
 
                 self.error_rows.extend([int(x) for x in total_errors['Row Number'].tolist()])
 
@@ -536,16 +561,10 @@ class ValidationManager:
                                                      row['error_type'], row['Row Number'], row['Rule Label'],
                                                      self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
 
-                for index, row in total_warnings.iterrows():
-                    self.error_list.record_row_error(self.job.job_id, self.file_name, row['Field Name'],
-                                                     row['error_type'], row['Row Number'], row['Rule Label'],
-                                                     self.file_type.file_type_id, None, RULE_SEVERITY_DICT['warning'])
-
                 total_errors.drop(['error_type'], axis=1, inplace=True, errors='ignore')
-                total_warnings.drop(['error_type'], axis=1, inplace=True, errors='ignore')
 
                 # Remove type error rows from original dataframe
-                chunk_df = chunk_df[~chunk_df['row_number'].isin(type_error_rows)]
+                chunk_df = chunk_df[~chunk_df['row_number'].isin(type_error_rows + field_format_error_rows)]
                 chunk_df.drop(['unique_id'], axis=1, inplace=True)
 
         # Write all the errors/warnings to their files

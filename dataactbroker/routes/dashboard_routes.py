@@ -138,7 +138,7 @@ def add_dashboard_routes(app):
         'page': webargs_fields.Int(missing=1),
         'limit': webargs_fields.Int(missing=5),
         'sort': webargs_fields.String(missing='significance'),
-        'order': webargs_fields.String(missing='desc')
+        'order': webargs_fields.String(missing='asc')
     })
     def get_active_submission_table(submission, file, **kwargs):
         """ Returns an overview of the requested submission for the active dashboard """

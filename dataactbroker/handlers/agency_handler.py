@@ -2,6 +2,8 @@ from flask import g
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, SubTierAgency
+from dataactcore.models.lookups import (DABS_PERMISSION_ID_LIST, FABS_PERMISSION_ID_LIST, WRITER_ID_LIST,
+                                        SUBMITTER_ID_LIST)
 
 
 def get_sub_tiers_from_perms(is_admin, cgac_affil_ids, frec_affil_ids):
@@ -43,8 +45,13 @@ def get_cgacs_without_sub_tier_agencies(sess=None):
     return sess.query(CGAC).filter(CGAC.cgac_id.notin_([st.cgac.cgac_id for st in cgac_sub_tiers])).all()
 
 
-def get_accessible_agencies():
+def get_accessible_agencies(perm_level='reader', perm_type='mixed'):
     """ List all CGAC and FREC Agencies user has DABS permissions for
+
+        Args:
+            perm_level: only return agencies the user has at least 'reader', 'writer', or 'submitter' affiliations for
+            perm_type: filters results to agencies the user has 'dabs' or 'fabs' affiliations for. 'mixed' results in
+                       no filtering
 
         Returns:
             A dictionary containing a list of all cgacs and frecs the user has access to.
@@ -54,6 +61,26 @@ def get_accessible_agencies():
         # create list of affiliations
         cgac_affiliations = [aff for aff in g.user.affiliations if aff.cgac]
         frec_affiliations = [aff for aff in g.user.affiliations if aff.frec]
+
+        # Filter out agencies based on perm_type
+        if perm_type != 'mixed':
+            perm_type_map = {
+                'dabs': DABS_PERMISSION_ID_LIST,
+                'fabs': FABS_PERMISSION_ID_LIST
+            }
+            cgac_affiliations = [aff for aff in cgac_affiliations if aff.permission_type_id in perm_type_map[perm_type]]
+            frec_affiliations = [aff for aff in frec_affiliations if aff.permission_type_id in perm_type_map[perm_type]]
+
+        # Filter out agencies based on perm_level
+        if perm_level != 'reader':
+            perm_level_map = {
+                'writer': WRITER_ID_LIST,
+                'submitter': SUBMITTER_ID_LIST
+            }
+            cgac_affiliations = [aff for aff in cgac_affiliations if aff.permission_type_id in
+                                 perm_level_map[perm_level]]
+            frec_affiliations = [aff for aff in frec_affiliations if aff.permission_type_id in
+                                 perm_level_map[perm_level]]
 
         # Start with an object of objects to prevent duplicates
         cgac_list = {aff.cgac.cgac_code: {'agency_name': aff.cgac.agency_name, 'cgac_code': aff.cgac.cgac_code} for

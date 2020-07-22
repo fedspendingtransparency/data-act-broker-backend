@@ -7,6 +7,7 @@ file_model = PublishedAwardFinancialAssistance
 
 mapping = OrderedDict([
     ('AssistanceTransactionUniqueKey', 'afa_generated_unique'),
+    ('PrimeAwardUniqueKey', 'unique_award_key'),
     ('FAIN', 'fain'),
     ('AwardModificationAmendmentNumber', 'award_modification_amendme'),
     ('URI', 'uri'),
@@ -52,6 +53,7 @@ mapping = OrderedDict([
     ('LegalEntityForeignProvinceName', 'legal_entity_foreign_provi'),
     ('LegalEntityForeignPostalCode', 'legal_entity_foreign_posta'),
     ('PrimaryPlaceOfPerformanceCode', 'place_of_performance_code'),
+    ('PrimaryPlaceOfPerformanceScope', 'place_of_performance_scope'),
     ('PrimaryPlaceOfPerformanceCityName', 'place_of_performance_city'),
     ('PrimaryPlaceOfPerformanceCountyCode', 'place_of_perform_county_co'),
     ('PrimaryPlaceOfPerformanceCountyName', 'place_of_perform_county_na'),
@@ -132,6 +134,7 @@ def initial_query(session):
     """
     return session.query(
         file_model.afa_generated_unique,
+        file_model.unique_award_key,
         file_model.fain,
         file_model.award_modification_amendme,
         file_model.uri,
@@ -177,6 +180,7 @@ def initial_query(session):
         file_model.legal_entity_foreign_provi,
         file_model.legal_entity_foreign_posta,
         file_model.place_of_performance_code,
+        file_model.place_of_performance_scope,
         file_model.place_of_performance_city,
         file_model.place_of_perform_county_co,
         file_model.place_of_perform_county_na,

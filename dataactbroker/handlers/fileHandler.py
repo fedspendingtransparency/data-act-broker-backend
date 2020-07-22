@@ -16,7 +16,7 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import case
 
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
-                                                       reporting_date, job_to_dict)
+                                                       get_submissions_in_period)
 from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
 from dataactbroker.permissions import current_user_can_on_submission
@@ -25,15 +25,14 @@ from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import (
-    create_jobs, get_error_metrics_by_job_id, get_fabs_meta, mark_job_status, get_last_validated_date,
-    get_lastest_certified_date, get_window_end, get_time_period)
+from dataactcore.interfaces.function_bag import (create_jobs, get_error_metrics_by_job_id, mark_job_status,
+                                                 get_latest_published_date, get_time_period)
 
 from dataactcore.models.domainModels import (CGAC, FREC, SubTierAgency, States, CountryCode, CFDAProgram, CountyCode,
                                              Office, DUNS)
-from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation,
-                                          RevalidationThreshold, CertifyHistory, CertifiedFilesHistory, FileGeneration,
-                                          FileType, CertifiedComment)
+from dataactcore.models.jobModels import (Job, Submission, Comment, SubmissionSubTierAffiliation, CertifyHistory,
+                                          PublishHistory, PublishedFilesHistory, FileGeneration, FileType,
+                                          CertifiedComment, generate_fiscal_year, generate_fiscal_period)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_TYPE_DICT,
     JOB_STATUS_DICT, JOB_STATUS_DICT_ID, PUBLISH_STATUS_DICT_ID, FILE_TYPE_DICT_LETTER_NAME)
@@ -119,13 +118,28 @@ class FileHandler:
             formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(start_date,
                                                                                           end_date, is_quarter)
 
-            if not is_quarter and not (formatted_start_date.month == formatted_end_date.month and
-                                       formatted_start_date.year == formatted_end_date.year):
+            # Single period checks
+            if not is_quarter:
                 data = {
-                    'message': 'A monthly submission must be exactly one month.'
+                    'message': 'A monthly submission must be exactly one month with the exception of periods 1 and 2,'
+                               ' which must be selected together.'
                 }
-                return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+                period1 = 10
+                period2 = 11
 
+                # multiple years
+                if not formatted_start_date.year == formatted_end_date.year:
+                    return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+
+                # Not the same month, not period 2
+                if formatted_start_date.month != formatted_end_date.month and formatted_start_date.month != period1 \
+                        and formatted_end_date.month != period2:
+                    return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+
+                # attempting to make just period 1 or period 2 submission without spanning both
+                if (formatted_start_date.month == period1 and formatted_end_date.month != period2) or \
+                        (formatted_start_date.month != period1 and formatted_end_date.month == period2):
+                    return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
         return self.submit(sess)
 
     @staticmethod
@@ -197,6 +211,10 @@ class FileHandler:
                 # If the existing submission is a FABS submission, stop everything
                 if existing_submission_obj.d2_submission:
                     raise ResponseException('Existing submission must be a DABS submission', StatusCode.CLIENT_ERROR)
+                if existing_submission_obj.publish_status_id in (PUBLISH_STATUS_DICT['publishing'],
+                                                                 PUBLISH_STATUS_DICT['reverting']):
+                    raise ResponseException('Existing submission must not be publishing, certifying, or reverting',
+                                            StatusCode.CLIENT_ERROR)
                 jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
                 for job in jobs:
                     if job.job_status_id == JOB_STATUS_DICT['running']:
@@ -224,7 +242,22 @@ class FileHandler:
             if submission_data.get('is_quarter_format'):
                 submission_data['is_quarter_format'] = (str(submission_data.get('is_quarter_format')).upper() == 'TRUE')
 
-            submission = create_submission(g.user.user_id, submission_data, existing_submission_obj)
+            reporting_fiscal_period = generate_fiscal_period(submission_data['reporting_end_date'])
+            reporting_fiscal_year = generate_fiscal_year(submission_data['reporting_end_date'])
+
+            test_submission = request_params.get('test_submission')
+            test_submission = str(test_submission).upper() == 'TRUE'
+
+            # set published_submission_ids for new submissions
+            if not existing_submission:
+                pub_subs = get_submissions_in_period(submission_data['cgac_code'], submission_data['frec_code'],
+                                                     reporting_fiscal_year, reporting_fiscal_period,
+                                                     submission_data['is_quarter_format'], filter_published='published')
+                submission_data['published_submission_ids'] = [pub_sub.submission_id for pub_sub in pub_subs]
+                if len(submission_data['published_submission_ids']) > 0:
+                    test_submission = True
+
+            submission = create_submission(g.user.user_id, submission_data, existing_submission_obj, test_submission)
             sess.add(submission)
             sess.commit()
 
@@ -241,7 +274,7 @@ class FileHandler:
                         filename = filename.format(formatted_start_date.strftime('%Y%m%d'),
                                                    formatted_end_date.strftime('%Y%m%d'), 'awarding', 'csv')
                     if not self.is_local:
-                        upload_name = "{}/{}".format(submission.submission_id,
+                        upload_name = '{}/{}'.format(submission.submission_id,
                                                      S3Handler.get_timestamped_filename(filename))
                     else:
                         upload_name = filename
@@ -362,7 +395,7 @@ class FileHandler:
         # clients call the API directly
         if start_date > end_date:
             raise ResponseException(
-                "Submission start date {} is after the end date {}".format(start_date, end_date),
+                'Submission start date {} is after the end date {}'.format(start_date, end_date),
                 StatusCode.CLIENT_ERROR)
 
         # Currently, broker allows quarterly submissions for a single quarter only. the front-end handles this
@@ -595,7 +628,7 @@ class FileHandler:
         unfinished_jobs = sess.query(Job).filter(Job.submission_id == submission_id,
                                                  Job.job_status_id != JOB_STATUS_DICT['finished']).count()
         if unfinished_jobs > 0:
-            raise ResponseException("Submission has unfinished jobs and cannot be published", StatusCode.CLIENT_ERROR)
+            raise ResponseException('Submission has unfinished jobs and cannot be published', StatusCode.CLIENT_ERROR)
 
         # if it's an unpublished FABS submission that has only finished jobs, we can start the process
         log_data = {
@@ -818,19 +851,22 @@ class FileHandler:
             update({'publish_status_id': PUBLISH_STATUS_DICT['published'], 'certifying_user_id': g.user.user_id,
                     'updated_at': datetime.utcnow()}, synchronize_session=False)
 
-        # create the certify_history entry
+        # create the publish_history and certify_history entries
+        publish_history = PublishHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
+                                         submission_id=submission_id)
         certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
                                          submission_id=submission_id)
-        sess.add(certify_history)
+        sess.add_all([publish_history, certify_history])
         sess.commit()
 
-        # get the certify_history entry including the PK
-        certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission_id).\
-            order_by(CertifyHistory.created_at.desc()).first()
+        # get the publish_history entry including the PK
+        publish_history = sess.query(PublishHistory).filter_by(submission_id=submission_id).\
+            order_by(PublishHistory.created_at.desc()).first()
 
         # generate the published rows file and move all files
-        # (locally we don't move but we still need to populate the certified_files_history table)
-        FileHandler.move_certified_files(FileHandler, submission, certify_history, g.is_local)
+        # (locally we don't move but we still need to populate the published_files_history table)
+        FileHandler.move_published_files(FileHandler, submission, publish_history, certify_history.certify_history_id,
+                                         g.is_local)
 
         response_dict = {'submission_id': submission_id}
         return JsonResponse.create(StatusCode.OK, response_dict)
@@ -904,6 +940,9 @@ class FileHandler:
             Returns:
                 JsonResponse object with a "success" message
         """
+        if submission.publish_status_id in (PUBLISH_STATUS_DICT['publishing'], PUBLISH_STATUS_DICT['reverting']):
+            return JsonResponse.error(ValueError('Submission is certifying or reverting'), StatusCode.CLIENT_ERROR)
+
         sess = GlobalDB.db().session
         # Determine which job types to start
         if not fabs:
@@ -945,13 +984,14 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, {'message': 'Success'})
 
-    def move_certified_files(self, submission, certify_history, is_local):
-        """ Copy all files within the certified submission to the correct certified files bucket/directory. FABS
+    def move_published_files(self, submission, publish_history, certify_history_id, is_local):
+        """ Copy all files within the published submission to the correct published files bucket/directory. FABS
             submissions also create a file containing all the published rows
 
             Args:
                 submission: submission for which to move the files
-                certify_history: a CertifyHistory object to use for timestamps and to update once the files are moved
+                publish_history: a PublishHistory object to use for timestamps and to update once the files are moved
+                certify_history_id: the ID of a CertifyHistory object to update once the files are moved
                 is_local: a boolean indicating whether the application is running locally or not
         """
         try:
@@ -962,7 +1002,7 @@ class FileHandler:
         sess = GlobalDB.db().session
         submission_id = submission.submission_id
         log_data = {
-            'message': 'Starting move_certified_files',
+            'message': 'Starting move_published_files',
             'message_type': 'BrokerDebug',
             'submission_id': submission_id,
             'submission_type': 'FABS' if submission.d2_submission else 'DABS'
@@ -983,11 +1023,13 @@ class FileHandler:
 
         # set the route within the bucket
         if submission.d2_submission:
-            created_at_date = certify_history.created_at
+            created_at_date = publish_history.created_at
             route_vars = ['FABS', agency_code, created_at_date.year, '{:02d}'.format(created_at_date.month)]
         else:
-            route_vars = [agency_code, submission.reporting_fiscal_year, submission.reporting_fiscal_period // 3,
-                          certify_history.certify_history_id]
+            time_period = 'P{}'.format(str(submission.reporting_fiscal_period).zfill(2)) \
+                if not submission.is_quarter_format else 'Q{}'.format(submission.reporting_fiscal_period // 3)
+            route_vars = [agency_code, submission.reporting_fiscal_year, time_period,
+                          publish_history.publish_history_id]
         new_route = '/'.join([str(var) for var in route_vars]) + '/'
 
         for job in jobs:
@@ -1021,7 +1063,7 @@ class FileHandler:
                 logger.info(log_data)
                 new_path = create_fabs_published_file(sess, submission_id, new_route)
             else:
-                # DABS certified submission
+                # DABS published submission
                 # get the comment relating to the file
                 comment = sess.query(Comment).\
                     filter_by(submission_id=submission_id, file_type_id=job.file_type_id).one_or_none()
@@ -1033,8 +1075,9 @@ class FileHandler:
                     self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
                                              original_path=job.filename, new_path=new_path)
 
-            # create the certified_files_history for this file
-            file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
+            # create the published_files_history for this file
+            file_history = PublishedFilesHistory(publish_history_id=publish_history.publish_history_id,
+                                                 certify_history_id=certify_history_id,
                                                  submission_id=submission_id, file_type_id=job.file_type_id,
                                                  filename=new_path, comment=comment,
                                                  warning_filename=warning_file)
@@ -1060,13 +1103,14 @@ class FileHandler:
                     warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission_id, True,
                                                                                            first_file, second_file)
 
-                # add certified history
-                file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
+                # add published history
+                file_history = PublishedFilesHistory(publish_history_id=publish_history.publish_history_id,
+                                                     certify_history_id=certify_history_id,
                                                      submission_id=submission_id, filename=None, file_type_id=None,
                                                      comment=None, warning_filename=warning_file)
                 sess.add(file_history)
 
-            # Only move the file if we have any certified comments
+            # Only move the file if we have any published comments
             num_cert_comments = sess.query(CertifiedComment).filter_by(submission_id=submission_id).count()
             if num_cert_comments > 0:
                 filename = 'submission_{}_comments.csv'.format(str(submission_id))
@@ -1078,26 +1122,27 @@ class FileHandler:
                                              original_path=old_path, new_path=new_path)
                 else:
                     new_path = ''.join([CONFIG_BROKER['broker_files'], filename])
-                file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
+                file_history = PublishedFilesHistory(publish_history_id=publish_history.publish_history_id,
+                                                     certify_history_id=certify_history_id,
                                                      submission_id=submission_id, filename=new_path, file_type_id=None,
                                                      comment=None, warning_filename=None)
                 sess.add(file_history)
         sess.commit()
 
-        log_data['message'] = 'Completed move_certified_files'
+        log_data['message'] = 'Completed move_published_files'
         logger.debug(log_data)
 
-    def revert_certified_error_files(self, sess, certify_history_id):
+    def revert_published_error_files(self, sess, publish_history_id):
         """ Copy warning files (non-locally) back to the errors folder and revert error files to just headers for a
-            submission that is being reverted to certified status
+            submission that is being reverted to published/certified status
 
             Args:
                 sess: the database connection
-                certify_history_id: the ID of the CertifyHistory object that represents the latest certification
+                publish_history_id: the ID of the PublishHistory object that represents the latest publication
         """
-        warning_files = sess.query(CertifiedFilesHistory.warning_filename). \
-            filter(CertifiedFilesHistory.certify_history_id == certify_history_id,
-                   CertifiedFilesHistory.warning_filename.isnot(None)).all()
+        warning_files = sess.query(PublishedFilesHistory.warning_filename). \
+            filter(PublishedFilesHistory.publish_history_id == publish_history_id,
+                   PublishedFilesHistory.warning_filename.isnot(None)).all()
         for warning in warning_files:
             warning = warning.warning_filename
             # Getting headers and file names
@@ -1166,7 +1211,7 @@ def update_submission_comments(submission, comment_request, is_local):
             comment_request: the contents of the request from the API
             is_local: a boolean indicating whether the application is running locally or not
     """
-    # If the submission has been certified, set its status to updated when new comments are made.
+    # If the submission has been published, set its status to updated when new comments are made.
     if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
         submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
 
@@ -1270,63 +1315,6 @@ def published_fabs_query(data_utils):
             A list of published FABS rows.
     """
     return fileD2.query_published_fabs_data(data_utils['sess'], data_utils['submission_id'])
-
-
-def submission_to_dict_for_status(submission):
-    """ Convert a Submission model into a dictionary, ready to be serialized as JSON for the get_status function
-
-        Args:
-            submission: submission to be converted to a dictionary
-
-        Returns:
-            A dictionary of submission information.
-    """
-    sess = GlobalDB.db().session
-
-    number_of_rows = sess.query(func.sum(Job.number_of_rows)).\
-        filter_by(submission_id=submission.submission_id).\
-        scalar() or 0
-
-    # @todo replace with a relationship
-    # Determine the agency name
-    cgac = sess.query(CGAC).filter_by(cgac_code=submission.cgac_code).one_or_none()
-    frec = sess.query(FREC).filter_by(frec_code=submission.frec_code).one_or_none()
-    if cgac:
-        agency_name = cgac.agency_name
-    elif frec:
-        agency_name = frec.agency_name
-    else:
-        agency_name = ''
-
-    relevant_job_types = (JOB_TYPE_DICT['csv_record_validation'], JOB_TYPE_DICT['validation'])
-    relevant_jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
-                                           Job.job_type_id.in_(relevant_job_types))
-
-    revalidation_threshold = sess.query(RevalidationThreshold).one_or_none()
-    last_validated = get_last_validated_date(submission.submission_id)
-
-    fabs_meta = get_fabs_meta(submission.submission_id) if submission.d2_submission else None
-
-    return {
-        'cgac_code': submission.cgac_code,
-        'frec_code': submission.frec_code,
-        'agency_name': agency_name,
-        'created_on': submission.created_at.strftime('%m/%d/%Y'),
-        'number_of_errors': submission.number_of_errors,
-        'number_of_rows': number_of_rows,
-        'last_updated': submission.updated_at.strftime('%Y-%m-%dT%H:%M:%S'),
-        'last_validated': last_validated,
-        'revalidation_threshold':
-            revalidation_threshold.revalidation_date.strftime('%Y-%m-%dT%H:%M:%S') if revalidation_threshold else '',
-        # Broker allows submission for a single quarter or a single month, so reporting_period start and end dates
-        # reported by check_status are always equal
-        'reporting_period_start_date': reporting_date(submission),
-        'reporting_period_end_date': reporting_date(submission),
-        'jobs': [job_to_dict(job) for job in relevant_jobs],
-        'publish_status': submission.publish_status.name,
-        'quarterly_submission': submission.is_quarter_format,
-        'fabs_meta': fabs_meta
-    }
 
 
 def get_status(submission, file_type=''):
@@ -1528,23 +1516,27 @@ def add_list_submission_filters(query, filters, submission_updated_view):
             start_date = mod_dates.get('start_date')
             end_date = mod_dates.get('end_date')
 
-            # Make sure that, if it has content, start_date and end_date are both part of this filter
-            if not start_date or not end_date:
-                raise ResponseException('Both start_date and end_date must be provided', StatusCode.CLIENT_ERROR)
+            # Make sure that, if it has content, at least start_date or end_date is part of this filter
+            if not start_date and not end_date:
+                raise ResponseException('At least start_date or end_date must be provided when using '
+                                        'last_modified_range filter', StatusCode.CLIENT_ERROR)
 
-            # Start and end dates must be in the format MM/DD/YYYY and be
-            if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
+            # Start and end dates, when provided must be in the format MM/DD/YYYY format
+            if (start_date and not StringCleaner.is_date(start_date)) or\
+                    (end_date and not StringCleaner.is_date(end_date)):
                 raise ResponseException('Start or end date cannot be parsed into a date of format MM/DD/YYYY',
                                         StatusCode.CLIENT_ERROR)
-            # Make sure start date is not greater than end date (checking for >= because we add a day)
-            start_date = datetime.strptime(start_date, '%m/%d/%Y')
-            end_date = datetime.strptime(end_date, '%m/%d/%Y') + timedelta(days=1)
-            if start_date >= end_date:
+            # Make sure start date is not greater than end date when both are provided (checking for >= because we add a
+            # day)
+            start_date = datetime.strptime(start_date, '%m/%d/%Y') if start_date else None
+            end_date = datetime.strptime(end_date, '%m/%d/%Y') + timedelta(days=1) if end_date else None
+            if start_date and end_date and start_date >= end_date:
                 raise ResponseException('Last modified start date cannot be greater than the end date',
                                         StatusCode.CLIENT_ERROR)
-
-            query = query.filter(submission_updated_view.updated_at >= start_date,
-                                 submission_updated_view.updated_at < end_date)
+            if start_date:
+                query = query.filter(submission_updated_view.updated_at >= start_date)
+            if end_date:
+                query = query.filter(submission_updated_view.updated_at < end_date)
         elif mod_dates:
             raise ResponseException('last_modified_range filter must be null or an object', StatusCode.CLIENT_ERROR)
     # Agency code filter
@@ -1588,13 +1580,13 @@ def add_list_submission_filters(query, filters, submission_updated_view):
     return query
 
 
-def list_submissions(page, limit, certified, sort='modified', order='desc', is_fabs=False, filters=None):
-    """ List submission based on current page and amount to display. If provided, filter based on certification status
+def list_submissions(page, limit, published, sort='modified', order='desc', is_fabs=False, filters=None):
+    """ List submission based on current page and amount to display. If provided, filter based on publication status
 
         Args:
             page: page number to use in getting the list
             limit: the number of entries per page
-            certified: string indicating whether to display only certified, only uncertified, or both for submissions
+            published: string indicating whether to display only published, only unpublished, or both for submissions
             sort: the column to order on
             order: order ascending or descending
             is_fabs: boolean indicating whether it is a DABS or FABS submission (True if FABS)
@@ -1606,7 +1598,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
     sess = GlobalDB.db().session
     submission_updated_view = SubmissionUpdatedView()
     offset = limit * (page - 1)
-    certifying_user = aliased(User)
+    publishing_user = aliased(User)
 
     # List of all the columns to gather
     submission_columns = [Submission.submission_id, Submission.cgac_code, Submission.frec_code, Submission.user_id,
@@ -1614,23 +1606,24 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
                           Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
                           Submission.reporting_end_date, Submission.certifying_user_id,
                           Submission.reporting_fiscal_year, Submission.reporting_fiscal_period,
-                          Submission.is_quarter_format]
+                          Submission.is_quarter_format, Submission.published_submission_ids, Submission.certified,
+                          Submission.test_submission]
     cgac_columns = [CGAC.cgac_code, CGAC.agency_name.label('cgac_agency_name')]
     frec_columns = [FREC.frec_code, FREC.agency_name.label('frec_agency_name')]
-    user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
-                    certifying_user.name.label('certifying_user_name')]
+    user_columns = [User.user_id, User.name, publishing_user.user_id.label('publishing_user_id'),
+                    publishing_user.name.label('publishing_user_name')]
     view_columns = [submission_updated_view.submission_id, submission_updated_view.updated_at.label('updated_at')]
-    sub_query = sess.query(CertifyHistory.submission_id, func.max(CertifyHistory.created_at).label('certified_date')).\
-        group_by(CertifyHistory.submission_id).\
+    sub_query = sess.query(PublishHistory.submission_id, func.max(PublishHistory.created_at).label('published_date')).\
+        group_by(PublishHistory.submission_id).\
         subquery()
 
     columns_to_query = (submission_columns + cgac_columns + frec_columns + user_columns + view_columns +
-                        [sub_query.c.certified_date])
+                        [sub_query.c.published_date])
 
     # Base query that is shared among all submission lists
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id).\
-        outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id).\
+        outerjoin(publishing_user, Submission.certifying_user_id == publishing_user.user_id).\
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         outerjoin(FREC, Submission.frec_code == FREC.frec_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
@@ -1645,8 +1638,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
     min_mod_query = permissions_filter(min_mod_query)
 
     # Determine what types of submissions (published/unpublished/both) to display
-    if certified != 'mixed':
-        if certified == 'true':
+    if published != 'mixed':
+        if published == 'true':
             query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
             min_mod_query = min_mod_query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
         else:
@@ -1668,7 +1661,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
         'reporting_end': {'model': Submission, 'col': 'reporting_end_date'},
         'agency': {'model': CGAC, 'col': 'agency_name'},
         'submitted_by': {'model': User, 'col': 'name'},
-        'certified_date': {'model': sub_query.c, 'col': 'certified_date'},
+        'published_date': {'model': sub_query.c, 'col': 'published_date'},
         'quarterly_submission': {'model': Submission, 'col': 'is_quarter_format'}
     }
 
@@ -1702,41 +1695,35 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', is_f
     })
 
 
-def list_certifications(submission):
-    """ List all certifications for a single submission including the file history that goes with them.
+def process_history_list(history_list, list_type):
+    """ Processes gathering a file history list for either publish or certify history.
 
         Args:
-            submission: submission to get certifications for
+            history_list: the PublishHistory or CertifyHistory list to run through
+            list_type: whether the list being processed is publish or certify
 
         Returns:
-            A JsonResponse containing a dictionary with the submission ID and a list of certifications or a JsonResponse
-            error containing details of what went wrong.
+            The list with details of the file history
     """
-    if submission.d2_submission:
-        return JsonResponse.error(ValueError('FABS submissions do not have a certification history'),
-                                  StatusCode.CLIENT_ERROR)
-
     sess = GlobalDB.db().session
+    processed_list = []
 
-    certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
-        order_by(CertifyHistory.created_at.desc()).all()
+    for history in history_list:
+        user = sess.query(User).filter_by(user_id=history.user_id).one()
 
-    if len(certify_history) == 0:
-        return JsonResponse.error(ValueError('This submission has no certification history'), StatusCode.CLIENT_ERROR)
+        file_history_query = sess.query(PublishedFilesHistory)
+        if list_type == 'certify':
+            file_history_query = file_history_query.filter_by(certify_history_id=history.certify_history_id)
+        else:
+            file_history_query = file_history_query.filter_by(publish_history_id=history.publish_history_id)
+        file_history = file_history_query.all()
+        history_files = []
 
-    # get the details for each of the certifications
-    certifications = []
-    for history in certify_history:
-        certifying_user = sess.query(User).filter_by(user_id=history.user_id).one()
-
-        # get all certified_files_history for this certification
-        file_history = sess.query(CertifiedFilesHistory).filter_by(certify_history_id=history.certify_history_id).all()
-        certified_files = []
         for file in file_history:
             # if there's a filename, add it to the list
             if file.filename is not None:
-                certified_files.append({
-                    'certified_files_history_id': file.certified_files_history_id,
+                history_files.append({
+                    'published_files_history_id': file.published_files_history_id,
                     'filename': file.filename.split('/')[-1],
                     'is_warning': False,
                     'comment': file.comment
@@ -1744,21 +1731,54 @@ def list_certifications(submission):
 
             # if there's a warning file, add it to the list
             if file.warning_filename is not None:
-                certified_files.append({
-                    'certified_files_history_id': file.certified_files_history_id,
+                history_files.append({
+                    'published_files_history_id': file.published_files_history_id,
                     'filename': file.warning_filename.split('/')[-1],
                     'is_warning': True,
                     'comment': None
                 })
 
-        # after adding all certified files to the history, add the entire history entry to the certifications list
-        certifications.append({
-            'certify_date': history.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-            'certifying_user': {'name': certifying_user.name, 'user_id': history.user_id},
-            'certified_files': certified_files
+        processed_list.append({
+            '{}_date'.format(list_type): history.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            '{}ing_user'.format(list_type): {'name': user.name, 'user_id': history.user_id},
+            '{}ed_files'.format(list_type if list_type == 'publish' else 'certifi'): history_files
         })
 
+    return processed_list
+
+
+def list_history(submission):
+    """ List all publications and certifications for a single submission including the file history that goes with them.
+
+        Args:
+            submission: submission to get publictions and certifications for
+
+        Returns:
+            A JsonResponse containing a dictionary with the submission ID and a list of publications and certifications
+            or a JsonResponse error containing details of what went wrong.
+    """
+    # TODO: Split this into published and certified lists, probably can leave it as one endpoint
+    if submission.d2_submission:
+        return JsonResponse.error(ValueError('FABS submissions do not have a publication history'),
+                                  StatusCode.CLIENT_ERROR)
+
+    sess = GlobalDB.db().session
+
+    publish_history = sess.query(PublishHistory).filter_by(submission_id=submission.submission_id).\
+        order_by(PublishHistory.created_at.desc()).all()
+    certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
+        order_by(CertifyHistory.created_at.desc()).all()
+
+    # We only have to check publish history because there can be no certify history without publish history
+    if len(publish_history) == 0:
+        return JsonResponse.error(ValueError('This submission has no publication history'), StatusCode.CLIENT_ERROR)
+
+    # get the details for each of the publications/certifications
+    publications = process_history_list(publish_history, 'publish')
+    certifications = process_history_list(certify_history, 'certify')
+
     return JsonResponse.create(StatusCode.OK, {'submission_id': submission.submission_id,
+                                               'publications': publications,
                                                'certifications': certifications})
 
 
@@ -1767,7 +1787,7 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
 
         Args:
             submission: submission to get the file history for
-            file_history_id: the CertifiedFilesHistory ID to get the file from
+            file_history_id: the PublishedFilesHistory ID to get the file from
             is_warning: a boolean indicating if the file being retrieved is a warning or error file (True for warning)
             is_local: a boolean indicating if the application is being run locally (True for local)
 
@@ -1775,15 +1795,16 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
             A JsonResponse containing a dictionary with the url to the file or a JsonResponse error containing details
             of what went wrong.
     """
+    # TODO: Reassess if we really need to include the submission ID for this, is there a better way to check perms?
     sess = GlobalDB.db().session
 
-    file_history = sess.query(CertifiedFilesHistory).filter_by(certified_files_history_id=file_history_id).one_or_none()
+    file_history = sess.query(PublishedFilesHistory).filter_by(published_files_history_id=file_history_id).one_or_none()
 
     if not file_history:
-        return JsonResponse.error(ValueError('Invalid certified_files_history_id'), StatusCode.CLIENT_ERROR)
+        return JsonResponse.error(ValueError('Invalid published_files_history_id'), StatusCode.CLIENT_ERROR)
 
     if file_history.submission_id != submission.submission_id:
-        return JsonResponse.error(ValueError('Requested certified_files_history_id does not '
+        return JsonResponse.error(ValueError('Requested published_files_history_id does not '
                                              'match submission_id provided'), StatusCode.CLIENT_ERROR)
 
     if is_warning and not file_history.warning_filename:
@@ -1829,8 +1850,7 @@ def serialize_submission(submission):
     jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
     files = get_submission_files(jobs)
     status = get_submission_status(submission, jobs)
-    certified_on = get_lastest_certified_date(submission)
-    window_end = get_window_end(submission)
+    published_on = get_latest_published_date(submission)
     time_period = get_time_period(submission)
     agency_name = submission.cgac_agency_name if submission.cgac_agency_name else submission.frec_agency_name
     return {
@@ -1843,11 +1863,12 @@ def serialize_submission(submission):
         'reporting_start_date': str(submission.reporting_start_date) if submission.reporting_start_date else None,
         'reporting_end_date': str(submission.reporting_end_date) if submission.reporting_end_date else None,
         'user': {'user_id': submission.user_id, 'name': submission.name if submission.name else 'No User'},
-        'certifying_user': submission.certifying_user_name if submission.certifying_user_name else '',
+        'publishing_user': submission.publishing_user_name if submission.publishing_user_name else '',
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
-        'certified_on': str(certified_on) if certified_on else '',
+        'test_submission': submission.test_submission,
+        'published_on': str(published_on) if published_on else '',
         'quarterly_submission': submission.is_quarter_format,
-        'window_end': str(window_end) if window_end else '',
+        'certified': submission.certified,
         'time_period': time_period
     }
 

@@ -5,11 +5,12 @@ from webargs.flaskparser import use_kwargs
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler, get_upload_file_url,
     get_detached_upload_file_url, get_submission_comments, submission_report_url, update_submission_comments,
-    list_certifications, file_history_url, get_comments_file)
+    list_history, file_history_url, get_comments_file)
 from dataactbroker.handlers.submission_handler import (
     delete_all_submission_data, get_submission_stats, list_windows, check_current_submission_page,
-    certify_dabs_submission, find_existing_submissions_in_period, get_submission_metadata, get_submission_data,
-    get_revalidation_threshold, get_latest_certification_period, revert_to_certified)
+    publish_dabs_submission, certify_dabs_submission, publish_and_certify_dabs_submission, get_published_submission_ids,
+    get_submission_metadata, get_submission_data, get_revalidation_threshold, get_latest_publication_period,
+    revert_to_certified)
 from dataactbroker.decorators import convert_to_submission_id
 from dataactbroker.permissions import (requires_login, requires_submission_perms, requires_agency_perms,
                                        requires_sub_agency_perms)
@@ -61,10 +62,10 @@ def add_file_routes(app, is_local, server_path):
     def revalidation_threshold():
         return JsonResponse.create(StatusCode.OK, get_revalidation_threshold())
 
-    @app.route("/v1/latest_certification_period/", methods=["GET"])
+    @app.route("/v1/latest_publication_period/", methods=["GET"])
     @requires_login
-    def latest_certification_period():
-        return JsonResponse.create(StatusCode.OK, get_latest_certification_period())
+    def latest_publication_period():
+        return JsonResponse.create(StatusCode.OK, get_latest_publication_period())
 
     @app.route("/v1/window/", methods=["GET"])
     def window():
@@ -81,7 +82,7 @@ def add_file_routes(app, is_local, server_path):
     @use_kwargs({
         'page': webargs_fields.Int(missing=1),
         'limit': webargs_fields.Int(missing=5),
-        'certified': webargs_fields.String(
+        'published': webargs_fields.String(
             required=True,
             validate=webargs_validate.OneOf(('mixed', 'true', 'false'))),
         'sort': webargs_fields.String(missing='modified'),
@@ -89,7 +90,7 @@ def add_file_routes(app, is_local, server_path):
         'fabs': webargs_fields.Bool(missing=False),
         'filters': webargs_fields.Dict(keys=webargs_fields.String(), missing={})
     })
-    def list_submissions(certified, **kwargs):
+    def list_submissions(published, **kwargs):
         """ List submission IDs associated with the current user """
         page = kwargs.get('page')
         limit = kwargs.get('limit')
@@ -97,26 +98,26 @@ def add_file_routes(app, is_local, server_path):
         order = kwargs.get('order')
         fabs = kwargs.get('fabs')
         filters = kwargs.get('filters')
-        return list_submissions_handler(page, limit, certified, sort, order, fabs, filters)
+        return list_submissions_handler(page, limit, published, sort, order, fabs, filters)
 
-    @app.route("/v1/list_certifications/", methods=["POST"])
+    @app.route("/v1/list_history/", methods=['GET'])
     @convert_to_submission_id
     @requires_submission_perms('reader')
-    def submission_list_certifications(submission):
-        """ List all certifications for a specific submission """
-        return list_certifications(submission)
+    def submission_list_history(submission):
+        """ List all publish and certify history for a specific submission """
+        return list_history(submission)
 
     @app.route("/v1/get_certified_file/", methods=["POST"])
     @use_kwargs({
         'submission_id': webargs_fields.Int(required=True),
-        'certified_files_history_id': webargs_fields.Int(required=True),
+        'published_files_history_id': webargs_fields.Int(required=True),
         'is_warning': webargs_fields.Bool(missing=False)
     })
     @requires_submission_perms('reader')
-    def get_certified_file(submission, certified_files_history_id, **kwargs):
+    def get_certified_file(submission, published_files_history_id, **kwargs):
         """ Get the signed URL for the specified file history """
         is_warning = kwargs.get('is_warning')
-        return file_history_url(submission, certified_files_history_id, is_warning, is_local)
+        return file_history_url(submission, published_files_history_id, is_warning, is_local)
 
     @app.route("/v1/check_current_page/", methods=["GET"])
     @convert_to_submission_id
@@ -217,24 +218,40 @@ def add_file_routes(app, is_local, server_path):
         """
         return delete_all_submission_data(submission)
 
-    @app.route("/v1/check_year_quarter/", methods=["GET"])
+    @app.route("/v1/published_submissions/", methods=["GET"])
     @requires_login
     @use_kwargs({'reporting_fiscal_year': webargs_fields.String(required=True),
                  'reporting_fiscal_period': webargs_fields.String(required=True),
                  'cgac_code': webargs_fields.String(),
-                 'frec_code': webargs_fields.String()})
-    def check_year_and_quarter(reporting_fiscal_year, reporting_fiscal_period, **kwargs):
+                 'frec_code': webargs_fields.String(),
+                 'is_quarter': webargs_fields.Bool()})
+    def get_published_submissions(reporting_fiscal_year, reporting_fiscal_period, **kwargs):
         """ Check if cgac (or frec) code, year, and quarter already has a published submission """
         cgac_code = kwargs.get('cgac_code')
         frec_code = kwargs.get('frec_code')
-        return find_existing_submissions_in_period(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period)
+        is_quarter = kwargs.get('is_quarter')
+        return get_published_submission_ids(cgac_code, frec_code, reporting_fiscal_year, reporting_fiscal_period,
+                                            is_quarter)
 
-    @app.route("/v1/certify_submission/", methods=['POST'])
+    @app.route('/v1/publish_dabs_submission/', methods=['POST'])
     @convert_to_submission_id
     @requires_submission_perms('submitter', check_owner=False)
-    def certify_submission(submission):
+    def publish_dabs_sub(submission):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return certify_dabs_submission(submission, file_manager)
+        return publish_dabs_submission(submission, file_manager)
+
+    @app.route("/v1/certify_dabs_submission/", methods=['POST'])
+    @convert_to_submission_id
+    @requires_submission_perms('submitter', check_owner=False)
+    def certify_dabs_sub(submission):
+        return certify_dabs_submission(submission)
+
+    @app.route('/v1/publish_and_certify_dabs_submission/', methods=['POST'])
+    @convert_to_submission_id
+    @requires_submission_perms('submitter', check_owner=False)
+    def publish_and_certify_dabs_sub(submission):
+        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+        return publish_and_certify_dabs_submission(submission, file_manager)
 
     @app.route("/v1/restart_validation/", methods=['POST'])
     @convert_to_submission_id

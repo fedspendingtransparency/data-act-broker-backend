@@ -94,6 +94,67 @@ class AwardFinancialFactory(factory.Factory):
     ussgl498100_upward_adjustm_cpe = fuzzy.FuzzyDecimal(9999)
     ussgl498200_upward_adjustm_cpe = fuzzy.FuzzyDecimal(9999)
     tas = fuzzy.FuzzyText()
+    disaster_emergncy_fund_code = fuzzy.FuzzyText()
+
+
+class CertifiedAwardFinancialFactory(factory.Factory):
+    class Meta:
+        model = stagingModels.CertifiedAwardFinancial
+
+    certified_award_financial_id = None
+    submission_id = fuzzy.FuzzyInteger(9999)
+    job_id = fuzzy.FuzzyInteger(9999)
+    row_number = fuzzy.FuzzyInteger(9999)
+    agency_identifier = fuzzy.FuzzyText()
+    allocation_transfer_agency = fuzzy.FuzzyText()
+    availability_type_code = fuzzy.FuzzyText()
+    beginning_period_of_availa = fuzzy.FuzzyText()
+    by_direct_reimbursable_fun = fuzzy.FuzzyText()
+    deobligations_recov_by_awa_cpe = fuzzy.FuzzyDecimal(9999)
+    ending_period_of_availabil = fuzzy.FuzzyText()
+    fain = fuzzy.FuzzyText()
+    gross_outlay_amount_by_awa_cpe = fuzzy.FuzzyDecimal(9999)
+    gross_outlay_amount_by_awa_fyb = fuzzy.FuzzyDecimal(9999)
+    gross_outlays_delivered_or_cpe = fuzzy.FuzzyDecimal(9999)
+    gross_outlays_delivered_or_fyb = fuzzy.FuzzyDecimal(9999)
+    gross_outlays_undelivered_cpe = fuzzy.FuzzyDecimal(9999)
+    gross_outlays_undelivered_fyb = fuzzy.FuzzyDecimal(9999)
+    main_account_code = fuzzy.FuzzyText()
+    object_class = fuzzy.FuzzyText()
+    obligations_delivered_orde_cpe = fuzzy.FuzzyDecimal(9999)
+    obligations_delivered_orde_fyb = fuzzy.FuzzyDecimal(9999)
+    obligations_incurred_byawa_cpe = fuzzy.FuzzyDecimal(9999)
+    obligations_undelivered_or_cpe = fuzzy.FuzzyDecimal(9999)
+    obligations_undelivered_or_fyb = fuzzy.FuzzyDecimal(9999)
+    parent_award_id = fuzzy.FuzzyText()
+    piid = fuzzy.FuzzyText()
+    program_activity_code = fuzzy.FuzzyText()
+    program_activity_name = fuzzy.FuzzyText()
+    sub_account_code = fuzzy.FuzzyText()
+    transaction_obligated_amou = fuzzy.FuzzyDecimal(9999)
+    uri = fuzzy.FuzzyText()
+    ussgl480100_undelivered_or_cpe = fuzzy.FuzzyDecimal(9999)
+    ussgl480100_undelivered_or_fyb = fuzzy.FuzzyDecimal(9999)
+    ussgl480200_undelivered_or_cpe = fuzzy.FuzzyDecimal(9999)
+    ussgl480200_undelivered_or_fyb = fuzzy.FuzzyDecimal(9999)
+    ussgl483100_undelivered_or_cpe = fuzzy.FuzzyDecimal(9999)
+    ussgl483200_undelivered_or_cpe = fuzzy.FuzzyDecimal(9999)
+    ussgl487100_downward_adjus_cpe = fuzzy.FuzzyDecimal(9999)
+    ussgl487200_downward_adjus_cpe = fuzzy.FuzzyDecimal(9999)
+    ussgl488100_upward_adjustm_cpe = fuzzy.FuzzyDecimal(9999)
+    ussgl488200_upward_adjustm_cpe = fuzzy.FuzzyDecimal(9999)
+    ussgl490100_delivered_orde_cpe = fuzzy.FuzzyDecimal(9999)
+    ussgl490100_delivered_orde_fyb = fuzzy.FuzzyDecimal(9999)
+    ussgl490200_delivered_orde_cpe = fuzzy.FuzzyDecimal(9999)
+    ussgl490800_authority_outl_cpe = fuzzy.FuzzyDecimal(9999)
+    ussgl490800_authority_outl_fyb = fuzzy.FuzzyDecimal(9999)
+    ussgl493100_delivered_orde_cpe = fuzzy.FuzzyDecimal(9999)
+    ussgl497100_downward_adjus_cpe = fuzzy.FuzzyDecimal(9999)
+    ussgl497200_downward_adjus_cpe = fuzzy.FuzzyDecimal(9999)
+    ussgl498100_upward_adjustm_cpe = fuzzy.FuzzyDecimal(9999)
+    ussgl498200_upward_adjustm_cpe = fuzzy.FuzzyDecimal(9999)
+    tas = fuzzy.FuzzyText()
+    disaster_emergncy_fund_code = fuzzy.FuzzyText()
 
 
 class ObjectClassProgramActivityFactory(factory.Factory):
@@ -148,6 +209,7 @@ class ObjectClassProgramActivityFactory(factory.Factory):
     ussgl498100_upward_adjustm_cpe = fuzzy.FuzzyDecimal(9999)
     ussgl498200_upward_adjustm_cpe = fuzzy.FuzzyDecimal(9999)
     tas = fuzzy.FuzzyText()
+    disaster_emergncy_fund_code = fuzzy.FuzzyText()
 
 
 class AwardFinancialAssistanceFactory(factory.Factory):
@@ -286,6 +348,7 @@ class PublishedAwardFinancialAssistanceFactory(factory.Factory):
 
     published_award_financial_assistance_id = None
     afa_generated_unique = fuzzy.FuzzyText()
+    unique_award_key = fuzzy.FuzzyText()
     action_date = fuzzy.FuzzyDate(date(2015, 1, 1), date(2015, 12, 31))
     action_type = fuzzy.FuzzyText()
     action_type_description = fuzzy.FuzzyText()
@@ -627,6 +690,7 @@ class AwardProcurementFactory(factory.Factory):
     number_of_employees = fuzzy.FuzzyText()
     annual_revenue = fuzzy.FuzzyText()
     total_obligated_amount = fuzzy.FuzzyText()
+    additional_reporting = fuzzy.FuzzyText()
 
 
 class DetachedAwardProcurementFactory(factory.Factory):
@@ -635,6 +699,7 @@ class DetachedAwardProcurementFactory(factory.Factory):
 
     detached_award_procurement_id = None
     detached_award_proc_unique = fuzzy.FuzzyText()
+    unique_award_key = fuzzy.FuzzyText()
     piid = fuzzy.FuzzyText()
     agency_id = fuzzy.FuzzyText()
     awarding_sub_tier_agency_c = fuzzy.FuzzyText()
@@ -914,22 +979,3 @@ class DetachedAwardProcurementFactory(factory.Factory):
     inherently_government_desc = fuzzy.FuzzyText()
     organizational_type = fuzzy.FuzzyText()
     additional_reporting = fuzzy.FuzzyText()
-
-
-class FPDSContractingOfficeFactory(factory.Factory):
-    class Meta:
-        model = stagingModels.FPDSContractingOffice
-
-    FPDS_contracting_office_id = fuzzy.FuzzyInteger(1, 9999)
-    department_id = fuzzy.FuzzyText()
-    department_name = fuzzy.FuzzyText()
-    agency_code = fuzzy.FuzzyText()
-    agency_name = fuzzy.FuzzyText()
-    contracting_office_code = fuzzy.FuzzyText()
-    contracting_office_name = fuzzy.FuzzyText()
-    start_date = fuzzy.FuzzyDate(date(2015, 1, 1), date(2015, 12, 31))
-    end_date = fuzzy.FuzzyDate(date(2015, 1, 1), date(2015, 12, 31))
-    address_city = fuzzy.FuzzyText()
-    address_state = fuzzy.FuzzyText()
-    zip_code = fuzzy.FuzzyText()
-    country_code = fuzzy.FuzzyText()

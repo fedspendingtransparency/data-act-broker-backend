@@ -28,9 +28,8 @@ from dataactvalidator.scripts.load_tas import load_tas
 from dataactvalidator.scripts.load_location_data import load_location_data
 from dataactvalidator.scripts.read_zips import read_zips
 from dataactvalidator.scripts.load_agencies import load_agency_data
-from dataactvalidator.scripts.load_offices import load_offices
 from dataactvalidator.scripts.load_program_activity import load_program_activity_data
-from dataactvalidator.scripts.load_quarterly_revalidation_threshold import load_quarterly_threshold
+from dataactvalidator.scripts.load_submission_window_schedule import load_submission_window_schedule
 
 logger = logging.getLogger(__name__)
 basePath = CONFIG_BROKER["path"]
@@ -139,10 +138,10 @@ def uncache_all_files():
         sess.commit()
 
 
-def load_quarterly_revalidation_threshold():
-    """ Load quarterly revalidation thresholds into the broker database. """
-    logger.info('Loading quarterly revalidation threshold data')
-    load_quarterly_threshold()
+def load_submission_schedule():
+    """ Load submission window schedule into the broker database. """
+    logger.info('Loading submission window schedule data')
+    load_submission_window_schedule()
 
 
 def main():
@@ -165,8 +164,7 @@ def main():
     parser.add_argument('-v', '--update_validator', help='Update validator schema', action='store_true')
     parser.add_argument('-l', '--load_location', help='Load city and county codes', action='store_true')
     parser.add_argument('-z', '--load_zips', help='Load zip code data', action='store_true')
-    parser.add_argument('-o', '--load_offices', help='Load FPDS Office Codes', action='store_true')
-    parser.add_argument('-qrt', '--load_quarterly_revalidation', help='Load Quarterly Revalidation Threshold',
+    parser.add_argument('-sch', '--load_submission_schedule', help='Load submission window schedule',
                         action='store_true')
     parser.add_argument('-u', '--uncache_all_files', help='Un-cache file generation requests', action='store_true')
     parser.add_argument('--force', help='Forces actions to occur in certain scripts regardless of checks',
@@ -184,8 +182,7 @@ def main():
         load_validator_schema()
         load_location_codes(args.force)
         load_zip_codes()
-        load_offices()
-        load_quarterly_revalidation_threshold()
+        load_submission_schedule()
         return
 
     if args.setup_db:
@@ -234,11 +231,8 @@ def main():
         load_zip_codes()
         load_location_codes(args.force)
 
-    if args.load_offices:
-        load_offices()
-
-    if args.load_quarterly_revalidation:
-        load_quarterly_revalidation_threshold()
+    if args.load_submission_schedule:
+        load_submission_schedule()
 
     if args.uncache_all_files:
         uncache_all_files()

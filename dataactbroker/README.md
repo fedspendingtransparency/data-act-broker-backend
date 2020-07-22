@@ -278,6 +278,7 @@ curl -i -X POST
       -F 'cgac_code=020' 
       -F 'frec_code=null' 
       -F 'is_quarter=true' 
+      -F 'test_submission=true'
       -F 'reporting_period_start_date=04/2018' 
       -F 'reporting_period_end_date=06/2018' 
       -F "appropriations=@/local/path/to/a.csv" 
@@ -303,11 +304,12 @@ curl -i -X POST
 - `program_activity`: (string) local path to file using @ notation
 - `award_financial`: (string) local path to file using @ notation
 - `is_quarter`: (boolean) True for quarterly submissions
+- `test_submission`: (boolean) True when you want to create a test submission. Defaults to false (will not update existing submissions)
 - `reporting_period_start_date`: (string) starting date of submission (MM/YYYY)
 - `reporting_period_end_date`: (string) ending date of submission (MM/YYYY)
 - `existing_submission_id`: (integer) ID of previous submission, use only if submitting an update.
 
-**NOTE**: for monthly submissions, start/end date are the same
+**NOTE**: for monthly submissions, start/end date are the same except in the case of period 1/2, which must be done together (start: 10/YYYY, end: 11/YYYY)
 
 ##### Response (JSON):
 ```
@@ -327,6 +329,7 @@ Possible HTTP Status Codes:
 - 400:
     - Missing parameter
     - Submission does not exist
+    - Invalid start/end date combination
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
@@ -386,6 +389,46 @@ Possible HTTP Status Codes:
 - 403: Permission denied, user does not have permission to view this submission
 
 
+#### GET "/v1/published\_submissions/"
+This endpoint returns a list of published submissions for a given agency and fiscal period or quarter.
+
+##### Sample Request
+`/v1/published\_submissions/?cgac_code=&frec_code=1601&reporting_fiscal_year=2020&reporting_fiscal_period=12&is_quarter=true`
+
+##### Request Params
+- `cgac_code`: (required if not FREC, string) CGAC of agency (null if FREC agency)
+- `frec_code`: (required if not CGAC, string) FREC of agency (null if CGAC agency)
+- `is_quarter`: (boolean) whether or not a new submission being made in this time will be quarterly or not (True for quarterly submissions)
+- `reporting_fiscal_year`: (string) the fiscal year to check for published submissions
+- `reporting_fiscal_period`: (string) the fiscal period to check for published submissions
+
+##### Response (JSON)
+```
+{
+    "published_submissions": [
+        {
+            "submission_id": 123,
+            "is_quarter": false
+        },
+        {
+            "submission_id": 234,
+            "is_quarter": false
+        },
+    ]
+}
+```
+
+##### Response Attributes
+- `published_submissions`: ([object]) each object represents a published submission in the requested agency and period. 
+    - `submission_id`: (integer) an integer representing the ID of the submission
+    - `is_quarter`: (boolean) whether or not it is a quarterly submission
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400: CGAC or FREC code not provided
+
+
 #### GET "/v1/revalidation\_threshold/"
 This endpoint returns the revalidation threshold for the broker application. This is the date that denotes the earliest validation date a submission must have in order to be certifiable.
 
@@ -410,11 +453,11 @@ Possible HTTP Status Codes:
 
 - 403: Permission denied, user does not have permission to view this submission
 
-#### GET "/v1/latest\_certification\_period/"
-This endpoint returns the latest certification period for the broker application.
+#### GET "/v1/latest\_publication\_period/"
+This endpoint returns the latest publication period that has begun for the broker application.
 
 ##### Sample Request
-`/v1/latest_certification_period/`
+`/v1/latest_publication_period/`
 
 ##### Request Params
 N/A
@@ -422,14 +465,14 @@ N/A
 ##### Response (JSON)
 ```
 {
-    "quarter": 4,
+    "period": 7,
     "year": 2019
 }
 ```
 
 ##### Response Attributes
-- `quarter`: (integer) the quarter of the latest certification period, or none if no period is found
-- `year`: (integer) the fiscal year of the latest certification period, or none if no period is found
+- `period`: (integer) the period of the latest publication period, or none if no period is found
+- `year`: (integer) the fiscal year of the latest publication period, or none if no period is found
 
 ##### Errors
 Possible HTTP Status Codes:
@@ -504,13 +547,18 @@ This endpoint returns metadata for the requested submission.
     "number_of_warnings": 20,
     "number_of_rows": 3,
     "total_size": 1800,
-    "created_on": "04/16/2018",
+    "created_on": "2018-04-16T12:48:09",
     "last_updated": "2018-04-16T18:48:09",
-    "last_validated": "04/16/2018",
+    "last_validated": "2018-04-16T18:48:09",
     "reporting_period": "Q2/2018",
+    "reporting_start_date": "01/01/2018",
+    "reporting_end_date": "03/31/2018",
     "publish_status": "unpublished",
     "quarterly_submission": false,
-    "certified_submission": 2,
+    "test_submission": false,
+    "published_submission_ids": [],
+    "certified": false,
+    "certification_deadline": "2020-05-24",
     "fabs_submission": true,
     "fabs_meta": {
         "valid_rows": 1,
@@ -522,30 +570,35 @@ This endpoint returns metadata for the requested submission.
 ```
 
 ##### Response Attributes
-- `cgac_code`: string, CGAC of agency (null if FREC agency)
-- `frec_code`: string, FREC of agency (null if CGAC agency)
-- `agency_name`: string, name of the submitting agency
-- `number_of_errors`: int, total errors in the submission
-- `number_of_warnings`: int, total warnings in the submission
-- `number_of_rows`: int, total number of rows in the submission including file headers
-- `total_size`: int, total size of all files in the submission in bytes
-- `created_on`: string, date submission was created (MM/DD/YYYY)
-- `last_updated`: string, date/time any changes (including validations, etc) were made to the submission (YYYY-MM-DDTHH:mm:ss)
-- `last_validated`: string, date the most recent validations were completed (MM/DD/YYYY)
-- `reporting_period`: string, reporting period of the submission (Q#/YYYY for quarterly submissions, MM/YYYY for monthly)
-- `publish_status`: string, whether the submission is published or not. Can contain only the following values:
+- `cgac_code`: (string) CGAC of agency (null if FREC agency)
+- `frec_code`: (string) FREC of agency (null if CGAC agency)
+- `agency_name`: (string) name of the submitting agency
+- `number_of_errors`: (integer) total errors in the submission
+- `number_of_warnings`: (integer) total warnings in the submission
+- `number_of_rows`: (integer) total number of rows in the submission including file headers
+- `total_size`: (integer) total size of all files in the submission in bytes
+- `created_on`: (string) date submission was created (YYYY-MM-DDTHH:mm:ss)
+- `last_updated`: (string) date/time any changes (including validations, etc) were made to the submission (YYYY-MM-DDTHH:mm:ss)
+- `last_validated`: (string) date the most recent validations were completed (YYYY-MM-DDTHH:mm:ss)
+- `reporting_period`: (string) reporting period of the submission (Q#/YYYY for quarterly submissions, P##/YYYY for monthly, P01-P02/YYYY for period 2)
+- `reporting_start_date`: (string) the start date of the reporting period the submission is made for (MM/DD/YYYY format)
+- `reporting_end_date`: (string) the end date of the reporting period the submission is made for (MM/DD/YYYY format)
+- `publish_status`: (string) whether the submission is published or not. Can contain only the following values:
     - `unpublished`
     - `published`
     - `updated`
     - `publishing`
-- `quarterly_submission`: boolean, whether the submission is quarterly or monthly
-- `certified_submission`: int, an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
-- `fabs_submission`: boolean, whether the submission is FABS or DABS (True for FABS)
-- `fabs_meta`: object, data specific to FABS submissions (null for DABS submissions)
-    - `publish_date`: string, Date/time submission was published (H:mm(AM/PM) MM/DD/YYYY) (null if unpublished)
-    - `published_file`: string, signed url of the published file (null if unpublished)
-    - `total_rows`: int, total rows in the submission not including header rows
-    - `valid_rows`: int, total number of valid, publishable row
+- `quarterly_submission`: (boolean) whether the submission is quarterly or monthly
+- `test_submission`: (boolean) whether the submission is a test submission
+- `published_submission_ids`: ([integer]) submission ids published in the same period or quarter by the same agency 
+- `certified`: (boolean) whether the submission has been certified or not
+- `certification_deadline`: (string) represents the deadline for certification after which a submission is officially "late" to certify.
+- `fabs_submission`: (boolean) whether the submission is FABS or DABS (True for FABS)
+- `fabs_meta`: (object) data specific to FABS submissions (null for DABS submissions)
+    - `publish_date`: (string) Date/time submission was published (YYYY-MM-DDTHH:mm:ss) (null if unpublished)
+    - `published_file`: (string) signed url of the published file (null if unpublished)
+    - `total_rows`: (integer) total rows in the submission not including header rows
+    - `valid_rows`: (integer) total number of valid, publishable row
 
 ##### Errors
 Possible HTTP Status Codes:
@@ -1044,9 +1097,8 @@ This route deletes all data related to the specified `submission_id`. A submissi
 ```
 * `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
 
-
-#### POST "/v1/certify\_submission/"
-This route certifies the specified submission, if possible. If a submission has critical errors, it cannot be certified. Only quarterly submissions can be certified. Submission files are copied to a certified bucket on aws if it is a non-local environment.
+#### POST "/v1/publish\_dabs\_submission/"
+This route publishes the specified submission, if possible. A submission with critical errors cannot be published. If the submission is quarterly, has been certified before, or it is past the certification deadline for the submission it must be published and certified at the same time. For these cases, use `publish_and_certify_dabs_submission`
 
 ##### Body (JSON)
 
@@ -1057,7 +1109,7 @@ This route certifies the specified submission, if possible. If a submission has 
 ```
 
 ##### Body Description
-- `submission_id` - **required** - an integer corresponding to the ID of the submission that is to be certified.
+- `submission_id`: (required, integer) the ID of the submission that is to be published.
 
 ##### Response (JSON)
 
@@ -1068,12 +1120,101 @@ This route certifies the specified submission, if possible. If a submission has 
 ```
 
 ##### Response Attributes
-- `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
+- `message`: (string) A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
 
 ##### Errors
 Possible HTTP Status Codes:
 
-- 400: Submission does not exist, critical errors prevent the submission from being certified, submission is a monthly submission, submission is already certified, a validation was completed before the revalidation threshold or the start of the submission window for the submission's year/quarter, submission window for this year/quarter doesn't exist, a different submission for this period was already published
+- 400
+  - Submission does not exist
+  - Critical errors prevent the submission from being published
+  - Submission is a test submission
+  - Submission is already published and not updated
+  - Submission is already certified
+  - A validation was completed before the revalidation threshold or the start of the submission window for the submission's year/quarter
+  - Submission window for this year/period doesn't exist
+  - A different submission for this period was already published
+  - File A or B is blank
+  - Submission is a quarterly submission
+  - It is past the certification window for the submission
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
+#### POST "/v1/certify\_dabs\_submission/"
+This route certifies the specified submission, if possible. A submission that has not been published cannot be certified. If the submission is quarterly, has been certified before, or it is past the certification deadline for the submission it must be published and certified at the same time. For these cases, use `publish_and_certify_dabs_submission`
+
+##### Body (JSON)
+
+```
+{
+  "submission_id": 1
+}
+```
+
+##### Body Description
+- `submission_id`: (required, integer) the ID of the submission that is to be certified.
+
+##### Response (JSON)
+
+```
+{
+  "message": "Success"
+}
+```
+
+##### Response Attributes
+- `message`: (string) A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400
+  - Submission does not exist
+  - Critical errors prevent the submission from being published
+  - Submission is not published
+  - Submission is already certified
+  - Submission is a quarterly submission
+- 401: Login required
+- 403: Permission denied, user does not have permission to view this submission
+
+
+#### POST "/v1/publish\_and\_certify\_dabs\_submission/"
+This route publishes and certifies the specified submission, if possible. A submission with critical errors cannot be published. Use this route if the submission is quarterly, has been certified before, or is past its certification deadline.
+
+##### Body (JSON)
+
+```
+{
+  "submission_id": 1
+}
+```
+
+##### Body Description
+- `submission_id`: (required, integer) the ID of the submission that is to be published/certified.
+
+##### Response (JSON)
+
+```
+{
+  "message": "Success"
+}
+```
+
+##### Response Attributes
+- `message`: (string) A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400
+  - Submission does not exist
+  - Critical errors prevent the submission from being published/certified
+  - Submission is a test submission
+  - Submission is already certified
+  - A validation was completed before the revalidation threshold or the start of the submission window for the submission's year/quarter
+  - Submission window for this year/period doesn't exist
+  - A different submission for this period was already published
+  - File A or B is blank
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
@@ -1200,7 +1341,7 @@ This endpoint lists submissions for all agencies for which the current user is a
 
 - `page`: (integer) the page of submissions to view (offsets the list by `limit * (page - 1)`). Defaults to `1` if not provided
 - `limit`: (integer) the total number of results to see from this request. Defaults to `5` if not provided
-- `certified`: (required, string) the certification/publish status of the submissions listed. Allowed values are:
+- `published`: (required, string) the certification/publish status of the submissions listed. Allowed values are:
     - `true`: only include submissions that have been certified/published
     - `false`: only include submissions that have never been certified/published
     - `mixed`: include both certified/published and non-certified/published submissions
@@ -1211,7 +1352,7 @@ This endpoint lists submissions for all agencies for which the current user is a
     - `reporting_end`: reporting end date
     - `agency`: agency name
     - `submitted_by`: name of user that created the submission
-    - `certified_date`: latest certified date
+    - `published_date`: latest published date
     - `quarterly_submission`: quarterly submission or not
 - `order`: (string) the sort order. Defaults to `desc` if not provided. Valid values are:
     - `desc`
@@ -1219,7 +1360,7 @@ This endpoint lists submissions for all agencies for which the current user is a
 - `fabs`: (boolean) if the submissions listed should be FABS or DABS (True for FABS). Defaults to `False` if not provided.
 - `filters`: (dict) additional filters to narrow the results returned by the endpoint. Possible filters are:
     - `submission_ids`: ([integer]) an array of integers or strings that limits the submission IDs returned to only the values listed in the array.
-    - `last_modified_range`: (dict) a start and end date for the last modified date range. Both must be provided if this filter is used.
+    - `last_modified_range`: (dict) a start and end date for the last modified date range. If either is not provided, the search is unbounded in that direction (e.g. if the end date is not provided, it finds all submissions that have been modified since the start date)
         - `start_date`: (string) the start date for the last modified date range (inclusive) (MM/DD/YYYY)
         - `end_date`: (string) the end date for the last modified date range (inclusive) (MM/DD/YYYY)
     - `agency_codes`: ([string]) CGAC and FREC codes
@@ -1244,10 +1385,11 @@ This endpoint lists submissions for all agencies for which the current user is a
       "status": "validation_successful",
       "last_modified": "2016-08-30 12:59:37.053424",
       "publish_status": "published",
-      "certifying_user": "Certifier",
-      "certified_on": "2016-08-30 12:53:37.053424",
+      "test_submission": false,
+      "publishing_user": "Certifier",
+      "published_on": "2016-08-30 12:53:37.053424",
       "quarterly_submission": true,
-      "window_end": "2016-10-05",
+      "certified": true,
       "time_period": "FY 16 / Q4"
     },
     {
@@ -1263,10 +1405,11 @@ This endpoint lists submissions for all agencies for which the current user is a
       "status": "file_errors",
       "last_modified": "2016-08-31 15:59:37.053424",
       "publish_status": "unpublished",
-      "certifying_user": "",
-      "certified_on": "",
+      "test_submission": false,
+      "publishing_user": "",
+      "published_on": "",
       "quarterly_submission": true,
-      "window_end": "2015-10-05",
+      "certified": true,
       "time_period": "FY 15 / Q4"
     }
   ],
@@ -1298,16 +1441,19 @@ This endpoint lists submissions for all agencies for which the current user is a
         - `validation_successful_warnings`
         - `certified`
         - `validation_errors`
+        - `updated`
+        - `published`
     - `last_modified`: (string) the last time/date the submission was modified in any way (`YYYY-MM-DD HH:mm:ss`)
     - `publish_status`: (stringr) the publish status of the submission. Possible values are:
         - `unpublished`
         - `published`
         - `updated`
         - `publishing`
-    - `certifying_user`: (string) the name of the last user to certify the submission
-    - `certified_on`: (string) the last time/date the submission was certified. (`YYYY-MM-DD HH:mm:ss`)
+    - `test_submission`: (boolean) whether the submission is a test submission
+    - `publishing_user`: (string) the name of the last user to publish the submission
+    - `certified`: (boolean) whether the submission has been certified or not
+    - `published_on`: (string) the last time/date the submission was published. (`YYYY-MM-DD HH:mm:ss`)
     - `quarterly_submission`: (boolean) whether the submission is quarterly
-    - `window_end`: (string) the last date of the submission window
     - `time_period`: (string) the time frame for the submission
 
 ##### Errors
@@ -1348,7 +1494,7 @@ This endpoint lists all users with submissions that the requesting user can view
 ##### Response Attributes
 
 - `users`: ([dict]) contain the user's ID, name, and email:
-    - `user_id`: (int) ID of the user
+    - `user_id`: (integer) ID of the user
     - `name`: (string) name of the user
     - `email`: (string) email of the user
 
@@ -1358,91 +1504,135 @@ Possible HTTP Status Codes:
 - 401: Login required
 
 
-#### POST "/v1/list_certifications/"
-List certifications for a single submission
+#### GET "/v1/list\_history/"
+Lists all the publication and certification history for a submission along with the files associated with them.
 
-### Body (JSON)
+##### Sample Request
+`/v1/list_history/?submission_id=12345`
 
-```
-{
-    "submission_id": 123
-}
-```
+##### Request Params
+- `submission_id`: (required, integer) The ID of the submission to get publication/certification history for
 
-### Body Description
-
-* `submission_id` - **required** - an integer corresponding the submission_id
-
-### Response (JSON)
-
-Successful response will contain the submission_id and a list of certifications.
-
+##### Response (JSON)
 ```
 {
     "submission_id": 7,
+    "publications": [{
+        "publish_date": "2017-05-11 18:10:18",
+        "publishing_user": {
+            "name": "User Name",
+            "user_id": 1
+        },
+        "published_files": [{
+                "published_files_history_id": 1,
+                "filename": "1492041855_file_c.csv",
+                "is_warning": False,
+                "comment": "Comment on the file"
+            },
+            {
+                "published_files_history_id": 1,
+                "filename": "submission_7_File_C_award_financial_warning_report.csv",
+                "is_warning": True,
+                "comment": None
+            }
+        ]},
+        {
+            "publish_date": "2017-05-08 12:07:18",
+            "publishing_user": {
+                "name": "Admin User Name",
+                "user_id": 2
+            },
+            "published_files": [
+                {
+                    "published_files_history_id": 3,
+                    "filename": "1492041855_file_a.csv",
+                    "is_warning": False,
+                    "comment": "This is also a comment"
+                },
+                {
+                    "published_files_history_id": 6,
+                    "filename": "submission_280_crossfile_warning_File_A_to_B_appropriations_program_activity.csv",
+                    "is_warning": True,
+                    "comment": None
+                }
+            ]
+        }],
     "certifications": [{
         "certify_date": "2017-05-11 18:10:18",
-        "certify_history_id": 4,
         "certifying_user": {
             "name": "User Name",
             "user_id": 1
         },
-        "certified_files": [{
-            "certified_files_history_id": 1,
-            "filename": "1492041855_file_c.csv",
-            "is_warning": False,
-            "comment": "Comment on the file"
+        "certified_files": [
+            {
+                "published_files_history_id": 1,
+                "filename": "1492041855_file_c.csv",
+                "is_warning": False,
+                "comment": "Comment on the file"
             },
-            {"certified_files_history_id": 1,
-            "filename": "submission_7_award_financial_warning_report.csv",
-            "is_warning": True,
-            "comment": None}
-        ]},
-        {"certify_date": "2017-05-08 12:07:18",
-        "certify_history_id": 3,
-        "certifying_user": {
-            "name": "Admin User Name",
-            "user_id": 2
-        },
-        "certified_files": [{
-            "certified_files_history_id": 3,
-            "filename": "1492041855_file_a.csv",
-            "is_warning": False,
-            "comment": "This is also a comment"
-            },
-            {"certified_files_history_id": 6,
-            "filename": "submission_280_cross_warning_appropriations_program_activity.csv",
-            "is_warning": True,
-            "comment": None}
-        ]}
-    ]
+            {
+                "published_files_history_id": 1,
+                "filename": "submission_7_File_C_award_financial_warning_report.csv",
+                "is_warning": True,
+                "comment": None
+            }
+        ]
+    }]
 }
 ```
 
-Invalid submission_ids (nonexistant, not certified, or FABS submissions) will return a 400 error.
+##### Response Attributes
+- `submission_id `: (integer) the ID of the submission
+- `publications`: ([object]) Each object contains the following values and represents one publication:
+    - `publish_date`: (string) the date of the publication
+    - `publishing_user`: (object) contains the following details about the user that published the submission:
+        - `name`: (string) the user's name
+        - `user_id`: (integer) the ID of the user in the database
+    - `published_files`: ([object]) Each object holds each of the published files in the submission with the following information:
+        - `published_files_history_id`: (integer) the ID of the file in the `published_files_history` table, used to download the file
+        - `filename`: (string) the name of the file
+        - `is_warning`: (boolean) whether the file is the warning file associated with that file or the file itself
+        - `comment`: (string) the comment associated with the file
+- `certifications`: ([object]) Each object contains the following values and represents one certification:
+    - `certify_date`: (string) the date of the certification
+    - `certifying_user`: (object) contains the following details about the user that certified the submission:
+        - `name`: (string) the user's name
+        - `user_id`: (integer) the ID of the user in the database
+    - `certified_files`: ([object]) Each object holds each of the certified files in the submission with the following information:
+        - `published_files_history_id`: (integer) the ID of the file in the `published_files_history` table, used to download the file
+        - `filename`: (string) the name of the file
+        - `is_warning`: (boolean) whether the file is the warning file associated with that file or the file itself
+        - `comment`: (string) the comment associated with the file
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - `submission_id` missing or invalid
+    - `submission_id` provided is for a FABS submission
+    - User doesn't have permissions for this agency
+    - Submission has no publication history (has never been published)
 
 #### POST "/v1/get_certified_file/"
 Get a signed url for a specified history item
 
-### Body (JSON)
+##### Body (JSON)
 
 ```
 {
     "submission_id": 1,
-    "certified_files_history_id": 7,
+    "published_files_history_id": 7,
     "is_warning": True
 }
 ```
 
-### Body Description
+##### Body Description
 
-* `submission_id` - **required** - an integer corresponding the submission_id
-* `certified_files_history_id` - **required** - an integer corresponding the certified_files_history_id
-* `is_warning` - a boolean to denote whether the file being grabbed is a warning file or uploaded file
+- `submission_id`: (required, integer) the submission ID
+- `published_files_history_id`: (required, integer) the `published_files_history_id` of the file (obtained through `list_history`)
+- `is_warning`: (boolean) whether the file being obtained is a warning file or the file that was certified. True = warning file. Default is False
 
-### Response (JSON)
-
-Successful response will contain the signed S3 URL for the file we're trying to access.
+##### Response (JSON)
 
 ```
 {
@@ -1450,7 +1640,18 @@ Successful response will contain the signed S3 URL for the file we're trying to 
 }
 ```
 
-Invalid certified_files_history_id, requests for a file not related to the submission_id given, or requests for a file that isn't stored in the table will return a 400 error.
+##### Response Attributes
+- `url`: (string) the url to the certified
+
+##### Errors
+Possible HTTP Status Codes:
+
+- 400:
+    - invalid `published_files_history_id`
+    - Missing required parameter
+    - User doesn't have permissions for this agency
+    - `published_files_history_id` does not match the `submission_id` provided
+    - The file type requested (warning or non-warning) doesn't exist for the requested ID
 
 #### GET "/v1/list\_agencies/"
 Gets all CGACs/FRECs that the user has permissions for.
@@ -1459,7 +1660,14 @@ Gets all CGACs/FRECs that the user has permissions for.
 `/v1/list_agencies/`
 
 ##### Request Params
-N/A
+- `perm_level` - a string indicating the permission level to filter on. Allowable values are:
+    - `reader` - include all agencies with affiliations
+    - `writer` - include all agencies with writer/editfabs affiliation or above
+    - `submitter` - include all agencies with submitter/fabs affiliation
+- `perm_type` - a string indicating the permission type to filter on. Allowable values are:
+    - `dabs` - include all agencies with dabs affiliations
+    - `fabs` - include all agencies with fabs affiliations
+    - `mixed` - include all agencies with dabs or fabs affiliation
 
 ##### Response (JSON)
 ```
@@ -1532,46 +1740,6 @@ Example output:
     ]
 }
 ```
-
-#### POST "/v1/email\_users/"
-This endpoint sends an email of the specified template to the users provided.
-
-##### Body (JSON)
-
-```
-{
-  "submission_id": 1234,
-  "email_template": "review_submission",
-  "users": [1, 2]
-}
-```
-
-##### Body Description
-- `submission_id` - **required** - an integer representing the ID of the submission to email about
-- `email_template` - **required** - a string representing the type of template to use in the email. Currently, only the following templates exist (case-sensitive):
-    - `review_submission`
-- `users` - **required** - a list of integers representing the IDs of the users to send the emails to
-
-##### Response (JSON)
-```
-{
-    "message": "Emails successfully sent"
-}
-```
-
-##### Response Attributes
-- `message`: A message indicating that the emails were sent
-
-##### Errors
-Possible HTTP Status Codes:
-
-- 400:
-    - Missing parameters
-    - Submission does not exist
-    - Submission somehow is not associated with valid CGAC/FREC
-- 401: Login required
-- 403: Permission denied, user does not have permission to view this submission
-
 
 ## Generate Files
 ### POST "/v1/generate\_file/"
@@ -2062,9 +2230,9 @@ The response is a dictionary containing a list with the details of each warning 
     - `instance_count`: (integer) the number of times the warning occurred within the submission/file
     - `rule_description`: (string) the text of the warning
 - `page_metadata`: (dict) metadata associated with the table
-    - `total`: (int) total number of warning metadata rows these filters found
-    - `page`: (int) the current page requested by the user
-    - `limit`: (int) the total number of results to display per page as requested by the user
+    - `total`: (integer) total number of warning metadata rows these filters found
+    - `page`: (integer) the current page requested by the user
+    - `limit`: (integer) the total number of results to display per page as requested by the user
 
 
 #### Errors
@@ -2173,7 +2341,7 @@ This endpoint returns a dictionary containing metadata about a table and a set o
     - `category` - the category of the rule (secondary: significance)
     - `impact` - the impact specified for this rule (secondary: significance)
     - `description` - the description of the rule
-- `order`: (string) the sort order. Defaults to `desc` if not provided. Valid values are:
+- `order`: (string) the sort order. Defaults to `asc` if not provided. Valid values are:
     - `desc`
     - `asc`
 
@@ -2226,9 +2394,9 @@ The response is a dictionary containing a list with the details of each warning 
         - `High`
     - `rule_description`: (string) the text of the rule
 - `page_metadata`: (dict) metadata associated with the table
-    - `total`: (int) total number of metadata rows these filters found
-    - `page`: (int) the current page requested by the user
-    - `limit`: (int) the total number of results to display per page as requested by the user
+    - `total`: (integer) total number of metadata rows these filters found
+    - `page`: (integer) the current page requested by the user
+    - `limit`: (integer) the total number of results to display per page as requested by the user
     - `submission_id`: (integer) the submission ID selected
     - `files`: ([string]) The file type(s) requested (one for single file, two for cross file)
 
@@ -2472,6 +2640,7 @@ Possible HTTP Status Codes:
     - Invalid parameter
     - Missing required parameter
 - 401: Login required
+- 403: Permission denied, user does not have permission
 
 ### POST "/v1/save\_rule\_settings"
 This route saves an agency's rule settings. Note that all the rules associated with the file type and error type must be sent together. Additionally, the order of them determines their significance.
@@ -2539,6 +2708,7 @@ Possible HTTP Status Codes:
     - Missing required parameter
     - Invalid rules provided, or missing rules
 - 401: Login required
+- 403: Permission denied, user does not have permission
 
 ## Automated Tests
 

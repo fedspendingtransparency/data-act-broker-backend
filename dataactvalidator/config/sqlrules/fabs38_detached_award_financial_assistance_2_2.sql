@@ -32,7 +32,8 @@ funding_codes_{0} AS
 	JOIN min_dates_{0} AS md
 		ON md.unique_award_key = pafa.unique_award_key
 			AND md.min_date = cast_as_date(pafa.action_date)
-	WHERE COALESCE(pafa.funding_office_code, '') <> '')
+	WHERE COALESCE(pafa.funding_office_code, '') <> ''
+	    AND pafa.is_active IS TRUE)
 SELECT
     row_number,
     funding_office_code,

@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 from tests.unit.dataactcore.factories.user import UserFactory
 from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
-from tests.unit.dataactcore.factories.job import SubmissionFactory, JobFactory, QuarterlyRevalidationThresholdFactory
+from tests.unit.dataactcore.factories.job import SubmissionFactory, JobFactory, SubmissionWindowScheduleFactory
 from dataactcore.models.userModel import UserAffiliation
 from dataactcore.models.lookups import (PERMISSION_TYPE_DICT, PUBLISH_STATUS_DICT, FILE_TYPE_DICT_LETTER_ID,
                                         RULE_SEVERITY_DICT, RULE_IMPACT_DICT)
@@ -141,29 +141,37 @@ def setup_submissions(sess, admin=False):
     sub1 = SubmissionFactory(submission_id=1, reporting_fiscal_period=9, reporting_fiscal_year=2017,
                              certifying_user_id=agency_user.user_id, cgac_code=cgac1.cgac_code, frec_code=None,
                              publish_status_id=PUBLISH_STATUS_DICT['updated'], d2_submission=False,
-                             user_id=agency_user.user_id, is_quarter_format=True)
+                             user_id=agency_user.user_id, is_quarter_format=True, test_submission=False)
     sub2 = SubmissionFactory(submission_id=2, reporting_fiscal_period=3, reporting_fiscal_year=2019,
                              certifying_user_id=admin_user.user_id, cgac_code=None,
                              frec_code=frec.frec_code, publish_status_id=PUBLISH_STATUS_DICT['published'],
-                             d2_submission=False, user_id=admin_user.user_id, is_quarter_format=True)
+                             d2_submission=False, user_id=admin_user.user_id, is_quarter_format=True,
+                             test_submission=False)
     sub3 = SubmissionFactory(submission_id=3, reporting_fiscal_period=3, reporting_fiscal_year=2019,
                              certifying_user_id=agency_user.user_id, cgac_code=cgac3.cgac_code,
                              frec_code=None, publish_status_id=PUBLISH_STATUS_DICT['published'],
-                             d2_submission=False, user_id=agency_user.user_id, is_quarter_format=True)
+                             d2_submission=False, user_id=agency_user.user_id, is_quarter_format=True,
+                             test_submission=False)
     sub4 = SubmissionFactory(submission_id=4, reporting_fiscal_period=6, reporting_fiscal_year=2018,
                              certifying_user_id=agency_user.user_id, cgac_code=cgac3.cgac_code,
                              frec_code=None, publish_status_id=PUBLISH_STATUS_DICT['unpublished'],
-                             d2_submission=False, user_id=agency_user.user_id, is_quarter_format=True)
+                             d2_submission=False, user_id=agency_user.user_id, is_quarter_format=True,
+                             test_submission=False)
     fabs_sub = SubmissionFactory(submission_id=5, reporting_fiscal_period=3, reporting_fiscal_year=2019,
                                  certifying_user_id=agency_user.user_id, cgac_code=cgac3.cgac_code,
                                  frec_code=None, publish_status_id=PUBLISH_STATUS_DICT['published'],
-                                 d2_submission=True, user_id=agency_user.user_id, is_quarter_format=False)
+                                 d2_submission=True, user_id=agency_user.user_id, is_quarter_format=False,
+                                 test_submission=False)
     monthly_sub = SubmissionFactory(submission_id=6, reporting_fiscal_period=9, reporting_fiscal_year=2017,
                                     certifying_user_id=agency_user.user_id, cgac_code=cgac1.cgac_code, frec_code=None,
                                     publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
                                     user_id=agency_user.user_id, is_quarter_format=False,
-                                    reporting_start_date=datetime(2017, 6, 1))
-    db_objects.extend([sub1, sub2, sub3, sub4, fabs_sub, monthly_sub])
+                                    reporting_start_date=datetime(2017, 6, 1), test_submission=False)
+    test_sub = SubmissionFactory(submission_id=7, reporting_fiscal_period=9, reporting_fiscal_year=2017,
+                                 certifying_user_id=agency_user.user_id, cgac_code=cgac1.cgac_code, frec_code=None,
+                                 publish_status_id=PUBLISH_STATUS_DICT['unpublished'], d2_submission=False,
+                                 user_id=agency_user.user_id, is_quarter_format=True, test_submission=True)
+    db_objects.extend([sub1, sub2, sub3, sub4, fabs_sub, monthly_sub, test_sub])
 
     # Setup validation jobs
     sub1_a = JobFactory(submission=sub1, file_type_id=FILE_TYPE_DICT_LETTER_ID['A'],
@@ -193,7 +201,11 @@ def setup_submissions(sess, admin=False):
     rule_ab2 = RuleSql(rule_sql='', rule_label='B1', rule_error_message='second cross rule', query_name='',
                        file_id=FILE_TYPE_DICT_LETTER_ID['B'], target_file_id=FILE_TYPE_DICT_LETTER_ID['A'],
                        rule_severity_id=RULE_SEVERITY_DICT['warning'], rule_cross_file_flag=True, category='existence')
-    db_objects.extend([rule_a1, rule_a2, rule_ab1, rule_ab2])
+    # Adding a rule with the same rule label as another but different file
+    rule_b = RuleSql(rule_sql='', rule_label='B1', rule_error_message='extra cross rule', query_name='',
+                     file_id=FILE_TYPE_DICT_LETTER_ID['B'], target_file_id=None,
+                     rule_severity_id=RULE_SEVERITY_DICT['warning'], rule_cross_file_flag=False, category='existence')
+    db_objects.extend([rule_a1, rule_a2, rule_ab1, rule_ab2, rule_b])
 
     # Setup error metadata
     sub1_a1 = ErrorMetadata(job=sub1_a, original_rule_label=rule_a1.rule_label, occurrences=20,
@@ -208,6 +220,9 @@ def setup_submissions(sess, admin=False):
     sub1_ab2 = ErrorMetadata(job=sub1_ab, original_rule_label=rule_ab2.rule_label, occurrences=130,
                              file_type_id=rule_ab2.file_id, target_file_type_id=rule_ab2.target_file_id,
                              rule_failed=rule_ab2.rule_error_message, severity_id=rule_ab2.rule_severity_id)
+    sub1_b1 = ErrorMetadata(job=sub1_b, original_rule_label=rule_b.rule_label, occurrences=10,
+                            file_type_id=rule_b.file_id, target_file_type_id=rule_b.target_file_id,
+                            rule_failed=rule_b.rule_error_message, severity_id=rule_b.rule_severity_id)
     sub2_b1 = ErrorMetadata(job=sub2_b, original_rule_label='B2', occurrences=70,
                             file_type_id=FILE_TYPE_DICT_LETTER_ID['B'], target_file_type_id=None,
                             rule_failed='first B rule', severity_id=RULE_SEVERITY_DICT['warning'])
@@ -222,7 +237,7 @@ def setup_submissions(sess, admin=False):
                             file_type_id=FILE_TYPE_DICT_LETTER_ID['C'], target_file_type_id=None,
                             rule_failed='first rule', severity_id=RULE_SEVERITY_DICT['warning'])
 
-    db_objects.extend([sub1_a1, sub1_a2, sub1_ab1, sub1_ab2, sub2_b1, sub2_bc1, sub3_c1, sub3_c2])
+    db_objects.extend([sub1_a1, sub1_a2, sub1_ab1, sub1_ab2, sub1_b1, sub2_b1, sub2_bc1, sub3_c1, sub3_c2])
 
     # Setup certified error metadata
     cert_sub1_a1 = CertifiedErrorMetadata(job=sub1_a, original_rule_label='A1', occurrences=20,
@@ -249,14 +264,14 @@ def setup_submissions(sess, admin=False):
     # no warnings for sub3
     db_objects.extend([cert_sub1_a1, cert_sub1_a2, cert_sub1_ab1, cert_sub1_ab2, cert_sub2_b1, cert_sub2_bc1])
 
-    # Setup quarterly revalidation threshold
+    # Setup submission window schedule
     today = datetime.now().date()
-    quart_3_year_2017 = QuarterlyRevalidationThresholdFactory(year=2017, quarter=3,
-                                                              window_end=today - timedelta(days=1))
-    quart_2_year_2018 = QuarterlyRevalidationThresholdFactory(year=2018, quarter=2,
-                                                              window_end=today + timedelta(days=1))
-    quart_1_year_2019 = QuarterlyRevalidationThresholdFactory(year=2019, quarter=1, window_end=today)
-    db_objects.extend([quart_3_year_2017, quart_2_year_2018, quart_1_year_2019])
+    p9_year_2017 = SubmissionWindowScheduleFactory(year=2017, period=9,
+                                                   certification_deadline=today - timedelta(days=1))
+    p6_year_2018 = SubmissionWindowScheduleFactory(year=2018, period=6,
+                                                   certification_deadline=today + timedelta(days=1))
+    p3_year_2019 = SubmissionWindowScheduleFactory(year=2019, period=3, certification_deadline=today)
+    db_objects.extend([p9_year_2017, p6_year_2018, p3_year_2019])
 
     sess.add_all(db_objects)
     sess.commit()
@@ -274,6 +289,9 @@ def setup_submissions(sess, admin=False):
     setting_ab2 = RuleSetting(agency_code=None, rule_label=rule_ab2.rule_label, priority=2,
                               impact_id=RULE_IMPACT_DICT['high'], file_id=rule_ab2.file_id,
                               target_file_id=rule_ab2.target_file_id)
+    setting_b1 = RuleSetting(agency_code=None, rule_label=rule_b.rule_label, priority=2,
+                             impact_id=RULE_IMPACT_DICT['high'], file_id=rule_b.file_id,
+                             target_file_id=rule_b.target_file_id)
     # Flipping the priorities based on a specific agency
     setting_ab1_cgac = RuleSetting(agency_code=sub1.cgac_code, rule_label=rule_ab1.rule_label, priority=2,
                                    impact_id=RULE_IMPACT_DICT['low'], file_id=rule_ab1.file_id,
@@ -281,7 +299,7 @@ def setup_submissions(sess, admin=False):
     setting_ab2_cgac = RuleSetting(agency_code=sub1.cgac_code, rule_label=rule_ab2.rule_label, priority=1,
                                    impact_id=RULE_IMPACT_DICT['high'], file_id=rule_ab2.file_id,
                                    target_file_id=rule_ab2.target_file_id)
-    sess.add_all([setting_a1, setting_a2, setting_ab1, setting_ab2, setting_ab1_cgac, setting_ab2_cgac])
+    sess.add_all([setting_a1, setting_a2, setting_ab1, setting_ab2, setting_ab1_cgac, setting_ab2_cgac, setting_b1])
     sess.commit()
 
     user = agency_user if not admin else admin_user
@@ -1109,7 +1127,7 @@ def test_active_submission_overview(database, monkeypatch):
         'submission_id': monthly_sub.submission_id,
         'icon_name': None,
         'agency_name': 'CGAC',
-        'certification_deadline': 'N/A',
+        'certification_deadline': 'Past Due',
         'days_remaining': 'N/A',
         'reporting_period': '06 / 2017',
         'duration': 'Monthly',
@@ -1118,6 +1136,23 @@ def test_active_submission_overview(database, monkeypatch):
         'total_instances': 0
     }
     response = active_submission_overview_endpoint(monthly_sub, 'B', 'mixed')
+    assert response == expected_response
+
+    # Test submission
+    test_sub = sess.query(Submission).filter(Submission.test_submission.is_(True)).first()
+    expected_response = {
+        'submission_id': test_sub.submission_id,
+        'icon_name': None,
+        'agency_name': 'CGAC',
+        'certification_deadline': 'N/A',
+        'days_remaining': 'N/A',
+        'reporting_period': 'FY 17 / Q3',
+        'duration': 'Quarterly',
+        'file': 'File B',
+        'number_of_rules': 0,
+        'total_instances': 0
+    }
+    response = active_submission_overview_endpoint(test_sub, 'B', 'mixed')
     assert response == expected_response
 
     # Past due submission with some warnings

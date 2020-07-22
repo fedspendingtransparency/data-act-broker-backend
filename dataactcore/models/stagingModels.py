@@ -128,6 +128,7 @@ class ObjectClassProgramActivity(Base):
     tas = Column(Text, nullable=False, default=concat_tas)
     display_tas = Column(Text, default=concat_display_tas)
     tas_id = Column(Integer, nullable=True)
+    disaster_emergency_fund_code = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -145,6 +146,9 @@ Index("ix_oc_pa_tas_id_submission_id",
       ObjectClassProgramActivity.tas_id,
       ObjectClassProgramActivity.submission_id,
       unique=False)
+
+Index("ix_oc_pa_pan_upper", func.upper(ObjectClassProgramActivity.program_activity_name))
+Index("ix_oc_pa_defc_upper", func.upper(ObjectClassProgramActivity.disaster_emergency_fund_code))
 
 
 class AwardFinancial(Base):
@@ -211,6 +215,7 @@ class AwardFinancial(Base):
     display_tas = Column(Text, default=concat_display_tas)
     tas_id = Column(Integer, nullable=True, index=True)
     general_ledger_post_date = Column(Date)
+    disaster_emergency_fund_code = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -227,6 +232,8 @@ Index("ix_af_piid_upper", func.upper(AwardFinancial.piid))
 Index("ix_af_parent_award_id_upper", func.upper(AwardFinancial.parent_award_id))
 Index("ix_af_fain_upper", func.upper(AwardFinancial.fain))
 Index("ix_af_uri_upper", func.upper(AwardFinancial.uri))
+Index("ix_af_pan_upper", func.upper(AwardFinancial.program_activity_name))
+Index("ix_af_defc_upper", func.upper(AwardFinancial.disaster_emergency_fund_code))
 
 
 class CertifiedFlexField(Base):
@@ -345,6 +352,7 @@ class CertifiedObjectClassProgramActivity(Base):
     tas = Column(Text, default=concat_tas)
     tas_id = Column(Integer)
     display_tas = Column(Text)
+    disaster_emergency_fund_code = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -416,6 +424,7 @@ class CertifiedAwardFinancial(Base):
     tas_id = Column(Integer)
     general_ledger_post_date = Column(Date)
     display_tas = Column(Text)
+    disaster_emergency_fund_code = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -430,6 +439,7 @@ class AwardFinancialAssistance(Base):
 
     award_financial_assistance_id = Column(Integer, primary_key=True)
     afa_generated_unique = Column(Text)
+    unique_award_key = Column(Text)
     submission_id = Column(Integer,
                            ForeignKey("submission.submission_id", ondelete="CASCADE",
                                       name="fk_award_financial_assistance_submission_id"),
@@ -508,6 +518,7 @@ class AwardFinancialAssistance(Base):
     place_of_perform_county_co = Column(Text)
     place_of_perform_country_n = Column(Text)
     legal_entity_country_name = Column(Text)
+    place_of_performance_scope = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -524,6 +535,7 @@ class AwardProcurement(Base):
     __tablename__ = "award_procurement"
     award_procurement_id = Column(Integer, primary_key=True)
     detached_award_proc_unique = Column(Text)
+    unique_award_key = Column(Text)
     submission_id = Column(Integer,
                            ForeignKey("submission.submission_id", ondelete="CASCADE",
                                       name="fk_award_procurement_submission_id"),
@@ -795,6 +807,7 @@ class AwardProcurement(Base):
     annual_revenue = Column(Text)
     total_obligated_amount = Column(Text)
     last_modified = Column(Text)
+    additional_reporting = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -814,6 +827,7 @@ class CertifiedAwardFinancialAssistance(Base):
 
     certified_award_financial_assistance_id = Column(Integer, primary_key=True)
     afa_generated_unique = Column(Text)
+    unique_award_key = Column(Text)
     submission_id = Column(Integer,
                            ForeignKey('submission.submission_id', ondelete='CASCADE',
                                       name='fk_award_financial_assistance_submission_id'),
@@ -892,6 +906,7 @@ class CertifiedAwardFinancialAssistance(Base):
     place_of_perform_county_co = Column(Text)
     place_of_perform_country_n = Column(Text)
     legal_entity_country_name = Column(Text)
+    place_of_performance_scope = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -906,6 +921,7 @@ class CertifiedAwardProcurement(Base):
 
     certified_award_procurement_id = Column(Integer, primary_key=True)
     detached_award_proc_unique = Column(Text)
+    unique_award_key = Column(Text)
     submission_id = Column(Integer,
                            ForeignKey('submission.submission_id', ondelete='CASCADE',
                                       name='fk_award_procurement_submission_id'),
@@ -1177,6 +1193,7 @@ class CertifiedAwardProcurement(Base):
     annual_revenue = Column(Text)
     total_obligated_amount = Column(Text)
     last_modified = Column(Text)
+    additional_reporting = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -1694,28 +1711,3 @@ Index("ix_pafa_fain_upper", func.upper(PublishedAwardFinancialAssistance.fain))
 Index("ix_pafa_uri_upper", func.upper(PublishedAwardFinancialAssistance.uri))
 Index("ix_pafa_awarding_subtier_c_upper", func.upper(PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c))
 Index("ix_pafa_afa_generated_unique_upper", func.upper(PublishedAwardFinancialAssistance.afa_generated_unique))
-
-
-class FPDSContractingOffice(Base):
-    """Model for FPDS Contracting Offices """
-    __tablename__ = "fpds_contracting_offices"
-
-    FPDS_contracting_office_id = Column(Integer, primary_key=True)
-    department_id = Column(Text, index=True)
-    department_name = Column(Text)
-    agency_code = Column(Text, index=True)
-    agency_name = Column(Text)
-    contracting_office_code = Column(Text, index=True)
-    contracting_office_name = Column(Text)
-    start_date = Column(DateTime)
-    end_date = Column(DateTime)
-    address_city = Column(Text)
-    address_state = Column(Text)
-    zip_code = Column(Text)
-    country_code = Column(Text)
-
-    def __init__(self, **kwargs):
-        # broker is set up to ignore extra columns in submitted data
-        # so get rid of any extraneous kwargs before instantiating
-        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(FPDSContractingOffice, self).__init__(**clean_kwargs)
