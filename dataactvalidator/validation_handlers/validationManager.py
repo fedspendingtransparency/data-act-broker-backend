@@ -52,8 +52,8 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = CONFIG_BROKER['validator_batch_size']
-MULTIPROCESSING_POOLS = 4
-PARALLEL = True
+MULTIPROCESSING_POOLS = CONFIG_BROKER['multiprocessing_pools']
+PARALLEL = CONFIG_BROKER['parallel_loading']
 
 
 class ValidationManager:
