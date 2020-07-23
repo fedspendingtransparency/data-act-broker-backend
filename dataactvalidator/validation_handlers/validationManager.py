@@ -27,8 +27,7 @@ from dataactcore.interfaces.function_bag import (
     populate_job_error_info, get_action_dates
 )
 
-from dataactcore.models.domainModels import concat_tas_dict_vectorized
-from dataactcore.models.domainModels import Office, concat_display_tas_dict
+from dataactcore.models.domainModels import Office, concat_display_tas_dict, concat_tas_dict_vectorized
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
