@@ -227,7 +227,7 @@ class ValidationManager:
 
             # stream file to S3 when not local
             if not self.is_local:
-                s3 = boto3.client('s3', region_name='us-gov-west-1')
+                s3 = boto3.client('s3', region_name=region_name)
 
                 s3.upload_file(self.error_file_path, bucket_name, self.get_file_name(self.error_file_name))
                 os.remove(self.error_file_path)
