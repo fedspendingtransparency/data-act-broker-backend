@@ -5,6 +5,7 @@ from dataactcore.models.lookups import BUSINESS_CATEGORY_FIELDS
 
 logger = logging.getLogger(__name__)
 
+
 def build_legal_entity_booleans_dict(row):
     bool_dict = {}
     non_boolean_fields = ['contracting_officers_deter', 'domestic_or_foreign_entity']
@@ -388,45 +389,45 @@ def derive_fabs_business_categories(sess, submission_id):
         declare
             bc_arr text[];
         begin
-        
+
         -- BUSINESS (FOR-PROFIT ORGANIZATION)
             if business_types ~ '(R|23)'
             then
                 bc_arr := bc_arr || array['small_business'];
             end if;
-        
+
             if business_types ~ '(Q|22)'
             then
                 bc_arr := bc_arr || array['other_than_small_business'];
             end if;
-        
+
             if bc_arr && array['small_business', 'other_than_small_business']
             then
                 bc_arr := bc_arr || array['category_business'];
             end if;
-        
+
         -- NON-PROFIT
             if business_types ~ '(M|N|12)'
             then
                 bc_arr := bc_arr || array['nonprofit'];
             end if;
-        
+
         -- HIGHER EDUCATION
             if business_types ~ '(H|06)'
             then
                 bc_arr := bc_arr || array['public_institution_of_higher_education'];
             end if;
-        
+
             if business_types ~ '(O|20)'
             then
                 bc_arr := bc_arr || array['private_institution_of_higher_education'];
             end if;
-        
+
             if business_types ~ '(T|U|V|S)'
             then
                 bc_arr := bc_arr || array['minority_serving_institution_of_higher_education'];
             end if;
-        
+
             if bc_arr && array[
                 'public_institution_of_higher_education',
                 'private_institution_of_higher_education',
@@ -435,38 +436,38 @@ def derive_fabs_business_categories(sess, submission_id):
             then
                 bc_arr := bc_arr || array['higher_education'];
             end if;
-        
+
         -- GOVERNMENT
             if business_types ~ '(A|00)'
             then
                 bc_arr := bc_arr || array['regional_and_state_government'];
             end if;
-        
+
             if business_types ~ '(E)'
             then
                 bc_arr := bc_arr || array['regional_organization'];
             end if;
-        
+
             if business_types ~ '(F)'
             then
                 bc_arr := bc_arr || array['us_territory_or_possession'];
             end if;
-        
+
             if business_types ~ '(B|C|D|G|01|02|04|05)'
             then
                 bc_arr := bc_arr || array['local_government'];
             end if;
-        
+
             if business_types ~ '(I|J|K|11)'
             then
                 bc_arr := bc_arr || array['indian_native_american_tribal_government'];
             end if;
-        
+
             if business_types ~ '(L)'
             then
                 bc_arr := bc_arr || array['authorities_and_commissions'];
             end if;
-        
+
             if bc_arr && array[
                 'regional_and_state_government',
                 'us_territory_or_possession',
@@ -478,13 +479,13 @@ def derive_fabs_business_categories(sess, submission_id):
             then
                 bc_arr := bc_arr || array['government'];
             end if;
-        
+
         -- INDIVIDUALS
             if business_types ~ '(P|21)'
             then
                 bc_arr := bc_arr || array['individuals'];
             end if;
-        
+
             -- Sort and return the array.
             return array(select unnest(bc_arr) order by 1);
         end;

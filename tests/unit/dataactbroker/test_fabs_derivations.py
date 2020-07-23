@@ -9,17 +9,6 @@ from tests.unit.dataactcore.factories.domain import (ZipCityFactory, ZipsFactory
                                                      CountryCodeFactory)
 from tests.unit.dataactcore.factories.staging import PublishedAwardFinancialAssistanceFactory
 
-EXEC_COMP_DICT = {'123456789': {'officer1_name': 'Officer 1',
-                                'officer1_amt': '15',
-                                'officer2_name': 'Officer 2',
-                                'officer2_amt': '77.12',
-                                'officer3_name': 'This is the third Officer',
-                                'officer3_amt': None,
-                                'officer4_name': None,
-                                'officer4_amt': '0',
-                                'officer5_name': None,
-                                'officer5_amt': None}}
-
 
 def initialize_db_values(db):
     """ Initialize the values in the DB that can be used throughout the tests """
@@ -47,13 +36,33 @@ def initialize_db_values(db):
     country_2 = CountryCodeFactory(country_code='GBR', country_name='Great Britain')
     # DUNS
     duns_1 = DunsFactory(awardee_or_recipient_uniqu='123456789', ultimate_parent_unique_ide='234567890',
-                         ultimate_parent_legal_enti='Parent 1')
+                         ultimate_parent_legal_enti='Parent 1', high_comp_officer1_full_na='Officer 1',
+                         high_comp_officer1_amount='15', high_comp_officer2_full_na='Officer 2',
+                         high_comp_officer2_amount='77.12', high_comp_officer3_full_na='This is the third Officer',
+                         high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
+                         high_comp_officer4_amount='0', high_comp_officer5_full_na=None,
+                         high_comp_officer5_amount=None)
     duns_2a = DunsFactory(awardee_or_recipient_uniqu='234567890', ultimate_parent_unique_ide='234567890',
-                          ultimate_parent_legal_enti='Parent 2')
+                          ultimate_parent_legal_enti='Parent 2', high_comp_officer1_full_na=None,
+                          high_comp_officer1_amount=None, high_comp_officer2_full_na=None,
+                          high_comp_officer2_amount=None, high_comp_officer3_full_na=None,
+                          high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
+                          high_comp_officer4_amount=None, high_comp_officer5_full_na=None,
+                          high_comp_officer5_amount=None)
     duns_2b = DunsFactory(awardee_or_recipient_uniqu='234567890', ultimate_parent_unique_ide=None,
-                          ultimate_parent_legal_enti=None)
+                          ultimate_parent_legal_enti=None, high_comp_officer1_full_na=None,
+                          high_comp_officer1_amount=None, high_comp_officer2_full_na=None,
+                          high_comp_officer2_amount=None, high_comp_officer3_full_na=None,
+                          high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
+                          high_comp_officer4_amount=None, high_comp_officer5_full_na=None,
+                          high_comp_officer5_amount=None)
     duns_3 = DunsFactory(awardee_or_recipient_uniqu='345678901', ultimate_parent_unique_ide=None,
-                         ultimate_parent_legal_enti=None)
+                         ultimate_parent_legal_enti=None, high_comp_officer1_full_na=None,
+                         high_comp_officer1_amount=None, high_comp_officer2_full_na=None,
+                         high_comp_officer2_amount=None, high_comp_officer3_full_na=None,
+                         high_comp_officer3_amount=None, high_comp_officer4_full_na=None,
+                         high_comp_officer4_amount=None, high_comp_officer5_full_na=None,
+                         high_comp_officer5_amount=None)
     # CFDA
     cfda = CFDAProgramFactory(program_number=12.345, program_title='CFDA Title')
     # Agencies
@@ -454,471 +463,533 @@ def test_derive_office_data(database):
     initialize_db_values(database)
 
     # if office_code is present, get office name
-    obj = initialize_test_row()
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['awarding_office_name'] == 'Office'
-    assert obj['funding_office_name'] == 'Office'
+    submission_id = initialize_test_row(database, submission_id=2)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.awarding_office_name == 'Office'
+    assert fabs_obj.funding_office_name == 'Office'
 
     # if office_code is not present, derive it from historical data (record type 2 or 3 uses fain, ignores uri)
     # In this case, there is no funding office but there is an awarding office
-    obj = initialize_test_row(awarding_office=None, funding_office=None, fain='12345', award_mod_amend='1')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['awarding_office_code'] == '03aB03'
-    assert obj['awarding_office_name'] == 'Office'
-    assert obj['funding_office_code'] is None
-    assert obj['funding_office_name'] is None
+    submission_id = initialize_test_row(database, awarding_office=None, funding_office=None, fain='12345',
+                                        award_mod_amend='1', submission_id=3)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.awarding_office_code == '03aB03'
+    assert fabs_obj.awarding_office_name == 'Office'
+    assert fabs_obj.funding_office_code is None
+    assert fabs_obj.funding_office_name is None
 
     # if office_code is not present, and no valid fain is given, office code and name are blank
-    obj = initialize_test_row(awarding_office=None, funding_office=None, fain='54321', award_mod_amend='1')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['awarding_office_code'] is None
-    assert obj['awarding_office_name'] is None
-    assert obj['funding_office_code'] is None
-    assert obj['funding_office_name'] is None
+    submission_id = initialize_test_row(database, awarding_office=None, funding_office=None, fain='54321',
+                                        award_mod_amend='1', submission_id=4)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.awarding_office_code is None
+    assert fabs_obj.awarding_office_name is None
+    assert fabs_obj.funding_office_code is None
+    assert fabs_obj.funding_office_name is None
 
     # if office_code is not present, and valid fain is given, with no office codes, office code and name are blank
     # In this case, funding office is present, awarding office is not
-    obj = initialize_test_row(awarding_office=None, funding_office=None, fain='123456', award_mod_amend='1')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['awarding_office_code'] is None
-    assert obj['awarding_office_name'] is None
-    assert obj['funding_office_code'] == '03aB03'
-    assert obj['funding_office_name'] == 'Office'
+    submission_id = initialize_test_row(database, awarding_office=None, funding_office=None, fain='123456',
+                                        award_mod_amend='1', submission_id=5)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.awarding_office_code is None
+    assert fabs_obj.awarding_office_name is None
+    assert fabs_obj.funding_office_code == '03aB03'
+    assert fabs_obj.funding_office_name == 'Office'
 
     # if office_code is not present, derive it from historical data (record type 1 uses uri, ignores fain)
     # In this case, awarding office is present, funding office is not
-    obj = initialize_test_row(awarding_office=None, funding_office=None, uri='654321', record_type=1,
-                              award_mod_amend='1')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['awarding_office_code'] == '03aB03'
-    assert obj['awarding_office_name'] == 'Office'
-    assert obj['funding_office_code'] is None
-    assert obj['funding_office_name'] is None
+    submission_id = initialize_test_row(database, awarding_office=None, funding_office=None, uri='654321',
+                                        record_type=1, award_mod_amend='1', submission_id=6)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.awarding_office_code == '03aB03'
+    assert fabs_obj.awarding_office_name == 'Office'
+    assert fabs_obj.funding_office_code is None
+    assert fabs_obj.funding_office_name is None
 
     # if office_code is not present, and no valid uri is given, office code and name are blank
-    obj = initialize_test_row(awarding_office=None, funding_office=None, uri='54321', record_type=1,
-                              award_mod_amend='1')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['awarding_office_code'] is None
-    assert obj['awarding_office_name'] is None
-    assert obj['funding_office_code'] is None
-    assert obj['funding_office_name'] is None
+    submission_id = initialize_test_row(database, awarding_office=None, funding_office=None, uri='54321', record_type=1,
+                                        award_mod_amend='1', submission_id=7)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.awarding_office_code is None
+    assert fabs_obj.awarding_office_name is None
+    assert fabs_obj.funding_office_code is None
+    assert fabs_obj.funding_office_name is None
 
     # if office_code is not present, and valid uri is given, with no office codes, office code and name are blank
     # In this case, funding office is present, awarding office is not
-    obj = initialize_test_row(awarding_office=None, funding_office=None, uri='7654321', record_type=1,
-                              award_mod_amend='1')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['awarding_office_code'] is None
-    assert obj['awarding_office_name'] is None
-    assert obj['funding_office_code'] == '03aB03'
-    assert obj['funding_office_name'] == 'Office'
+    submission_id = initialize_test_row(database, awarding_office=None, funding_office=None, uri='7654321',
+                                        record_type=1, award_mod_amend='1', submission_id=8)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.awarding_office_code is None
+    assert fabs_obj.awarding_office_name is None
+    assert fabs_obj.funding_office_code == '03aB03'
+    assert fabs_obj.funding_office_name == 'Office'
 
     # if office_code is not present and valid uri is given but it's record type 2, everything should be empty
-    obj = initialize_test_row(awarding_office=None, funding_office=None, uri='654321', award_mod_amend='1')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['awarding_office_code'] is None
-    assert obj['awarding_office_name'] is None
-    assert obj['funding_office_code'] is None
-    assert obj['funding_office_name'] is None
+    submission_id = initialize_test_row(database, awarding_office=None, funding_office=None, uri='654321',
+                                        award_mod_amend='1', submission_id=9)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.awarding_office_code is None
+    assert fabs_obj.awarding_office_name is None
+    assert fabs_obj.funding_office_code is None
+    assert fabs_obj.funding_office_name is None
 
     # if office_code is not present and valid fain is given but it's record type 1, everything should be empty
-    obj = initialize_test_row(awarding_office=None, funding_office=None, fain='12345', record_type=1,
-                              award_mod_amend='1')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['awarding_office_code'] is None
-    assert obj['awarding_office_name'] is None
-    assert obj['funding_office_code'] is None
-    assert obj['funding_office_name'] is None
+    submission_id = initialize_test_row(database, awarding_office=None, funding_office=None, fain='12345',
+                                        record_type=1, award_mod_amend='1', submission_id=10)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.awarding_office_code is None
+    assert fabs_obj.awarding_office_name is None
+    assert fabs_obj.funding_office_code is None
+    assert fabs_obj.funding_office_name is None
 
     # if office_code is not present and mod number is the same as the base record, do not derive it from historical data
-    obj = initialize_test_row(awarding_office=None, funding_office=None, fain='12345', award_mod_amend='0')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['awarding_office_code'] is None
-    assert obj['awarding_office_name'] is None
-    assert obj['funding_office_code'] is None
-    assert obj['funding_office_name'] is None
+    submission_id = initialize_test_row(database, awarding_office=None, funding_office=None, fain='12345',
+                                        award_mod_amend='0', submission_id=11)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.awarding_office_code is None
+    assert fabs_obj.awarding_office_name is None
+    assert fabs_obj.funding_office_code is None
+    assert fabs_obj.funding_office_name is None
 
     # if office_code is not present and mod number is the same as the base record, do not derive it from historical data
-    obj = initialize_test_row(awarding_office=None, funding_office=None, uri='654321', record_type=1,
-                              award_mod_amend=None)
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['awarding_office_code'] is None
-    assert obj['awarding_office_name'] is None
-    assert obj['funding_office_code'] is None
-    assert obj['funding_office_name'] is None
+    submission_id = initialize_test_row(database, awarding_office=None, funding_office=None, uri='654321',
+                                        record_type=1, award_mod_amend=None, submission_id=12)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.awarding_office_code is None
+    assert fabs_obj.awarding_office_name is None
+    assert fabs_obj.funding_office_code is None
+    assert fabs_obj.funding_office_name is None
 
     # if office_code is not present and mod number is different from the base record, but the base office code is
     # invalid, do not derive
-    obj = initialize_test_row(awarding_office=None, funding_office=None, uri='efg', record_type=1,
-                              award_mod_amend='1')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['awarding_office_code'] is None
-    assert obj['awarding_office_name'] is None
-    assert obj['funding_office_code'] is None
-    assert obj['funding_office_name'] is None
+    submission_id = initialize_test_row(database, awarding_office=None, funding_office=None, uri='efg', record_type=1,
+                                        award_mod_amend='1', submission_id=13)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.awarding_office_code is None
+    assert fabs_obj.awarding_office_name is None
+    assert fabs_obj.funding_office_code is None
+    assert fabs_obj.funding_office_name is None
 
     # if office_code is not present and mod number is different from the base record and the base office code is
     # valid but is not a grant/funding code, do not derive
-    obj = initialize_test_row(awarding_office=None, funding_office=None, uri='abcd', record_type=1,
-                              award_mod_amend='1')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['awarding_office_code'] is None
-    assert obj['awarding_office_name'] is None
-    assert obj['funding_office_code'] is None
-    assert obj['funding_office_name'] is None
+    submission_id = initialize_test_row(database, awarding_office=None, funding_office=None, uri='abcd', record_type=1,
+                                        award_mod_amend='1', submission_id=14)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.awarding_office_code is None
+    assert fabs_obj.awarding_office_name is None
+    assert fabs_obj.funding_office_code is None
+    assert fabs_obj.funding_office_name is None
 
 
 def test_legal_country(database):
     initialize_db_values(database)
 
     # if primary_place_of_performance_country_code is present get country name
-    obj = initialize_test_row(legal_country='USA')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['legal_entity_country_name'] == 'United States of America'
+    submission_id = initialize_test_row(database, legal_country='USA', submission_id=2)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.legal_entity_country_name == 'United States of America'
 
-    obj = initialize_test_row(legal_country='NK')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['legal_entity_country_name'] is None
+    submission_id = initialize_test_row(database, legal_country='NK', submission_id=3)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.legal_entity_country_name is None
 
 
 def test_derive_ppop_code(database):
     initialize_db_values(database)
 
     # Making sure nothing is changing if record type isn't 3
-    obj = initialize_test_row(record_type=1, legal_country='USA', le_zip5='12345')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_code'] == 'NY00000'
+    submission_id = initialize_test_row(database, record_type=1, legal_country='USA', le_zip5='12345', submission_id=3)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_code == 'NY00000'
 
     # 00FORGN if country isn't USA
-    obj = initialize_test_row(record_type=3, ppop_code=None, legal_country='GBD')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_code'] == '00FORGN'
+    submission_id = initialize_test_row(database, record_type=3, ppop_code=None, legal_country='GBD', submission_id=4)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_code == '00FORGN'
 
     # No derivation if country is USA and there is no state code
-    obj = initialize_test_row(record_type=3, ppop_code=None, legal_country='USA')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_code'] is None
+    submission_id = initialize_test_row(database, record_type=3, ppop_code=None, legal_country='USA', submission_id=5)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_code is None
 
     # Default to 00000 if legal entity city code is nothing and country is USA
-    obj = initialize_test_row(record_type=3, ppop_code=None, legal_country='USA', le_zip5='54321')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_code'] == 'NY00000'
+    submission_id = initialize_test_row(database, record_type=3, ppop_code=None, legal_country='USA', le_zip5='54321',
+                                        submission_id=6)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_code == 'NY00000'
 
     # Properly set city code if legal entity city code is there and country is USA
-    obj = initialize_test_row(record_type=3, ppop_code=None, legal_country='USA', le_zip5='12345')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_code'] == 'NY00001'
+    submission_id = initialize_test_row(database, record_type=3, ppop_code=None, legal_country='USA', le_zip5='12345',
+                                        submission_id=7)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_code == 'NY00001'
 
 
 def test_derive_pii_redacted_ppop_data(database):
     initialize_db_values(database)
 
     # Test derivations when country code is USA
-    obj = initialize_test_row(record_type=3, legal_country='USA', le_zip5='54321')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_perform_country_c'] == 'USA'
-    assert obj['place_of_perform_country_n'] == 'United States of America'
-    assert obj['place_of_performance_city'] == 'Test City 2'
-    assert obj['place_of_perform_county_co'] == '001'
-    assert obj['place_of_perform_county_na'] == 'Test County'
-    assert obj['place_of_perfor_state_code'] == 'NY'
-    assert obj['place_of_perform_state_nam'] == 'New York'
-    assert obj['place_of_performance_zip4a'] == '54321'
-    assert obj['place_of_performance_congr'] == '05'
+    submission_id = initialize_test_row(database, record_type=3, legal_country='USA', le_zip5='54321', submission_id=2)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_perform_country_c == 'USA'
+    assert fabs_obj.place_of_perform_country_n == 'United States of America'
+    assert fabs_obj.place_of_performance_city == 'Test City 2'
+    assert fabs_obj.place_of_perform_county_co == '001'
+    assert fabs_obj.place_of_perform_county_na == 'Test County'
+    assert fabs_obj.place_of_perfor_state_code == 'NY'
+    assert fabs_obj.place_of_perform_state_nam == 'New York'
+    assert fabs_obj.place_of_performance_zip4a == '54321'
+    assert fabs_obj.place_of_performance_congr == '05'
 
     # Test derivations when country code isn't USA
-    obj = initialize_test_row(record_type=3, legal_country='GBR', legal_foreign_city='London')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_perform_country_c'] == 'GBR'
-    assert obj['place_of_perform_country_n'] == 'Great Britain'
-    assert obj['place_of_performance_city'] == 'London'
-    assert obj['place_of_performance_forei'] == 'London'
+    submission_id = initialize_test_row(database, record_type=3, legal_country='GBR', legal_foreign_city='London',
+                                        submission_id=3)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_perform_country_c == 'GBR'
+    assert fabs_obj.place_of_perform_country_n == 'Great Britain'
+    assert fabs_obj.place_of_performance_city == 'London'
+    assert fabs_obj.place_of_performance_forei == 'London'
 
 
 def test_split_zip(database):
     initialize_db_values(database)
 
     # testing with 5-digit
-    obj = initialize_test_row(ppop_zip4a='12345')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_zip5'] == '12345'
-    assert obj['place_of_perform_zip_last4'] is None
+    submission_id = initialize_test_row(database, ppop_zip4a='12345', submission_id=2)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_zip5 == '12345'
+    assert fabs_obj.place_of_perform_zip_last4 is None
 
     # testing with 9-digit
-    obj = initialize_test_row(ppop_zip4a='123456789')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_zip5'] == '12345'
-    assert obj['place_of_perform_zip_last4'] == '6789'
+    submission_id = initialize_test_row(database, ppop_zip4a='123456789', submission_id=3)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_zip5 == '12345'
+    assert fabs_obj.place_of_perform_zip_last4 == '6789'
 
     # testing with 9-digit and dash
-    obj = initialize_test_row(ppop_zip4a='12345-6789')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_zip5'] == '12345'
-    assert obj['place_of_perform_zip_last4'] == '6789'
+    submission_id = initialize_test_row(database, ppop_zip4a='12345-6789', submission_id=4)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_zip5 == '12345'
+    assert fabs_obj.place_of_perform_zip_last4 == '6789'
 
     # testing with city-wide
-    obj = initialize_test_row(ppop_zip4a='city-wide')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_zip5'] is None
-    assert obj['place_of_perform_zip_last4'] is None
+    submission_id = initialize_test_row(database, ppop_zip4a='city-wide', submission_id=5)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_zip5 is None
+    assert fabs_obj.place_of_perform_zip_last4 is None
 
     # testing without ppop_zip4
-    obj = initialize_test_row(ppop_zip4a='')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_zip5'] is None
-    assert obj['place_of_perform_zip_last4'] is None
+    submission_id = initialize_test_row(database, ppop_zip4a='', submission_id=6)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_zip5 is None
+    assert fabs_obj.place_of_perform_zip_last4 is None
 
 
 def test_derive_parent_duns_single(database):
     initialize_db_values(database)
 
-    obj = initialize_test_row(awardee_or_recipient_uniqu='123456789')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-
-    assert obj['ultimate_parent_legal_enti'] == 'Parent 1'
-    assert obj['ultimate_parent_unique_ide'] == '234567890'
+    submission_id = initialize_test_row(database, awardee_or_recipient_uniqu='123456789')
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.ultimate_parent_legal_enti == 'Parent 1'
+    assert fabs_obj.ultimate_parent_unique_ide == '234567890'
 
 
 def test_derive_parent_duns_multiple(database):
     initialize_db_values(database)
 
-    obj = initialize_test_row(awardee_or_recipient_uniqu='234567890')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-
-    assert obj['ultimate_parent_legal_enti'] == 'Parent 2'
-    assert obj['ultimate_parent_unique_ide'] == '234567890'
+    submission_id = initialize_test_row(database, awardee_or_recipient_uniqu='234567890')
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.ultimate_parent_legal_enti == 'Parent 2'
+    assert fabs_obj.ultimate_parent_unique_ide == '234567890'
 
 
 def test_derive_parent_duns_no_parent_info(database):
     initialize_db_values(database)
 
-    obj = initialize_test_row(awardee_or_recipient_uniqu='345678901')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-
-    assert obj['ultimate_parent_legal_enti'] is None
-    assert obj['ultimate_parent_unique_ide'] is None
+    submission_id = initialize_test_row(database, awardee_or_recipient_uniqu='345678901')
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.ultimate_parent_legal_enti is None
+    assert fabs_obj.ultimate_parent_unique_ide is None
 
 
 def test_derive_executive_compensation(database):
     initialize_db_values(database)
 
     # Test when values are null
-    obj = initialize_test_row()
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-
+    submission_id = initialize_test_row(database, submission_id=2)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
     # If the first 2 are null, the rest will be too
-    assert obj['high_comp_officer1_full_na'] is None
-    assert obj['high_comp_officer1_amount'] is None
+    assert fabs_obj.high_comp_officer1_full_na is None
+    assert fabs_obj.high_comp_officer1_amount is None
 
     # Test when DUNS doesn't have exec comp data associated
-    obj = initialize_test_row(awardee_or_recipient_uniqu='345678901')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-
+    submission_id = initialize_test_row(database, awardee_or_recipient_uniqu='345678901', submission_id=3)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
     # If the first 2 are null, the rest will be too
-    assert obj['high_comp_officer1_full_na'] is None
-    assert obj['high_comp_officer1_amount'] is None
+    assert fabs_obj.high_comp_officer1_full_na is None
+    assert fabs_obj.high_comp_officer1_amount is None
 
     # Test with DUNS that has exec comp data
-    obj = initialize_test_row(awardee_or_recipient_uniqu='123456789')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-
-    assert obj['high_comp_officer1_full_na'] == 'Officer 1'
-    assert obj['high_comp_officer1_amount'] == '15'
-    assert obj['high_comp_officer2_full_na'] == 'Officer 2'
-    assert obj['high_comp_officer2_amount'] == '77.12'
-    assert obj['high_comp_officer3_full_na'] == 'This is the third Officer'
-    assert obj['high_comp_officer3_amount'] is None
-    assert obj['high_comp_officer4_full_na'] is None
-    assert obj['high_comp_officer4_amount'] == '0'
-    assert obj['high_comp_officer5_full_na'] is None
-    assert obj['high_comp_officer5_amount'] is None
+    submission_id = initialize_test_row(database, awardee_or_recipient_uniqu='123456789', submission_id=4)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.high_comp_officer1_full_na == 'Officer 1'
+    assert fabs_obj.high_comp_officer1_amount == '15'
+    assert fabs_obj.high_comp_officer2_full_na == 'Officer 2'
+    assert fabs_obj.high_comp_officer2_amount == '77.12'
+    assert fabs_obj.high_comp_officer3_full_na == 'This is the third Officer'
+    assert fabs_obj.high_comp_officer3_amount is None
+    assert fabs_obj.high_comp_officer4_full_na is None
+    assert fabs_obj.high_comp_officer4_amount == '0'
+    assert fabs_obj.high_comp_officer5_full_na is None
+    assert fabs_obj.high_comp_officer5_amount is None
 
 
 def test_derive_labels(database):
     initialize_db_values(database)
 
     # Testing when these values are blank
-    obj = initialize_test_row()
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['action_type_description'] is None
-    assert obj['assistance_type_desc'] is None
-    assert obj['correction_delete_ind_desc'] is None
-    assert obj['business_types_desc'] is None
-    assert obj['business_funds_ind_desc'] is None
+    submission_id = initialize_test_row(database, submission_id=2)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.action_type_description is None
+    assert fabs_obj.assistance_type_desc is None
+    assert fabs_obj.correction_delete_ind_desc is None
+    assert fabs_obj.business_types_desc is None
+    assert fabs_obj.business_funds_ind_desc is None
 
     # Testing for valid values of each
-    obj = initialize_test_row(cdi='c', action_type='a', assist_type='02', busi_type='d', busi_fund='non')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['action_type_description'] == ACTION_TYPE_DICT['A']
-    assert obj['assistance_type_desc'] == ASSISTANCE_TYPE_DICT['02']
-    assert obj['correction_delete_ind_desc'] == CORRECTION_DELETE_IND_DICT['C']
-    assert obj['record_type_description'] == RECORD_TYPE_DICT[2]
-    assert obj['business_types_desc'] == BUSINESS_TYPE_DICT['D']
-    assert obj['business_funds_ind_desc'] == BUSINESS_FUNDS_IND_DICT['NON']
+    submission_id = initialize_test_row(database, cdi='c', action_type='a', assist_type='02', busi_type='d',
+                                        busi_fund='non', submission_id=3)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.action_type_description == ACTION_TYPE_DICT['A']
+    assert fabs_obj.assistance_type_desc == ASSISTANCE_TYPE_DICT['02']
+    assert fabs_obj.correction_delete_ind_desc == CORRECTION_DELETE_IND_DICT['C']
+    assert fabs_obj.record_type_description == RECORD_TYPE_DICT[2]
+    assert fabs_obj.business_types_desc == BUSINESS_TYPE_DICT['D']
+    assert fabs_obj.business_funds_ind_desc == BUSINESS_FUNDS_IND_DICT['NON']
 
     # Testing for invalid values of each
-    obj = initialize_test_row(cdi='f', action_type='z', assist_type='01', record_type=5, busi_type='Z', busi_fund='ab')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['action_type_description'] is None
-    assert obj['assistance_type_desc'] is None
-    assert obj['correction_delete_ind_desc'] is None
-    assert obj['record_type_description'] is None
-    assert obj['business_types_desc'] is None
-    assert obj['business_funds_ind_desc'] is None
+    submission_id = initialize_test_row(database, cdi='f', action_type='z', assist_type='01', record_type=5,
+                                        busi_type='Z', busi_fund='ab', submission_id=4)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.action_type_description is None
+    assert fabs_obj.assistance_type_desc is None
+    assert fabs_obj.correction_delete_ind_desc is None
+    assert fabs_obj.record_type_description is None
+    assert fabs_obj.business_types_desc is None
+    assert fabs_obj.business_funds_ind_desc is None
 
-    # Test multiple business types (2 valid, one invalid)
-    obj = initialize_test_row(cdi='f', action_type='z', assist_type='01', record_type=5, busi_type='azb')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['business_types_desc'] == BUSINESS_TYPE_DICT['A'] + ';' + BUSINESS_TYPE_DICT['B']
+    # Test multiple business types (2 valid, 1 invalid)
+    submission_id = initialize_test_row(database, cdi='f', action_type='z', assist_type='01', record_type=5,
+                                        busi_type='azb', submission_id=5)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.business_types_desc == BUSINESS_TYPE_DICT['A'] + ';' + BUSINESS_TYPE_DICT['B']
 
 
 def test_is_active(database):
     initialize_db_values(database)
 
     # Testing with none values
-    obj = initialize_test_row()
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['is_active'] is True
+    submission_id = initialize_test_row(database, submission_id=2)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.is_active is True
 
     # Testing with value other than D
-    obj = initialize_test_row(cdi='c')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['is_active'] is True
+    submission_id = initialize_test_row(database, cdi='c', submission_id=3)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.is_active is True
 
     # Testing with D
-    obj = initialize_test_row(cdi='D')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['is_active'] is False
+    submission_id = initialize_test_row(database, cdi='D', submission_id=4)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.is_active is False
 
 
 def test_derive_ppop_scope(database):
     initialize_db_values(database)
 
     # when ppop_zip4a is 5 digits and no congressional district
-    obj = initialize_test_row(ppop_zip4a='123454321', ppop_code='NY00001')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_scope'] == 'Single ZIP Code'
+    submission_id = initialize_test_row(database, ppop_zip4a='123454321', ppop_code='NY00001', submission_id=2)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_scope == 'Single ZIP Code'
 
     # when ppop_zip4a is 5 digits and has congressional district
-    obj = initialize_test_row(ppop_zip4a='12345-4321', ppop_cd='03', ppop_code='NY0000r')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_scope'] == 'Single ZIP Code'
+    submission_id = initialize_test_row(database, ppop_zip4a='12345-4321', ppop_cd='03', ppop_code='NY0000r',
+                                        submission_id=3)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_scope == 'Single ZIP Code'
 
     # when ppop_zip4a is 5 digits
-    obj = initialize_test_row(ppop_zip4a='12345')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_scope'] == 'Single ZIP Code'
+    submission_id = initialize_test_row(database, ppop_zip4a='12345', submission_id=4)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_scope == 'Single ZIP Code'
 
     # when ppop_zip4 is 9 digits but last 4 are invalid (one cd available)
-    obj = initialize_test_row(ppop_zip4a='543210000', ppop_code=None)
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_scope'] is None
+    submission_id = initialize_test_row(database, ppop_zip4a='543210000', ppop_code=None, submission_id=5)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_scope is None
 
     # when ppop_zip4 is 9 digits (no cd available)
-    obj = initialize_test_row(ppop_zip4a='987654321', ppop_code='NY0001r')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_scope'] == 'Single ZIP Code'
+    submission_id = initialize_test_row(database, ppop_zip4a='987654321', ppop_code='NY0001r', submission_id=6)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_scope == 'Single ZIP Code'
 
     # when ppop_zip4 is 'city-wide'
-    obj = initialize_test_row(ppop_zip4a='City-WIDE', ppop_code='NY0001R')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_scope'] == 'City-wide'
+    submission_id = initialize_test_row(database, ppop_zip4a='City-WIDE', ppop_code='NY0001R', submission_id=7)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_scope == 'City-wide'
 
     # when we don't have ppop_zip4a and ppop_code is in XX**### format
-    obj = initialize_test_row(ppop_code='Ny**001')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_scope'] == 'County-wide'
+    submission_id = initialize_test_row(database, ppop_code='Ny**001', submission_id=8)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_scope == 'County-wide'
 
     # when we don't have ppop_zip4a and ppop_code is in XX##### format
-    obj = initialize_test_row(ppop_code='Ny00001')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_scope'] == 'City-wide'
+    submission_id = initialize_test_row(database, ppop_code='Ny00001', submission_id=9)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_scope == 'City-wide'
 
     # when we don't have ppop_zip4a and ppop_code is in 00##### format
-    obj = initialize_test_row(ppop_code='NY*****')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_scope'] == 'State-wide'
+    submission_id = initialize_test_row(database, ppop_code='NY*****', submission_id=10)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_scope == 'State-wide'
 
     # when we don't have ppop_zip4a and ppop_code is in 00##### daformat
-    obj = initialize_test_row(ppop_code='00*****')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_scope'] == 'Multi-state'
+    submission_id = initialize_test_row(database, ppop_code='00*****', submission_id=11)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_scope == 'Multi-state'
 
     # when we don't have ppop_zip4a and ppop_code is 00FORGN format
-    obj = initialize_test_row(ppop_code='00forgn')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_scope'] == 'Foreign'
+    submission_id = initialize_test_row(database, ppop_code='00forgn', submission_id=12)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_scope == 'Foreign'
 
     # when we don't have a ppop_code at all
-    obj = initialize_test_row(ppop_code='')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_scope'] is None
+    submission_id = initialize_test_row(database, ppop_code='', submission_id=13)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_scope is None
 
     # cases when ppop code is not provided but derived earlier
-    obj = initialize_test_row(record_type=3, ppop_code=None, legal_country='USA', le_zip5='54321')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_scope'] == 'Single ZIP Code'
+    submission_id = initialize_test_row(database, record_type=3, ppop_code=None, legal_country='USA', le_zip5='54321',
+                                        submission_id=14)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_scope == 'Single ZIP Code'
 
-    obj = initialize_test_row(record_type=3, ppop_code=None, legal_country='GBD')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_scope'] == 'Foreign'
+    submission_id = initialize_test_row(database, record_type=3, ppop_code=None, legal_country='GBD', submission_id=15)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_scope == 'Foreign'
 
-    obj = initialize_test_row(record_type=1, legal_country='USA', le_zip5='12345')
-    obj = fabs_derivations(obj, database.session, STATE_DICT, COUNTRY_DICT, SUB_TIER_DICT, CFDA_DICT, COUNTY_DICT,
-                           OFFICE_DICT, EXEC_COMP_DICT)
-    assert obj['place_of_performance_scope'] == 'City-wide'
+    submission_id = initialize_test_row(database, record_type=1, legal_country='USA', le_zip5='12345', submission_id=16)
+    fabs_derivations(database.session, submission_id)
+    database.session.commit()
+    fabs_obj = get_derived_fabs(database, submission_id)
+    assert fabs_obj.place_of_performance_scope == 'City-wide'

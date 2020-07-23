@@ -22,7 +22,7 @@ def log_derivation(message, submission_id, start_time=None):
         'message_type': 'BrokerDebug',
         'submission_id': submission_id
     }
-    
+
     if start_time:
         log_message['duration'] = datetime.now() - start_time
     logger.info(log_message)
@@ -395,7 +395,8 @@ def derive_ppop_scope(sess, submission_id):
                                          END
         WHERE submission_id = {submission_id}
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
-            AND COALESCE(place_of_performance_zip4a, '') <> '';
+            AND COALESCE(place_of_performance_zip4a, '') <> ''
+            AND UPPER(place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d[\dR]$';
     """
     sess.execute(query.format(submission_id=submission_id))
 
@@ -495,7 +496,7 @@ def derive_le_location_data(sess, submission_id):
     query = """
         UPDATE published_award_financial_assistance
         SET legal_entity_county_code = county_number,
-            legal_entity_state_code = state_abbreviation 
+            legal_entity_state_code = state_abbreviation
         FROM zips
         WHERE submission_id = {submission_id}
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
@@ -607,8 +608,8 @@ def derive_office_data(sess, submission_id):
                 )
             GROUP BY UPPER(fain), UPPER(awarding_sub_tier_agency_c)),
         office_info AS
-            (SELECT UPPER(awarding_office_code) AS awarding_office_code,
-                UPPER(funding_office_code) AS funding_office_code,
+            (SELECT awarding_office_code AS awarding_office_code,
+                funding_office_code AS funding_office_code,
                 award_modification_amendme,
                 UPPER(fain) AS upper_fain,
                 UPPER(awarding_sub_tier_agency_c) AS upper_sub_tier
@@ -626,14 +627,14 @@ def derive_office_data(sess, submission_id):
             (SELECT award_modification_amendme,
                 upper_fain,
                 upper_sub_tier,
-                aw_office.office_code AS awarding_office_code,
-                fund_office.office_code AS funding_office_code
+                oi.awarding_office_code AS awarding_office_code,
+                oi.funding_office_code AS funding_office_code
             FROM office_info AS oi
             LEFT JOIN office AS aw_office
-                ON aw_office.office_code = oi.awarding_office_code
+                ON aw_office.office_code = UPPER(oi.awarding_office_code)
                 AND aw_office.financial_assistance_awards_office IS TRUE
             LEFT JOIN office AS fund_office
-                ON fund_office.office_code = oi.funding_office_code
+                ON fund_office.office_code = UPPER(oi.funding_office_code)
                 AND (fund_office.contract_funding_office IS TRUE
                     OR fund_office.financial_assistance_funding_office IS TRUE))
         UPDATE published_award_financial_assistance AS pafa
@@ -648,7 +649,7 @@ def derive_office_data(sess, submission_id):
         FROM filtered_offices AS fo
         WHERE submission_id = {submission_id}
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
-            AND pafa.award_modification_amendme <> fo.award_modification_amendme
+            AND COALESCE(pafa.award_modification_amendme, '') <> COALESCE(fo.award_modification_amendme, '')
             AND upper_fain = fain
             AND upper_sub_tier = UPPER(awarding_sub_tier_agency_c)
             AND record_type <> '1';
@@ -679,8 +680,8 @@ def derive_office_data(sess, submission_id):
                 )
             GROUP BY UPPER(uri), UPPER(awarding_sub_tier_agency_c)),
         office_info AS
-            (SELECT UPPER(awarding_office_code) AS awarding_office_code,
-                UPPER(funding_office_code) AS funding_office_code,
+            (SELECT awarding_office_code AS awarding_office_code,
+                funding_office_code AS funding_office_code,
                 award_modification_amendme,
                 UPPER(uri) AS upper_uri,
                 UPPER(awarding_sub_tier_agency_c) AS upper_sub_tier
@@ -698,14 +699,14 @@ def derive_office_data(sess, submission_id):
             (SELECT award_modification_amendme,
                 upper_uri,
                 upper_sub_tier,
-                aw_office.office_code AS awarding_office_code,
-                fund_office.office_code AS funding_office_code
+                oi.awarding_office_code AS awarding_office_code,
+                oi.funding_office_code AS funding_office_code
             FROM office_info AS oi
             LEFT JOIN office AS aw_office
-                ON aw_office.office_code = oi.awarding_office_code
+                ON aw_office.office_code = UPPER(oi.awarding_office_code)
                 AND aw_office.financial_assistance_awards_office IS TRUE
             LEFT JOIN office AS fund_office
-                ON fund_office.office_code = oi.funding_office_code
+                ON fund_office.office_code = UPPER(oi.funding_office_code)
                 AND (fund_office.contract_funding_office IS TRUE
                     OR fund_office.financial_assistance_funding_office IS TRUE))
         UPDATE published_award_financial_assistance AS pafa
@@ -720,7 +721,7 @@ def derive_office_data(sess, submission_id):
         FROM filtered_offices AS fo
         WHERE submission_id = {submission_id}
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D'
-            AND pafa.award_modification_amendme <> fo.award_modification_amendme
+            AND COALESCE(pafa.award_modification_amendme, '') <> COALESCE(fo.award_modification_amendme, '')
             AND upper_uri = uri
             AND upper_sub_tier = UPPER(awarding_sub_tier_agency_c)
             AND record_type = '1';
