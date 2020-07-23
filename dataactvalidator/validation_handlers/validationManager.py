@@ -516,7 +516,7 @@ class ValidationManager:
         chunk_df = clean_frame_vectorized(chunk_df)
 
         # Adding row number
-        chunk_df = chunk_df.reset_index()
+        chunk_df['index'] = chunk_df.index
         # index gets reset for each chunk, adding the header, and adding previous rows
         chunk_df['row_number'] = chunk_df.index + 2
         shared_data['total_rows'] += len(chunk_df.index)
