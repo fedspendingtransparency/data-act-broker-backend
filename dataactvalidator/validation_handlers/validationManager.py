@@ -853,12 +853,12 @@ def update_tas_ids(model_class, submission_id):
                 ending_period_of_availabil,
                 availability_type_code,
                 main_account_code,
-                sub_account_code  
+                sub_account_code
             FROM
-                tas_lookup  
+                tas_lookup
             WHERE
-                (('{start}'::date, '{end}'::date) OVERLAPS 
-                    (tas_lookup.internal_start_date, coalesce(tas_lookup.internal_end_date, '{day_after_end}'::date)))  
+                (('{start}'::date, '{end}'::date) OVERLAPS
+                    (tas_lookup.internal_start_date, coalesce(tas_lookup.internal_end_date, '{day_after_end}'::date)))
             GROUP BY
                 allocation_transfer_agency,
                 agency_identifier,
@@ -868,16 +868,16 @@ def update_tas_ids(model_class, submission_id):
                 main_account_code,
                 sub_account_code
         )
-        UPDATE {model} 
-        SET tas_id = min_account_num 
-        FROM relevant_tas 
-        WHERE {model}.submission_id = {submission_id}  
-            AND coalesce(relevant_tas.allocation_transfer_agency, '') = coalesce({model}.allocation_transfer_agency, '')   
-            AND coalesce(relevant_tas.agency_identifier, '') = coalesce({model}.agency_identifier, '')   
-            AND coalesce(relevant_tas.beginning_period_of_availa, '') = coalesce({model}.beginning_period_of_availa, '')   
-            AND coalesce(relevant_tas.ending_period_of_availabil, '') = coalesce({model}.ending_period_of_availabil, '')   
-            AND coalesce(relevant_tas.availability_type_code, '') = coalesce({model}.availability_type_code, '')   
-            AND coalesce(relevant_tas.main_account_code, '') = coalesce({model}.main_account_code, '')   
+        UPDATE {model}
+        SET tas_id = min_account_num
+        FROM relevant_tas
+        WHERE {model}.submission_id = {submission_id}
+            AND coalesce(relevant_tas.allocation_transfer_agency, '') = coalesce({model}.allocation_transfer_agency, '')
+            AND coalesce(relevant_tas.agency_identifier, '') = coalesce({model}.agency_identifier, '')
+            AND coalesce(relevant_tas.beginning_period_of_availa, '') = coalesce({model}.beginning_period_of_availa, '')
+            AND coalesce(relevant_tas.ending_period_of_availabil, '') = coalesce({model}.ending_period_of_availabil, '')
+            AND coalesce(relevant_tas.availability_type_code, '') = coalesce({model}.availability_type_code, '')
+            AND coalesce(relevant_tas.main_account_code, '') = coalesce({model}.main_account_code, '')
             AND coalesce(relevant_tas.sub_account_code, '') = coalesce({model}.sub_account_code, '');
     """
     full_query = update_query.format(start=start_date, end=end_date, day_after_end=day_after_end,
