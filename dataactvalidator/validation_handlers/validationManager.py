@@ -4,6 +4,8 @@ import logging
 import os
 import traceback
 import pandas as pd
+import time
+from datetime import timedelta
 
 from datetime import datetime
 
@@ -27,6 +29,7 @@ from dataactcore.interfaces.function_bag import (
 
 from dataactcore.models.domainModels import matching_cars_subquery, Office, concat_display_tas_dict, \
     concat_tas_dict_vectorized
+from dataactcore.models.domainModels import Office, concat_tas_dict, concat_display_tas_dict
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
@@ -861,11 +864,67 @@ class ValidationManager:
 
 def update_tas_ids(model_class, submission_id):
     sess = GlobalDB.db().session
+
     submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
+    start_date = submission.reporting_start_date
+    end_date = submission.reporting_end_date
+    day_after_end = end_date + timedelta(days=1)
 
-    subquery = matching_cars_subquery(sess, model_class, submission.reporting_start_date, submission.reporting_end_date,
-                                      submission_id)
+    logger.info({
+        'message': 'Setting up TAS links',
+        'message_type': 'ValidatorInfo',
+        'submission_id': submission_id,
+        'model_class': str(model_class)
+    })
+    start = time.time()
 
-    sess.query(model_class).filter_by(submission_id=submission_id).\
-        update({getattr(model_class, 'tas_id'): subquery}, synchronize_session=False)
+    update_query = """
+        WITH relevant_tas AS  (
+            SELECT
+                min(tas_lookup.account_num) AS min_account_num,
+                allocation_transfer_agency,
+                agency_identifier,
+                beginning_period_of_availa,
+                ending_period_of_availabil,
+                availability_type_code,
+                main_account_code,
+                sub_account_code
+            FROM
+                tas_lookup
+            WHERE
+                (('{start}'::date, '{end}'::date) OVERLAPS
+                    (tas_lookup.internal_start_date, coalesce(tas_lookup.internal_end_date, '{day_after_end}'::date)))
+            GROUP BY
+                allocation_transfer_agency,
+                agency_identifier,
+                beginning_period_of_availa,
+                ending_period_of_availabil,
+                availability_type_code,
+                main_account_code,
+                sub_account_code
+        )
+        UPDATE {model}
+        SET tas_id = min_account_num
+        FROM relevant_tas
+        WHERE {model}.submission_id = {submission_id}
+            AND coalesce(relevant_tas.allocation_transfer_agency, '') = coalesce({model}.allocation_transfer_agency, '')
+            AND coalesce(relevant_tas.agency_identifier, '') = coalesce({model}.agency_identifier, '')
+            AND coalesce(relevant_tas.beginning_period_of_availa, '') = coalesce({model}.beginning_period_of_availa, '')
+            AND coalesce(relevant_tas.ending_period_of_availabil, '') = coalesce({model}.ending_period_of_availabil, '')
+            AND coalesce(relevant_tas.availability_type_code, '') = coalesce({model}.availability_type_code, '')
+            AND coalesce(relevant_tas.main_account_code, '') = coalesce({model}.main_account_code, '')
+            AND coalesce(relevant_tas.sub_account_code, '') = coalesce({model}.sub_account_code, '');
+    """
+    full_query = update_query.format(start=start_date, end=end_date, day_after_end=day_after_end,
+                                     submission_id=submission_id, model=model_class.__table__.name)
+    sess.execute(full_query)
+
+    logger.info({
+        'message': 'Completed setting up TAS links',
+        'message_type': 'ValidatorInfo',
+        'submission_id': submission_id,
+        'model_class': str(model_class),
+        'duration': time.time() - start
+    })
+
     sess.commit()
