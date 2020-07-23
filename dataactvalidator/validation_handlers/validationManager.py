@@ -231,18 +231,12 @@ class ValidationManager:
 
             # stream file to S3 when not local
             if not self.is_local:
-                s3_resource = boto3.resource('s3', region_name=region_name)
-                # stream error file
-                with open(self.error_file_path, 'rb') as csv_file:
-                    s3_resource.Object(bucket_name, self.get_file_name(self.error_file_name)).put(Body=csv_file)
-                csv_file.close()
+                s3 = boto3.client('s3', region_name=region_name)
+
+                s3.upload_file(self.error_file_path, bucket_name, self.get_file_name(self.error_file_name))
                 os.remove(self.error_file_path)
 
-                # stream warning file
-                with open(self.warning_file_path, 'rb') as warning_csv_file:
-                    s3_resource.Object(bucket_name,
-                                       self.get_file_name(self.warning_file_name)).put(Body=warning_csv_file)
-                warning_csv_file.close()
+                s3.upload_file(self.warning_file_path, bucket_name, self.get_file_name(self.warning_file_name))
                 os.remove(self.warning_file_path)
 
             # Calculate total number of rows in file that passed validations
