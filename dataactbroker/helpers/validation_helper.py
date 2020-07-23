@@ -83,8 +83,6 @@ def clean_col(value, clean_quotes=True):
 
 def clean_frame_vectorized(frame: pd.DataFrame, convert_to_str=False, clean_quotes=True):
     """ In-place strip of surrounding whitespace, make None if empty, and remove surrounding quotes.
-        Note a side-effect of stripping quotes/whitespace is that any non-null, non-string types provided (like int
-        or float) will be converted to their string format in the final result.
 
         Args:
             frame: pd.DataFrame to clean
@@ -93,10 +91,12 @@ def clean_frame_vectorized(frame: pd.DataFrame, convert_to_str=False, clean_quot
                   and will save on performance if avoided
                 - If left as False and there are mixed types, such as int or float, they will be set to None rather
                   than converted to their str form
+                - If set as True, any non-null, non-string types provided (like int or float) will be converted to
+                  their string format in the final result.
             clean_quotes: whether to clean extra quotes or not
 
         Returns:
-            The cleaned DataFrame, with a side-effect of an
+            The cleaned DataFrame
     """
     if convert_to_str:
         frame = frame.apply(lambda series: series[series.notnull()].astype(str))
@@ -161,9 +161,11 @@ def clean_numbers_vectorized(series: pd.Series, convert_to_str=False):
                   and will save on performance if avoided
                 - If left as False and there are mixed types, such as int or float, they will be set to None rather
                   than converted to their str form
+                - If set as True, any non-null, non-string types provided (like int or float) will be converted to
+                  their string format in the final result.
 
         Returns:
-            None
+            None (in-place update of given Series)
     """
     if convert_to_str:
         s = series[series.notnull()].astype(str)
