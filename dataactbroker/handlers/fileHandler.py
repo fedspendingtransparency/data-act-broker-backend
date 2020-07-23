@@ -16,7 +16,7 @@ from sqlalchemy.sql.expression import case
 
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
                                                        get_submissions_in_period)
-from dataactbroker.helpers.fabs_derivations_helper_sql import fabs_derivations
+from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
 from dataactbroker.permissions import current_user_can_on_submission
 
