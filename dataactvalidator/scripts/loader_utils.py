@@ -1,9 +1,14 @@
 import logging
 import pandas as pd
 import numpy as np
+import csv
 
+from io import StringIO
 from datetime import datetime
 from pandas import isnull
+from pandas.io.sql import SQLTable
+from sqlalchemy.engine import Connection
+from typing import List, Iterable
 from dataactcore.utils.failure_threshold_exception import FailureThresholdExceededException
 
 logger = logging.getLogger(__name__)
@@ -27,15 +32,62 @@ def pad_function(field, pad_to, keep_null):
     return str(field).strip().zfill(pad_to)
 
 
-def insert_dataframe(df, table, engine):
-    """Inserts a dataframe to the specified database table."""
+def insert_dataframe(df, table, engine, method=None):
+    """ Inserts a dataframe to the specified database table.
+
+        Args:
+            df (pd.DataFrame): data to insert
+            table (str): name of table to insert to
+            engine (sqlalchemy.engine.Engine or sqlalchemy.engine.Connection): db connection
+            method: one of 'multi' or 'copy', if not None
+                - 'multi': does a multi-value bulk insert (many value rows at once). It is efficient for analytics
+                    databases with few columns, and esp. if columnar storage, but not as efficient for
+                    row-oriented DBs, and slows considerably when many columns
+                - 'copy': use database COPY command, and load from CSV in-memory string buffer
+    """
+    if method == 'copy':
+        method = _insert_dataframe_using_copy
     df.to_sql(
         table,
         engine,
         index=False,
-        if_exists='append'
+        if_exists='append',
+        method=method
     )
     return len(df.index)
+
+
+def _insert_dataframe_using_copy(
+        table: SQLTable, conn: Connection, fields: List[str], data: Iterable[Iterable]
+):
+    """ Callable concrete impl of the pandas.DataFrame.to_sql method parameter, which allows the given
+        DataFrame's data to be buffered in-memory as a string in CSV format, and then loaded into the
+        database via the given connection using COPY <table> (<cols>) FROM STDIN WITH CSV.
+
+        Fastest way to get DataFrame data into a DB table.
+
+        Args:
+            table (pandas.io.sql.SQLTable): name of existing table to bulk insert into via COPY
+            conn (sqlalchemy.engine.Engine or sqlalchemy.engine.Connection):
+            keys (list of str): column names
+            data (Iterable[Iterable]): iterable data set, where each item is a collection of values for a data row
+    """
+    # gets a DBAPI connection that can provide a cursor
+    dbapi_conn = conn.connection
+    with dbapi_conn.cursor() as cur:
+        string_buffer = StringIO()
+        writer = csv.writer(string_buffer)
+        writer.writerows(data)
+        string_buffer.seek(0)
+
+        columns = ', '.join('"{}"'.format(f) for f in fields)
+        if table.schema:
+            table_name = '{}.{}'.format(table.schema, table.name)
+        else:
+            table_name = table.name
+
+        sql = 'COPY {} ({}) FROM STDIN WITH CSV'.format(table_name, columns)
+        cur.copy_expert(sql=sql, file=string_buffer)
 
 
 def trim_item(item):
