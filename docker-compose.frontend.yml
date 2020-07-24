@@ -7,8 +7,14 @@ services:
       context: ./../data-act-broker-web-app/
     depends_on: 
       - dataact-broker-backend
+    command: npm run start
     restart: on-failure:3 # 3 max attempt, and then it will stop restarting
+    environment:
+      BROKER_API: http://localhost:9999/v1/
+      CAS_ROOT: ''
+      IS_LOCAL: 'true'
+      IS_DEV: 'true'
     ports: 
-      - "3000:3000"
+      - "3002:3002"
     volumes:
       - ./../data-act-broker-web-app/:/data-act/frontend
