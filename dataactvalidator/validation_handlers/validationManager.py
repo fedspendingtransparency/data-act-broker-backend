@@ -532,7 +532,7 @@ class ValidationManager:
             chunk_df.loc[chunk_df['row_number'] >= row, 'row_number'] = chunk_df['row_number'] + 1
 
         logger.info({
-            'message': 'Loading rows starting from {}'.format(chunk_df.iloc[[0]]['row_number']),
+            'message': 'Loading rows starting from {}'.format(chunk_df['row_number'].iloc[0]),
             'message_type': 'ValidatorInfo',
             'submission_id': self.submission_id,
             'job_id': self.job.job_id,
@@ -705,7 +705,7 @@ class ValidationManager:
             sess.close()
 
         logger.info({
-            'message': 'Loaded rows up to {}'.format(chunk_df.iloc[[-1]]['row_number']),
+            'message': 'Loaded rows up to {}'.format(chunk_df['row_number'].iloc[-1]),
             'message_type': 'ValidatorInfo',
             'submission_id': self.submission_id,
             'job_id': self.job.job_id,
