@@ -551,11 +551,12 @@ This endpoint returns metadata for the requested submission.
     "last_updated": "2018-04-16T18:48:09",
     "last_validated": "2018-04-16T18:48:09",
     "reporting_period": "Q2/2018",
+    "reporting_start_date": "01/01/2018",
+    "reporting_end_date": "03/31/2018",
     "publish_status": "unpublished",
     "quarterly_submission": false,
     "test_submission": false,
     "published_submission_ids": [],
-    "certified_submission": 2,
     "certified": false,
     "certification_deadline": "2020-05-24",
     "fabs_submission": true,
@@ -579,7 +580,9 @@ This endpoint returns metadata for the requested submission.
 - `created_on`: (string) date submission was created (YYYY-MM-DDTHH:mm:ss)
 - `last_updated`: (string) date/time any changes (including validations, etc) were made to the submission (YYYY-MM-DDTHH:mm:ss)
 - `last_validated`: (string) date the most recent validations were completed (YYYY-MM-DDTHH:mm:ss)
-- `reporting_period`: (string) reporting period of the submission (Q#/YYYY for quarterly submissions, MM/YYYY for monthly)
+- `reporting_period`: (string) reporting period of the submission (Q#/YYYY for quarterly submissions, P##/YYYY for monthly, P01-P02/YYYY for period 2)
+- `reporting_start_date`: (string) the start date of the reporting period the submission is made for (MM/DD/YYYY format)
+- `reporting_end_date`: (string) the end date of the reporting period the submission is made for (MM/DD/YYYY format)
 - `publish_status`: (string) whether the submission is published or not. Can contain only the following values:
     - `unpublished`
     - `published`
@@ -588,7 +591,6 @@ This endpoint returns metadata for the requested submission.
 - `quarterly_submission`: (boolean) whether the submission is quarterly or monthly
 - `test_submission`: (boolean) whether the submission is a test submission
 - `published_submission_ids`: ([integer]) submission ids published in the same period or quarter by the same agency 
-- `certified_submission`: (integer) an integer indicating the certified submission for this agency/period. If none exists or this submission is the certified one, this is `NULL`
 - `certified`: (boolean) whether the submission has been certified or not
 - `certification_deadline`: (string) represents the deadline for certification after which a submission is officially "late" to certify.
 - `fabs_submission`: (boolean) whether the submission is FABS or DABS (True for FABS)
@@ -1172,7 +1174,6 @@ Possible HTTP Status Codes:
   - Submission is not published
   - Submission is already certified
   - Submission is a quarterly submission
-  - It is past the certification window for the submission
 - 401: Login required
 - 403: Permission denied, user does not have permission to view this submission
 
@@ -1385,11 +1386,9 @@ This endpoint lists submissions for all agencies for which the current user is a
       "last_modified": "2016-08-30 12:59:37.053424",
       "publish_status": "published",
       "test_submission": false,
-      "published_submission_ids": [],
       "publishing_user": "Certifier",
       "published_on": "2016-08-30 12:53:37.053424",
       "quarterly_submission": true,
-      "certification_deadline": "2016-10-05",
       "certified": true,
       "time_period": "FY 16 / Q4"
     },
@@ -1407,11 +1406,9 @@ This endpoint lists submissions for all agencies for which the current user is a
       "last_modified": "2016-08-31 15:59:37.053424",
       "publish_status": "unpublished",
       "test_submission": false,
-      "published_submission_ids": [],
       "publishing_user": "",
       "published_on": "",
       "quarterly_submission": true,
-      "certification_deadline": "2015-10-05",
       "certified": true,
       "time_period": "FY 15 / Q4"
     }
@@ -1453,12 +1450,10 @@ This endpoint lists submissions for all agencies for which the current user is a
         - `updated`
         - `publishing`
     - `test_submission`: (boolean) whether the submission is a test submission
-    - `published_submission_ids`: ([integer]) submission ids published in the same period or quarter by the same agency 
     - `publishing_user`: (string) the name of the last user to publish the submission
     - `certified`: (boolean) whether the submission has been certified or not
     - `published_on`: (string) the last time/date the submission was published. (`YYYY-MM-DD HH:mm:ss`)
     - `quarterly_submission`: (boolean) whether the submission is quarterly
-    - `certification_deadline `: (string) the last date of the submission window, when the certification is due
     - `time_period`: (string) the time frame for the submission
 
 ##### Errors
