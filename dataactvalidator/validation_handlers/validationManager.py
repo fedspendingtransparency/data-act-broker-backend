@@ -5,6 +5,8 @@ import os
 import traceback
 import pandas as pd
 from multiprocessing import Pool, Manager
+import time
+from datetime import timedelta
 
 from datetime import datetime
 
@@ -26,8 +28,7 @@ from dataactcore.interfaces.function_bag import (
     populate_job_error_info, get_action_dates
 )
 
-from dataactcore.models.domainModels import matching_cars_subquery, Office, concat_display_tas_dict, \
-    concat_tas_dict_vectorized
+from dataactcore.models.domainModels import Office, concat_display_tas_dict, concat_tas_dict_vectorized
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
@@ -231,18 +232,12 @@ class ValidationManager:
 
             # stream file to S3 when not local
             if not self.is_local:
-                s3_resource = boto3.resource('s3', region_name=region_name)
-                # stream error file
-                with open(self.error_file_path, 'rb') as csv_file:
-                    s3_resource.Object(bucket_name, self.get_file_name(self.error_file_name)).put(Body=csv_file)
-                csv_file.close()
+                s3 = boto3.client('s3', region_name=region_name)
+
+                s3.upload_file(self.error_file_path, bucket_name, self.get_file_name(self.error_file_name))
                 os.remove(self.error_file_path)
 
-                # stream warning file
-                with open(self.warning_file_path, 'rb') as warning_csv_file:
-                    s3_resource.Object(bucket_name,
-                                       self.get_file_name(self.warning_file_name)).put(Body=warning_csv_file)
-                warning_csv_file.close()
+                s3.upload_file(self.warning_file_path, bucket_name, self.get_file_name(self.warning_file_name))
                 os.remove(self.warning_file_path)
 
             # Calculate total number of rows in file that passed validations
@@ -658,7 +653,7 @@ class ValidationManager:
         chunk_df['updated_at'] = now
         chunk_df['job_id'] = self.job.job_id
         chunk_df['submission_id'] = self.submission_id
-        insert_dataframe(chunk_df, self.model.__table__.name, sess.connection())
+        insert_dataframe(chunk_df, self.model.__table__.name, sess.connection(), method='copy')
 
         # Flex Fields
         if flex_data is not None:
@@ -913,9 +908,67 @@ class ValidationManager:
 
 def update_tas_ids(model_class, submission_id):
     sess = GlobalDB.db().session
-    submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
 
-    subquery = matching_cars_subquery(sess, model_class, submission.reporting_start_date, submission.reporting_end_date)
-    sess.query(model_class).filter_by(submission_id=submission_id).\
-        update({getattr(model_class, 'tas_id'): subquery}, synchronize_session=False)
+    submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
+    start_date = submission.reporting_start_date
+    end_date = submission.reporting_end_date
+    day_after_end = end_date + timedelta(days=1)
+
+    logger.info({
+        'message': 'Setting up TAS links',
+        'message_type': 'ValidatorInfo',
+        'submission_id': submission_id,
+        'model_class': str(model_class)
+    })
+    start = time.time()
+
+    update_query = """
+        WITH relevant_tas AS  (
+            SELECT
+                min(tas_lookup.account_num) AS min_account_num,
+                allocation_transfer_agency,
+                agency_identifier,
+                beginning_period_of_availa,
+                ending_period_of_availabil,
+                availability_type_code,
+                main_account_code,
+                sub_account_code
+            FROM
+                tas_lookup
+            WHERE
+                (('{start}'::date, '{end}'::date) OVERLAPS
+                    (tas_lookup.internal_start_date, coalesce(tas_lookup.internal_end_date, '{day_after_end}'::date)))
+            GROUP BY
+                allocation_transfer_agency,
+                agency_identifier,
+                beginning_period_of_availa,
+                ending_period_of_availabil,
+                availability_type_code,
+                main_account_code,
+                sub_account_code
+        )
+        UPDATE {model}
+        SET tas_id = min_account_num
+        FROM relevant_tas
+        WHERE {model}.submission_id = {submission_id}
+            AND coalesce(relevant_tas.allocation_transfer_agency, '') = coalesce({model}.allocation_transfer_agency, '')
+            AND coalesce(relevant_tas.agency_identifier, '') = coalesce({model}.agency_identifier, '')
+            AND coalesce(relevant_tas.beginning_period_of_availa, '') = coalesce({model}.beginning_period_of_availa, '')
+            AND coalesce(relevant_tas.ending_period_of_availabil, '') = coalesce({model}.ending_period_of_availabil, '')
+            AND coalesce(relevant_tas.availability_type_code, '') = coalesce({model}.availability_type_code, '')
+            AND coalesce(relevant_tas.main_account_code, '') = coalesce({model}.main_account_code, '')
+            AND coalesce(relevant_tas.sub_account_code, '') = coalesce({model}.sub_account_code, '');
+    """
+    full_query = update_query.format(start=start_date, end=end_date, day_after_end=day_after_end,
+                                     submission_id=submission_id, model=model_class.__table__.name)
+    sess.execute(full_query)
+
+    logger.info({
+        'message': 'Completed setting up TAS links',
+        'message_type': 'ValidatorInfo',
+        'submission_id': submission_id,
+        'model_class': str(model_class),
+        'duration': time.time() - start
+    })
+
     sess.commit()
