@@ -734,7 +734,7 @@ class FileHandler:
                     WHERE submission_id={submission_id}
                         AND UPPER(correction_delete_indicatr) IN ('C', 'D'))
                 UPDATE published_award_financial_assistance AS pafa
-                SET is_active = False,
+                SET is_active = FALSE,
                     updated_at = nrk.modified_at
                 FROM new_record_keys AS nrk
                 WHERE pafa.submission_id <> {submission_id}
@@ -751,7 +751,7 @@ class FileHandler:
                     FROM published_award_financial_assistance
                     WHERE submission_id={submission_id})
                 UPDATE file_generation
-                SET is_cached_file = False
+                SET is_cached_file = FALSE
                 FROM affected_agencies
                 WHERE awarding_agency_code = agency_code
                     AND is_cached_file IS TRUE
@@ -766,7 +766,7 @@ class FileHandler:
                     FROM published_award_financial_assistance
                     WHERE submission_id={submission_id})
                 UPDATE file_generation
-                SET is_cached_file = False
+                SET is_cached_file = FALSE
                 FROM affected_agencies
                 WHERE funding_agency_code = agency_code
                     AND is_cached_file IS TRUE

@@ -1064,7 +1064,7 @@ def set_active(sess, submission_id):
 
     query = """
         UPDATE published_award_financial_assistance AS pafa
-        SET is_active = True
+        SET is_active = TRUE
         WHERE submission_id = {submission_id}
             AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
     """
