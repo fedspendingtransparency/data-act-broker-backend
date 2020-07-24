@@ -436,13 +436,14 @@ class ValidationManager:
             shared_data['total_rows'] = self.total_rows
             shared_data['has_data'] = self.has_data
             shared_data['error_rows'] = self.error_rows
-            shared_data['error_list_rows'] = []
+            shared_data['error_list'] = self.error_list
             shared_data['header_dict'] = self.reader.header_dict
             shared_data['flex_fields'] = self.reader.flex_fields
-            m_lock = server_manager.Lock()
+            # setting reader to none as multiprocess can't pickle it, it'll get reset
             temp_reader = self.reader
             self.reader = None
 
+            m_lock = server_manager.Lock()
             pool = Pool(MULTIPROCESSING_POOLS)
             for chunk_df in reader_obj:
                 pool.apply_async(func=self.process_data_chunk, args=(chunk_df, shared_data, m_lock))
@@ -453,20 +454,15 @@ class ValidationManager:
             self.total_rows = shared_data['total_rows']
             self.has_data = shared_data['has_data']
             self.error_rows = shared_data['error_rows']
+            self.error_list = shared_data['error_list']
             self.reader = temp_reader
-
-            # In case we need to updating error_list outside cause that cannot happen split inside the processes
-            for row in shared_data['error_list_rows']:
-                self.error_list.record_row_error(self.job.job_id, self.file_name, row['Field Name'],
-                                                 row['error_type'], row['Row Number'], row['Rule Label'],
-                                                 self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
 
     def iterative_data_loading(self, reader_obj):
         shared_data = {
             'total_rows': self.total_rows,
             'has_data': self.has_data,
             'error_rows': self.error_rows,
-            'error_list_rows': [],
+            'error_list': self.error_list,
             'header_dict': self.reader.header_dict,
             'flex_fields': self.reader.flex_fields
         }
@@ -477,12 +473,7 @@ class ValidationManager:
         self.total_rows = shared_data['total_rows']
         self.has_data = shared_data['has_data']
         self.error_rows = shared_data['error_rows']
-
-        # In case we need to updating error_list outside cause that cannot happen split inside the processes
-        for row in shared_data['error_list_rows']:
-            self.error_list.record_row_error(self.job.job_id, self.file_name, row['Field Name'],
-                                             row['error_type'], row['Row Number'], row['Rule Label'],
-                                             self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
+        self.error_list = shared_data['error_list']
 
     def process_data_chunk(self, chunk_df, shared_data, m_lock=None):
         """ Loads in a chunk of the file and performs initial validations
@@ -654,7 +645,9 @@ class ValidationManager:
 
             with lockable:
                 for index, row in total_errors.iterrows():
-                    shared_data['error_list_rows'].append(row)
+                    shared_data['error_list'].record_row_error(self.job.job_id, self.file_name, row['Field Name'],
+                                                         row['error_type'], row['Row Number'], row['Rule Label'],
+                                                         self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
 
             total_errors.drop(['error_type'], axis=1, inplace=True, errors='ignore')
 
