@@ -699,6 +699,11 @@ class FileHandler:
             column_list.remove('is_valid')
             col_string = ", ".join(column_list)
 
+            logger.info({
+                'message': 'Beginning transfer of publishable records',
+                'message_type': 'BrokerDebug',
+                'submission_id': submission_id
+            })
             insert_query = """
                 INSERT INTO published_award_financial_assistance (created_at, updated_at, {cols})
                 SELECT NOW() AS created_at, NOW() AS updated_at, {cols}
@@ -707,6 +712,11 @@ class FileHandler:
                     AND dafa.is_valid IS TRUE;
             """
             sess.execute(insert_query.format(cols=col_string, submission_id=submission_id))
+            logger.info({
+                'message': 'Completed transfer of publishable records',
+                'message_type': 'BrokerDebug',
+                'submission_id': submission_id
+            })
 
             fabs_derivations(sess, submission_id)
 
