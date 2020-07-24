@@ -432,6 +432,7 @@ class ValidationManager:
 
     def parallel_data_loading(self, reader_obj):
         with Manager() as server_manager:
+            # These variables will need to be shared among the processes and used later overall
             shared_data = server_manager.dict()
             shared_data['total_rows'] = self.total_rows
             shared_data['has_data'] = self.has_data
