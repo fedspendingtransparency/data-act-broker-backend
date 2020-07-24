@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import pandas as pd
 import sqlalchemy as sa
 
 from sqlalchemy import (Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, Text, Float, UniqueConstraint,
@@ -57,6 +58,33 @@ def concat_tas_dict(tas_dict):
     tas7 = tas7 if tas7 else '000'
     tas = '{}{}{}{}{}{}{}'.format(tas1, tas2, tas3, tas4, tas5, tas6, tas7)
     return tas
+
+
+def concat_tas_dict_vectorized(frame: pd.DataFrame):
+    """ Given a DataFrame containing columns for all TAS components, build a Series of the TAS string.
+
+        Arguments:
+            frame: the DataFrame from whose columns to build the TAS display string
+
+        Returns:
+            A series containing TAS display strings
+    """
+    tas_frame = frame[list(TAS_COMPONENTS)].copy()
+    tas_frame['allocation_transfer_agency'] = tas_frame['allocation_transfer_agency'].fillna('000')
+    tas_frame['agency_identifier'] = tas_frame['agency_identifier'].fillna('000')
+    tas_frame['beginning_period_of_availa'] = tas_frame['beginning_period_of_availa'].fillna('0000')
+    tas_frame['ending_period_of_availabil'] = tas_frame['ending_period_of_availabil'].fillna('0000')
+    tas_frame['availability_type_code'] = tas_frame['availability_type_code'].fillna(' ')
+    tas_frame['main_account_code'] = tas_frame['main_account_code'].fillna('0000')
+    tas_frame['sub_account_code'] = tas_frame['sub_account_code'].fillna('000')
+    return \
+        tas_frame['allocation_transfer_agency'] + \
+        tas_frame['agency_identifier'] + \
+        tas_frame['beginning_period_of_availa'] + \
+        tas_frame['ending_period_of_availabil'] + \
+        tas_frame['availability_type_code'] + \
+        tas_frame['main_account_code'] + \
+        tas_frame['sub_account_code']
 
 
 def concat_display_tas_dict(tas_dict):
@@ -141,7 +169,7 @@ def is_not_distinct_from(left, right):
     return sa.or_(left == right, sa.and_(left.is_(None), right.is_(None)))
 
 
-def matching_cars_subquery(sess, model_class, start_date, end_date):
+def matching_cars_subquery(sess, model_class, start_date, end_date, submission_id=None):
     """ We frequently need to mass-update records to look up their CARS history entry. This function creates a subquery
         to be used in that update call. We pass in the database session to avoid circular dependencies
     """
@@ -156,12 +184,15 @@ def matching_cars_subquery(sess, model_class, start_date, end_date):
     for field_name in TAS_COMPONENTS:
         tas_col = getattr(TASLookup, field_name)
         model_col = getattr(model_class, field_name)
-        subquery = subquery.filter(is_not_distinct_from(tas_col, model_col))
+        subquery = subquery.filter(sa.func.coalesce(tas_col, '') == sa.func.coalesce(model_col, ''))
 
     day_after_end = end_date + timedelta(days=1)
     model_dates = sa.tuple_(start_date, end_date)
     tas_dates = sa.tuple_(TASLookup.internal_start_date, sa.func.coalesce(TASLookup.internal_end_date, day_after_end))
     subquery = subquery.filter(model_dates.op('OVERLAPS')(tas_dates))
+    if submission_id:
+        model_sub_id = getattr(model_class, 'submission_id')
+        subquery = subquery.filter(submission_id == model_sub_id)
     return subquery.as_scalar()
 
 
