@@ -24,7 +24,7 @@ def log_derivation(message, submission_id, start_time=None):
     }
 
     if start_time:
-        log_message['duration'] = datetime.now() - start_time
+        log_message['duration'] = (datetime.now() - start_time).total_seconds()
     logger.info(log_message)
 
 
@@ -621,7 +621,7 @@ def derive_office_data(sess, submission_id):
                     FROM min_date AS md
                     WHERE upper_fain = UPPER(fain)
                         AND upper_sub_tier = UPPER(awarding_sub_tier_agency_c)
-                        AND CAST(pafa.action_date AS DATE) = min_date
+                        AND cast_as_date(pafa.action_date) = min_date
                 )),
         filtered_offices AS
             (SELECT award_modification_amendme,
@@ -693,7 +693,7 @@ def derive_office_data(sess, submission_id):
                     FROM min_date AS md
                     WHERE upper_uri = UPPER(uri)
                         AND upper_sub_tier = UPPER(awarding_sub_tier_agency_c)
-                        AND CAST(pafa.action_date AS DATE) = min_date
+                        AND cast_as_date(pafa.action_date) = min_date
                 )),
         filtered_offices AS
             (SELECT award_modification_amendme,
