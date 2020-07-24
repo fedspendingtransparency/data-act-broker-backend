@@ -620,7 +620,7 @@ class ValidationManager:
             flex_rows['file_type_id'] = self.file_type.file_type_id
 
             # Adding the entire set of flex fields
-            rows_inserted = insert_dataframe(flex_rows, FlexField.__table__.name, sess.connection())
+            rows_inserted = insert_dataframe(flex_rows, FlexField.__table__.name, sess.connection(), method='copy')
             logger.info({
                 'message': 'Loaded {} flex field rows for batch'.format(rows_inserted),
                 'message_type': 'ValidatorInfo',
