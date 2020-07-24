@@ -27,6 +27,7 @@ from dataactcore.interfaces.function_bag import (
     create_file_if_needed, write_file_error, mark_file_complete, run_job_checks, mark_job_status,
     populate_job_error_info, get_action_dates
 )
+from dataactcore.interfaces.db import db_connection
 
 from dataactcore.models.domainModels import Office, concat_display_tas_dict, concat_tas_dict_vectorized
 from dataactcore.models.jobModels import Submission
@@ -55,6 +56,14 @@ logger = logging.getLogger(__name__)
 CHUNK_SIZE = CONFIG_BROKER['validator_batch_size']
 MULTIPROCESSING_POOLS = CONFIG_BROKER['multiprocessing_pools']
 PARALLEL = CONFIG_BROKER['parallel_loading']
+
+
+class NoLock():
+    def __enter__(self):
+        return None
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return False
 
 
 class ValidationManager:
@@ -430,12 +439,13 @@ class ValidationManager:
             shared_data['error_list_rows'] = []
             shared_data['header_dict'] = self.reader.header_dict
             shared_data['flex_fields'] = self.reader.flex_fields
+            m_lock = server_manager.Lock()
             temp_reader = self.reader
             self.reader = None
 
             pool = Pool(MULTIPROCESSING_POOLS)
             for chunk_df in reader_obj:
-                pool.apply_async(func=self.process_data_chunk, args=(chunk_df, shared_data))
+                pool.apply_async(func=self.process_data_chunk, args=(chunk_df, shared_data, m_lock))
             pool.close()
             pool.join()
 
@@ -474,14 +484,22 @@ class ValidationManager:
                                              row['error_type'], row['Row Number'], row['Rule Label'],
                                              self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
 
-    def process_data_chunk(self, chunk_df, shared_data):
+    def process_data_chunk(self, chunk_df, shared_data, m_lock=None):
         """ Loads in a chunk of the file and performs initial validations
 
             Args:
                 chunk_df: the chunk of the file to process as a dataframe
                 shared_data: dictionary of shared data among the chunks
+                m_lock: manager lock if provided to ensure processes don't override each other
         """
-        sess = GlobalDB.db().session
+        if m_lock:
+            # make a new connection per process
+            sess = db_connection().session
+            lockable = m_lock
+        else:
+            sess = GlobalDB.db().session
+            lockable = NoLock()
+
 
         # Short-circuit if provided an empty dataframe
         if chunk_df.empty:
@@ -514,7 +532,8 @@ class ValidationManager:
         chunk_df['index'] = chunk_df.index
         # index gets reset for each chunk, adding the header, and adding previous rows
         chunk_df['row_number'] = chunk_df.index + 2
-        shared_data['total_rows'] += len(chunk_df.index)
+        with lockable:
+            shared_data['total_rows'] += len(chunk_df.index)
 
         # Increment row numbers if any were ignored being too long
         # This syncs the row numbers back to their original values
@@ -554,7 +573,8 @@ class ValidationManager:
             })
             return
 
-        shared_data['has_data'] = True
+        with lockable:
+            shared_data['has_data'] = True
         if self.is_fabs:
             # create a list of all required/type labels for FABS
             labels = sess.query(ValidationLabel).all()
@@ -572,10 +592,11 @@ class ValidationManager:
             del offices
 
         # Gathering flex data (must be done before chunk limiting)
-        if shared_data['flex_fields']:
-            flex_data = chunk_df.loc[:, list(shared_data['flex_fields'] + ['row_number'])]
-        if flex_data is not None and not flex_data.empty:
-            flex_data['concatted'] = flex_data.apply(lambda x: concat_flex(x), axis=1)
+        with lockable:
+            if shared_data['flex_fields']:
+                flex_data = chunk_df.loc[:, list(shared_data['flex_fields'] + ['row_number'])]
+            if flex_data is not None and not flex_data.empty:
+                flex_data['concatted'] = flex_data.apply(lambda x: concat_flex(x), axis=1)
 
         # Dropping any extraneous fields included + flex data (must be done before file type checking)
         chunk_df = chunk_df[list(self.expected_headers + ['row_number'])]
@@ -629,10 +650,12 @@ class ValidationManager:
             # Converting these to ints because pandas likes to change them to floats randomly
             total_errors[['Row Number', 'error_type']] = total_errors[['Row Number', 'error_type']].astype(int)
 
-            shared_data['error_rows'].extend([int(x) for x in total_errors['Row Number'].tolist()])
+            with lockable:
+                shared_data['error_rows'].extend([int(x) for x in total_errors['Row Number'].tolist()])
 
-            for index, row in total_errors.iterrows():
-                shared_data['error_list_rows'].append(row)
+            with lockable:
+                for index, row in total_errors.iterrows():
+                    shared_data['error_list_rows'].append(row)
 
             total_errors.drop(['error_type'], axis=1, inplace=True, errors='ignore')
 
@@ -660,8 +683,9 @@ class ValidationManager:
             flex_data.drop(['concatted'], axis=1, inplace=True)
             flex_data = flex_data[flex_data['row_number'].isin(chunk_df['row_number'])]
 
-            flex_rows = pd.melt(flex_data, id_vars=['row_number'], value_vars=shared_data['flex_fields'],
-                                var_name='header', value_name='cell')
+            with lockable:
+                flex_rows = pd.melt(flex_data, id_vars=['row_number'], value_vars=shared_data['flex_fields'],
+                                    var_name='header', value_name='cell')
 
             # Filling in all the shared data for these flex fields
             now = datetime.now()
@@ -683,6 +707,8 @@ class ValidationManager:
                 'status': 'end'
             })
         sess.commit()
+        if m_lock:
+            sess.close()
 
         logger.info({
             'message': 'Loaded rows up to {}'.format(chunk_df.iloc[[-1]]['row_number']),
