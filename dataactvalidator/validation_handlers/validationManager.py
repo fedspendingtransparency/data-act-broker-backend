@@ -500,7 +500,6 @@ class ValidationManager:
             sess = GlobalDB.db().session
             lockable = NoLock()
 
-
         # Short-circuit if provided an empty dataframe
         if chunk_df.empty:
             logger.warning({
