@@ -647,8 +647,9 @@ class ValidationManager:
             with lockable:
                 for index, row in total_errors.iterrows():
                     shared_data['error_list'].record_row_error(self.job.job_id, self.file_name, row['Field Name'],
-                                                         row['error_type'], row['Row Number'], row['Rule Label'],
-                                                         self.file_type.file_type_id, None, RULE_SEVERITY_DICT['fatal'])
+                                                               row['error_type'], row['Row Number'], row['Rule Label'],
+                                                               self.file_type.file_type_id, None,
+                                                               RULE_SEVERITY_DICT['fatal'])
 
             total_errors.drop(['error_type'], axis=1, inplace=True, errors='ignore')
 
