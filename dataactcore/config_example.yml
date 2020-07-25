@@ -10,8 +10,8 @@ broker:
 
     # Set to true to run multiple processes concurrently when loading in data
     parallel_loading: false
-    # Specify the number of multiprocessing pools (usually the core cpu count)
-    multiprocessing_pools: 4
+    # Specify the number of multiprocessing pools (0 uses python's os.cpu_count())
+    multiprocessing_pools: 0
 
     # Specify the url where the front end of the application will be accessed.
     # For a local installation this will most likely be localhost or the

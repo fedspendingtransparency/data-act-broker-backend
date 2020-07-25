@@ -54,7 +54,7 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = CONFIG_BROKER['validator_batch_size']
-MULTIPROCESSING_POOLS = CONFIG_BROKER['multiprocessing_pools']
+MULTIPROCESSING_POOLS = CONFIG_BROKER['multiprocessing_pools'] or None
 PARALLEL = CONFIG_BROKER['parallel_loading']
 
 
@@ -486,7 +486,8 @@ class ValidationManager:
         """
         if m_lock:
             # make a new connection per process
-            sess = db_connection().session
+            conn = db_connection()
+            sess = conn.session
             lockable = m_lock
         else:
             sess = GlobalDB.db().session
@@ -702,7 +703,7 @@ class ValidationManager:
             })
         sess.commit()
         if m_lock:
-            sess.close()
+            conn.close()
 
         logger.info({
             'message': 'Loaded rows up to {}'.format(chunk_df['row_number'].iloc[-1]),
