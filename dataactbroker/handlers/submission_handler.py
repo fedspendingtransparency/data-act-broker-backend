@@ -145,6 +145,8 @@ def get_submission_metadata(submission):
         scalar() or 0
 
     certification_deadline = get_certification_deadline(submission)
+    reporting_start = submission.reporting_start_date.strftime('%m/%d/%Y') if submission.reporting_start_date else None
+    reporting_end = submission.reporting_end_date.strftime('%m/%d/%Y') if submission.reporting_end_date else None
 
     return {
         'cgac_code': submission.cgac_code,
@@ -158,8 +160,8 @@ def get_submission_metadata(submission):
         'last_updated': submission.updated_at.strftime('%Y-%m-%dT%H:%M:%S'),
         'last_validated': last_validated,
         'reporting_period': reporting_date(submission),
-        'reporting_start_date': submission.reporting_start_date.strftime('%m/%d/%Y'),
-        'reporting_end_date': submission.reporting_end_date.strftime('%m/%d/%Y'),
+        'reporting_start_date': reporting_start,
+        'reporting_end_date': reporting_end,
         'publish_status': submission.publish_status.name,
         'quarterly_submission': submission.is_quarter_format,
         'test_submission': submission.test_submission,
