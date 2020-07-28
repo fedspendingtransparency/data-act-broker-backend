@@ -172,8 +172,8 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
             file_type: file type being checked
             short_to_long_dict: mapping of short to long schema column names
 
-        Returns:
-            List of ValidationFailures
+        Yields:
+            ValidationFailures
     """
 
     sql_val_start = datetime.now()
@@ -226,8 +226,8 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
             failures = list(failures)
             flex_data = relevant_flex_data(failures, job.job_id)
 
-            errors.extend(failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, failure)
-                          for failure in failures)
+            for failure in failures:
+                yield failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, failure)
 
         rule_duration = (datetime.now() - rule_start).total_seconds()
         logger.info({
