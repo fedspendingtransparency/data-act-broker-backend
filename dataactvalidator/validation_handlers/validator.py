@@ -2,6 +2,7 @@ from collections import defaultdict, namedtuple
 from datetime import datetime
 import logging
 
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import RuleSql
 from dataactcore.interfaces.db import GlobalDB
@@ -12,6 +13,8 @@ Failure = namedtuple('Failure', ['unique_id', 'field', 'description', 'value', '
 ValidationFailure = namedtuple('ValidationFailure', ['unique_id', 'field_name', 'error', 'failed_value',
                                                      'expected_value', 'difference', 'flex_fields', 'row',
                                                      'original_label', 'file_type_id', 'target_file_id', 'severity_id'])
+
+SQL_VALIDATION_BATCH_SIZE = CONFIG_BROKER['validator_batch_size']
 
 
 def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_csv, warning_csv, error_list):
@@ -164,7 +167,7 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
         })
 
 
-def validate_file_by_sql(job, file_type, short_to_long_dict):
+def validate_file_by_sql(job, file_type, short_to_long_dict, queries_only=True):
     """ Check all SQL rules
 
         Args:
@@ -211,13 +214,12 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
             'start_time': rule_start
         })
 
-        failures = sess.execute(rule.rule_sql.format(job.submission_id))
-        if failures.rowcount:
+        def process_batch(failures, columns):
             # Create column list (exclude row_number)
             cols = []
             exact_names = ['row_number', 'difference']
             starting = ('expected_value_', 'uniqueid_')
-            for col in failures.keys():
+            for col in columns:
                 if col not in exact_names and not col.startswith(starting):
                     cols.append(col)
             col_headers = [short_to_long_dict.get(field, field) for field in cols]
@@ -228,6 +230,24 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
 
             for failure in failures:
                 yield failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, failure)
+
+        sub_rule_sql = rule.rule_sql.format(job.submission_id)
+        if queries_only:
+            # Run the full SQL and fetch the results
+            failures = sess.execute(sub_rule_sql)
+            if failures.rowcount:
+                for failure in process_batch(failures, failures.keys()):
+                    yield failure
+        else:
+            # Only run the SQL in batches to save on memory
+            proxy = sess.connection().execution_options(stream_results=True).execute(sub_rule_sql)
+            while True:
+                failures = proxy.fetchmany(SQL_VALIDATION_BATCH_SIZE)
+                if not failures:
+                    break
+                for failure in process_batch(failures, failures[0].keys()):
+                    yield failure
+            proxy.close()
 
         rule_duration = (datetime.now() - rule_start).total_seconds()
         logger.info({

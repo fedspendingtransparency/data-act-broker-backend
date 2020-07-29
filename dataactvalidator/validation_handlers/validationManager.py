@@ -652,7 +652,8 @@ class ValidationManager:
             a list of the row numbers that failed one of the sql-based validations
         """
         for failure in validate_file_by_sql(self.job, self.file_type.name,
-                                            self.short_to_long_dict[self.file_type.file_type_id]):
+                                            self.short_to_long_dict[self.file_type.file_type_id],
+                                            queries_only=False):
             self.process_failure(failure, short_colnames, writer, warning_writer)
 
     def process_failure(self, failure, short_colnames, writer, warning_writer):
