@@ -1726,3 +1726,5 @@ Index("ix_pafa_legal_entity_state_code_upper", func.upper(PublishedAwardFinancia
 Index("ix_pafa_legal_entity_country_code_upper",
       func.upper(PublishedAwardFinancialAssistance.legal_entity_country_code))
 Index("ix_pafa_business_funds_indicator_upper", func.upper(PublishedAwardFinancialAssistance.business_funds_indicator))
+Index("ix_pafa_awarding_office_code_upper", func.upper(PublishedAwardFinancialAssistance.awarding_office_code))
+Index("ix_pafa_funding_office_code_upper", func.upper(PublishedAwardFinancialAssistance.funding_office_code))
