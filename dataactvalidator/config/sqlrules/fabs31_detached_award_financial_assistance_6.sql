@@ -2,14 +2,6 @@
 -- AwardeeOrRecipientUniqueIdentifier should be active as of the ActionDate, unless the record is an aggregate
 -- or PII-redacted non-aggregate record (RecordType=1 or 3) awarded to an or individual recipient (BusinessTypes
 -- includes 'P'). This is a warning because CorrectionDeleteIndicator is C and the action date is before January 1, 2017
-CREATE OR REPLACE function pg_temp.is_date(str text) returns boolean AS $$
-BEGIN
-    perform CAST(str AS DATE);
-    return TRUE;
-EXCEPTION WHEN others THEN
-    return FALSE;
-END;
-$$ LANGUAGE plpgsql;
 
 WITH detached_award_financial_assistance_fabs31_6_{0} AS
     (SELECT row_number,
@@ -49,10 +41,10 @@ WHERE NOT (dafa.record_type IN (1, 3)
     AND UPPER(dafa.action_type) = 'A'
     AND UPPER(COALESCE(dafa.correction_delete_indicatr, '')) = 'C'
     AND dafa.awardee_or_recipient_uniqu ~ '^\d\d\d\d\d\d\d\d\d$'
-    AND (CASE WHEN pg_temp.is_date(COALESCE(dafa.action_date, '0'))
+    AND (CASE WHEN is_date(COALESCE(dafa.action_date, '0'))
             THEN CAST(dafa.action_date AS DATE)
         END) < CAST('01/01/2017' AS DATE)
-    AND (CASE WHEN pg_temp.is_date(COALESCE(dafa.action_date, '0'))
+    AND (CASE WHEN is_date(COALESCE(dafa.action_date, '0'))
             THEN CAST(dafa.action_date AS DATE)
         END) > CAST('10/01/2010' AS DATE)
     AND COALESCE(dafa.awardee_or_recipient_uniqu, '') IN (SELECT DISTINCT duns_short.awardee_or_recipient_uniqu
@@ -63,10 +55,10 @@ WHERE NOT (dafa.record_type IN (1, 3)
             FROM detached_award_financial_assistance_fabs31_6_{0} AS sub_dafa
                 JOIN duns_fabs31_6_{0} AS short_duns
                 ON short_duns.awardee_or_recipient_uniqu = sub_dafa.awardee_or_recipient_uniqu
-                AND (CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
+                AND (CASE WHEN is_date(COALESCE(sub_dafa.action_date, '0'))
                         THEN CAST(sub_dafa.action_date AS DATE)
                     END) >= CAST(short_duns.registration_date AS DATE)
-                AND (CASE WHEN pg_temp.is_date(COALESCE(sub_dafa.action_date, '0'))
+                AND (CASE WHEN is_date(COALESCE(sub_dafa.action_date, '0'))
                         THEN CAST(sub_dafa.action_date AS DATE)
                     END) < CAST(short_duns.expiration_date AS DATE)
             );

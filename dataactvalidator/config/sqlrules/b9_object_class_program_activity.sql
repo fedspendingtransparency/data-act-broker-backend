@@ -1,17 +1,6 @@
 -- Must be a valid program activity name and code for the corresponding TAS/TAFS as defined in Section 82 of OMB
 -- Circular A-11. If the program activity is unknown, enter "0000" and "Unknown/Other" as your code and name,
 -- respectively. The rule should not trigger at all for re-certifications of FY17Q2 and FY17Q3.
-CREATE OR REPLACE function pg_temp.is_zero(NUMERIC) returns INTEGER AS $$
-BEGIN
-    perform CAST($1 AS NUMERIC);
-    CASE WHEN $1 <> 0
-        THEN return 1;
-        ELSE return 0;
-    END CASE;
-EXCEPTION WHEN others THEN
-    return 0;
-END;
-$$ LANGUAGE plpgsql;
 
 WITH object_class_program_activity_b9_{0} AS
     (SELECT *
@@ -44,19 +33,19 @@ WHERE (sub.reporting_fiscal_year, sub.reporting_fiscal_period) NOT IN (('2017', 
         OR UPPER(op.program_activity_name) <> 'UNKNOWN/OTHER'
         -- return sum of true/false statements of whether all numerical values are zero or not (1 = not zero)
         -- (see if there are any non-zero values basically)
-        OR (pg_temp.is_zero(op.deobligations_recov_by_pro_cpe) + pg_temp.is_zero(op.gross_outlay_amount_by_pro_cpe) +
-            pg_temp.is_zero(op.gross_outlay_amount_by_pro_fyb) + pg_temp.is_zero(op.gross_outlays_delivered_or_cpe) +
-            pg_temp.is_zero(op.gross_outlays_delivered_or_fyb) + pg_temp.is_zero(op.gross_outlays_undelivered_cpe) +
-            pg_temp.is_zero(op.gross_outlays_undelivered_fyb) + pg_temp.is_zero(op.obligations_delivered_orde_cpe) +
-            pg_temp.is_zero(op.obligations_delivered_orde_fyb) + pg_temp.is_zero(op.obligations_incurred_by_pr_cpe) +
-            pg_temp.is_zero(op.obligations_undelivered_or_cpe) + pg_temp.is_zero(op.obligations_undelivered_or_fyb) +
-            pg_temp.is_zero(op.ussgl480100_undelivered_or_cpe) + pg_temp.is_zero(op.ussgl480100_undelivered_or_fyb) +
-            pg_temp.is_zero(op.ussgl480200_undelivered_or_cpe) + pg_temp.is_zero(op.ussgl480200_undelivered_or_fyb) +
-            pg_temp.is_zero(op.ussgl483100_undelivered_or_cpe) + pg_temp.is_zero(op.ussgl483200_undelivered_or_cpe) +
-            pg_temp.is_zero(op.ussgl487100_downward_adjus_cpe) + pg_temp.is_zero(op.ussgl487200_downward_adjus_cpe) +
-            pg_temp.is_zero(op.ussgl488100_upward_adjustm_cpe) + pg_temp.is_zero(op.ussgl488200_upward_adjustm_cpe) +
-            pg_temp.is_zero(op.ussgl490100_delivered_orde_cpe) + pg_temp.is_zero(op.ussgl490100_delivered_orde_fyb) +
-            pg_temp.is_zero(op.ussgl490200_delivered_orde_cpe) + pg_temp.is_zero(op.ussgl490800_authority_outl_cpe) +
-            pg_temp.is_zero(op.ussgl490800_authority_outl_fyb) + pg_temp.is_zero(op.ussgl493100_delivered_orde_cpe) +
-            pg_temp.is_zero(op.ussgl497100_downward_adjus_cpe) + pg_temp.is_zero(op.ussgl497200_downward_adjus_cpe) +
-            pg_temp.is_zero(op.ussgl498100_upward_adjustm_cpe) + pg_temp.is_zero(op.ussgl498200_upward_adjustm_cpe)) <> 0);
+        OR (is_zero(op.deobligations_recov_by_pro_cpe) + is_zero(op.gross_outlay_amount_by_pro_cpe) +
+            is_zero(op.gross_outlay_amount_by_pro_fyb) + is_zero(op.gross_outlays_delivered_or_cpe) +
+            is_zero(op.gross_outlays_delivered_or_fyb) + is_zero(op.gross_outlays_undelivered_cpe) +
+            is_zero(op.gross_outlays_undelivered_fyb) + is_zero(op.obligations_delivered_orde_cpe) +
+            is_zero(op.obligations_delivered_orde_fyb) + is_zero(op.obligations_incurred_by_pr_cpe) +
+            is_zero(op.obligations_undelivered_or_cpe) + is_zero(op.obligations_undelivered_or_fyb) +
+            is_zero(op.ussgl480100_undelivered_or_cpe) + is_zero(op.ussgl480100_undelivered_or_fyb) +
+            is_zero(op.ussgl480200_undelivered_or_cpe) + is_zero(op.ussgl480200_undelivered_or_fyb) +
+            is_zero(op.ussgl483100_undelivered_or_cpe) + is_zero(op.ussgl483200_undelivered_or_cpe) +
+            is_zero(op.ussgl487100_downward_adjus_cpe) + is_zero(op.ussgl487200_downward_adjus_cpe) +
+            is_zero(op.ussgl488100_upward_adjustm_cpe) + is_zero(op.ussgl488200_upward_adjustm_cpe) +
+            is_zero(op.ussgl490100_delivered_orde_cpe) + is_zero(op.ussgl490100_delivered_orde_fyb) +
+            is_zero(op.ussgl490200_delivered_orde_cpe) + is_zero(op.ussgl490800_authority_outl_cpe) +
+            is_zero(op.ussgl490800_authority_outl_fyb) + is_zero(op.ussgl493100_delivered_orde_cpe) +
+            is_zero(op.ussgl497100_downward_adjus_cpe) + is_zero(op.ussgl497200_downward_adjus_cpe) +
+            is_zero(op.ussgl498100_upward_adjustm_cpe) + is_zero(op.ussgl498200_upward_adjustm_cpe)) <> 0);
