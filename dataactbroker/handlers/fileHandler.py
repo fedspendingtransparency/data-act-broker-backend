@@ -689,7 +689,7 @@ class FileHandler:
             log_data['message'] = 'Starting derivations for FABS submission (total count: {})'.format(total_count)
             logger.info(log_data)
 
-            # Insert all non-error rows into published table
+            # Insert all non-error, non-delete rows into published table
             column_list = [col.key for col in DetachedAwardFinancialAssistance.__table__.columns]
             column_list.remove('created_at')
             column_list.remove('updated_at')
@@ -697,28 +697,154 @@ class FileHandler:
             column_list.remove('job_id')
             column_list.remove('row_number')
             column_list.remove('is_valid')
-            col_string = ", ".join(column_list)
+            detached_col_string = ", ".join(column_list)
+
+            column_list = [col.key for col in PublishedAwardFinancialAssistance.__table__.columns]
+            column_list.remove('created_at')
+            column_list.remove('updated_at')
+            column_list.remove('modified_at')
+            column_list.remove('published_award_financial_assistance_id')
+            published_col_string = ", ".join(column_list)
 
             logger.info({
-                'message': 'Beginning transfer of publishable records',
+                'message': 'Beginning transfer of publishable records to temp table',
                 'message_type': 'BrokerDebug',
                 'submission_id': submission_id
             })
+            create_table_sql = """
+                CREATE TEMP TABLE tmp_fabs_{submission_id}
+                ON COMMIT DROP
+                AS
+                    SELECT {cols}
+                    FROM published_award_financial_assistance
+                    WHERE false;
+
+                ALTER TABLE tmp_fabs_{submission_id} ADD COLUMN published_award_financial_assistance_id
+                    SERIAL PRIMARY KEY;
+            """.format(submission_id=submission_id, cols=published_col_string)
+            sess.execute(create_table_sql)
+
+            # CREATE INDEX ix_tmp_fabs_{submission_id}_uri_awarding_sub_tier_active_upper ON
+            #                     tmp_fabs_{submission_id} (UPPER(uri), UPPER(awarding_sub_tier_agency_c), is_active);
+            # CREATE INDEX ix_tmp_fabs_{submission_id}_fain_awarding_sub_tier_active_upper ON
+            #                     tmp_fabs_{submission_id} (UPPER(fain), UPPER(awarding_sub_tier_agency_c), is_active);
+            create_indexes_sql = """
+                CREATE INDEX ix_tmp_fabs_{submission_id}_funding_office_code_upper ON
+                    tmp_fabs_{submission_id} (upper(funding_office_code));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_awarding_office_code_upper ON
+                    tmp_fabs_{submission_id} (upper(awarding_office_code));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_business_funds_indicator_upper ON
+                    tmp_fabs_{submission_id} (upper(business_funds_indicator));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_country_code_upper ON
+                    tmp_fabs_{submission_id} (upper(legal_entity_country_code));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_state_code_upper ON
+                    tmp_fabs_{submission_id} (upper(legal_entity_state_code));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_city_name_upper ON
+                    tmp_fabs_{submission_id} (upper(legal_entity_city_name));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_business_types ON tmp_fabs_{submission_id} (business_types);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_award_mod ON
+                    tmp_fabs_{submission_id} (award_modification_amendme);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_zip_last4 ON
+                    tmp_fabs_{submission_id} (legal_entity_zip_last4);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_zip5 ON tmp_fabs_{submission_id} (legal_entity_zip5);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_state_code ON
+                    tmp_fabs_{submission_id} (legal_entity_state_code);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_county_code ON
+                    tmp_fabs_{submission_id} (legal_entity_county_code);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_le_congressional ON
+                    tmp_fabs_{submission_id} (legal_entity_congressional);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_ppop_state_code ON
+                    tmp_fabs_{submission_id} (place_of_perfor_state_code);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_ppop_zip5 ON
+                    tmp_fabs_{submission_id} (place_of_performance_zip5);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_ppop_county_code ON
+                    tmp_fabs_{submission_id} (place_of_perform_county_co);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_ppop_zip_last4 ON
+                    tmp_fabs_{submission_id} (place_of_perform_zip_last4);
+
+                CREATE INDEX ix_tmp_fabs_{submission_id}_uri_awarding_sub_tier_upper ON
+                    tmp_fabs_{submission_id} (UPPER(uri), UPPER(awarding_sub_tier_agency_c));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_fain_awarding_sub_tier_upper ON
+                    tmp_fabs_{submission_id} (UPPER(fain), UPPER(awarding_sub_tier_agency_c));
+
+                CREATE INDEX ix_tmp_fabs_{submission_id}_awarding_sub_tier_upper ON
+                    tmp_fabs_{submission_id} (upper(awarding_sub_tier_agency_c));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_uri_upper ON
+                    tmp_fabs_{submission_id} (upper(uri));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_fain_upper ON
+                    tmp_fabs_{submission_id} (upper(fain));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_cdi_upper ON
+                    tmp_fabs_{submission_id} (upper(correction_delete_indicatr));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_cast_action_date_as_date ON
+                    tmp_fabs_{submission_id} (cast_as_date(action_date));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_record_type ON
+                    tmp_fabs_{submission_id} (record_type);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_ppop_congr ON
+                    tmp_fabs_{submission_id} (place_of_performance_congr);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_ppop_country_upper ON
+                    tmp_fabs_{submission_id} (UPPER(place_of_perform_country_c));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_funding_sub_tier_upper ON
+                    tmp_fabs_{submission_id} (UPPER(funding_sub_tier_agency_co));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_cfda_num ON
+                    tmp_fabs_{submission_id} (cfda_number);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_awardee_unique ON
+                    tmp_fabs_{submission_id} (awardee_or_recipient_uniqu);
+                CREATE INDEX ix_tmp_fabs_{submission_id}_assistance_type_upper ON
+                    tmp_fabs_{submission_id} (upper(assistance_type));
+                CREATE INDEX ix_tmp_fabs_{submission_id}_action_type_upper ON
+                    tmp_fabs_{submission_id} (upper(action_type));
+            """.format(submission_id=submission_id)
+            sess.execute(create_indexes_sql)
+
+            # sess.execute('VACUUM ANALYZE tmp_fabs_{submission_id}'.format(subission_id=submission_id))
+
             insert_query = """
-                INSERT INTO published_award_financial_assistance (created_at, updated_at, {cols})
-                SELECT NOW() AS created_at, NOW() AS updated_at, {cols}
+                INSERT INTO tmp_fabs_{submission_id} ({cols})
+                SELECT {cols}
                 FROM detached_award_financial_assistance AS dafa
                 WHERE dafa.submission_id = {submission_id}
-                    AND dafa.is_valid IS TRUE;
+                    AND dafa.is_valid IS TRUE
+                    AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
             """
-            sess.execute(insert_query.format(cols=col_string, submission_id=submission_id))
+            sess.execute(insert_query.format(cols=detached_col_string, submission_id=submission_id))
             logger.info({
-                'message': 'Completed transfer of publishable records',
+                'message': 'Completed transfer of publishable records to temp table',
                 'message_type': 'BrokerDebug',
                 'submission_id': submission_id
             })
 
             fabs_derivations(sess, submission_id)
+
+            logger.info({
+                'message': 'Beginning transfer of records from temp table to published table',
+                'message_type': 'BrokerDebug',
+                'submission_id': submission_id
+            })
+
+            # Inserting non-delete records
+            insert_query = """
+                INSERT INTO published_award_financial_assistance (created_at, updated_at, {cols}, modified_at)
+                SELECT NOW() AS created_at, NOW() AS updated_at, {cols}, NOW() AS modified_at
+                FROM tmp_fabs_{submission_id} AS tmp_fabs;
+            """
+            sess.execute(insert_query.format(cols=published_col_string, submission_id=submission_id))
+
+            # Inserting delete records, we didn't have to process these
+            insert_query = """
+                INSERT INTO published_award_financial_assistance (created_at, updated_at, {cols}, modified_at)
+                SELECT NOW() AS created_at, NOW() AS updated_at, {cols}, NOW() AS modified_at
+                FROM detached_award_financial_assistance AS dafa
+                WHERE dafa.submission_id = {submission_id}
+                    AND dafa.is_valid IS TRUE
+                    AND UPPER(COALESCE(correction_delete_indicatr, '')) = 'D';
+            """
+            sess.execute(insert_query.format(cols=detached_col_string, submission_id=submission_id))
+
+            logger.info({
+                'message': 'Completed transfer of records from temp table to published table',
+                'message_type': 'BrokerDebug',
+                'submission_id': submission_id
+            })
 
             logger.info({
                 'message': 'Beginning uncaching old files and deactivating old records',

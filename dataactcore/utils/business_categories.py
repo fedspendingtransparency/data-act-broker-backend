@@ -493,10 +493,8 @@ def derive_fabs_business_categories(sess, submission_id):
     """)
 
     query = """
-        UPDATE published_award_financial_assistance AS pafa
-        SET business_categories = compile_fabs_business_categories(UPPER(business_types))
-        WHERE submission_id = {submission_id}
-            AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
+        UPDATE tmp_fabs_{submission_id}
+        SET business_categories = compile_fabs_business_categories(UPPER(business_types));
     """
     sess.execute(query.format(submission_id=submission_id))
 

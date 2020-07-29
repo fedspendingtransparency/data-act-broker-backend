@@ -120,46 +120,80 @@ def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_cod
                         award_mod_amend=None, fain=None, uri=None, cdi=None, awarding_office='03ab03',
                         funding_office='03ab03', legal_congr=None, primary_place_country='USA', legal_country='USA',
                         legal_foreign_city=None, action_type=None, assist_type=None, busi_type=None, busi_fund=None,
-                        awardee_or_recipient_uniqu=None, submission_id=9999,
-                        afa_generated_unique='unique-key'):
+                        awardee_or_recipient_uniqu=None, submission_id=9999):
     """ Initialize the values in the object being run through the fabs_derivations function """
-    pafa = PublishedAwardFinancialAssistance(federal_action_obligation=fao,
-                                             non_federal_funding_amount=nffa,
-                                             cfda_number=cfda_num,
-                                             awarding_sub_tier_agency_c=sub_tier_code,
-                                             funding_sub_tier_agency_co=sub_fund_agency_code,
-                                             place_of_performance_code=ppop_code,
-                                             place_of_performance_zip4a=ppop_zip4a,
-                                             place_of_performance_congr=ppop_cd,
-                                             legal_entity_zip5=le_zip5,
-                                             legal_entity_zip_last4=le_zip4,
-                                             record_type=record_type,
-                                             award_modification_amendme=award_mod_amend,
-                                             fain=fain,
-                                             uri=uri,
-                                             correction_delete_indicatr=cdi,
-                                             awarding_office_code=awarding_office,
-                                             funding_office_code=funding_office,
-                                             legal_entity_congressional=legal_congr,
-                                             place_of_perform_country_c=primary_place_country,
-                                             legal_entity_country_code=legal_country,
-                                             legal_entity_foreign_city=legal_foreign_city,
-                                             awardee_or_recipient_uniqu=awardee_or_recipient_uniqu,
-                                             action_type=action_type,
-                                             assistance_type=assist_type,
-                                             business_types=busi_type,
-                                             business_funds_indicator=busi_fund,
-                                             submission_id=submission_id,
-                                             afa_generated_unique=afa_generated_unique)
-    db.session.add(pafa)
+    column_list = [col.key for col in PublishedAwardFinancialAssistance.__table__.columns]
+    column_list.remove('created_at')
+    column_list.remove('updated_at')
+    column_list.remove('modified_at')
+    column_list.remove('published_award_financial_assistance_id')
+    col_string = ", ".join(column_list)
+
+    create_query = """
+        DROP TABLE IF EXISTS tmp_fabs_{submission_id};
+
+        CREATE TABLE tmp_fabs_{submission_id}
+        AS
+            SELECT {cols}
+            FROM published_award_financial_assistance
+            WHERE false;
+
+        TRUNCATE TABLE tmp_fabs_{submission_id};
+
+        ALTER TABLE tmp_fabs_{submission_id} ADD COLUMN published_award_financial_assistance_id SERIAL PRIMARY KEY;
+    """
+    db.session.execute(create_query.format(submission_id=submission_id, cols=col_string))
+
+    insert_query = """
+        INSERT INTO tmp_fabs_{submission_id} (federal_action_obligation, non_federal_funding_amount, cfda_number,
+            awarding_sub_tier_agency_c, funding_sub_tier_agency_co, place_of_performance_code,
+            place_of_performance_zip4a, place_of_performance_congr, legal_entity_zip5, legal_entity_zip_last4,
+            record_type, award_modification_amendme, fain, uri, correction_delete_indicatr, awarding_office_code,
+            funding_office_code, legal_entity_congressional, place_of_perform_country_c, legal_entity_country_code,
+            legal_entity_foreign_city, awardee_or_recipient_uniqu, action_type, assistance_type, business_types,
+            business_funds_indicator)
+        VALUES ({fao}, {nffa}, {cfda_num}, {sub_tier_code}, {sub_fund_agency_code}, {ppop_code}, {ppop_zip4a},
+            {ppop_cd}, {le_zip5}, {le_zip4}, {record_type}, {award_mod_amend}, {fain}, {uri}, {cdi}, {awarding_office},
+            {funding_office}, {legal_congr}, {primary_place_country}, {legal_country}, {legal_foreign_city},
+            {awardee_or_recipient_uniqu}, {action_type}, {assist_type}, {busi_type}, {busi_fund})
+    """.format(submission_id=submission_id,
+               fao=fao if fao else 'NULL',
+               nffa=nffa if nffa else 'NULL',
+               cfda_num='\'{}\''.format(cfda_num) if cfda_num else 'NULL',
+               sub_tier_code='\'{}\''.format(sub_tier_code) if sub_tier_code else 'NULL',
+               sub_fund_agency_code='\'{}\''.format(sub_fund_agency_code) if sub_fund_agency_code else 'NULL',
+               ppop_code='\'{}\''.format(ppop_code) if ppop_code else 'NULL',
+               ppop_zip4a='\'{}\''.format(ppop_zip4a) if ppop_zip4a else 'NULL',
+               ppop_cd='\'{}\''.format(ppop_cd) if ppop_cd else 'NULL',
+               le_zip5='\'{}\''.format(le_zip5) if le_zip5 else 'NULL',
+               le_zip4='\'{}\''.format(le_zip4) if le_zip4 else 'NULL',
+               record_type=record_type if record_type else 'NULL',
+               award_mod_amend='\'{}\''.format(award_mod_amend) if award_mod_amend else 'NULL',
+               fain='\'{}\''.format(fain) if fain else 'NULL',
+               uri='\'{}\''.format(uri) if uri else 'NULL',
+               cdi='\'{}\''.format(cdi) if cdi else 'NULL',
+               awarding_office='\'{}\''.format(awarding_office) if awarding_office else 'NULL',
+               funding_office='\'{}\''.format(funding_office) if funding_office else 'NULL',
+               legal_congr='\'{}\''.format(legal_congr) if legal_congr else 'NULL',
+               primary_place_country='\'{}\''.format(primary_place_country) if primary_place_country else 'NULL',
+               legal_country='\'{}\''.format(legal_country) if legal_country else 'NULL',
+               legal_foreign_city='\'{}\''.format(legal_foreign_city) if legal_foreign_city else 'NULL',
+               awardee_or_recipient_uniqu='\'{}\''.format(awardee_or_recipient_uniqu) if awardee_or_recipient_uniqu
+                    else 'NULL',
+               action_type='\'{}\''.format(action_type) if action_type else 'NULL',
+               assist_type='\'{}\''.format(assist_type) if assist_type else 'NULL',
+               busi_type='\'{}\''.format(busi_type) if busi_type else 'NULL',
+               busi_fund='\'{}\''.format(busi_fund) if busi_fund else 'NULL')
+    db.session.execute(insert_query)
     db.session.commit()
-    return pafa.submission_id
+    return submission_id
 
 
 def get_derived_fabs(db, submission_id):
     """ Retrieve the derived submission information. """
-    derived_fabs = db.session.query(PublishedAwardFinancialAssistance).filter_by(submission_id=submission_id).first()
-    return derived_fabs
+    res = db.session.execute('SELECT * FROM tmp_fabs_{submission_id}'.format(submission_id=submission_id))
+    # derived_fabs = db.session.query(PublishedAwardFinancialAssistance).filter_by(submission_id=submission_id).first()
+    return res.fetchone()
 
 
 def test_total_funding_amount(database):
@@ -477,7 +511,7 @@ def test_derive_office_data(database):
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
-    assert fabs_obj.awarding_office_code == '03aB03'
+    assert fabs_obj.awarding_office_code == '03AB03'
     assert fabs_obj.awarding_office_name == 'Office'
     assert fabs_obj.funding_office_code is None
     assert fabs_obj.funding_office_name is None
@@ -502,7 +536,7 @@ def test_derive_office_data(database):
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.awarding_office_code is None
     assert fabs_obj.awarding_office_name is None
-    assert fabs_obj.funding_office_code == '03aB03'
+    assert fabs_obj.funding_office_code == '03AB03'
     assert fabs_obj.funding_office_name == 'Office'
 
     # if office_code is not present, derive it from historical data (record type 1 uses uri, ignores fain)
@@ -512,7 +546,7 @@ def test_derive_office_data(database):
     fabs_derivations(database.session, submission_id)
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
-    assert fabs_obj.awarding_office_code == '03aB03'
+    assert fabs_obj.awarding_office_code == '03AB03'
     assert fabs_obj.awarding_office_name == 'Office'
     assert fabs_obj.funding_office_code is None
     assert fabs_obj.funding_office_name is None
@@ -537,7 +571,7 @@ def test_derive_office_data(database):
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.awarding_office_code is None
     assert fabs_obj.awarding_office_name is None
-    assert fabs_obj.funding_office_code == '03aB03'
+    assert fabs_obj.funding_office_code == '03AB03'
     assert fabs_obj.funding_office_name == 'Office'
 
     # if office_code is not present and valid uri is given but it's record type 2, everything should be empty
@@ -877,13 +911,6 @@ def test_is_active(database):
     database.session.commit()
     fabs_obj = get_derived_fabs(database, submission_id)
     assert fabs_obj.is_active is True
-
-    # Testing with D
-    submission_id = initialize_test_row(database, cdi='D', submission_id=4)
-    fabs_derivations(database.session, submission_id)
-    database.session.commit()
-    fabs_obj = get_derived_fabs(database, submission_id)
-    assert fabs_obj.is_active is False
 
 
 def test_derive_ppop_scope(database):
