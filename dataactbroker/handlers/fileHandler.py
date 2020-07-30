@@ -16,7 +16,7 @@ from sqlalchemy.sql.expression import case
 
 from dataactbroker.handlers.submission_handler import (create_submission, get_submission_status, get_submission_files,
                                                        get_submissions_in_period)
-from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations
+from dataactbroker.helpers.fabs_derivations_helper import fabs_derivations, log_derivation
 from dataactbroker.helpers.filters_helper import permissions_filter, agency_filter
 from dataactbroker.permissions import current_user_can_on_submission
 
@@ -629,12 +629,7 @@ class FileHandler:
             raise ResponseException('Submission has unfinished jobs and cannot be published', StatusCode.CLIENT_ERROR)
 
         # if it's an unpublished FABS submission that has only finished jobs, we can start the process
-        log_data = {
-            'message': 'Starting FABS submission publishing',
-            'message_type': 'BrokerDebug',
-            'submission_id': submission_id
-        }
-        logger.info(log_data)
+        log_derivation('Starting FABS submission publishing', submission_id)
 
         # set publish_status to "publishing"
         sess.query(Submission).filter_by(submission_id=submission_id).\
@@ -686,8 +681,8 @@ class FileHandler:
 
             total_count = sess.query(DetachedAwardFinancialAssistance). \
                 filter_by(is_valid=True, submission_id=submission_id).count()
-            log_data['message'] = 'Starting derivations for FABS submission (total count: {})'.format(total_count)
-            logger.info(log_data)
+            log_derivation('Starting derivations for FABS submission (total count: {})'.format(total_count),
+                           submission_id)
 
             # Insert all non-error, non-delete rows into published table
             column_list = [col.key for col in DetachedAwardFinancialAssistance.__table__.columns]
@@ -707,11 +702,7 @@ class FileHandler:
             column_list.remove('published_award_financial_assistance_id')
             published_col_string = ", ".join(column_list)
 
-            logger.info({
-                'message': 'Beginning transfer of publishable records to temp table',
-                'message_type': 'BrokerDebug',
-                'submission_id': submission_id
-            })
+            log_derivation('Beginning transfer of publishable records to temp table', submission_id)
             create_table_sql = """
                 CREATE TEMP TABLE tmp_fabs_{submission_id}
                 ON COMMIT DROP
@@ -725,10 +716,6 @@ class FileHandler:
             """.format(submission_id=submission_id, cols=published_col_string)
             sess.execute(create_table_sql)
 
-            # CREATE INDEX ix_tmp_fabs_{submission_id}_uri_awarding_sub_tier_active_upper ON
-            #                     tmp_fabs_{submission_id} (UPPER(uri), UPPER(awarding_sub_tier_agency_c), is_active);
-            # CREATE INDEX ix_tmp_fabs_{submission_id}_fain_awarding_sub_tier_active_upper ON
-            #                     tmp_fabs_{submission_id} (UPPER(fain), UPPER(awarding_sub_tier_agency_c), is_active);
             create_indexes_sql = """
                 CREATE INDEX ix_tmp_fabs_{submission_id}_funding_office_code_upper ON
                     tmp_fabs_{submission_id} (upper(funding_office_code));
@@ -806,19 +793,14 @@ class FileHandler:
                     AND UPPER(COALESCE(correction_delete_indicatr, '')) <> 'D';
             """
             sess.execute(insert_query.format(cols=detached_col_string, submission_id=submission_id))
-            logger.info({
-                'message': 'Completed transfer of publishable records to temp table',
-                'message_type': 'BrokerDebug',
-                'submission_id': submission_id
-            })
+            log_derivation('Completed transfer of publishable records to temp table', submission_id)
 
+            fabs_start = datetime.now()
+            log_derivation('Beginning main FABS derivations', submission_id)
             fabs_derivations(sess, submission_id)
+            log_derivation('Completed main FABS derivations', submission_id, fabs_start)
 
-            logger.info({
-                'message': 'Beginning transfer of records from temp table to published table',
-                'message_type': 'BrokerDebug',
-                'submission_id': submission_id
-            })
+            log_derivation('Beginning transfer of records from temp table to published table', submission_id)
 
             # Inserting non-delete records
             insert_query = """
@@ -840,17 +822,9 @@ class FileHandler:
             """
             sess.execute(insert_query.format(cols=detached_col_string, submission_id=submission_id))
 
-            logger.info({
-                'message': 'Completed transfer of records from temp table to published table',
-                'message_type': 'BrokerDebug',
-                'submission_id': submission_id
-            })
+            log_derivation('Completed transfer of records from temp table to published table', submission_id)
 
-            logger.info({
-                'message': 'Beginning uncaching old files and deactivating old records',
-                'message_type': 'BrokerDebug',
-                'submission_id': submission_id
-            })
+            log_derivation('Beginning uncaching old files and deactivating old records', submission_id)
             # Deactivate all old records that have been updated with this submission
             deactivate_query = """
                 WITH new_record_keys AS
@@ -899,18 +873,17 @@ class FileHandler:
                     AND file_type = 'D2';
             """
             sess.execute(uncache_query.format(submission_id=submission_id))
-            logger.info({
-                'message': 'Completed uncaching old files and deactivating old records',
-                'message_type': 'BrokerDebug',
-                'submission_id': submission_id
-            })
+            log_derivation('Completed uncaching old files and deactivating old records', submission_id)
 
             sess.commit()
         except Exception as e:
-            log_data['message'] = 'An error occurred while publishing a FABS submission'
-            log_data['message_type'] = 'BrokerError'
-            log_data['error_message'] = str(e)
-            logger.error(log_data)
+            log_message = {
+                'message': 'An error occurred while publishing a FABS submission',
+                'message_type': 'BrokerError',
+                'error_message': str(e),
+                'submission_id': submission_id
+            }
+            logger.error(log_message)
 
             # rollback the changes if there are any errors. We want to submit everything together
             sess.rollback()
@@ -926,8 +899,7 @@ class FileHandler:
                 return JsonResponse.error(e, e.status)
 
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
-        log_data['message'] = 'Completed derivations for FABS submission'
-        logger.info(log_data)
+        log_derivation('Completed derivations for FABS submission', submission_id)
 
         sess.query(Submission).filter_by(submission_id=submission_id).\
             update({'publish_status_id': PUBLISH_STATUS_DICT['published'], 'certifying_user_id': g.user.user_id,
