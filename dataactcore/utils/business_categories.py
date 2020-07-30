@@ -496,10 +496,10 @@ def derive_fabs_business_categories(sess, submission_id):
         UPDATE tmp_fabs_{submission_id}
         SET business_categories = compile_fabs_business_categories(UPPER(business_types));
     """
-    sess.execute(query.format(submission_id=submission_id))
+    res = sess.execute(query.format(submission_id=submission_id))
 
     logger.info({
-        'message': 'Completed business categories derivation',
+        'message': 'Completed business categories derivation, updated {}'.format(res.rowcount),
         'message_type': 'BrokerDebug',
         'submission_id': submission_id
     })

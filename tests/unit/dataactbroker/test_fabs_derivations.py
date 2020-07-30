@@ -895,24 +895,6 @@ def test_derive_labels(database):
     assert fabs_obj.business_types_desc == BUSINESS_TYPE_DICT['A'] + ';' + BUSINESS_TYPE_DICT['B']
 
 
-def test_is_active(database):
-    initialize_db_values(database)
-
-    # Testing with none values
-    submission_id = initialize_test_row(database, submission_id=2)
-    fabs_derivations(database.session, submission_id)
-    database.session.commit()
-    fabs_obj = get_derived_fabs(database, submission_id)
-    assert fabs_obj.is_active is True
-
-    # Testing with value other than D
-    submission_id = initialize_test_row(database, cdi='c', submission_id=3)
-    fabs_derivations(database.session, submission_id)
-    database.session.commit()
-    fabs_obj = get_derived_fabs(database, submission_id)
-    assert fabs_obj.is_active is True
-
-
 def test_derive_ppop_scope(database):
     initialize_db_values(database)
 

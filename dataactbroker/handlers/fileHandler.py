@@ -703,6 +703,7 @@ class FileHandler:
             column_list.remove('created_at')
             column_list.remove('updated_at')
             column_list.remove('modified_at')
+            column_list.remove('is_active')
             column_list.remove('published_award_financial_assistance_id')
             published_col_string = ", ".join(column_list)
 
@@ -796,8 +797,6 @@ class FileHandler:
             """.format(submission_id=submission_id)
             sess.execute(create_indexes_sql)
 
-            # sess.execute('VACUUM ANALYZE tmp_fabs_{submission_id}'.format(subission_id=submission_id))
-
             insert_query = """
                 INSERT INTO tmp_fabs_{submission_id} ({cols})
                 SELECT {cols}
@@ -823,8 +822,9 @@ class FileHandler:
 
             # Inserting non-delete records
             insert_query = """
-                INSERT INTO published_award_financial_assistance (created_at, updated_at, {cols}, modified_at)
-                SELECT NOW() AS created_at, NOW() AS updated_at, {cols}, NOW() AS modified_at
+                INSERT INTO published_award_financial_assistance (created_at, updated_at, {cols}, modified_at,
+                                                                  is_active)
+                SELECT NOW() AS created_at, NOW() AS updated_at, {cols}, NOW() AS modified_at, TRUE AS is_active
                 FROM tmp_fabs_{submission_id} AS tmp_fabs;
             """
             sess.execute(insert_query.format(cols=published_col_string, submission_id=submission_id))
