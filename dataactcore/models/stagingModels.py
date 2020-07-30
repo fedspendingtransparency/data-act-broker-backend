@@ -1603,10 +1603,10 @@ class PublishedAwardFinancialAssistance(Base):
     awarding_office_name = Column(Text)
     awarding_sub_tier_agency_c = Column(Text, index=True)
     awarding_sub_tier_agency_n = Column(Text)
-    award_modification_amendme = Column(Text, index=True)
+    award_modification_amendme = Column(Text)
     business_funds_indicator = Column(Text)
     business_funds_ind_desc = Column(Text)
-    business_types = Column(Text, index=True)
+    business_types = Column(Text)
     business_types_desc = Column(Text)
     business_categories = Column(ARRAY(Text))
     cfda_number = Column(Text, index=True)
@@ -1630,18 +1630,18 @@ class PublishedAwardFinancialAssistance(Base):
     legal_entity_address_line3 = Column(Text)
     legal_entity_city_name = Column(Text)
     legal_entity_city_code = Column(Text)
-    legal_entity_congressional = Column(Text, index=True)
+    legal_entity_congressional = Column(Text)
     legal_entity_country_code = Column(Text)
-    legal_entity_county_code = Column(Text, index=True)
+    legal_entity_county_code = Column(Text)
     legal_entity_county_name = Column(Text)
     legal_entity_foreign_city = Column(Text)
     legal_entity_foreign_posta = Column(Text)
     legal_entity_foreign_provi = Column(Text)
     legal_entity_foreign_descr = Column(Text)
-    legal_entity_state_code = Column(Text, index=True)
+    legal_entity_state_code = Column(Text)
     legal_entity_state_name = Column(Text)
-    legal_entity_zip5 = Column(Text, index=True)
-    legal_entity_zip_last4 = Column(Text, index=True)
+    legal_entity_zip5 = Column(Text)
+    legal_entity_zip_last4 = Column(Text)
     modified_at = Column(DateTime)
     non_federal_funding_amount = Column(Numeric)
     original_loan_subsidy_cost = Column(Numeric)
@@ -1653,11 +1653,11 @@ class PublishedAwardFinancialAssistance(Base):
     place_of_perform_country_c = Column(Text, index=True)
     place_of_perform_county_na = Column(Text)
     place_of_performance_forei = Column(Text)
-    place_of_perfor_state_code = Column(Text, index=True)
+    place_of_perfor_state_code = Column(Text)
     place_of_perform_state_nam = Column(Text)
     place_of_performance_zip4a = Column(Text)
-    place_of_performance_zip5 = Column(Text, index=True)
-    place_of_perform_zip_last4 = Column(Text, index=True)
+    place_of_performance_zip5 = Column(Text)
+    place_of_perform_zip_last4 = Column(Text)
     place_of_performance_scope = Column(Text)
     record_type = Column(Integer, index=True)
     record_type_description = Column(Text)
@@ -1666,7 +1666,7 @@ class PublishedAwardFinancialAssistance(Base):
     ultimate_parent_legal_enti = Column(Text)
     ultimate_parent_unique_ide = Column(Text)
     uri = Column(Text, index=True)
-    place_of_perform_county_co = Column(Text, index=True)
+    place_of_perform_county_co = Column(Text)
     place_of_perform_country_n = Column(Text)
     legal_entity_country_name = Column(Text)
     submission_id = Column(Numeric, index=True)
@@ -1701,9 +1701,9 @@ Index("ix_pafa_fain_awarding_sub_tier_is_active",
       PublishedAwardFinancialAssistance.is_active,
       unique=False)
 
-Index("ix_pafa_fain_awarding_sub_tier",
-      PublishedAwardFinancialAssistance.fain,
-      PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c,
+Index("ix_pafa_fain_awarding_subtier_upper",
+      func.upper(PublishedAwardFinancialAssistance.fain),
+      func.upper(PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c),
       unique=False)
 
 Index("ix_pafa_uri_awarding_sub_tier_is_active",
@@ -1712,19 +1712,12 @@ Index("ix_pafa_uri_awarding_sub_tier_is_active",
       PublishedAwardFinancialAssistance.is_active,
       unique=False)
 
-Index("ix_pafa_uri_awarding_sub_tier",
-      PublishedAwardFinancialAssistance.uri,
-      PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c,
+Index("ix_pafa_uri_awarding_subtier_upper",
+      func.upper(PublishedAwardFinancialAssistance.uri),
+      func.upper(PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c),
       unique=False)
 
 Index("ix_pafa_fain_upper", func.upper(PublishedAwardFinancialAssistance.fain))
 Index("ix_pafa_uri_upper", func.upper(PublishedAwardFinancialAssistance.uri))
 Index("ix_pafa_awarding_subtier_c_upper", func.upper(PublishedAwardFinancialAssistance.awarding_sub_tier_agency_c))
 Index("ix_pafa_afa_generated_unique_upper", func.upper(PublishedAwardFinancialAssistance.afa_generated_unique))
-Index("ix_pafa_legal_entity_city_name_upper", func.upper(PublishedAwardFinancialAssistance.legal_entity_city_name))
-Index("ix_pafa_legal_entity_state_code_upper", func.upper(PublishedAwardFinancialAssistance.legal_entity_state_code))
-Index("ix_pafa_legal_entity_country_code_upper",
-      func.upper(PublishedAwardFinancialAssistance.legal_entity_country_code))
-Index("ix_pafa_business_funds_indicator_upper", func.upper(PublishedAwardFinancialAssistance.business_funds_indicator))
-Index("ix_pafa_awarding_office_code_upper", func.upper(PublishedAwardFinancialAssistance.awarding_office_code))
-Index("ix_pafa_funding_office_code_upper", func.upper(PublishedAwardFinancialAssistance.funding_office_code))
