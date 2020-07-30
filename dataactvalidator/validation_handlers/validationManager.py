@@ -620,7 +620,7 @@ class ValidationManager:
             flex_rows['file_type_id'] = self.file_type.file_type_id
 
             # Adding the entire set of flex fields
-            rows_inserted = insert_dataframe(flex_rows, FlexField.__table__.name, sess.connection())
+            rows_inserted = insert_dataframe(flex_rows, FlexField.__table__.name, sess.connection(), method='copy')
             logger.info({
                 'message': 'Loaded {} flex field rows for batch'.format(rows_inserted),
                 'message_type': 'ValidatorInfo',
@@ -756,21 +756,16 @@ class ValidationManager:
             error_file.close()
             warning_file.close()
 
-            # stream file to S3 when not local
+            # upload file to S3 when not local
             if not self.is_local:
-                s3_resource = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
-                # stream error file
-                with open(error_file_path, 'rb') as csv_file:
-                    s3_resource.Object(CONFIG_BROKER['aws_bucket'], self.get_file_name(error_file_name)).\
-                        put(Body=csv_file)
-                csv_file.close()
+                region_name = CONFIG_BROKER['aws_region']
+                bucket_name = CONFIG_BROKER['aws_bucket']
+                s3 = boto3.client('s3', region_name=region_name)
+
+                s3.upload_file(error_file_path, bucket_name, self.get_file_name(error_file_name))
                 os.remove(error_file_path)
 
-                # stream warning file
-                with open(warning_file_path, 'rb') as warning_csv_file:
-                    s3_resource.Object(CONFIG_BROKER['aws_bucket'], self.get_file_name(warning_file_name)).\
-                        put(Body=warning_csv_file)
-                warning_csv_file.close()
+                s3.upload_file(warning_file_path, bucket_name, self.get_file_name(warning_file_name))
                 os.remove(warning_file_path)
 
         # write all recorded errors to database

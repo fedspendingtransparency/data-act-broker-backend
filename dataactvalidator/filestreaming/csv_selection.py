@@ -42,11 +42,7 @@ def write_csv(file_name, upload_name, is_local, header, body):
     csv_file.close()
 
     if not is_local:
-        # stream file to S3
-        with open(local_filename, 'rb') as reader:
-            stream_file_to_s3(upload_name, reader)
-        # close and delete local copy
-        reader.close()
+        upload_file_to_s3(upload_name, local_filename)
         os.remove(local_filename)
 
 
@@ -85,11 +81,7 @@ def write_stream_query(sess, query, local_filename, upload_name, is_local, heade
     })
 
     if not is_local:
-        # stream file to S3
-        with open(local_filename, 'rb') as reader:
-            stream_file_to_s3(upload_name, reader, is_certified)
-        # close and delete local copy
-        reader.close()
+        upload_file_to_s3(upload_name, local_filename, is_certified=is_certified)
         os.remove(local_filename)
 
 
@@ -136,29 +128,29 @@ def write_query_to_file(sess, query, local_filename, header=None, generate_heade
     os.remove(temp_sql_file_path)
 
 
-def stream_file_to_s3(upload_name, reader, is_certified=False):
-    """ Stream file to S3
+def upload_file_to_s3(upload_name, local_file, is_certified=False):
+    """ Upload file to S3
 
         Args:
             upload_name: file name to be used as S3 key
-            reader: reader object to read data from
+            local_file: full path of local file
             is_certified: True if writing to the certified bucket, False otherwise (default False)
     """
     path, file_name = upload_name.rsplit('/', 1)
     logger.debug({
-        'message': 'Streaming file to S3',
+        'message': 'Uploading file to S3',
         'message_type': 'ValidatorDebug',
         'file_name': file_name if file_name else path
     })
 
-    s3_resource = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
+    s3 = boto3.client('s3', region_name=CONFIG_BROKER['aws_region'])
 
     if is_certified:
         bucket_name = CONFIG_BROKER["certified_bucket"]
     else:
         bucket_name = CONFIG_BROKER["aws_bucket"]
 
-    s3_resource.Object(bucket_name, upload_name).put(Body=reader)
+    s3.upload_file(local_file, bucket_name, upload_name)
 
 
 def generate_temp_query_file(query, header=True, delimiter=','):
