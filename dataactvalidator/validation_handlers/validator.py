@@ -167,13 +167,14 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, job_id, error_c
         })
 
 
-def validate_file_by_sql(job, file_type, short_to_long_dict, queries_only=True):
+def validate_file_by_sql(job, file_type, short_to_long_dict, batch_results=False):
     """ Check all SQL rules
 
         Args:
             job: the Job which is running
             file_type: file type being checked
             short_to_long_dict: mapping of short to long schema column names
+            batch_results: instead of storing the results in memory, batch the results (for memory)
 
         Yields:
             ValidationFailures
@@ -232,13 +233,7 @@ def validate_file_by_sql(job, file_type, short_to_long_dict, queries_only=True):
                 yield failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, failure)
 
         sub_rule_sql = rule.rule_sql.format(job.submission_id)
-        if queries_only:
-            # Run the full SQL and fetch the results
-            failures = sess.execute(sub_rule_sql)
-            if failures.rowcount:
-                for failure in process_batch(failures, failures.keys()):
-                    yield failure
-        else:
+        if batch_results:
             # Only run the SQL in batches to save on memory
             proxy = sess.connection().execution_options(stream_results=True).execute(sub_rule_sql)
             while True:
@@ -248,6 +243,12 @@ def validate_file_by_sql(job, file_type, short_to_long_dict, queries_only=True):
                 for failure in process_batch(failures, failures[0].keys()):
                     yield failure
             proxy.close()
+        else:
+            # Run the full SQL and fetch the results
+            failures = sess.execute(sub_rule_sql)
+            if failures.rowcount:
+                for failure in process_batch(failures, failures.keys()):
+                    yield failure
 
         rule_duration = (datetime.now() - rule_start).total_seconds()
         logger.info({

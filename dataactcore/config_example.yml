@@ -8,6 +8,9 @@ broker:
     # Specify the number or rows to process at a time during submission validation
     validator_batch_size: 10000
 
+    # batch the results of SQL Validations (to save on memory)
+    batch_sql_validation_results: true
+
     # Specify the url where the front end of the application will be accessed.
     # For a local installation this will most likely be localhost or the
     # location where the /public files are located. If a port is required,

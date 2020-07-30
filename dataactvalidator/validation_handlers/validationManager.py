@@ -52,6 +52,7 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = CONFIG_BROKER['validator_batch_size']
+BATCH_SQL_VAL_RESULTS = CONFIG_BROKER['batch_sql_validation_results']
 
 
 class ValidationManager:
@@ -653,7 +654,7 @@ class ValidationManager:
         """
         for failure in validate_file_by_sql(self.job, self.file_type.name,
                                             self.short_to_long_dict[self.file_type.file_type_id],
-                                            queries_only=False):
+                                            batch_results=BATCH_SQL_VAL_RESULTS):
             self.process_failure(failure, short_colnames, writer, warning_writer)
 
     def process_failure(self, failure, short_colnames, writer, warning_writer):
