@@ -115,6 +115,11 @@ def initialize_db_values(db):
     db.session.commit()
 
 
+def stringify(value):
+    """ Stringify a value to insert cleanly into the test DB. """
+    return '\'{}\''.format(value) if value else 'NULL'
+
+
 def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_code='12aB', sub_fund_agency_code=None,
                         ppop_code='NY00000', ppop_zip4a=None, ppop_cd=None, le_zip5=None, le_zip4=None, record_type=2,
                         award_mod_amend=None, fain=None, uri=None, cdi=None, awarding_office='03ab03',
@@ -143,8 +148,6 @@ def initialize_test_row(db, fao=None, nffa=None, cfda_num='00.000', sub_tier_cod
         ALTER TABLE tmp_fabs_{submission_id} ADD COLUMN published_award_financial_assistance_id SERIAL PRIMARY KEY;
     """
     db.session.execute(create_query.format(submission_id=submission_id, cols=col_string))
-
-    stringify = lambda value: '\'{}\''.format(value) if value else 'NULL'
 
     insert_query = """
         INSERT INTO tmp_fabs_{submission_id} (federal_action_obligation, non_federal_funding_amount, cfda_number,
