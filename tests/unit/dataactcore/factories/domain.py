@@ -154,6 +154,7 @@ class SubTierAgencyFactory(factory.Factory):
     cgac = factory.SubFactory(CGACFactory)
     frec = factory.SubFactory(FRECFactory)
     priority = fuzzy.FuzzyInteger(1, 2)
+    is_frec = False
 
 
 class OfficeFactory(factory.Factory):
